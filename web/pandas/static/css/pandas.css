@@ -103,8 +103,3 @@ blockquote {
     color: #787878;
     font-size: 18px;
  }
- .codehilite > pre {
-    padding: 1em;
-    border: 0.1em solid darkgrey;
-    border-radius: 0.4em;
- }
