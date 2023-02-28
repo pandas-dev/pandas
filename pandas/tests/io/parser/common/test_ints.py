@@ -2,7 +2,9 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest

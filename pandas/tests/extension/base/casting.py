@@ -1,12 +1,18 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p21
+from pandas.compat import (
+    np_version_under1p21,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.internals import ObjectBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.core.internals import (
+    ObjectBlock,
+)
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseCastingTests(BaseExtensionTests):

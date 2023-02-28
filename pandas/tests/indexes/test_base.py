@@ -1,6 +1,12 @@
-from collections import defaultdict
-from datetime import datetime
-from io import StringIO
+from collections import (
+    defaultdict,
+)
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
 import math
 import operator
 import re
@@ -8,9 +14,15 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-from pandas.errors import InvalidIndexError
-from pandas.util._test_decorators import async_mark
+from pandas.compat import (
+    IS64,
+)
+from pandas.errors import (
+    InvalidIndexError,
+)
+from pandas.util._test_decorators import (
+    async_mark,
+)
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -39,7 +51,9 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.tests.indexes.common import Base
+from pandas.tests.indexes.common import (
+    Base,
+)
 
 
 class TestIndex(Base):
@@ -1217,7 +1231,9 @@ class TestIndex(Base):
     async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
-        from IPython.core.completer import provisionalcompleter
+        from IPython.core.completer import (
+            provisionalcompleter,
+        )
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)

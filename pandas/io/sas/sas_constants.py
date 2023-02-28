@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Final
+from typing import (
+    Final,
+)
 
 magic: Final = (
     b"\x00\x00\x00\x00\x00\x00\x00\x00"

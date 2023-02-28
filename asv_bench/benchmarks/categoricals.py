@@ -6,13 +6,19 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 try:
-    from pandas.api.types import union_categoricals
+    from pandas.api.types import (
+        union_categoricals,
+    )
 except ImportError:
     try:
-        from pandas.types.concat import union_categoricals
+        from pandas.types.concat import (
+            union_categoricals,
+        )
     except ImportError:
         pass
 

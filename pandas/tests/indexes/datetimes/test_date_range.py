@@ -11,9 +11,13 @@ from datetime import (
 import numpy as np
 import pytest
 import pytz
-from pytz import timezone
+from pytz import (
+    timezone,
+)
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    timezones,
+)
 from pandas._libs.tslibs.offsets import (
     BDay,
     CDay,
@@ -21,7 +25,9 @@ from pandas._libs.tslibs.offsets import (
     MonthEnd,
     prefix_mapping,
 )
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -34,7 +40,9 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays.datetimes import _generate_range as generate_range
+from pandas.core.arrays.datetimes import (
+    _generate_range as generate_range,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -96,7 +104,9 @@ class TestTimestampEquivDateRange:
 
     @td.skip_if_windows
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
-        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import (
+            dateutil_gettz as gettz,
+        )
 
         rng = date_range("20090415", "20090519", tz=gettz("US/Eastern"))
         stamp = rng[0]
@@ -591,7 +601,9 @@ class TestDateRanges:
         # see gh-2906
 
         # Use maybe_get_tz to fix filename in tz under dateutil.
-        from pandas._libs.tslibs.timezones import maybe_get_tz
+        from pandas._libs.tslibs.timezones import (
+            maybe_get_tz,
+        )
 
         tz = lambda x: maybe_get_tz("dateutil/" + x)
 
@@ -824,7 +836,9 @@ class TestDateRangeTZ:
         tm.assert_index_equal(result, expected)
 
     def test_date_range_with_fixedoffset_noname(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+        from pandas.tests.indexes.datetimes.test_timezones import (
+            fixed_off_no_name,
+        )
 
         off = fixed_off_no_name
         start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)

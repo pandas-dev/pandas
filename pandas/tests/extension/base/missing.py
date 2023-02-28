@@ -3,8 +3,12 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_sparse
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.api.types import (
+    is_sparse,
+)
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseMissingTests(BaseExtensionTests):

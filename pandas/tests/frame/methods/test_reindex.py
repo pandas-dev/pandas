@@ -7,7 +7,9 @@ import inspect
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz as gettz,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,7 +24,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import (
+    CategoricalDtype as CDT,
+)
 import pandas.core.common as com
 
 

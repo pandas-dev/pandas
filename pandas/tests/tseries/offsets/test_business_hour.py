@@ -1,7 +1,9 @@
 """
 Tests for offsets.BusinessHour
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -25,7 +27,9 @@ from pandas import (
     _testing as tm,
     date_range,
 )
-from pandas.tests.tseries.offsets.common import assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    assert_offset_equal,
+)
 
 
 @pytest.fixture

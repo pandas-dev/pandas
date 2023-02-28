@@ -1,6 +1,8 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from collections import (
     abc,
@@ -16,14 +18,18 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.writers import convert_json_to_lines
+from pandas._libs.writers import (
+    convert_json_to_lines,
+)
 from pandas._typing import (
     IgnoreRaise,
     Scalar,
 )
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 
 
 def convert_to_line_delimits(s: str) -> str:
@@ -149,7 +155,9 @@ def _normalise_json(
 
             if not key_string:
                 if sys.version_info < (3, 9):
-                    from pandas.util._str_methods import removeprefix
+                    from pandas.util._str_methods import (
+                        removeprefix,
+                    )
 
                     new_key = removeprefix(new_key, separator)
                 else:

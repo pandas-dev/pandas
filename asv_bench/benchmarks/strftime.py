@@ -1,7 +1,9 @@
 import numpy as np
 
 import pandas as pd
-from pandas import offsets
+from pandas import (
+    offsets,
+)
 
 
 class DatetimeStrftime:

@@ -1,12 +1,18 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core import ops
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.core import (
+    ops,
+)
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseOpsUtil(BaseExtensionTests):

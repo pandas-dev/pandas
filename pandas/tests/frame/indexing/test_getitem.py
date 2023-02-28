@@ -20,7 +20,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
+from pandas.core.arrays import (
+    SparseArray,
+)
 
 
 class TestGetitem:

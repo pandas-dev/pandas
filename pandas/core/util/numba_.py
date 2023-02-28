@@ -1,5 +1,7 @@
 """Common utilities for Numba operations"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import types
 from typing import (
@@ -9,8 +11,12 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import NumbaUtilError
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.errors import (
+    NumbaUtilError,
+)
 
 GLOBAL_USE_NUMBA: bool = False
 

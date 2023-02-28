@@ -6,7 +6,9 @@ from datetime import (
 
 import numpy as np
 
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs.period import (
+    Period,
+)
 
 NaT: NaTType
 iNaT: int

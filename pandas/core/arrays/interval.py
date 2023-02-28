@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 from operator import (
@@ -19,16 +21,22 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
     IntervalMixin,
     intervals_to_interval_bounds,
 )
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -42,9 +50,15 @@ from pandas._typing import (
     TimeArrayLike,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.errors import IntCastingNaNError
-from pandas.util._decorators import Appender
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    IntCastingNaNError,
+)
+from pandas.util._decorators import (
+    Appender,
+)
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -63,7 +77,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    IntervalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -86,15 +102,21 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
-from pandas.core.arrays.datetimes import DatetimeArray
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays.datetimes import (
+    DatetimeArray,
+)
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+)
 from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
@@ -302,7 +324,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype: Dtype | None = None,
     ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
         """Ensure correctness of input parameters for cls._simple_new."""
-        from pandas.core.indexes.base import ensure_index
+        from pandas.core.indexes.base import (
+            ensure_index,
+        )
 
         left = ensure_index(left, copy=copy)
         left = maybe_upcast_numeric_to_64bit(left)
@@ -747,7 +771,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # non-interval scalar -> no matches
             if other is NA:
                 # GH#31882
-                from pandas.core.arrays import BooleanArray
+                from pandas.core.arrays import (
+                    BooleanArray,
+                )
 
                 arr = np.empty(self.shape, dtype=bool)
                 mask = np.ones(self.shape, dtype=bool)
@@ -953,7 +979,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -1061,7 +1089,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            from pandas import Index
+            from pandas import (
+                Index,
+            )
 
             fill_value = Index(self._left, copy=False)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
@@ -1281,7 +1311,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         return Index(self._left, copy=False)
 
@@ -1290,7 +1322,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         return Index(self._right, copy=False)
 
@@ -1503,7 +1537,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+        from pandas.core.arrays.arrow.extension_types import (
+            ArrowIntervalType,
+        )
 
         try:
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)

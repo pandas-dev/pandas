@@ -21,7 +21,9 @@ from numpy in the following ways:
 
     3) divmod behavior consistent with 1) and 2).
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 
@@ -33,7 +35,9 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas.core.ops import roperator
+from pandas.core.ops import (
+    roperator,
+)
 
 
 def _fill_zeros(result, x, y):

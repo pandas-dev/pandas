@@ -1,9 +1,15 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
-from pandas import MultiIndex
-from pandas.core.arrays import ExtensionArray
+from pandas import (
+    MultiIndex,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 
 class IndexEngine:
     over_size_threshold: bool

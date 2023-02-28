@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def array_strptime(
     values: npt.NDArray[np.object_],

@@ -2,15 +2,23 @@
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
-from contextlib import ExitStack
-from io import BytesIO
-from multiprocessing.pool import ThreadPool
+from contextlib import (
+    ExitStack,
+)
+from io import (
+    BytesIO,
+)
+from multiprocessing.pool import (
+    ThreadPool,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 # We'll probably always skip these for pyarrow

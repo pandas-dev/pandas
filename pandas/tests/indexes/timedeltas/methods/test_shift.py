@@ -1,9 +1,13 @@
 import pytest
 
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    NullFrequencyError,
+)
 
 import pandas as pd
-from pandas import TimedeltaIndex
+from pandas import (
+    TimedeltaIndex,
+)
 import pandas._testing as tm
 
 

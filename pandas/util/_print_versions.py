@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import codecs
 import json
@@ -8,7 +10,9 @@ import platform
 import struct
 import sys
 
-from pandas._typing import JSONSerializable
+from pandas._typing import (
+    JSONSerializable,
+)
 from pandas.compat._optional import (
     VERSIONS,
     get_version,
@@ -21,7 +25,9 @@ def _get_commit_hash() -> str | None:
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
     """
-    from pandas._version import get_versions
+    from pandas._version import (
+        get_versions,
+    )
 
     versions = get_versions()
     return versions["full-revisionid"]

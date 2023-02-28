@@ -1,10 +1,14 @@
 """
 Provide basic components for groupby.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import dataclasses
-from typing import Hashable
+from typing import (
+    Hashable,
+)
 
 
 @dataclasses.dataclass(order=True, frozen=True)

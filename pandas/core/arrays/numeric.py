@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numbers
 from typing import (
@@ -20,8 +22,12 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -283,7 +289,9 @@ class NumericArray(BaseMaskedArray):
     def _from_sequence_of_strings(
         cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> T:
-        from pandas.core.tools.numeric import to_numeric
+        from pandas.core.tools.numeric import (
+            to_numeric,
+        )
 
         scalars = to_numeric(strings, errors="raise", use_nullable_dtypes=True)
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)

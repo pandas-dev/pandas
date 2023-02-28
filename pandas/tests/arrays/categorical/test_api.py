@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
+from pandas.compat import (
+    PY311,
+)
 
 from pandas import (
     Categorical,
@@ -14,7 +16,9 @@ from pandas import (
     StringDtype,
 )
 import pandas._testing as tm
-from pandas.core.arrays.categorical import recode_for_categories
+from pandas.core.arrays.categorical import (
+    recode_for_categories,
+)
 
 
 class TestCategoricalAPI:

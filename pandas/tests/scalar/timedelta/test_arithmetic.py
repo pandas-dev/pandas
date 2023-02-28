@@ -10,7 +10,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsTimedelta
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+)
 
 import pandas as pd
 from pandas import (
@@ -20,7 +22,9 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 
 
 class TestTimedeltaAdditionSubtraction:

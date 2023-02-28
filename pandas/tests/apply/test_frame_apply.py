@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -15,7 +19,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.frame.common import zip_frames
+from pandas.tests.frame.common import (
+    zip_frames,
+)
 
 
 def test_apply(float_frame):
@@ -649,7 +655,9 @@ def test_applymap_box():
 
 
 def test_frame_apply_dont_convert_datetime64():
-    from pandas.tseries.offsets import BDay
+    from pandas.tseries.offsets import (
+        BDay,
+    )
 
     df = DataFrame({"x1": [datetime(1996, 1, 1)]})
 

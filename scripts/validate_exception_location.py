@@ -18,13 +18,17 @@ Usage::
 As a pre-commit hook:
     pre-commit run validate-errors-locations --all-files
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import (
+    Sequence,
+)
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (

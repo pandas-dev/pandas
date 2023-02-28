@@ -1,7 +1,13 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import wraps
-from sys import getsizeof
+from functools import (
+    wraps,
+)
+from sys import (
+    getsizeof,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,14 +25,18 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._libs import (
     algos as libalgos,
     index as libindex,
     lib,
 )
-from pandas._libs.hashtable import duplicated
+from pandas._libs.hashtable import (
+    duplicated,
+)
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
@@ -40,7 +50,9 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -51,9 +63,13 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -67,7 +83,9 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -79,9 +97,15 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import validate_putmask
-from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import factorize_from_iterables
+from pandas.core.array_algos.putmask import (
+    validate_putmask,
+)
+from pandas.core.arrays import (
+    Categorical,
+)
+from pandas.core.arrays.categorical import (
+    factorize_from_iterables,
+)
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -90,15 +114,21 @@ from pandas.core.indexes.base import (
     ensure_index,
     get_unanimous_names,
 )
-from pandas.core.indexes.frozen import FrozenList
-from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.indexes.frozen import (
+    FrozenList,
+)
+from pandas.core.ops.invalid import (
+    make_invalid_op,
+)
 from pandas.core.sorting import (
     get_group_index,
     indexer_from_factorized,
     lexsort_indexer,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -640,7 +670,9 @@ class MultiIndex(Index):
                     (2, 'purple')],
                    names=['number', 'color'])
         """
-        from pandas.core.reshape.util import cartesian_product
+        from pandas.core.reshape.util import (
+            cartesian_product,
+        )
 
         if not is_list_like(iterables):
             raise TypeError("Input must be a list / sequence of iterables.")
@@ -771,7 +803,9 @@ class MultiIndex(Index):
         """
         Return the dtypes as a Series for the underlying MultiIndex.
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         names = com.fill_missing_names([level.name for level in self.levels])
         return Series([level.dtype for level in self.levels], index=Index(names))
@@ -1180,7 +1214,9 @@ class MultiIndex(Index):
         levels, codes = None, None
 
         if deep:
-            from copy import deepcopy
+            from copy import (
+                deepcopy,
+            )
 
             levels = deepcopy(self.levels)
             codes = deepcopy(self.codes)
@@ -1379,7 +1415,9 @@ class MultiIndex(Index):
             )
 
         if adjoin:
-            from pandas.io.formats.format import get_adjustment
+            from pandas.io.formats.format import (
+                get_adjustment,
+            )
 
             adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
@@ -1721,7 +1759,9 @@ class MultiIndex(Index):
         a c  a  c
         b d  b  d
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         if name is not lib.no_default:
             if not is_list_like(name):

@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numbers
 from typing import (
@@ -22,11 +24,19 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.dtypes import (
+    register_extension_dtype,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core import ops
-from pandas.core.array_algos import masked_accumulations
+from pandas.core import (
+    ops,
+)
+from pandas.core.array_algos import (
+    masked_accumulations,
+)
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -35,7 +45,9 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
+    from pandas._typing import (
+        npt,
+    )
 
 
 @register_extension_dtype
@@ -387,7 +399,9 @@ class BooleanArray(BaseMaskedArray):
             data, mask = op(data, mask, skipna=skipna, **kwargs)
             return type(self)(data, mask, copy=False)
         else:
-            from pandas.core.arrays import IntegerArray
+            from pandas.core.arrays import (
+                IntegerArray,
+            )
 
             return IntegerArray(data.astype(int), mask)._accumulate(
                 name, skipna=skipna, **kwargs

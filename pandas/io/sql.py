@@ -3,7 +3,9 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
@@ -18,7 +20,9 @@ from datetime import (
     datetime,
     time,
 )
-from functools import partial
+from functools import (
+    partial,
+)
 import re
 from typing import (
     TYPE_CHECKING,
@@ -32,20 +36,28 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     DateTimeErrorChoices,
     DtypeArg,
     IndexLabel,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -53,22 +65,38 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas import get_option
+from pandas import (
+    get_option,
+)
 from pandas.core.api import (
     DataFrame,
     Series,
 )
-from pandas.core.arrays import ArrowExtensionArray
-from pandas.core.base import PandasObject
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+)
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
-from pandas.core.internals.construction import convert_object_array
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.internals.construction import (
+    convert_object_array,
+)
+from pandas.core.tools.datetimes import (
+    to_datetime,
+)
 
 if TYPE_CHECKING:
-    from sqlalchemy import Table
+    from sqlalchemy import (
+        Table,
+    )
     from sqlalchemy.sql.expression import (
         Select,
         TextClause,
@@ -908,7 +936,9 @@ class SQLTable(PandasObject):
         return self.pd_sql.has_table(self.name, self.schema)
 
     def sql_schema(self) -> str:
-        from sqlalchemy.schema import CreateTable
+        from sqlalchemy.schema import (
+            CreateTable,
+        )
 
         return str(CreateTable(self.table).compile(self.pd_sql.con))
 
@@ -957,7 +987,9 @@ class SQLTable(PandasObject):
         but performance degrades quickly with increase of columns.
         """
 
-        from sqlalchemy import insert
+        from sqlalchemy import (
+            insert,
+        )
 
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table).values(data)
@@ -1091,7 +1123,9 @@ class SQLTable(PandasObject):
         chunksize=None,
         use_nullable_dtypes: bool = False,
     ) -> DataFrame | Iterator[DataFrame]:
-        from sqlalchemy import select
+        from sqlalchemy import (
+            select,
+        )
 
         if columns is not None and len(columns) > 0:
             cols = [self.table.c[n] for n in columns]
@@ -1181,7 +1215,9 @@ class SQLTable(PandasObject):
             PrimaryKeyConstraint,
             Table,
         )
-        from sqlalchemy.schema import MetaData
+        from sqlalchemy.schema import (
+            MetaData,
+        )
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1470,7 +1506,9 @@ class SQLAlchemyEngine(BaseEngine):
         method=None,
         **engine_kwargs,
     ) -> int | None:
-        from sqlalchemy import exc
+        from sqlalchemy import (
+            exc,
+        )
 
         try:
             return table.insert(chunksize=chunksize, method=method)
@@ -1538,9 +1576,15 @@ class SQLDatabase(PandasSQL):
     def __init__(
         self, con, schema: str | None = None, need_transaction: bool = False
     ) -> None:
-        from sqlalchemy import create_engine
-        from sqlalchemy.engine import Engine
-        from sqlalchemy.schema import MetaData
+        from sqlalchemy import (
+            create_engine,
+        )
+        from sqlalchemy.engine import (
+            Engine,
+        )
+        from sqlalchemy.schema import (
+            MetaData,
+        )
 
         # self.exit_stack cleans up the Engine and Connection and commits the
         # transaction if any of those objects was created below.
@@ -1811,7 +1855,9 @@ class SQLDatabase(PandasSQL):
             else:
                 dtype = cast(dict, dtype)
 
-            from sqlalchemy.types import TypeEngine
+            from sqlalchemy.types import (
+                TypeEngine,
+            )
 
             for col, my_type in dtype.items():
                 if isinstance(my_type, type) and issubclass(my_type, TypeEngine):
@@ -1846,7 +1892,9 @@ class SQLDatabase(PandasSQL):
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
-            from sqlalchemy import inspect as sqlalchemy_inspect
+            from sqlalchemy import (
+                inspect as sqlalchemy_inspect,
+            )
 
             insp = sqlalchemy_inspect(self.con)
             table_names = insp.get_table_names(schema=schema or self.meta.schema)
@@ -1957,7 +2005,9 @@ class SQLDatabase(PandasSQL):
         return self.meta.tables
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
-        from sqlalchemy import inspect as sqlalchemy_inspect
+        from sqlalchemy import (
+            inspect as sqlalchemy_inspect,
+        )
 
         insp = sqlalchemy_inspect(self.con)
         return insp.has_table(name, schema or self.meta.schema)

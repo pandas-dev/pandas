@@ -1,6 +1,10 @@
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import numbers
-from sys import maxsize
+from sys import (
+    maxsize,
+)
 
 cimport cython
 from cpython.datetime cimport (
@@ -8,7 +12,9 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 
 import numpy as np
 
@@ -23,7 +29,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs cimport util
+from pandas._libs cimport (
+    util,
+)
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
@@ -36,7 +44,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value,
 )
 
-from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas._libs.ops_dispatch import (
+    maybe_dispatch_ufunc_to_dunder_op,
+)
 
 cdef:
     float64_t INF = <float64_t>np.inf

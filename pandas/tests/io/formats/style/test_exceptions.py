@@ -7,7 +7,9 @@ from pandas import (
     MultiIndex,
 )
 
-from pandas.io.formats.style import Styler
+from pandas.io.formats.style import (
+    Styler,
+)
 
 
 @pytest.fixture

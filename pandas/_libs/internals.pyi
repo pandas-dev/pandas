@@ -14,9 +14,15 @@ from pandas._typing import (
     npt,
 )
 
-from pandas import Index
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.internals.blocks import Block as B
+from pandas import (
+    Index,
+)
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+)
+from pandas.core.internals.blocks import (
+    Block as B,
+)
 
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 def get_blkno_indexers(

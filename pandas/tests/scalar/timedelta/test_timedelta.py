@@ -1,5 +1,7 @@
 """ test the scalar Timedelta """
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 from hypothesis import (
     given,
@@ -8,13 +10,19 @@ from hypothesis import (
 import numpy as np
 import pytest
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsTimedelta
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+)
 
 import pandas as pd
 from pandas import (

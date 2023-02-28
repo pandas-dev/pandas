@@ -1,12 +1,16 @@
 """
 Tests for DateOffset additions over Daylight Savings Time
 """
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import pytest
 import pytz
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     BMonthBegin,
     BMonthEnd,
@@ -30,7 +34,9 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 # error: Module has no attribute "__version__"
 pytz_version = Version(pytz.__version__)  # type: ignore[attr-defined]

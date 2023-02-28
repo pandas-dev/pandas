@@ -2,7 +2,9 @@ import string
 
 import numpy as np
 
-from pandas._typing import NpDtype
+from pandas._typing import (
+    NpDtype,
+)
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
 

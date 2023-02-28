@@ -1,19 +1,29 @@
-from functools import partial
+from functools import (
+    partial,
+)
 from io import (
     BytesIO,
     StringIO,
 )
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import re
 import threading
-from typing import Iterator
-from urllib.error import URLError
+from typing import (
+    Iterator,
+)
+from urllib.error import (
+    URLError,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -34,7 +44,9 @@ from pandas.core.arrays import (
     StringArray,
 )
 
-from pandas.io.common import file_path_to_url
+from pandas.io.common import (
+    file_path_to_url,
+)
 import pandas.io.html
 
 
@@ -182,7 +194,9 @@ class TestReadHtml:
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = DataFrame(
                 {
@@ -655,7 +669,9 @@ class TestReadHtml:
 
     @pytest.mark.slow
     def test_banklist_header(self, banklist_data, datapath):
-        from pandas.io.html import _remove_whitespace
+        from pandas.io.html import (
+            _remove_whitespace,
+        )
 
         def try_remove_ws(x):
             try:

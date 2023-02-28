@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import suppress
+from contextlib import (
+    suppress,
+)
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -13,15 +17,23 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+)
 
-from pandas._libs.indexing import NDFrameIndexerBase
-from pandas._libs.lib import item_from_zerodim
+from pandas._libs.indexing import (
+    NDFrameIndexerBase,
+)
+from pandas._libs.lib import (
+    item_from_zerodim,
+)
 from pandas._typing import (
     Axis,
     AxisInt,
 )
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+)
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -30,7 +42,9 @@ from pandas.errors import (
     LossySetitemError,
     _chained_assignment_msg,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -49,7 +63,9 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -61,7 +77,9 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-from pandas.core import algorithms as algos
+from pandas.core import (
+    algorithms as algos,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -1841,7 +1859,9 @@ class _iLocIndexer(_LocationIndexer):
             raise ValueError(r"Cannot set values with ndim > 2")
 
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             value = self._align_series(indexer, Series(value))
 
@@ -2029,7 +2049,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
@@ -2071,7 +2093,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         # reindex the axis to the new value
         # and set inplace

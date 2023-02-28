@@ -1,7 +1,9 @@
 """
 Tests for offsets.BDay
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     date,
@@ -28,7 +30,9 @@ from pandas.tests.tseries.offsets.common import (
     assert_offset_equal,
 )
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @pytest.fixture

@@ -5,8 +5,12 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelFile
-from pandas.io.excel._base import inspect_excel_format
+from pandas.io.excel import (
+    ExcelFile,
+)
+from pandas.io.excel._base import (
+    inspect_excel_format,
+)
 
 xlrd = pytest.importorskip("xlrd")
 
@@ -39,7 +43,9 @@ def test_read_xlrd_book(read_ext_xlrd, datapath):
 
 def test_read_xlsx_fails(datapath):
     # GH 29375
-    from xlrd.biffh import XLRDError
+    from xlrd.biffh import (
+        XLRDError,
+    )
 
     path = datapath("io", "data", "excel", "test1.xlsx")
     with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):

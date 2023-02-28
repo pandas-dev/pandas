@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -17,7 +21,9 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.indexers.objects import (
     BaseIndexer,

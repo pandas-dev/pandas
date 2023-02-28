@@ -1,12 +1,18 @@
 """
 Tests for Fiscal Year and Fiscal Quarter offset classes
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import (
+    relativedelta,
+)
 import pytest
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 from pandas.tests.tseries.offsets.common import (
     WeekDay,
     assert_is_on_offset,

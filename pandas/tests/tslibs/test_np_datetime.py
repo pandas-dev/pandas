@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,

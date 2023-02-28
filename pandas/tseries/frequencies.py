@@ -1,8 +1,12 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas._libs.algos import unique_deltas
+from pandas._libs.algos import (
+    unique_deltas,
+)
 from pandas._libs.tslibs import (
     Timestamp,
     get_unit_from_dtype,
@@ -25,9 +29,15 @@ from pandas._libs.tslibs.offsets import (
     Day,
     to_offset,
 )
-from pandas._libs.tslibs.parsing import get_rule_month
-from pandas._typing import npt
-from pandas.util._decorators import cache_readonly
+from pandas._libs.tslibs.parsing import (
+    get_rule_month,
+)
+from pandas._typing import (
+    npt,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -40,7 +50,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import unique
+from pandas.core.algorithms import (
+    unique,
+)
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions

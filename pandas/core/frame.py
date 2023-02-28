@@ -8,16 +8,24 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import collections
-from collections import abc
+from collections import (
+    abc,
+)
 import datetime
 import functools
-from io import StringIO
+from io import (
+    StringIO,
+)
 import itertools
 import sys
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -34,7 +42,9 @@ from typing import (
 import warnings
 
 import numpy as np
-from numpy import ma
+from numpy import (
+    ma,
+)
 
 from pandas._config import (
     get_option,
@@ -46,7 +56,9 @@ from pandas._libs import (
     lib,
     properties,
 )
-from pandas._libs.hashtable import duplicated
+from pandas._libs.hashtable import (
+    duplicated,
+)
 from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
@@ -92,8 +104,12 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
-from pandas.compat import PYPY
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat import (
+    PYPY,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.compat.numpy import (
     function as nv,
     np_percentile_argname,
@@ -108,7 +124,9 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -146,7 +164,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -158,28 +178,40 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import (
+    CachedAccessor,
+)
 from pandas.core.apply import (
     reconstruct_func,
     relabel_result,
 )
-from pandas.core.array_algos.take import take_2d_multi
-from pandas.core.arraylike import OpsMixin
+from pandas.core.array_algos.take import (
+    take_2d_multi,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.sparse import (
+    SparseFrameAccessor,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import NDFrame
-from pandas.core.indexers import check_key_length
+from pandas.core.generic import (
+    NDFrame,
+)
+from pandas.core.indexers import (
+    check_key_length,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -212,17 +244,27 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
-from pandas.core.methods import selectn
-from pandas.core.reshape.melt import melt
-from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.methods import (
+    selectn,
+)
+from pandas.core.reshape.melt import (
+    melt,
+)
+from pandas.core.series import (
+    Series,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 from pandas.core.sorting import (
     get_group_index,
     lexsort_indexer,
     nargsort,
 )
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 from pandas.io.formats import (
     console,
     format as fmt,
@@ -235,12 +277,22 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from pandas.core.groupby.generic import DataFrameGroupBy
-    from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals import SingleDataManager
-    from pandas.core.resample import Resampler
+    from pandas.core.groupby.generic import (
+        DataFrameGroupBy,
+    )
+    from pandas.core.interchange.dataframe_protocol import (
+        DataFrame as DataFrameXchg,
+    )
+    from pandas.core.internals import (
+        SingleDataManager,
+    )
+    from pandas.core.resample import (
+        Resampler,
+    )
 
-    from pandas.io.formats.style import Styler
+    from pandas.io.formats.style import (
+        Styler,
+    )
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -703,7 +755,9 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#38939 de facto copy defaults to False only in non-dict cases
             mgr = dict_to_mgr(data, index, columns, dtype=dtype, copy=copy, typ=manager)
         elif isinstance(data, ma.MaskedArray):
-            from numpy.ma import mrecords
+            from numpy.ma import (
+                mrecords,
+            )
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -879,7 +933,9 @@ class DataFrame(NDFrame, OpsMixin):
         dtypes is added, this value should be propagated to columns.
         """
 
-        from pandas.core.interchange.dataframe import PandasDataFrameXchg
+        from pandas.core.interchange.dataframe import (
+            PandasDataFrameXchg,
+        )
 
         return PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
@@ -1242,7 +1298,9 @@ class DataFrame(NDFrame, OpsMixin):
         1     2     5
         2     3     6
         """
-        from pandas import option_context
+        from pandas import (
+            option_context,
+        )
 
         with option_context("display.max_colwidth", max_colwidth):
             formatter = fmt.DataFrameFormatter(
@@ -1283,7 +1341,9 @@ class DataFrame(NDFrame, OpsMixin):
         io.formats.style.Styler : Helps style a DataFrame or Series according to the
             data with HTML and CSS.
         """
-        from pandas.io.formats.style import Styler
+        from pandas.io.formats.style import (
+            Styler,
+        )
 
         return Styler(self)
 
@@ -1973,7 +2033,9 @@ class DataFrame(NDFrame, OpsMixin):
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
-        from pandas.core.methods.to_dict import to_dict
+        from pandas.core.methods.to_dict import (
+            to_dict,
+        )
 
         return to_dict(self, orient, into, index)
 
@@ -2073,7 +2135,9 @@ class DataFrame(NDFrame, OpsMixin):
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
         read_gbq : Read a DataFrame from Google BigQuery.
         """
-        from pandas.io import gbq
+        from pandas.io import (
+            gbq,
+        )
 
         gbq.to_gbq(
             self,
@@ -2626,7 +2690,9 @@ class DataFrame(NDFrame, OpsMixin):
         if version == 114:
             if convert_strl is not None:
                 raise ValueError("strl is not supported in format 114")
-            from pandas.io.stata import StataWriter as statawriter
+            from pandas.io.stata import (
+                StataWriter as statawriter,
+            )
         elif version == 117:
             # Incompatible import of "statawriter" (imported name has type
             # "Type[StataWriter117]", local name has type "Type[StataWriter]")
@@ -2688,7 +2754,9 @@ class DataFrame(NDFrame, OpsMixin):
         index. For saving the DataFrame with your custom index use a method that
         supports custom indices e.g. `to_parquet`.
         """
-        from pandas.io.feather_format import to_feather
+        from pandas.io.feather_format import (
+            to_feather,
+        )
 
         to_feather(self, path, **kwargs)
 
@@ -2867,7 +2935,9 @@ class DataFrame(NDFrame, OpsMixin):
         0
         >>> content = f.read()
         """
-        from pandas.io.parquet import to_parquet
+        from pandas.io.parquet import (
+            to_parquet,
+        )
 
         return to_parquet(
             self,
@@ -2961,7 +3031,9 @@ class DataFrame(NDFrame, OpsMixin):
         0
         >>> content = b.read()  # doctest: +SKIP
         """
-        from pandas.io.orc import to_orc
+        from pandas.io.orc import (
+            to_orc,
+        )
 
         return to_orc(
             self, path, engine=engine, index=index, engine_kwargs=engine_kwargs
@@ -4537,7 +4609,9 @@ class DataFrame(NDFrame, OpsMixin):
         3  4   4   8  0
         4  5   2   7  3
         """
-        from pandas.core.computation.eval import eval as _eval
+        from pandas.core.computation.eval import (
+            eval as _eval,
+        )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
@@ -7927,7 +8001,9 @@ Keep all original rows and columns and also all original values
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
+        from pandas.core.computation import (
+            expressions,
+        )
 
         def combiner(x, y):
             mask = extract_array(isna(x))
@@ -8071,7 +8147,9 @@ Keep all original rows and columns and also all original values
         1  2  500
         2  3    6
         """
-        from pandas.core.computation import expressions
+        from pandas.core.computation import (
+            expressions,
+        )
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -8227,7 +8305,9 @@ Parrot 2  Parrot       24.0
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+        )
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -8394,7 +8474,9 @@ Parrot 2  Parrot       24.0
     @Substitution("")
     @Appender(_shared_docs["pivot"])
     def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
-        from pandas.core.reshape.pivot import pivot
+        from pandas.core.reshape.pivot import (
+            pivot,
+        )
 
         return pivot(self, index=index, columns=columns, values=values)
 
@@ -8559,7 +8641,9 @@ Parrot 2  Parrot       24.0
         observed: bool = False,
         sort: bool = True,
     ) -> DataFrame:
-        from pandas.core.reshape.pivot import pivot_table
+        from pandas.core.reshape.pivot import (
+            pivot_table,
+        )
 
         return pivot_table(
             self,
@@ -8941,7 +9025,9 @@ Parrot 2  Parrot       24.0
              b  4.0
         dtype: float64
         """
-        from pandas.core.reshape.reshape import unstack
+        from pandas.core.reshape.reshape import (
+            unstack,
+        )
 
         result = unstack(self, level, fill_value)
 
@@ -9171,7 +9257,9 @@ Parrot 2  Parrot       24.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
-        from pandas.core.apply import frame_apply
+        from pandas.core.apply import (
+            frame_apply,
+        )
 
         axis = self._get_axis_number(axis)
 
@@ -9241,7 +9329,9 @@ Parrot 2  Parrot       24.0
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame:
-        from pandas.core.apply import frame_apply
+        from pandas.core.apply import (
+            frame_apply,
+        )
 
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.transform()
@@ -9394,7 +9484,9 @@ Parrot 2  Parrot       24.0
         1  1  2
         2  1  2
         """
-        from pandas.core.apply import frame_apply
+        from pandas.core.apply import (
+            frame_apply,
+        )
 
         op = frame_apply(
             self,
@@ -9528,7 +9620,9 @@ Parrot 2  Parrot       24.0
                 if self.index.name is not None and not ignore_index:
                     other.index.name = self.index.name
 
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         if isinstance(other, (list, tuple)):
             to_concat = [self, *other]
@@ -9726,8 +9820,12 @@ Parrot 2  Parrot       24.0
         sort: bool = False,
         validate: str | None = None,
     ):
-        from pandas.core.reshape.concat import concat
-        from pandas.core.reshape.merge import merge
+        from pandas.core.reshape.concat import (
+            concat,
+        )
+        from pandas.core.reshape.merge import (
+            merge,
+        )
 
         if isinstance(other, Series):
             if other.name is None:
@@ -9818,7 +9916,9 @@ Parrot 2  Parrot       24.0
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> DataFrame:
-        from pandas.core.reshape.merge import merge
+        from pandas.core.reshape.merge import (
+            merge,
+        )
 
         return merge(
             self,
@@ -9915,7 +10015,9 @@ Parrot 2  Parrot       24.0
         2   0.7   0.0
         3   0.2   0.0
         """
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         def _dict_round(df: DataFrame, decimals):
             for col, vals in df.items():
@@ -11178,7 +11280,9 @@ Parrot 2  Parrot       24.0
         dog        False      False
         """
         if isinstance(values, dict):
-            from pandas.core.reshape.concat import concat
+            from pandas.core.reshape.concat import (
+                concat,
+            )
 
             values = collections.defaultdict(list, values)
             result = concat(

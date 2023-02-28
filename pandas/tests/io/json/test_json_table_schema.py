@@ -1,5 +1,7 @@
 """Tests for Table Schema integration."""
-from collections import OrderedDict
+from collections import (
+    OrderedDict,
+)
 import json
 
 import numpy as np
@@ -12,7 +14,9 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 from pandas.io.json._table_schema import (

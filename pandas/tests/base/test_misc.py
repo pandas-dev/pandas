@@ -3,7 +3,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,

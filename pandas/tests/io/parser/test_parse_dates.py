@@ -9,16 +9,26 @@ from datetime import (
     timedelta,
     timezone,
 )
-from io import StringIO
+from io import (
+    StringIO,
+)
 
-from dateutil.parser import parse as du_parse
-from hypothesis import given
+from dateutil.parser import (
+    parse as du_parse,
+)
+from hypothesis import (
+    given,
+)
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import py_parse_datetime_string
+from pandas._libs.tslibs import (
+    parsing,
+)
+from pandas._libs.tslibs.parsing import (
+    py_parse_datetime_string,
+)
 
 import pandas as pd
 from pandas import (
@@ -30,10 +40,16 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import DATETIME_NO_TZ
-from pandas.core.indexes.datetimes import date_range
+from pandas._testing._hypothesis import (
+    DATETIME_NO_TZ,
+)
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 
-from pandas.io.parsers import read_csv
+from pandas.io.parsers import (
+    read_csv,
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 

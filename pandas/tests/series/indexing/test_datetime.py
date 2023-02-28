@@ -15,7 +15,9 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+)
 
 import pandas as pd
 from pandas import (

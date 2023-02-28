@@ -2,13 +2,19 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
-from collections import defaultdict
-from io import StringIO
+from collections import (
+    defaultdict,
+)
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    ParserWarning,
+)
 
 import pandas as pd
 from pandas import (

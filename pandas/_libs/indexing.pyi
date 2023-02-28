@@ -3,7 +3,9 @@ from typing import (
     TypeVar,
 )
 
-from pandas.core.indexing import IndexingMixin
+from pandas.core.indexing import (
+    IndexingMixin,
+)
 
 _IndexingMixinT = TypeVar("_IndexingMixinT", bound=IndexingMixin)
 

@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime as dt
 import operator
@@ -24,7 +26,9 @@ from pandas._libs.tslibs import (
     timezones,
     to_offset,
 )
-from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas._libs.tslibs.offsets import (
+    prefix_mapping,
+)
 from pandas._typing import (
     Dtype,
     DtypeObj,
@@ -44,7 +48,9 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+)
 
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
@@ -55,9 +61,15 @@ from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
-from pandas.core.indexes.extension import inherit_names
-from pandas.core.tools.times import to_time
+from pandas.core.indexes.datetimelike import (
+    DatetimeTimedeltaMixin,
+)
+from pandas.core.indexes.extension import (
+    inherit_names,
+)
+from pandas.core.tools.times import (
+    to_time,
+)
 
 if TYPE_CHECKING:
     from pandas.core.api import (
@@ -280,7 +292,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @doc(DatetimeArray.to_period)
     def to_period(self, freq=None) -> PeriodIndex:
-        from pandas.core.indexes.api import PeriodIndex
+        from pandas.core.indexes.api import (
+            PeriodIndex,
+        )
 
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
@@ -360,7 +374,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from pandas.io.formats.format import is_dates_only
+        from pandas.io.formats.format import (
+            is_dates_only,
+        )
 
         # error: Argument 1 to "is_dates_only" has incompatible type
         # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
@@ -386,7 +402,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def _formatter_func(self):
-        from pandas.io.formats.format import get_format_datetime64
+        from pandas.io.formats.format import (
+            get_format_datetime64,
+        )
 
         formatter = get_format_datetime64(is_dates_only_=self._is_dates_only)
         return lambda x: f"'{formatter(x)}'"
@@ -687,7 +705,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise NotImplementedError("'asof' argument is not supported")
 
         if isinstance(time, str):
-            from dateutil.parser import parse
+            from dateutil.parser import (
+                parse,
+            )
 
             time = parse(time).time()
 

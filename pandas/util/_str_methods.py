@@ -6,7 +6,9 @@ They're reimplemented here for use in Python3.8.
 NOTE: when pyupgrade --py39-plus removes nearly everything in this file,
 this file and the associated tests should be removed.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import sys
 

@@ -1,12 +1,16 @@
 """Common IO api utilities"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
     abstractmethod,
 )
 import codecs
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 import dataclasses
 import functools
 import gzip
@@ -20,7 +24,9 @@ from io import (
 )
 import mmap
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import re
 import tarfile
 from typing import (
@@ -57,11 +63,21 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import get_lzma_file
-from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import BZ2File as _BZ2File
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.compat import (
+    get_lzma_file,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.compat.compressors import (
+    BZ2File as _BZ2File,
+)
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -70,8 +86,12 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core.indexes.api import MultiIndex
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.indexes.api import (
+    MultiIndex,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -477,7 +497,9 @@ def file_path_to_url(path: str) -> str:
     a valid FILE URL
     """
     # lazify expensive import (~30ms)
-    from urllib.request import pathname2url
+    from urllib.request import (
+        pathname2url,
+    )
 
     return urljoin("file:", pathname2url(path))
 

@@ -1,12 +1,20 @@
-from datetime import datetime
-from decimal import Decimal
-from typing import Iterator
+from datetime import (
+    datetime,
+)
+from decimal import (
+    Decimal,
+)
+from typing import (
+    Iterator,
+)
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import (
+    is_platform_little_endian,
+)
 
 from pandas import (
     CategoricalIndex,

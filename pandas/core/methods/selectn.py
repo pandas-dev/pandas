@@ -2,7 +2,9 @@
 Implementation of nlargest and nsmallest.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +16,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import algos as libalgos
+from pandas._libs import (
+    algos as libalgos,
+)
 from pandas._typing import (
     DtypeObj,
     IndexLabel,
@@ -28,7 +32,9 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -85,7 +91,9 @@ class SelectNSeries(SelectN):
     """
 
     def compute(self, method: str) -> Series:
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         n = self.n
         dtype = self.obj.dtype
@@ -182,7 +190,9 @@ class SelectNFrame(SelectN):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
-        from pandas.core.api import Index
+        from pandas.core.api import (
+            Index,
+        )
 
         n = self.n
         frame = self.obj

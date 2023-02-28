@@ -2,19 +2,31 @@
 Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-from decimal import Decimal
-from functools import partial
-from io import StringIO
+from decimal import (
+    Decimal,
+)
+from functools import (
+    partial,
+)
+from io import (
+    StringIO,
+)
 import math
 import re
-from shutil import get_terminal_size
+from shutil import (
+    get_terminal_size,
+)
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -29,7 +41,9 @@ from typing import (
     Sequence,
     cast,
 )
-from unicodedata import east_asian_width
+from unicodedata import (
+    east_asian_width,
+)
 
 import numpy as np
 
@@ -38,8 +52,12 @@ from pandas._config.config import (
     set_option,
 )
 
-from pandas._libs import lib
-from pandas._libs.missing import NA
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.missing import (
+    NA,
+)
 from pandas._libs.tslibs import (
     NaT,
     Timedelta,
@@ -48,7 +66,9 @@ from pandas._libs.tslibs import (
     iNaT,
     periods_per_day,
 )
-from pandas._libs.tslibs.nattype import NaTType
+from pandas._libs.tslibs.nattype import (
+    NaTType,
+)
 from pandas._typing import (
     ArrayLike,
     Axes,
@@ -77,7 +97,9 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -88,25 +110,39 @@ from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.base import PandasObject
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    extract_array,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     PeriodIndex,
     ensure_index,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+)
+from pandas.core.indexes.timedeltas import (
+    TimedeltaIndex,
+)
+from pandas.core.reshape.concat import (
+    concat,
+)
 
 from pandas.io.common import (
     check_parent_directory,
     stringify_path,
 )
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -501,7 +537,9 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     >>> repr(df) == df.to_string(**repr_params)
     True
     """
-    from pandas.io.formats import console
+    from pandas.io.formats import (
+        console,
+    )
 
     if get_option("display.expand_frame_repr"):
         line_width, _ = console.get_console_size()
@@ -913,7 +951,9 @@ class DataFrameFormatter:
             return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: DataFrame) -> list[list[str]]:
-        from pandas.core.indexes.multi import sparsify_labels
+        from pandas.core.indexes.multi import (
+            sparsify_labels,
+        )
 
         columns = frame.columns
 
@@ -1039,7 +1079,9 @@ class DataFrameRenderer:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
-        from pandas.io.formats.latex import LatexFormatter
+        from pandas.io.formats.latex import (
+            LatexFormatter,
+        )
 
         latex_formatter = LatexFormatter(
             self.fmt,
@@ -1126,7 +1168,9 @@ class DataFrameRenderer:
         line_width : int, optional
             Width to wrap a line in characters.
         """
-        from pandas.io.formats.string import StringFormatter
+        from pandas.io.formats.string import (
+            StringFormatter,
+        )
 
         string_formatter = StringFormatter(self.fmt, line_width=line_width)
         string = string_formatter.to_string()
@@ -1154,7 +1198,9 @@ class DataFrameRenderer:
         """
         Render dataframe as comma-separated file.
         """
-        from pandas.io.formats.csvs import CSVFormatter
+        from pandas.io.formats.csvs import (
+            CSVFormatter,
+        )
 
         if path_or_buf is None:
             created_buffer = True

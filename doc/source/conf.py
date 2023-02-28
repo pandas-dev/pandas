@@ -9,7 +9,9 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import importlib
 import inspect
 import logging
@@ -18,8 +20,12 @@ import sys
 import warnings
 
 import jinja2
-from numpydoc.docscrape import NumpyDocString
-from sphinx.ext.autosummary import _import_by_name
+from numpydoc.docscrape import (
+    NumpyDocString,
+)
+from sphinx.ext.autosummary import (
+    _import_by_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -586,7 +592,9 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
         if sys.version_info < (3, 9):
             # NOTE pyupgrade will remove this when we run it with --py39-plus
             # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
+            from pandas.util._str_methods import (
+                removesuffix,
+            )
 
             return removesuffix(MethodDocumenter.format_name(self), ".__call__")
         else:

@@ -1,11 +1,15 @@
 """
 SQL-style merge routines
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import copy as cp
 import datetime
-from functools import partial
+from functools import (
+    partial,
+)
 import string
 from typing import (
     TYPE_CHECKING,
@@ -25,7 +29,9 @@ from pandas._libs import (
     join as libjoin,
     lib,
 )
-from pandas._libs.lib import is_range_indexer
+from pandas._libs.lib import (
+    is_range_indexer,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -38,16 +44,24 @@ from pandas._typing import (
     Suffixes,
     npt,
 )
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+)
+from pandas.core.dtypes.cast import (
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -67,7 +81,9 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -88,20 +104,34 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.frame import _merge_doc
-from pandas.core.indexes.api import default_index
-from pandas.core.sorting import is_int64_overflow_possible
+from pandas.core.frame import (
+    _merge_doc,
+)
+from pandas.core.indexes.api import (
+    default_index,
+)
+from pandas.core.sorting import (
+    is_int64_overflow_possible,
+)
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
-    from pandas.core import groupby
-    from pandas.core.arrays import DatetimeArray
+    from pandas import (
+        DataFrame,
+    )
+    from pandas.core import (
+        groupby,
+    )
+    from pandas.core.arrays import (
+        DatetimeArray,
+    )
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -204,7 +234,9 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
 
     # preserve the original order
     # if we have a missing piece this can be reset
-    from pandas.core.reshape.concat import concat
+    from pandas.core.reshape.concat import (
+        concat,
+    )
 
     result = concat(pieces, ignore_index=True)
     result = result.reindex(columns=pieces[0].columns, copy=False)
@@ -789,7 +821,9 @@ class _MergeOperation:
             right = right._constructor(rmgr)
         right.index = join_index
 
-        from pandas import concat
+        from pandas import (
+            concat,
+        )
 
         left.columns = llabels
         right.columns = rlabels

@@ -3,7 +3,9 @@ import decimal
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+)
 
 from pandas import (
     Series,

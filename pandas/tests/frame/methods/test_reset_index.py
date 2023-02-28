@@ -1,5 +1,9 @@
-from datetime import datetime
-from itertools import product
+from datetime import (
+    datetime,
+)
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest

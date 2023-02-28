@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import abc
 import re
@@ -10,10 +12,14 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
+from pandas._typing import (
+    Scalar,
+)
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 
 class BaseStringArrayMethods(abc.ABC):

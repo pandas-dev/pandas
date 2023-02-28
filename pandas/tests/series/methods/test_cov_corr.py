@@ -60,7 +60,9 @@ class TestSeriesCorr:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("dtype", ["float64", "Float64"])
     def test_corr(self, datetime_series, dtype):
-        from scipy import stats
+        from scipy import (
+            stats,
+        )
 
         datetime_series = datetime_series.astype(dtype)
 
@@ -92,7 +94,9 @@ class TestSeriesCorr:
 
     @td.skip_if_no_scipy
     def test_corr_rank(self):
-        from scipy import stats
+        from scipy import (
+            stats,
+        )
 
         # kendall and spearman
         A = tm.makeTimeSeries()

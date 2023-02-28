@@ -12,7 +12,9 @@ pytest.importorskip("jinja2")
 
 import matplotlib as mpl
 
-from pandas.io.formats.style import Styler
+from pandas.io.formats.style import (
+    Styler,
+)
 
 
 @pytest.fixture

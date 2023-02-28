@@ -21,9 +21,15 @@ from pytz.exceptions import (
     NonExistentTimeError,
 )
 
-from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    timezones,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
+from pandas.errors import (
+    OutOfBoundsDatetime,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -32,7 +38,9 @@ from pandas import (
 )
 
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import (
+        ZoneInfo,
+    )
 except ImportError:
     ZoneInfo = None
 

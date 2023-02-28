@@ -4,9 +4,13 @@ HTML IO.
 
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 import numbers
 import re
 from typing import (
@@ -18,26 +22,42 @@ from typing import (
     cast,
 )
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     BaseBuffer,
     FilePath,
     ReadBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
-from pandas import isna
-from pandas.core.indexes.base import Index
-from pandas.core.indexes.multi import MultiIndex
-from pandas.core.series import Series
+from pandas import (
+    isna,
+)
+from pandas.core.indexes.base import (
+    Index,
+)
+from pandas.core.indexes.multi import (
+    MultiIndex,
+)
+from pandas.core.series import (
+    Series,
+)
 
 from pandas.io.common import (
     file_exists,
@@ -47,11 +67,17 @@ from pandas.io.common import (
     urlopen,
     validate_header_arg,
 )
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.parsers import TextParser
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
+from pandas.io.parsers import (
+    TextParser,
+)
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 #############
 # READ HTML #
@@ -574,7 +600,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        from bs4 import SoupStrainer
+        from bs4 import (
+            SoupStrainer,
+        )
 
         self._strainer = SoupStrainer("table")
 
@@ -634,7 +662,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return raw_text
 
     def _build_doc(self):
-        from bs4 import BeautifulSoup
+        from bs4 import (
+            BeautifulSoup,
+        )
 
         bdoc = self._setup_build_doc()
         if isinstance(bdoc, bytes) and self.encoding is not None:
@@ -756,7 +786,9 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.etree import XMLSyntaxError
+        from lxml.etree import (
+            XMLSyntaxError,
+        )
         from lxml.html import (
             HTMLParser,
             fromstring,

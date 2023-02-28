@@ -5,7 +5,9 @@ _constants
 Constants relevant for the Python implementation.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import platform
 import sys

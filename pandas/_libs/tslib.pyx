@@ -1,10 +1,14 @@
 import warnings
 
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 cimport cython
 
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -14,7 +18,9 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
-from cpython.object cimport PyObject
+from cpython.object cimport (
+    PyObject,
+)
 
 # import datetime C API
 import_datetime()
@@ -40,14 +46,18 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydate_to_dt64,
     string_to_dts,
 )
-from pandas._libs.tslibs.strptime cimport parse_today_now
+from pandas._libs.tslibs.strptime cimport (
+    parse_today_now,
+)
 from pandas._libs.util cimport (
     is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+)
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -62,18 +72,26 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
 
 from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
 )
-from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._libs.tslibs.timestamps import (
+    Timestamp,
+)
 
 # Note: this is the only non-tslibs intra-pandas dependency here
 
-from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+from pandas._libs.missing cimport (
+    checknull_with_nat_and_na,
+)
+from pandas._libs.tslibs.tzconversion cimport (
+    tz_localize_to_utc_single,
+)
 
 
 def _test_parse_iso8601(ts: str):

@@ -1,12 +1,20 @@
 """ Test cases for Series.plot """
-from datetime import datetime
-from itertools import chain
+from datetime import (
+    datetime,
+)
+from itertools import (
+    chain,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat import (
+    is_platform_linux,
+)
+from pandas.compat.numpy import (
+    np_version_gte1p24,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -308,7 +316,9 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
-        from pandas.plotting._matplotlib.converter import DatetimeConverter
+        from pandas.plotting._matplotlib.converter import (
+            DatetimeConverter,
+        )
 
         rng = date_range("1/1/2000", "3/1/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
@@ -637,7 +647,9 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.parametrize("c", ["r", "red", "green", "#FF0000"])
     def test_standard_colors(self, c):
-        from pandas.plotting._matplotlib.style import get_standard_colors
+        from pandas.plotting._matplotlib.style import (
+            get_standard_colors,
+        )
 
         result = get_standard_colors(1, color=c)
         assert result == [c]
@@ -652,9 +664,13 @@ class TestSeriesPlots(TestPlotBase):
         assert result == [c] * 3
 
     def test_standard_colors_all(self):
-        from matplotlib import colors
+        from matplotlib import (
+            colors,
+        )
 
-        from pandas.plotting._matplotlib.style import get_standard_colors
+        from pandas.plotting._matplotlib.style import (
+            get_standard_colors,
+        )
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
@@ -729,7 +745,9 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_custom_business_day_freq(self):
         # GH7222
-        from pandas.tseries.offsets import CustomBusinessDay
+        from pandas.tseries.offsets import (
+            CustomBusinessDay,
+        )
 
         s = Series(
             range(100, 121),

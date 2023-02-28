@@ -1,6 +1,8 @@
 import pytest
 
-from pandas.compat import PY311
+from pandas.compat import (
+    PY311,
+)
 
 from pandas import (
     offsets,

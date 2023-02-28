@@ -1,4 +1,6 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -13,8 +15,12 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
-from pandas.tests.indexes.datetimelike import DatetimeLike
+from pandas.core.arrays import (
+    TimedeltaArray,
+)
+from pandas.tests.indexes.datetimelike import (
+    DatetimeLike,
+)
 
 randn = np.random.randn
 

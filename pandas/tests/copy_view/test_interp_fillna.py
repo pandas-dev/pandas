@@ -11,7 +11,9 @@ from pandas import (
     interval_range,
 )
 import pandas._testing as tm
-from pandas.tests.copy_view.util import get_array
+from pandas.tests.copy_view.util import (
+    get_array,
+)
 
 
 @pytest.mark.parametrize("method", ["pad", "nearest", "linear"])

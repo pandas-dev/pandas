@@ -6,7 +6,9 @@ import pandas._config.config as cf
 
 import pandas as pd
 
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 import pandas.io.formats.format as fmt
 
 

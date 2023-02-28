@@ -2,13 +2,17 @@
 Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 import os
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (

@@ -1,12 +1,16 @@
 """
 Entrypoint for testing from the top-level namespace.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import os
 import sys
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 PKG = os.path.dirname(os.path.dirname(__file__))
 

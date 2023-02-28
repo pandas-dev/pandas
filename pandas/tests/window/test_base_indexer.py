@@ -19,7 +19,9 @@ from pandas.core.indexers.objects import (
     VariableOffsetWindowIndexer,
 )
 
-from pandas.tseries.offsets import BusinessDay
+from pandas.tseries.offsets import (
+    BusinessDay,
+)
 
 
 def test_bad_get_window_bounds_signature():

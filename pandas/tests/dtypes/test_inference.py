@@ -4,18 +4,28 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
-from collections import namedtuple
+from collections import (
+    namedtuple,
+)
 from datetime import (
     date,
     datetime,
     time,
     timedelta,
 )
-from decimal import Decimal
-from fractions import Fraction
-from io import StringIO
+from decimal import (
+    Decimal,
+)
+from fractions import (
+    Fraction,
+)
+from io import (
+    StringIO,
+)
 import itertools
-from numbers import Number
+from numbers import (
+    Number,
+)
 import re
 import sys
 from typing import (
@@ -35,7 +45,9 @@ from pandas._libs import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes import inference
+from pandas.core.dtypes import (
+    inference,
+)
 from pandas.core.dtypes.common import (
     ensure_int32,
     is_bool,

@@ -1,5 +1,8 @@
 cimport cython
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
+
 import numpy as np
 
 cimport numpy as cnp
@@ -12,7 +15,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import groupsort_indexer
+from pandas._libs.algos import (
+    groupsort_indexer,
+)
 
 from pandas._libs.dtypes cimport (
     numeric_object_t,

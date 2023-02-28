@@ -1,27 +1,39 @@
-from collections import OrderedDict
+from collections import (
+    OrderedDict,
+)
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import Iterator
+from typing import (
+    Iterator,
+)
 
-from dateutil.tz import tzoffset
+from dateutil.tz import (
+    tzoffset,
+)
 import numpy as np
-from numpy import ma
+from numpy import (
+    ma,
+)
 import pytest
 
 from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64tz_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -48,7 +60,9 @@ from pandas.core.arrays import (
     IntervalArray,
     period_array,
 )
-from pandas.core.internals.blocks import NumericBlock
+from pandas.core.internals.blocks import (
+    NumericBlock,
+)
 
 
 class TestSeriesConstructors:

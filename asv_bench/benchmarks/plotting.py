@@ -5,7 +5,9 @@ import os
 import pathlib
 import sys
 import tempfile
-from unittest import mock
+from unittest import (
+    mock,
+)
 
 import matplotlib
 import numpy as np
@@ -18,11 +20,15 @@ from pandas import (
 )
 
 try:
-    from pandas.plotting import andrews_curves
+    from pandas.plotting import (
+        andrews_curves,
+    )
 except ImportError:
     from pandas.tools.plotting import andrews_curves
 
-from pandas.plotting._core import _get_plot_backend
+from pandas.plotting._core import (
+    _get_plot_backend,
+)
 
 matplotlib.use("Agg")
 

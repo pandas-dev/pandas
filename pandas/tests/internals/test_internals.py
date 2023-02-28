@@ -8,11 +8,17 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.internals import BlockPlacement
-from pandas.compat import IS64
+from pandas._libs.internals import (
+    BlockPlacement,
+)
+from pandas.compat import (
+    IS64,
+)
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import (
+    is_scalar,
+)
 
 import pandas as pd
 from pandas import (

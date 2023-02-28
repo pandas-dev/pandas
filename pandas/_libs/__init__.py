@@ -10,7 +10,9 @@ __all__ = [
 ]
 
 
-from pandas._libs.interval import Interval
+from pandas._libs.interval import (
+    Interval,
+)
 from pandas._libs.tslibs import (
     NaT,
     NaTType,

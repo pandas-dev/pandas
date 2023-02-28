@@ -3,7 +3,9 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 from typing import (
@@ -13,13 +15,17 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas._libs.ops_dispatch import (
+    maybe_dispatch_ufunc_to_dunder_op,
+)
 from pandas._typing import (
     Axis,
     AxisInt,
     Level,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -29,7 +35,9 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 from pandas.core import (
     algorithms,
@@ -52,13 +60,17 @@ from pandas.core.ops.docstrings import (
     _op_descriptions,
     make_flex_doc,
 )
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import (
+    invalid_comparison,
+)
 from pandas.core.ops.mask_ops import (
     kleene_and,
     kleene_or,
     kleene_xor,
 )
-from pandas.core.ops.methods import add_flex_arithmetic_methods
+from pandas.core.ops.methods import (
+    add_flex_arithmetic_methods,
+)
 from pandas.core.roperator import (
     radd,
     rand_,

@@ -1,15 +1,21 @@
-from collections import namedtuple
+from collections import (
+    namedtuple,
+)
 from datetime import (
     datetime,
     timedelta,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
+from pandas._libs import (
+    iNaT,
+)
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -17,7 +23,9 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+)
 
 import pandas as pd
 from pandas import (

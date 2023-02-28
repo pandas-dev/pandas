@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -30,8 +34,12 @@ from pandas._libs.tslibs import (
     periods_per_second,
     to_offset,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.conversion import (
+    precision_from_unit,
+)
+from pandas._libs.tslibs.fields import (
+    get_timedelta_field,
+)
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     floordiv_object_array,
@@ -46,8 +54,12 @@ from pandas._typing import (
     NpDtype,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.util._validators import validate_endpoints
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.util._validators import (
+    validate_endpoints,
+)
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -61,18 +73,34 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core import nanops
-from pandas.core.array_algos import datetimelike_accumulations
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core import (
+    nanops,
+)
+from pandas.core.array_algos import (
+    datetimelike_accumulations,
+)
+from pandas.core.arrays import (
+    datetimelike as dtl,
+)
+from pandas.core.arrays._ranges import (
+    generate_regular_range,
+)
 import pandas.core.common as com
-from pandas.core.ops import roperator
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops import (
+    roperator,
+)
+from pandas.core.ops.common import (
+    unpack_zerodim_and_defer,
+)
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
@@ -435,14 +463,18 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Rendering Methods
 
     def _formatter(self, boxed: bool = False):
-        from pandas.io.formats.format import get_format_timedelta64
+        from pandas.io.formats.format import (
+            get_format_timedelta64,
+        )
 
         return get_format_timedelta64(self, box=True)
 
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_timedelta64
+        from pandas.io.formats.format import (
+            get_format_timedelta64,
+        )
 
         # Relies on TimeDelta._repr_base
         formatter = get_format_timedelta64(self._ndarray, na_rep)
@@ -810,7 +842,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         -------
         DataFrame
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         columns = [
             "days",

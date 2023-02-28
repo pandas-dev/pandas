@@ -10,9 +10,13 @@ in this file will be affected.
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+)
 
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import (
+    BaseMaskedArray,
+)
 
 
 def _get_numeric_engines():

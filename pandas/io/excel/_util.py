@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -13,7 +15,9 @@ from typing import (
     overload,
 )
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -21,7 +25,9 @@ from pandas.core.dtypes.common import (
 )
 
 if TYPE_CHECKING:
-    from pandas.io.excel._base import ExcelWriter
+    from pandas.io.excel._base import (
+        ExcelWriter,
+    )
 
     ExcelWriter_t = type[ExcelWriter]
     usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])

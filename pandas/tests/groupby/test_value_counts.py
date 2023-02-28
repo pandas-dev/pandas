@@ -4,7 +4,9 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from itertools import product
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest

@@ -4,21 +4,37 @@ Methods that can be shared by many array-like classes or subclasses:
     Index
     ExtensionArray
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
-from typing import Any
+from typing import (
+    Any,
+)
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.ops_dispatch import (
+    maybe_dispatch_ufunc_to_dunder_op,
+)
 
-from pandas.core.dtypes.generic import ABCNDFrame
+from pandas.core.dtypes.generic import (
+    ABCNDFrame,
+)
 
-from pandas.core import roperator
-from pandas.core.construction import extract_array
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core import (
+    roperator,
+)
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.ops.common import (
+    unpack_zerodim_and_defer,
+)
 
 REDUCTION_ALIASES = {
     "maximum": "max",
@@ -262,8 +278,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
-    from pandas.core.internals import BlockManager
+    from pandas.core.generic import (
+        NDFrame,
+    )
+    from pandas.core.internals import (
+        BlockManager,
+    )
 
     cls = type(self)
 

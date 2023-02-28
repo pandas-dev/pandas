@@ -15,7 +15,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.api import is_list_like
+from pandas.core.dtypes.api import (
+    is_list_like,
+)
 
 import pandas as pd
 from pandas import (
@@ -33,7 +35,9 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 @td.skip_if_no_mpl
@@ -945,7 +949,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, kind="kde")
 
     def test_hist_df(self):
-        from matplotlib.patches import Rectangle
+        from matplotlib.patches import (
+            Rectangle,
+        )
 
         df = DataFrame(np.random.randn(100, 4))
         series = df[0]
@@ -1812,7 +1818,9 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_df_gridspec_patterns(self):
         # GH 10819
-        from matplotlib import gridspec
+        from matplotlib import (
+            gridspec,
+        )
         import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
@@ -1949,7 +1957,9 @@ class TestDataFramePlots(TestPlotBase):
 
         # other examples
         fig, ax = self.plt.subplots()
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        from mpl_toolkits.axes_grid1 import (
+            make_axes_locatable,
+        )
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -1957,7 +1967,9 @@ class TestDataFramePlots(TestPlotBase):
         Series(np.random.rand(10)).plot(ax=cax)
 
         fig, ax = self.plt.subplots()
-        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        from mpl_toolkits.axes_grid1.inset_locator import (
+            inset_axes,
+        )
 
         iax = inset_axes(ax, width="30%", height=1.0, loc=3)
         Series(np.random.rand(10)).plot(ax=ax)

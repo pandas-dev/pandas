@@ -1,4 +1,6 @@
-from string import ascii_letters as letters
+from string import (
+    ascii_letters as letters,
+)
 
 import numpy as np
 import pytest

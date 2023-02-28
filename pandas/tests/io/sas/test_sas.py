@@ -1,8 +1,12 @@
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import pytest
 
-from pandas import read_sas
+from pandas import (
+    read_sas,
+)
 import pandas._testing as tm
 
 

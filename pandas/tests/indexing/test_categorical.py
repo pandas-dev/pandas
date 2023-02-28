@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -17,7 +19,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import (
+    CategoricalDtype as CDT,
+)
 
 
 @pytest.fixture

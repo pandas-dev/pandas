@@ -48,7 +48,9 @@ Implementation
 
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from contextlib import (
     ContextDecorator,
@@ -70,7 +72,9 @@ from pandas._typing import (
     F,
     T,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 
 class DeprecatedOption(NamedTuple):
@@ -702,8 +706,12 @@ def _build_option_description(k: str) -> str:
 
 def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
-    from itertools import groupby
-    from textwrap import wrap
+    from itertools import (
+        groupby,
+    )
+    from textwrap import (
+        wrap,
+    )
 
     def pp(name: str, ks: Iterable[str]) -> list[str]:
         pfx = "- " + name + ".[" if name else ""

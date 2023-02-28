@@ -1,6 +1,12 @@
-from io import StringIO
-from pathlib import Path
-from typing import Iterator
+from io import (
+    StringIO,
+)
+from pathlib import (
+    Path,
+)
+from typing import (
+    Iterator,
+)
 
 import pytest
 
@@ -11,7 +17,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.json._json import JsonReader
+from pandas.io.json._json import (
+    JsonReader,
+)
 
 
 @pytest.fixture

@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import MultiIndex
+from pandas import (
+    MultiIndex,
+)
 
 
 def test_pickle_compat_construction():

@@ -12,9 +12,13 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import (
+    checked_add_with_arr,
+)
 
-from .pandas_vb_common import numeric_dtypes
+from .pandas_vb_common import (
+    numeric_dtypes,
+)
 
 try:
     import pandas.core.computation.expressions as expr

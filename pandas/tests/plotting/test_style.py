@@ -1,9 +1,13 @@
 import pytest
 
-from pandas import Series
+from pandas import (
+    Series,
+)
 
 pytest.importorskip("matplotlib")
-from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.style import (
+    get_standard_colors,
+)
 
 
 class TestGetStandardColors:
@@ -19,7 +23,9 @@ class TestGetStandardColors:
     )
     def test_default_colors_named_from_prop_cycle(self, num_colors, expected):
         import matplotlib as mpl
-        from matplotlib.pyplot import cycler
+        from matplotlib.pyplot import (
+            cycler,
+        )
 
         mpl_params = {
             "axes.prop_cycle": cycler(color=["red", "green", "blue"]),
@@ -40,7 +46,9 @@ class TestGetStandardColors:
     )
     def test_default_colors_named_from_prop_cycle_string(self, num_colors, expected):
         import matplotlib as mpl
-        from matplotlib.pyplot import cycler
+        from matplotlib.pyplot import (
+            cycler,
+        )
 
         mpl_params = {
             "axes.prop_cycle": cycler(color="bgry"),

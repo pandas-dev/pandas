@@ -2,11 +2,15 @@ from datetime import (
     timedelta,
     tzinfo,
 )
-from typing import Iterable
+from typing import (
+    Iterable,
+)
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 # tz_convert_from_utc_single exposed for testing
 def tz_convert_from_utc_single(

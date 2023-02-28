@@ -1,4 +1,6 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import dateutil
 import numpy as np
@@ -11,12 +13,18 @@ from pandas import (
     timedelta_range,
 )
 
-from pandas.tseries.frequencies import infer_freq
+from pandas.tseries.frequencies import (
+    infer_freq,
+)
 
 try:
-    from pandas.plotting._matplotlib.converter import DatetimeConverter
+    from pandas.plotting._matplotlib.converter import (
+        DatetimeConverter,
+    )
 except ImportError:
-    from pandas.tseries.converter import DatetimeConverter
+    from pandas.tseries.converter import (
+        DatetimeConverter,
+    )
 
 
 class DatetimeIndex:

@@ -1,6 +1,8 @@
 import pytest
 
-from scripts.check_test_naming import main
+from scripts.check_test_naming import (
+    main,
+)
 
 
 @pytest.mark.parametrize(

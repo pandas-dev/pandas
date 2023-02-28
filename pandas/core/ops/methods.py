@@ -1,7 +1,9 @@
 """
 Functions to generate methods and pin them to the appropriate classes.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 
@@ -10,7 +12,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.ops import roperator
+from pandas.core.ops import (
+    roperator,
+)
 
 
 def _get_method_wrappers(cls):

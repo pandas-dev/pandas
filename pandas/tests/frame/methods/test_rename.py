@@ -1,4 +1,6 @@
-from collections import ChainMap
+from collections import (
+    ChainMap,
+)
 import inspect
 
 import numpy as np

@@ -1,10 +1,14 @@
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import sys
 import tempfile
 import warnings
 
-from mypy import stubtest
+from mypy import (
+    stubtest,
+)
 
 import pandas as pd
 

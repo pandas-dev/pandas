@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+)
 
 import pandas as pd
 from pandas import (

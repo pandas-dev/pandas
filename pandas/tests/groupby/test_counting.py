@@ -1,5 +1,9 @@
-from itertools import product
-from string import ascii_lowercase
+from itertools import (
+    product,
+)
+from string import (
+    ascii_lowercase,
+)
 
 import numpy as np
 import pytest

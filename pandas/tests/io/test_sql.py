@@ -15,18 +15,26 @@ The SQL tests are broken down in different classes:
     - Tests for the fallback mode (`TestSQLiteFallback`)
 
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import contextlib
-from contextlib import closing
+from contextlib import (
+    closing,
+)
 import csv
 from datetime import (
     date,
     datetime,
     time,
 )
-from io import StringIO
-from pathlib import Path
+from io import (
+    StringIO,
+)
+from pathlib import (
+    Path,
+)
 import sqlite3
 
 import numpy as np
@@ -58,7 +66,9 @@ from pandas.core.arrays import (
     StringArray,
 )
 
-from pandas.io import sql
+from pandas.io import (
+    sql,
+)
 from pandas.io.sql import (
     SQLAlchemyEngine,
     SQLDatabase,
@@ -145,8 +155,12 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
 
 
 def create_and_load_iris(conn, iris_file: Path, dialect: str):
-    from sqlalchemy import insert
-    from sqlalchemy.engine import Engine
+    from sqlalchemy import (
+        insert,
+    )
+    from sqlalchemy.engine import (
+        Engine,
+    )
 
     iris = iris_table_metadata(dialect)
 
@@ -174,8 +188,12 @@ def create_and_load_iris_view(conn):
         cur = conn.cursor()
         cur.execute(stmt)
     else:
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
+        from sqlalchemy import (
+            text,
+        )
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         stmt = text(stmt)
         if isinstance(conn, Engine):
@@ -243,8 +261,12 @@ def create_and_load_types_sqlite3(conn: sqlite3.Connection, types_data: list[dic
 
 
 def create_and_load_types(conn, types_data: list[dict], dialect: str):
-    from sqlalchemy import insert
-    from sqlalchemy.engine import Engine
+    from sqlalchemy import (
+        insert,
+    )
+    from sqlalchemy.engine import (
+        Engine,
+    )
 
     types = types_table_metadata(dialect)
 
@@ -276,8 +298,12 @@ def count_rows(conn, table_name: str):
         cur = conn.cursor()
         return cur.execute(stmt).fetchone()[0]
     else:
-        from sqlalchemy import create_engine
-        from sqlalchemy.engine import Engine
+        from sqlalchemy import (
+            create_engine,
+        )
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         if isinstance(conn, str):
             try:
@@ -712,8 +738,12 @@ def test_read_procedure(conn, request):
     # GH 7324
     # Although it is more an api test, it is added to the
     # mysql tests as sqlite does not have stored procedures
-    from sqlalchemy import text
-    from sqlalchemy.engine import Engine
+    from sqlalchemy import (
+        text,
+    )
+    from sqlalchemy.engine import (
+        Engine,
+    )
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df.to_sql("test_frame", conn, index=False)
@@ -856,7 +886,9 @@ class SQLAlchemyMixIn(MixInBase):
             sql.SQLDatabase(conn).drop_table(table_name)
 
     def _get_all_tables(self, conn):
-        from sqlalchemy import inspect
+        from sqlalchemy import (
+            inspect,
+        )
 
         return inspect(conn).get_table_names()
 
@@ -870,7 +902,9 @@ class SQLAlchemyMixIn(MixInBase):
             conn.exec_driver_sql(f"DROP VIEW IF EXISTS {quoted_view}")
 
     def _get_all_views(self, conn):
-        from sqlalchemy import inspect
+        from sqlalchemy import (
+            inspect,
+        )
 
         return inspect(conn).get_view_names()
 
@@ -971,7 +1005,9 @@ class PandasSQLTest:
             if isinstance(self.pandasSQL, SQLiteDatabase):
                 trans.execute(stmt)
             else:
-                from sqlalchemy import text
+                from sqlalchemy import (
+                    text,
+                )
 
                 stmt = text(stmt)
                 trans.execute(stmt)
@@ -982,7 +1018,9 @@ class PandasSQLTest:
         # Make sure when transaction is rolled back, no rows get inserted
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
         if isinstance(self.pandasSQL, SQLDatabase):
-            from sqlalchemy import text
+            from sqlalchemy import (
+                text,
+            )
 
             ins_sql = text(ins_sql)
         try:
@@ -1368,7 +1406,9 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_get_schema_dtypes(self):
         if self.mode == "sqlalchemy":
-            from sqlalchemy import Integer
+            from sqlalchemy import (
+                Integer,
+            )
 
             dtype = Integer
         else:
@@ -1509,8 +1549,12 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         tm.assert_frame_equal(iris_frame1, iris_frame2)
 
     def test_not_reflect_all_tables(self):
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
+        from sqlalchemy import (
+            text,
+        )
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         # create invalid table
         query_list = [
@@ -1547,7 +1591,9 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             test_frame1.to_sql("CaseSensitive", self.conn)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
+        from sqlalchemy.engine import (
+            reflection,
+        )
 
         insp = reflection.Inspector.from_engine(self.conn)
         ixs = insp.get_indexes("test_index_saved")
@@ -1555,7 +1601,9 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         return ixs
 
     def test_sqlalchemy_type_mapping(self):
-        from sqlalchemy import TIMESTAMP
+        from sqlalchemy import (
+            TIMESTAMP,
+        )
 
         # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
         df = DataFrame(
@@ -1632,7 +1680,9 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_query_by_text_obj(self):
         # WIP : GH10846
-        from sqlalchemy import text
+        from sqlalchemy import (
+            text,
+        )
 
         name_text = text("select * from iris where name=:name")
         iris_df = sql.read_sql(name_text, self.conn, params={"name": "Iris-versicolor"})
@@ -1795,7 +1845,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_empty(test_frame1)
 
     def test_create_table(self):
-        from sqlalchemy import inspect
+        from sqlalchemy import (
+            inspect,
+        )
 
         temp_conn = self.connect()
         temp_frame = DataFrame(
@@ -1812,7 +1864,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             pandasSQL.drop_table("temp_frame")
 
     def test_drop_table(self):
-        from sqlalchemy import inspect
+        from sqlalchemy import (
+            inspect,
+        )
 
         temp_conn = self.connect()
         temp_frame = DataFrame(
@@ -2166,7 +2220,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(result, df)
 
     def _get_index_columns(self, tbl_name):
-        from sqlalchemy import inspect
+        from sqlalchemy import (
+            inspect,
+        )
 
         insp = inspect(self.conn)
 
@@ -2184,8 +2240,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Use a dataframe without a bool column, since MySQL converts bool to
         # TINYINT (which read_sql_table returns as an int and causes a dtype
         # mismatch)
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
+        from sqlalchemy import (
+            text,
+        )
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         tbl = "test_get_schema_create_table"
         create_sql = sql.get_schema(test_frame3, tbl, con=self.conn)
@@ -2209,7 +2269,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             TEXT,
             String,
         )
-        from sqlalchemy.schema import MetaData
+        from sqlalchemy.schema import (
+            MetaData,
+        )
 
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
@@ -2246,7 +2308,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Float,
             Integer,
         )
-        from sqlalchemy.schema import MetaData
+        from sqlalchemy.schema import (
+            MetaData,
+        )
 
         cols = {
             "Bool": Series([True, None]),
@@ -2274,7 +2338,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Float,
             Integer,
         )
-        from sqlalchemy.schema import MetaData
+        from sqlalchemy.schema import (
+            MetaData,
+        )
 
         V = 1.23456789101112131415
 
@@ -2316,7 +2382,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_connectable_issue_example(self):
         # This tests the example raised in issue
         # https://github.com/pandas-dev/pandas/issues/10104
-        from sqlalchemy.engine import Engine
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         def test_select(connection):
             query = "SELECT test_foo_data FROM test_foo_data"
@@ -2546,7 +2614,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
 
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             df = DataFrame(
                 {
@@ -2752,7 +2822,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         cls.driver = "psycopg2"
 
     def test_schema_support(self):
-        from sqlalchemy.engine import Engine
+        from sqlalchemy.engine import (
+            Engine,
+        )
 
         # only test this for postgresql (schema's not supported in
         # mysql/sqlite)

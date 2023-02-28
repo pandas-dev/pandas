@@ -8,10 +8,16 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas._libs.tslibs import (
+    iNaT,
+)
+from pandas.compat import (
+    is_numpy_dev,
+)
 
-from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
+)
 
 from pandas import (
     DatetimeIndex,
@@ -32,7 +38,9 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
+from pandas.core.ops import (
+    roperator,
+)
 
 
 @pytest.mark.parametrize(

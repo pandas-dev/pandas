@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import functools
 from typing import (
@@ -19,18 +21,28 @@ from pandas._typing import (
     npt,
 )
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_obj,
 )
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    na_value_for_dtype,
+)
 
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays._mixins import (
+        NDArrayBackedExtensionArray,
+    )
+    from pandas.core.arrays.base import (
+        ExtensionArray,
+    )
 
 
 @overload

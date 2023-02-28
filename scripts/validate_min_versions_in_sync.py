@@ -12,7 +12,9 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run validate-min-versions-in-sync --all-files
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import pathlib
 import sys
@@ -24,9 +26,13 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-from typing import Any
+from typing import (
+    Any,
+)
 
-from scripts.generate_pip_deps_from_conda import RENAME
+from scripts.generate_pip_deps_from_conda import (
+    RENAME,
+)
 
 DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(

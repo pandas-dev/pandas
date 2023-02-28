@@ -2,12 +2,18 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime
-from functools import partial
+from functools import (
+    partial,
+)
 import operator
-from typing import Any
+from typing import (
+    Any,
+)
 
 import numpy as np
 
@@ -18,7 +24,9 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+)
 from pandas._typing import (
     ArrayLike,
     Shape,
@@ -47,14 +55,22 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.computation import expressions
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.computation import (
+    expressions,
+)
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
 from pandas.core.ops import (
     missing,
     roperator,
 )
-from pandas.core.ops.dispatch import should_extension_dispatch
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.dispatch import (
+    should_extension_dispatch,
+)
+from pandas.core.ops.invalid import (
+    invalid_comparison,
+)
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
@@ -472,7 +488,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
         # GH#28080 numpy casts integer-dtype to datetime64 when doing
         #  array[int] + datetime64, which we do not allow
         if isna(obj):
-            from pandas.core.arrays import DatetimeArray
+            from pandas.core.arrays import (
+                DatetimeArray,
+            )
 
             # Avoid possible ambiguities with pd.NaT
             obj = obj.astype("datetime64[ns]")
@@ -483,7 +501,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
 
     elif isinstance(obj, np.timedelta64):
         if isna(obj):
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so

@@ -6,7 +6,9 @@ import pytest
 import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     BlockIndex,

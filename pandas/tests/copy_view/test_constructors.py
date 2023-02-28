@@ -6,7 +6,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.copy_view.util import get_array
+from pandas.tests.copy_view.util import (
+    get_array,
+)
 
 # -----------------------------------------------------------------------------
 # Copy/view behaviour for Series / DataFrame constructors

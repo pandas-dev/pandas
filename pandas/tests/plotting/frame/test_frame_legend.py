@@ -7,8 +7,12 @@ from pandas import (
     DataFrame,
     date_range,
 )
-from pandas.tests.plotting.common import TestPlotBase
-from pandas.util.version import Version
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+)
+from pandas.util.version import (
+    Version,
+)
 
 
 class TestFrameLegend(TestPlotBase):
@@ -21,8 +25,12 @@ class TestFrameLegend(TestPlotBase):
     def test_mixed_yerr(self):
         # https://github.com/pandas-dev/pandas/issues/39522
         import matplotlib as mpl
-        from matplotlib.collections import LineCollection
-        from matplotlib.lines import Line2D
+        from matplotlib.collections import (
+            LineCollection,
+        )
+        from matplotlib.lines import (
+            Line2D,
+        )
 
         df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
 

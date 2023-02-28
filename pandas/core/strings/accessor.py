@@ -1,7 +1,11 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import codecs
-from functools import wraps
+from functools import (
+    wraps,
+)
 import re
 from typing import (
     TYPE_CHECKING,
@@ -14,15 +18,21 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     AlignJoin,
     DtypeObj,
     F,
     Scalar,
 )
-from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    Appender,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -39,10 +49,16 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.base import NoNewAttributesMixin
-from pandas.core.construction import extract_array
+from pandas.core.base import (
+    NoNewAttributesMixin,
+)
+from pandas.core.construction import (
+    extract_array,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -175,7 +191,9 @@ class StringMethods(NoNewAttributesMixin):
     # * extractall
 
     def __init__(self, data) -> None:
-        from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_ import (
+            StringDtype,
+        )
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
@@ -2566,7 +2584,9 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -3262,7 +3282,9 @@ def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
-    from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_ import (
+        StringDtype,
+    )
 
     if isinstance(arr.dtype, StringDtype):
         return arr.dtype
@@ -3322,7 +3344,9 @@ def str_extractall(arr, pat, flags: int = 0):
                 result_key = tuple(subject_key + (match_i,))
                 index_list.append(result_key)
 
-    from pandas import MultiIndex
+    from pandas import (
+        MultiIndex,
+    )
 
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)

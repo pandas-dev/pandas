@@ -1,11 +1,17 @@
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import pathlib
 import tempfile
-from typing import Generator
+from typing import (
+    Generator,
+)
 
 import pytest
 
-from pandas.io.pytables import HDFStore
+from pandas.io.pytables import (
+    HDFStore,
+)
 
 tables = pytest.importorskip("tables")
 # set these parameters so we don't have file sharing

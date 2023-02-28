@@ -15,7 +15,9 @@ This module provides a set of commonly used default arguments for functions and
 methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
@@ -24,7 +26,9 @@ from typing import (
     overload,
 )
 
-from numpy import ndarray
+from numpy import (
+    ndarray,
+)
 
 from pandas._libs.lib import (
     is_bool,
@@ -34,7 +38,9 @@ from pandas._typing import (
     Axis,
     AxisInt,
 )
-from pandas.errors import UnsupportedFunctionCall
+from pandas.errors import (
+    UnsupportedFunctionCall,
+)
 from pandas.util._validators import (
     validate_args,
     validate_args_and_kwargs,

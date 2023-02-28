@@ -1,4 +1,6 @@
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+)
 
 
 cpdef to_offset(object obj)

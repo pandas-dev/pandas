@@ -3,8 +3,12 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.arrays import BooleanArray
-from pandas.core.arrays.boolean import coerce_to_array
+from pandas.arrays import (
+    BooleanArray,
+)
+from pandas.core.arrays.boolean import (
+    coerce_to_array,
+)
 
 
 def test_boolean_array_constructor():

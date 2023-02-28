@@ -1,12 +1,16 @@
 import contextlib
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import re
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 from pandas.io.excel import (
@@ -20,7 +24,9 @@ pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
 def test_to_excel_styleconverter(ext):
-    from openpyxl import styles
+    from openpyxl import (
+        styles,
+    )
 
     hstyle = {
         "font": {"color": "00FF0000", "bold": True},
@@ -53,7 +59,9 @@ def test_to_excel_styleconverter(ext):
 
 
 def test_write_cells_merge_styled(ext):
-    from pandas.io.formats.excel import ExcelCell
+    from pandas.io.formats.excel import (
+        ExcelCell,
+    )
 
     sheet_name = "merge_styled"
 

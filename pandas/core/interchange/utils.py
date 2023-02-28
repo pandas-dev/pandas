@@ -2,17 +2,23 @@
 Utility functions and objects for implementing the interchange API.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 import typing
 
 import numpy as np
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+)
 
 import pandas as pd
-from pandas.api.types import is_datetime64_dtype
+from pandas.api.types import (
+    is_datetime64_dtype,
+)
 
 
 class ArrowCTypes:

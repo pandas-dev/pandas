@@ -1,6 +1,8 @@
 import pytest
 
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+)
 
 import pandas as pd
 

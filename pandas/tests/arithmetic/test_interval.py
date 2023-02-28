@@ -3,7 +3,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +26,9 @@ from pandas.core.arrays import (
     BooleanArray,
     IntervalArray,
 )
-from pandas.tests.arithmetic.common import get_upcast_box
+from pandas.tests.arithmetic.common import (
+    get_upcast_box,
+)
 
 
 @pytest.fixture(

@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import (
+    Series,
+)
 
 
 @pytest.mark.parametrize(

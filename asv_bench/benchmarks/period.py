@@ -11,7 +11,9 @@ from pandas import (
     period_range,
 )
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 
 class PeriodIndexConstructor:

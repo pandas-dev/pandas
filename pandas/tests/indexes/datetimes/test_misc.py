@@ -1,5 +1,7 @@
 import calendar
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import locale
 import unicodedata
 
@@ -16,9 +18,13 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+)
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 
 class TestDatetime64:

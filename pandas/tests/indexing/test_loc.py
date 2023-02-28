@@ -1,5 +1,7 @@
 """ test label based indexing with loc """
-from collections import namedtuple
+from collections import (
+    namedtuple,
+)
 from datetime import (
     date,
     datetime,
@@ -8,11 +10,15 @@ from datetime import (
 )
 import re
 
-from dateutil.tz import gettz
+from dateutil.tz import (
+    gettz,
+)
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -41,8 +47,12 @@ from pandas.api.types import (
     is_bool_dtype,
     is_scalar,
 )
-from pandas.core.indexing import _one_ellipsis_message
-from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
+from pandas.core.indexing import (
+    _one_ellipsis_message,
+)
+from pandas.tests.indexing.common import (
+    check_indexing_smoketest_or_raises,
+)
 
 
 @pytest.mark.parametrize(
@@ -1304,7 +1314,9 @@ class TestLocBaseIndependent:
     @td.skip_if_no_scipy
     def test_loc_getitem_sparse_frame(self):
         # GH34687
-        from scipy.sparse import eye
+        from scipy.sparse import (
+            eye,
+        )
 
         df = DataFrame.sparse.from_spmatrix(eye(5))
         result = df.loc[range(2)]

@@ -7,7 +7,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.common import NumericBase
+from pandas.tests.indexes.common import (
+    NumericBase,
+)
 
 
 class TestFloatNumericIndex(NumericBase):

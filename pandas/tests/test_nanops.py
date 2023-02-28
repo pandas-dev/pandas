@@ -1,4 +1,6 @@
-from functools import partial
+from functools import (
+    partial,
+)
 import operator
 import warnings
 
@@ -7,7 +9,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -15,8 +19,12 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import nanops
-from pandas.core.arrays import DatetimeArray
+from pandas.core import (
+    nanops,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+)
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -497,7 +505,9 @@ class TestnanopsDataFrame:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("ddof", range(3))
     def test_nansem(self, ddof, skipna):
-        from scipy.stats import sem
+        from scipy.stats import (
+            sem,
+        )
 
         with np.errstate(invalid="ignore"):
             self.check_funs(
@@ -560,7 +570,9 @@ class TestnanopsDataFrame:
 
     @td.skip_if_no_scipy
     def test_nanskew(self, skipna):
-        from scipy.stats import skew
+        from scipy.stats import (
+            skew,
+        )
 
         func = partial(self._skew_kurt_wrap, func=skew)
         with np.errstate(invalid="ignore"):
@@ -575,7 +587,9 @@ class TestnanopsDataFrame:
 
     @td.skip_if_no_scipy
     def test_nankurt(self, skipna):
-        from scipy.stats import kurtosis
+        from scipy.stats import (
+            kurtosis,
+        )
 
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
@@ -707,7 +721,9 @@ class TestnanopsDataFrame:
 
     @td.skip_if_no_scipy
     def test_nancorr_kendall(self):
-        from scipy.stats import kendalltau
+        from scipy.stats import (
+            kendalltau,
+        )
 
         targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
@@ -718,7 +734,9 @@ class TestnanopsDataFrame:
 
     @td.skip_if_no_scipy
     def test_nancorr_spearman(self):
-        from scipy.stats import spearmanr
+        from scipy.stats import (
+            spearmanr,
+        )
 
         targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]

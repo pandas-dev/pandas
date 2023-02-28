@@ -1,26 +1,38 @@
 """
 Support pre-0.12 series pickle compatibility.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import Generator
+from typing import (
+    Generator,
+)
 
 import numpy as np
 
-from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import BaseOffset
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
+from pandas._libs.tslibs import (
+    BaseOffset,
+)
 
-from pandas import Index
+from pandas import (
+    Index,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.internals import BlockManager
+from pandas.core.internals import (
+    BlockManager,
+)
 
 
 def load_reduce(self):

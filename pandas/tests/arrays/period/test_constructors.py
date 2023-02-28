@@ -1,8 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    iNaT,
+)
+from pandas._libs.tslibs.period import (
+    IncompatibleFrequency,
+)
 
 import pandas as pd
 import pandas._testing as tm

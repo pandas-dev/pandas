@@ -2,10 +2,16 @@ import datetime
 
 import pytest
 
-from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.offsets import MonthOffset
+from pandas._libs.tslibs import (
+    Timestamp,
+)
+from pandas._libs.tslibs.offsets import (
+    MonthOffset,
+)
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @pytest.fixture(

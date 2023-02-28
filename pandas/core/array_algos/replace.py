@@ -1,7 +1,9 @@
 """
 Methods used by Block.replace and related methods.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 import re
@@ -23,7 +25,9 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 
 def should_use_regex(regex: bool, to_replace: Any) -> bool:

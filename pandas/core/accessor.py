@@ -4,7 +4,9 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Callable,
@@ -12,8 +14,12 @@ from typing import (
 )
 import warnings
 
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 
 class DirNamesMixin:
@@ -321,20 +327,26 @@ def _register_accessor(name, cls):
 
 @doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name):
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
     return _register_accessor(name, DataFrame)
 
 
 @doc(_register_accessor, klass="Series")
 def register_series_accessor(name):
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     return _register_accessor(name, Series)
 
 
 @doc(_register_accessor, klass="Index")
 def register_index_accessor(name):
-    from pandas import Index
+    from pandas import (
+        Index,
+    )
 
     return _register_accessor(name, Index)

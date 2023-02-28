@@ -1,10 +1,16 @@
 """
 missing types & inference
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from decimal import Decimal
-from functools import partial
+from decimal import (
+    Decimal,
+)
+from functools import (
+    partial,
+)
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -12,9 +18,13 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
@@ -51,7 +61,9 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_list_like
+from pandas.core.dtypes.inference import (
+    is_list_like,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -63,7 +75,9 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.indexes.base import Index
+    from pandas.core.indexes.base import (
+        Index,
+    )
 
 
 isposinf_scalar = libmissing.isposinf_scalar

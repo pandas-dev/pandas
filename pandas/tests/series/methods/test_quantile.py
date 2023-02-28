@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+)
 
 import pandas as pd
 from pandas import (
@@ -9,7 +11,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.datetimes import (
+    Timestamp,
+)
 
 
 class TestSeriesQuantile:

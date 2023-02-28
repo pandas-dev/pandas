@@ -1,7 +1,11 @@
 # cython: language_level=3, initializedcheck=False
 # cython: warn.maybe_uninitialized=True, warn.unused=True
-from cython cimport Py_ssize_t
-from libc.stddef cimport size_t
+from cython cimport (
+    Py_ssize_t,
+)
+from libc.stddef cimport (
+    size_t,
+)
 from libc.stdint cimport (
     int64_t,
     uint8_t,

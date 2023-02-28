@@ -6,7 +6,9 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
 from typing import (
@@ -24,7 +26,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -39,9 +43,15 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.compat import set_function_name
-from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.compat import (
+    set_function_name,
+)
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    AbstractMethodError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -53,7 +63,9 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_to_extension_array
+from pandas.core.dtypes.cast import (
+    maybe_cast_to_extension_array,
+)
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_dtype_equal,
@@ -62,13 +74,17 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 from pandas.core import (
     arraylike,
@@ -82,7 +98,9 @@ from pandas.core.algorithms import (
     rank,
     unique,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.quantile import (
+    quantile_with_mask,
+)
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -580,12 +598,16 @@ class ExtensionArray:
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
         elif is_datetime64_dtype(dtype):
-            from pandas.core.arrays import DatetimeArray
+            from pandas.core.arrays import (
+                DatetimeArray,
+            )
 
             return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
 
         elif is_timedelta64_dtype(dtype):
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
 
@@ -1257,7 +1279,9 @@ class ExtensionArray:
         if self.ndim > 1:
             return self._repr_2d()
 
-        from pandas.io.formats.printing import format_object_summary
+        from pandas.io.formats.printing import (
+            format_object_summary,
+        )
 
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
@@ -1269,7 +1293,9 @@ class ExtensionArray:
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _repr_2d(self) -> str:
-        from pandas.io.formats.printing import format_object_summary
+        from pandas.io.formats.printing import (
+            format_object_summary,
+        )
 
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip

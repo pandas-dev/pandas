@@ -8,7 +8,9 @@ from io import (
 )
 import os
 import platform
-from urllib.error import URLError
+from urllib.error import (
+    URLError,
+)
 import uuid
 
 import pytest
@@ -19,7 +21,9 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 # TODO(1.4) Please xfail individual tests at release time

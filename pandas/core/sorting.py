@@ -1,7 +1,11 @@
 """ miscellaneous sorting / groupby utilities """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -19,7 +23,9 @@ from pandas._libs import (
     hashtable,
     lib,
 )
-from pandas._libs.hashtable import unique_label_indices
+from pandas._libs.hashtable import (
+    unique_label_indices,
+)
 from pandas._typing import (
     AxisInt,
     IndexKeyFunc,
@@ -39,14 +45,24 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCRangeIndex,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    extract_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import MultiIndex
-    from pandas.core.arrays import ExtensionArray
-    from pandas.core.indexes.base import Index
+    from pandas import (
+        MultiIndex,
+    )
+    from pandas.core.arrays import (
+        ExtensionArray,
+    )
+    from pandas.core.indexes.base import (
+        Index,
+    )
 
 
 def get_indexer_indexer(
@@ -326,7 +342,9 @@ def lexsort_indexer(
     -------
     np.ndarray[np.intp]
     """
-    from pandas.core.arrays import Categorical
+    from pandas.core.arrays import (
+        Categorical,
+    )
 
     labels = []
     shape = []
@@ -546,7 +564,9 @@ def ensure_key_mapped(values, key: Callable | None, levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
-    from pandas.core.indexes.api import Index
+    from pandas.core.indexes.api import (
+        Index,
+    )
 
     if not key:
         return values

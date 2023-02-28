@@ -1,11 +1,15 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -15,12 +19,18 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import pandas_dtype
-from pandas.arrays import SparseArray
+from pandas.api.types import (
+    pandas_dtype,
+)
+from pandas.arrays import (
+    SparseArray,
+)
 
 
 # EA & Actual Dtypes
@@ -197,7 +207,9 @@ def test_is_sparse(check_scipy):
 
 @td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    from scipy.sparse import (
+        bsr_matrix,
+    )
 
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 

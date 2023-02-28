@@ -23,28 +23,40 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import locale
-from typing import Callable
+from typing import (
+    Callable,
+)
 
 import numpy as np
 import pytest
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._typing import F
+from pandas._typing import (
+    F,
+)
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 from pandas.core.computation.expressions import (
     NUMEXPR_INSTALLED,
     USE_NUMEXPR,
 )
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 
 def safe_import(mod_name: str, min_version: str | None = None):

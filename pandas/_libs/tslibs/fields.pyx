@@ -2,12 +2,18 @@
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
-from locale import LC_TIME
+from locale import (
+    LC_TIME,
+)
 
-from _strptime import LocaleTime
+from _strptime import (
+    LocaleTime,
+)
 
 cimport cython
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 
 import numpy as np
 
@@ -22,7 +28,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._config.localization import set_locale
+from pandas._config.localization import (
+    set_locale,
+)
 
 from pandas._libs.tslibs.ccalendar import (
     DAYS_FULL,
@@ -39,7 +47,9 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_week_of_year,
     iso_calendar_t,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,

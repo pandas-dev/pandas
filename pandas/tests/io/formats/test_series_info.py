@@ -1,11 +1,17 @@
-from io import StringIO
-from string import ascii_uppercase as uppercase
+from io import (
+    StringIO,
+)
+from string import (
+    ascii_uppercase as uppercase,
+)
 import textwrap
 
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+)
 
 from pandas import (
     CategoricalIndex,

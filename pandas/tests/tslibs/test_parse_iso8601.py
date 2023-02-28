@@ -1,10 +1,16 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import pytest
 
-from pandas._libs import tslib
+from pandas._libs import (
+    tslib,
+)
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 
 
 @pytest.mark.parametrize(

@@ -12,7 +12,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+)
 
 
 @td.skip_if_no_mpl

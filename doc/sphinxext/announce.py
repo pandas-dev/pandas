@@ -37,7 +37,9 @@ import os
 import re
 import textwrap
 
-from git import Repo
+from git import (
+    Repo,
+)
 
 UTF8Writer = codecs.getwriter("utf8")
 this_repo = Repo(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -153,7 +155,9 @@ def main(revision_range):
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
+    from argparse import (
+        ArgumentParser,
+    )
 
     parser = ArgumentParser(description="Generate author lists for release")
     parser.add_argument("revision_range", help="<revision>..<revision>")

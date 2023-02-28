@@ -1,23 +1,33 @@
 """ test to_datetime """
 
 import calendar
-from collections import deque
+from collections import (
+    deque,
+)
 from datetime import (
     date,
     datetime,
     timedelta,
     timezone,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import locale
 
-from dateutil.parser import parse
-from dateutil.tz.tz import tzoffset
+from dateutil.parser import (
+    parse,
+)
+from dateutil.tz.tz import (
+    tzoffset,
+)
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import tslib
+from pandas._libs import (
+    tslib,
+)
 from pandas._libs.tslibs import (
     iNaT,
     parsing,
@@ -28,7 +38,9 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_ns_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -43,10 +55,18 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
-from pandas.core.tools import datetimes as tools
-from pandas.core.tools.datetimes import start_caching_at
-from pandas.util.version import Version
+from pandas.core.arrays import (
+    DatetimeArray,
+)
+from pandas.core.tools import (
+    datetimes as tools,
+)
+from pandas.core.tools.datetimes import (
+    start_caching_at,
+)
+from pandas.util.version import (
+    Version,
+)
 
 PARSING_ERR_MSG = (
     r"You might want to try:\n"
@@ -1715,7 +1735,9 @@ class TestToDatetime:
         assert result.tz is timezone.utc
 
     def test_to_datetime_fixed_offset(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off
+        from pandas.tests.indexes.datetimes.test_timezones import (
+            fixed_off,
+        )
 
         dates = [
             datetime(2000, 1, 1, tzinfo=fixed_off),

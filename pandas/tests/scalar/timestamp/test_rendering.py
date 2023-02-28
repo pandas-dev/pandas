@@ -3,7 +3,9 @@ import pprint
 import pytest
 import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 
 
 class TestTimestampRendering:

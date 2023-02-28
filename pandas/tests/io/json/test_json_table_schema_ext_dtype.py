@@ -1,6 +1,8 @@
 """Tests for ExtensionDtype Table Schema integration."""
 
-from collections import OrderedDict
+from collections import (
+    OrderedDict,
+)
 import datetime as dt
 import decimal
 import json
@@ -15,9 +17,15 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-from pandas.core.arrays.integer import Int64Dtype
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.series import Series
+from pandas.core.arrays.integer import (
+    Int64Dtype,
+)
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
+from pandas.core.series import (
+    Series,
+)
 from pandas.tests.extension.date import (
     DateArray,
     DateDtype,

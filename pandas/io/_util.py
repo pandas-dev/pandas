@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 import pandas as pd
 

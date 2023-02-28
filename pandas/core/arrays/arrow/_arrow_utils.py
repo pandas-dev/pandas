@@ -1,12 +1,18 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import warnings
 
 import numpy as np
 import pyarrow
 
-from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 
 def fallback_performancewarning(version: str | None = None) -> None:

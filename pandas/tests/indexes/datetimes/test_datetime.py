@@ -1,4 +1,6 @@
-from datetime import date
+from datetime import (
+    date,
+)
 
 import dateutil
 import numpy as np

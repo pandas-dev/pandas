@@ -2,7 +2,9 @@
 Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import pytest
 

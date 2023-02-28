@@ -1,18 +1,26 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import gc
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_integer_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -28,7 +36,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import (
+    BaseMaskedArray,
+)
 
 
 class Base:

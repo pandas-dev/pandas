@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 class OutOfBoundsDatetime(ValueError): ...
 class OutOfBoundsTimedelta(ValueError): ...

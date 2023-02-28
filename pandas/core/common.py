@@ -3,7 +3,9 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import builtins
 from collections import (
@@ -11,7 +13,9 @@ from collections import (
     defaultdict,
 )
 import contextlib
-from functools import partial
+from functools import (
+    partial,
+)
 import inspect
 from typing import (
     TYPE_CHECKING,
@@ -29,7 +33,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -38,7 +44,9 @@ from pandas._typing import (
     T,
 )
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -50,11 +58,17 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.inference import (
+    iterable_not_string,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        Index,
+    )
 
 
 def flatten(line):

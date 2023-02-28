@@ -1,7 +1,9 @@
 import argparse
 import os
 
-from Cython import Tempita
+from Cython import (
+    Tempita,
+)
 
 
 def process_tempita(pxifile, outfile):

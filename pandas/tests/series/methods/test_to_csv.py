@@ -1,14 +1,22 @@
-from datetime import datetime
-from io import StringIO
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 
 class TestSeriesToCSV:

@@ -1,4 +1,6 @@
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
 import numpy as np
 import pytest

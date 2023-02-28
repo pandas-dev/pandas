@@ -1,8 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Series
-from pandas.core.strings.accessor import StringMethods
+from pandas import (
+    Series,
+)
+from pandas.core.strings.accessor import (
+    StringMethods,
+)
 
 _any_string_method = [
     ("cat", (), {"sep": ","}),

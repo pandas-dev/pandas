@@ -1,20 +1,32 @@
 """Sparse accessor"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    find_common_type,
+)
 
 from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
-from pandas.core.arrays.sparse.array import SparseArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
+from pandas.core.arrays.sparse.array import (
+    SparseArray,
+)
+from pandas.core.arrays.sparse.dtype import (
+    SparseDtype,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -99,8 +111,12 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         1  0    3.0
         dtype: Sparse[float64, nan]
         """
-        from pandas import Series
-        from pandas.core.arrays.sparse.scipy_sparse import coo_to_sparse_series
+        from pandas import (
+            Series,
+        )
+        from pandas.core.arrays.sparse.scipy_sparse import (
+            coo_to_sparse_series,
+        )
 
         result = coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
@@ -182,7 +198,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         >>> columns
         [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
         """
-        from pandas.core.arrays.sparse.scipy_sparse import sparse_series_to_coo
+        from pandas.core.arrays.sparse.scipy_sparse import (
+            sparse_series_to_coo,
+        )
 
         A, rows, columns = sparse_series_to_coo(
             self._parent, row_levels, column_levels, sort_labels=sort_labels
@@ -213,7 +231,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         2    0
         dtype: int64
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         return Series(
             self._parent.array.to_dense(),
@@ -261,9 +281,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
-        from pandas._libs.sparse import IntIndex
+        from pandas._libs.sparse import (
+            IntIndex,
+        )
 
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
@@ -305,7 +329,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  1
         2  0
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         data = {k: v.array.to_dense() for k, v in self._parent.items()}
         return DataFrame(data, index=self._parent.index, columns=self._parent.columns)
@@ -331,7 +357,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         and uint64 will result in a float64 dtype.
         """
         import_optional_dependency("scipy")
-        from scipy.sparse import coo_matrix
+        from scipy.sparse import (
+            coo_matrix,
+        )
 
         dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):

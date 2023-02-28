@@ -1,9 +1,13 @@
 """
 timedelta support tools
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -11,7 +15,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
@@ -21,16 +27,22 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
 )
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
+from pandas.core.arrays.timedeltas import (
+    sequence_to_td64ns,
+)
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs.timedeltas import UnitChoices
+    from pandas._libs.tslibs.timedeltas import (
+        UnitChoices,
+    )
     from pandas._typing import (
         ArrayLike,
         DateTimeErrorChoices,
@@ -259,7 +271,9 @@ def _convert_listlike(
             # like to surface it.
             raise
 
-    from pandas import TimedeltaIndex
+    from pandas import (
+        TimedeltaIndex,
+    )
 
     value = TimedeltaIndex(td64arr, unit="ns", name=name)
     return value

@@ -1,10 +1,16 @@
 """
 :func:`~pandas.eval` source string parsing functions
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from io import StringIO
-from keyword import iskeyword
+from io import (
+    StringIO,
+)
+from keyword import (
+    iskeyword,
+)
 import token
 import tokenize
 from typing import (

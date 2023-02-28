@@ -2,11 +2,15 @@
 transforms.py is for shape-preserving functions.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas._typing import AxisInt
+from pandas._typing import (
+    AxisInt,
+)
 
 
 def shift(values: np.ndarray, periods: int, axis: AxisInt, fill_value) -> np.ndarray:

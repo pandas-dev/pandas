@@ -45,10 +45,16 @@ from cpython.object cimport (
 
 import_datetime()
 
-from pandas._libs.tslibs cimport ccalendar
-from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs cimport (
+    ccalendar,
+)
+from pandas._libs.tslibs.base cimport (
+    ABCTimestamp,
+)
 
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -99,14 +105,18 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport (
+    to_offset,
+)
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     delta_to_nanoseconds,
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
+)
 
 from pandas._libs.tslibs.timezones cimport (
     get_timezone,
@@ -1248,7 +1258,9 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts.to_period(freq='Q')
         Period('2020Q1', 'Q-DEC')
         """
-        from pandas import Period
+        from pandas import (
+            Period,
+        )
 
         if self.tz is not None:
             # GH#21333

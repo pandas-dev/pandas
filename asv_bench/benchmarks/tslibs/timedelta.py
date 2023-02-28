@@ -6,7 +6,9 @@ import datetime
 
 import numpy as np
 
-from pandas import Timedelta
+from pandas import (
+    Timedelta,
+)
 
 
 class TimedeltaConstructor:

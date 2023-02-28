@@ -2,7 +2,9 @@ import os
 
 import pytest
 
-from pandas import compat
+from pandas import (
+    compat,
+)
 import pandas._testing as tm
 
 

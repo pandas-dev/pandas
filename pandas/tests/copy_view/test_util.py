@@ -1,7 +1,11 @@
 import numpy as np
 
-from pandas import DataFrame
-from pandas.tests.copy_view.util import get_array
+from pandas import (
+    DataFrame,
+)
+from pandas.tests.copy_view.util import (
+    get_array,
+)
 
 
 def test_get_array_numpy():

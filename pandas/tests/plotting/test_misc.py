@@ -66,7 +66,9 @@ def test_get_accessor_args():
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
     def test_autocorrelation_plot(self):
-        from pandas.plotting import autocorrelation_plot
+        from pandas.plotting import (
+            autocorrelation_plot,
+        )
 
         ser = tm.makeTimeSeries(name="ts")
         # Ensure no UserWarning when making plot
@@ -79,13 +81,17 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
     def test_lag_plot(self, kwargs):
-        from pandas.plotting import lag_plot
+        from pandas.plotting import (
+            lag_plot,
+        )
 
         ser = tm.makeTimeSeries(name="ts")
         _check_plot_works(lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
-        from pandas.plotting import bootstrap_plot
+        from pandas.plotting import (
+            bootstrap_plot,
+        )
 
         ser = tm.makeTimeSeries(name="ts")
         _check_plot_works(bootstrap_plot, series=ser, size=10)
@@ -136,9 +142,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_andrews_curves(self, iris):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
-        from pandas.plotting import andrews_curves
+        from pandas.plotting import (
+            andrews_curves,
+        )
 
         df = iris
         # Ensure no UserWarning when making plot
@@ -213,9 +223,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
-        from pandas.plotting import parallel_coordinates
+        from pandas.plotting import (
+            parallel_coordinates,
+        )
 
         df = iris
 
@@ -262,7 +276,9 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
         """For #15908"""
-        from pandas.plotting import parallel_coordinates
+        from pandas.plotting import (
+            parallel_coordinates,
+        )
 
         df = DataFrame(
             {
@@ -286,9 +302,13 @@ class TestDataFramePlots(TestPlotBase):
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
     def test_radviz(self, iris):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
-        from pandas.plotting import radviz
+        from pandas.plotting import (
+            radviz,
+        )
 
         df = iris
         # Ensure no UserWarning when making plot
@@ -367,14 +387,18 @@ class TestDataFramePlots(TestPlotBase):
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._matplotlib.style import get_standard_colors
+        from pandas.plotting._matplotlib.style import (
+            get_standard_colors,
+        )
 
         color1 = get_standard_colors(1, color_type="random")
         color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._matplotlib.style import get_standard_colors
+        from pandas.plotting._matplotlib.style import (
+            get_standard_colors,
+        )
 
         # Make sure the default color_types returns the specified amount
         color1 = get_standard_colors(1, color_type="default")
@@ -405,9 +429,13 @@ class TestDataFramePlots(TestPlotBase):
 
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
-        from pandas.plotting._matplotlib.style import get_standard_colors
+        from pandas.plotting._matplotlib.style import (
+            get_standard_colors,
+        )
 
         color_before = cm.gnuplot(range(5))
         color_after = get_standard_colors(1, color=color_before)
@@ -442,7 +470,9 @@ class TestDataFramePlots(TestPlotBase):
     def test_bar_plot(self):
         # GH38947
         # Test bar plot with string and int index
-        from matplotlib.text import Text
+        from matplotlib.text import (
+            Text,
+        )
 
         expected = [Text(0, 0, "0"), Text(1, 0, "Total")]
 
@@ -461,7 +491,9 @@ class TestDataFramePlots(TestPlotBase):
     def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
-        from matplotlib.text import Text
+        from matplotlib.text import (
+            Text,
+        )
 
         df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledg", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
@@ -598,7 +630,9 @@ class TestDataFramePlots(TestPlotBase):
     def test_bar_plt_xaxis_intervalrange(self):
         # GH 38969
         # Ensure IntervalIndex x-axis produces a bar plot as expected
-        from matplotlib.text import Text
+        from matplotlib.text import (
+            Text,
+        )
 
         expected = [Text(0, 0, "([0, 1],)"), Text(1, 0, "([1, 2],)")]
         s = Series(

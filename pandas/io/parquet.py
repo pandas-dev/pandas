@@ -1,5 +1,7 @@
 """ parquet compat """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import io
 import os
@@ -7,20 +9,32 @@ from typing import (
     Any,
     Literal,
 )
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     FilePath,
     ReadBuffer,
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas import (
     DataFrame,
@@ -28,8 +42,12 @@ from pandas import (
     arrays,
     get_option,
 )
-from pandas.core.shared_docs import _shared_docs
-from pandas.util.version import Version
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
+from pandas.util.version import (
+    Version,
+)
 
 from pandas.io.common import (
     IOHandles,
@@ -228,7 +246,9 @@ class PyArrowImpl(BaseImpl):
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
             if dtype_backend == "pandas":
-                from pandas.io._util import _arrow_dtype_mapping
+                from pandas.io._util import (
+                    _arrow_dtype_mapping,
+                )
 
                 mapping = _arrow_dtype_mapping()
                 to_pandas_kwargs["types_mapper"] = mapping.get

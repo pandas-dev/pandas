@@ -18,7 +18,9 @@ will never be held in an Index.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+)
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
@@ -26,10 +28,18 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_object_dtype
-from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.internals import blocks
-from pandas.tests.extension import base
+from pandas.api.types import (
+    is_object_dtype,
+)
+from pandas.core.arrays.numpy_ import (
+    PandasArray,
+)
+from pandas.core.internals import (
+    blocks,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 def _can_hold_element_patched(obj, element) -> bool:

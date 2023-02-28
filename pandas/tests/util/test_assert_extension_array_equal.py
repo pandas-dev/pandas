@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import array
+from pandas import (
+    array,
+)
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import (
+    SparseArray,
+)
 
 
 @pytest.mark.parametrize(

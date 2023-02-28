@@ -2,13 +2,17 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    find_common_type,
+)
 
 from pandas import (
     CategoricalIndex,

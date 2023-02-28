@@ -1,7 +1,9 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from functools import (
     lru_cache,
@@ -22,15 +24,23 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.lib import is_list_like
+from pandas._libs.lib import (
+    is_list_like,
+)
 from pandas._typing import (
     IndexLabel,
     StorageOptions,
 )
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes import missing
+from pandas.core.dtypes import (
+    missing,
+)
 from pandas.core.dtypes.common import (
     is_float,
     is_scalar,
@@ -43,15 +53,23 @@ from pandas import (
     PeriodIndex,
 )
 import pandas.core.common as com
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.formats._color_data import CSS4_COLORS
+from pandas.io.formats._color_data import (
+    CSS4_COLORS,
+)
 from pandas.io.formats.css import (
     CSSResolver,
     CSSWarning,
 )
-from pandas.io.formats.format import get_level_lengths
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.format import (
+    get_level_lengths,
+)
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 class ExcelCell:
@@ -916,7 +934,9 @@ class ExcelFormatter:
 
             .. versionadded:: 1.2.0
         """
-        from pandas.io.excel import ExcelWriter
+        from pandas.io.excel import (
+            ExcelWriter,
+        )
 
         num_rows, num_cols = self.df.shape
         if num_rows > self.max_rows or num_cols > self.max_cols:

@@ -1,13 +1,17 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
     abstractmethod,
 )
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,8 +40,12 @@ from pandas._typing import (
     Axis,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.errors import NullFrequencyError
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    NullFrequencyError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -50,7 +58,9 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -58,19 +68,29 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin,
+)
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
 )
-from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
-from pandas.core.indexes.range import RangeIndex
-from pandas.core.tools.timedeltas import to_timedelta
+from pandas.core.indexes.extension import (
+    NDArrayBackedExtensionIndex,
+)
+from pandas.core.indexes.range import (
+    RangeIndex,
+)
+from pandas.core.tools.timedeltas import (
+    to_timedelta,
+)
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex
+    from pandas import (
+        CategoricalIndex,
+    )
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 

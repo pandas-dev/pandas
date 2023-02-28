@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

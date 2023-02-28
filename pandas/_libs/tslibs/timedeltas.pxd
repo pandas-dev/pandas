@@ -1,7 +1,13 @@
-from cpython.datetime cimport timedelta
-from numpy cimport int64_t
+from cpython.datetime cimport (
+    timedelta,
+)
+from numpy cimport (
+    int64_t,
+)
 
-from .np_datetime cimport NPY_DATETIMEUNIT
+from .np_datetime cimport (
+    NPY_DATETIMEUNIT,
+)
 
 
 # Exposed for tslib, not intended for outside use.

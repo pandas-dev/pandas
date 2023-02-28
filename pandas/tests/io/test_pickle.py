@@ -10,20 +10,28 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
-from array import array
+from array import (
+    array,
+)
 import bz2
 import datetime
 import functools
-from functools import partial
+from functools import (
+    partial,
+)
 import gzip
 import io
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import pickle
 import shutil
 import tarfile
 import uuid
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 import zipfile
 
 import numpy as np
@@ -33,8 +41,12 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import flatten_buffer
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.compat.compressors import (
+    flatten_buffer,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -55,7 +67,9 @@ from pandas.tseries.offsets import (
 @pytest.fixture
 def current_pickle_data():
     # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
+    from pandas.tests.io.generate_legacy_storage_files import (
+        create_pickle_data,
+    )
 
     with catch_warnings():
         return create_pickle_data()

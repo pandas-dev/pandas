@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 
 ts_no_ns = Timestamp(
     year=2019,

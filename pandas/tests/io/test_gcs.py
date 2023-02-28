@@ -1,4 +1,6 @@
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import os
 import tarfile
 import zipfile
@@ -15,8 +17,12 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
-from pandas.util import _test_decorators as td
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
+from pandas.util import (
+    _test_decorators as td,
+)
 
 
 @pytest.fixture
@@ -164,7 +170,9 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    from fsspec import AbstractFileSystem
+    from fsspec import (
+        AbstractFileSystem,
+    )
 
     df1 = DataFrame(
         {

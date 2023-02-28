@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import contextlib
 import datetime as pydt
@@ -16,24 +18,34 @@ from typing import (
     cast,
 )
 
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import (
+    relativedelta,
+)
 import matplotlib.dates as mdates
 from matplotlib.ticker import (
     AutoLocator,
     Formatter,
     Locator,
 )
-from matplotlib.transforms import nonsingular
+from matplotlib.transforms import (
+    nonsingular,
+)
 import matplotlib.units as munits
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._typing import F
+from pandas._libs.tslibs.dtypes import (
+    FreqGroup,
+)
+from pandas._typing import (
+    F,
+)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -49,7 +61,9 @@ from pandas import (
     get_option,
 )
 import pandas.core.common as com
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 from pandas.core.indexes.period import (
     Period,
     PeriodIndex,
@@ -58,7 +72,9 @@ from pandas.core.indexes.period import (
 import pandas.core.tools.datetimes as tools
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs.offsets import BaseOffset
+    from pandas._libs.tslibs.offsets import (
+        BaseOffset,
+    )
 
 # constants
 HOURS_PER_DAY: Final = 24.0

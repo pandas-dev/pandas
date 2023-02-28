@@ -1,13 +1,21 @@
 """
 Functions for defining unary operations.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Any
+from typing import (
+    Any,
+)
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+)
 
-from pandas.core.dtypes.generic import ABCExtensionArray
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+)
 
 
 def should_extension_dispatch(left: ArrayLike, right: Any) -> bool:

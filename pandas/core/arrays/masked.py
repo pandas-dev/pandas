@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -34,11 +36,19 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._validators import (
+    validate_fillna_kwargs,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
@@ -52,8 +62,12 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+)
+from pandas.core.dtypes.inference import (
+    is_array_like,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -77,12 +91,24 @@ from pandas.core.array_algos import (
     masked_accumulations,
     masked_reductions,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
-from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.indexers import check_array_indexer
-from pandas.core.ops import invalid_comparison
+from pandas.core.array_algos.quantile import (
+    quantile_with_mask,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
+from pandas.core.indexers import (
+    check_array_indexer,
+)
+from pandas.core.ops import (
+    invalid_comparison,
+)
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -92,7 +118,9 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
@@ -636,16 +664,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # Try inferring masked dtype instead of casting to object
             inferred_dtype = lib.infer_dtype(other, skipna=True)
             if inferred_dtype == "integer":
-                from pandas.core.arrays import IntegerArray
+                from pandas.core.arrays import (
+                    IntegerArray,
+                )
 
                 other = IntegerArray._from_sequence(other)
             elif inferred_dtype in ["floating", "mixed-integer-float"]:
-                from pandas.core.arrays import FloatingArray
+                from pandas.core.arrays import (
+                    FloatingArray,
+                )
 
                 other = FloatingArray._from_sequence(other)
 
             elif inferred_dtype in ["boolean"]:
-                from pandas.core.arrays import BooleanArray
+                from pandas.core.arrays import (
+                    BooleanArray,
+                )
 
                 other = BooleanArray._from_sequence(other)
 
@@ -732,7 +766,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _logical_method = _arith_method
 
     def _cmp_method(self, other, op) -> BooleanArray:
-        from pandas.core.arrays import BooleanArray
+        from pandas.core.arrays import (
+            BooleanArray,
+        )
 
         mask = None
 
@@ -788,12 +824,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
 
         if is_float_dtype(result.dtype):
-            from pandas.core.arrays import FloatingArray
+            from pandas.core.arrays import (
+                FloatingArray,
+            )
 
             return FloatingArray(result, mask, copy=False)
 
         elif is_bool_dtype(result.dtype):
-            from pandas.core.arrays import BooleanArray
+            from pandas.core.arrays import (
+                BooleanArray,
+            )
 
             return BooleanArray(result, mask, copy=False)
 
@@ -803,7 +843,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             and is_supported_unit(get_unit_from_dtype(result.dtype))
         ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             if not isinstance(result, TimedeltaArray):
                 result = TimedeltaArray._simple_new(result, dtype=result.dtype)
@@ -812,7 +854,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return result
 
         elif is_integer_dtype(result.dtype):
-            from pandas.core.arrays import IntegerArray
+            from pandas.core.arrays import (
+                IntegerArray,
+            )
 
             return IntegerArray(result, mask, copy=False)
 
@@ -878,7 +922,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
     def isin(self, values) -> BooleanArray:  # type: ignore[override]
-        from pandas.core.arrays import BooleanArray
+        from pandas.core.arrays import (
+            BooleanArray,
+        )
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra
         # cost to doing it here first
@@ -995,7 +1041,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             Index,
             Series,
         )
-        from pandas.arrays import IntegerArray
+        from pandas.arrays import (
+            IntegerArray,
+        )
 
         keys, value_counts = algos.value_counts_arraylike(
             self._data, dropna=True, mask=self._mask

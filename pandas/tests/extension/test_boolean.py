@@ -16,12 +16,18 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.tests.extension import base
+from pandas.core.arrays.boolean import (
+    BooleanDtype,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 def make_data():

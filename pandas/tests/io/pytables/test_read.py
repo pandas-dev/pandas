@@ -1,12 +1,20 @@
-from contextlib import closing
-from pathlib import Path
+from contextlib import (
+    closing,
+)
+from pathlib import (
+    Path,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
-from pandas.compat import is_platform_windows
+from pandas._libs.tslibs import (
+    Timestamp,
+)
+from pandas.compat import (
+    is_platform_windows,
+)
 
 import pandas as pd
 from pandas import (
@@ -21,9 +29,13 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
+from pandas.util import (
+    _test_decorators as td,
+)
 
-from pandas.io.pytables import TableIterator
+from pandas.io.pytables import (
+    TableIterator,
+)
 
 pytestmark = pytest.mark.single_cpu
 
@@ -302,7 +314,9 @@ def test_read_from_pathlib_path(tmp_path, setup_path):
 @td.skip_if_no("py.path")
 def test_read_from_py_localpath(tmp_path, setup_path):
     # GH11773
-    from py.path import local as LocalPath
+    from py.path import (
+        local as LocalPath,
+    )
 
     expected = DataFrame(
         np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")

@@ -1,10 +1,16 @@
-from datetime import datetime
-from decimal import Decimal
+from datetime import (
+    datetime,
+)
+from decimal import (
+    Decimal,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -25,9 +31,13 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import BooleanArray
+from pandas.core.arrays import (
+    BooleanArray,
+)
 import pandas.core.common as com
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 def test_repr():

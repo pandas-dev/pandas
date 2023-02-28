@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+)
 
 import pandas as pd
 from pandas import (
@@ -9,7 +11,9 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.common import NumericBase
+from pandas.tests.indexes.common import (
+    NumericBase,
+)
 
 # aliases to make some tests easier to read
 RI = RangeIndex

@@ -20,7 +20,9 @@ import pytest
 import pytz
 
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import (
+        ZoneInfo,
+    )
 except ImportError:
     ZoneInfo = None
 

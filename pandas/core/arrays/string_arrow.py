@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 from typing import (
@@ -17,7 +19,9 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -28,23 +32,37 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.arrays.arrow import ArrowExtensionArray
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import Int64Dtype
-from pandas.core.arrays.numeric import NumericDtype
+from pandas.core.arrays.arrow import (
+    ArrowExtensionArray,
+)
+from pandas.core.arrays.boolean import (
+    BooleanDtype,
+)
+from pandas.core.arrays.integer import (
+    Int64Dtype,
+)
+from pandas.core.arrays.numeric import (
+    NumericDtype,
+)
 from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
-from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.core.strings.object_array import (
+    ObjectStringArrayMixin,
+)
 
 if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+    from pandas.core.arrays.arrow._arrow_utils import (
+        fallback_performancewarning,
+    )
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
@@ -129,7 +147,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
-        from pandas.core.arrays.masked import BaseMaskedArray
+        from pandas.core.arrays.masked import (
+            BaseMaskedArray,
+        )
 
         _chk_pyarrow_available()
 

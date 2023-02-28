@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -7,7 +9,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PlottingOrientation
+from pandas._typing import (
+    PlottingOrientation,
+)
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -22,7 +26,9 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
@@ -31,7 +37,9 @@ from pandas.plotting._matplotlib.groupby import (
     create_iter_data_given_by,
     reformat_hist_y_given_by,
 )
-from pandas.plotting._matplotlib.misc import unpack_single_str_list
+from pandas.plotting._matplotlib.misc import (
+    unpack_single_str_list,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -40,9 +48,13 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    from matplotlib.axes import (
+        Axes,
+    )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 class HistPlot(LinePlot):
@@ -245,7 +257,9 @@ class KdePlot(HistPlot):
         stacking_id=None,
         **kwds,
     ):
-        from scipy.stats import gaussian_kde
+        from scipy.stats import (
+            gaussian_kde,
+        )
 
         y = remove_na_arraylike(y)
         gkde = gaussian_kde(y, bw_method=bw_method)

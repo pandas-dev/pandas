@@ -1,6 +1,10 @@
-from collections import abc
+from collections import (
+    abc,
+)
 import email
-from email.parser import Parser
+from email.parser import (
+    Parser,
+)
 
 import numpy as np
 import pytest

@@ -7,7 +7,9 @@ from pandas import (
     Series,
     _testing as tm,
 )
-from pandas.core.strings.accessor import StringMethods
+from pandas.core.strings.accessor import (
+    StringMethods,
+)
 
 
 def test_api(any_string_dtype):

@@ -1,11 +1,15 @@
 import contextlib
-from typing import Generator
+from typing import (
+    Generator,
+)
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core import accessor
+from pandas.core import (
+    accessor,
+)
 
 
 def test_dirname_mixin():

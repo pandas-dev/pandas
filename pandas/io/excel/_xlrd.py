@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import time
+from datetime import (
+    time,
+)
 
 import numpy as np
 
@@ -8,12 +12,20 @@ from pandas._typing import (
     Scalar,
     StorageOptions,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.excel._base import BaseExcelReader
+from pandas.io.excel._base import (
+    BaseExcelReader,
+)
 
 
 class XlrdReader(BaseExcelReader):
@@ -36,12 +48,16 @@ class XlrdReader(BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        from xlrd import Book
+        from xlrd import (
+            Book,
+        )
 
         return Book
 
     def load_workbook(self, filepath_or_buffer):
-        from xlrd import open_workbook
+        from xlrd import (
+            open_workbook,
+        )
 
         if hasattr(filepath_or_buffer, "read"):
             data = filepath_or_buffer.read()

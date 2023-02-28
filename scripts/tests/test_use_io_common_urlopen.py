@@ -1,6 +1,8 @@
 import pytest
 
-from scripts.use_io_common_urlopen import use_io_common_urlopen
+from scripts.use_io_common_urlopen import (
+    use_io_common_urlopen,
+)
 
 PATH = "t.py"
 

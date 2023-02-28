@@ -1,6 +1,10 @@
 import codecs
-from datetime import datetime
-from textwrap import dedent
+from datetime import (
+    datetime,
+)
+from textwrap import (
+    dedent,
+)
 
 import pytest
 
@@ -11,7 +15,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.formats.format import DataFrameFormatter
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+)
 from pandas.io.formats.latex import (
     RegularTableBuilder,
     RowBodyIterator,

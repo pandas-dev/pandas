@@ -6,7 +6,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base import BaseOpsUtil
+from pandas.tests.extension.base import (
+    BaseOpsUtil,
+)
 
 
 class ComparisonOps(BaseOpsUtil):

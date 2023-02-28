@@ -2,7 +2,9 @@
 # behave identically.
 # Specifically for object dtype
 import datetime
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import operator
 
 import numpy as np
@@ -14,7 +16,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 
 # ------------------------------------------------------------------
 # Comparisons

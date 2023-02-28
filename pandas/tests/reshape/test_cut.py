@@ -21,7 +21,9 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import (
+    CategoricalDtype as CDT,
+)
 import pandas.core.reshape.tile as tmod
 
 

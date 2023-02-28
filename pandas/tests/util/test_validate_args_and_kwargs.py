@@ -1,6 +1,8 @@
 import pytest
 
-from pandas.util._validators import validate_args_and_kwargs
+from pandas.util._validators import (
+    validate_args_and_kwargs,
+)
 
 _fname = "func"
 

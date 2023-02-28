@@ -1,13 +1,19 @@
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 
 import numpy as np
-from odf.opendocument import OpenDocumentSpreadsheet
+from odf.opendocument import (
+    OpenDocumentSpreadsheet,
+)
 from odf.table import (
     Table,
     TableCell,
     TableRow,
 )
-from odf.text import P
+from odf.text import (
+    P,
+)
 
 from pandas import (
     DataFrame,
@@ -16,7 +22,9 @@ from pandas import (
     read_excel,
 )
 
-from ..pandas_vb_common import tm
+from ..pandas_vb_common import (
+    tm,
+)
 
 
 def _generate_dataframe():

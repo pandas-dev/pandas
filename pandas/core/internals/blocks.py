@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import wraps
+from functools import (
+    wraps,
+)
 import re
 from typing import (
     TYPE_CHECKING,
@@ -23,8 +27,12 @@ from pandas._libs.internals import (
     BlockPlacement,
     BlockValuesRefs,
 )
-from pandas._libs.missing import NA
-from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.missing import (
+    NA,
+)
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -36,9 +44,15 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
-from pandas.util._validators import validate_bool_kwarg
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+)
 
 from pandas.core.dtypes.astype import (
     astype_array_safe,
@@ -79,7 +93,9 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-from pandas.core import missing
+from pandas.core import (
+    missing,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     extract_bool_array,
@@ -88,13 +104,17 @@ from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
     validate_putmask,
 )
-from pandas.core.array_algos.quantile import quantile_compat
+from pandas.core.array_algos.quantile import (
+    quantile_compat,
+)
 from pandas.core.array_algos.replace import (
     compare_or_regex_search,
     replace_regex,
     should_use_regex,
 )
-from pandas.core.array_algos.transforms import shift
+from pandas.core.array_algos.transforms import (
+    shift,
+)
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -104,19 +124,31 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.base import PandasObject
+from pandas.core.arrays.sparse import (
+    SparseDtype,
+)
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
-from pandas.core.computation import expressions
+from pandas.core.computation import (
+    expressions,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.api import Index
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+    from pandas.core.api import (
+        Index,
+    )
+    from pandas.core.arrays._mixins import (
+        NDArrayBackedExtensionArray,
+    )
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
@@ -2482,7 +2514,9 @@ def to_native_types(
             values = values.astype(object, copy=False)
             return values
 
-        from pandas.io.formats.format import FloatArrayFormatter
+        from pandas.io.formats.format import (
+            FloatArrayFormatter,
+        )
 
         formatter = FloatArrayFormatter(
             values,

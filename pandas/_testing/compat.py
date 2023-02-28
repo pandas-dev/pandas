@@ -1,9 +1,13 @@
 """
 Helpers for sharing tests between DataFrame/Series
 """
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+)
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 
 
 def get_dtype(obj) -> DtypeObj:

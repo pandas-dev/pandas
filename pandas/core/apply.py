@@ -1,9 +1,17 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import abc
-from collections import defaultdict
-from contextlib import nullcontext
-from functools import partial
+from collections import (
+    defaultdict,
+)
+from contextlib import (
+    nullcontext,
+)
+from functools import (
+    partial,
+)
 import inspect
 from typing import (
     TYPE_CHECKING,
@@ -22,9 +30,13 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import option_context
+from pandas._config import (
+    option_context,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -35,10 +47,16 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
-from pandas.errors import SpecificationError
-from pandas.util._decorators import cache_readonly
+from pandas.errors import (
+    SpecificationError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
-from pandas.core.dtypes.cast import is_nested_object
+from pandas.core.dtypes.cast import (
+    is_nested_object,
+)
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
@@ -51,10 +69,16 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import safe_sort
-from pandas.core.base import SelectionMixin
+from pandas.core.algorithms import (
+    safe_sort,
+)
+from pandas.core.base import (
+    SelectionMixin,
+)
 import pandas.core.common as com
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -62,9 +86,15 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import GroupBy
-    from pandas.core.resample import Resampler
-    from pandas.core.window.rolling import BaseWindow
+    from pandas.core.groupby import (
+        GroupBy,
+    )
+    from pandas.core.resample import (
+        Resampler,
+    )
+    from pandas.core.window.rolling import (
+        BaseWindow,
+    )
 
 
 ResType = Dict[int, Any]
@@ -244,7 +274,9 @@ class Apply(metaclass=abc.ABCMeta):
         """
         Compute transform in the case of a dict-like func
         """
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         obj = self.obj
         args = self.args
@@ -298,7 +330,9 @@ class Apply(metaclass=abc.ABCMeta):
             DataFrameGroupBy,
             SeriesGroupBy,
         )
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         obj = self.obj
         arg = cast(List[AggFuncTypeBase], self.f)
@@ -362,7 +396,9 @@ class Apply(metaclass=abc.ABCMeta):
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             result = Series(results, index=keys, name=obj.name)
             if is_nested_object(result):
@@ -379,12 +415,16 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
         from pandas.core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
         )
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         obj = self.obj
         arg = cast(AggFuncTypeDict, self.f)
@@ -453,7 +493,9 @@ class Apply(metaclass=abc.ABCMeta):
                 "simultaneously"
             )
         else:
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             # we have a dict of scalars
             # GH 36212 use name only if obj is a series
@@ -717,7 +759,9 @@ class FrameApply(NDFrameApply):
         # we may need to infer
         should_reduce = self.result_type == "reduce"
 
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         if not should_reduce:
             try:
@@ -820,7 +864,9 @@ class FrameApply(NDFrameApply):
         return results, res_index
 
     def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         # see if we can infer the results
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
@@ -1255,7 +1301,9 @@ def normalize_keyword_aggregation(
     >>> normalize_keyword_aggregation({"output": ("input", "sum")})
     (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
     """
-    from pandas.core.indexes.base import Index
+    from pandas.core.indexes.base import (
+        Index,
+    )
 
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
@@ -1341,7 +1389,9 @@ def relabel_result(
     bar  NaN  NaN  4.0
     dat  NaN  NaN  2.5
     """
-    from pandas.core.indexes.base import Index
+    from pandas.core.indexes.base import (
+        Index,
+    )
 
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])

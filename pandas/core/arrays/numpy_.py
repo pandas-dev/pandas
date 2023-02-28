@@ -1,8 +1,12 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
@@ -14,26 +18,44 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 
-from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PandasDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.dtypes import (
+    PandasDtype,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 from pandas.core import (
     arraylike,
     nanops,
     ops,
 )
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.core.arraylike import (
+    OpsMixin,
+)
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+)
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
+from pandas.core.strings.object_array import (
+    ObjectStringArrayMixin,
+)
 
 
 class PandasArray(
@@ -466,7 +488,9 @@ class PandasArray(
         if result.dtype.kind == "m" and is_supported_unit(
             get_unit_from_dtype(result.dtype)
         ):
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)

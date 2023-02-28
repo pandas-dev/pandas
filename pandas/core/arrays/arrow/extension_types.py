@@ -1,12 +1,18 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import json
 
 import pyarrow
 
-from pandas._typing import IntervalClosedType
+from pandas._typing import (
+    IntervalClosedType,
+)
 
-from pandas.core.arrays.interval import VALID_CLOSED
+from pandas.core.arrays.interval import (
+    VALID_CLOSED,
+)
 
 
 class ArrowPeriodType(pyarrow.ExtensionType):

@@ -12,8 +12,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter
-from pandas.io.formats.excel import ExcelFormatter
+from pandas.io.excel import (
+    ExcelWriter,
+)
+from pandas.io.formats.excel import (
+    ExcelFormatter,
+)
 
 pytest.importorskip("jinja2")
 # jinja2 is currently required for Styler.__init__(). Technically Styler.to_excel

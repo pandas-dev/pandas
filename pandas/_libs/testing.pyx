@@ -3,7 +3,9 @@ import math
 
 import numpy as np
 
-from numpy cimport import_array
+from numpy cimport (
+    import_array,
+)
 
 import_array()
 
@@ -13,7 +15,9 @@ from pandas._libs.util cimport (
     is_real_number_object,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -117,7 +121,9 @@ cpdef assert_almost_equal(a, b,
     if isiterable(a):
 
         if not isiterable(b):
-            from pandas._testing import assert_class_equal
+            from pandas._testing import (
+                assert_class_equal,
+            )
 
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
@@ -129,12 +135,16 @@ cpdef assert_almost_equal(a, b,
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
-                from pandas._testing import raise_assert_detail
+                from pandas._testing import (
+                    raise_assert_detail,
+                )
                 raise_assert_detail(
                     obj, f"{obj} shapes are different", a.shape, b.shape)
 
             if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
-                from pandas._testing import assert_attr_equal
+                from pandas._testing import (
+                    assert_attr_equal,
+                )
                 assert_attr_equal("dtype", a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
@@ -144,7 +154,9 @@ cpdef assert_almost_equal(a, b,
             na, nb = len(a), len(b)
 
         if na != nb:
-            from pandas._testing import raise_assert_detail
+            from pandas._testing import (
+                raise_assert_detail,
+            )
 
             # if we have a small diff set, print it
             if abs(na - nb) < 10:
@@ -166,7 +178,9 @@ cpdef assert_almost_equal(a, b,
                     )
 
         if is_unequal:
-            from pandas._testing import raise_assert_detail
+            from pandas._testing import (
+                raise_assert_detail,
+            )
             msg = (f"{obj} values are different "
                    f"({np.round(diff * 100.0 / na, 5)} %)")
             raise_assert_detail(
@@ -176,7 +190,9 @@ cpdef assert_almost_equal(a, b,
         return True
 
     elif isiterable(b):
-        from pandas._testing import assert_class_equal
+        from pandas._testing import (
+            assert_class_equal,
+        )
 
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)

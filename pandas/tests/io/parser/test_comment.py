@@ -2,12 +2,16 @@
 Tests that comments are properly handled during parsing
 for all of the parsers defined in parsers.py
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")

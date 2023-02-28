@@ -1,7 +1,9 @@
 """
 datetimelike delegation
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -19,7 +21,9 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+)
 
 from pandas.core.accessor import (
     PandasDelegate,
@@ -30,14 +34,22 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
-from pandas.core.arrays.arrow.dtype import ArrowDtype
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+)
+from pandas.core.arrays.arrow.dtype import (
+    ArrowDtype,
+)
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+)
+from pandas.core.indexes.timedeltas import (
+    TimedeltaIndex,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -82,7 +94,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         )
 
     def _delegate_property_get(self, name):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         values = self._get_values()
 
@@ -120,7 +134,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         )
 
     def _delegate_method(self, name, *args, **kwargs):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         values = self._get_values()
 
@@ -210,7 +226,9 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def isocalendar(self):
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         result = (
             cast(ArrowExtensionArray, self._parent.array)

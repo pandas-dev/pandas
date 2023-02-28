@@ -1,4 +1,6 @@
-from itertools import chain
+from itertools import (
+    chain,
+)
 import operator
 
 import numpy as np
@@ -18,7 +20,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype
+from pandas.api.types import (
+    CategoricalDtype,
+)
 
 
 @pytest.fixture
@@ -57,7 +61,9 @@ def dtype(request):
 class TestSeriesRank:
     @td.skip_if_no_scipy
     def test_rank(self, datetime_series):
-        from scipy.stats import rankdata
+        from scipy.stats import (
+            rankdata,
+        )
 
         datetime_series[::2] = np.nan
         datetime_series[:10:3] = 4.0
@@ -320,7 +326,9 @@ class TestSeriesRank:
         ],
     )
     def test_rank_methods_series(self, method, op, value):
-        from scipy.stats import rankdata
+        from scipy.stats import (
+            rankdata,
+        )
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates

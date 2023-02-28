@@ -4,17 +4,23 @@ test suite is independent of the others because the
 engine is set to 'python-fwf' internally.
 """
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 from io import (
     BytesIO,
     StringIO,
 )
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+)
 
 import pandas as pd
 from pandas import (
@@ -26,7 +32,9 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
 from pandas.io.parsers import (
     read_csv,
@@ -991,7 +999,9 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
     )
     if dtype_backend == "pyarrow":
         pa = pytest.importorskip("pyarrow")
-        from pandas.arrays import ArrowExtensionArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+        )
 
         expected = DataFrame(
             {

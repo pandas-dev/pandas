@@ -1,5 +1,7 @@
 import collections
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -16,7 +18,9 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.tests.base.common import allow_na_ops
+from pandas.tests.base.common import (
+    allow_na_ops,
+)
 
 
 def test_value_counts(index_or_series_obj):

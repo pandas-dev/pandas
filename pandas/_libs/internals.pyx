@@ -1,9 +1,15 @@
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 import weakref
 
 cimport cython
-from cpython.slice cimport PySlice_GetIndicesEx
-from cython cimport Py_ssize_t
+from cpython.slice cimport (
+    PySlice_GetIndicesEx,
+)
+from cython cimport (
+    Py_ssize_t,
+)
 
 
 cdef extern from "Python.h":
@@ -22,9 +28,13 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import ensure_int64
+from pandas._libs.algos import (
+    ensure_int64,
+)
 
-from pandas._libs.arrays cimport NDArrayBacked
+from pandas._libs.arrays cimport (
+    NDArrayBacked,
+)
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
@@ -569,7 +579,9 @@ cpdef update_blklocs_and_blknos(
 def _unpickle_block(values, placement, ndim):
     # We have to do some gymnastics b/c "ndim" is keyword-only
 
-    from pandas.core.internals.blocks import new_block
+    from pandas.core.internals.blocks import (
+        new_block,
+    )
 
     return new_block(values, placement, ndim=ndim)
 
@@ -621,7 +633,9 @@ cdef class SharedBlock:
         return _unpickle_block, args
 
     cpdef __setstate__(self, state):
-        from pandas.core.construction import extract_array
+        from pandas.core.construction import (
+            extract_array,
+        )
 
         self.mgr_locs = BlockPlacement(state[0])
         self.values = extract_array(state[1], extract_numpy=True)
@@ -630,7 +644,9 @@ cdef class SharedBlock:
             self.ndim = state[2]
         else:
             # older pickle
-            from pandas.core.internals.api import maybe_infer_ndim
+            from pandas.core.internals.api import (
+                maybe_infer_ndim,
+            )
 
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
@@ -792,12 +808,16 @@ cdef class BlockManager:
         return type(self), args
 
     cpdef __setstate__(self, state):
-        from pandas.core.construction import extract_array
+        from pandas.core.construction import (
+            extract_array,
+        )
         from pandas.core.internals.blocks import (
             ensure_block_shape,
             new_block,
         )
-        from pandas.core.internals.managers import ensure_index
+        from pandas.core.internals.managers import (
+            ensure_index,
+        )
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
             state = state[3]["0.14.1"]

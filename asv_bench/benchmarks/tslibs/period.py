@@ -10,7 +10,9 @@ from pandas._libs.tslibs.period import (
     periodarr_to_dt64arr,
 )
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 from .tslib import (
     _sizes,
@@ -19,9 +21,13 @@ from .tslib import (
 )
 
 try:
-    from pandas._libs.tslibs.vectorized import dt64arr_to_periodarr
+    from pandas._libs.tslibs.vectorized import (
+        dt64arr_to_periodarr,
+    )
 except ImportError:
-    from pandas._libs.tslibs.period import dt64arr_to_periodarr
+    from pandas._libs.tslibs.period import (
+        dt64arr_to_periodarr,
+    )
 
 
 class PeriodProperties:

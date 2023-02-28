@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from io import (
     BytesIO,
@@ -17,10 +19,16 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
-from pandas.io.common import get_handle
-from pandas.io.xml import read_xml
+from pandas.io.common import (
+    get_handle,
+)
+from pandas.io.xml import (
+    read_xml,
+)
 
 # CHECKLIST
 
@@ -1018,7 +1026,9 @@ def test_stylesheet_buffered_reader(datapath, mode):
 
 @td.skip_if_no("lxml")
 def test_stylesheet_wrong_path():
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
@@ -1032,7 +1042,9 @@ def test_stylesheet_wrong_path():
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_stylesheet(val):
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     msg = "|".join(
         [
@@ -1049,7 +1061,9 @@ def test_empty_string_stylesheet(val):
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_syntax():
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1078,7 +1092,9 @@ def test_incorrect_xsl_syntax():
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_eval():
-    from lxml.etree import XSLTParseError
+    from lxml.etree import (
+        XSLTParseError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1107,7 +1123,9 @@ def test_incorrect_xsl_eval():
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_apply():
-    from lxml.etree import XSLTApplyError
+    from lxml.etree import (
+        XSLTApplyError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">

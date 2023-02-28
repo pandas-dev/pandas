@@ -14,7 +14,9 @@ FUNCTIONS:
     _getlang -- Figure out what language is being used for the locale
     strptime -- Calculates the time struct represented by the passed-in string
 """
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -24,6 +26,7 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+
 from _strptime import (
     TimeRE as _TimeRE,
     _getlang,
@@ -32,7 +35,9 @@ from _strptime import LocaleTime  # no-cython-lint
 
 import_datetime()
 
-from _thread import allocate_lock as _thread_allocate_lock
+from _thread import (
+    allocate_lock as _thread_allocate_lock,
+)
 import re
 
 import numpy as np
@@ -44,7 +49,9 @@ from numpy cimport (
     ndarray,
 )
 
-from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.missing cimport (
+    checknull_with_nat_and_na,
+)
 from pandas._libs.tslibs.conversion cimport (
     convert_timezone,
     get_datetime64_nanos,
@@ -63,15 +70,23 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
     string_to_dts,
 )
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.timestamps cimport _Timestamp
+
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+)
+
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
 from pandas._libs.util cimport (
     is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
 
-from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._libs.tslibs.timestamps import (
+    Timestamp,
+)
 
 cnp.import_array()
 

@@ -6,16 +6,22 @@ These are used for:
 - .names (FrozenList)
 
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
     NoReturn,
 )
 
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+)
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 class FrozenList(PandasObject, list):

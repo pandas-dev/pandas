@@ -9,20 +9,28 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import argparse
 import multiprocessing
 import os
-from os.path import join as pjoin
+from os.path import (
+    join as pjoin,
+)
 import platform
 import shutil
 import sys
-from sysconfig import get_config_vars
+from sysconfig import (
+    get_config_vars,
+)
 
 import numpy
-from pkg_resources import parse_version
+from pkg_resources import (
+    parse_version,
+)
 from setuptools import (
     Command,
     Extension,
     setup,
 )
-from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.command.build_ext import (
+    build_ext as _build_ext,
+)
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
@@ -44,7 +52,9 @@ try:
         Tempita,
         __version__ as _CYTHON_VERSION,
     )
-    from Cython.Build import cythonize
+    from Cython.Build import (
+        cythonize,
+    )
 
     _CYTHON_INSTALLED = parse_version(_CYTHON_VERSION) >= parse_version(min_cython_ver)
 except ImportError:

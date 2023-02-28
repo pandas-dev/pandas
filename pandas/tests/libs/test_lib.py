@@ -7,7 +7,9 @@ from pandas._libs import (
     writers as libwriters,
 )
 
-from pandas import Index
+from pandas import (
+    Index,
+)
 import pandas._testing as tm
 
 

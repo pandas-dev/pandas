@@ -12,7 +12,9 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 try:
     from pandas.tseries.offsets import (

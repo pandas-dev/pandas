@@ -12,9 +12,13 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 
 
 def test_is_utc(utc_fixture):

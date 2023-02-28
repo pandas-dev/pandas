@@ -17,7 +17,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.indexes.frozen import FrozenList
+from pandas.core.indexes.frozen import (
+    FrozenList,
+)
 
 
 def test_sortlevel(idx):

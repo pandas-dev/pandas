@@ -17,9 +17,15 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs.conversion import localize_pydatetime
-from pandas._libs.tslibs.offsets import shift_months
-from pandas.errors import PerformanceWarning
+from pandas._libs.tslibs.conversion import (
+    localize_pydatetime,
+)
+from pandas._libs.tslibs.offsets import (
+    shift_months,
+)
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -34,7 +40,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.ops import roperator
+from pandas.core.ops import (
+    roperator,
+)
 from pandas.tests.arithmetic.common import (
     assert_cannot_add,
     assert_invalid_addsub_type,

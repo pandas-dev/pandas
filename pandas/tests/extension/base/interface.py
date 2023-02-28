@@ -1,11 +1,17 @@
 import numpy as np
 
-from pandas.core.dtypes.common import is_extension_array_dtype
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseInterfaceTests(BaseExtensionTests):

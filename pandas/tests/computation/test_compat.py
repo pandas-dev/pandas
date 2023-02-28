@@ -1,17 +1,27 @@
 import pytest
 
-from pandas.compat._optional import VERSIONS
+from pandas.compat._optional import (
+    VERSIONS,
+)
 
 import pandas as pd
-from pandas.core.computation import expr
-from pandas.core.computation.engines import ENGINES
-from pandas.util.version import Version
+from pandas.core.computation import (
+    expr,
+)
+from pandas.core.computation.engines import (
+    ENGINES,
+)
+from pandas.util.version import (
+    Version,
+)
 
 
 def test_compat():
     # test we have compat with our version of numexpr
 
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.check import (
+        NUMEXPR_INSTALLED,
+    )
 
     ne = pytest.importorskip("numexpr")
 

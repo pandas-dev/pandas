@@ -12,8 +12,12 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
 )
-from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timezones cimport tz_compare
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
+from pandas._libs.tslibs.timezones cimport (
+    tz_compare,
+)
 
 
 cdef class _TSObject:

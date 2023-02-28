@@ -1,15 +1,27 @@
 """
 Boilerplate functions used in defining binary operations.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import wraps
+from functools import (
+    wraps,
+)
 import sys
-from typing import Callable
+from typing import (
+    Callable,
+)
 
-from pandas._libs.lib import item_from_zerodim
-from pandas._libs.missing import is_matching_na
-from pandas._typing import F
+from pandas._libs.lib import (
+    item_from_zerodim,
+)
+from pandas._libs.missing import (
+    is_matching_na,
+)
+from pandas._typing import (
+    F,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,

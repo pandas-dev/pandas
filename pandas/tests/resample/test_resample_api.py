@@ -1,10 +1,16 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import lib
-from pandas.errors import UnsupportedFunctionCall
+from pandas._libs import (
+    lib,
+)
+from pandas.errors import (
+    UnsupportedFunctionCall,
+)
 
 import pandas as pd
 from pandas import (
@@ -13,7 +19,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 

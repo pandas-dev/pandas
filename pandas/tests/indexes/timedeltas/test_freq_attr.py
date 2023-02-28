@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import TimedeltaIndex
+from pandas import (
+    TimedeltaIndex,
+)
 
 from pandas.tseries.offsets import (
     DateOffset,

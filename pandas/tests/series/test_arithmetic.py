@@ -3,13 +3,17 @@ from datetime import (
     timedelta,
     timezone,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import operator
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -31,8 +35,12 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.computation import expressions as expr
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.core.computation import (
+    expressions as expr,
+)
+from pandas.core.computation.check import (
+    NUMEXPR_INSTALLED,
+)
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])

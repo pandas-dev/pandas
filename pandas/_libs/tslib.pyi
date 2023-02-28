@@ -1,8 +1,12 @@
-from datetime import tzinfo
+from datetime import (
+    tzinfo,
+)
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def format_array_from_datetime(
     values: npt.NDArray[np.int64],

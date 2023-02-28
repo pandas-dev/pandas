@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -11,27 +15,43 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import (
+    get_option,
+)
 
-from pandas._libs import parsers
+from pandas._libs import (
+    parsers,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
     DtypeObj,
     ReadCsvBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import DtypeWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.errors import (
+    DtypeWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import union_categoricals
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.concat import (
+    union_categoricals,
+)
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 
-from pandas.core.indexes.api import ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    ensure_index_from_sequences,
+)
 
 from pandas.io.common import (
     dedup_names,

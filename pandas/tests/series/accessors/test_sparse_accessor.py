@@ -1,4 +1,6 @@
-from pandas import Series
+from pandas import (
+    Series,
+)
 
 
 class TestSparseAccessor:

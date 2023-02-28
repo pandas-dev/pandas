@@ -240,7 +240,9 @@ class TestFeather:
         )
 
         if dtype_backend == "pyarrow":
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = pd.DataFrame(
                 {

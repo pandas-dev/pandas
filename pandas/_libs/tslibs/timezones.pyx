@@ -3,12 +3,16 @@ from datetime import (
     timezone,
 )
 
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 try:
     # py39+
     import zoneinfo
-    from zoneinfo import ZoneInfo
+    from zoneinfo import (
+        ZoneInfo,
+    )
 except ImportError:
     zoneinfo = None
     ZoneInfo = None
@@ -29,10 +33,14 @@ from dateutil.tz import (
 )
 import numpy as np
 import pytz
-from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+from pytz.tzinfo import (
+    BaseTzInfo as _pytz_BaseTzInfo,
+)
 
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+)
 
 cnp.import_array()
 

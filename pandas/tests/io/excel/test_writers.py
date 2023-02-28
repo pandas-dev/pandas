@@ -3,8 +3,12 @@ from datetime import (
     datetime,
     timedelta,
 )
-from functools import partial
-from io import BytesIO
+from functools import (
+    partial,
+)
+from io import (
+    BytesIO,
+)
 import os
 import re
 
@@ -29,7 +33,9 @@ from pandas.io.excel import (
     _XlsxWriter,
     register_writer,
 )
-from pandas.io.excel._util import _writers
+from pandas.io.excel._util import (
+    _writers,
+)
 
 
 @pytest.fixture

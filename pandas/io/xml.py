@@ -2,7 +2,9 @@
 :mod:`pandas.io.xml` is a module for reading XML.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import io
 from typing import (
@@ -11,9 +13,13 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     TYPE_CHECKING,
     CompressionOptions,
@@ -25,16 +31,24 @@ from pandas._typing import (
     StorageOptions,
     XMLParsers,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
 from pandas.io.common import (
     file_exists,
@@ -44,14 +58,22 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
-from pandas.io.parsers import TextParser
+from pandas.io.parsers import (
+    TextParser,
+)
 
 if TYPE_CHECKING:
-    from xml.etree.ElementTree import Element
+    from xml.etree.ElementTree import (
+        Element,
+    )
 
-    from lxml import etree
+    from lxml import (
+        etree,
+    )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 @doc(
@@ -439,7 +461,9 @@ class _EtreeFrameParser(_XMLFrameParser):
     """
 
     def parse_data(self) -> list[dict[str, str | None]]:
-        from xml.etree.ElementTree import iterparse
+        from xml.etree.ElementTree import (
+            iterparse,
+        )
 
         if self.stylesheet is not None:
             raise ValueError(
@@ -558,7 +582,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         validate xpath, names, optionally parse and run XSLT,
         and parse original or transformed XML and return specific nodes.
         """
-        from lxml.etree import iterparse
+        from lxml.etree import (
+            iterparse,
+        )
 
         if self.iterparse is None:
             self.xml_doc = self._parse_doc(self.path_or_buffer)
@@ -668,7 +694,9 @@ class _LxmlFrameParser(_XMLFrameParser):
         am ideally flatter xml document for easier parsing and migration
         to Data Frame.
         """
-        from lxml.etree import XSLT
+        from lxml.etree import (
+            XSLT,
+        )
 
         transformer = XSLT(self.xsl_doc)
         new_doc = transformer(self.xml_doc)

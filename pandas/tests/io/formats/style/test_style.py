@@ -1,7 +1,9 @@
 import contextlib
 import copy
 import re
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 
 import numpy as np
 import pytest

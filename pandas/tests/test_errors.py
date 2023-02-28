@@ -46,7 +46,9 @@ import pandas as pd
     ],
 )
 def test_exception_importable(exc):
-    from pandas import errors
+    from pandas import (
+        errors,
+    )
 
     err = getattr(errors, exc)
     assert err is not None
@@ -60,7 +62,9 @@ def test_exception_importable(exc):
 
 
 def test_catch_oob():
-    from pandas import errors
+    from pandas import (
+        errors,
+    )
 
     msg = "Cannot cast 1500-01-01 00:00:00 to unit='ns' without overflow"
     with pytest.raises(errors.OutOfBoundsDatetime, match=msg):

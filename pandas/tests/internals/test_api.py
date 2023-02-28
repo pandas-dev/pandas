@@ -4,8 +4,12 @@ in core.internals
 """
 
 import pandas as pd
-from pandas.core import internals
-from pandas.core.internals import api
+from pandas.core import (
+    internals,
+)
+from pandas.core.internals import (
+    api,
+)
 
 
 def test_internals_api():

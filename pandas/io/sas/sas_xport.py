@@ -7,10 +7,16 @@ The file format is defined here:
 
 https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from datetime import datetime
+from collections import (
+    abc,
+)
+from datetime import (
+    datetime,
+)
 import struct
 import warnings
 
@@ -22,13 +28,21 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
 )
-from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    Appender,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 import pandas as pd
 
-from pandas.io.common import get_handle
-from pandas.io.sas.sasreader import ReaderBase
+from pandas.io.common import (
+    get_handle,
+)
+from pandas.io.sas.sasreader import (
+    ReaderBase,
+)
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"

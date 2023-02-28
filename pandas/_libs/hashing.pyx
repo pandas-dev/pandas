@@ -18,7 +18,9 @@ from numpy cimport (
 
 import_array()
 
-from pandas._libs.util cimport is_nan
+from pandas._libs.util cimport (
+    is_nan,
+)
 
 
 @cython.boundscheck(False)

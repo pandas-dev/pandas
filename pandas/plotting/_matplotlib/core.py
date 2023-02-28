@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
@@ -14,7 +16,9 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
-from matplotlib.artist import Artist
+from matplotlib.artist import (
+    Artist,
+)
 import numpy as np
 
 from pandas._typing import (
@@ -22,9 +26,15 @@ from pandas._typing import (
     PlottingOrientation,
     npt,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -53,15 +63,31 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
-from pandas.util.version import Version
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.util.version import (
+    Version,
+)
 
-from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib import tools
-from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
-from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
-from pandas.plotting._matplotlib.misc import unpack_single_str_list
-from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
+from pandas.plotting._matplotlib import (
+    tools,
+)
+from pandas.plotting._matplotlib.converter import (
+    register_pandas_matplotlib_converters,
+)
+from pandas.plotting._matplotlib.groupby import (
+    reconstruct_data_with_by,
+)
+from pandas.plotting._matplotlib.misc import (
+    unpack_single_str_list,
+)
+from pandas.plotting._matplotlib.style import (
+    get_standard_colors,
+)
 from pandas.plotting._matplotlib.timeseries import (
     decorate_axes,
     format_dateaxis,
@@ -79,15 +105,21 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.axis import Axis
+    from matplotlib.axes import (
+        Axes,
+    )
+    from matplotlib.axis import (
+        Axis,
+    )
 
 
 def _color_in_style(style: str) -> bool:
     """
     Check if there is a color letter in the style string.
     """
-    from matplotlib.colors import BASE_COLORS
+    from matplotlib.colors import (
+        BASE_COLORS,
+    )
 
     return not set(BASE_COLORS).isdisjoint(style)
 
@@ -1109,7 +1141,9 @@ class MPLPlot(ABC):
         return errors
 
     def _get_subplots(self):
-        from matplotlib.axes import Subplot
+        from matplotlib.axes import (
+            Subplot,
+        )
 
         return [
             ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
@@ -1235,7 +1269,9 @@ class ScatterPlot(PlanePlot):
                 cmap = None
 
         if color_by_categorical:
-            from matplotlib import colors
+            from matplotlib import (
+                colors,
+            )
 
             n_cats = len(self.data[c].cat.categories)
             cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
@@ -1332,7 +1368,9 @@ class LinePlot(MPLPlot):
         return "line"
 
     def __init__(self, data, **kwargs) -> None:
-        from pandas.plotting import plot_params
+        from pandas.plotting import (
+            plot_params,
+        )
 
         MPLPlot.__init__(self, data, **kwargs)
         if self.stacked:
@@ -1481,7 +1519,9 @@ class LinePlot(MPLPlot):
         pass
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
-        from matplotlib.ticker import FixedLocator
+        from matplotlib.ticker import (
+            FixedLocator,
+        )
 
         def get_label(i):
             if is_float(i) and i.is_integer():

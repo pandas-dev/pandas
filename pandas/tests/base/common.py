@@ -1,7 +1,13 @@
-from typing import Any
+from typing import (
+    Any,
+)
 
-from pandas import Index
-from pandas.api.types import is_bool_dtype
+from pandas import (
+    Index,
+)
+from pandas.api.types import (
+    is_bool_dtype,
+)
 
 
 def allow_na_ops(obj: Any) -> bool:

@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import maybe_box_native
+from pandas.core.dtypes.cast import (
+    maybe_box_native,
+)
 
 from pandas import (
     Interval,

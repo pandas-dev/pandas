@@ -1,8 +1,12 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -16,7 +20,9 @@ from pandas._libs.tslibs import (
     Period,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import (
+    FreqGroup,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -24,7 +30,9 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
     TimeSeries_DateLocator,
@@ -37,7 +45,9 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    from matplotlib.axes import (
+        Axes,
+    )
 
     from pandas import (
         DataFrame,
@@ -136,7 +146,9 @@ def _replot_ax(ax: Axes, freq, kwargs):
 
             # for tsplot
             if isinstance(plotf, str):
-                from pandas.plotting._matplotlib import PLOT_CLASSES
+                from pandas.plotting._matplotlib import (
+                    PLOT_CLASSES,
+                )
 
                 plotf = PLOT_CLASSES[plotf]._plot
 
@@ -300,7 +312,9 @@ def format_dateaxis(subplot, freq, index) -> None:
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    from matplotlib import pylab
+    from matplotlib import (
+        pylab,
+    )
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this

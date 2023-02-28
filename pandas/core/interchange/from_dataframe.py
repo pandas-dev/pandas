@@ -1,13 +1,19 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import ctypes
 import re
-from typing import Any
+from typing import (
+    Any,
+)
 
 import numpy as np
 
 import pandas as pd
-from pandas.core.interchange.column import PandasColumn
+from pandas.core.interchange.column import (
+    PandasColumn,
+)
 from pandas.core.interchange.dataframe_protocol import (
     Buffer,
     Column,

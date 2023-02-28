@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def inner_join(
     left: np.ndarray,  # const intp_t[:]

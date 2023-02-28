@@ -16,7 +16,9 @@ __all__ = [
     "options",
     "using_copy_on_write",
 ]
-from pandas._config import config
+from pandas._config import (
+    config,
+)
 from pandas._config import dates  # pyright: ignore # noqa:F401
 from pandas._config.config import (
     _global_config,
@@ -27,7 +29,9 @@ from pandas._config.config import (
     reset_option,
     set_option,
 )
-from pandas._config.display import detect_console_encoding
+from pandas._config.display import (
+    detect_console_encoding,
+)
 
 
 def using_copy_on_write():

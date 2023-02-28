@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    iNaT,
+)
 
 import pandas as pd
 from pandas import (

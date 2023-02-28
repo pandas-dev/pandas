@@ -1,4 +1,6 @@
-from itertools import permutations
+from itertools import (
+    permutations,
+)
 import re
 
 import numpy as np

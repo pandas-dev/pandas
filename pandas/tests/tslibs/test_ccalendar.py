@@ -3,13 +3,19 @@ from datetime import (
     datetime,
 )
 
-from hypothesis import given
+from hypothesis import (
+    given,
+)
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import ccalendar
+from pandas._libs.tslibs import (
+    ccalendar,
+)
 
-from pandas._testing._hypothesis import DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ
+from pandas._testing._hypothesis import (
+    DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ,
+)
 
 
 @pytest.mark.parametrize(

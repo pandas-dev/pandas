@@ -1,7 +1,9 @@
 """
 Quantilization functions and related stuff
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
@@ -15,8 +17,12 @@ from pandas._libs import (
     Timedelta,
     Timestamp,
 )
-from pandas._libs.lib import infer_dtype
-from pandas._typing import IntervalLeftRight
+from pandas._libs.lib import (
+    infer_dtype,
+)
+from pandas._typing import (
+    IntervalLeftRight,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -33,8 +39,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 from pandas import (
     Categorical,
@@ -43,7 +53,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+)
 import pandas.core.algorithms as algos
 
 

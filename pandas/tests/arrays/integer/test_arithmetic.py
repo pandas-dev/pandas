@@ -5,8 +5,12 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.arrays import FloatingArray
+from pandas.core import (
+    ops,
+)
+from pandas.core.arrays import (
+    FloatingArray,
+)
 
 # Basic test for the arithmetic array ops
 # -----------------------------------------------------------------------------

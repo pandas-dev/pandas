@@ -1,6 +1,8 @@
 """ test positional based indexing with iloc """
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import re
 from warnings import (
     catch_warnings,
@@ -10,7 +12,9 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -31,8 +35,12 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
-from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
+from pandas.api.types import (
+    is_scalar,
+)
+from pandas.tests.indexing.common import (
+    check_indexing_smoketest_or_raises,
+)
 
 # We pass through the error message from numpy
 _slice_iloc_msg = re.escape(

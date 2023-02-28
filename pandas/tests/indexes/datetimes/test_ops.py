@@ -1,9 +1,15 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from dateutil.tz import tzlocal
+from dateutil.tz import (
+    tzlocal,
+)
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 
 from pandas import (
     DatetimeIndex,

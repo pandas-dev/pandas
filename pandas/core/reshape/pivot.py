@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -10,7 +12,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -22,7 +26,9 @@ from pandas.util._decorators import (
     Substitution,
 )
 
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
@@ -36,19 +42,31 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas.core.common as com
-from pandas.core.frame import _shared_docs
-from pandas.core.groupby import Grouper
+from pandas.core.frame import (
+    _shared_docs,
+)
+from pandas.core.groupby import (
+    Grouper,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     get_objs_combined_axis,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import cartesian_product
-from pandas.core.series import Series
+from pandas.core.reshape.concat import (
+    concat,
+)
+from pandas.core.reshape.util import (
+    cartesian_product,
+)
+from pandas.core.series import (
+    Series,
+)
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 # Note: We need to make sure `frame` is imported before `pivot`, otherwise
@@ -318,7 +336,9 @@ def _add_margins(
         else:
             row_margin[k] = grand_margin[k[0]]
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
     margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
@@ -387,7 +407,9 @@ def _generate_marginal_results(
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            from pandas import DataFrame
+            from pandas import (
+                DataFrame,
+            )
 
             cat_axis = 0
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
@@ -693,7 +715,9 @@ def crosstab(
         unique_colnames,
     ) = _build_names_mapper(rownames, colnames)
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
     data = {
         **dict(zip(unique_rownames, index)),

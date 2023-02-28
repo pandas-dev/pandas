@@ -15,13 +15,19 @@ from libc.stdlib cimport (
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport ndarray
+from numpy cimport (
+    ndarray,
+)
 
 cnp.import_array()
 
 
-from pandas._libs cimport util
-from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs cimport (
+    util,
+)
+from pandas._libs.dtypes cimport (
+    numeric_object_t,
+)
 from pandas._libs.khash cimport (
     KHASH_TRACE_DOMAIN,
     are_equivalent_float32_t,
@@ -33,7 +39,9 @@ from pandas._libs.khash cimport (
     kh_python_hash_func,
     khiter_t,
 )
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    checknull,
+)
 
 
 def get_hashtable_trace_domain():

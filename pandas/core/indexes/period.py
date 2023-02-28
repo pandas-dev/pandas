@@ -1,14 +1,20 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import Hashable
+from typing import (
+    Hashable,
+)
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -26,9 +32,15 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.common import (
+    is_integer,
+)
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+)
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+)
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -38,13 +50,19 @@ from pandas.core.arrays.period import (
 )
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.indexes.base import (
+    maybe_extract_name,
+)
+from pandas.core.indexes.datetimelike import (
+    DatetimeIndexOpsMixin,
+)
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     Index,
 )
-from pandas.core.indexes.extension import inherit_names
+from pandas.core.indexes.extension import (
+    inherit_names,
+)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})

@@ -1,8 +1,12 @@
 """ pickle compat """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import pickle
-from typing import Any
+from typing import (
+    Any,
+)
 import warnings
 
 from pandas._typing import (
@@ -12,12 +16,20 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import pickle_compat as pc
-from pandas.util._decorators import doc
+from pandas.compat import (
+    pickle_compat as pc,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 
 @doc(

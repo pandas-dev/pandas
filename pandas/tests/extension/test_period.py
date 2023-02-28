@@ -16,16 +16,28 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-from pandas.compat import is_platform_windows
-from pandas.compat.numpy import np_version_gte1p24
+from pandas._libs import (
+    iNaT,
+)
+from pandas.compat import (
+    is_platform_windows,
+)
+from pandas.compat.numpy import (
+    np_version_gte1p24,
+)
 
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
-from pandas.tests.extension import base
+from pandas.core.arrays import (
+    PeriodArray,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 @pytest.fixture(params=["D", "2D"])

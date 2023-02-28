@@ -5,7 +5,9 @@ from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
 
 
 def test_get_resolution_nano():

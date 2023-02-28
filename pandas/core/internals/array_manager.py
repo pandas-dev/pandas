@@ -1,7 +1,9 @@
 """
 Experimental manager based on storing a collection of 1D arrays
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
@@ -25,9 +27,13 @@ from pandas._typing import (
     QuantileInterpolation,
     npt,
 )
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import (
+    validate_bool_kwarg,
+)
 
-from pandas.core.dtypes.astype import astype_array_safe
+from pandas.core.dtypes.astype import (
+    astype_array_safe,
+)
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
@@ -57,15 +63,21 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.quantile import quantile_compat
-from pandas.core.array_algos.take import take_1d
+from pandas.core.array_algos.quantile import (
+    quantile_compat,
+)
+from pandas.core.array_algos.take import (
+    take_1d,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseDtype,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,

@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def build_field_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]

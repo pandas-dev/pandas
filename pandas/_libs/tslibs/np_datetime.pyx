@@ -32,7 +32,9 @@ from numpy cimport (
     uint8_t,
 )
 
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+from pandas._libs.tslibs.util cimport (
+    get_c_string_buf_and_size,
+)
 
 
 cdef extern from "src/datetime/np_datetime.h":
@@ -517,7 +519,9 @@ cdef ndarray astype_round_check(
             new_value, mod = divmod(value, mult)
             if mod != 0:
                 # TODO: avoid runtime import
-                from pandas._libs.tslibs.dtypes import npy_unit_to_abbrev
+                from pandas._libs.tslibs.dtypes import (
+                    npy_unit_to_abbrev,
+                )
                 from_abbrev = npy_unit_to_abbrev(from_unit)
                 to_abbrev = npy_unit_to_abbrev(to_unit)
                 raise ValueError(

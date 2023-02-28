@@ -14,23 +14,37 @@ from numpy cimport (
 cnp.import_array()
 
 
-from pandas._libs cimport util
-from pandas._libs.hashtable cimport HashTable
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs cimport (
+    util,
+)
+from pandas._libs.hashtable cimport (
+    HashTable,
+)
+from pandas._libs.tslibs.nattype cimport (
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
 )
-from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.timedeltas cimport _Timedelta
-from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.period cimport (
+    is_period_object,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    _Timedelta,
+)
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
 
 from pandas._libs import (
     algos,
     hashtable as _hash,
 )
 
-from pandas._libs.lib cimport eq_NA_compat
+from pandas._libs.lib cimport (
+    eq_NA_compat,
+)
 from pandas._libs.missing cimport (
     C_NA,
     checknull,

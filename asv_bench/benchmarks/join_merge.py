@@ -14,12 +14,18 @@ from pandas import (
     merge_asof,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 try:
-    from pandas import merge_ordered
+    from pandas import (
+        merge_ordered,
+    )
 except ImportError:
-    from pandas import ordered_merge as merge_ordered
+    from pandas import (
+        ordered_merge as merge_ordered,
+    )
 
 
 class Concat:

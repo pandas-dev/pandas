@@ -6,7 +6,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.reshape.util import cartesian_product
+from pandas.core.reshape.util import (
+    cartesian_product,
+)
 
 
 class TestCartesianProduct:

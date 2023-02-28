@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import array
 import re
@@ -27,8 +29,12 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
+from pandas.core.arrays.datetimes import (
+    _sequence_to_dt64ns,
+)
+from pandas.core.arrays.timedeltas import (
+    sequence_to_td64ns,
+)
 
 
 # TODO: more freq variants

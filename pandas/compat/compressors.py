@@ -2,12 +2,18 @@
 Patched ``BZ2File`` and ``LZMAFile`` to handle pickle protocol 5.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import bz2
-from pickle import PickleBuffer
+from pickle import (
+    PickleBuffer,
+)
 
-from pandas.compat._constants import PY310
+from pandas.compat._constants import (
+    PY310,
+)
 
 try:
     import lzma

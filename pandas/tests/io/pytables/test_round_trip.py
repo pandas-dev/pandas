@@ -8,8 +8,12 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
-from pandas.compat import is_platform_windows
+from pandas._libs.tslibs import (
+    Timestamp,
+)
+from pandas.compat import (
+    is_platform_windows,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +28,9 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
+from pandas.util import (
+    _test_decorators as td,
+)
 
 _default_compressor = "blosc"
 

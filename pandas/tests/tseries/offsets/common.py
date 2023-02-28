@@ -1,7 +1,9 @@
 """
 Assertion helpers and base class for offsets tests
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 
 def assert_offset_equal(offset, base, expected):

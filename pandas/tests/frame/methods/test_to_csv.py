@@ -1,11 +1,15 @@
 import csv
-from io import StringIO
+from io import (
+    StringIO,
+)
 import os
 
 import numpy as np
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+)
 
 import pandas as pd
 from pandas import (
@@ -22,7 +26,9 @@ from pandas import (
 import pandas._testing as tm
 import pandas.core.common as com
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 
 class TestDataFrameToCSV:

@@ -5,14 +5,18 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import option_context
+from pandas import (
+    option_context,
+)
 import pandas._testing as tm
 from pandas.core.api import (
     DataFrame,
     Index,
     Series,
 )
-from pandas.core.computation import expressions as expr
+from pandas.core.computation import (
+    expressions as expr,
+)
 
 
 @pytest.fixture

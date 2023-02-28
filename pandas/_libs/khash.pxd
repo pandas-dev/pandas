@@ -1,4 +1,6 @@
-from cpython.object cimport PyObject
+from cpython.object cimport (
+    PyObject,
+)
 from numpy cimport (
     complex64_t,
     complex128_t,

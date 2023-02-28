@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+)
 
 import pandas as pd
 import pandas._testing as tm

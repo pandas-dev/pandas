@@ -1,8 +1,12 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas.core.algorithms import unique1d
+from pandas.core.algorithms import (
+    unique1d,
+)
 from pandas.core.arrays.categorical import (
     Categorical,
     CategoricalDtype,

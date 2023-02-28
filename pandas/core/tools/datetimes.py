@@ -1,9 +1,19 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from datetime import datetime
-from functools import partial
-from itertools import islice
+from collections import (
+    abc,
+)
+from datetime import (
+    datetime,
+)
+from functools import (
+    partial,
+)
+from itertools import (
+    islice,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -35,19 +45,25 @@ from pandas._libs.tslibs import (
     parsing,
     timezones as libtimezones,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.conversion import (
+    precision_from_unit,
+)
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
 )
-from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.strptime import (
+    array_strptime,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DateTimeErrorChoices,
     npt,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -64,28 +80,46 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
     PandasArray,
 )
-from pandas.core import algorithms
-from pandas.core.algorithms import unique
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core import (
+    algorithms,
+)
+from pandas.core.algorithms import (
+    unique,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+)
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
     objects_to_datetime64ns,
     tz_to_dtype,
 )
-from pandas.core.construction import extract_array
-from pandas.core.indexes.base import Index
-from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.indexes.base import (
+    Index,
+)
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+)
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs.nattype import NaTType
-    from pandas._libs.tslibs.timedeltas import UnitChoices
+    from pandas._libs.tslibs.nattype import (
+        NaTType,
+    )
+    from pandas._libs.tslibs.timedeltas import (
+        UnitChoices,
+    )
 
     from pandas import (
         DataFrame,
@@ -233,7 +267,9 @@ def _maybe_cache(
     cache_array : Series
         Cache of converted, unique dates. Can be empty
     """
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     cache_array = Series(dtype=object)
 
@@ -305,7 +341,9 @@ def _convert_and_box_cache(
     -------
     result : Index-like of converted dates
     """
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     result = Series(arg).map(cache_array)
     return _box_as_indexlike(result._values, utc=False, name=name)
@@ -1070,7 +1108,9 @@ def to_datetime(
             if errors == "raise":
                 raise
             # ... otherwise, continue without the cache.
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:

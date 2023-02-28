@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
@@ -7,7 +9,9 @@ from pandas._typing import (
     IndexLabel,
 )
 
-from pandas.core.dtypes.missing import remove_na_arraylike
+from pandas.core.dtypes.missing import (
+    remove_na_arraylike,
+)
 
 from pandas import (
     DataFrame,
@@ -16,7 +20,9 @@ from pandas import (
     concat,
 )
 
-from pandas.plotting._matplotlib.misc import unpack_single_str_list
+from pandas.plotting._matplotlib.misc import (
+    unpack_single_str_list,
+)
 
 
 def create_iter_data_given_by(

@@ -8,12 +8,16 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 NOTE: if this finds a false positive, you can add the comment `# not a test` to the
 class or function definition. Though hopefully that shouldn't be necessary.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import ast
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import sys
 from typing import (
     Iterator,

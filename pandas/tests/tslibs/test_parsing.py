@@ -1,11 +1,17 @@
 """
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import re
 
-from dateutil.parser import parse as du_parse
-from dateutil.tz import tzlocal
+from dateutil.parser import (
+    parse as du_parse,
+)
+from dateutil.tz import (
+    tzlocal,
+)
 import numpy as np
 import pytest
 
@@ -13,7 +19,9 @@ from pandas._libs.tslibs import (
     parsing,
     strptime,
 )
-from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas._libs.tslibs.parsing import (
+    parse_datetime_string_with_reso,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm

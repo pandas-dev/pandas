@@ -1,5 +1,9 @@
-from pandas import Series
-from pandas.core.arrays import BaseMaskedArray
+from pandas import (
+    Series,
+)
+from pandas.core.arrays import (
+    BaseMaskedArray,
+)
 
 
 def get_array(obj, col=None):

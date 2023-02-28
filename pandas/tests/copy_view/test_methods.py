@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyWarning
+from pandas.errors import (
+    SettingWithCopyWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -15,7 +17,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.tests.copy_view.util import get_array
+from pandas.tests.copy_view.util import (
+    get_array,
+)
 
 
 def test_copy(using_copy_on_write):

@@ -1,6 +1,8 @@
 """Tests that the tslibs API is locked down"""
 
-from pandas._libs import tslibs
+from pandas._libs import (
+    tslibs,
+)
 
 
 def test_namespace():

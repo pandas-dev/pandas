@@ -13,7 +13,9 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.reshape.merge import MergeError
+from pandas.core.reshape.merge import (
+    MergeError,
+)
 
 
 @pytest.fixture(params=["s", "ms", "us", "ns"])

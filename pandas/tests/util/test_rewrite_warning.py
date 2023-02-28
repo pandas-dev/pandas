@@ -2,7 +2,9 @@ import warnings
 
 import pytest
 
-from pandas.util._exceptions import rewrite_warning
+from pandas.util._exceptions import (
+    rewrite_warning,
+)
 
 import pandas._testing as tm
 

@@ -1,5 +1,7 @@
 """Common utilities for Numba operations with groupby ops"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import functools
 import inspect
@@ -11,8 +13,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
-from pandas.compat._optional import import_optional_dependency
+from pandas._typing import (
+    Scalar,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 from pandas.core.util.numba_ import (
     NumbaUtilError,

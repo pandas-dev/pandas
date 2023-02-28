@@ -1,9 +1,17 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from csv import QUOTE_NONNUMERIC
-from functools import partial
+from csv import (
+    QUOTE_NONNUMERIC,
+)
+from functools import (
+    partial,
+)
 import operator
-from shutil import get_terminal_size
+from shutil import (
+    get_terminal_size,
+)
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -17,14 +25,18 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._libs import (
     NaT,
     algos as libalgos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -37,8 +49,12 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat.numpy import function as nv
-from pandas.util._validators import validate_bool_kwarg
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+)
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -102,11 +118,19 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.sorting import nargsort
-from pandas.core.strings.object_array import ObjectStringArrayMixin
+from pandas.core.ops.common import (
+    unpack_zerodim_and_defer,
+)
+from pandas.core.sorting import (
+    nargsort,
+)
+from pandas.core.strings.object_array import (
+    ObjectStringArrayMixin,
+)
 
-from pandas.io.formats import console
+from pandas.io.formats import (
+    console,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -1074,7 +1098,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         if hasattr(new_categories, "dtype"):
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             dtype = find_common_type(
                 [self.dtype.categories.dtype, new_categories.dtype]
@@ -1132,7 +1158,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [NaN, 'c', 'b', 'c', NaN]
         Categories (2, object): ['b', 'c']
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         if not is_list_like(removals):
             removals = [removals]
@@ -1744,7 +1772,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         numpy.array
 
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         if self.ordered:
             values = self.codes
@@ -1833,7 +1863,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if get_option("display.max_categories") == 0
             else get_option("display.max_categories")
         )
-        from pandas.io.formats import format as fmt
+        from pandas.io.formats import (
+            format as fmt,
+        )
 
         format_array = partial(
             fmt.format_array, formatter=None, quoting=QUOTE_NONNUMERIC
@@ -1886,7 +1918,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _get_repr(
         self, length: bool = True, na_rep: str = "NaN", footer: bool = True
     ) -> str:
-        from pandas.io.formats import format as fmt
+        from pandas.io.formats import (
+            format as fmt,
+        )
 
         formatter = fmt.CategoricalFormatter(
             self, length=length, na_rep=na_rep, footer=footer
@@ -1926,7 +1960,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             value = self._encode_with_my_categories(value)
             return value._codes
 
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
         to_add = Index._with_infer(value, tupleize_cols=False).difference(
@@ -2119,7 +2155,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _concat_same_type(
         cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
     ) -> CategoricalT:
-        from pandas.core.dtypes.concat import union_categoricals
+        from pandas.core.dtypes.concat import (
+            union_categoricals,
+        )
 
         first = to_concat[0]
         if axis >= first.ndim:
@@ -2191,8 +2229,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         counts = self.value_counts(dropna=False)
         freqs = counts / counts.sum()
 
-        from pandas import Index
-        from pandas.core.reshape.concat import concat
+        from pandas import (
+            Index,
+        )
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         result = concat([counts, freqs], axis=1)
         result.columns = Index(["counts", "freqs"])
@@ -2254,7 +2296,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return algorithms.isin(self.codes, code_values)
 
     def _replace(self, *, to_replace, value, inplace: bool = False):
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
@@ -2297,7 +2341,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import (
+            PandasArray,
+        )
 
         categories = self.categories
         codes = self.codes
@@ -2306,7 +2352,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import (
+            PandasArray,
+        )
 
         return PandasArray(self.astype(str))._str_get_dummies(sep)
 
@@ -2460,12 +2508,16 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         """
         Return Series of codes as well as the index.
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         return Series(self._parent.codes, index=self._index)
 
     def _delegate_method(self, name, *args, **kwargs):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
@@ -2550,7 +2602,9 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         If `values` has a categorical dtype, then `categories` is
         a CategoricalIndex keeping the categories and order of `values`.
     """
-    from pandas import CategoricalIndex
+    from pandas import (
+        CategoricalIndex,
+    )
 
     if not is_list_like(values):
         raise TypeError("Input must be list-like")

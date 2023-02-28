@@ -1,9 +1,13 @@
-from timeit import repeat as timeit
+from timeit import (
+    repeat as timeit,
+)
 
 import numpy as np
 import seaborn as sns
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 
 setup_common = """from pandas import DataFrame
 import numpy as np
@@ -65,7 +69,9 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
 
 
 def plot_perf(df, engines, title, filename=None):
-    from matplotlib.pyplot import figure
+    from matplotlib.pyplot import (
+        figure,
+    )
 
     sns.set()
     sns.set_palette("Set2")

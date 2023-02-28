@@ -17,7 +17,9 @@ from cpython.object cimport (
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+)
 
 cnp.import_array()
 

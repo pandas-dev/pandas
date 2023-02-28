@@ -2,13 +2,17 @@
 Note: for naming purposes, most tests are title with as e.g. "test_nlargest_foo"
 but are implicitly also testing nsmallest_foo.
 """
-from itertools import product
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
 
 main_dtypes = [

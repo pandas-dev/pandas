@@ -1,5 +1,9 @@
-from datetime import datetime
-from operator import methodcaller
+from datetime import (
+    datetime,
+)
+from operator import (
+    methodcaller,
+)
 
 import numpy as np
 import pytest
@@ -11,8 +15,12 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.groupby.grouper import (
+    Grouper,
+)
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 

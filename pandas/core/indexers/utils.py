@@ -1,7 +1,9 @@
 """
 Low-dependency indexing utilities.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -10,7 +12,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import AnyArrayLike
+from pandas._typing import (
+    AnyArrayLike,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -26,8 +30,12 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.frame import DataFrame
-    from pandas.core.indexes.base import Index
+    from pandas.core.frame import (
+        DataFrame,
+    )
+    from pandas.core.indexes.base import (
+        Index,
+    )
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -510,7 +518,9 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ...
     IndexError: arrays used as indices must be of integer or boolean type
     """
-    from pandas.core.construction import array as pd_array
+    from pandas.core.construction import (
+        array as pd_array,
+    )
 
     # whatever is not an array-like is returned as-is (possible valid array
     # indexers that are not array-like: integer, slice, Ellipsis, None)

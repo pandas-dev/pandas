@@ -1,4 +1,6 @@
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 
 import numpy as np
 import pytest
@@ -93,7 +95,9 @@ def test_spss_umlauts_use_nullable_dtypes(datapath, dtype_backend):
     if dtype_backend == "pyarrow":
         pa = pytest.importorskip("pyarrow")
 
-        from pandas.arrays import ArrowExtensionArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+        )
 
         expected = pd.DataFrame(
             {

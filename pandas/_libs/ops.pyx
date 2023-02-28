@@ -10,7 +10,9 @@ from cpython.object cimport (
     Py_NE,
     PyObject_RichCompareBool,
 )
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 
 import numpy as np
 
@@ -23,8 +25,12 @@ from numpy cimport (
 import_array()
 
 
-from pandas._libs.missing cimport checknull
-from pandas._libs.util cimport is_nan
+from pandas._libs.missing cimport (
+    checknull,
+)
+from pandas._libs.util cimport (
+    is_nan,
+)
 
 
 @cython.wraparound(False)

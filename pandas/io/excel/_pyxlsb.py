@@ -1,5 +1,7 @@
 # pyright: reportMissingImports=false
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from pandas._typing import (
     FilePath,
@@ -7,12 +9,20 @@ from pandas._typing import (
     Scalar,
     StorageOptions,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.excel._base import BaseExcelReader
+from pandas.io.excel._base import (
+    BaseExcelReader,
+)
 
 
 class PyxlsbReader(BaseExcelReader):
@@ -38,12 +48,16 @@ class PyxlsbReader(BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        from pyxlsb import Workbook
+        from pyxlsb import (
+            Workbook,
+        )
 
         return Workbook
 
     def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
-        from pyxlsb import open_workbook
+        from pyxlsb import (
+            open_workbook,
+        )
 
         # TODO: hack in buffer capability
         # This might need some modifications to the Pyxlsb library

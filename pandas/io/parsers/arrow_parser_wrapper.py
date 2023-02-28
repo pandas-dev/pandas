@@ -1,9 +1,17 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from pandas._typing import ReadBuffer
-from pandas.compat._optional import import_optional_dependency
+from pandas._typing import (
+    ReadBuffer,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
-from pandas.core.dtypes.inference import is_integer
+from pandas.core.dtypes.inference import (
+    is_integer,
+)
 
 from pandas import (
     DataFrame,
@@ -11,7 +19,9 @@ from pandas import (
     get_option,
 )
 
-from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+)
 
 
 class ArrowParserWrapper(ParserBase):

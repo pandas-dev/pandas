@@ -2,10 +2,14 @@ import contextlib
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter
+from pandas.io.excel import (
+    ExcelWriter,
+)
 
 xlsxwriter = pytest.importorskip("xlsxwriter")
 

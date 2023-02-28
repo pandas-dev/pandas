@@ -1,9 +1,13 @@
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +28,9 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-from pandas.io.pytables import Term
+from pandas.io.pytables import (
+    Term,
+)
 
 pytestmark = pytest.mark.single_cpu
 

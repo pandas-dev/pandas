@@ -1,7 +1,11 @@
 import datetime
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import re
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
 import numpy as np
 import pytest
@@ -15,7 +19,9 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_store,
+)
 
 from pandas.io.pytables import (
     Term,

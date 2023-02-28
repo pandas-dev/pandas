@@ -9,15 +9,23 @@ a once again improved version.
 You can find more information on http://presbrey.mit.edu/PyDTA and
 https://www.statsmodels.org/devel/
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 import datetime
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import os
 import struct
 import sys
-from types import TracebackType
+from types import (
+    TracebackType,
+)
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -31,11 +39,17 @@ from typing import (
 )
 import warnings
 
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import (
+    relativedelta,
+)
 import numpy as np
 
-from pandas._libs.lib import infer_dtype
-from pandas._libs.writers import max_len_string_array
+from pandas._libs.lib import (
+    infer_dtype,
+)
+from pandas._libs.writers import (
+    max_len_string_array,
+)
 from pandas._typing import (
     CompressionOptions,
     FilePath,
@@ -53,7 +67,9 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -71,17 +87,33 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core.arrays.boolean import BooleanDtype
-from pandas.core.arrays.integer import IntegerDtype
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.base import Index
-from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.arrays.boolean import (
+    BooleanDtype,
+)
+from pandas.core.arrays.integer import (
+    IntegerDtype,
+)
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.indexes.base import (
+    Index,
+)
+from pandas.core.series import (
+    Series,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from typing import (
+        Literal,
+    )
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "

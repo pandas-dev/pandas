@@ -1,9 +1,13 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+)
 
 from pandas import (
     DateOffset,
@@ -17,7 +21,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day
+from pandas.tseries.offsets import (
+    Day,
+)
 
 
 @pytest.fixture(params=[None, "foo"])

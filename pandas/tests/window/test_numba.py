@@ -6,7 +6,9 @@ from pandas.compat import (
     is_platform_mac,
     is_platform_windows,
 )
-from pandas.errors import NumbaUtilError
+from pandas.errors import (
+    NumbaUtilError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (

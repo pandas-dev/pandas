@@ -13,7 +13,9 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import doctest
@@ -29,7 +31,9 @@ import tempfile
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy
-from numpydoc.docscrape import get_doc_object
+from numpydoc.docscrape import (
+    get_doc_object,
+)
 from numpydoc.validate import (
     Validator,
     validate,

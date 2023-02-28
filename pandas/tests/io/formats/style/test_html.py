@@ -13,7 +13,9 @@ from pandas import (
 )
 
 jinja2 = pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler
+from pandas.io.formats.style import (
+    Styler,
+)
 
 loader = jinja2.PackageLoader("pandas", "io/formats/templates")
 env = jinja2.Environment(loader=loader, trim_blocks=True)

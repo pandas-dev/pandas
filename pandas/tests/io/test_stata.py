@@ -1,6 +1,8 @@
 import bz2
 import datetime as dt
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import gzip
 import io
 import os
@@ -12,7 +14,9 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -20,9 +24,13 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
-from pandas.io.parsers import read_csv
+from pandas.io.parsers import (
+    read_csv,
+)
 from pandas.io.stata import (
     CategoricalConversionWarning,
     InvalidColumnName,

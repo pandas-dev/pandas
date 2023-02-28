@@ -26,7 +26,9 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+)
 
 
 def get_objs():

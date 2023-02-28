@@ -25,10 +25,16 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
-from pandas.core.indexers.objects import VariableOffsetWindowIndexer
+from pandas.api.indexers import (
+    BaseIndexer,
+)
+from pandas.core.indexers.objects import (
+    VariableOffsetWindowIndexer,
+)
 
-from pandas.tseries.offsets import BusinessDay
+from pandas.tseries.offsets import (
+    BusinessDay,
+)
 
 
 def test_doc_string():

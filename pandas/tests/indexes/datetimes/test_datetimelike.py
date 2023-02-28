@@ -6,7 +6,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import (
+    DatetimeLike,
+)
 
 
 class TestDatetimeIndex(DatetimeLike):

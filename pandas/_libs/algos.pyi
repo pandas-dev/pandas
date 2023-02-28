@@ -1,8 +1,12 @@
-from typing import Any
+from typing import (
+    Any,
+)
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 class Infinity:
     """

@@ -1,7 +1,11 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import bz2
-from functools import wraps
+from functools import (
+    wraps,
+)
 import gzip
 import io
 import socket
@@ -17,14 +21,24 @@ from pandas._typing import (
     FilePath,
     ReadPickleBuffer,
 )
-from pandas.compat import get_lzma_file
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat import (
+    get_lzma_file,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 import pandas as pd
-from pandas._testing._random import rands
-from pandas._testing.contexts import ensure_clean
+from pandas._testing._random import (
+    rands,
+)
+from pandas._testing.contexts import (
+    ensure_clean,
+)
 
-from pandas.io.common import urlopen
+from pandas.io.common import (
+    urlopen,
+)
 
 if TYPE_CHECKING:
     from pandas import (

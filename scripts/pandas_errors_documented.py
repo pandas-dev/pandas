@@ -6,13 +6,17 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run pandas-errors-documented --all-files
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import (
+    Sequence,
+)
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 

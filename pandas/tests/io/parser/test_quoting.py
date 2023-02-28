@@ -4,14 +4,22 @@ during parsing for all of the parsers defined in parsers.py
 """
 
 import csv
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import pytest
 
-from pandas.compat import PY311
-from pandas.errors import ParserError
+from pandas.compat import (
+    PY311,
+)
+from pandas.errors import (
+    ParserError,
+)
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")

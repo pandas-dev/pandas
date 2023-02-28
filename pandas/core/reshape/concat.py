@@ -1,9 +1,13 @@
 """
 Concat routines.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -17,22 +21,32 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+)
 
 from pandas._typing import (
     Axis,
     AxisInt,
     HashableT,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_bool
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.inference import (
+    is_bool,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
@@ -48,14 +62,18 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     get_unanimous_names,
 )
-from pandas.core.internals import concatenate_managers
+from pandas.core.internals import (
+    concatenate_managers,
+)
 
 if TYPE_CHECKING:
     from pandas import (
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -491,7 +509,9 @@ class _Concatenator:
 
         # Standardize axis parameter to int
         if isinstance(sample, ABCSeries):
-            from pandas import DataFrame
+            from pandas import (
+                DataFrame,
+            )
 
             axis = DataFrame._get_axis_number(axis)
         else:

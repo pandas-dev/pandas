@@ -1,14 +1,18 @@
 """
 :func:`~pandas.eval` parsers.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import ast
 from functools import (
     partial,
     reduce,
 )
-from keyword import iskeyword
+from keyword import (
+    iskeyword,
+)
 import tokenize
 from typing import (
     Callable,
@@ -17,8 +21,12 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat import PY39
-from pandas.errors import UndefinedVariableError
+from pandas.compat import (
+    PY39,
+)
+from pandas.errors import (
+    UndefinedVariableError,
+)
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
@@ -42,9 +50,13 @@ from pandas.core.computation.parsing import (
     clean_backtick_quoted_toks,
     tokenize_string,
 )
-from pandas.core.computation.scope import Scope
+from pandas.core.computation.scope import (
+    Scope,
+)
 
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 
 
 def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
@@ -571,7 +583,9 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Subscript(self, node, **kwargs):
-        from pandas import eval as pd_eval
+        from pandas import (
+            eval as pd_eval,
+        )
 
         value = self.visit(node.value)
         slobj = self.visit(node.slice)

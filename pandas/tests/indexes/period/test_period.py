@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import (
+    IncompatibleFrequency,
+)
 
 from pandas import (
     Index,
@@ -14,7 +16,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.datetimelike import DatetimeLike
+from pandas.tests.indexes.datetimelike import (
+    DatetimeLike,
+)
 
 
 class TestPeriodIndex(DatetimeLike):

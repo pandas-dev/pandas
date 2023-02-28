@@ -1,6 +1,8 @@
 import os
 import subprocess
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 
 import numpy as np
 import pytest
@@ -459,7 +461,9 @@ y,2,5.0,,,,,False,"""
             }
         )
         if dtype_backend == "pyarrow":
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = DataFrame(
                 {

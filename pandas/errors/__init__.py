@@ -1,18 +1,24 @@
 """
 Expose public exceptions & warnings
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import ctypes
 
-from pandas._config.config import OptionError
+from pandas._config.config import (
+    OptionError,
+)
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
 
-from pandas.util.version import InvalidVersion
+from pandas.util.version import (
+    InvalidVersion,
+)
 
 
 class IntCastingNaNError(ValueError):

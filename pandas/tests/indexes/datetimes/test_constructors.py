@@ -3,8 +3,12 @@ from datetime import (
     timedelta,
     timezone,
 )
-from functools import partial
-from operator import attrgetter
+from functools import (
+    partial,
+)
+from operator import (
+    attrgetter,
+)
 
 import dateutil
 import numpy as np

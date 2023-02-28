@@ -1,10 +1,14 @@
-from importlib import import_module
+from importlib import (
+    import_module,
+)
 
 import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:

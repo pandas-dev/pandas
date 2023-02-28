@@ -11,12 +11,16 @@ As pre-commit hook (recommended):
 From the command-line:
     python scripts/validate_rst_title_capitalization.py <rst file>
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import re
 import sys
-from typing import Iterable
+from typing import (
+    Iterable,
+)
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",

@@ -6,7 +6,9 @@ from copy import (
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import (
+    is_scalar,
+)
 
 from pandas import (
     DataFrame,

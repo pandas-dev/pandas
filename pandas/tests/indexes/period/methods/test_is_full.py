@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import PeriodIndex
+from pandas import (
+    PeriodIndex,
+)
 
 
 def test_is_full():

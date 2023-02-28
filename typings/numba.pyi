@@ -8,7 +8,9 @@ from typing import (
 
 import numba
 
-from pandas._typing import F
+from pandas._typing import (
+    F,
+)
 
 def __getattr__(name: str) -> Any: ...  # incomplete
 @overload

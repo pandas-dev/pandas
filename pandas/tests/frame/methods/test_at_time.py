@@ -1,10 +1,14 @@
-from datetime import time
+from datetime import (
+    time,
+)
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    timezones,
+)
 
 from pandas import (
     DataFrame,

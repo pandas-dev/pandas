@@ -1,6 +1,10 @@
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
 
 @doc(method="cumsum", operation="sum")

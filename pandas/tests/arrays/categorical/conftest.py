@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import Categorical
+from pandas import (
+    Categorical,
+)
 
 
 @pytest.fixture(params=[True, False])

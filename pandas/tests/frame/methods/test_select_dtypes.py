@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -9,7 +11,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 
 
 class DummyDtype(ExtensionDtype):

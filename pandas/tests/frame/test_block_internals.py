@@ -7,7 +7,9 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

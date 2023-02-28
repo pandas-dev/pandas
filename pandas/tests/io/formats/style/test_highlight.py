@@ -9,7 +9,9 @@ from pandas import (
 
 pytest.importorskip("jinja2")
 
-from pandas.io.formats.style import Styler
+from pandas.io.formats.style import (
+    Styler,
+)
 
 
 @pytest.fixture(params=[(None, "float64"), (NA, "Int64")])

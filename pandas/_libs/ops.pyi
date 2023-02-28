@@ -8,7 +8,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 _BinOp = Callable[[Any, Any], Any]
 _BoolOp = Callable[[Any, Any], bool]

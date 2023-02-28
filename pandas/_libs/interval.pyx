@@ -12,8 +12,12 @@ from cpython.datetime cimport (
 import_datetime()
 
 cimport cython
-from cpython.object cimport PyObject_RichCompare
-from cython cimport Py_ssize_t
+from cpython.object cimport (
+    PyObject_RichCompare,
+)
+from cython cimport (
+    Py_ssize_t,
+)
 
 import numpy as np
 
@@ -31,11 +35,21 @@ from numpy cimport (
 cnp.import_array()
 
 
-from pandas._libs cimport util
-from pandas._libs.hashtable cimport Int64Vector
-from pandas._libs.tslibs.timedeltas cimport _Timedelta
-from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timezones cimport tz_compare
+from pandas._libs cimport (
+    util,
+)
+from pandas._libs.hashtable cimport (
+    Int64Vector,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    _Timedelta,
+)
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
+from pandas._libs.tslibs.timezones cimport (
+    tz_compare,
+)
 from pandas._libs.tslibs.util cimport (
     is_float_object,
     is_integer_object,

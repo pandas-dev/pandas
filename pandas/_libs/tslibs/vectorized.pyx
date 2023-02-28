@@ -16,7 +16,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from .dtypes import Resolution
+from .dtypes import (
+    Resolution,
+)
 
 from .dtypes cimport (
     c_Resolution,
@@ -32,10 +34,18 @@ from .np_datetime cimport (
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
-from .period cimport get_period_ordinal
-from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport is_utc
-from .tzconversion cimport Localizer
+from .period cimport (
+    get_period_ordinal,
+)
+from .timestamps cimport (
+    create_timestamp_from_ts,
+)
+from .timezones cimport (
+    is_utc,
+)
+from .tzconversion cimport (
+    Localizer,
+)
 
 
 @cython.boundscheck(False)

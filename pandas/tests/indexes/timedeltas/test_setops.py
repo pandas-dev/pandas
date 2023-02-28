@@ -9,7 +9,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Hour
+from pandas.tseries.offsets import (
+    Hour,
+)
 
 
 class TestTimedeltaIndex:

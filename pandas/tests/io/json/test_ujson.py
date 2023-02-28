@@ -13,7 +13,9 @@ import pytest
 import pytz
 
 import pandas._libs.json as ujson
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 
 from pandas import (
     DataFrame,

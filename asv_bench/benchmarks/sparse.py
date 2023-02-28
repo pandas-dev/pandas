@@ -7,7 +7,9 @@ from pandas import (
     Series,
     date_range,
 )
-from pandas.arrays import SparseArray
+from pandas.arrays import (
+    SparseArray,
+)
 
 
 def make_array(size, dense_proportion, fill_value, dtype):

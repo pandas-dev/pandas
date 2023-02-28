@@ -27,7 +27,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import (
+    PandasArray,
+)
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

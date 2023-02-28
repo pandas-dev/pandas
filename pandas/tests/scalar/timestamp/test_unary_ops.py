@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from dateutil.tz import gettz
+from dateutil.tz import (
+    gettz,
+)
 from hypothesis import (
     given,
     strategies as st,
@@ -8,9 +12,13 @@ from hypothesis import (
 import numpy as np
 import pytest
 import pytz
-from pytz import utc
+from pytz import (
+    utc,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -20,8 +28,12 @@ from pandas._libs.tslibs import (
     iNaT,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm

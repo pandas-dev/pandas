@@ -6,9 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+)
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
 from pandas import (
     NA,
@@ -33,7 +37,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import (
+    BDay,
+)
 
 
 class TestSetitemDT64Values:

@@ -22,7 +22,9 @@ from pandas.tests.plotting.common import (
     _check_plot_works,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 @td.skip_if_no_mpl

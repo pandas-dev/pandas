@@ -6,7 +6,9 @@ __setitem__.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 from pandas import (
     DataFrame,

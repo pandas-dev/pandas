@@ -5,7 +5,9 @@ Tests for the `deprecate_nonkeyword_arguments` decorator
 import inspect
 import warnings
 
-from pandas.util._decorators import deprecate_nonkeyword_arguments
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+)
 
 import pandas._testing as tm
 

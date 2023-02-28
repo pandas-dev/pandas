@@ -1,12 +1,18 @@
 """
 Engine classes for :func:`~pandas.eval`
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import abc
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 
-from pandas.errors import NumExprClobberingError
+from pandas.errors import (
+    NumExprClobberingError,
+)
 
 from pandas.core.computation.align import (
     align_terms,
@@ -17,10 +23,14 @@ from pandas.core.computation.ops import (
     REDUCTIONS,
 )
 
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.computation.expr import Expr
+    from pandas.core.computation.expr import (
+        Expr,
+    )
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
 

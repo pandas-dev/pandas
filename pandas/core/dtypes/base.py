@@ -1,7 +1,9 @@
 """
 Extend pandas with custom array types.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -13,15 +15,21 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import missing as libmissing
-from pandas._libs.hashtable import object_hash
+from pandas._libs import (
+    missing as libmissing,
+)
+from pandas._libs.hashtable import (
+    object_hash,
+)
 from pandas._typing import (
     DtypeObj,
     Shape,
     npt,
     type_t,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -30,7 +38,9 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import (
+        ExtensionArray,
+    )
 
     # To parameterize on same ExtensionDtype
     ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")

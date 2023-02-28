@@ -2,7 +2,9 @@ from datetime import (
     datetime,
     tzinfo,
 )
-from typing import Callable
+from typing import (
+    Callable,
+)
 
 import numpy as np
 

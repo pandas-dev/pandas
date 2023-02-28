@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from pandas._typing import AxisInt
+from pandas._typing import (
+    AxisInt,
+)
 
 from pandas import (
     DataFrame,

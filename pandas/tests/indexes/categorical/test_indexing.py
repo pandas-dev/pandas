@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+)
 
 import pandas as pd
 from pandas import (

@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import Timedelta
+from pandas import (
+    Timedelta,
+)
 
 
 @pytest.mark.parametrize(

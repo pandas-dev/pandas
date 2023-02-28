@@ -5,7 +5,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.indexes.common import Base
+from pandas.tests.indexes.common import (
+    Base,
+)
 
 
 class DatetimeLike(Base):

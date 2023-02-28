@@ -1,4 +1,6 @@
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
 import numpy as np
 import pytest
@@ -9,9 +11,13 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_store,
+)
 
-from pandas.io.pytables import read_hdf
+from pandas.io.pytables import (
+    read_hdf,
+)
 
 
 def test_complex_fixed(tmp_path, setup_path):

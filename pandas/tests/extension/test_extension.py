@@ -4,7 +4,9 @@ Tests for behavior if an author does *not* implement EA methods.
 import numpy as np
 import pytest
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 
 
 class MyEA(ExtensionArray):

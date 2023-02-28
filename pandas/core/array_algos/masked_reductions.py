@@ -2,19 +2,27 @@
 masked_reductions.py is for reduction algorithms using a mask-based approach
 for missing values.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Callable
+from typing import (
+    Callable,
+)
 
 import numpy as np
 
-from pandas._libs import missing as libmissing
+from pandas._libs import (
+    missing as libmissing,
+)
 from pandas._typing import (
     AxisInt,
     npt,
 )
 
-from pandas.core.nanops import check_below_min_count
+from pandas.core.nanops import (
+    check_below_min_count,
+)
 
 
 def _reductions(

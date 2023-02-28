@@ -21,7 +21,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouping
+from pandas.core.groupby.grouper import (
+    Grouping,
+)
 
 # selection
 # --------------------------------

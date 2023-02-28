@@ -1,4 +1,6 @@
-from cpython.datetime cimport datetime
+from cpython.datetime cimport (
+    datetime,
+)
 
 
 cdef class ABCTimestamp(datetime):

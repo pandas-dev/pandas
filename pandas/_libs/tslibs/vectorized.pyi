@@ -2,12 +2,18 @@
 For cython types that cannot be represented precisely, closest-available
 python equivalents are used, and the precise types kept as adjacent comments.
 """
-from datetime import tzinfo
+from datetime import (
+    tzinfo,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs.dtypes import Resolution
-from pandas._typing import npt
+from pandas._libs.tslibs.dtypes import (
+    Resolution,
+)
+from pandas._typing import (
+    npt,
+)
 
 def dt64arr_to_periodarr(
     stamps: npt.NDArray[np.int64],

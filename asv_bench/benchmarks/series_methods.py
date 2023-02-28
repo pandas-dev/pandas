@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 
@@ -10,7 +12,9 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 
 class SeriesConstructor:

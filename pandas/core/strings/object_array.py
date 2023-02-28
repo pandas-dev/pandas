@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import functools
 import re
@@ -13,7 +15,9 @@ import unicodedata
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (
@@ -21,13 +25,21 @@ from pandas._typing import (
     Scalar,
 )
 
-from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.common import (
+    is_scalar,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.strings.base import BaseStringArrayMethods
+from pandas.core.strings.base import (
+    BaseStringArrayMethods,
+)
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 
 class ObjectStringArrayMixin(BaseStringArrayMethods):
@@ -187,7 +199,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             return self._str_map(scalar_rep, dtype=str)
         else:
-            from pandas.core.arrays.string_ import BaseStringArray
+            from pandas.core.arrays.string_ import (
+                BaseStringArray,
+            )
 
             def rep(x, r):
                 if x is libmissing.NA:
@@ -367,7 +381,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
     def _str_get_dummies(self, sep: str = "|"):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         arr = Series(self).fillna("")
         try:
@@ -466,7 +482,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if sys.version_info < (3, 9):
             # NOTE pyupgrade will remove this when we run it with --py39-plus
             # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
+            from pandas.util._str_methods import (
+                removesuffix,
+            )
 
             return self._str_map(functools.partial(removesuffix, suffix=suffix))
         else:

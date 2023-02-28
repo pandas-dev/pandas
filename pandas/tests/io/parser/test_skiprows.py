@@ -3,13 +3,19 @@ Tests that skipped rows are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
 
-from datetime import datetime
-from io import StringIO
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+)
 
 from pandas import (
     DataFrame,

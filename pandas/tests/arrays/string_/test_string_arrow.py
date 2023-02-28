@@ -4,7 +4,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -12,7 +14,9 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+)
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,

@@ -2,18 +2,26 @@
 Test extension array that has custom attribute information (not stored on the dtype).
 
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numbers
 
 import numpy as np
 
-from pandas._typing import type_t
+from pandas._typing import (
+    type_t,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+)
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 
 
 class FloatAttrDtype(ExtensionDtype):
@@ -65,7 +73,9 @@ class FloatAttrArray(ExtensionArray):
         return np.isnan(self.data)
 
     def take(self, indexer, allow_fill=False, fill_value=None):
-        from pandas.api.extensions import take
+        from pandas.api.extensions import (
+            take,
+        )
 
         data = self.data
         if allow_fill and fill_value is None:

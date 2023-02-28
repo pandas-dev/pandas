@@ -32,7 +32,9 @@ run under the older AND the newer version.
 
 """
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import os
 import pickle
 import platform as pl
@@ -57,7 +59,9 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-from pandas.arrays import SparseArray
+from pandas.arrays import (
+    SparseArray,
+)
 
 from pandas.tseries.offsets import (
     FY5253,

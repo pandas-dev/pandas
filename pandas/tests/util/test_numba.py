@@ -2,7 +2,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import option_context
+from pandas import (
+    option_context,
+)
 
 
 @td.skip_if_installed("numba")

@@ -2,11 +2,19 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
-from datetime import datetime
-from inspect import signature
-from io import StringIO
+from datetime import (
+    datetime,
+)
+from inspect import (
+    signature,
+)
+from io import (
+    StringIO,
+)
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import sys
 
 import numpy as np
@@ -26,8 +34,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.parsers import TextFileReader
-from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+from pandas.io.parsers import (
+    TextFileReader,
+)
+from pandas.io.parsers.c_parser_wrapper import (
+    CParserWrapper,
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")

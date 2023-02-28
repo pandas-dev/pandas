@@ -2,10 +2,16 @@
 Operator classes for eval.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import datetime
-from functools import partial
+from datetime import (
+    datetime,
+)
+from functools import (
+    partial,
+)
 import operator
 from typing import (
     Callable,
@@ -16,7 +22,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -28,7 +36,9 @@ from pandas.core.computation.common import (
     ensure_decoded,
     result_type_many,
 )
-from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.core.computation.scope import (
+    DEFAULT_GLOBALS,
+)
 
 from pandas.io.formats.printing import (
     pprint_thing,
@@ -449,7 +459,9 @@ class BinOp(Op):
             if self.op in eval_in_python:
                 res = self.func(left.value, right.value)
             else:
-                from pandas.core.computation.eval import eval
+                from pandas.core.computation.eval import (
+                    eval,
+                )
 
                 res = eval(self, local_dict=env, engine=engine, parser=parser)
 

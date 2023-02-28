@@ -6,7 +6,9 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas._libs.tslibs.timezones import (
+    maybe_get_tz,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

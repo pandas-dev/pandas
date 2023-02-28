@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs import join as libjoin
+from pandas._libs import (
+    join as libjoin,
+)
 from pandas._libs.join import (
     inner_join,
     left_outer_join,

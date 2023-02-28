@@ -1,11 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.base.common import allow_na_ops
+from pandas.tests.base.common import (
+    allow_na_ops,
+)
 
 
 def test_unique(index_or_series_obj):

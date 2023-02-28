@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot,
@@ -36,10 +40,14 @@ from pandas.plotting._matplotlib.misc import (
     radviz,
     scatter_matrix,
 )
-from pandas.plotting._matplotlib.tools import table
+from pandas.plotting._matplotlib.tools import (
+    table,
+)
 
 if TYPE_CHECKING:
-    from pandas.plotting._matplotlib.core import MPLPlot
+    from pandas.plotting._matplotlib.core import (
+        MPLPlot,
+    )
 
 PLOT_CLASSES: dict[str, type[MPLPlot]] = {
     "line": LinePlot,

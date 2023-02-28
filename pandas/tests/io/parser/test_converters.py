@@ -2,9 +2,13 @@
 Tests column conversion functionality during parsing
 for all of the parsers defined in parsers.py
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 
-from dateutil.parser import parse
+from dateutil.parser import (
+    parse,
+)
 import numpy as np
 import pytest
 

@@ -1,6 +1,12 @@
-from collections import defaultdict
-from datetime import datetime
-from itertools import product
+from collections import (
+    defaultdict,
+)
+from datetime import (
+    datetime,
+)
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest
@@ -20,7 +26,9 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
+from pandas.core.algorithms import (
+    safe_sort,
+)
 import pandas.core.common as com
 from pandas.core.sorting import (
     _decons_group_index,

@@ -1,9 +1,13 @@
 """
 SparseArray data structure
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 import numbers
 import operator
 from typing import (
@@ -20,14 +24,18 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import (
     BlockIndex,
     IntIndex,
     SparseIndex,
 )
-from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import (
+    NaT,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -41,15 +49,23 @@ from pandas._typing import (
     SequenceIndexer,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
@@ -83,10 +99,18 @@ from pandas.core import (
     ops,
 )
 import pandas.core.algorithms as algos
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
-from pandas.core.base import PandasObject
+from pandas.core.arraylike import (
+    OpsMixin,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
+from pandas.core.arrays.sparse.dtype import (
+    SparseDtype,
+)
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -97,21 +121,31 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.missing import interpolate_2d
-from pandas.core.nanops import check_below_min_count
+from pandas.core.missing import (
+    interpolate_2d,
+)
+from pandas.core.nanops import (
+    check_below_min_count,
+)
 
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from enum import Enum
+    from enum import (
+        Enum,
+    )
 
     class ellipsis(Enum):
         Ellipsis = "..."
 
     Ellipsis = ellipsis.Ellipsis
 
-    from scipy.sparse import spmatrix
+    from scipy.sparse import (
+        spmatrix,
+    )
 
     from pandas._typing import (
         FillnaOptions,
@@ -120,7 +154,9 @@ if TYPE_CHECKING:
 
     SparseIndexKind = Literal["integer", "block"]
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 else:
     ellipsis = type(Ellipsis)

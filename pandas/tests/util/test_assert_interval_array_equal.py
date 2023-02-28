@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import interval_range
+from pandas import (
+    interval_range,
+)
 import pandas._testing as tm
 
 

@@ -1,14 +1,22 @@
-from datetime import time
+from datetime import (
+    time,
+)
 import locale
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
+from pandas.compat import (
+    PY311,
+)
 
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.tools.times import to_time
+from pandas.core.tools.times import (
+    to_time,
+)
 
 # The tests marked with this are locale-dependent.
 # They pass, except when the machine locale is zh_CN or it_IT.

@@ -5,9 +5,13 @@ from libc.math cimport (
     signbit,
     sqrt,
 )
-from libcpp.deque cimport deque
+from libcpp.deque cimport (
+    deque,
+)
 
-from pandas._libs.algos cimport TiebreakEnumType
+from pandas._libs.algos cimport (
+    TiebreakEnumType,
+)
 
 import numpy as np
 
@@ -21,7 +25,9 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import is_monotonic
+from pandas._libs.algos import (
+    is_monotonic,
+)
 
 
 cdef extern from "../src/skiplist.h":

@@ -24,9 +24,13 @@ from .pandas_vb_common import (
 )
 
 try:
-    from pandas.util import cache_readonly
+    from pandas.util import (
+        cache_readonly,
+    )
 except ImportError:
-    from pandas.util.decorators import cache_readonly
+    from pandas.util.decorators import (
+        cache_readonly,
+    )
 
 
 # TODO: share with something in pd._testing?

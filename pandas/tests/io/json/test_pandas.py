@@ -1,7 +1,13 @@
 import datetime
-from datetime import timedelta
-from decimal import Decimal
-from io import StringIO
+from datetime import (
+    timedelta,
+)
+from decimal import (
+    Decimal,
+)
+from io import (
+    StringIO,
+)
 import json
 import os
 import sys
@@ -10,7 +16,9 @@ import time
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -813,7 +821,9 @@ class TestPandasContainer:
     )
     def test_convert_dates_infer(self, infer_word):
         # GH10747
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         data = [{"id": 1, infer_word: 1036713600000}, {"id": 2}]
         expected = DataFrame(
@@ -1032,7 +1042,9 @@ class TestPandasContainer:
         tm.assert_frame_equal(expected, result, check_index_type=False)
 
     def test_default_handler_indirect(self):
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         def default(obj):
             if isinstance(obj, complex):
@@ -1134,7 +1146,9 @@ class TestPandasContainer:
         ],
     )
     def test_tz_is_utc(self, ts):
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         exp = '"2013-01-10T05:00:00.000Z"'
 
@@ -1143,7 +1157,9 @@ class TestPandasContainer:
         assert dumps(dt, iso_dates=True) == exp
 
     def test_tz_is_naive(self):
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         ts = Timestamp("2013-01-10 05:00:00")
         exp = '"2013-01-10T05:00:00.000"'
@@ -1161,7 +1177,9 @@ class TestPandasContainer:
         ],
     )
     def test_tz_range_is_utc(self, tz_range):
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
         dfexp = (
@@ -1182,7 +1200,9 @@ class TestPandasContainer:
         assert dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_tz_range_is_naive(self):
-        from pandas.io.json import dumps
+        from pandas.io.json import (
+            dumps,
+        )
 
         dti = pd.date_range("2013-01-01 05:00:00", periods=2)
 
@@ -1915,7 +1935,9 @@ class TestPandasContainer:
         )
 
         if dtype_backend == "pyarrow":
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = DataFrame(
                 {
@@ -1945,7 +1967,9 @@ class TestPandasContainer:
         expected = Series([1, np.nan, 3], dtype="Int64")
 
         if dtype_backend == "pyarrow":
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 

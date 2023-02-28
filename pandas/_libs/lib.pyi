@@ -22,7 +22,9 @@ from pandas._typing import (
 # placeholder until we can specify np.ndarray[object, ndim=2]
 ndarray_obj_2d = np.ndarray
 
-from enum import Enum
+from enum import (
+    Enum,
+)
 
 class _NoDefault(Enum):
     no_default = ...

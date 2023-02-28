@@ -1,6 +1,10 @@
-from typing import Any
+from typing import (
+    Any,
+)
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+)
 
 def check_result_array(obj: object, dtype: DtypeObj) -> None: ...
 def extract_result(res: object) -> Any: ...

@@ -1,5 +1,7 @@
 """Sparse Dtype"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 from typing import (
@@ -15,10 +17,16 @@ from pandas._typing import (
     DtypeObj,
     type_t,
 )
-from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
@@ -36,7 +44,9 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.sparse.array import SparseArray
+    from pandas.core.arrays.sparse.array import (
+        SparseArray,
+    )
 
 
 @register_extension_dtype
@@ -216,7 +226,9 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.sparse.array import SparseArray
+        from pandas.core.arrays.sparse.array import (
+            SparseArray,
+        )
 
         return SparseArray
 

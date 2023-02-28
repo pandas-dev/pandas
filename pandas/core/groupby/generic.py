@@ -5,11 +5,19 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from functools import partial
-from textwrap import dedent
+from collections import (
+    abc,
+)
+from functools import (
+    partial,
+)
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -43,7 +51,9 @@ from pandas._typing import (
     SingleManager,
     TakeIndexer,
 )
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    SpecificationError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -65,7 +75,9 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import algorithms
+from pandas.core import (
+    algorithms,
+)
 from pandas.core.apply import (
     GroupByApply,
     maybe_mangle_lambdas,
@@ -73,8 +85,12 @@ from pandas.core.apply import (
     validate_func_kwargs,
 )
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
-from pandas.core.groupby import base
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.groupby import (
+    base,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -88,14 +104,24 @@ from pandas.core.indexes.api import (
     all_indexes_same,
     default_index,
 )
-from pandas.core.series import Series
-from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.series import (
+    Series,
+)
+from pandas.core.util.numba_ import (
+    maybe_use_numba,
+)
 
-from pandas.plotting import boxplot_frame_groupby
+from pandas.plotting import (
+    boxplot_frame_groupby,
+)
 
 if TYPE_CHECKING:
-    from pandas import Categorical
-    from pandas.core.generic import NDFrame
+    from pandas import (
+        Categorical,
+    )
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
@@ -313,7 +339,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 results[key] = self.aggregate(func, *args, **kwargs)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
-            from pandas import concat
+            from pandas import (
+                concat,
+            )
 
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results]
@@ -506,7 +534,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         # check for empty "results" to avoid concat ValueError
         if results:
-            from pandas.core.reshape.concat import concat
+            from pandas.core.reshape.concat import (
+                concat,
+            )
 
             concatenated = concat(results)
             result = self._set_result_index_ordered(concatenated)
@@ -659,8 +689,12 @@ class SeriesGroupBy(GroupBy[Series]):
             result.name = name
             return result
 
-        from pandas.core.reshape.merge import get_join_indexers
-        from pandas.core.reshape.tile import cut
+        from pandas.core.reshape.merge import (
+            get_join_indexers,
+        )
+        from pandas.core.reshape.tile import (
+            cut,
+        )
 
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
@@ -1522,7 +1556,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return res_df
 
     def _transform_general(self, func, *args, **kwargs):
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         applied = []
         obj = self._obj_with_exclusions
@@ -1822,7 +1858,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self.obj._constructor(mgr)
 
     def _apply_to_column_groupbys(self, func) -> DataFrame:
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         obj = self._obj_with_exclusions
         columns = obj.columns
@@ -2595,7 +2633,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 def _wrap_transform_general_frame(
     obj: DataFrame, group: DataFrame, res: DataFrame | Series
 ) -> DataFrame:
-    from pandas import concat
+    from pandas import (
+        concat,
+    )
 
     if isinstance(res, Series):
         # we need to broadcast across the

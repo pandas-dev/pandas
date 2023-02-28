@@ -1,11 +1,15 @@
 """ test get/set & misc """
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+)
 
 from pandas import (
     NA,

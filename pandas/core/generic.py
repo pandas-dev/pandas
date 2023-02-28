@@ -1,11 +1,17 @@
 # pyright: reportPropertyTypeMismatch=false
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import collections
 import datetime as dt
-from functools import partial
+from functools import (
+    partial,
+)
 import gc
-from json import loads
+from json import (
+    loads,
+)
 import operator
 import pickle
 import re
@@ -35,8 +41,12 @@ from pandas._config import (
     using_copy_on_write,
 )
 
-from pandas._libs import lib
-from pandas._libs.lib import is_range_indexer
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.lib import (
+    is_range_indexer,
+)
 from pandas._libs.tslibs import (
     Period,
     Tick,
@@ -82,16 +92,24 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import function as nv
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -140,11 +158,21 @@ from pandas.core import (
     nanops,
     sample,
 )
-from pandas.core.array_algos.replace import should_use_regex
-from pandas.core.arrays import ExtensionArray
-from pandas.core.base import PandasObject
-from pandas.core.construction import extract_array
-from pandas.core.flags import Flags
+from pandas.core.array_algos.replace import (
+    should_use_regex,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
+from pandas.core.base import (
+    PandasObject,
+)
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.flags import (
+    Flags,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -163,16 +191,26 @@ from pandas.core.internals.construction import (
     mgr_to_mgr,
     ndarray_to_mgr,
 )
-from pandas.core.methods.describe import describe_ndframe
+from pandas.core.methods.describe import (
+    describe_ndframe,
+)
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
     find_valid_index,
 )
-from pandas.core.ops import align_method_FRAME
-from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import get_indexer_indexer
+from pandas.core.ops import (
+    align_method_FRAME,
+)
+from pandas.core.reshape.concat import (
+    concat,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
+from pandas.core.sorting import (
+    get_indexer_indexer,
+)
 from pandas.core.window import (
     Expanding,
     ExponentialMovingWindow,
@@ -184,17 +222,31 @@ from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
 )
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs import BaseOffset
+    from pandas._libs.tslibs import (
+        BaseOffset,
+    )
 
-    from pandas.core.frame import DataFrame
-    from pandas.core.indexers.objects import BaseIndexer
-    from pandas.core.resample import Resampler
-    from pandas.core.series import Series
+    from pandas.core.frame import (
+        DataFrame,
+    )
+    from pandas.core.indexers.objects import (
+        BaseIndexer,
+    )
+    from pandas.core.resample import (
+        Resampler,
+    )
+    from pandas.core.series import (
+        Series,
+    )
 
-    from pandas.io.pytables import HDFStore
+    from pandas.io.pytables import (
+        HDFStore,
+    )
 
 
 # goal is to be able to define the docs close to function, while still being
@@ -567,7 +619,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _get_index_resolvers(self) -> dict[Hashable, Series | MultiIndex]:
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import (
+            clean_column_name,
+        )
 
         d: dict[str, Series | MultiIndex] = {}
         for axis_name in self._AXIS_ORDERS:
@@ -584,7 +638,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         be referred to by backtick quoting.
         Used in :meth:`DataFrame.eval`.
         """
-        from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.computation.parsing import (
+            clean_column_name,
+        )
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
@@ -2215,7 +2271,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        from pandas.io.formats.excel import ExcelFormatter
+        from pandas.io.formats.excel import (
+            ExcelFormatter,
+        )
 
         formatter = ExcelFormatter(
             df,
@@ -2498,7 +2556,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
         }}
         """
-        from pandas.io import json
+        from pandas.io import (
+            json,
+        )
 
         if date_format is None and orient == "table":
             date_format = "iso"
@@ -2654,7 +2714,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    4
         dtype: int64
         """
-        from pandas.io import pytables
+        from pandas.io import (
+            pytables,
+        )
 
         # Argument 3 to "to_hdf" has incompatible type "NDFrame"; expected
         # "Union[DataFrame, Series]" [arg-type]
@@ -2852,7 +2914,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...   conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
         """  # noqa:E501
-        from pandas.io import sql
+        from pandas.io import (
+            sql,
+        )
 
         return sql.to_sql(
             self,
@@ -2929,7 +2993,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    3    8
         4    4    9
         """  # noqa: E501
-        from pandas.io.pickle import to_pickle
+        from pandas.io.pickle import (
+            to_pickle,
+        )
 
         to_pickle(
             self,
@@ -3008,7 +3074,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
            html = df.style.to_html()
            pyperclip.copy(html)
         """
-        from pandas.io import clipboards
+        from pandas.io import (
+            clipboards,
+        )
 
         clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
@@ -3491,7 +3559,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         str or None
             If buf is None, returns the result as a string. Otherwise returns None.
         """
-        from pandas.io.formats.style import Styler
+        from pandas.io.formats.style import (
+            Styler,
+        )
 
         self = cast("DataFrame", self)
         styler = Styler(self, uuid="")
@@ -6305,7 +6375,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # GH#44417 cast to Series so we can use .iat below, which will be
             #  robust in case we
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             dtype_ser = Series(dtype, dtype=object)
 
@@ -6905,7 +6977,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if inplace:
                             return None
                         return self.copy(deep=None)
-                    from pandas import Series
+                    from pandas import (
+                        Series,
+                    )
 
                     value = Series(value)
                     value = value.reindex(self.index, copy=False)
@@ -7265,7 +7339,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(to_replace, (tuple, list)):
                 # TODO: Consider copy-on-write for non-replaced columns's here
                 if isinstance(self, ABCDataFrame):
-                    from pandas import Series
+                    from pandas import (
+                        Series,
+                    )
 
                     result = self.apply(
                         Series._replace_single,
@@ -8358,7 +8434,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:02:30    3.0
         2000-01-01 00:03:00    3.0
         """
-        from pandas.core.resample import asfreq
+        from pandas.core.resample import (
+            asfreq,
+        )
 
         return asfreq(
             self,
@@ -8895,7 +8973,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:29:00    45
         Freq: 17T, dtype: int64
         """
-        from pandas.core.resample import get_resampler
+        from pandas.core.resample import (
+            get_resampler,
+        )
 
         axis = self._get_axis_number(axis)
         return get_resampler(
@@ -10301,7 +10381,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
         if ax._is_all_dates:
-            from pandas.core.tools.datetimes import to_datetime
+            from pandas.core.tools.datetimes import (
+                to_datetime,
+            )
 
             before = to_datetime(before)
             after = to_datetime(after)

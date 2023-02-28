@@ -16,7 +16,9 @@ from pandas import (
     read_table,
 )
 import pandas._testing as tm
-from pandas.util import _test_decorators as td
+from pandas.util import (
+    _test_decorators as td,
+)
 
 
 @pytest.fixture
@@ -50,7 +52,9 @@ def test_read_csv(cleared_fs, df1):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec.registry import known_implementations
+    from fsspec.registry import (
+        known_implementations,
+    )
 
     with pytest.raises(ValueError, match="nosuchprotocol"):
         read_csv("nosuchprotocol://test/test.csv")

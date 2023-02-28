@@ -1,4 +1,6 @@
-from enum import Enum
+from enum import (
+    Enum,
+)
 
 # These are not public API, but are exposed in the .pyi file because they
 #  are imported in tests.

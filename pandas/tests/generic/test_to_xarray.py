@@ -36,7 +36,9 @@ class TestDataFrameToXArray:
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
 
-        from xarray import Dataset
+        from xarray import (
+            Dataset,
+        )
 
         df.index = index[:3]
         df.index.name = "foo"
@@ -57,7 +59,9 @@ class TestDataFrameToXArray:
         tm.assert_frame_equal(result.to_dataframe(), expected)
 
     def test_to_xarray_empty(self, df):
-        from xarray import Dataset
+        from xarray import (
+            Dataset,
+        )
 
         df.index.name = "foo"
         result = df[0:0].to_xarray()
@@ -65,7 +69,9 @@ class TestDataFrameToXArray:
         assert isinstance(result, Dataset)
 
     def test_to_xarray_with_multiindex(self, df):
-        from xarray import Dataset
+        from xarray import (
+            Dataset,
+        )
 
         # MultiIndex
         df.index = MultiIndex.from_product([["a"], range(3)], names=["one", "two"])
@@ -90,7 +96,9 @@ class TestSeriesToXArray:
         index = index_flat
         # MultiIndex is tested in test_to_xarray_with_multiindex
 
-        from xarray import DataArray
+        from xarray import (
+            DataArray,
+        )
 
         ser = Series(range(len(index)), index=index, dtype="int64")
         ser.index.name = "foo"
@@ -105,7 +113,9 @@ class TestSeriesToXArray:
         tm.assert_series_equal(result.to_series(), ser)
 
     def test_to_xarray_empty(self):
-        from xarray import DataArray
+        from xarray import (
+            DataArray,
+        )
 
         ser = Series([], dtype=object)
         ser.index.name = "foo"
@@ -116,7 +126,9 @@ class TestSeriesToXArray:
         assert isinstance(result, DataArray)
 
     def test_to_xarray_with_multiindex(self):
-        from xarray import DataArray
+        from xarray import (
+            DataArray,
+        )
 
         mi = MultiIndex.from_product([["a", "b"], range(3)], names=["one", "two"])
         ser = Series(range(6), dtype="int64", index=mi)

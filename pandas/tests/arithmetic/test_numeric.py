@@ -1,11 +1,19 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from datetime import timedelta
-from decimal import Decimal
+from collections import (
+    abc,
+)
+from datetime import (
+    timedelta,
+)
+from decimal import (
+    Decimal,
+)
 import operator
 
 import numpy as np
@@ -21,8 +29,12 @@ from pandas import (
     array,
 )
 import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.computation import expressions as expr
+from pandas.core import (
+    ops,
+)
+from pandas.core.computation import (
+    expressions as expr,
+)
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

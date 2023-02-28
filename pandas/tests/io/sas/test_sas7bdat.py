@@ -1,14 +1,20 @@
 import contextlib
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import io
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 
 import dateutil.parser
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -83,7 +89,9 @@ class TestSAS7BDAT:
     @td.skip_if_no("py.path")
     @pytest.mark.slow
     def test_path_localpath(self, dirpath, data_test_ix):
-        from py.path import local as LocalPath
+        from py.path import (
+            local as LocalPath,
+        )
 
         df0, test_ix = data_test_ix
         for k in test_ix:
@@ -127,7 +135,9 @@ def test_encoding_options(datapath):
             pass
     tm.assert_frame_equal(df1, df2)
 
-    from pandas.io.sas.sas7bdat import SAS7BDATReader
+    from pandas.io.sas.sas7bdat import (
+        SAS7BDATReader,
+    )
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
         df3 = rdr.read()

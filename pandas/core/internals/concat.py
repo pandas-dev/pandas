@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import copy as cp
 import itertools
@@ -14,7 +16,9 @@ from pandas._libs import (
     NaT,
     internals as libinternals,
 )
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -22,9 +26,13 @@ from pandas._typing import (
     Manager,
     Shape,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
@@ -35,7 +43,9 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -51,8 +61,12 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.arrays.sparse import (
+    SparseDtype,
+)
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+)
 from pandas.core.internals.array_manager import (
     ArrayManager,
     NullArrayProxy,
@@ -61,11 +75,17 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
 )
-from pandas.core.internals.managers import BlockManager
+from pandas.core.internals.managers import (
+    BlockManager,
+)
 
 if TYPE_CHECKING:
-    from pandas import Index
-    from pandas.core.internals.blocks import Block
+    from pandas import (
+        Index,
+    )
+    from pandas.core.internals.blocks import (
+        Block,
+    )
 
 
 def _concatenate_array_managers(

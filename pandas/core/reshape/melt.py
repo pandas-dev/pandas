@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 from typing import (
@@ -8,31 +10,51 @@ from typing import (
 
 import numpy as np
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+)
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    Categorical,
+)
 import pandas.core.common as com
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import tile_compat
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.tools.numeric import to_numeric
+from pandas.core.reshape.concat import (
+    concat,
+)
+from pandas.core.reshape.util import (
+    tile_compat,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
+from pandas.core.tools.numeric import (
+    to_numeric,
+)
 
 if TYPE_CHECKING:
-    from pandas._typing import AnyArrayLike
+    from pandas._typing import (
+        AnyArrayLike,
+    )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 @Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})

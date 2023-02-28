@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     date,
@@ -6,7 +8,9 @@ from datetime import (
     time,
     timedelta,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import re
 
 import numpy as np
@@ -20,8 +24,12 @@ from pandas._typing import (
     DtypeObj,
     type_t,
 )
-from pandas.compat import pa_version_under7p0
-from pandas.util._decorators import cache_readonly
+from pandas.compat import (
+    pa_version_under7p0,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
 from pandas.core.dtypes.base import (
     StorageExtensionDtype,
@@ -32,7 +40,9 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.arrow import ArrowExtensionArray
+    from pandas.core.arrays.arrow import (
+        ArrowExtensionArray,
+    )
 
 
 @register_extension_dtype
@@ -173,7 +183,9 @@ class ArrowDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.arrow import ArrowExtensionArray
+        from pandas.core.arrays.arrow import (
+            ArrowExtensionArray,
+        )
 
         return ArrowExtensionArray
 
@@ -272,7 +284,9 @@ class ArrowDtype(StorageExtensionDtype):
         # We unwrap any masked dtypes, find the common dtype we would use
         #  for that, then re-mask the result.
         # Mirrors BaseMaskedDtype
-        from pandas.core.dtypes.cast import find_common_type
+        from pandas.core.dtypes.cast import (
+            find_common_type,
+        )
 
         new_dtype = find_common_type(
             [

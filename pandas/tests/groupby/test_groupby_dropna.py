@@ -1,13 +1,19 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under7p0
+from pandas.compat.pyarrow import (
+    pa_version_under7p0,
+)
 
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import (
+    na_value_for_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 @pytest.mark.parametrize(

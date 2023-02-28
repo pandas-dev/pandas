@@ -1,7 +1,9 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import codecs
 import io
@@ -17,22 +19,36 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 from pandas.io.xml import (
     get_data_from_filepath,
     preprocess_data,
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 @doc(
@@ -374,7 +390,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return self.out_xml
 
     def get_prefix_uri(self) -> str:
-        from xml.etree.ElementTree import register_namespace
+        from xml.etree.ElementTree import (
+            register_namespace,
+        )
 
         uri = ""
         if self.namespaces:
@@ -392,7 +410,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
-        from xml.etree.ElementTree import SubElement
+        from xml.etree.ElementTree import (
+            SubElement,
+        )
 
         self._build_elems(SubElement, d, elem_row)
 
@@ -403,7 +423,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         This method will pretty print xml with line breaks and indentation.
         """
 
-        from xml.dom.minidom import parseString
+        from xml.dom.minidom import (
+            parseString,
+        )
 
         dom = parseString(self.out_xml)
 
@@ -510,7 +532,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         return uri
 
     def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
-        from lxml.etree import SubElement
+        from lxml.etree import (
+            SubElement,
+        )
 
         self._build_elems(SubElement, d, elem_row)
 

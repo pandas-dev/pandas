@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import MergeError
+from pandas.errors import (
+    MergeError,
+)
 
 import pandas as pd
 from pandas import (
@@ -14,7 +18,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.reshape.concat import concat
+from pandas.core.reshape.concat import (
+    concat,
+)
 
 
 @pytest.fixture

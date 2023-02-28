@@ -11,8 +11,12 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
-from pandas.core.groupby.groupby import get_groupby
+from pandas.api.indexers import (
+    BaseIndexer,
+)
+from pandas.core.groupby.groupby import (
+    get_groupby,
+)
 
 
 @pytest.fixture

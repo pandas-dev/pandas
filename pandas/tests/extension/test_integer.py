@@ -37,7 +37,9 @@ from pandas.core.arrays.integer import (
     UInt32Dtype,
     UInt64Dtype,
 )
-from pandas.tests.extension import base
+from pandas.tests.extension import (
+    base,
+)
 
 
 def make_data():

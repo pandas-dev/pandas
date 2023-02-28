@@ -1,5 +1,7 @@
 import datetime as dt
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import dateutil
 import numpy as np

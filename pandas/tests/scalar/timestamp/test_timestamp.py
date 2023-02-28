@@ -17,17 +17,25 @@ from dateutil.tz import (
 import numpy as np
 import pytest
 import pytz
-from pytz import utc
+from pytz import (
+    utc,
+)
 
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
 from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
     maybe_get_tz,
     tz_compare,
 )
-from pandas.compat import IS64
-from pandas.errors import OutOfBoundsDatetime
+from pandas.compat import (
+    IS64,
+)
+from pandas.errors import (
+    OutOfBoundsDatetime,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -37,8 +45,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries import (
+    offsets,
+)
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 
 class TestTimestampProperties:

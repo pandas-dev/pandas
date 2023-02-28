@@ -1,7 +1,9 @@
 import gzip
 import io
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import subprocess
 import sys
 import tarfile
@@ -11,7 +13,9 @@ import zipfile
 
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm

@@ -2,13 +2,21 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import copy
-from datetime import timedelta
-from functools import partial
+from datetime import (
+    timedelta,
+)
+from functools import (
+    partial,
+)
 import inspect
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -33,9 +41,15 @@ from pandas._typing import (
     QuantileInterpolation,
     WindowingRankType,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.errors import (
+    DataError,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -50,13 +64,25 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
-from pandas.core._numba import executor
-from pandas.core.algorithms import factorize
-from pandas.core.apply import ResamplerWindowApply
-from pandas.core.arrays import ExtensionArray
-from pandas.core.base import SelectionMixin
+from pandas.core._numba import (
+    executor,
+)
+from pandas.core.algorithms import (
+    factorize,
+)
+from pandas.core.apply import (
+    ResamplerWindowApply,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
+from pandas.core.base import (
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -71,7 +97,9 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     TimedeltaIndex,
 )
-from pandas.core.reshape.concat import concat
+from pandas.core.reshape.concat import (
+    concat,
+)
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
@@ -103,8 +131,12 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
-    from pandas.core.groupby.ops import BaseGrouper
+    from pandas.core.generic import (
+        NDFrame,
+    )
+    from pandas.core.groupby.ops import (
+        BaseGrouper,
+    )
 
 
 class BaseWindow(SelectionMixin):
@@ -379,7 +411,9 @@ class BaseWindow(SelectionMixin):
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
@@ -683,7 +717,9 @@ class BaseWindowGroupby(BaseWindow):
         _as_index: bool = True,
         **kwargs,
     ) -> None:
-        from pandas.core.groupby.ops import BaseGrouper
+        from pandas.core.groupby.ops import (
+            BaseGrouper,
+        )
 
         if not isinstance(_grouper, BaseGrouper):
             raise ValueError("Must pass a BaseGrouper object.")
@@ -1400,7 +1436,9 @@ class RollingAndExpandingMixin(BaseWindow):
         raw: bool,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         window_func = partial(
             window_aggregations.roll_apply,
@@ -1434,7 +1472,9 @@ class RollingAndExpandingMixin(BaseWindow):
                     engine_kwargs=engine_kwargs,
                 )
             else:
-                from pandas.core._numba.kernels import sliding_sum
+                from pandas.core._numba.kernels import (
+                    sliding_sum,
+                )
 
                 return self._numba_apply(sliding_sum, engine_kwargs)
         window_func = window_aggregations.roll_sum
@@ -1456,7 +1496,9 @@ class RollingAndExpandingMixin(BaseWindow):
                     engine_kwargs=engine_kwargs,
                 )
             else:
-                from pandas.core._numba.kernels import sliding_min_max
+                from pandas.core._numba.kernels import (
+                    sliding_min_max,
+                )
 
                 return self._numba_apply(sliding_min_max, engine_kwargs, True)
         window_func = window_aggregations.roll_max
@@ -1478,7 +1520,9 @@ class RollingAndExpandingMixin(BaseWindow):
                     engine_kwargs=engine_kwargs,
                 )
             else:
-                from pandas.core._numba.kernels import sliding_min_max
+                from pandas.core._numba.kernels import (
+                    sliding_min_max,
+                )
 
                 return self._numba_apply(sliding_min_max, engine_kwargs, False)
         window_func = window_aggregations.roll_min
@@ -1500,7 +1544,9 @@ class RollingAndExpandingMixin(BaseWindow):
                     engine_kwargs=engine_kwargs,
                 )
             else:
-                from pandas.core._numba.kernels import sliding_mean
+                from pandas.core._numba.kernels import (
+                    sliding_mean,
+                )
 
                 return self._numba_apply(sliding_mean, engine_kwargs)
         window_func = window_aggregations.roll_mean
@@ -1537,7 +1583,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("std not supported with method='table'")
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import (
+                sliding_var,
+            )
 
             return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
         window_func = window_aggregations.roll_var
@@ -1561,7 +1609,9 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("var not supported with method='table'")
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import (
+                sliding_var,
+            )
 
             return self._numba_apply(sliding_var, engine_kwargs, ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
@@ -1640,7 +1690,9 @@ class RollingAndExpandingMixin(BaseWindow):
             raise NotImplementedError("step not implemented for cov")
         self._validate_numeric_only("cov", numeric_only)
 
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         def cov_func(x, y):
             x_array = self._prep_values(x)
@@ -1687,7 +1739,9 @@ class RollingAndExpandingMixin(BaseWindow):
             raise NotImplementedError("step not implemented for corr")
         self._validate_numeric_only("corr", numeric_only)
 
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         def corr_func(x, y):
             x_array = self._prep_values(x)

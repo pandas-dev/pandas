@@ -1,9 +1,15 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import pytest
-from pytz import utc
+from pytz import (
+    utc,
+)
 
-from pandas import DatetimeIndex
+from pandas import (
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (

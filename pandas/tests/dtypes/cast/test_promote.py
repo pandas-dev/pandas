@@ -3,14 +3,20 @@ These test the method maybe_promote from core/dtypes/cast.py
 """
 
 import datetime
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT
+from pandas._libs.tslibs import (
+    NaT,
+)
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
@@ -21,8 +27,12 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 import pandas as pd
 

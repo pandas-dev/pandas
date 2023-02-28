@@ -1,11 +1,17 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import period as libperiod
-from pandas.errors import InvalidIndexError
+from pandas._libs.tslibs import (
+    period as libperiod,
+)
+from pandas.errors import (
+    InvalidIndexError,
+)
 
 import pandas as pd
 from pandas import (

@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +22,9 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -32,8 +38,12 @@ from pandas._libs.tslibs import (
     period as libperiod,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._libs.tslibs.fields import isleapyear_arr
+from pandas._libs.tslibs.dtypes import (
+    FreqGroup,
+)
+from pandas._libs.tslibs.fields import (
+    isleapyear_arr,
+)
 from pandas._libs.tslibs.offsets import (
     Tick,
     delta_to_tick,
@@ -66,17 +76,23 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCPeriodIndex,
     ABCSeries,
     ABCTimedeltaArray,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import (
+    datetimelike as dtl,
+)
 import pandas.core.common as com
 
 if TYPE_CHECKING:
@@ -89,7 +105,9 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays.base import (
+        ExtensionArray,
+    )
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
@@ -375,7 +393,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         import pyarrow
 
-        from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
+        from pandas.core.arrays.arrow.extension_types import (
+            ArrowPeriodType,
+        )
 
         if type is not None:
             if pyarrow.types.is_integer(type):
@@ -494,7 +514,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays import (
+            DatetimeArray,
+        )
 
         how = libperiod.validate_end_alias(how)
 

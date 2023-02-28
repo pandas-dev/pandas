@@ -1,16 +1,24 @@
 """ test parquet compat """
 import datetime
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import os
 import pathlib
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
 import numpy as np
 import pytest
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -19,7 +27,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 from pandas.io.parquet import (
     FastParquetImpl,
@@ -285,7 +295,9 @@ def test_options_get_engine(fp, pa):
 def test_get_engine_auto_error_message():
     # Expect different error messages from get_engine(engine="auto")
     # if engines aren't installed vs. are installed but bad version
-    from pandas.compat._optional import VERSIONS
+    from pandas.compat._optional import (
+        VERSIONS,
+    )
 
     # Do we have engines installed, but a bad version of them?
     pa_min_ver = VERSIONS.get("pyarrow")

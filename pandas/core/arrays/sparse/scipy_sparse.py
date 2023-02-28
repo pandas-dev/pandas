@@ -3,7 +3,9 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -12,17 +14,27 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     IndexLabel,
     npt,
 )
 
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
-from pandas.core.algorithms import factorize
-from pandas.core.indexes.api import MultiIndex
-from pandas.core.series import Series
+from pandas.core.algorithms import (
+    factorize,
+)
+from pandas.core.indexes.api import (
+    MultiIndex,
+)
+from pandas.core.series import (
+    Series,
+)
 
 if TYPE_CHECKING:
     import scipy.sparse
@@ -192,7 +204,9 @@ def coo_to_sparse_series(
     ------
     TypeError if A is not a coo_matrix
     """
-    from pandas import SparseDtype
+    from pandas import (
+        SparseDtype,
+    )
 
     try:
         ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))

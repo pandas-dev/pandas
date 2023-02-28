@@ -3,13 +3,21 @@ Module contains tools for processing files into DataFrames or other objects
 
 GH#48849 provides a convenient way of deprecating keyword arguments
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 import csv
 import sys
-from textwrap import fill
-from types import TracebackType
+from textwrap import (
+    fill,
+)
+from types import (
+    TracebackType,
+)
 from typing import (
     IO,
     Any,
@@ -24,10 +32,16 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
-from pandas._libs.parsers import STR_NA_VALUES
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.parsers import (
+    STR_NA_VALUES,
+)
 from pandas._typing import (
     CompressionOptions,
     CSVEngine,
@@ -41,8 +55,12 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    Appender,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_file_like,
@@ -51,9 +69,15 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import RangeIndex
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.indexes.api import (
+    RangeIndex,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
 from pandas.io.common import (
     IOHandles,
@@ -61,13 +85,17 @@ from pandas.io.common import (
     stringify_path,
     validate_header_arg,
 )
-from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
+from pandas.io.parsers.arrow_parser_wrapper import (
+    ArrowParserWrapper,
+)
 from pandas.io.parsers.base_parser import (
     ParserBase,
     is_index_col,
     parser_defaults,
 )
-from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+from pandas.io.parsers.c_parser_wrapper import (
+    CParserWrapper,
+)
 from pandas.io.parsers.python_parser import (
     FixedWidthFieldParser,
     PythonParser,

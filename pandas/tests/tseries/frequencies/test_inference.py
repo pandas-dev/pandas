@@ -10,9 +10,15 @@ from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
 )
-from pandas._libs.tslibs.offsets import _get_offset
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat import is_platform_windows
+from pandas._libs.tslibs.offsets import (
+    _get_offset,
+)
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+)
+from pandas.compat import (
+    is_platform_windows,
+)
 
 from pandas import (
     DatetimeIndex,
@@ -27,7 +33,9 @@ from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.datetimes import (
+    to_datetime,
+)
 
 from pandas.tseries import (
     frequencies,

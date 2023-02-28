@@ -1,7 +1,9 @@
 """
 Templating for ops docstrings
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 
 def make_flex_doc(op_name: str, typ: str) -> str:

@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.util._validators import validate_inclusive
+from pandas.util._validators import (
+    validate_inclusive,
+)
 
 import pandas as pd
 

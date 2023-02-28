@@ -4,7 +4,9 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    is_matching_na,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -13,8 +15,12 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.integer import INT_STR_TO_DTYPE
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.core.arrays.integer import (
+    INT_STR_TO_DTYPE,
+)
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class Dim2CompatTests(BaseExtensionTests):

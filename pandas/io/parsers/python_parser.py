@@ -1,11 +1,15 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from collections import (
     abc,
     defaultdict,
 )
 import csv
-from io import StringIO
+from io import (
+    StringIO,
+)
 import re
 import sys
 from typing import (
@@ -23,7 +27,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     ReadCsvBuffer,
@@ -34,8 +40,12 @@ from pandas.errors import (
     ParserError,
 )
 
-from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.inference import is_dict_like
+from pandas.core.dtypes.common import (
+    is_integer,
+)
+from pandas.core.dtypes.inference import (
+    is_dict_like,
+)
 
 from pandas.io.common import (
     dedup_names,

@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -9,7 +11,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 @pytest.mark.parametrize(

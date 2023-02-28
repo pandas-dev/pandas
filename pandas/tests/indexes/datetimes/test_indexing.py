@@ -19,7 +19,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -418,7 +420,9 @@ class TestGetLoc:
     def test_get_loc_time_obj2(self):
         # GH#8667
 
-        from pandas._libs.index import _SIZE_CUTOFF
+        from pandas._libs.index import (
+            _SIZE_CUTOFF,
+        )
 
         ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
         key = time(15, 11, 30)

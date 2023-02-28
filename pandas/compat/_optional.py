@@ -1,13 +1,19 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import importlib
 import sys
 import types
 import warnings
 
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 # Update install.rst & setup.cfg when updating versions!
 

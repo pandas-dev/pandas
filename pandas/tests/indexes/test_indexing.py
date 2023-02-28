@@ -17,9 +17,13 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+)
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+)
 
 from pandas import (
     NA,

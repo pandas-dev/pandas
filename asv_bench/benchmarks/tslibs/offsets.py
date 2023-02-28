@@ -2,11 +2,15 @@
 offsets benchmarks that rely only on tslibs.  See benchmarks.offset for
 offsets benchmarks that rely on other parts of pandas.
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 
-from pandas import offsets
+from pandas import (
+    offsets,
+)
 
 try:
     import pandas.tseries.holiday

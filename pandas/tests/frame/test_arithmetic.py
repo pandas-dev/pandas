@@ -1,9 +1,13 @@
-from collections import deque
+from collections import (
+    deque,
+)
 from datetime import (
     datetime,
     timezone,
 )
-from enum import Enum
+from enum import (
+    Enum,
+)
 import functools
 import operator
 import re
@@ -22,7 +26,9 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.computation import expressions as expr
+from pandas.core.computation import (
+    expressions as expr,
+)
 from pandas.core.computation.expressions import (
     _MIN_ELEMENTS,
     NUMEXPR_INSTALLED,

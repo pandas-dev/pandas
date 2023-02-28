@@ -1,4 +1,6 @@
-from functools import partial
+from functools import (
+    partial,
+)
 
 import numpy as np
 import pytest
@@ -14,7 +16,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @td.skip_if_no_scipy

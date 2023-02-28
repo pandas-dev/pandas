@@ -1,7 +1,13 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import reduce
-from itertools import product
+from functools import (
+    reduce,
+)
+from itertools import (
+    product,
+)
 import operator
 import random
 import warnings
@@ -34,7 +40,9 @@ from pandas.core.computation import (
     expr,
     pytables,
 )
-from pandas.core.computation.engines import ENGINES
+from pandas.core.computation.engines import (
+    ENGINES,
+)
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -51,7 +59,9 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
-from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.core.computation.scope import (
+    DEFAULT_GLOBALS,
+)
 
 
 @pytest.fixture(
@@ -1678,7 +1688,9 @@ def test_invalid_engine():
 )
 def test_numexpr_option_respected(use_numexpr, expected):
     # GH 32556
-    from pandas.core.computation.eval import _check_engine
+    from pandas.core.computation.eval import (
+        _check_engine,
+    )
 
     with pd.option_context("compute.use_numexpr", use_numexpr):
         result = _check_engine(None)

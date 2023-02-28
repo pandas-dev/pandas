@@ -1,4 +1,6 @@
-from pandas.core.reshape.concat import concat
+from pandas.core.reshape.concat import (
+    concat,
+)
 from pandas.core.reshape.encoding import (
     from_dummies,
     get_dummies,

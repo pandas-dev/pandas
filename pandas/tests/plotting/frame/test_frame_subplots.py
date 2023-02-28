@@ -6,8 +6,12 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat import (
+    is_platform_linux,
+)
+from pandas.compat.numpy import (
+    np_version_gte1p24,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -17,9 +21,13 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+)
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 @td.skip_if_no_mpl

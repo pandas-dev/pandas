@@ -10,7 +10,9 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 
 import_datetime()
 
@@ -31,7 +33,9 @@ from pandas._libs.tslibs.dtypes cimport (
     periods_per_day,
     periods_per_second,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     npy_datetimestruct,
@@ -274,7 +278,9 @@ timedelta-like}
     elif nonexistent == "shift_backward":
         shift_backward = True
     elif PyDelta_Check(nonexistent):
-        from .timedeltas import delta_to_nanoseconds
+        from .timedeltas import (
+            delta_to_nanoseconds,
+        )
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
     elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
@@ -450,7 +456,9 @@ cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
 
 cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     """ Helper function to render exception messages"""
-    from pandas._libs.tslibs.timestamps import Timestamp
+    from pandas._libs.tslibs.timestamps import (
+        Timestamp,
+    )
     ts = Timestamp._from_value_and_reso(val, creso, None)
     return str(ts)
 

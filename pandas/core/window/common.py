@@ -1,8 +1,14 @@
 """Common utility functions for rolling operations"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
-from typing import cast
+from collections import (
+    defaultdict,
+)
+from typing import (
+    cast,
+)
 
 import numpy as np
 
@@ -11,7 +17,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import (
+    MultiIndex,
+)
 
 
 def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
@@ -20,7 +28,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
         return f(X, Y)
 
     elif isinstance(arg1, ABCDataFrame):
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         def dataframe_from_int_dict(data, frame_template) -> DataFrame:
             result = DataFrame(data, index=frame_template.index)
@@ -62,7 +72,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                                 *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
-                from pandas import concat
+                from pandas import (
+                    concat,
+                )
 
                 result_index = arg1.index.union(arg2.index)
                 if len(result_index):

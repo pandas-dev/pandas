@@ -9,12 +9,16 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import argparse
 import ast
 import sys
-from typing import Sequence
+from typing import (
+    Sequence,
+)
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "

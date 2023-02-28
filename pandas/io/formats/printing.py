@@ -1,7 +1,9 @@
 """
 Printing tools.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import sys
 from typing import (
@@ -15,9 +17,13 @@ from typing import (
     Union,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas.core.dtypes.inference import is_sequence
+from pandas.core.dtypes.inference import (
+    is_sequence,
+)
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")
@@ -245,7 +251,9 @@ def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
-    from IPython import get_ipython
+    from IPython import (
+        get_ipython,
+    )
 
     ip = get_ipython()
     if ip is None:
@@ -258,8 +266,12 @@ def enable_data_resource_formatter(enable: bool) -> None:
     if enable:
         if mimetype not in formatters:
             # define tableschema formatter
-            from IPython.core.formatters import BaseFormatter
-            from traitlets import ObjectName
+            from IPython.core.formatters import (
+                BaseFormatter,
+            )
+            from traitlets import (
+                ObjectName,
+            )
 
             class TableSchemaFormatter(BaseFormatter):
                 print_method = ObjectName("_repr_data_resource_")
@@ -320,8 +332,12 @@ def format_object_summary(
     -------
     summary string
     """
-    from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import get_adjustment
+    from pandas.io.formats.console import (
+        get_console_size,
+    )
+    from pandas.io.formats.format import (
+        get_adjustment,
+    )
 
     display_width, _ = get_console_size()
     if display_width is None:

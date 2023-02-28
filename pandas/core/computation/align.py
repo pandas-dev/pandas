@@ -1,7 +1,9 @@
 """
 Core eval alignment algorithms.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from functools import (
     partial,
@@ -16,23 +18,37 @@ import warnings
 
 import numpy as np
 
-from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
-from pandas.core.computation.common import result_type_many
+from pandas.core.computation.common import (
+    result_type_many,
+)
 
 if TYPE_CHECKING:
-    from pandas._typing import F
+    from pandas._typing import (
+        F,
+    )
 
-    from pandas.core.generic import NDFrame
-    from pandas.core.indexes.api import Index
+    from pandas.core.generic import (
+        NDFrame,
+    )
+    from pandas.core.indexes.api import (
+        Index,
+    )
 
 
 def _align_core_single_unary_op(
@@ -87,7 +103,9 @@ def _align_core(terms):
     term_index = [i for i, term in enumerate(terms) if hasattr(term.value, "axes")]
     term_dims = [terms[i].value.ndim for i in term_index]
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     ndims = Series(dict(zip(term_index, term_dims)))
 

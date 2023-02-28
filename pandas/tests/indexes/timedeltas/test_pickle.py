@@ -1,4 +1,6 @@
-from pandas import timedelta_range
+from pandas import (
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

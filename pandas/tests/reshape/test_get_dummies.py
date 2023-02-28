@@ -4,7 +4,9 @@ import unicodedata
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (

@@ -1,6 +1,8 @@
 import pytest
 
-from pandas._libs.tslibs import offsets
+from pandas._libs.tslibs import (
+    offsets,
+)
 
 from pandas.tseries.frequencies import (
     is_subperiod,

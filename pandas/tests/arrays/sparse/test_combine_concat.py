@@ -3,7 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import (
+    SparseArray,
+)
 
 
 class TestSparseArrayConcat:

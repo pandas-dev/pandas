@@ -13,15 +13,21 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 from datetime import (
     datetime,
     timedelta,
 )
 import sys
-from typing import cast
+from typing import (
+    cast,
+)
 
 import numpy as np
 
@@ -41,7 +47,9 @@ from pandas import (
     isna,
 )
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 from pandas.io.sas._byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
@@ -54,7 +62,9 @@ from pandas.io.sas._sas import (
     get_subheader_index,
 )
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.sasreader import ReaderBase
+from pandas.io.sas.sasreader import (
+    ReaderBase,
+)
 
 
 def _parse_datetime(sas_datetime: float, unit: str):

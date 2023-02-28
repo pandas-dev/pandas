@@ -1,5 +1,7 @@
 
-from numpy cimport ndarray
+from numpy cimport (
+    ndarray,
+)
 
 
 cdef class NDArrayBacked:

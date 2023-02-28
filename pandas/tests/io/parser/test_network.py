@@ -11,15 +11,25 @@ import logging
 import numpy as np
 import pytest
 
-from pandas.compat import is_ci_environment
+from pandas.compat import (
+    is_ci_environment,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
-from pandas.io.feather_format import read_feather
-from pandas.io.parsers import read_csv
+from pandas.io.feather_format import (
+    read_feather,
+)
+from pandas.io.parsers import (
+    read_csv,
+)
 
 
 @pytest.mark.network

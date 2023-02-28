@@ -1,9 +1,13 @@
-from itertools import product
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable
+from pandas._libs import (
+    hashtable,
+)
 
 from pandas import (
     NA,

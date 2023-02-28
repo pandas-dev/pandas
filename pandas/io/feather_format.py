@@ -1,22 +1,32 @@
 """ feather-format compat """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Hashable,
     Sequence,
 )
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     FilePath,
     ReadBuffer,
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas import (
     arrays,
@@ -26,9 +36,13 @@ from pandas.core.api import (
     DataFrame,
     RangeIndex,
 )
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -55,7 +69,9 @@ def to_feather(
         .. versionadded:: 1.1.0
     """
     import_optional_dependency("pyarrow")
-    from pyarrow import feather
+    from pyarrow import (
+        feather,
+    )
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -145,7 +161,9 @@ def read_feather(
     type of object stored in file
     """
     import_optional_dependency("pyarrow")
-    from pyarrow import feather
+    from pyarrow import (
+        feather,
+    )
 
     use_nullable_dtypes = (
         use_nullable_dtypes
@@ -168,7 +186,9 @@ def read_feather(
         )
 
         if dtype_backend == "pandas":
-            from pandas.io._util import _arrow_dtype_mapping
+            from pandas.io._util import (
+                _arrow_dtype_mapping,
+            )
 
             return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
 

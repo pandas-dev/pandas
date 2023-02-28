@@ -16,11 +16,17 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
 
 import pandas as pd
-from pandas.core.arrays import DatetimeArray
-from pandas.tests.extension import base
+from pandas.core.arrays import (
+    DatetimeArray,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 @pytest.fixture(params=["US/Central"])

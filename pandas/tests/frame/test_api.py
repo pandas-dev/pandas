@@ -1,11 +1,15 @@
-from copy import deepcopy
+from copy import (
+    deepcopy,
+)
 import inspect
 import pydoc
 
 import numpy as np
 import pytest
 
-from pandas._config.config import option_context
+from pandas._config.config import (
+    option_context,
+)
 
 from pandas.util._test_decorators import (
     async_mark,
@@ -295,7 +299,9 @@ class TestDataFrameMisc:
     async def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
-        from IPython.core.completer import provisionalcompleter
+        from IPython.core.completer import (
+            provisionalcompleter,
+        )
 
         if frame_or_series is DataFrame:
             code = "from pandas import DataFrame; obj = DataFrame()"

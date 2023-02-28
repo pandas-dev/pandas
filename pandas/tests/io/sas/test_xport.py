@@ -4,7 +4,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.sas.sasreader import read_sas
+from pandas.io.sas.sasreader import (
+    read_sas,
+)
 
 # CSV versions of test xpt files were obtained using the R foreign library
 

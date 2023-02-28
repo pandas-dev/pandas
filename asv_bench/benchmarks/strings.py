@@ -8,9 +8,13 @@ from pandas import (
     DataFrame,
     Series,
 )
-from pandas.arrays import StringArray
+from pandas.arrays import (
+    StringArray,
+)
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 
 class Dtypes:

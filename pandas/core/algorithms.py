@@ -2,10 +2,14 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import operator
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -29,8 +33,12 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -58,7 +66,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
@@ -77,13 +87,17 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-from pandas.core.array_algos.take import take_nd
+from pandas.core.array_algos.take import (
+    take_nd,
+)
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import validate_indices
+from pandas.core.indexers import (
+    validate_indices,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -844,7 +858,9 @@ def value_counts(
     name = "proportion" if normalize else "count"
 
     if bins is not None:
-        from pandas.core.reshape.tile import cut
+        from pandas.core.reshape.tile import (
+            cut,
+        )
 
         values = Series(values)
         try:
@@ -1629,8 +1645,12 @@ def _sort_tuples(values: np.ndarray) -> np.ndarray:
     nans (can't use `np.sort` as it may fail when str and nan are mixed in a
     column as types cannot be compared).
     """
-    from pandas.core.internals.construction import to_arrays
-    from pandas.core.sorting import lexsort_indexer
+    from pandas.core.internals.construction import (
+        to_arrays,
+    )
+    from pandas.core.sorting import (
+        lexsort_indexer,
+    )
 
     arrays, _ = to_arrays(values, None)
     indexer = lexsort_indexer(arrays, orders=True)
@@ -1660,7 +1680,9 @@ def union_with_duplicates(
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)

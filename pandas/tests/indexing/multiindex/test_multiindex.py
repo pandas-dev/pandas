@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 import pandas._libs.index as _index
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (

@@ -25,8 +25,12 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype
-from pandas.tests.extension import base
+from pandas.api.types import (
+    CategoricalDtype,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 def make_data():

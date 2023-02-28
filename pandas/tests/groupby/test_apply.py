@@ -2,7 +2,9 @@ from datetime import (
     date,
     datetime,
 )
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import numpy as np
 import pytest
@@ -16,7 +18,9 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 def test_apply_issues():

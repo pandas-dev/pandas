@@ -17,9 +17,13 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 from datetime import (
     date,
     datetime,
@@ -27,7 +31,9 @@ from datetime import (
     timedelta,
     timezone,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import operator
 import os
 from typing import (
@@ -41,7 +47,9 @@ from dateutil.tz import (
     tzutc,
 )
 import hypothesis
-from hypothesis import strategies as st
+from hypothesis import (
+    strategies as st,
+)
 import numpy as np
 import pytest
 from pytz import (
@@ -67,7 +75,9 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -1773,7 +1783,9 @@ def ip():
     Will raise a skip if IPython is not installed.
     """
     pytest.importorskip("IPython", minversion="6.0.0")
-    from IPython.core.interactiveshell import InteractiveShell
+    from IPython.core.interactiveshell import (
+        InteractiveShell,
+    )
 
     # GH#35711 make sure sqlite history file handle is not leaked
     from traitlets.config import Config  # isort:skip
@@ -1789,7 +1801,9 @@ def spmatrix(request):
     """
     Yields scipy sparse matrix classes.
     """
-    from scipy import sparse
+    from scipy import (
+        sparse,
+    )
 
     return getattr(sparse, request.param + "_matrix")
 
@@ -1820,9 +1834,15 @@ def sort_by_key(request):
 @pytest.fixture()
 def fsspectest():
     pytest.importorskip("fsspec")
-    from fsspec import register_implementation
-    from fsspec.implementations.memory import MemoryFileSystem
-    from fsspec.registry import _registry as registry
+    from fsspec import (
+        register_implementation,
+    )
+    from fsspec.implementations.memory import (
+        MemoryFileSystem,
+    )
+    from fsspec.registry import (
+        _registry as registry,
+    )
 
     class TestMemoryFS(MemoryFileSystem):
         protocol = "testmem"

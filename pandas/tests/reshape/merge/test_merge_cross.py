@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 from pandas.core.reshape.merge import (
     MergeError,

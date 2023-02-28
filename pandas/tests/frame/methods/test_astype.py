@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

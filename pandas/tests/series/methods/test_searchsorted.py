@@ -8,7 +8,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
+from pandas.api.types import (
+    is_scalar,
+)
 
 
 class TestSeriesSearchSorted:

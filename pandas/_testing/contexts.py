@@ -1,8 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import tempfile
 from typing import (
     IO,
@@ -16,12 +22,20 @@ from pandas._typing import (
     CompressionOptions,
     FilePath,
 )
-from pandas.compat import PYPY
-from pandas.errors import ChainedAssignmentError
+from pandas.compat import (
+    PYPY,
+)
+from pandas.errors import (
+    ChainedAssignmentError,
+)
 
-from pandas import set_option
+from pandas import (
+    set_option,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 
 @contextmanager
@@ -186,7 +200,9 @@ def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
 
 @contextmanager
 def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
-    from pandas.core.computation import expressions as expr
+    from pandas.core.computation import (
+        expressions as expr,
+    )
 
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS
@@ -204,7 +220,9 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
 
 def raises_chained_assignment_error():
     if PYPY:
-        from contextlib import nullcontext
+        from contextlib import (
+            nullcontext,
+        )
 
         return nullcontext()
     else:

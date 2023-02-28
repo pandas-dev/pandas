@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
+from pandas.errors import (
+    SettingWithCopyError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (

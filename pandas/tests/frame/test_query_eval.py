@@ -18,7 +18,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.core.computation.check import (
+    NUMEXPR_INSTALLED,
+)
 
 
 @pytest.fixture(params=["python", "pandas"], ids=lambda x: x)

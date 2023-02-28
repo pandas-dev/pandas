@@ -33,7 +33,9 @@ from pandas.tseries.offsets import (
 )
 
 try:
-    from pandas.plotting._matplotlib import converter
+    from pandas.plotting._matplotlib import (
+        converter,
+    )
 except ImportError:
     # try / except, rather than skip, to avoid internal refactoring
     # causing an improper skip

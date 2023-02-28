@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import sys
 
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+)
 
 import pandas as pd
 from pandas import (
@@ -13,7 +17,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import (
+    PandasDelegate,
+)
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,

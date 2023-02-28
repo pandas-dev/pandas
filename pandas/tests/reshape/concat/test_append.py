@@ -1,5 +1,7 @@
 import datetime as dt
-from itertools import combinations
+from itertools import (
+    combinations,
+)
 
 import dateutil
 import numpy as np

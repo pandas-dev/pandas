@@ -1,9 +1,13 @@
 import io
 import os
 import sys
-from zipfile import ZipFile
+from zipfile import (
+    ZipFile,
+)
 
-from _csv import Error
+from _csv import (
+    Error,
+)
 import numpy as np
 import pytest
 
@@ -13,7 +17,9 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
 
 class TestToCSV:

@@ -2,8 +2,12 @@ import warnings
 
 import pytest
 
-from pandas._config import config as cf
-from pandas._config.config import OptionError
+from pandas._config import (
+    config as cf,
+)
+from pandas._config.config import (
+    OptionError,
+)
 
 import pandas as pd
 

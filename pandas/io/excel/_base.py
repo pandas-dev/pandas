@@ -1,12 +1,22 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import abc
 import datetime
-from functools import partial
-from io import BytesIO
+from functools import (
+    partial,
+)
+from io import (
+    BytesIO,
+)
 import os
-from textwrap import fill
-from types import TracebackType
+from textwrap import (
+    fill,
+)
+from types import (
+    TracebackType,
+)
 from typing import (
     IO,
     Any,
@@ -28,8 +38,12 @@ from pandas._config import (
     using_nullable_dtypes,
 )
 
-from pandas._libs import lib
-from pandas._libs.parsers import STR_NA_VALUES
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.parsers import (
+    STR_NA_VALUES,
+)
 from pandas._typing import (
     DtypeArg,
     FilePath,
@@ -42,7 +56,9 @@ from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
 )
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+)
 from pandas.util._decorators import (
     Appender,
     doc,
@@ -55,9 +71,15 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core.frame import DataFrame
-from pandas.core.shared_docs import _shared_docs
-from pandas.util.version import Version
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
+from pandas.util.version import (
+    Version,
+)
 
 from pandas.io.common import (
     IOHandles,
@@ -72,8 +94,12 @@ from pandas.io.excel._util import (
     maybe_convert_usecols,
     pop_header_name,
 )
-from pandas.io.parsers import TextParser
-from pandas.io.parsers.readers import validate_integer
+from pandas.io.parsers import (
+    TextParser,
+)
+from pandas.io.parsers.readers import (
+    validate_integer,
+)
 
 _read_excel_doc = (
     """
@@ -1459,10 +1485,18 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     """
 
-    from pandas.io.excel._odfreader import ODFReader
-    from pandas.io.excel._openpyxl import OpenpyxlReader
-    from pandas.io.excel._pyxlsb import PyxlsbReader
-    from pandas.io.excel._xlrd import XlrdReader
+    from pandas.io.excel._odfreader import (
+        ODFReader,
+    )
+    from pandas.io.excel._openpyxl import (
+        OpenpyxlReader,
+    )
+    from pandas.io.excel._pyxlsb import (
+        PyxlsbReader,
+    )
+    from pandas.io.excel._xlrd import (
+        XlrdReader,
+    )
 
     _engines: Mapping[str, Any] = {
         "xlrd": XlrdReader,

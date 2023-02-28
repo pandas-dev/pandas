@@ -6,7 +6,9 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import UnsortedIndexError
+from pandas.errors import (
+    UnsortedIndexError,
+)
 
 import pandas as pd
 from pandas import (
@@ -17,7 +19,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.tests.indexing.common import _mklbl
+from pandas.tests.indexing.common import (
+    _mklbl,
+)
 
 
 class TestMultiIndexSlicers:

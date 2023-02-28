@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from pandas import Series
+from pandas import (
+    Series,
+)
 
 
 class TestSetName:

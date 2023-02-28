@@ -1,8 +1,12 @@
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 
 import pytest
 
-from pandas.util._decorators import deprecate
+from pandas.util._decorators import (
+    deprecate,
+)
 
 import pandas._testing as tm
 

@@ -1,9 +1,15 @@
 """ manage PyTables query interface via Expressions """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import ast
-from functools import partial
-from typing import Any
+from functools import (
+    partial,
+)
+from typing import (
+    Any,
+)
 
 import numpy as np
 
@@ -11,10 +17,16 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
-from pandas._typing import npt
-from pandas.errors import UndefinedVariableError
+from pandas._typing import (
+    npt,
+)
+from pandas.errors import (
+    UndefinedVariableError,
+)
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
 import pandas.core.common as com
 from pandas.core.computation import (
@@ -22,11 +34,21 @@ from pandas.core.computation import (
     ops,
     scope as _scope,
 )
-from pandas.core.computation.common import ensure_decoded
-from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import is_term
-from pandas.core.construction import extract_array
-from pandas.core.indexes.base import Index
+from pandas.core.computation.common import (
+    ensure_decoded,
+)
+from pandas.core.computation.expr import (
+    BaseExprVisitor,
+)
+from pandas.core.computation.ops import (
+    is_term,
+)
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.indexes.base import (
+    Index,
+)
 
 from pandas.io.formats.printing import (
     pprint_thing,

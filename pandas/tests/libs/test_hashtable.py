@@ -1,17 +1,25 @@
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import re
 import struct
 import tracemalloc
-from typing import Generator
+from typing import (
+    Generator,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable as ht
+from pandas._libs import (
+    hashtable as ht,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.algorithms import isin
+from pandas.core.algorithms import (
+    isin,
+)
 
 
 @contextmanager

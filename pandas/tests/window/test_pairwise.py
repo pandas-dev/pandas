@@ -11,7 +11,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
+from pandas.core.algorithms import (
+    safe_sort,
+)
 
 
 @pytest.fixture(

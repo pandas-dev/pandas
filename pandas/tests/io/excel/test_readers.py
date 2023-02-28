@@ -2,12 +2,20 @@ from datetime import (
     datetime,
     time,
 )
-from functools import partial
+from functools import (
+    partial,
+)
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import platform
-from urllib.error import URLError
-from zipfile import BadZipFile
+from urllib.error import (
+    URLError,
+)
+from zipfile import (
+    BadZipFile,
+)
 
 import numpy as np
 import pytest
@@ -568,7 +576,9 @@ class TestReaders:
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 
-            from pandas.arrays import ArrowExtensionArray
+            from pandas.arrays import (
+                ArrowExtensionArray,
+            )
 
             expected = DataFrame(
                 {
@@ -824,7 +834,9 @@ class TestReaders:
                 "specify an engine manually."
             )
         elif engine == "xlrd":
-            from xlrd import XLRDError
+            from xlrd import (
+                XLRDError,
+            )
 
             error = XLRDError
             msg = (
@@ -912,7 +924,9 @@ class TestReaders:
     @td.skip_if_no("py.path")
     def test_read_from_py_localpath(self, read_ext):
         # GH12655
-        from py.path import local as LocalPath
+        from py.path import (
+            local as LocalPath,
+        )
 
         str_path = os.path.join("test1" + read_ext)
         expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)

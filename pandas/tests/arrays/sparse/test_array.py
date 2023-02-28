@@ -3,10 +3,14 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.sparse import IntIndex
+from pandas._libs.sparse import (
+    IntIndex,
+)
 
 import pandas as pd
-from pandas import isna
+from pandas import (
+    isna,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import (
     SparseArray,

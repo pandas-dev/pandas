@@ -1,6 +1,12 @@
-from datetime import datetime
-from io import StringIO
-from textwrap import dedent
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
+from textwrap import (
+    dedent,
+)
 
 import numpy as np
 import pytest

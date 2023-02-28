@@ -1,11 +1,17 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import copy
-from functools import partial
+from functools import (
+    partial,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -19,7 +25,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._typing import (
     Axis,
@@ -32,7 +40,9 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.util._decorators import (
     Substitution,
     doc,
@@ -48,10 +58,16 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.core.generic import NDFrame
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.generic import (
+    NDFrame,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.formats.format import save_to_buffer
+from pandas.io.formats.format import (
+    save_to_buffer,
+)
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -69,7 +85,9 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.colors import Colormap
+    from matplotlib.colors import (
+        Colormap,
+    )
 
 try:
     import matplotlib as mpl
@@ -511,7 +529,9 @@ class Styler(StylerRenderer):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
-        from pandas.io.formats.excel import ExcelFormatter
+        from pandas.io.formats.excel import (
+            ExcelFormatter,
+        )
 
         formatter = ExcelFormatter(
             self,

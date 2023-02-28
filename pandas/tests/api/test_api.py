@@ -1,9 +1,13 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import pytest
 
 import pandas as pd
-from pandas import api
+from pandas import (
+    api,
+)
 import pandas._testing as tm
 
 
@@ -249,7 +253,9 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import (
+            testing,
+        )
 
         self.check(testing, self.funcs)
 

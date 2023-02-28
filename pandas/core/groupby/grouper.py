@@ -2,7 +2,9 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -14,7 +16,9 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+)
 
 from pandas._typing import (
     ArrayLike,
@@ -22,9 +26,15 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
-from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    InvalidIndexError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -32,26 +42,40 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas.core import algorithms
+from pandas.core import (
+    algorithms,
+)
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
-from pandas.core.groupby import ops
-from pandas.core.groupby.categorical import recode_for_groupby
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.groupby import (
+    ops,
+)
+from pandas.core.groupby.categorical import (
+    recode_for_groupby,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
 )
-from pandas.core.series import Series
+from pandas.core.series import (
+    Series,
+)
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 
 class Grouper:
@@ -248,7 +272,9 @@ class Grouper:
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
-            from pandas.core.resample import TimeGrouper
+            from pandas.core.resample import (
+                TimeGrouper,
+            )
 
             cls = TimeGrouper
         return super().__new__(cls)

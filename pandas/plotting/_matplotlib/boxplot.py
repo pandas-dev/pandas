@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -8,25 +10,41 @@ from typing import (
 )
 import warnings
 
-from matplotlib.artist import setp
+from matplotlib.artist import (
+    setp,
+)
 import numpy as np
 
-from pandas._typing import MatplotlibColor
-from pandas.util._exceptions import find_stack_level
+from pandas._typing import (
+    MatplotlibColor,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.common import is_dict_like
-from pandas.core.dtypes.missing import remove_na_arraylike
+from pandas.core.dtypes.common import (
+    is_dict_like,
+)
+from pandas.core.dtypes.missing import (
+    remove_na_arraylike,
+)
 
 import pandas as pd
 import pandas.core.common as com
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
 )
-from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
-from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.groupby import (
+    create_iter_data_given_by,
+)
+from pandas.plotting._matplotlib.style import (
+    get_standard_colors,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -34,8 +52,12 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.lines import Line2D
+    from matplotlib.axes import (
+        Axes,
+    )
+    from matplotlib.lines import (
+        Line2D,
+    )
 
 
 class BoxPlot(LinePlot):

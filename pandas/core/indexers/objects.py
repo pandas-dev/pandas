@@ -1,16 +1,28 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 
-from pandas._libs.window.indexers import calculate_variable_window_bounds
-from pandas.util._decorators import Appender
+from pandas._libs.window.indexers import (
+    calculate_variable_window_bounds,
+)
+from pandas.util._decorators import (
+    Appender,
+)
 
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+)
 
-from pandas.tseries.offsets import Nano
+from pandas.tseries.offsets import (
+    Nano,
+)
 
 get_window_bounds_doc = """
 Computes the bounds of a window.

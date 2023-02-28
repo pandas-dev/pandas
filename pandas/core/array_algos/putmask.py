@@ -1,7 +1,9 @@
 """
 EA-compatible analogue to np.putmask
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -10,20 +12,32 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     npt,
 )
-from pandas.compat import np_version_under1p21
+from pandas.compat import (
+    np_version_under1p21,
+)
 
-from pandas.core.dtypes.cast import infer_dtype_from
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.cast import (
+    infer_dtype_from,
+)
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 
 if TYPE_CHECKING:
-    from pandas import MultiIndex
+    from pandas import (
+        MultiIndex,
+    )
 
 
 def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:

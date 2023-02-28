@@ -14,8 +14,12 @@ from pandas.api.types import (
     is_complex_dtype,
     is_numeric_dtype,
 )
-from pandas.core.arrays import BooleanArray
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.arrays import (
+    BooleanArray,
+)
+from pandas.core.indexes.datetimelike import (
+    DatetimeIndexOpsMixin,
+)
 
 
 def test_numpy_ufuncs_out(index):

@@ -1,20 +1,30 @@
 """
 Utility functions related to concat.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 
 import numpy as np
 
-from pandas._typing import AxisInt
+from pandas._typing import (
+    AxisInt,
+)
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
 )
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+)
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -26,7 +36,9 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import Categorical
+    from pandas.core.arrays import (
+        Categorical,
+    )
 
 
 def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
@@ -217,8 +229,12 @@ def union_categoricals(
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']
     """
-    from pandas import Categorical
-    from pandas.core.arrays.categorical import recode_for_categories
+    from pandas import (
+        Categorical,
+    )
+    from pandas.core.arrays.categorical import (
+        recode_for_categories,
+    )
 
     if len(to_union) == 0:
         raise ValueError("No Categoricals to union")
@@ -256,7 +272,9 @@ def union_categoricals(
             categories = categories.sort_values()
             indexer = categories.get_indexer(first.categories)
 
-            from pandas.core.algorithms import take_nd
+            from pandas.core.algorithms import (
+                take_nd,
+            )
 
             new_codes = take_nd(indexer, new_codes, fill_value=-1)
     elif ignore_order or all(not c.ordered for c in to_union):
@@ -304,7 +322,9 @@ def _concat_datetime(to_concat, axis: AxisInt = 0):
     -------
     a single array, preserving the combined dtypes
     """
-    from pandas.core.construction import ensure_wrapped_if_datetimelike
+    from pandas.core.construction import (
+        ensure_wrapped_if_datetimelike,
+    )
 
     to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
 

@@ -1,6 +1,8 @@
 import pytest
 
-from scripts.use_pd_array_in_core import use_pd_array
+from scripts.use_pd_array_in_core import (
+    use_pd_array,
+)
 
 BAD_FILE_0 = "import pandas as pd\npd.array"
 BAD_FILE_1 = "\nfrom pandas import array"

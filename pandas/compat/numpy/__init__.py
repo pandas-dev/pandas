@@ -1,7 +1,9 @@
 """ support numpy compatibility across versions """
 import numpy as np
 
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 # numpy versioning
 _np_version = np.__version__

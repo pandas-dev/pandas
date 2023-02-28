@@ -1,16 +1,24 @@
 import collections
-from functools import partial
+from functools import (
+    partial,
+)
 import string
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 import pandas.core.common as com
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 
 def test_get_callable_name():

@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+)
 
 from pandas import (
     NA,

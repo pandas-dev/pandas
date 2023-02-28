@@ -4,8 +4,12 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
-from pandas.tests.plotting.common import TestPlotBase
+from pandas import (
+    DataFrame,
+)
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+)
 
 
 @td.skip_if_no_mpl

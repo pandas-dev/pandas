@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
@@ -7,7 +9,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+)
 from pandas._typing import (
     Dtype,
     DtypeObj,
@@ -32,7 +36,9 @@ from pandas.core.arrays.categorical import (
     Categorical,
     contains,
 )
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    extract_array,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -43,7 +49,9 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 _index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
@@ -478,7 +486,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             )
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
-            from pandas.core.dtypes.concat import concat_compat
+            from pandas.core.dtypes.concat import (
+                concat_compat,
+            )
 
             res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)

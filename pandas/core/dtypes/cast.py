@@ -2,7 +2,9 @@
 Routines for casting.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime as dt
 import functools
@@ -19,7 +21,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.missing import (
     NA,
     NAType,
@@ -34,7 +38,9 @@ from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
 )
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.timedeltas import (
+    array_to_timedelta64,
+)
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -90,7 +96,9 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_list_like
+from pandas.core.dtypes.inference import (
+    is_list_like,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -99,7 +107,9 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        Index,
+    )
     from pandas.core.arrays import (
         Categorical,
         DatetimeArray,
@@ -509,7 +519,9 @@ def maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import BaseStringArray
+    from pandas.core.arrays.string_ import (
+        BaseStringArray,
+    )
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
@@ -637,7 +649,9 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         if inferred == dtype:
             return dtype, fv
 
-        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays import (
+            DatetimeArray,
+        )
 
         dta = DatetimeArray._from_sequence([], dtype="M8[ns]")
         try:
@@ -1039,7 +1053,9 @@ def convert_dtypes(
             target_int_dtype = pandas_dtype_func("Int64")
 
             if is_integer_dtype(input_array.dtype):
-                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+                from pandas.core.arrays.integer import (
+                    INT_STR_TO_DTYPE,
+                )
 
                 inferred_dtype = INT_STR_TO_DTYPE.get(
                     input_array.dtype.name, target_int_dtype
@@ -1062,7 +1078,9 @@ def convert_dtypes(
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
                 input_array.dtype
             ):
-                from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+                from pandas.core.arrays.floating import (
+                    FLOAT_STR_TO_DTYPE,
+                )
 
                 inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
                     input_array.dtype.name, pandas_dtype_func("Float64")
@@ -1102,9 +1120,15 @@ def convert_dtypes(
         inferred_dtype = input_array.dtype
 
     if dtype_backend == "pyarrow":
-        from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.arrow.dtype import ArrowDtype
-        from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.arrow.array import (
+            to_pyarrow_type,
+        )
+        from pandas.core.arrays.arrow.dtype import (
+            ArrowDtype,
+        )
+        from pandas.core.arrays.string_ import (
+            StringDtype,
+        )
 
         if isinstance(inferred_dtype, PandasExtensionDtype):
             base_dtype = inferred_dtype.base
@@ -1182,8 +1206,12 @@ def maybe_cast_to_datetime(
     Caller is responsible for handling ExtensionDtype cases and non dt64/td64
     cases.
     """
-    from pandas.core.arrays.datetimes import DatetimeArray
-    from pandas.core.arrays.timedeltas import TimedeltaArray
+    from pandas.core.arrays.datetimes import (
+        DatetimeArray,
+    )
+    from pandas.core.arrays.timedeltas import (
+        TimedeltaArray,
+    )
 
     assert dtype.kind in ["m", "M"]
     if not is_list_like(value):

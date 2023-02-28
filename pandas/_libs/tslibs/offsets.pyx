@@ -15,8 +15,12 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from dateutil.easter import easter
-from dateutil.relativedelta import relativedelta
+from dateutil.easter import (
+    easter,
+)
+from dateutil.relativedelta import (
+    relativedelta,
+)
 import numpy as np
 
 cimport numpy as cnp
@@ -29,9 +33,13 @@ cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
-from pandas._libs.properties import cache_readonly
+from pandas._libs.properties import (
+    cache_readonly,
+)
 
-from pandas._libs.tslibs cimport util
+from pandas._libs.tslibs cimport (
+    util,
+)
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object,
     is_float_object,
@@ -51,8 +59,12 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_firstbday,
     get_lastbday,
 )
-from pandas._libs.tslibs.conversion cimport localize_pydatetime
-from pandas._libs.tslibs.dtypes cimport periods_per_day
+from pandas._libs.tslibs.conversion cimport (
+    localize_pydatetime,
+)
+from pandas._libs.tslibs.dtypes cimport (
+    periods_per_day,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -66,18 +78,26 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydate_to_dtstruct,
 )
 
-from .dtypes cimport PeriodDtypeCode
+from .dtypes cimport (
+    PeriodDtypeCode,
+)
 from .timedeltas cimport (
     _Timedelta,
     delta_to_nanoseconds,
     is_any_td_scalar,
 )
 
-from .timedeltas import Timedelta
+from .timedeltas import (
+    Timedelta,
+)
 
-from .timestamps cimport _Timestamp
+from .timestamps cimport (
+    _Timestamp,
+)
 
-from .timestamps import Timestamp
+from .timestamps import (
+    Timestamp,
+)
 
 # ---------------------------------------------------------------------
 # Misc Helpers
@@ -111,7 +131,9 @@ def apply_wrapper_core(func, self, other) -> ndarray:
 
     if self.normalize:
         # TODO: Avoid circular/runtime import
-        from .vectorized import normalize_i8_timestamps
+        from .vectorized import (
+            normalize_i8_timestamps,
+        )
         reso = get_unit_from_dtype(other.dtype)
         result = normalize_i8_timestamps(result.view("i8"), None, reso=reso)
 

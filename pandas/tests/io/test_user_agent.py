@@ -3,7 +3,9 @@ Tests for the pandas custom headers in http(s) requests
 """
 import gzip
 import http.server
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import multiprocessing
 import socket
 import time
@@ -11,7 +13,9 @@ import urllib.error
 
 import pytest
 
-from pandas.compat import is_ci_environment
+from pandas.compat import (
+    is_ci_environment,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

@@ -1,8 +1,12 @@
 """ orc compat """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import io
-from types import ModuleType
+from types import (
+    ModuleType,
+)
 from typing import (
     Any,
     Literal,
@@ -13,16 +17,24 @@ from pandas._config import (
     using_nullable_dtypes,
 )
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     FilePath,
     ReadBuffer,
     WriteBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
-from pandas.core.arrays import ArrowExtensionArray
-from pandas.core.frame import DataFrame
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+)
+from pandas.core.frame import (
+    DataFrame,
+)
 
 from pandas.io.common import (
     get_handle,
@@ -125,7 +137,9 @@ def read_orc(
                 }
             )
         else:
-            from pandas.io._util import _arrow_dtype_mapping
+            from pandas.io._util import (
+                _arrow_dtype_mapping,
+            )
 
             mapping = _arrow_dtype_mapping()
             df = pa_table.to_pandas(types_mapper=mapping.get)

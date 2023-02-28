@@ -10,7 +10,9 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (

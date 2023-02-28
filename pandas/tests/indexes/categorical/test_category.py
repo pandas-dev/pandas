@@ -1,8 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas._libs import index as libindex
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs import (
+    index as libindex,
+)
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 
 import pandas as pd
 from pandas import (
@@ -14,7 +18,9 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
 )
-from pandas.tests.indexes.common import Base
+from pandas.tests.indexes.common import (
+    Base,
+)
 
 
 class TestCategoricalIndex(Base):

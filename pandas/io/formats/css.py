@@ -1,7 +1,9 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 from typing import (
@@ -12,8 +14,12 @@ from typing import (
 )
 import warnings
 
-from pandas.errors import CSSWarning
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    CSSWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 
 def _side_expander(prop_fmt: str) -> Callable:

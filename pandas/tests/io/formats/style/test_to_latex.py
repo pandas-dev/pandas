@@ -1,4 +1,6 @@
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 
 import numpy as np
 import pytest
@@ -10,7 +12,9 @@ from pandas import (
 )
 
 pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler
+from pandas.io.formats.style import (
+    Styler,
+)
 from pandas.io.formats.style_render import (
     _parse_latex_cell_styles,
     _parse_latex_css_conversion,

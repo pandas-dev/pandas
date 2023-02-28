@@ -1,7 +1,9 @@
 import decimal
 
 import numpy as np
-from numpy import iinfo
+from numpy import (
+    iinfo,
+)
 import pytest
 
 import pandas as pd

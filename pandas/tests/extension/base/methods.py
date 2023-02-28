@@ -4,15 +4,25 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+)
 
-from pandas.core.dtypes.common import is_bool_dtype
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+)
+from pandas.core.dtypes.missing import (
+    na_value_for_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.sorting import nargsort
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.core.sorting import (
+    nargsort,
+)
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseMethodsTests(BaseExtensionTests):

@@ -1,10 +1,14 @@
-from itertools import chain
+from itertools import (
+    chain,
+)
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_number
+from pandas.core.dtypes.common import (
+    is_number,
+)
 
 from pandas import (
     DataFrame,

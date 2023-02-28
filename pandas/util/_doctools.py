@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Iterable
+from typing import (
+    Iterable,
+)
 
 import numpy as np
 
@@ -55,7 +59,9 @@ class TablePlotter:
         vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
-        from matplotlib import gridspec
+        from matplotlib import (
+            gridspec,
+        )
         import matplotlib.pyplot as plt
 
         if not isinstance(left, list):
@@ -141,7 +147,9 @@ class TablePlotter:
             ax.set_visible(False)
             return
 
-        from pandas import plotting
+        from pandas import (
+            plotting,
+        )
 
         idx_nlevels = df.index.nlevels
         col_nlevels = df.columns.nlevels

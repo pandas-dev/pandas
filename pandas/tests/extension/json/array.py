@@ -11,7 +11,9 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from collections import (
     UserDict,
@@ -29,9 +31,13 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import type_t
+from pandas._typing import (
+    type_t,
+)
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
@@ -43,7 +49,9 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.core.indexers import unpack_tuple_and_ellipses
+from pandas.core.indexers import (
+    unpack_tuple_and_ellipses,
+)
 
 
 class JSONDtype(ExtensionDtype):
@@ -194,7 +202,9 @@ class JSONArray(ExtensionArray):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.
-        from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_ import (
+            StringDtype,
+        )
 
         dtype = pandas_dtype(dtype)
         # needed to add this check for the Series constructor

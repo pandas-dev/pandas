@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.sparse import IntIndex
+from pandas._libs.sparse import (
+    IntIndex,
+)
 
 from pandas import (
     DataFrame,

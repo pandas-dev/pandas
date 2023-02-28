@@ -6,13 +6,17 @@
 #     4. invalid result shape/type
 # If your test does not fit into one of these categories, add to this list.
 
-from itertools import chain
+from itertools import (
+    chain,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    SpecificationError,
+)
 
 from pandas import (
     Categorical,

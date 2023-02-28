@@ -5,13 +5,19 @@ Tests for the following offsets:
 - MonthBegin
 - MonthEnd
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     MonthBegin,
     MonthEnd,

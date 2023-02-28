@@ -1,6 +1,8 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 from csv import (
     QUOTE_MINIMAL,
     QUOTE_NONE,
@@ -10,10 +12,16 @@ import sys
 import time
 import warnings
 
-from pandas.errors import ParserError
-from pandas.util._exceptions import find_stack_level
+from pandas.errors import (
+    ParserError,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas import StringDtype
+from pandas import (
+    StringDtype,
+)
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
@@ -22,12 +30,16 @@ from pandas.core.arrays import (
 )
 
 cimport cython
-from cpython.bytes cimport PyBytes_AsString
+from cpython.bytes cimport (
+    PyBytes_AsString,
+)
 from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
 )
-from cpython.object cimport PyObject
+from cpython.object cimport (
+    PyObject,
+)
 from cpython.ref cimport (
     Py_INCREF,
     Py_XDECREF,
@@ -37,8 +49,12 @@ from cpython.unicode cimport (
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
 )
-from cython cimport Py_ssize_t
-from libc.stdlib cimport free
+from cython cimport (
+    Py_ssize_t,
+)
+from libc.stdlib cimport (
+    free,
+)
 from libc.string cimport (
     strcasecmp,
     strlen,
@@ -64,14 +80,18 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs cimport util
+from pandas._libs cimport (
+    util,
+)
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
     UINT64_MAX,
 )
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 
 from pandas._libs.khash cimport (
     kh_destroy_float64,
@@ -114,8 +134,12 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.inference import is_dict_like
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
+from pandas.core.dtypes.inference import (
+    is_dict_like,
+)
 
 cdef:
     float64_t INF = <float64_t>np.inf

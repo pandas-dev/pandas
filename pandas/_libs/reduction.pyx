@@ -4,7 +4,9 @@ cimport numpy as cnp
 
 cnp.import_array()
 
-from pandas._libs.util cimport is_array
+from pandas._libs.util cimport (
+    is_array,
+)
 
 
 cdef cnp.dtype _dtype_obj = np.dtype("object")

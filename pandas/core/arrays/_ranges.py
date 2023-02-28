@@ -2,11 +2,15 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas._libs.lib import i8max
+from pandas._libs.lib import (
+    i8max,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     OutOfBoundsDatetime,
@@ -14,7 +18,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 
 def generate_regular_range(

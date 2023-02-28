@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import decimal
 import numbers
@@ -7,9 +9,13 @@ import sys
 
 import numpy as np
 
-from pandas._typing import type_t
+from pandas._typing import (
+    type_t,
+)
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
@@ -25,13 +31,19 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
-from pandas.core import arraylike
-from pandas.core.arraylike import OpsMixin
+from pandas.core import (
+    arraylike,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+)
 
 
 @register_extension_dtype
@@ -165,7 +177,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):
-        from pandas.api.extensions import take
+        from pandas.api.extensions import (
+            take,
+        )
 
         data = self._data
         if allow_fill and fill_value is None:
@@ -271,7 +285,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        from pandas.core.algorithms import value_counts
+        from pandas.core.algorithms import (
+            value_counts,
+        )
 
         return value_counts(self.to_numpy(), dropna=dropna)
 

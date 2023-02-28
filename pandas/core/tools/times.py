@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -7,14 +9,20 @@ from datetime import (
 
 import numpy as np
 
-from pandas._libs.lib import is_list_like
-from pandas._typing import DateTimeErrorChoices
+from pandas._libs.lib import (
+    is_list_like,
+)
+from pandas._typing import (
+    DateTimeErrorChoices,
+)
 
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
 
 def to_time(

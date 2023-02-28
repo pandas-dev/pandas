@@ -3,8 +3,12 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_integer
-from pandas.core.arrays import IntegerArray
+from pandas.api.types import (
+    is_integer,
+)
+from pandas.core.arrays import (
+    IntegerArray,
+)
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int32Dtype,

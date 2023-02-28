@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -9,7 +11,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
+from pandas.core.algorithms import (
+    safe_sort,
+)
 
 
 class TestIndexSetOps:

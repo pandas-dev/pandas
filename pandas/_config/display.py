@@ -2,12 +2,16 @@
 Unopinionated display configuration.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import locale
 import sys
 
-from pandas._config import config as cf
+from pandas._config import (
+    config as cf,
+)
 
 # -----------------------------------------------------------------------------
 # Global formatting options

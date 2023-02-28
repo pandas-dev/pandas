@@ -1,15 +1,29 @@
-from contextlib import nullcontext
-from datetime import datetime
-from decimal import Decimal
+from contextlib import (
+    nullcontext,
+)
+from datetime import (
+    datetime,
+)
+from decimal import (
+    Decimal,
+)
 
 import numpy as np
 import pytest
 
-from pandas._config import config as cf
+from pandas._config import (
+    config as cf,
+)
 
-from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas._libs import (
+    missing as libmissing,
+)
+from pandas._libs.tslibs import (
+    iNaT,
+)
+from pandas.compat import (
+    is_numpy_dev,
+)
 
 from pandas.core.dtypes.common import (
     is_float,

@@ -1,6 +1,8 @@
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 
 from pandas import (
     DataFrame,

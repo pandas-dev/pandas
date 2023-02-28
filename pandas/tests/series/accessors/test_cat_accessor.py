@@ -14,8 +14,12 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.indexes.accessors import Properties
+from pandas.core.arrays.categorical import (
+    CategoricalAccessor,
+)
+from pandas.core.indexes.accessors import (
+    Properties,
+)
 
 
 class TestCatAccessor:

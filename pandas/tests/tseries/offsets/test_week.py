@@ -4,7 +4,9 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -13,7 +15,9 @@ from datetime import (
 
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     Day,
     LastWeekOfMonth,

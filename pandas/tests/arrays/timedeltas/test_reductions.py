@@ -2,10 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta
+from pandas import (
+    Timedelta,
+)
 import pandas._testing as tm
-from pandas.core import nanops
-from pandas.core.arrays import TimedeltaArray
+from pandas.core import (
+    nanops,
+)
+from pandas.core.arrays import (
+    TimedeltaArray,
+)
 
 
 class TestReductions:

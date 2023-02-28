@@ -8,7 +8,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

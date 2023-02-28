@@ -6,9 +6,13 @@ and are clearly communicated to the user.
 Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
-from io import StringIO
+from io import (
+    StringIO,
+)
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 
 import pytest
 
@@ -17,11 +21,15 @@ from pandas.compat import (
     is_platform_mac,
     is_platform_windows,
 )
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+)
 
 import pandas._testing as tm
 
-from pandas.io.parsers import read_csv
+from pandas.io.parsers import (
+    read_csv,
+)
 import pandas.io.parsers.readers as parsers
 
 
@@ -92,7 +100,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             read_csv(StringIO(data), lineterminator="~~")
 
     def test_python_engine(self, python_engine):
-        from pandas.io.parsers.readers import _python_unsupported as py_unsupported
+        from pandas.io.parsers.readers import (
+            _python_unsupported as py_unsupported,
+        )
 
         data = """1,2,3,,
 1,2,3,4,
@@ -132,7 +142,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             read_csv(NoNextBuffer(data), engine=python_engine)
 
     def test_pyarrow_engine(self):
-        from pandas.io.parsers.readers import _pyarrow_unsupported as pa_unsupported
+        from pandas.io.parsers.readers import (
+            _pyarrow_unsupported as pa_unsupported,
+        )
 
         data = """1,2,3,,
         1,2,3,4,

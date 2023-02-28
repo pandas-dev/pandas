@@ -1,6 +1,10 @@
-from pandas import Index
+from pandas import (
+    Index,
+)
 import pandas._testing as tm
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    extract_array,
+)
 
 
 def test_extract_array_rangeindex():

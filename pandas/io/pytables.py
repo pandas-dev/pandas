@@ -2,9 +2,13 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import suppress
+from contextlib import (
+    suppress,
+)
 import copy
 from datetime import (
     date,
@@ -13,8 +17,12 @@ from datetime import (
 import itertools
 import os
 import re
-from textwrap import dedent
-from types import TracebackType
+from textwrap import (
+    dedent,
+)
+from types import (
+    TracebackType,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -40,7 +48,9 @@ from pandas._libs import (
     lib,
     writers as libwriters,
 )
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    timezones,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -50,8 +60,12 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.compat.pickle_compat import patch_pickle
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.compat.pickle_compat import (
+    patch_pickle,
+)
 from pandas.errors import (
     AttributeConflictWarning,
     ClosedFileError,
@@ -59,8 +73,12 @@ from pandas.errors import (
     PerformanceWarning,
     PossibleDataLossError,
 )
-from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    cache_readonly,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -77,7 +95,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+)
 
 from pandas import (
     DataFrame,
@@ -101,14 +121,20 @@ from pandas.core.computation.pytables import (
     PyTablesExpr,
     maybe_expression,
 )
-from pandas.core.construction import extract_array
-from pandas.core.indexes.api import ensure_index
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.indexes.api import (
+    ensure_index,
+)
 from pandas.core.internals import (
     ArrayManager,
     BlockManager,
 )
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    stringify_path,
+)
 from pandas.io.formats.printing import (
     adjoin,
     pprint_thing,
@@ -121,7 +147,9 @@ if TYPE_CHECKING:
         Node,
     )
 
-    from pandas.core.internals import Block
+    from pandas.core.internals import (
+        Block,
+    )
 
 
 # versioning attribute

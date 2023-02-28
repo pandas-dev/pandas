@@ -3,7 +3,9 @@ test methods relating to generic function evaluation
 the so-called white/black lists
 """
 
-from string import ascii_lowercase
+from string import (
+    ascii_lowercase,
+)
 
 import numpy as np
 import pytest

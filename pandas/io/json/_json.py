@@ -1,13 +1,23 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
     abstractmethod,
 )
-from collections import abc
-from io import StringIO
-from itertools import islice
-from types import TracebackType
+from collections import (
+    abc,
+)
+from io import (
+    StringIO,
+)
+from itertools import (
+    islice,
+)
+from types import (
+    TracebackType,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,12 +36,16 @@ from pandas._config import (
     using_nullable_dtypes,
 )
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.json import (
     dumps,
     loads,
 )
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    iNaT,
+)
 from pandas._typing import (
     CompressionOptions,
     DtypeArg,
@@ -43,15 +57,23 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_str,
     is_period_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+)
 
 from pandas import (
     DataFrame,
@@ -61,8 +83,12 @@ from pandas import (
     notna,
     to_datetime,
 )
-from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.reshape.concat import (
+    concat,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
 from pandas.io.common import (
     IOHandles,
@@ -75,15 +101,21 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
-from pandas.io.json._normalize import convert_to_line_delimits
+from pandas.io.json._normalize import (
+    convert_to_line_delimits,
+)
 from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
 )
-from pandas.io.parsers.readers import validate_integer
+from pandas.io.parsers.readers import (
+    validate_integer,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
@@ -961,7 +993,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 pa_table = pyarrow_json.read_json(self.data)
                 if self.use_nullable_dtypes:
                     if get_option("mode.dtype_backend") == "pyarrow":
-                        from pandas.arrays import ArrowExtensionArray
+                        from pandas.arrays import (
+                            ArrowExtensionArray,
+                        )
 
                         return DataFrame(
                             {
@@ -972,7 +1006,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                             }
                         )
                     elif get_option("mode.dtype_backend") == "pandas":
-                        from pandas.io._util import _arrow_dtype_mapping
+                        from pandas.io._util import (
+                            _arrow_dtype_mapping,
+                        )
 
                         mapping = _arrow_dtype_mapping()
                         return pa_table.to_pandas(types_mapper=mapping.get)

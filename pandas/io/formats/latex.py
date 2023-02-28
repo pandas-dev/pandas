@@ -1,7 +1,9 @@
 """
 Module for formatting output data in Latex.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
@@ -15,10 +17,14 @@ from typing import (
 
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+)
 
 if TYPE_CHECKING:
-    from pandas.io.formats.format import DataFrameFormatter
+    from pandas.io.formats.format import (
+        DataFrameFormatter,
+    )
 
 
 def _split_into_full_short_caption(

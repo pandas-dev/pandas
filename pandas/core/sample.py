@@ -1,14 +1,22 @@
 """
 Module containing utilities for NDFrame.sample() and .GroupBy.sample()
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._typing import AxisInt
+from pandas._libs import (
+    lib,
+)
+from pandas._typing import (
+    AxisInt,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -16,7 +24,9 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 
 def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:

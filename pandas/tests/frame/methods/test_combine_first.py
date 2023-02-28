@@ -1,10 +1,16 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import find_common_type
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.cast import (
+    find_common_type,
+)
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+)
 
 import pandas as pd
 from pandas import (

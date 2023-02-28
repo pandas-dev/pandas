@@ -3,7 +3,9 @@ import collections
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (

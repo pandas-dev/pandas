@@ -1,9 +1,13 @@
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+from pandas.compat import (
+    is_numpy_dev,
+)
 
 import pandas as pd
 import pandas._testing as tm

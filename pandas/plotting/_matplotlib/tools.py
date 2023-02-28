@@ -1,7 +1,11 @@
 # being a bit too dynamic
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from math import ceil
+from math import (
+    ceil,
+)
 from typing import (
     TYPE_CHECKING,
     Iterable,
@@ -9,13 +13,19 @@ from typing import (
 )
 import warnings
 
-from matplotlib import ticker
+from matplotlib import (
+    ticker,
+)
 import matplotlib.table
 import numpy as np
 
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -23,11 +33,21 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.axis import Axis
-    from matplotlib.figure import Figure
-    from matplotlib.lines import Line2D
-    from matplotlib.table import Table
+    from matplotlib.axes import (
+        Axes,
+    )
+    from matplotlib.axis import (
+        Axis,
+    )
+    from matplotlib.figure import (
+        Figure,
+    )
+    from matplotlib.lines import (
+        Line2D,
+    )
+    from matplotlib.table import (
+        Table,
+    )
 
     from pandas import (
         DataFrame,

@@ -1,4 +1,6 @@
-from itertools import product
+from itertools import (
+    product,
+)
 import string
 
 import numpy as np
@@ -11,7 +13,9 @@ from pandas import (
     melt,
     wide_to_long,
 )
-from pandas.api.types import CategoricalDtype
+from pandas.api.types import (
+    CategoricalDtype,
+)
 
 
 class Melt:

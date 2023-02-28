@@ -8,7 +8,9 @@ from pandas._libs.parsers import (  # type: ignore[attr-defined]
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import NA
+from pandas import (
+    NA,
+)
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,

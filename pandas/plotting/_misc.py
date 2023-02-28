@@ -1,16 +1,26 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 from typing import (
     TYPE_CHECKING,
     Generator,
 )
 
-from pandas.plotting._core import _get_plot_backend
+from pandas.plotting._core import (
+    _get_plot_backend,
+)
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
+    from matplotlib.axes import (
+        Axes,
+    )
+    from matplotlib.figure import (
+        Figure,
+    )
     import numpy as np
 
     from pandas import (

@@ -2,7 +2,9 @@ import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.array_with_attr import FloatAttrArray
+from pandas.tests.extension.array_with_attr import (
+    FloatAttrArray,
+)
 
 
 def test_concat_with_all_na():

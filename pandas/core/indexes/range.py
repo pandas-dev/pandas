@@ -1,8 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import operator
-from sys import getsizeof
+from sys import (
+    getsizeof,
+)
 from typing import (
     Any,
     Callable,
@@ -18,13 +24,19 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.algos import unique_deltas
-from pandas._libs.lib import no_default
+from pandas._libs.algos import (
+    unique_deltas,
+)
+from pandas._libs.lib import (
+    no_default,
+)
 from pandas._typing import (
     Dtype,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -39,17 +51,25 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCTimedeltaIndex,
+)
 
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 import pandas.core.common as com
-from pandas.core.construction import extract_array
+from pandas.core.construction import (
+    extract_array,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.common import (
+    unpack_zerodim_and_defer,
+)
 
 _empty_range = range(0)
 

@@ -6,7 +6,9 @@ from pandas._libs.tslibs import (
     Resolution,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
+from pandas._libs.tslibs.dtypes import (
+    _attrname_to_abbrevs,
+)
 
 
 @pytest.mark.parametrize(

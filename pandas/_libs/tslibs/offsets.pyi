@@ -12,10 +12,16 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import npt
+from pandas._libs.tslibs.nattype import (
+    NaTType,
+)
+from pandas._typing import (
+    npt,
+)
 
-from .timedeltas import Timedelta
+from .timedeltas import (
+    Timedelta,
+)
 
 _BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)

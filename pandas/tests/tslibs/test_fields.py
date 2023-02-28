@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import fields
+from pandas._libs.tslibs import (
+    fields,
+)
 
 import pandas._testing as tm
 

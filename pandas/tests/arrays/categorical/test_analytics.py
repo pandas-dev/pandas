@@ -4,7 +4,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    PYPY,
+)
 
 from pandas import (
     Categorical,
@@ -15,7 +17,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.types import is_scalar
+from pandas.api.types import (
+    is_scalar,
+)
 
 
 class TestCategoricalAnalytics:

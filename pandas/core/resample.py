@@ -1,7 +1,11 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import copy
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -15,7 +19,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -39,14 +45,20 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     npt,
 )
-from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    AbstractMethodError,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -54,22 +66,32 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import PandasObject
+from pandas.core.apply import (
+    ResamplerWindowApply,
+)
+from pandas.core.base import (
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.groupby.generic import SeriesGroupBy
+from pandas.core.groupby.generic import (
+    SeriesGroupBy,
+)
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
     _pipe_template,
     get_groupby,
 )
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.ops import BinGrouper
+from pandas.core.groupby.grouper import (
+    Grouper,
+)
+from pandas.core.groupby.ops import (
+    BinGrouper,
+)
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -1085,7 +1107,9 @@ class Resampler(BaseGroupBy, PandasObject):
             result = result.stack()
 
         if not len(self.ax):
-            from pandas import Series
+            from pandas import (
+                Series,
+            )
 
             if self._selected_obj.ndim == 1:
                 name = self._selected_obj.name
@@ -1103,7 +1127,9 @@ class Resampler(BaseGroupBy, PandasObject):
                     [], index=result.index, dtype="int64", name=self._selected_obj.name
                 )
             else:
-                from pandas import DataFrame
+                from pandas import (
+                    DataFrame,
+                )
 
                 result = DataFrame(
                     [], index=result.index, columns=result.columns, dtype="int64"

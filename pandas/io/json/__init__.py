@@ -4,7 +4,9 @@ from pandas.io.json._json import (
     read_json,
     to_json,
 )
-from pandas.io.json._table_schema import build_table_schema
+from pandas.io.json._table_schema import (
+    build_table_schema,
+)
 
 __all__ = [
     "dumps",

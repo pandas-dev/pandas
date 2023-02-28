@@ -1,7 +1,9 @@
 import pytest
 
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+)
 
 
 class TestAccumulator:

@@ -3,7 +3,9 @@ Tests for the pandas.io.common functionalities
 """
 import codecs
 import errno
-from functools import partial
+from functools import (
+    partial,
+)
 from io import (
     BytesIO,
     StringIO,
@@ -11,13 +13,17 @@ from io import (
 )
 import mmap
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import pickle
 import tempfile
 
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -40,7 +46,9 @@ class CustomFSPath:
 path_types = [str, CustomFSPath, Path]
 
 try:
-    from py.path import local as LocalPath
+    from py.path import (
+        local as LocalPath,
+    )
 
     path_types.append(LocalPath)
 except ImportError:
@@ -149,7 +157,9 @@ Look,a snake,🐍"""
     # Test that pyarrow can handle a file opened with get_handle
     @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
-        from pyarrow import csv
+        from pyarrow import (
+            csv,
+        )
 
         # Test latin1, ucs-2, and ucs-4 chars
         data = """a,b,c

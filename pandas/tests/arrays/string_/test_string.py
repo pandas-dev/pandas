@@ -7,11 +7,15 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+)
 
 
 @pytest.fixture

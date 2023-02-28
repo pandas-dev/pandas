@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
@@ -7,7 +9,9 @@ from pandas._typing import (
     Scalar,
     npt,
 )
-from pandas.compat.numpy import np_percentile_argname
+from pandas.compat.numpy import (
+    np_percentile_argname,
+)
 
 from pandas.core.dtypes.missing import (
     isna,

@@ -1,8 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import wraps
+from functools import (
+    wraps,
+)
 import inspect
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     Any,
     Callable,
@@ -11,12 +17,16 @@ from typing import (
 )
 import warnings
 
-from pandas._libs.properties import cache_readonly
+from pandas._libs.properties import (
+    cache_readonly,
+)
 from pandas._typing import (
     F,
     T,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 
 def deprecate(

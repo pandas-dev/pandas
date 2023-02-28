@@ -15,7 +15,9 @@ import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
-from pandas.io.parsers import read_csv
+from pandas.io.parsers import (
+    read_csv,
+)
 
 
 @pytest.fixture

@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import mmap
 from typing import (
@@ -17,10 +19,16 @@ from pandas._typing import (
     StorageOptions,
     WriteExcelBuffer,
 )
-from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
 from pandas.io.excel._base import (
     BaseExcelReader,
@@ -32,8 +40,12 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
-    from openpyxl.descriptors.serialisable import Serialisable
-    from openpyxl.workbook import Workbook
+    from openpyxl.descriptors.serialisable import (
+        Serialisable,
+    )
+    from openpyxl.workbook import (
+        Workbook,
+    )
 
 
 class OpenpyxlWriter(ExcelWriter):
@@ -53,7 +65,9 @@ class OpenpyxlWriter(ExcelWriter):
         **kwargs,
     ) -> None:
         # Use the openpyxl module as the Excel writer.
-        from openpyxl.workbook import Workbook
+        from openpyxl.workbook import (
+            Workbook,
+        )
 
         engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
@@ -68,7 +82,9 @@ class OpenpyxlWriter(ExcelWriter):
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
         if "r+" in self._mode:  # Load from existing workbook
-            from openpyxl import load_workbook
+            from openpyxl import (
+                load_workbook,
+            )
 
             try:
                 self._book = load_workbook(self._handles.handle, **engine_kwargs)
@@ -169,7 +185,9 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         color : openpyxl.styles.Color
         """
-        from openpyxl.styles import Color
+        from openpyxl.styles import (
+            Color,
+        )
 
         if isinstance(color_spec, str):
             return Color(color_spec)
@@ -204,7 +222,9 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         font : openpyxl.styles.Font
         """
-        from openpyxl.styles import Font
+        from openpyxl.styles import (
+            Font,
+        )
 
         _font_key_map = {
             "sz": "size",
@@ -322,7 +342,9 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         side : openpyxl.styles.Side
         """
-        from openpyxl.styles import Side
+        from openpyxl.styles import (
+            Side,
+        )
 
         _side_key_map = {"border_style": "style"}
 
@@ -363,7 +385,9 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         border : openpyxl.styles.Border
         """
-        from openpyxl.styles import Border
+        from openpyxl.styles import (
+            Border,
+        )
 
         _border_key_map = {"diagonalup": "diagonalUp", "diagonaldown": "diagonalDown"}
 
@@ -397,7 +421,9 @@ class OpenpyxlWriter(ExcelWriter):
         -------
         alignment : openpyxl.styles.Alignment
         """
-        from openpyxl.styles import Alignment
+        from openpyxl.styles import (
+            Alignment,
+        )
 
         return Alignment(**alignment_dict)
 
@@ -434,7 +460,9 @@ class OpenpyxlWriter(ExcelWriter):
         Returns
         -------
         """
-        from openpyxl.styles import Protection
+        from openpyxl.styles import (
+            Protection,
+        )
 
         return Protection(**protection_dict)
 
@@ -550,12 +578,16 @@ class OpenpyxlReader(BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        from openpyxl import Workbook
+        from openpyxl import (
+            Workbook,
+        )
 
         return Workbook
 
     def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
-        from openpyxl import load_workbook
+        from openpyxl import (
+            load_workbook,
+        )
 
         return load_workbook(
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False

@@ -3,7 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
+from pandas.errors import (
+    SettingWithCopyError,
+)
 
 from pandas import (
     DataFrame,
@@ -15,7 +17,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import (
+    BDay,
+)
 
 
 @pytest.fixture

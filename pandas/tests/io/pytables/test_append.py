@@ -1,12 +1,18 @@
 import datetime
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import re
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd

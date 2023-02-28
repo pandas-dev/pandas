@@ -1,5 +1,9 @@
-from datetime import datetime
-from itertools import permutations
+from datetime import (
+    datetime,
+)
+from itertools import (
+    permutations,
+)
 import struct
 
 import numpy as np
@@ -18,7 +22,9 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype as CDT,
+)
 
 import pandas as pd
 from pandas import (
@@ -1153,7 +1159,9 @@ class TestIsin:
 class TestValueCounts:
     def test_value_counts(self):
         np.random.seed(1234)
-        from pandas.core.reshape.tile import cut
+        from pandas.core.reshape.tile import (
+            cut,
+        )
 
         arr = np.random.randn(4)
         factor = cut(arr, 4)
@@ -1700,7 +1708,9 @@ class TestRank:
         ],
     )
     def test_scipy_compat(self, arr):
-        from scipy.stats import rankdata
+        from scipy.stats import (
+            rankdata,
+        )
 
         arr = np.array(arr)
 

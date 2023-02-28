@@ -1,7 +1,11 @@
 import numpy as np
-from pytz import UTC
+from pytz import (
+    UTC,
+)
 
-from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion import (
+    tz_localize_to_utc,
+)
 
 from .tslib import (
     _sizes,
@@ -11,14 +15,20 @@ from .tslib import (
 
 try:
     old_sig = False
-    from pandas._libs.tslibs import tz_convert_from_utc
+    from pandas._libs.tslibs import (
+        tz_convert_from_utc,
+    )
 except ImportError:
     try:
         old_sig = False
-        from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+        from pandas._libs.tslibs.tzconversion import (
+            tz_convert_from_utc,
+        )
     except ImportError:
         old_sig = True
-        from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
+        from pandas._libs.tslibs.tzconversion import (
+            tz_convert as tz_convert_from_utc,
+        )
 
 
 class TimeTZConvert:

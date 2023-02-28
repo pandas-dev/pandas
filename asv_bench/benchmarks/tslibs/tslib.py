@@ -28,9 +28,13 @@ import numpy as np
 import pytz
 
 try:
-    from pandas._libs.tslibs import ints_to_pydatetime
+    from pandas._libs.tslibs import (
+        ints_to_pydatetime,
+    )
 except ImportError:
-    from pandas._libs.tslib import ints_to_pydatetime
+    from pandas._libs.tslib import (
+        ints_to_pydatetime,
+    )
 
 tzlocal_obj = tzlocal()
 _tzs = [

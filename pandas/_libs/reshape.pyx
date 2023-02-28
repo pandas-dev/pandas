@@ -1,5 +1,7 @@
 cimport cython
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 from numpy cimport (
     int64_t,
     ndarray,
@@ -12,8 +14,12 @@ cimport numpy as cnp
 
 cnp.import_array()
 
-from pandas._libs.dtypes cimport numeric_object_t
-from pandas._libs.lib cimport c_is_list_like
+from pandas._libs.dtypes cimport (
+    numeric_object_t,
+)
+from pandas._libs.lib cimport (
+    c_is_list_like,
+)
 
 
 @cython.wraparound(False)

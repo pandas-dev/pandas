@@ -1,7 +1,9 @@
 """
 data hash pandas / numpy objects
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import itertools
 from typing import (
@@ -14,8 +16,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.hashing import hash_object_array
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.hashing import (
+    hash_object_array,
+)
 from pandas._typing import (
     ArrayLike,
     npt,
@@ -110,7 +116,9 @@ def hash_pandas_object(
     -------
     Series of uint64, same length as the object
     """
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     if hash_key is None:
         hash_key = _default_hash_key

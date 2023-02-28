@@ -1,7 +1,9 @@
 """
 Define extension dtypes.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import re
 from typing import (
@@ -14,9 +16,15 @@ from typing import (
 import numpy as np
 import pytz
 
-from pandas._libs import missing as libmissing
-from pandas._libs.interval import Interval
-from pandas._libs.properties import cache_readonly
+from pandas._libs import (
+    missing as libmissing,
+)
+from pandas._libs.interval import (
+    Interval,
+)
+from pandas._libs.properties import (
+    cache_readonly,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -53,7 +61,9 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
-    from datetime import tzinfo
+    from datetime import (
+        tzinfo,
+    )
 
     import pyarrow
 
@@ -485,7 +495,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas import Categorical
+        from pandas import (
+            Categorical,
+        )
 
         return Categorical
 
@@ -523,7 +535,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         categories : Index
         """
-        from pandas.core.indexes.base import Index
+        from pandas.core.indexes.base import (
+            Index,
+        )
 
         if not fastpath and not is_list_like(categories):
             raise TypeError(
@@ -593,12 +607,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def _is_boolean(self) -> bool:
-        from pandas.core.dtypes.common import is_bool_dtype
+        from pandas.core.dtypes.common import (
+            is_bool_dtype,
+        )
 
         return is_bool_dtype(self.categories)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        from pandas.core.arrays.sparse import SparseDtype
+        from pandas.core.arrays.sparse import (
+            SparseDtype,
+        )
 
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
@@ -623,7 +641,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
         ]
         # TODO should categorical always give an answer?
-        from pandas.core.dtypes.cast import find_common_type
+        from pandas.core.dtypes.cast import (
+            find_common_type,
+        )
 
         return find_common_type(non_cat_dtypes)
 
@@ -745,7 +765,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays import (
+            DatetimeArray,
+        )
 
         return DatetimeArray
 
@@ -998,7 +1020,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays import (
+            PeriodArray,
+        )
 
         return PeriodArray
 
@@ -1010,7 +1034,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays import (
+            PeriodArray,
+        )
         from pandas.core.arrays.arrow._arrow_utils import (
             pyarrow_array_to_numpy_and_mask,
         )
@@ -1172,7 +1198,9 @@ class IntervalDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays import (
+            IntervalArray,
+        )
 
         return IntervalArray
 
@@ -1225,7 +1253,9 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.closed != other.closed:
             return False
         else:
-            from pandas.core.dtypes.common import is_dtype_equal
+            from pandas.core.dtypes.common import (
+                is_dtype_equal,
+            )
 
             return is_dtype_equal(self.subtype, other.subtype)
 
@@ -1262,7 +1292,9 @@ class IntervalDtype(PandasExtensionDtype):
         """
         import pyarrow
 
-        from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays import (
+            IntervalArray,
+        )
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -1294,7 +1326,9 @@ class IntervalDtype(PandasExtensionDtype):
         if not all(cast("IntervalDtype", x).closed == closed for x in dtypes):
             return np.dtype(object)
 
-        from pandas.core.dtypes.cast import find_common_type
+        from pandas.core.dtypes.cast import (
+            find_common_type,
+        )
 
         common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:
@@ -1381,7 +1415,9 @@ class PandasDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import (
+            PandasArray,
+        )
 
         return PandasArray
 
@@ -1444,15 +1480,21 @@ class BaseMaskedDtype(ExtensionDtype):
         Construct the MaskedDtype corresponding to the given numpy dtype.
         """
         if dtype.kind == "b":
-            from pandas.core.arrays.boolean import BooleanDtype
+            from pandas.core.arrays.boolean import (
+                BooleanDtype,
+            )
 
             return BooleanDtype()
         elif dtype.kind in ["i", "u"]:
-            from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+            from pandas.core.arrays.integer import (
+                INT_STR_TO_DTYPE,
+            )
 
             return INT_STR_TO_DTYPE[dtype.name]
         elif dtype.kind == "f":
-            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+            from pandas.core.arrays.floating import (
+                FLOAT_STR_TO_DTYPE,
+            )
 
             return FLOAT_STR_TO_DTYPE[dtype.name]
         else:
@@ -1461,7 +1503,9 @@ class BaseMaskedDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # We unwrap any masked dtypes, find the common dtype we would use
         #  for that, then re-mask the result.
-        from pandas.core.dtypes.cast import find_common_type
+        from pandas.core.dtypes.cast import (
+            find_common_type,
+        )
 
         new_dtype = find_common_type(
             [

@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas._testing as tm
 

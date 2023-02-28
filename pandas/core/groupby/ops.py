@@ -5,7 +5,9 @@ These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import collections
 import functools
@@ -35,8 +37,12 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
@@ -59,7 +65,9 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -76,16 +84,24 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.frame import DataFrame
-from pandas.core.groupby import grouper
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.groupby import (
+    grouper,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.series import Series
+from pandas.core.series import (
+    Series,
+)
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
@@ -96,7 +112,9 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 
 class WrappedCythonOp:

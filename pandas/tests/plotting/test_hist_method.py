@@ -127,7 +127,9 @@ class TestSeriesPlots(TestPlotBase):
         assert len(self.plt.get_fignums()) == 1
 
     def test_plot_fails_when_ax_differs_from_figure(self, ts):
-        from pylab import figure
+        from pylab import (
+            figure,
+        )
 
         fig1 = figure()
         fig2 = figure()
@@ -233,7 +235,9 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
-        from matplotlib.patches import Rectangle
+        from matplotlib.patches import (
+            Rectangle,
+        )
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(hist_df.hist)
@@ -570,7 +574,9 @@ class TestDataFramePlots(TestPlotBase):
         no_nan_df = DataFrame([[0.4, 0.2, 0.3], [0.7, 0.8, 0.9]], columns=list("abc"))
         no_nan_weights = np.array([[0.3, 0.25, 0.25], [0.45, 0.45, 0.45]])
 
-        from matplotlib.patches import Rectangle
+        from matplotlib.patches import (
+            Rectangle,
+        )
 
         _, ax0 = self.plt.subplots()
         df.plot.hist(ax=ax0, weights=weights)
@@ -593,9 +599,13 @@ class TestDataFramePlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
     def test_grouped_hist_legacy(self):
-        from matplotlib.patches import Rectangle
+        from matplotlib.patches import (
+            Rectangle,
+        )
 
-        from pandas.plotting._matplotlib.hist import _grouped_hist
+        from pandas.plotting._matplotlib.hist import (
+            _grouped_hist,
+        )
 
         df = DataFrame(np.random.randn(500, 1), columns=["A"])
         df["B"] = to_datetime(

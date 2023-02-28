@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 
 import pandas as pd
 import pandas._testing as tm

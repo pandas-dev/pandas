@@ -2,7 +2,9 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Iterable,
@@ -280,7 +282,9 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
     -------
     value, method : object
     """
-    from pandas.core.missing import clean_fill_method
+    from pandas.core.missing import (
+        clean_fill_method,
+    )
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")

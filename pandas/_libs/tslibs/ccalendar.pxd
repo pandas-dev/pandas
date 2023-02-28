@@ -1,4 +1,6 @@
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 from numpy cimport (
     int32_t,
     int64_t,

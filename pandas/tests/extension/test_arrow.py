@@ -16,7 +16,9 @@ from datetime import (
     time,
     timedelta,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 from io import (
     BytesIO,
     StringIO,
@@ -36,9 +38,13 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
-from pandas.core.dtypes.common import is_any_int_dtype
+from pandas.core.dtypes.common import (
+    is_any_int_dtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -51,11 +57,15 @@ from pandas.api.types import (
     is_string_dtype,
     is_unsigned_integer_dtype,
 )
-from pandas.tests.extension import base
+from pandas.tests.extension import (
+    base,
+)
 
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+)
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 

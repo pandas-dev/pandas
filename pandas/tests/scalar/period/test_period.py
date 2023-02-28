@@ -15,8 +15,12 @@ from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
 )
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.parsing import DateParseError
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+)
+from pandas._libs.tslibs.parsing import (
+    DateParseError,
+)
 from pandas._libs.tslibs.period import (
     INVALID_FREQ_ERR_MSG,
     IncompatibleFrequency,

@@ -1,10 +1,16 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numpy as np
 
-from pandas._typing import NumpyIndexT
+from pandas._typing import (
+    NumpyIndexT,
+)
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_list_like,
+)
 
 
 def cartesian_product(X) -> list[np.ndarray]:

@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -13,7 +15,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 class TestAsFreq:

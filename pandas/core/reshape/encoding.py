@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 import itertools
 from typing import (
     Hashable,
@@ -9,8 +13,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.sparse import IntIndex
-from pandas._typing import NpDtype
+from pandas._libs.sparse import (
+    IntIndex,
+)
+from pandas._typing import (
+    NpDtype,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -19,14 +27,22 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core.arrays import SparseArray
-from pandas.core.arrays.categorical import factorize_from_iterable
-from pandas.core.frame import DataFrame
+from pandas.core.arrays import (
+    SparseArray,
+)
+from pandas.core.arrays.categorical import (
+    factorize_from_iterable,
+)
+from pandas.core.frame import (
+    DataFrame,
+)
 from pandas.core.indexes.api import (
     Index,
     default_index,
 )
-from pandas.core.series import Series
+from pandas.core.series import (
+    Series,
+)
 
 
 def get_dummies(
@@ -144,7 +160,9 @@ def get_dummies(
     1  0.0  1.0  0.0
     2  0.0  0.0  1.0
     """
-    from pandas.core.reshape.concat import concat
+    from pandas.core.reshape.concat import (
+        concat,
+    )
 
     dtypes_to_encode = ["object", "string", "category"]
 
@@ -233,7 +251,9 @@ def _get_dummies_1d(
     drop_first: bool = False,
     dtype: NpDtype | None = None,
 ) -> DataFrame:
-    from pandas.core.reshape.concat import concat
+    from pandas.core.reshape.concat import (
+        concat,
+    )
 
     # Series avoids inconsistent NaN handling
     codes, levels = factorize_from_iterable(Series(data))
@@ -444,7 +464,9 @@ def from_dummies(
     1    b       a
     2    d       e
     """
-    from pandas.core.reshape.concat import concat
+    from pandas.core.reshape.concat import (
+        concat,
+    )
 
     if not isinstance(data, DataFrame):
         raise TypeError(

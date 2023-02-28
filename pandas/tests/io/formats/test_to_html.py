@@ -1,5 +1,9 @@
-from datetime import datetime
-from io import StringIO
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
 import re
 
 import numpy as np

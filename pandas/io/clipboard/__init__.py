@@ -55,7 +55,9 @@ from ctypes import (
 )
 import os
 import platform
-from shutil import which
+from shutil import (
+    which,
+)
 import subprocess
 import time
 import warnings
@@ -64,7 +66,9 @@ from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -148,12 +152,18 @@ def init_qt_clipboard():
 
     # Try to import from qtpy, but if that fails try PyQt5 then PyQt4
     try:
-        from qtpy.QtWidgets import QApplication
+        from qtpy.QtWidgets import (
+            QApplication,
+        )
     except ImportError:
         try:
-            from PyQt5.QtWidgets import QApplication
+            from PyQt5.QtWidgets import (
+                QApplication,
+            )
         except ImportError:
-            from PyQt4.QtGui import QApplication
+            from PyQt4.QtGui import (
+                QApplication,
+            )
 
     app = QApplication.instance()
     if app is None:

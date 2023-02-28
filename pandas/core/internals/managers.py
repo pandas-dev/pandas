@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import itertools
 from typing import (
@@ -15,14 +17,18 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
     internals as libinternals,
     lib,
 )
-from pandas._libs.internals import BlockPlacement
+from pandas._libs.internals import (
+    BlockPlacement,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -32,19 +38,31 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.errors import PerformanceWarning
-from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_bool_kwarg
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+)
 
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.cast import (
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -55,14 +73,20 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+)
+from pandas.core.arrays.sparse import (
+    SparseDtype,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import (
+    maybe_convert_indices,
+)
 from pandas.core.indexes.api import (
     Index,
     ensure_index,

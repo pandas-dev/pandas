@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import dateutil
 import numpy as np
@@ -9,8 +11,12 @@ from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
 )
-from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import InvalidIndexError
+from pandas._libs.tslibs.period import (
+    IncompatibleFrequency,
+)
+from pandas.errors import (
+    InvalidIndexError,
+)
 
 import pandas as pd
 from pandas import (
@@ -19,15 +25,21 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 from pandas.core.indexes.period import (
     Period,
     PeriodIndex,
     period_range,
 )
-from pandas.core.resample import _get_period_range_edges
+from pandas.core.resample import (
+    _get_period_range_edges,
+)
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @pytest.fixture()

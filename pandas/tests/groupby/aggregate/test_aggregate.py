@@ -3,15 +3,21 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import datetime
 import functools
-from functools import partial
+from functools import (
+    partial,
+)
 import re
 
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    SpecificationError,
+)
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -23,7 +29,9 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouping
+from pandas.core.groupby.grouper import (
+    Grouping,
+)
 
 
 def test_groupby_agg_no_extra_calls():

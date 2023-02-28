@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import (
+    IncompatibleFrequency,
+)
 
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype,
+)
 
 from pandas import (
     Index,
@@ -16,7 +20,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    PeriodArray,
+)
 
 
 class TestPeriodIndex:

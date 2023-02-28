@@ -7,17 +7,23 @@ from datetime import (
 )
 
 import dateutil.tz
-from dateutil.tz import tzutc
+from dateutil.tz import (
+    tzutc,
+)
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+)
 from pandas.compat import (
     PY39,
     PY310,
 )
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+)
 
 from pandas import (
     Period,

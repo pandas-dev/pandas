@@ -5,7 +5,9 @@ import re
 import time
 import warnings
 
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 cimport cython
 from cpython.datetime cimport (
@@ -16,11 +18,19 @@ from cpython.datetime cimport (
     tzinfo,
 )
 
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
-from cpython.object cimport PyObject_Str
-from cython cimport Py_ssize_t
-from libc.string cimport strchr
+from cpython.object cimport (
+    PyObject_Str,
+)
+from cython cimport (
+    Py_ssize_t,
+)
+from libc.string cimport (
+    strchr,
+)
 
 import_datetime()
 
@@ -40,22 +50,30 @@ cnp.import_array()
 
 # dateutil compat
 
-from decimal import InvalidOperation
+from decimal import (
+    InvalidOperation,
+)
 
 from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
 )
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import (
+    relativedelta,
+)
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
     tzutc as _dateutil_tzutc,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport (
+    c_MONTH_NUMBERS,
+)
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -65,7 +83,9 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+)
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -73,7 +93,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 
-from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.strptime import (
+    array_strptime,
+)
 
 from pandas._libs.tslibs.util cimport (
     get_c_string_buf_and_size,
@@ -398,7 +420,9 @@ def parse_datetime_string_with_reso(
 
         if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
             # TODO: avoid circular import
-            from pandas import Timestamp
+            from pandas import (
+                Timestamp,
+            )
             parsed = Timestamp(date_string)
         else:
             if out_local:

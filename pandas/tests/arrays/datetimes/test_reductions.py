@@ -1,12 +1,18 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
 
 import pandas as pd
-from pandas import NaT
+from pandas import (
+    NaT,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    DatetimeArray,
+)
 
 
 class TestReductions:

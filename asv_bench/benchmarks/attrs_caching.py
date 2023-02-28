@@ -1,10 +1,14 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 
 try:
-    from pandas.core.construction import extract_array
+    from pandas.core.construction import (
+        extract_array,
+    )
 except ImportError:
     extract_array = None
 

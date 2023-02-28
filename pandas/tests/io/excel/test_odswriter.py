@@ -4,7 +4,9 @@ import pytest
 
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter
+from pandas.io.excel import (
+    ExcelWriter,
+)
 
 odf = pytest.importorskip("odf")
 

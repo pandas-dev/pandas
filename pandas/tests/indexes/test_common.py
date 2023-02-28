@@ -12,7 +12,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,

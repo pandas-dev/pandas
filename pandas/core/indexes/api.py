@@ -1,7 +1,11 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import textwrap
-from typing import cast
+from typing import (
+    cast,
+)
 
 import numpy as np
 
@@ -9,12 +13,20 @@ from pandas._libs import (
     NaT,
     lib,
 )
-from pandas._typing import Axis
-from pandas.errors import InvalidIndexError
+from pandas._typing import (
+    Axis,
+)
+from pandas.errors import (
+    InvalidIndexError,
+)
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    find_common_type,
+)
 
-from pandas.core.algorithms import safe_sort
+from pandas.core.algorithms import (
+    safe_sort,
+)
 from pandas.core.indexes.base import (
     Index,
     _new_Index,
@@ -22,13 +34,27 @@ from pandas.core.indexes.base import (
     ensure_index_from_sequences,
     get_unanimous_names,
 )
-from pandas.core.indexes.category import CategoricalIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.interval import IntervalIndex
-from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.range import RangeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexes.category import (
+    CategoricalIndex,
+)
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+)
+from pandas.core.indexes.interval import (
+    IntervalIndex,
+)
+from pandas.core.indexes.multi import (
+    MultiIndex,
+)
+from pandas.core.indexes.period import (
+    PeriodIndex,
+)
+from pandas.core.indexes.range import (
+    RangeIndex,
+)
+from pandas.core.indexes.timedeltas import (
+    TimedeltaIndex,
+)
 
 _sort_msg = textwrap.dedent(
     """\

@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas.errors import DataError
+from pandas.errors import (
+    DataError,
+)
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import (
+    pandas_dtype,
+)
 
 from pandas import (
     NA,

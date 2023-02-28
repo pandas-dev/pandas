@@ -7,7 +7,9 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.core.computation import expressions as expr
+from pandas.core.computation import (
+    expressions as expr,
+)
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])

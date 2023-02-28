@@ -1,10 +1,14 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import sys
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -70,8 +74,12 @@ from pandas._typing import (
     WriteBuffer,
     npt,
 )
-from pandas.compat import PYPY
-from pandas.compat.numpy import function as nv
+from pandas.compat import (
+    PYPY,
+)
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -82,7 +90,9 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -107,8 +117,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.dtypes.inference import is_hashable
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+)
+from pandas.core.dtypes.inference import (
+    is_hashable,
+)
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -124,21 +138,35 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import SeriesApply
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.accessor import (
+    CachedAccessor,
+)
+from pandas.core.apply import (
+    SeriesApply,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
+from pandas.core.arrays.categorical import (
+    CategoricalAccessor,
+)
+from pandas.core.arrays.sparse import (
+    SparseAccessor,
+)
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.generic import NDFrame
+from pandas.core.generic import (
+    NDFrame,
+)
 from pandas.core.indexers import (
     disallow_ndim_indexing,
     unpack_1tuple,
 )
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.accessors import (
+    CombinedDatetimelikeProperties,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -148,7 +176,9 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import (
+    maybe_droplevels,
+)
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
@@ -157,14 +187,22 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
-from pandas.core.methods import selectn
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.methods import (
+    selectn,
+)
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 from pandas.core.sorting import (
     ensure_key_mapped,
     nargsort,
 )
-from pandas.core.strings.accessor import StringMethods
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.strings.accessor import (
+    StringMethods,
+)
+from pandas.core.tools.datetimes import (
+    to_datetime,
+)
 
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
@@ -181,9 +219,15 @@ if TYPE_CHECKING:
         Suffixes,
     )
 
-    from pandas.core.frame import DataFrame
-    from pandas.core.groupby.generic import SeriesGroupBy
-    from pandas.core.resample import Resampler
+    from pandas.core.frame import (
+        DataFrame,
+    )
+    from pandas.core.groupby.generic import (
+        SeriesGroupBy,
+    )
+    from pandas.core.resample import (
+        Resampler,
+    )
 
 __all__ = ["Series"]
 
@@ -566,7 +610,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
         """
-        from pandas.core.frame import DataFrame
+        from pandas.core.frame import (
+            DataFrame,
+        )
 
         return DataFrame
 
@@ -1973,7 +2019,9 @@ Name: Max Speed, dtype: float64
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from pandas.core.groupby.generic import (
+            SeriesGroupBy,
+        )
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -2948,7 +2996,9 @@ Name: Max Speed, dtype: float64
     def _append(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         if isinstance(to_append, (list, tuple)):
             to_concat = [self]
@@ -4231,7 +4281,9 @@ Keep all original rows and also all original values
         a    1    3
         b    2    4
         """
-        from pandas.core.reshape.reshape import unstack
+        from pandas.core.reshape.reshape import (
+            unstack,
+        )
 
         return unstack(self, level, fill_value)
 

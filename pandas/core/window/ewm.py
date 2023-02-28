@@ -1,13 +1,23 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime
-from functools import partial
-from textwrap import dedent
-from typing import TYPE_CHECKING
+from functools import (
+    partial,
+)
+from textwrap import (
+    dedent,
+)
+from typing import (
+    TYPE_CHECKING,
+)
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta
+from pandas._libs.tslibs import (
+    Timedelta,
+)
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
@@ -18,15 +28,21 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core import common
+from pandas.core import (
+    common,
+)
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExponentialMovingWindowIndexer,
@@ -36,7 +52,9 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
 )
-from pandas.core.window.common import zsqrt
+from pandas.core.window.common import (
+    zsqrt,
+)
 from pandas.core.window.doc import (
     _shared_docs,
     create_section_header,
@@ -697,7 +715,9 @@ class ExponentialMovingWindow(BaseWindow):
         bias: bool = False,
         numeric_only: bool = False,
     ):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         self._validate_numeric_only("cov", numeric_only)
 
@@ -768,7 +788,9 @@ class ExponentialMovingWindow(BaseWindow):
         pairwise: bool | None = None,
         numeric_only: bool = False,
     ):
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         self._validate_numeric_only("corr", numeric_only)
 

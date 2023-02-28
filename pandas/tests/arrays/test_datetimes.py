@@ -1,11 +1,15 @@
 """
 Tests for DatetimeArray
 """
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 import operator
 
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import (
+        ZoneInfo,
+    )
 except ImportError:
     ZoneInfo = None
 
@@ -17,7 +21,9 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm

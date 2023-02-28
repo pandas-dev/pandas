@@ -1,15 +1,25 @@
-from datetime import timedelta
-from decimal import Decimal
+from datetime import (
+    timedelta,
+)
+from decimal import (
+    Decimal,
+)
 import re
 
-from dateutil.tz import tzlocal
+from dateutil.tz import (
+    tzlocal,
+)
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -264,14 +274,18 @@ class TestDataFrameAnalytics:
     @td.skip_if_no_scipy
     def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
         def skewness(x):
-            from scipy.stats import skew
+            from scipy.stats import (
+                skew,
+            )
 
             if len(x) < 3:
                 return np.nan
             return skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis
+            from scipy.stats import (
+                kurtosis,
+            )
 
             if len(x) < 4:
                 return np.nan

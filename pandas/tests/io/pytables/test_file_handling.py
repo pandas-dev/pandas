@@ -3,7 +3,9 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import (
+    is_platform_little_endian,
+)
 from pandas.errors import (
     ClosedFileError,
     PossibleDataLossError,
@@ -22,8 +24,12 @@ from pandas.tests.io.pytables.common import (
     tables,
 )
 
-from pandas.io import pytables
-from pandas.io.pytables import Term
+from pandas.io import (
+    pytables,
+)
+from pandas.io.pytables import (
+    Term,
+)
 
 pytestmark = pytest.mark.single_cpu
 

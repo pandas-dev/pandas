@@ -4,7 +4,9 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.util._test_decorators import skip_if_no
+from pandas.util._test_decorators import (
+    skip_if_no,
+)
 
 import pandas as pd
 from pandas import (

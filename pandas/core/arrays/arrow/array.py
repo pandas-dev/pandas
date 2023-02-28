@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from copy import deepcopy
+from copy import (
+    deepcopy,
+)
 import operator
 import re
 from typing import (
@@ -15,7 +19,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -37,8 +43,12 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
-from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
+from pandas.util._decorators import (
+    doc,
+)
+from pandas.util._validators import (
+    validate_fillna_kwargs,
+)
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -49,27 +59,43 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core import roperator
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core import (
+    roperator,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+)
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
     validate_indices,
 )
-from pandas.core.strings.base import BaseStringArrayMethods
+from pandas.core.strings.base import (
+    BaseStringArrayMethods,
+)
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import (
+    to_offset,
+)
 
 if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
+    from pandas.core.arrays.arrow._arrow_utils import (
+        fallback_performancewarning,
+    )
+    from pandas.core.arrays.arrow.dtype import (
+        ArrowDtype,
+    )
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -136,7 +162,9 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
@@ -270,15 +298,21 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             # pa_type is string/binary: scalars already correct type
             scalars = strings
         elif pa.types.is_timestamp(pa_type):
-            from pandas.core.tools.datetimes import to_datetime
+            from pandas.core.tools.datetimes import (
+                to_datetime,
+            )
 
             scalars = to_datetime(strings, errors="raise")
         elif pa.types.is_date(pa_type):
-            from pandas.core.tools.datetimes import to_datetime
+            from pandas.core.tools.datetimes import (
+                to_datetime,
+            )
 
             scalars = to_datetime(strings, errors="raise").date
         elif pa.types.is_duration(pa_type):
-            from pandas.core.tools.timedeltas import to_timedelta
+            from pandas.core.tools.timedeltas import (
+                to_timedelta,
+            )
 
             scalars = to_timedelta(strings, errors="raise")
             if pa_type.unit != "ns":
@@ -294,12 +328,16 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
                 except pa.ArrowInvalid:
                     pass
         elif pa.types.is_time(pa_type):
-            from pandas.core.tools.times import to_time
+            from pandas.core.tools.times import (
+                to_time,
+            )
 
             # "coerce" to allow "null times" (None) to not raise
             scalars = to_time(strings, errors="coerce")
         elif pa.types.is_boolean(pa_type):
-            from pandas.core.arrays import BooleanArray
+            from pandas.core.arrays import (
+                BooleanArray,
+            )
 
             scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
         elif (
@@ -307,7 +345,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             or pa.types.is_floating(pa_type)
             or pa.types.is_decimal(pa_type)
         ):
-            from pandas.core.tools.numeric import to_numeric
+            from pandas.core.tools.numeric import (
+                to_numeric,
+            )
 
             scalars = to_numeric(strings, errors="raise")
         else:
@@ -429,7 +469,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            BooleanArray,
+        )
 
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowExtensionArray):

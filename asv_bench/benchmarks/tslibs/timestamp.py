@@ -1,11 +1,17 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytz
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 
-from .tslib import _tzs
+from .tslib import (
+    _tzs,
+)
 
 
 class TimestampConstruction:

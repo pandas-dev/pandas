@@ -1,10 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
     timedelta,
 )
-from functools import wraps
+from functools import (
+    wraps,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -27,7 +31,9 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -50,8 +56,12 @@ from pandas._libs.tslibs.fields import (
     RoundTo,
     round_nsint64,
 )
-from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
-from pandas._libs.tslibs.timestamps import integer_op_not_supported
+from pandas._libs.tslibs.np_datetime import (
+    compare_mismatched_resolutions,
+)
+from pandas._libs.tslibs.timestamps import (
+    integer_op_not_supported,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -68,7 +78,9 @@ from pandas._typing import (
     TimeNonexistent,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
@@ -79,7 +91,9 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
 from pandas.core.dtypes.common import (
     is_all_strings,
@@ -121,14 +135,22 @@ from pandas.core.algorithms import (
     isin,
     unique1d,
 )
-from pandas.core.array_algos import datetimelike_accumulations
-from pandas.core.arraylike import OpsMixin
+from pandas.core.array_algos import (
+    datetimelike_accumulations,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
     ravel_compat,
 )
-from pandas.core.arrays.base import ExtensionArray
-from pandas.core.arrays.integer import IntegerArray
+from pandas.core.arrays.base import (
+    ExtensionArray,
+)
+from pandas.core.arrays.integer import (
+    IntegerArray,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -139,13 +161,17 @@ from pandas.core.indexers import (
     check_array_indexer,
     check_setitem_lengths,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.common import (
+    unpack_zerodim_and_defer,
+)
 from pandas.core.ops.invalid import (
     invalid_comparison,
     make_invalid_op,
 )
 
-from pandas.tseries import frequencies
+from pandas.tseries import (
+    frequencies,
+)
 
 if TYPE_CHECKING:
     from pandas.core.arrays import (
@@ -756,7 +782,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # If so, then we can refactor IndexOpsMixin._map_values to
         # a standalone function and call from here..
         # Else, just rewrite _map_infer_values to do the right thing.
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         return Index(self).map(mapper).array
 
@@ -1036,8 +1064,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         self = cast("TimedeltaArray", self)
 
-        from pandas.core.arrays import DatetimeArray
-        from pandas.core.arrays.datetimes import tz_to_dtype
+        from pandas.core.arrays import (
+            DatetimeArray,
+        )
+        from pandas.core.arrays.datetimes import (
+            tz_to_dtype,
+        )
 
         assert other is not NaT
         if isna(other):
@@ -1107,7 +1139,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def _sub_datetimelike(self, other: Timestamp | DatetimeArray) -> TimedeltaArray:
         self = cast("DatetimeArray", self)
 
-        from pandas.core.arrays import TimedeltaArray
+        from pandas.core.arrays import (
+            TimedeltaArray,
+        )
 
         try:
             self._assert_tzawareness_compat(other)
@@ -1130,7 +1164,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
         # We will wrap in a PeriodArray and defer to the reversed operation
-        from pandas.core.arrays.period import PeriodArray
+        from pandas.core.arrays.period import (
+            PeriodArray,
+        )
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
         parr = PeriodArray(i8vals, freq=other.freq)
@@ -1352,7 +1388,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return NotImplemented
 
         if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray(result)
         return result
@@ -1410,7 +1448,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return NotImplemented
 
         if isinstance(result, np.ndarray) and is_timedelta64_dtype(result.dtype):
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray(result)
         return result
@@ -1426,7 +1466,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 return Timestamp(other) - self
             if not isinstance(other, DatetimeLikeArrayMixin):
                 # Avoid down-casting DatetimeIndex
-                from pandas.core.arrays import DatetimeArray
+                from pandas.core.arrays import (
+                    DatetimeArray,
+                )
 
                 other = DatetimeArray(other)
             return other - self

@@ -6,7 +6,9 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsTimedelta
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+)
 
 import pandas as pd
 from pandas import (
@@ -16,7 +18,9 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
+from pandas.core.arrays import (
+    TimedeltaArray,
+)
 
 
 class TestTimedeltas:

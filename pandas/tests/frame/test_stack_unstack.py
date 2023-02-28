@@ -1,11 +1,17 @@
-from datetime import datetime
-from io import StringIO
+from datetime import (
+    datetime,
+)
+from io import (
+    StringIO,
+)
 import itertools
 
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -18,7 +24,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.reshape import reshape as reshape_lib
+from pandas.core.reshape import (
+    reshape as reshape_lib,
+)
 
 
 class TestDataFrameReshape:

@@ -1,13 +1,21 @@
-from contextlib import nullcontext
+from contextlib import (
+    nullcontext,
+)
 import copy
 
 import numpy as np
 import pytest
 
-from pandas._libs.missing import is_matching_na
-from pandas.compat import is_numpy_dev
+from pandas._libs.missing import (
+    is_matching_na,
+)
+from pandas.compat import (
+    is_numpy_dev,
+)
 
-from pandas.core.dtypes.common import is_float
+from pandas.core.dtypes.common import (
+    is_float,
+)
 
 from pandas import (
     Index,

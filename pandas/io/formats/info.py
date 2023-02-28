@@ -1,11 +1,15 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
     abstractmethod,
 )
 import sys
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Iterable,
@@ -14,15 +18,21 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._typing import (
     Dtype,
     WriteBuffer,
 )
 
-from pandas.io.formats import format as fmt
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats import (
+    format as fmt,
+)
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -554,7 +564,9 @@ class SeriesInfo(BaseInfo):
 
     @property
     def dtype_counts(self) -> Mapping[str, int]:
-        from pandas.core.frame import DataFrame
+        from pandas.core.frame import (
+            DataFrame,
+        )
 
         return _get_dataframe_dtype_counts(DataFrame(self.data))
 

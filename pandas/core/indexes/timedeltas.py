@@ -1,5 +1,7 @@
 """ implement the TimedeltaIndex """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from pandas._libs import (
     index as libindex,
@@ -10,7 +12,9 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+)
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -18,15 +22,23 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays import (
+    datetimelike as dtl,
+)
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+)
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
-from pandas.core.indexes.extension import inherit_names
+from pandas.core.indexes.datetimelike import (
+    DatetimeTimedeltaMixin,
+)
+from pandas.core.indexes.extension import (
+    inherit_names,
+)
 
 
 @inherit_names(

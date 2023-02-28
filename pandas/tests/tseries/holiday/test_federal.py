@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from pandas import DatetimeIndex
+from pandas import (
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (

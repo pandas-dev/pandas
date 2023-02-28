@@ -1,10 +1,20 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from typing import TYPE_CHECKING
+from collections import (
+    abc,
+)
+from typing import (
+    TYPE_CHECKING,
+)
 
-from pandas.core.interchange.column import PandasColumn
-from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
+from pandas.core.interchange.column import (
+    PandasColumn,
+)
+from pandas.core.interchange.dataframe_protocol import (
+    DataFrame as DataFrameXchg,
+)
 
 if TYPE_CHECKING:
     from pandas import (

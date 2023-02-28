@@ -1,8 +1,12 @@
 """ support pyarrow compatibility across versions """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 try:
     import pyarrow as pa

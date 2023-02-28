@@ -2,7 +2,9 @@
 Base and utility classes for pandas objects.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import textwrap
 from typing import (
@@ -20,7 +22,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     Axis,
     AxisInt,
@@ -30,15 +34,23 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat import PYPY
-from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.compat import (
+    PYPY,
+)
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.errors import (
+    AbstractMethodError,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
@@ -61,9 +73,15 @@ from pandas.core import (
     nanops,
     ops,
 )
-from pandas.core.accessor import DirNamesMixin
-from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.accessor import (
+    DirNamesMixin,
+)
+from pandas.core.arraylike import (
+    OpsMixin,
+)
+from pandas.core.arrays import (
+    ExtensionArray,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -903,7 +921,9 @@ class IndexOpsMixin(OpsMixin):
                 # expected to be pd.Series(np.nan, ...). As np.nan is
                 # of dtype float64 the return value of this method should
                 # be float64 as well
-                from pandas import Series
+                from pandas import (
+                    Series,
+                )
 
                 if len(mapper) == 0:
                     mapper = Series(mapper, dtype=np.float64)
@@ -1129,7 +1149,9 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         return Index(self).is_monotonic_increasing
 
@@ -1142,7 +1164,9 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
         """
-        from pandas import Index
+        from pandas import (
+            Index,
+        )
 
         return Index(self).is_monotonic_decreasing
 
@@ -1210,7 +1234,9 @@ class IndexOpsMixin(OpsMixin):
             # preserve e.g. MultiIndex
             uniques = self._constructor(uniques)
         else:
-            from pandas import Index
+            from pandas import (
+                Index,
+            )
 
             uniques = Index(uniques)
         return codes, uniques

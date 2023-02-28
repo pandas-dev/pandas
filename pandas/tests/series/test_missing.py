@@ -1,9 +1,13 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
+from pandas._libs import (
+    iNaT,
+)
 
 import pandas as pd
 from pandas import (

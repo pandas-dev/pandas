@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
+from collections import (
+    defaultdict,
+)
 import datetime
 from typing import (
     TYPE_CHECKING,
@@ -10,21 +14,27 @@ from typing import (
     cast,
 )
 
-from pandas._libs import json
+from pandas._libs import (
+    json,
+)
 from pandas._typing import (
     FilePath,
     StorageOptions,
     WriteExcelBuffer,
 )
 
-from pandas.io.excel._base import ExcelWriter
+from pandas.io.excel._base import (
+    ExcelWriter,
+)
 from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
 
 if TYPE_CHECKING:
-    from pandas.io.formats.excel import ExcelCell
+    from pandas.io.formats.excel import (
+        ExcelCell,
+    )
 
 
 class ODSWriter(ExcelWriter):
@@ -43,7 +53,9 @@ class ODSWriter(ExcelWriter):
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
-        from odf.opendocument import OpenDocumentSpreadsheet
+        from odf.opendocument import (
+            OpenDocumentSpreadsheet,
+        )
 
         if mode == "a":
             raise ValueError("Append mode is not supported with odf!")
@@ -73,7 +85,9 @@ class ODSWriter(ExcelWriter):
     @property
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
-        from odf.table import Table
+        from odf.table import (
+            Table,
+        )
 
         result = {
             sheet.getAttribute("name"): sheet
@@ -105,7 +119,9 @@ class ODSWriter(ExcelWriter):
             TableCell,
             TableRow,
         )
-        from odf.text import P
+        from odf.text import (
+            P,
+        )
 
         sheet_name = self._get_sheet_name(sheet_name)
         assert sheet_name is not None
@@ -183,7 +199,9 @@ class ODSWriter(ExcelWriter):
         pvalue, cell : Tuple[str, TableCell]
             Display value, Cell value
         """
-        from odf.table import TableCell
+        from odf.table import (
+            TableCell,
+        )
 
         attributes = self._make_table_cell_attributes(cell)
         val, fmt = self._value_with_fmt(cell.val)

@@ -1,6 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from dateutil.tz.tz import tzlocal
+from dateutil.tz.tz import (
+    tzlocal,
+)
 import pytest
 
 from pandas._libs.tslibs import (

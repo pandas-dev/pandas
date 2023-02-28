@@ -1,4 +1,6 @@
-from datetime import timedelta
+from datetime import (
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -9,7 +11,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.indexes.timedeltas import (
+    timedelta_range,
+)
 
 
 def test_asfreq_bug():

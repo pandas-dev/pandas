@@ -7,7 +7,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    PeriodArray,
+)
 
 
 class TestSeriesIsIn:

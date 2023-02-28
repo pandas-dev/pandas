@@ -1,6 +1,10 @@
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 
-from pandas import read_sas
+from pandas import (
+    read_sas,
+)
 
 ROOT = Path(__file__).parents[3] / "pandas" / "tests" / "io" / "sas" / "data"
 

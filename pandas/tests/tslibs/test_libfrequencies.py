@@ -1,8 +1,12 @@
 import pytest
 
-from pandas._libs.tslibs.parsing import get_rule_month
+from pandas._libs.tslibs.parsing import (
+    get_rule_month,
+)
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @pytest.mark.parametrize(

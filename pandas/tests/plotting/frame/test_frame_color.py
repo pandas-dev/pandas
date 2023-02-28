@@ -7,13 +7,17 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
-from pandas.util.version import Version
+from pandas.util.version import (
+    Version,
+)
 
 
 @td.skip_if_no_mpl
@@ -96,7 +100,9 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::5], facecolors=custom_colors)
         tm.close()
 
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         # Test str -> colormap functionality
         ax = df.plot.bar(colormap="jet")
@@ -235,7 +241,9 @@ class TestDataFrameColor(TestPlotBase):
         assert ax.collections[1].cmap.name == "magma"
 
     def test_line_colors(self):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         custom_colors = "rgcby"
         df = DataFrame(np.random.randn(5, 5))
@@ -285,7 +293,9 @@ class TestDataFrameColor(TestPlotBase):
 
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
@@ -352,8 +362,12 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
     def test_area_colors(self):
-        from matplotlib import cm
-        from matplotlib.collections import PolyCollection
+        from matplotlib import (
+            cm,
+        )
+        from matplotlib.collections import (
+            PolyCollection,
+        )
 
         custom_colors = "rgcby"
         df = DataFrame(np.random.rand(5, 5))
@@ -408,7 +422,9 @@ class TestDataFrameColor(TestPlotBase):
         self._check_colors(ax.patches[::10], facecolors=custom_colors)
         tm.close()
 
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         # Test str -> colormap functionality
         ax = df.plot.hist(colormap="jet")
@@ -431,7 +447,9 @@ class TestDataFrameColor(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_kde_colors(self):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         custom_colors = "rgcby"
         df = DataFrame(np.random.rand(5, 5))
@@ -451,7 +469,9 @@ class TestDataFrameColor(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
@@ -556,7 +576,9 @@ class TestDataFrameColor(TestPlotBase):
         _check_colors(bp, default_colors[0], "c", "m", default_colors[0])
         tm.close()
 
-        from matplotlib import cm
+        from matplotlib import (
+            cm,
+        )
 
         # Test str -> colormap functionality
         bp = df.plot.box(colormap="jet", return_type="dict")

@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -9,7 +11,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PositionalIndexer
+from pandas._typing import (
+    PositionalIndexer,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -25,7 +29,9 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.groupby import groupby
+    from pandas.core.groupby import (
+        groupby,
+    )
 
 
 class GroupByIndexingMixin:

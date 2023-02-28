@@ -1,6 +1,10 @@
-from cpython.datetime cimport datetime
+from cpython.datetime cimport (
+    datetime,
+)
 
-from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+)
 
 
 cpdef str get_rule_month(str source)

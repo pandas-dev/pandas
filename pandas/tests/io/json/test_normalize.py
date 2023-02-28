@@ -11,7 +11,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.json._normalize import nested_to_record
+from pandas.io.json._normalize import (
+    nested_to_record,
+)
 
 
 @pytest.fixture

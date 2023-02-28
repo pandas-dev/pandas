@@ -1,11 +1,15 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
     timedelta,
     tzinfo,
 )
-from os import PathLike
+from os import (
+    PathLike,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,35 +43,57 @@ if TYPE_CHECKING:
         Timedelta,
         Timestamp,
     )
-    from pandas._libs.tslibs import BaseOffset
+    from pandas._libs.tslibs import (
+        BaseOffset,
+    )
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype
+    from pandas.core.dtypes.dtypes import (
+        ExtensionDtype,
+    )
 
-    from pandas import Interval
+    from pandas import (
+        Interval,
+    )
     from pandas.arrays import (
         DatetimeArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.base import ExtensionArray
-    from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame
+    from pandas.core.arrays.base import (
+        ExtensionArray,
+    )
+    from pandas.core.frame import (
+        DataFrame,
+    )
+    from pandas.core.generic import (
+        NDFrame,
+    )
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
         GroupBy,
         SeriesGroupBy,
     )
-    from pandas.core.indexes.base import Index
+    from pandas.core.indexes.base import (
+        Index,
+    )
     from pandas.core.internals import (
         ArrayManager,
         BlockManager,
         SingleArrayManager,
         SingleBlockManager,
     )
-    from pandas.core.resample import Resampler
-    from pandas.core.series import Series
-    from pandas.core.window.rolling import BaseWindow
+    from pandas.core.resample import (
+        Resampler,
+    )
+    from pandas.core.series import (
+        Series,
+    )
+    from pandas.core.window.rolling import (
+        BaseWindow,
+    )
 
-    from pandas.io.formats.format import EngFormatter
+    from pandas.io.formats.format import (
+        EngFormatter,
+    )
 
     ScalarLike_co = Union[
         int,

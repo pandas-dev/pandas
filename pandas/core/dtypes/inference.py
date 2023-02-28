@@ -1,15 +1,25 @@
 """ basic inference routines """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
-from numbers import Number
+from collections import (
+    abc,
+)
+from numbers import (
+    Number,
+)
 import re
-from typing import Pattern
+from typing import (
+    Pattern,
+)
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 
 is_bool = lib.is_bool
 

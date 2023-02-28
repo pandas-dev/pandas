@@ -5,7 +5,9 @@ from datetime import (
     timezone,
 )
 
-from dateutil.tz.tz import tzoffset
+from dateutil.tz.tz import (
+    tzoffset,
+)
 import numpy as np
 import pytest
 
@@ -14,7 +16,9 @@ from pandas._libs import (
     tslib,
 )
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 import pandas._testing as tm
 
 

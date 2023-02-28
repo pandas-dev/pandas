@@ -7,7 +7,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 import pandas._testing as tm
 
 

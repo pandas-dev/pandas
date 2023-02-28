@@ -30,7 +30,9 @@ import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.base cimport (
+    ABCTimestamp,
+)
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     precision_from_unit,
@@ -65,7 +67,9 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._libs.tslibs.offsets cimport is_tick_object
+from pandas._libs.tslibs.offsets cimport (
+    is_tick_object,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_datetime64_object,
@@ -756,7 +760,9 @@ def _binary_op_method_timedeltalike(op, name):
             # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from pandas._libs.tslibs.timestamps import Timestamp
+            from pandas._libs.tslibs.timestamps import (
+                Timestamp,
+            )
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -1818,7 +1824,9 @@ class Timedelta(_Timedelta):
             int64_t result, unit
             ndarray[int64_t] arr
 
-        from pandas._libs.tslibs.offsets import to_offset
+        from pandas._libs.tslibs.offsets import (
+            to_offset,
+        )
 
         to_offset(freq).nanos  # raises on non-fixed freq
         unit = delta_to_nanoseconds(to_offset(freq), self._creso)

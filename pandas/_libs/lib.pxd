@@ -1,4 +1,6 @@
-from numpy cimport ndarray
+from numpy cimport (
+    ndarray,
+)
 
 
 cdef bint c_is_list_like(object, bint) except -1

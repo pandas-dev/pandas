@@ -2,7 +2,9 @@ from collections import (
     Counter,
     defaultdict,
 )
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 import math
 
 import numpy as np
@@ -19,7 +21,9 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.apply.common import series_transform_kernels
+from pandas.tests.apply.common import (
+    series_transform_kernels,
+)
 
 
 def test_series_map_box_timedelta():

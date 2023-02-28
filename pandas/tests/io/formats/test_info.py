@@ -1,6 +1,10 @@
-from io import StringIO
+from io import (
+    StringIO,
+)
 import re
-from string import ascii_uppercase as uppercase
+from string import (
+    ascii_uppercase as uppercase,
+)
 import sys
 import textwrap
 

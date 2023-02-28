@@ -6,12 +6,16 @@ Numba 1D mean kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import numba
 import numpy as np
 
-from pandas.core._numba.kernels.shared import is_monotonic_increasing
+from pandas.core._numba.kernels.shared import (
+    is_monotonic_increasing,
+)
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)

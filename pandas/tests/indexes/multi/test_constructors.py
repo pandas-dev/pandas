@@ -7,9 +7,13 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+)
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+)
 
 import pandas as pd
 from pandas import (

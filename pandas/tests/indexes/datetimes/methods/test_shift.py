@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import pytest
 import pytz
 
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    NullFrequencyError,
+)
 
 import pandas as pd
 from pandas import (

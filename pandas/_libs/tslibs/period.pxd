@@ -1,6 +1,10 @@
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+)
 
-from .np_datetime cimport npy_datetimestruct
+from .np_datetime cimport (
+    npy_datetimestruct,
+)
 
 
 cdef bint is_period_object(object obj)

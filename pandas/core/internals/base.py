@@ -2,7 +2,9 @@
 Base class for the internal managers. Both BlockManager and ArrayManager
 inherit from this class.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Literal,
@@ -18,14 +20,18 @@ from pandas._typing import (
     DtypeObj,
     Shape,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     np_can_hold_element,
 )
 
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+)
 from pandas.core.indexes.api import (
     Index,
     default_index,

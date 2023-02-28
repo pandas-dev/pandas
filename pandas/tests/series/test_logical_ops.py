@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import operator
 
 import numpy as np
@@ -11,7 +13,9 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core import ops
+from pandas.core import (
+    ops,
+)
 
 
 class TestSeriesLogicalOps:

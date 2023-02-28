@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import importlib
 import types
@@ -7,9 +9,13 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._typing import IndexLabel
+from pandas._typing import (
+    IndexLabel,
+)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -24,12 +30,18 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+)
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    from matplotlib.axes import (
+        Axes,
+    )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 def hist_series(
@@ -1783,7 +1795,9 @@ def _load_backend(backend: str) -> types.ModuleType:
     types.ModuleType
         The imported backend.
     """
-    from importlib.metadata import entry_points
+    from importlib.metadata import (
+        entry_points,
+    )
 
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,

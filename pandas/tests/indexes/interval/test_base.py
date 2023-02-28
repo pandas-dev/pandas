@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import IntervalIndex
+from pandas import (
+    IntervalIndex,
+)
 import pandas._testing as tm
-from pandas.tests.indexes.common import Base
+from pandas.tests.indexes.common import (
+    Base,
+)
 
 
 class TestBase(Base):

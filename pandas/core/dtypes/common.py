@@ -1,7 +1,9 @@
 """
 Common type operations.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Any,
@@ -16,13 +18,17 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import (
+    conversion,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
 
-from pandas.core.dtypes.base import _registry as registry
+from pandas.core.dtypes.base import (
+    _registry as registry,
+)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -30,7 +36,9 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+)
 from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
@@ -228,7 +236,9 @@ def is_sparse(arr) -> bool:
 
     Returns `False` if the parameter has more than one dimension.
     """
-    from pandas.core.arrays.sparse import SparseDtype
+    from pandas.core.arrays.sparse import (
+        SparseDtype,
+    )
 
     dtype = getattr(arr, "dtype", arr)
     return isinstance(dtype, SparseDtype)
@@ -264,7 +274,9 @@ def is_scipy_sparse(arr) -> bool:
 
     if _is_scipy_sparse is None:  # pylint: disable=used-before-assignment
         try:
-            from scipy.sparse import issparse as _is_scipy_sparse
+            from scipy.sparse import (
+                issparse as _is_scipy_sparse,
+            )
         except ImportError:
             _is_scipy_sparse = lambda _: False
 

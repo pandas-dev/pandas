@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Literal
+from typing import (
+    Literal,
+)
 
 import numpy as np
 
@@ -9,13 +13,17 @@ from pandas._config import (
     using_nullable_dtypes,
 )
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     DateTimeErrorChoices,
     npt,
 )
 
-from pandas.core.dtypes.cast import maybe_downcast_numeric
+from pandas.core.dtypes.cast import (
+    maybe_downcast_numeric,
+)
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
@@ -34,7 +42,9 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas as pd
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import (
+    BaseMaskedArray,
+)
 
 
 def to_numeric(

@@ -3,7 +3,9 @@
 import argparse
 import sys
 
-from vulture import Vulture
+from vulture import (
+    Vulture,
+)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

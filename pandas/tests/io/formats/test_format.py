@@ -1,19 +1,29 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-from contextlib import nullcontext
+from contextlib import (
+    nullcontext,
+)
 from datetime import (
     datetime,
     time,
     timedelta,
 )
-from io import StringIO
+from io import (
+    StringIO,
+)
 import itertools
 import locale
-from operator import methodcaller
-from pathlib import Path
+from operator import (
+    methodcaller,
+)
+from pathlib import (
+    Path,
+)
 import re
-from shutil import get_terminal_size
+from shutil import (
+    get_terminal_size,
+)
 import sys
 import textwrap
 
@@ -22,7 +32,9 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import config
+from pandas._config import (
+    config,
+)
 
 from pandas.compat import (
     IS64,
@@ -45,7 +57,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.formats import printing
+from pandas.io.formats import (
+    printing,
+)
 import pandas.io.formats.format as fmt
 
 use_32bit_repr = is_platform_windows() or not IS64

@@ -1,9 +1,13 @@
-from copy import deepcopy
+from copy import (
+    deepcopy,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (

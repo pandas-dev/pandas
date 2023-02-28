@@ -2,9 +2,13 @@
 Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import abc
+from collections import (
+    abc,
+)
 from typing import (
     Any,
     Hashable,
@@ -12,9 +16,13 @@ from typing import (
 )
 
 import numpy as np
-from numpy import ma
+from numpy import (
+    ma,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -41,7 +49,9 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -57,7 +67,9 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
-from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -406,7 +418,9 @@ def dict_to_mgr(
     arrays: Sequence[Any] | Series
 
     if columns is not None:
-        from pandas.core.series import Series
+        from pandas.core.series import (
+            Series,
+        )
 
         arrays = Series(data, index=columns, dtype=object)
         missing = arrays.isna()
@@ -746,7 +760,9 @@ def dataclasses_to_dicts(data):
     [{'x': 1, 'y': 2}, {'x': 2, 'y': 3}]
 
     """
-    from dataclasses import asdict
+    from dataclasses import (
+        asdict,
+    )
 
     return list(map(asdict, data))
 

@@ -6,7 +6,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def unique_label_indices(
     labels: np.ndarray,  # const int64_t[:]

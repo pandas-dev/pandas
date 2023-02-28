@@ -2,7 +2,9 @@
 Functions for implementing 'astype' methods according to pandas conventions,
 particularly ones that differ from numpy.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import inspect
 from typing import (
@@ -13,14 +15,20 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.tslibs.timedeltas import (
+    array_to_timedelta64,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
     IgnoreRaise,
 )
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -37,7 +45,9 @@ from pandas.core.dtypes.dtypes import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import (
+        ExtensionArray,
+    )
 
 
 _dtype_obj = np.dtype(object)
@@ -87,7 +97,9 @@ def _astype_nansafe(
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"]:
-        from pandas.core.construction import ensure_wrapped_if_datetimelike
+        from pandas.core.construction import (
+            ensure_wrapped_if_datetimelike,
+        )
 
         arr = ensure_wrapped_if_datetimelike(arr)
         res = arr.astype(dtype, copy=copy)
@@ -109,14 +121,18 @@ def _astype_nansafe(
         # then coerce to datetime64[ns] and use DatetimeArray.astype
 
         if is_datetime64_dtype(dtype):
-            from pandas import to_datetime
+            from pandas import (
+                to_datetime,
+            )
 
             dti = to_datetime(arr.ravel())
             dta = dti._data.reshape(arr.shape)
             return dta.astype(dtype, copy=False)._ndarray
 
         elif is_timedelta64_dtype(dtype):
-            from pandas.core.construction import ensure_wrapped_if_datetimelike
+            from pandas.core.construction import (
+                ensure_wrapped_if_datetimelike,
+            )
 
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that

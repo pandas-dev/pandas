@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs import groupby as libgroupby
+from pandas._libs import (
+    groupby as libgroupby,
+)
 from pandas._libs.groupby import (
     group_cumprod,
     group_cumsum,
@@ -9,9 +11,13 @@ from pandas._libs.groupby import (
     group_var,
 )
 
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+)
 
-from pandas import isna
+from pandas import (
+    isna,
+)
 import pandas._testing as tm
 
 

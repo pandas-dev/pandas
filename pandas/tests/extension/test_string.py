@@ -18,14 +18,24 @@ import string
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_string_dtype
-from pandas.core.arrays import ArrowStringArray
-from pandas.core.arrays.string_ import StringDtype
-from pandas.tests.extension import base
+from pandas.api.types import (
+    is_string_dtype,
+)
+from pandas.core.arrays import (
+    ArrowStringArray,
+)
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
+from pandas.tests.extension import (
+    base,
+)
 
 
 def split_array(arr):

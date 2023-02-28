@@ -4,7 +4,9 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import csv
 from io import (
@@ -12,7 +14,9 @@ from io import (
     StringIO,
     TextIOWrapper,
 )
-from typing import Iterator
+from typing import (
+    Iterator,
+)
 
 import pytest
 

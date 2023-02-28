@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def calculate_variable_window_bounds(
     num_values: int,  # int64_t

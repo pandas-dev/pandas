@@ -6,7 +6,9 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime
 from functools import (
@@ -14,7 +16,9 @@ from functools import (
     wraps,
 )
 import inspect
-from textwrap import dedent
+from textwrap import (
+    dedent,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -33,15 +37,21 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import option_context
+from pandas._config.config import (
+    option_context,
+)
 
 from pandas._libs import (
     Timestamp,
     lib,
 )
-from pandas._libs.algos import rank_1d
+from pandas._libs.algos import (
+    rank_1d,
+)
 import pandas._libs.groupby as libgroupby
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -57,7 +67,9 @@ from pandas._typing import (
     T,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     AbstractMethodError,
     DataError,
@@ -69,7 +81,9 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import (
+    ensure_dtype_can_hold_na,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
@@ -90,7 +104,9 @@ from pandas.core import (
     algorithms,
     sample,
 )
-from pandas.core._numba import executor
+from pandas.core._numba import (
+    executor,
+)
 from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
@@ -105,14 +121,20 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame
+from pandas.core.frame import (
+    DataFrame,
+)
+from pandas.core.generic import (
+    NDFrame,
+)
 from pandas.core.groupby import (
     base,
     numba_,
     ops,
 )
-from pandas.core.groupby.grouper import get_grouper
+from pandas.core.groupby.grouper import (
+    get_grouper,
+)
 from pandas.core.groupby.indexing import (
     GroupByIndexingMixin,
     GroupByNthSelector,
@@ -124,9 +146,15 @@ from pandas.core.indexes.api import (
     RangeIndex,
     default_index,
 )
-from pandas.core.internals.blocks import ensure_block_shape
-from pandas.core.series import Series
-from pandas.core.sorting import get_group_index_sorter
+from pandas.core.internals.blocks import (
+    ensure_block_shape,
+)
+from pandas.core.series import (
+    Series,
+)
+from pandas.core.sorting import (
+    get_group_index_sorter,
+)
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
@@ -999,7 +1027,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
-        from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.concat import (
+            concat,
+        )
 
         if self.group_keys and not is_transform:
             if self.as_index:
@@ -1838,7 +1868,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_mean
+            from pandas.core._numba.kernels import (
+                sliding_mean,
+            )
 
             return self._numba_agg_general(sliding_mean, engine_kwargs)
         else:
@@ -1929,7 +1961,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Standard deviation of values within each group.
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import (
+                sliding_var,
+            )
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
@@ -2012,7 +2046,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Variance of values within each group.
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import (
+                sliding_var,
+            )
 
             return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
         else:
@@ -2239,7 +2275,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_sum
+            from pandas.core._numba.kernels import (
+                sliding_sum,
+            )
 
             return self._numba_agg_general(
                 sliding_sum,
@@ -2276,7 +2314,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import (
+                sliding_min_max,
+            )
 
             return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
         else:
@@ -2297,7 +2337,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import (
+                sliding_min_max,
+            )
 
             return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
         else:
@@ -2605,7 +2647,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             2000-01-01 00:03:00  0  2
         5   2000-01-01 00:03:00  5  1
         """
-        from pandas.core.resample import get_resampler_for_grouping
+        from pandas.core.resample import (
+            get_resampler_for_grouping,
+        )
 
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
@@ -2739,7 +2783,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2 2  3    NaN
           3  4  0.705
         """
-        from pandas.core.window import RollingGroupby
+        from pandas.core.window import (
+            RollingGroupby,
+        )
 
         return RollingGroupby(
             self._selected_obj,
@@ -2757,7 +2803,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Return an expanding grouper, providing expanding
         functionality per group.
         """
-        from pandas.core.window import ExpandingGroupby
+        from pandas.core.window import (
+            ExpandingGroupby,
+        )
 
         return ExpandingGroupby(
             self._selected_obj,
@@ -2773,7 +2821,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an ewm grouper, providing ewm functionality per group.
         """
-        from pandas.core.window import ExponentialMovingWindowGroupby
+        from pandas.core.window import (
+            ExponentialMovingWindowGroupby,
+        )
 
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
@@ -4232,11 +4282,15 @@ def get_groupby(
 ) -> GroupBy:
     klass: type[GroupBy]
     if isinstance(obj, Series):
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from pandas.core.groupby.generic import (
+            SeriesGroupBy,
+        )
 
         klass = SeriesGroupBy
     elif isinstance(obj, DataFrame):
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+        )
 
         klass = DataFrameGroupBy
     else:  # pragma: no cover

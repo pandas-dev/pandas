@@ -1,14 +1,18 @@
 """ test fancy indexing & misc """
 
 import array
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import re
 import weakref
 
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+)
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -27,8 +31,12 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexing.common import _mklbl
-from pandas.tests.indexing.test_floats import gen_obj
+from pandas.tests.indexing.common import (
+    _mklbl,
+)
+from pandas.tests.indexing.test_floats import (
+    gen_obj,
+)
 
 # ------------------------------------------------------------------------
 # Indexing test cases

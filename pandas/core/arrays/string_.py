@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -7,13 +9,17 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 from pandas._typing import (
     AxisInt,
     Dtype,
@@ -21,9 +27,15 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under7p0
-from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
+from pandas.compat import (
+    pa_version_under7p0,
+)
+from pandas.compat.numpy import (
+    function as nv,
+)
+from pandas.util._decorators import (
+    doc,
+)
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -40,19 +52,35 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core import ops
-from pandas.core.array_algos import masked_reductions
+from pandas.core import (
+    ops,
+)
+from pandas.core.array_algos import (
+    masked_reductions,
+)
 from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
-from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.missing import isna
+from pandas.core.arrays.floating import (
+    FloatingDtype,
+)
+from pandas.core.arrays.integer import (
+    IntegerDtype,
+)
+from pandas.core.arrays.numpy_ import (
+    PandasArray,
+)
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.indexers import (
+    check_array_indexer,
+)
+from pandas.core.missing import (
+    isna,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -62,7 +90,9 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 
 @register_extension_dtype
@@ -177,7 +207,9 @@ class StringDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import (
+            ArrowStringArray,
+        )
 
         if self.storage == "python":
             return StringArray
@@ -191,7 +223,9 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_arrow import (
+                ArrowStringArray,
+            )
 
             return ArrowStringArray(array)
         else:
@@ -344,7 +378,9 @@ class StringArray(BaseStringArray, PandasArray):
             dtype = pandas_dtype(dtype)
             assert isinstance(dtype, StringDtype) and dtype.storage == "python"
 
-        from pandas.core.arrays.masked import BaseMaskedArray
+        from pandas.core.arrays.masked import (
+            BaseMaskedArray,
+        )
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
@@ -490,7 +526,9 @@ class StringArray(BaseStringArray, PandasArray):
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas import (
+            value_counts,
+        )
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
@@ -517,7 +555,9 @@ class StringArray(BaseStringArray, PandasArray):
         return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            BooleanArray,
+        )
 
         if isinstance(other, StringArray):
             other = other._ndarray
@@ -557,7 +597,9 @@ class StringArray(BaseStringArray, PandasArray):
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
-        from pandas.arrays import BooleanArray
+        from pandas.arrays import (
+            BooleanArray,
+        )
 
         if dtype is None:
             dtype = StringDtype(storage="python")

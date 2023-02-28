@@ -15,7 +15,9 @@ from pandas._libs.tslibs import (
     timezones,
 )
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import (
+    is_scalar,
+)
 
 import pandas as pd
 from pandas import (
@@ -30,9 +32,13 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
+from pandas.core.indexing import (
+    IndexingError,
+)
 
-from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import (
+    BDay,
+)
 
 
 class TestSeriesGetitemScalars:

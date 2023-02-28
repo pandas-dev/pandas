@@ -1,4 +1,6 @@
-from pandas import MultiIndex
+from pandas import (
+    MultiIndex,
+)
 
 
 class TestIsLexsorted:

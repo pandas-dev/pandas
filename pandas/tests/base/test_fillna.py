@@ -6,9 +6,13 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
-from pandas import MultiIndex
+from pandas import (
+    MultiIndex,
+)
 import pandas._testing as tm
-from pandas.tests.base.common import allow_na_ops
+from pandas.tests.base.common import (
+    allow_na_ops,
+)
 
 
 def test_fillna(index_or_series_obj):

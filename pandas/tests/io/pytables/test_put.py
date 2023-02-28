@@ -8,7 +8,9 @@ from warnings import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,7 +26,9 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
+from pandas.util import (
+    _test_decorators as td,
+)
 
 pytestmark = pytest.mark.single_cpu
 

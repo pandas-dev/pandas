@@ -1,8 +1,12 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    ParserWarning,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -12,7 +16,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.xml import read_xml
+from pandas.io.xml import (
+    read_xml,
+)
 
 
 @pytest.fixture(params=[pytest.param("lxml", marks=td.skip_if_no("lxml")), "etree"])

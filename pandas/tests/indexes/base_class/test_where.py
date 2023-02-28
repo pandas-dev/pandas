@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas import Index
+from pandas import (
+    Index,
+)
 import pandas._testing as tm
 
 

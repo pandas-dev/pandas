@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -6,13 +8,21 @@ from typing import (
     NamedTuple,
 )
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+)
 
 if TYPE_CHECKING:
-    from pandas._libs.internals import BlockPlacement
+    from pandas._libs.internals import (
+        BlockPlacement,
+    )
 
-    from pandas.core.internals.blocks import Block
-    from pandas.core.internals.managers import BlockManager
+    from pandas.core.internals.blocks import (
+        Block,
+    )
+    from pandas.core.internals.managers import (
+        BlockManager,
+    )
 
 
 class BlockPairInfo(NamedTuple):

@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -133,7 +135,9 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self, sort):
-        from pandas import DateOffset
+        from pandas import (
+            DateOffset,
+        )
 
         left = date_range("2013-01-01", "2013-02-01")
         right = left + DateOffset(minutes=15)
@@ -298,7 +302,9 @@ class TestDatetimeIndexSetOps:
             assert result.freq == rng.freq
 
     def test_intersection_bug_1708(self):
-        from pandas import DateOffset
+        from pandas import (
+            DateOffset,
+        )
 
         index_1 = date_range("1/1/2012", periods=4, freq="12H")
         index_2 = index_1 + DateOffset(hours=1)
@@ -496,7 +502,9 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
-        from pytz import timezone
+        from pytz import (
+            timezone,
+        )
 
         tz = timezone("US/Eastern")
 
@@ -513,7 +521,9 @@ class TestBusinessDatetimeIndex:
 
     @td.skip_if_windows
     def test_month_range_union_tz_dateutil(self, sort):
-        from pandas._libs.tslibs.timezones import dateutil_gettz
+        from pandas._libs.tslibs.timezones import (
+            dateutil_gettz,
+        )
 
         tz = dateutil_gettz("US/Eastern")
 

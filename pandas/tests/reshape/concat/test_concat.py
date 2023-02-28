@@ -2,9 +2,15 @@ from collections import (
     abc,
     deque,
 )
-from datetime import datetime
-from decimal import Decimal
-from typing import Iterator
+from datetime import (
+    datetime,
+)
+from decimal import (
+    Decimal,
+)
+from typing import (
+    Iterator,
+)
 from warnings import (
     catch_warnings,
     simplefilter,
@@ -30,8 +36,12 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import SparseArray
-from pandas.tests.extension.decimal import to_decimal
+from pandas.core.arrays import (
+    SparseArray,
+)
+from pandas.tests.extension.decimal import (
+    to_decimal,
+)
 
 
 class TestConcatenate:

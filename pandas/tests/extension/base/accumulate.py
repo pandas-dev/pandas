@@ -1,7 +1,9 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseAccumulateTests(BaseExtensionTests):

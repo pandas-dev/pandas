@@ -3,7 +3,9 @@ Tests for CategoricalIndex.__repr__ and related methods.
 """
 import pandas._config.config as cf
 
-from pandas import CategoricalIndex
+from pandas import (
+    CategoricalIndex,
+)
 
 
 class TestCategoricalIndexRepr:

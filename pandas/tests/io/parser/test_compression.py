@@ -4,15 +4,21 @@ of the parsers defined in parsers.py
 """
 
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import tarfile
 import zipfile
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
+from pandas.tests.io.test_compression import (
+    _compression_to_extension,
+)
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 

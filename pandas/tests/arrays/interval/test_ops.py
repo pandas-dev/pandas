@@ -9,7 +9,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import (
+    IntervalArray,
+)
 
 
 @pytest.fixture(params=[IntervalArray, IntervalIndex])

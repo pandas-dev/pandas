@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     Literal,
@@ -7,8 +9,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.missing import is_matching_na
-from pandas._libs.sparse import SparseIndex
+from pandas._libs.missing import (
+    is_matching_na,
+)
+from pandas._libs.sparse import (
+    SparseIndex,
+)
 import pandas._libs.testing as _testing
 
 from pandas.core.dtypes.common import (
@@ -25,7 +31,9 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     PandasDtype,
 )
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+)
 
 import pandas as pd
 from pandas import (
@@ -40,7 +48,9 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import take_nd
+from pandas.core.algorithms import (
+    take_nd,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -48,11 +58,19 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.arrays.string_ import StringDtype
-from pandas.core.indexes.api import safe_sort_index
+from pandas.core.arrays.datetimelike import (
+    DatetimeLikeArrayMixin,
+)
+from pandas.core.arrays.string_ import (
+    StringDtype,
+)
+from pandas.core.indexes.api import (
+    safe_sort_index,
+)
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 
 def assert_almost_equal(

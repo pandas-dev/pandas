@@ -13,7 +13,9 @@ from pandas import (
     Grouper,
     Series,
 )
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 @pytest.fixture(

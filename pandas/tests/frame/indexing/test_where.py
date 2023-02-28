@@ -1,10 +1,16 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from hypothesis import given
+from hypothesis import (
+    given,
+)
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import (
+    is_scalar,
+)
 
 import pandas as pd
 from pandas import (
@@ -18,7 +24,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
+from pandas._testing._hypothesis import (
+    OPTIONAL_ONE_OF_ALL,
+)
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])

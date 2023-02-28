@@ -1,6 +1,10 @@
-from numpy cimport int64_t
+from numpy cimport (
+    int64_t,
+)
 
-from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+)
 
 
 cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)

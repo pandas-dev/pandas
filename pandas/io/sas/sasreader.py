@@ -1,13 +1,17 @@
 """
 Read SAS sas7bdat or xport files.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABCMeta,
     abstractmethod,
 )
-from types import TracebackType
+from types import (
+    TracebackType,
+)
 from typing import (
     TYPE_CHECKING,
     Hashable,
@@ -19,14 +23,22 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+)
 
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import (
+    _shared_docs,
+)
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    stringify_path,
+)
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+    )
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -151,7 +163,9 @@ def read_sas(
 
     reader: ReaderBase
     if format.lower() == "xport":
-        from pandas.io.sas.sas_xport import XportReader
+        from pandas.io.sas.sas_xport import (
+            XportReader,
+        )
 
         reader = XportReader(
             filepath_or_buffer,
@@ -161,7 +175,9 @@ def read_sas(
             compression=compression,
         )
     elif format.lower() == "sas7bdat":
-        from pandas.io.sas.sas7bdat import SAS7BDATReader
+        from pandas.io.sas.sas7bdat import (
+            SAS7BDATReader,
+        )
 
         reader = SAS7BDATReader(
             filepath_or_buffer,

@@ -1,9 +1,13 @@
 """
 Internal module for console introspection
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from shutil import get_terminal_size
+from shutil import (
+    get_terminal_size,
+)
 
 
 def get_console_size() -> tuple[int | None, int | None]:
@@ -12,7 +16,9 @@ def get_console_size() -> tuple[int | None, int | None]:
 
     Returns (None,None) in non-interactive session.
     """
-    from pandas import get_option
+    from pandas import (
+        get_option,
+    )
 
     display_width = get_option("display.width")
     display_height = get_option("display.max_rows")
@@ -31,7 +37,9 @@ def get_console_size() -> tuple[int | None, int | None]:
         if in_ipython_frontend():
             # sane defaults for interactive non-shell terminal
             # match default for width,height in config_init
-            from pandas._config.config import get_default_val
+            from pandas._config.config import (
+                get_default_val,
+            )
 
             terminal_width = get_default_val("display.width")
             terminal_height = get_default_val("display.max_rows")
@@ -60,7 +68,9 @@ def in_interactive_session() -> bool:
     bool
         True if running under python/ipython interactive shell.
     """
-    from pandas import get_option
+    from pandas import (
+        get_option,
+    )
 
     def check_main():
         try:

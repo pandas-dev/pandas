@@ -1,4 +1,6 @@
-from collections import deque
+from collections import (
+    deque,
+)
 import re
 import string
 
@@ -7,7 +9,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.arrays import SparseArray
+from pandas.arrays import (
+    SparseArray,
+)
 
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op
 SPARSE = [True, False]

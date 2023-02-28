@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+)
 
 import pandas as pd
 from pandas import (

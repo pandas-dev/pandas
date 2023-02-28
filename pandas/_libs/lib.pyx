@@ -1,6 +1,12 @@
-from collections import abc
-from decimal import Decimal
-from enum import Enum
+from collections import (
+    abc,
+)
+from decimal import (
+    Decimal,
+)
+from enum import (
+    Enum,
+)
 from typing import (
     Literal,
     _GenericAlias,
@@ -14,16 +20,24 @@ from cpython.datetime cimport (
     PyTime_Check,
     import_datetime,
 )
-from cpython.iterator cimport PyIter_Check
-from cpython.number cimport PyNumber_Check
+from cpython.iterator cimport (
+    PyIter_Check,
+)
+from cpython.number cimport (
+    PyNumber_Check,
+)
 from cpython.object cimport (
     Py_EQ,
     PyObject,
     PyObject_RichCompareBool,
     PyTypeObject,
 )
-from cpython.ref cimport Py_INCREF
-from cpython.sequence cimport PySequence_Check
+from cpython.ref cimport (
+    Py_INCREF,
+)
+from cpython.sequence cimport (
+    PySequence_Check,
+)
 from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
@@ -33,7 +47,9 @@ from cython cimport (
     floating,
 )
 
-from pandas._libs.missing import check_na_tuples_nonequal
+from pandas._libs.missing import (
+    check_na_tuples_nonequal,
+)
 
 import_datetime()
 
@@ -92,7 +108,9 @@ cdef extern from "numpy/ndarrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-from pandas._libs cimport util
+from pandas._libs cimport (
+    util,
+)
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -104,7 +122,9 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs.period import (
+    Period,
+)
 
 from pandas._libs.missing cimport (
     C_NA,
@@ -122,11 +142,21 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
 )
-from pandas._libs.tslibs.np_datetime cimport NPY_FR_ns
-from pandas._libs.tslibs.offsets cimport is_offset_object
-from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
-from pandas._libs.tslibs.timezones cimport tz_compare
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_FR_ns,
+)
+from pandas._libs.tslibs.offsets cimport (
+    is_offset_object,
+)
+from pandas._libs.tslibs.period cimport (
+    is_period_object,
+)
+from pandas._libs.tslibs.timedeltas cimport (
+    convert_to_timedelta64,
+)
+from pandas._libs.tslibs.timezones cimport (
+    tz_compare,
+)
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -612,7 +642,9 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
-                    from pandas.core.dtypes.missing import array_equivalent
+                    from pandas.core.dtypes.missing import (
+                        array_equivalent,
+                    )
 
                     if not array_equivalent(x, y):
                         return False
@@ -1498,7 +1530,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if not value:
             return "empty"
 
-        from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+        from pandas.core.dtypes.cast import (
+            construct_1d_object_array_from_listlike,
+        )
         values = construct_1d_object_array_from_listlike(value)
 
     inferred = _try_infer_map(values.dtype)
@@ -2560,7 +2594,9 @@ def maybe_convert_objects(ndarray[object] objects,
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
         if is_datetime_with_singletz_array(objects):
-            from pandas import DatetimeIndex
+            from pandas import (
+                DatetimeIndex,
+            )
 
             try:
                 dti = DatetimeIndex(objects)
@@ -2574,7 +2610,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.datetime_:
         if is_datetime_or_datetime64_array(objects):
-            from pandas import DatetimeIndex
+            from pandas import (
+                DatetimeIndex,
+            )
 
             try:
                 dti = DatetimeIndex(objects)
@@ -2587,7 +2625,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.timedelta_:
         if is_timedelta_or_timedelta64_array(objects):
-            from pandas import TimedeltaIndex
+            from pandas import (
+                TimedeltaIndex,
+            )
 
             try:
                 tdi = TimedeltaIndex(objects)
@@ -2600,7 +2640,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     if seen.period_:
         if is_period_array(objects):
-            from pandas import PeriodIndex
+            from pandas import (
+                PeriodIndex,
+            )
             pi = PeriodIndex(objects)
 
             # unbox to PeriodArray
@@ -2609,7 +2651,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     if seen.interval_:
         if is_interval_array(objects):
-            from pandas import IntervalIndex
+            from pandas import (
+                IntervalIndex,
+            )
             ii = IntervalIndex(objects)
 
             # unbox to IntervalArray
@@ -2660,7 +2704,9 @@ def maybe_convert_objects(ndarray[object] objects,
             # is_bool property rules out everything else
             return bools.view(np.bool_)
         elif convert_to_nullable_dtype and seen.is_bool_or_na:
-            from pandas.core.arrays import BooleanArray
+            from pandas.core.arrays import (
+                BooleanArray,
+            )
             return BooleanArray(bools.view(np.bool_), mask)
         seen.object_ = True
 
@@ -2674,7 +2720,9 @@ def maybe_convert_objects(ndarray[object] objects,
                     result = floats
                 elif seen.int_ or seen.uint_:
                     if convert_to_nullable_dtype:
-                        from pandas.core.arrays import IntegerArray
+                        from pandas.core.arrays import (
+                            IntegerArray,
+                        )
                         if seen.uint_:
                             result = IntegerArray(uints, mask)
                         else:

@@ -5,7 +5,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+)
 
 
 @pytest.mark.parametrize(

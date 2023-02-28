@@ -3,7 +3,9 @@ Module responsible for execution of NDFrame.describe() method.
 
 Method NDFrame.describe() delegates actual execution to function describe_ndframe().
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from abc import (
     ABC,
@@ -20,13 +22,17 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
+from pandas._libs.tslibs import (
+    Timestamp,
+)
 from pandas._typing import (
     DtypeObj,
     NDFrameT,
     npt,
 )
-from pandas.util._validators import validate_percentile
+from pandas.util._validators import (
+    validate_percentile,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -38,9 +44,13 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas.core.reshape.concat import concat
+from pandas.core.reshape.concat import (
+    concat,
+)
 
-from pandas.io.formats.format import format_percentiles
+from pandas.io.formats.format import (
+    format_percentiles,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -217,7 +227,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     percentiles : list-like of numbers
         The percentiles to include in the output.
     """
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     formatted_percentiles = format_percentiles(percentiles)
 
@@ -265,7 +277,9 @@ def describe_categorical_1d(
 
     result = [data.count(), count_unique, top, freq]
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     return Series(result, index=names, name=data.name, dtype=dtype)
 
@@ -313,7 +327,9 @@ def describe_timestamp_as_categorical_1d(
         result += [np.nan, np.nan]
         dtype = "object"
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     return Series(result, index=names, name=data.name, dtype=dtype)
 
@@ -329,7 +345,9 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
         The percentiles to include in the output.
     """
     # GH-30164
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
     formatted_percentiles = format_percentiles(percentiles)
 

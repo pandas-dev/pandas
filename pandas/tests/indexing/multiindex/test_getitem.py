@@ -8,7 +8,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
+from pandas.core.indexing import (
+    IndexingError,
+)
 
 # ----------------------------------------------------------------------------
 # test indexing of Series with multi-level Index

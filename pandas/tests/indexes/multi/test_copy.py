@@ -5,7 +5,9 @@ from copy import (
 
 import pytest
 
-from pandas import MultiIndex
+from pandas import (
+    MultiIndex,
+)
 import pandas._testing as tm
 
 

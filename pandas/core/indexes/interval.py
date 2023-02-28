@@ -1,5 +1,7 @@
 """ define the IntervalIndex """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from operator import (
     le,
@@ -14,7 +16,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._libs.interval import (
     Interval,
     IntervalMixin,
@@ -32,12 +36,16 @@ from pandas._typing import (
     IntervalClosedType,
     npt,
 )
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
 )
-from pandas.util._exceptions import rewrite_exception
+from pandas.util._exceptions import (
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -61,16 +69,24 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.missing import is_valid_na_for_dtype
+from pandas.core.dtypes.dtypes import (
+    IntervalDtype,
+)
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+)
 
-from pandas.core.algorithms import unique
+from pandas.core.algorithms import (
+    unique,
+)
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
 )
 import pandas.core.common as com
-from pandas.core.indexers import is_valid_positional_slice
+from pandas.core.indexers import (
+    is_valid_positional_slice,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -86,7 +102,9 @@ from pandas.core.indexes.extension import (
     ExtensionIndex,
     inherit_names,
 )
-from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.multi import (
+    MultiIndex,
+)
 from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,

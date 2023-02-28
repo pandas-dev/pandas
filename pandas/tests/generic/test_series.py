@@ -1,4 +1,6 @@
-from operator import methodcaller
+from operator import (
+    methodcaller,
+)
 
 import numpy as np
 import pytest

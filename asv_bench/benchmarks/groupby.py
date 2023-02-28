@@ -1,6 +1,12 @@
-from functools import partial
-from itertools import product
-from string import ascii_letters
+from functools import (
+    partial,
+)
+from itertools import (
+    product,
+)
+from string import (
+    ascii_letters,
+)
 
 import numpy as np
 
@@ -17,7 +23,9 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 method_blocklist = {
     "object": {

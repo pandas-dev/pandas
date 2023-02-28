@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import random
 from typing import (
@@ -6,14 +8,22 @@ from typing import (
     Hashable,
 )
 
-from matplotlib import patches
+from matplotlib import (
+    patches,
+)
 import matplotlib.lines as mlines
 import numpy as np
 
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
-from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
+from pandas.plotting._matplotlib.style import (
+    get_standard_colors,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     do_adjust_figure,
@@ -22,8 +32,12 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
+    from matplotlib.axes import (
+        Axes,
+    )
+    from matplotlib.figure import (
+        Figure,
+    )
 
     from pandas import (
         DataFrame,
@@ -82,7 +96,9 @@ def scatter_matrix(
                     ax.hist(values, **hist_kwds)
 
                 elif diagonal in ("kde", "density"):
-                    from scipy.stats import gaussian_kde
+                    from scipy.stats import (
+                        gaussian_kde,
+                    )
 
                     y = values
                     gkde = gaussian_kde(y)

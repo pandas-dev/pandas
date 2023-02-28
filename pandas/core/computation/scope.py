@@ -1,11 +1,15 @@
 """
 Module for scope operations
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import datetime
 import inspect
-from io import StringIO
+from io import (
+    StringIO,
+)
 import itertools
 import pprint
 import struct
@@ -17,8 +21,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs.tslibs import Timestamp
-from pandas.errors import UndefinedVariableError
+from pandas._libs.tslibs import (
+    Timestamp,
+)
+from pandas.errors import (
+    UndefinedVariableError,
+)
 
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")

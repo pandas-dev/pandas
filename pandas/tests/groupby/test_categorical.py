@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
@@ -14,7 +16,9 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
-from pandas.tests.groupby import get_groupby_method_args
+from pandas.tests.groupby import (
+    get_groupby_method_args,
+)
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):

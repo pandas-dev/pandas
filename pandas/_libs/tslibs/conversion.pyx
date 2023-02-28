@@ -1,7 +1,9 @@
 import numpy as np
 
 cimport numpy as cnp
-from libc.math cimport log10
+from libc.math cimport (
+    log10,
+)
 from numpy cimport (
     int32_t,
     int64_t,
@@ -11,7 +13,9 @@ cnp.import_array()
 
 # stdlib datetime imports
 
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
 from cpython.datetime cimport (
     PyDate_Check,
@@ -25,7 +29,9 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.base cimport (
+    ABCTimestamp,
+)
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -50,15 +56,21 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs.np_datetime import (
+    OutOfBoundsDatetime,
+)
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.parsing cimport parse_datetime_string
-from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.parsing cimport (
+    parse_datetime_string,
+)
+from pandas._libs.tslibs.timestamps cimport (
+    _Timestamp,
+)
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
@@ -313,7 +325,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             ts, tz, nanos=0, reso=NPY_DATETIMEUNIT.NPY_FR_s
         )
     else:
-        from .period import Period
+        from .period import (
+            Period,
+        )
         if isinstance(ts, Period):
             raise ValueError("Cannot convert Period to Timestamp "
                              "unambiguously. Use to_timestamp")
@@ -572,7 +586,9 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
 
     if obj.dts.year == lb.year:
         if not (obj.value < 0):
-            from pandas._libs.tslibs.timestamps import Timestamp
+            from pandas._libs.tslibs.timestamps import (
+                Timestamp,
+            )
             fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
                    f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
             raise OutOfBoundsDatetime(
@@ -580,7 +596,9 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
             )
     elif obj.dts.year == ub.year:
         if not (obj.value > 0):
-            from pandas._libs.tslibs.timestamps import Timestamp
+            from pandas._libs.tslibs.timestamps import (
+                Timestamp,
+            )
             fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
                    f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
             raise OutOfBoundsDatetime(

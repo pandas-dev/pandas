@@ -11,7 +11,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
+from pandas.api.indexers import (
+    BaseIndexer,
+)
 
 
 @pytest.fixture(

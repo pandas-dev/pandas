@@ -1,5 +1,7 @@
 """ define generic base classes for pandas objects """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -28,7 +30,9 @@ if TYPE_CHECKING:
         PeriodArray,
         TimedeltaArray,
     )
-    from pandas.core.generic import NDFrame
+    from pandas.core.generic import (
+        NDFrame,
+    )
 
 
 # define abstract base classes to enable isinstance type checking on our

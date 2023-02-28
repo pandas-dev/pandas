@@ -1,11 +1,15 @@
-from io import BytesIO
+from io import (
+    BytesIO,
+)
 import os
 
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import read_csv
+from pandas import (
+    read_csv,
+)
 import pandas._testing as tm
 
 
@@ -13,7 +17,9 @@ def test_streaming_s3_objects():
     # GH17135
     # botocore gained iteration support in 1.10.47, can now be used in read_*
     pytest.importorskip("botocore", minversion="1.10.47")
-    from botocore.response import StreamingBody
+    from botocore.response import (
+        StreamingBody,
+    )
 
     data = [b"foo,bar,baz\n1,2,3\n4,5,6\n", b"just,the,header\n"]
     for el in data:

@@ -2,7 +2,9 @@
 Module for formatting output data into CSV files.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import csv as csvlib
 import os
@@ -17,7 +19,9 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import writers as libwriters
+from pandas._libs import (
+    writers as libwriters,
+)
 from pandas._typing import (
     CompressionOptions,
     FilePath,
@@ -26,7 +30,9 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -34,14 +40,22 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
 )
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    notna,
+)
 
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+)
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 
 if TYPE_CHECKING:
-    from pandas.io.formats.format import DataFrameFormatter
+    from pandas.io.formats.format import (
+        DataFrameFormatter,
+    )
 
 
 class CSVFormatter:

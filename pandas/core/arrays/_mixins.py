@@ -1,6 +1,10 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from functools import wraps
+from functools import (
+    wraps,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,8 +17,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.arrays import NDArrayBacked
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.arrays import (
+    NDArrayBacked,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -29,8 +37,12 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.errors import (
+    AbstractMethodError,
+)
+from pandas.util._decorators import (
+    doc,
+)
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -46,20 +58,36 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+)
 
-from pandas.core import missing
+from pandas.core import (
+    missing,
+)
 from pandas.core.algorithms import (
     take,
     unique,
     value_counts,
 )
-from pandas.core.array_algos.quantile import quantile_with_mask
-from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays.base import ExtensionArray
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.sorting import nargminmax
+from pandas.core.array_algos.quantile import (
+    quantile_with_mask,
+)
+from pandas.core.array_algos.transforms import (
+    shift,
+)
+from pandas.core.arrays.base import (
+    ExtensionArray,
+)
+from pandas.core.construction import (
+    extract_array,
+)
+from pandas.core.indexers import (
+    check_array_indexer,
+)
+from pandas.core.sorting import (
+    nargminmax,
+)
 
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
@@ -71,7 +99,9 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
     )
 
-    from pandas import Series
+    from pandas import (
+        Series,
+    )
 
 
 def ravel_compat(meth: F) -> F:
@@ -138,11 +168,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()
             return cls(arr.view("i8"), dtype=dtype)
         elif dtype == "M8[ns]":
-            from pandas.core.arrays import DatetimeArray
+            from pandas.core.arrays import (
+                DatetimeArray,
+            )
 
             return DatetimeArray(arr.view("i8"), dtype=dtype)
         elif dtype == "m8[ns]":
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray(arr.view("i8"), dtype=dtype)
 

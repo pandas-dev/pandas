@@ -1,7 +1,9 @@
 """
 Routines for filling missing data.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from functools import (
     partial,
@@ -27,9 +29,13 @@ from pandas._typing import (
     F,
     npt,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
-from pandas.core.dtypes.cast import infer_dtype_from
+from pandas.core.dtypes.cast import (
+    infer_dtype_from,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_numeric_v_string_like,
@@ -43,7 +49,9 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        Index,
+    )
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
@@ -503,7 +511,9 @@ def _interpolate_scipy_wrapper(
     """
     extra = f"{method} interpolation requires SciPy."
     import_optional_dependency("scipy", extra=extra)
-    from scipy import interpolate
+    from scipy import (
+        interpolate,
+    )
 
     new_x = np.asarray(new_x)
 
@@ -599,7 +609,9 @@ def _from_derivatives(
     y : scalar or array-like
         The result, of length R or length M or M by R.
     """
-    from scipy import interpolate
+    from scipy import (
+        interpolate,
+    )
 
     # return the method for compat with scipy version & backwards compat
     method = interpolate.BPoly.from_derivatives
@@ -644,7 +656,9 @@ def _akima_interpolate(xi, yi, x, der: int | list[int] | None = 0, axis: AxisInt
         The result, of length R or length M or M by R,
 
     """
-    from scipy import interpolate
+    from scipy import (
+        interpolate,
+    )
 
     P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
 
@@ -728,7 +742,9 @@ def _cubicspline_interpolate(
             on Wikiversity.
     .. [2] Carl de Boor, "A Practical Guide to Splines", Springer-Verlag, 1978.
     """
-    from scipy import interpolate
+    from scipy import (
+        interpolate,
+    )
 
     P = interpolate.CubicSpline(
         xi, yi, axis=axis, bc_type=bc_type, extrapolate=extrapolate

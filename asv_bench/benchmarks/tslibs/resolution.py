@@ -20,7 +20,9 @@ for unit in tr.params[0]:
 import numpy as np
 
 try:
-    from pandas._libs.tslibs import get_resolution
+    from pandas._libs.tslibs import (
+        get_resolution,
+    )
 except ImportError:
     from pandas._libs.tslibs.resolution import get_resolution
 

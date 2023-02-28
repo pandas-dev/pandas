@@ -226,7 +226,9 @@ class TestSeriesStatReductions:
 
     @td.skip_if_no_scipy
     def test_skew(self):
-        from scipy.stats import skew
+        from scipy.stats import (
+            skew,
+        )
 
         string_series = tm.makeStringSeries().rename("series")
 
@@ -248,7 +250,9 @@ class TestSeriesStatReductions:
 
     @td.skip_if_no_scipy
     def test_kurt(self):
-        from scipy.stats import kurtosis
+        from scipy.stats import (
+            kurtosis,
+        )
 
         string_series = tm.makeStringSeries().rename("series")
 

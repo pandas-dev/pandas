@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -17,7 +19,9 @@ from dateutil.relativedelta import (
 )
 import numpy as np
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 from pandas import (
     DateOffset,

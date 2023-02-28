@@ -8,7 +8,9 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import (
+    PandasArray,
+)
 
 pytestmark = td.skip_array_manager_invalid_test
 

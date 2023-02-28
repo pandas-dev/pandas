@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+)
 
 from pandas import (
     NA,
@@ -11,7 +13,9 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import (
+    FloatingArray,
+)
 
 
 @pytest.fixture

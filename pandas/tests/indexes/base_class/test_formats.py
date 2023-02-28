@@ -3,7 +3,9 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas import Index
+from pandas import (
+    Index,
+)
 
 
 class TestIndexRendering:

@@ -1,4 +1,6 @@
-from importlib import import_module
+from importlib import (
+    import_module,
+)
 import os
 
 import numpy as np

@@ -1,6 +1,8 @@
 import pytest
 
-from pandas import IntervalIndex
+from pandas import (
+    IntervalIndex,
+)
 import pandas._testing as tm
 
 

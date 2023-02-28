@@ -1,4 +1,6 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -41,7 +43,9 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.dtypes import (
+    abbrev_to_npy_unit,
+)
 from pandas._typing import (
     DateTimeErrorChoices,
     IntervalClosedType,
@@ -49,9 +53,15 @@ from pandas._typing import (
     TimeNonexistent,
     npt,
 )
-from pandas.errors import PerformanceWarning
-from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_inclusive
+from pandas.errors import (
+    PerformanceWarning,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
+from pandas.util._validators import (
+    validate_inclusive,
+)
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -74,21 +84,33 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays import (
+    datetimelike as dtl,
+)
+from pandas.core.arrays._ranges import (
+    generate_regular_range,
+)
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import get_period_alias
+from pandas.tseries.frequencies import (
+    get_period_alias,
+)
 from pandas.tseries.offsets import (
     Day,
     Tick,
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
-    from pandas.core.arrays import PeriodArray
+    from pandas import (
+        DataFrame,
+    )
+    from pandas.core.arrays import (
+        PeriodArray,
+    )
 
 _midnight = time(0, 0)
 
@@ -706,7 +728,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_datetime64_from_values
+        from pandas.io.formats.format import (
+            get_format_datetime64_from_values,
+        )
 
         fmt = get_format_datetime64_from_values(self, date_format)
 
@@ -1161,7 +1185,9 @@ default 'raise'
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]')
         """
-        from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays import (
+            PeriodArray,
+        )
 
         if self.tz is not None:
             warnings.warn(
@@ -1378,7 +1404,9 @@ default 'raise'
         2020-01-01     1
         Freq: D, Name: week, dtype: UInt32
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
@@ -1968,7 +1996,9 @@ default 'raise'
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it
         #  without creating a copy by using a view on self._ndarray
-        from pandas.core.arrays import TimedeltaArray
+        from pandas.core.arrays import (
+            TimedeltaArray,
+        )
 
         # Find the td64 dtype with the same resolution as our dt64 dtype
         dtype_str = self._ndarray.dtype.name.replace("datetime64", "timedelta64")

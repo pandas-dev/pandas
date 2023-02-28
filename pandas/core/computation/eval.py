@@ -1,30 +1,52 @@
 """
 Top level ``eval`` module.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+)
 import warnings
 
-from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._exceptions import (
+    find_stack_level,
+)
+from pandas.util._validators import (
+    validate_bool_kwarg,
+)
 
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+)
 
-from pandas.core.computation.engines import ENGINES
+from pandas.core.computation.engines import (
+    ENGINES,
+)
 from pandas.core.computation.expr import (
     PARSERS,
     Expr,
 )
-from pandas.core.computation.parsing import tokenize_string
-from pandas.core.computation.scope import ensure_scope
-from pandas.core.generic import NDFrame
+from pandas.core.computation.parsing import (
+    tokenize_string,
+)
+from pandas.core.computation.scope import (
+    ensure_scope,
+)
+from pandas.core.generic import (
+    NDFrame,
+)
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.computation.ops import BinOp
+    from pandas.core.computation.ops import (
+        BinOp,
+    )
 
 
 def _check_engine(engine: str | None) -> str:
@@ -48,8 +70,12 @@ def _check_engine(engine: str | None) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
-    from pandas.core.computation.expressions import USE_NUMEXPR
+    from pandas.core.computation.check import (
+        NUMEXPR_INSTALLED,
+    )
+    from pandas.core.computation.expressions import (
+        USE_NUMEXPR,
+    )
 
     if engine is None:
         engine = "numexpr" if USE_NUMEXPR else "python"

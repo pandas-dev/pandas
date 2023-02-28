@@ -1,7 +1,13 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from collections import defaultdict
-from functools import partial
+from collections import (
+    defaultdict,
+)
+from functools import (
+    partial,
+)
 import re
 from typing import (
     Any,
@@ -15,25 +21,35 @@ from typing import (
     TypedDict,
     Union,
 )
-from uuid import uuid4
+from uuid import (
+    uuid4,
+)
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+)
 from pandas._typing import (
     Axis,
     Level,
 )
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 
 from pandas.core.dtypes.common import (
     is_complex,
     is_float,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+)
 
 from pandas import (
     DataFrame,
@@ -43,11 +59,15 @@ from pandas import (
     Series,
     isna,
 )
-from pandas.api.types import is_list_like
+from pandas.api.types import (
+    is_list_like,
+)
 import pandas.core.common as com
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
+from markupsafe import (  # markupsafe is jinja2 dependency
+    escape as escape_html,
+)
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]

@@ -1,15 +1,27 @@
 """ io on the clipboard """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from io import StringIO
+from io import (
+    StringIO,
+)
 import warnings
 
-from pandas._config import using_nullable_dtypes
+from pandas._config import (
+    using_nullable_dtypes,
+)
 
-from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
+from pandas._libs import (
+    lib,
+)
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+)
 
 from pandas import (
     get_option,
@@ -67,8 +79,12 @@ def read_clipboard(
         else using_nullable_dtypes()
     )
 
-    from pandas.io.clipboard import clipboard_get
-    from pandas.io.parsers import read_csv
+    from pandas.io.clipboard import (
+        clipboard_get,
+    )
+    from pandas.io.parsers import (
+        read_csv,
+    )
 
     text = clipboard_get()
 
@@ -149,7 +165,9 @@ def to_clipboard(
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise ValueError("clipboard only supports utf-8 encoding")
 
-    from pandas.io.clipboard import clipboard_set
+    from pandas.io.clipboard import (
+        clipboard_set,
+    )
 
     if excel is None:
         excel = True

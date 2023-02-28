@@ -3,7 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.indexers import check_array_indexer
+from pandas.api.indexers import (
+    check_array_indexer,
+)
 
 
 @pytest.mark.parametrize(

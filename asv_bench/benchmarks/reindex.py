@@ -9,7 +9,9 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    tm,
+)
 
 
 class Reindex:

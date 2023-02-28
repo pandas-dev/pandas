@@ -1,4 +1,6 @@
-from functools import partial
+from functools import (
+    partial,
+)
 import re
 
 import numpy as np
@@ -8,7 +10,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_extension_array_dtype
+from pandas.api.types import (
+    is_extension_array_dtype,
+)
 
 dtypes = [
     "int64",

@@ -13,7 +13,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.strings.accessor import StringMethods
+from pandas.core.strings.accessor import (
+    StringMethods,
+)
 
 
 @pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])

@@ -11,8 +11,12 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import merge
+from pandas.core.reshape.concat import (
+    concat,
+)
+from pandas.core.reshape.merge import (
+    merge,
+)
 
 
 @pytest.fixture

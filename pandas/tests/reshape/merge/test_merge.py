@@ -12,7 +12,9 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -29,8 +31,12 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.reshape.concat import concat
+from pandas.api.types import (
+    CategoricalDtype as CDT,
+)
+from pandas.core.reshape.concat import (
+    concat,
+)
 from pandas.core.reshape.merge import (
     MergeError,
     merge,

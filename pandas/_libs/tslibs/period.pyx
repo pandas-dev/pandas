@@ -42,7 +42,9 @@ from libc.time cimport (
 import_datetime()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.missing cimport C_NA
+from pandas._libs.missing cimport (
+    C_NA,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
@@ -54,7 +56,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
 )
 
-from pandas._libs.tslibs.timestamps import Timestamp
+from pandas._libs.tslibs.timestamps import (
+    Timestamp,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -68,7 +72,9 @@ from pandas._libs.tslibs.timedeltas cimport (
     is_any_td_scalar,
 )
 
-from pandas._libs.tslibs.conversion import DT64NS_DTYPE
+from pandas._libs.tslibs.conversion import (
+    DT64NS_DTYPE,
+)
 
 from pandas._libs.tslibs.dtypes cimport (
     FR_ANN,
@@ -88,9 +94,13 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
     freq_group_code_to_npy_unit,
 )
-from pandas._libs.tslibs.parsing cimport quarter_to_myear
+from pandas._libs.tslibs.parsing cimport (
+    quarter_to_myear,
+)
 
-from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas._libs.tslibs.parsing import (
+    parse_datetime_string_with_reso,
+)
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -105,7 +115,9 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+)
 
 cdef:
     enum:

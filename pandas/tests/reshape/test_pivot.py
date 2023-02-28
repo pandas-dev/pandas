@@ -3,12 +3,16 @@ from datetime import (
     datetime,
     timedelta,
 )
-from itertools import product
+from itertools import (
+    product,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -22,9 +26,15 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.reshape import reshape as reshape_lib
-from pandas.core.reshape.pivot import pivot_table
+from pandas.api.types import (
+    CategoricalDtype as CDT,
+)
+from pandas.core.reshape import (
+    reshape as reshape_lib,
+)
+from pandas.core.reshape.pivot import (
+    pivot_table,
+)
 
 
 @pytest.fixture(params=[True, False])

@@ -1,8 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import functools
-from itertools import zip_longest
+from itertools import (
+    zip_longest,
+)
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -23,7 +29,9 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+)
 
 from pandas._libs import (
     NaT,
@@ -36,7 +44,9 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_float_nan
+from pandas._libs.missing import (
+    is_float_nan,
+)
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
@@ -58,7 +68,9 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import (
+    function as nv,
+)
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
@@ -73,7 +85,9 @@ from pandas.util._exceptions import (
     rewrite_exception,
 )
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+)
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
@@ -110,7 +124,9 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.concat import (
+    concat_compat,
+)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -126,7 +142,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
-from pandas.core.dtypes.inference import is_dict_like
+from pandas.core.dtypes.inference import (
+    is_dict_like,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -137,7 +155,9 @@ from pandas.core import (
     arraylike,
     ops,
 )
-from pandas.core.accessor import CachedAccessor
+from pandas.core.accessor import (
+    CachedAccessor,
+)
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import (
     setitem_datetimelike_compat,
@@ -149,7 +169,9 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_ import (
+    StringArray,
+)
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -160,17 +182,29 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import disallow_ndim_indexing
-from pandas.core.indexes.frozen import FrozenList
-from pandas.core.missing import clean_reindex_fill_method
-from pandas.core.ops import get_op_result_name
-from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.indexers import (
+    disallow_ndim_indexing,
+)
+from pandas.core.indexes.frozen import (
+    FrozenList,
+)
+from pandas.core.missing import (
+    clean_reindex_fill_method,
+)
+from pandas.core.ops import (
+    get_op_result_name,
+)
+from pandas.core.ops.invalid import (
+    make_invalid_op,
+)
 from pandas.core.sorting import (
     ensure_key_mapped,
     get_group_index_sorter,
     nargsort,
 )
-from pandas.core.strings.accessor import StringMethods
+from pandas.core.strings.accessor import (
+    StringMethods,
+)
 
 from pandas.io.formats.printing import (
     PrettyDict,
@@ -186,7 +220,9 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import (
+        PeriodArray,
+    )
 
 
 __all__ = ["Index"]
@@ -273,7 +309,9 @@ def _new_Index(cls, d):
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
     if issubclass(cls, ABCPeriodIndex):
-        from pandas.core.indexes.period import _new_PeriodIndex
+        from pandas.core.indexes.period import (
+            _new_PeriodIndex,
+        )
 
         return _new_PeriodIndex(cls, **d)
 
@@ -468,7 +506,9 @@ class Index(IndexOpsMixin, PandasObject):
         name=None,
         tupleize_cols: bool = True,
     ) -> Index:
-        from pandas.core.indexes.range import RangeIndex
+        from pandas.core.indexes.range import (
+            RangeIndex,
+        )
 
         name = maybe_extract_name(name, data, cls)
 
@@ -520,7 +560,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    from pandas.core.indexes.multi import MultiIndex
+                    from pandas.core.indexes.multi import (
+                        MultiIndex,
+                    )
 
                     return MultiIndex.from_tuples(data, names=name)
             # other iterable of some kind
@@ -577,31 +619,43 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(dtype, ExtensionDtype):
             if isinstance(dtype, DatetimeTZDtype):
-                from pandas import DatetimeIndex
+                from pandas import (
+                    DatetimeIndex,
+                )
 
                 return DatetimeIndex
             elif isinstance(dtype, CategoricalDtype):
-                from pandas import CategoricalIndex
+                from pandas import (
+                    CategoricalIndex,
+                )
 
                 return CategoricalIndex
             elif isinstance(dtype, IntervalDtype):
-                from pandas import IntervalIndex
+                from pandas import (
+                    IntervalIndex,
+                )
 
                 return IntervalIndex
             elif isinstance(dtype, PeriodDtype):
-                from pandas import PeriodIndex
+                from pandas import (
+                    PeriodIndex,
+                )
 
                 return PeriodIndex
 
             return Index
 
         if dtype.kind == "M":
-            from pandas import DatetimeIndex
+            from pandas import (
+                DatetimeIndex,
+            )
 
             return DatetimeIndex
 
         elif dtype.kind == "m":
-            from pandas import TimedeltaIndex
+            from pandas import (
+                TimedeltaIndex,
+            )
 
             return TimedeltaIndex
 
@@ -707,7 +761,9 @@ class Index(IndexOpsMixin, PandasObject):
         label
         a        [0, 2]
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         duplicates = self[self.duplicated(keep="first")].unique()
         assert len(duplicates)
@@ -1318,7 +1374,9 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, na_rep=na_rep)
 
     def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
-        from pandas.io.formats.format import format_array
+        from pandas.io.formats.format import (
+            format_array,
+        )
 
         values = self._values
 
@@ -1350,7 +1408,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Actually format specific types of the index.
         """
-        from pandas.io.formats.format import FloatArrayFormatter
+        from pandas.io.formats.format import (
+            FloatArrayFormatter,
+        )
 
         if is_float_dtype(self.dtype) and not is_extension_array_dtype(self.dtype):
             formatter = FloatArrayFormatter(
@@ -1483,7 +1543,9 @@ class Index(IndexOpsMixin, PandasObject):
         Cow      Cow
         Name: zoo, dtype: object
         """
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         if index is None:
             index = self._view()
@@ -1543,7 +1605,9 @@ class Index(IndexOpsMixin, PandasObject):
         1  Bear
         2   Cow
         """
-        from pandas import DataFrame
+        from pandas import (
+            DataFrame,
+        )
 
         if name is lib.no_default:
             name = self._get_level_names()
@@ -1582,7 +1646,9 @@ class Index(IndexOpsMixin, PandasObject):
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
         """
-        from copy import deepcopy
+        from copy import (
+            deepcopy,
+        )
 
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
@@ -1625,7 +1691,9 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             if names not str or list-like
         """
-        from pandas.core.indexes.multi import MultiIndex
+        from pandas.core.indexes.multi import (
+            MultiIndex,
+        )
 
         if names is not None:
             if isinstance(names, (int, str)):
@@ -2069,7 +2137,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             return result
         else:
-            from pandas.core.indexes.multi import MultiIndex
+            from pandas.core.indexes.multi import (
+                MultiIndex,
+            )
 
             return MultiIndex(
                 levels=new_levels,
@@ -4538,8 +4608,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_multi(self, other: Index, how: JoinHow):
-        from pandas.core.indexes.multi import MultiIndex
-        from pandas.core.reshape.merge import restore_dropped_levels_multijoin
+        from pandas.core.indexes.multi import (
+            MultiIndex,
+        )
+        from pandas.core.reshape.merge import (
+            restore_dropped_levels_multijoin,
+        )
 
         # figure out join names
         self_names_list = list(com.not_none(*self.names))
@@ -4622,7 +4696,9 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        from pandas.core.reshape.merge import get_join_indexers
+        from pandas.core.reshape.merge import (
+            get_join_indexers,
+        )
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
@@ -4650,7 +4726,9 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex will not be changed; otherwise, it will tie out
         with `other`.
         """
-        from pandas.core.indexes.multi import MultiIndex
+        from pandas.core.indexes.multi import (
+            MultiIndex,
+        )
 
         def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
             """
@@ -4905,7 +4983,9 @@ class Index(IndexOpsMixin, PandasObject):
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
-            from pandas.core.arrays.numpy_ import PandasArray
+            from pandas.core.arrays.numpy_ import (
+                PandasArray,
+            )
 
             array = PandasArray(array)
         return array
@@ -6128,7 +6208,9 @@ class Index(IndexOpsMixin, PandasObject):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        from pandas.core.indexes.multi import MultiIndex
+        from pandas.core.indexes.multi import (
+            MultiIndex,
+        )
 
         new_values = self._map_values(mapper, na_action=na_action)
 
@@ -7027,7 +7109,9 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     --------
     ensure_index
     """
-    from pandas.core.indexes.multi import MultiIndex
+    from pandas.core.indexes.multi import (
+        MultiIndex,
+    )
 
     if len(sequences) == 1:
         if names is not None:
@@ -7087,7 +7171,9 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             index_like = list(index_like)
 
         if len(index_like) and lib.is_all_arraylike(index_like):
-            from pandas.core.indexes.multi import MultiIndex
+            from pandas.core.indexes.multi import (
+                MultiIndex,
+            )
 
             return MultiIndex.from_arrays(index_like)
         else:

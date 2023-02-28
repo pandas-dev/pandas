@@ -1,5 +1,9 @@
-from copy import deepcopy
-from operator import methodcaller
+from copy import (
+    deepcopy,
+)
+from operator import (
+    methodcaller,
+)
 
 import numpy as np
 import pytest

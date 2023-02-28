@@ -3,16 +3,24 @@ Tests for the following offsets:
 - YearBegin
 - YearEnd
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+from pandas.compat import (
+    is_numpy_dev,
+)
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+)
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,

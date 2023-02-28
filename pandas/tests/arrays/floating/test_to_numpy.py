@@ -3,7 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import (
+    FloatingArray,
+)
 
 
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])

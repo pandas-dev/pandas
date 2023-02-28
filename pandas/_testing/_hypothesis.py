@@ -1,13 +1,23 @@
 """
 Hypothesis data generator helpers.
 """
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
-from hypothesis import strategies as st
-from hypothesis.extra.dateutil import timezones as dateutil_timezones
-from hypothesis.extra.pytz import timezones as pytz_timezones
+from hypothesis import (
+    strategies as st,
+)
+from hypothesis.extra.dateutil import (
+    timezones as dateutil_timezones,
+)
+from hypothesis.extra.pytz import (
+    timezones as pytz_timezones,
+)
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    is_platform_windows,
+)
 
 import pandas as pd
 

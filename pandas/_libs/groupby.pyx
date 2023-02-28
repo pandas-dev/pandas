@@ -23,11 +23,15 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
-from numpy.math cimport NAN
+from numpy.math cimport (
+    NAN,
+)
 
 cnp.import_array()
 
-from pandas._libs cimport util
+from pandas._libs cimport (
+    util,
+)
 from pandas._libs.algos cimport (
     get_rank_nan_fill_val,
     kth_smallest_c,
@@ -44,7 +48,9 @@ from pandas._libs.dtypes cimport (
     numeric_object_t,
     numeric_t,
 )
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    checknull,
+)
 
 
 cdef int64_t NPY_NAT = util.get_nat()

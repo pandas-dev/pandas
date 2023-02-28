@@ -1,4 +1,6 @@
-from scripts.no_bool_in_generic import check_for_bool_in_generic
+from scripts.no_bool_in_generic import (
+    check_for_bool_in_generic,
+)
 
 BAD_FILE = "def foo(a: bool) -> bool:\n    return bool(0)"
 GOOD_FILE = "def foo(a: bool_t) -> bool_t:\n    return bool(0)"

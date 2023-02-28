@@ -1,12 +1,18 @@
-from decimal import Decimal
+from decimal import (
+    Decimal,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    is_matching_na,
+)
 
 import pandas as pd
-from pandas import Index
+from pandas import (
+    Index,
+)
 import pandas._testing as tm
 
 

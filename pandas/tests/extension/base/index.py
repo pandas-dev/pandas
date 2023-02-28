@@ -2,7 +2,9 @@
 Tests for Indexes backed by arbitrary ExtensionArrays.
 """
 import pandas as pd
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseIndexTests(BaseExtensionTests):

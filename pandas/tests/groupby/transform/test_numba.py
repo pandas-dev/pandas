@@ -1,6 +1,8 @@
 import pytest
 
-from pandas.errors import NumbaUtilError
+from pandas.errors import (
+    NumbaUtilError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (

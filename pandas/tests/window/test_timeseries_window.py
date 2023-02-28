@@ -12,7 +12,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 
 
 @pytest.fixture

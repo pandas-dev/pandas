@@ -16,7 +16,9 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.tests.frame.common import _check_mixed_float
+from pandas.tests.frame.common import (
+    _check_mixed_float,
+)
 
 
 class TestFillNA:

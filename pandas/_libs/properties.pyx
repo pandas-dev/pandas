@@ -3,7 +3,9 @@ from cpython.dict cimport (
     PyDict_GetItem,
     PyDict_SetItem,
 )
-from cython cimport Py_ssize_t
+from cython cimport (
+    Py_ssize_t,
+)
 
 
 cdef class CachedProperty:

@@ -4,13 +4,19 @@ for all of the parsers defined in parsers.py
 """
 
 import csv
-from io import StringIO
+from io import (
+    StringIO,
+)
 
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    ParserWarning,
+)
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
 
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")
@@ -100,7 +106,9 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
         if value == "dialect":  # No conflict --> no warning.
             kwds[arg] = dialect_kwargs[arg]
         elif value == "default":  # Default --> no warning.
-            from pandas.io.parsers.base_parser import parser_defaults
+            from pandas.io.parsers.base_parser import (
+                parser_defaults,
+            )
 
             kwds[arg] = parser_defaults[arg]
         else:  # Non-default + conflict with dialect --> warning.

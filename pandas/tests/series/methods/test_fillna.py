@@ -21,7 +21,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
+from pandas.core.arrays import (
+    period_array,
+)
 
 
 class TestSeriesFillNA:

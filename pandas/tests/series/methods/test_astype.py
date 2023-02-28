@@ -2,14 +2,18 @@ from datetime import (
     datetime,
     timedelta,
 )
-from importlib import reload
+from importlib import (
+    reload,
+)
 import string
 import sys
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    iNaT,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (

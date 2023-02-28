@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+)
 
 from pandas import (
     Index,

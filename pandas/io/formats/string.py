@@ -1,9 +1,13 @@
 """
 Module for formatting output data in console (to string).
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from shutil import get_terminal_size
+from shutil import (
+    get_terminal_size,
+)
 from typing import (
     TYPE_CHECKING,
     Iterable,
@@ -11,10 +15,14 @@ from typing import (
 
 import numpy as np
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
-    from pandas.io.formats.format import DataFrameFormatter
+    from pandas.io.formats.format import (
+        DataFrameFormatter,
+    )
 
 
 class StringFormatter:
@@ -157,7 +165,9 @@ class StringFormatter:
         return "\n\n".join(str_lst)
 
     def _fit_strcols_to_terminal_width(self, strcols: list[list[str]]) -> str:
-        from pandas import Series
+        from pandas import (
+            Series,
+        )
 
         lines = self.adj.adjoin(1, *strcols).split("\n")
         max_len = Series(lines).str.len().max()

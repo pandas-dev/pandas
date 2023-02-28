@@ -1,14 +1,26 @@
-from datetime import datetime
-from functools import partial
-from io import StringIO
-from typing import List
+from datetime import (
+    datetime,
+)
+from functools import (
+    partial,
+)
+from io import (
+    StringIO,
+)
+from typing import (
+    List,
+)
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import lib
-from pandas._typing import DatetimeNaTType
+from pandas._libs import (
+    lib,
+)
+from pandas._typing import (
+    DatetimeNaTType,
+)
 
 import pandas as pd
 from pandas import (
@@ -20,8 +32,12 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.indexes.datetimes import date_range
+from pandas.core.groupby.grouper import (
+    Grouper,
+)
+from pandas.core.indexes.datetimes import (
+    date_range,
+)
 from pandas.core.indexes.period import (
     Period,
     period_range,
@@ -31,8 +47,12 @@ from pandas.core.resample import (
     _get_timestamp_range_edges,
 )
 
-from pandas.tseries import offsets
-from pandas.tseries.offsets import Minute
+from pandas.tseries import (
+    offsets,
+)
+from pandas.tseries.offsets import (
+    Minute,
+)
 
 
 @pytest.fixture()

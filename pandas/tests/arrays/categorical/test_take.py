@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical
+from pandas import (
+    Categorical,
+)
 import pandas._testing as tm
 
 

@@ -1,8 +1,12 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 
 import numpy as np
 import pytest
-from pytz import UTC
+from pytz import (
+    UTC,
+)
 
 from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,

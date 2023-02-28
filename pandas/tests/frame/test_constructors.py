@@ -5,7 +5,9 @@ from collections import (
     defaultdict,
     namedtuple,
 )
-from dataclasses import make_dataclass
+from dataclasses import (
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -14,19 +16,29 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
+from typing import (
+    Iterator,
+)
 import warnings
 
 import numpy as np
-from numpy import ma
-from numpy.ma import mrecords
+from numpy import (
+    ma,
+)
+from numpy.ma import (
+    mrecords,
+)
 import pytest
 import pytz
 
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+)
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,

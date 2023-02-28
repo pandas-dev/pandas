@@ -12,7 +12,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -23,8 +25,12 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core import ops
-from pandas.core.arrays import TimedeltaArray
+from pandas.core import (
+    ops,
+)
+from pandas.core.arrays import (
+    TimedeltaArray,
+)
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

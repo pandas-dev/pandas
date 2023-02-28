@@ -3,13 +3,19 @@ masked_accumulations.py is for accumulation algorithms using a mask-based approa
 for missing values.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
-from typing import Callable
+from typing import (
+    Callable,
+)
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,

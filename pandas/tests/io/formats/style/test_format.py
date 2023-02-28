@@ -12,8 +12,12 @@ from pandas import (
 )
 
 pytest.importorskip("jinja2")
-from pandas.io.formats.style import Styler
-from pandas.io.formats.style_render import _str_escape
+from pandas.io.formats.style import (
+    Styler,
+)
+from pandas.io.formats.style_render import (
+    _str_escape,
+)
 
 
 @pytest.fixture

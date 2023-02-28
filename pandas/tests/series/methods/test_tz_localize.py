@@ -1,9 +1,13 @@
-from datetime import timezone
+from datetime import (
+    timezone,
+)
 
 import pytest
 import pytz
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import (
+    timezones,
+)
 
 from pandas import (
     DatetimeIndex,

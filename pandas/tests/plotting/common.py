@@ -2,7 +2,9 @@
 Module consolidating common testing functions for checking plotting.
 """
 
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -11,17 +13,25 @@ from typing import (
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+)
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.api import is_list_like
+from pandas.core.dtypes.api import (
+    is_list_like,
+)
 
 import pandas as pd
-from pandas import Series
+from pandas import (
+    Series,
+)
 import pandas._testing as tm
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    from matplotlib.axes import (
+        Axes,
+    )
 
 
 @td.skip_if_no_mpl
@@ -46,7 +56,9 @@ class TestPlotBase:
 
     @cache_readonly
     def colorconverter(self):
-        from matplotlib import colors
+        from matplotlib import (
+            colors,
+        )
 
         return colors.colorConverter
 
@@ -126,7 +138,9 @@ class TestPlotBase:
         visible : bool
             expected visibility
         """
-        from matplotlib.collections import Collection
+        from matplotlib.collections import (
+            Collection,
+        )
 
         if not isinstance(collections, Collection) and not is_list_like(collections):
             collections = [collections]
@@ -182,7 +196,9 @@ class TestPlotBase:
             LineCollection,
             PolyCollection,
         )
-        from matplotlib.lines import Line2D
+        from matplotlib.lines import (
+            Line2D,
+        )
 
         conv = self.colorconverter
         if linecolors is not None:
@@ -260,7 +276,9 @@ class TestPlotBase:
         yrot : number
             expected yticks rotation
         """
-        from matplotlib.ticker import NullFormatter
+        from matplotlib.ticker import (
+            NullFormatter,
+        )
 
         axes = self._flatten_visible(axes)
         for ax in axes:
@@ -322,7 +340,9 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import flatten_axes
+        from pandas.plotting._matplotlib.tools import (
+            flatten_axes,
+        )
 
         if figsize is None:
             figsize = (6.4, 4.8)
@@ -362,7 +382,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import flatten_axes
+        from pandas.plotting._matplotlib.tools import (
+            flatten_axes,
+        )
 
         axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
@@ -414,7 +436,9 @@ class TestPlotBase:
             Intended to be checked by calling from ``boxplot``.
             Normal ``plot`` doesn't attach ``ax.title``, it must be disabled.
         """
-        from matplotlib.axes import Axes
+        from matplotlib.axes import (
+            Axes,
+        )
 
         types = {"dict": dict, "axes": Axes, "both": tuple}
         if expected_keys is None:

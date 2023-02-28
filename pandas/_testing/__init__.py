@@ -1,13 +1,21 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import collections
-from datetime import datetime
-from decimal import Decimal
+from datetime import (
+    datetime,
+)
+from decimal import (
+    Decimal,
+)
 import operator
 import os
 import re
 import string
-from sys import byteorder
+from sys import (
+    byteorder,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -30,7 +38,9 @@ from pandas._typing import (
     Frequency,
     NpDtype,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+)
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -114,15 +124,21 @@ from pandas.core.arrays import (
     ExtensionArray,
     PandasArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.construction import extract_array
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+)
+from pandas.core.construction import (
+    extract_array,
+)
 
 if TYPE_CHECKING:
     from pandas import (
         PeriodIndex,
         TimedeltaIndex,
     )
-    from pandas.core.arrays import ArrowExtensionArray
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+    )
 
 _N = 30
 _K = 4

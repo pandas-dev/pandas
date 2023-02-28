@@ -1,8 +1,12 @@
-from typing import Literal
+from typing import (
+    Literal,
+)
 
 import numpy as np
 
-from pandas._typing import npt
+from pandas._typing import (
+    npt,
+)
 
 def group_median_float64(
     out: np.ndarray,  # ndarray[float64_t, ndim=2]

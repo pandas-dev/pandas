@@ -1,21 +1,37 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from io import (
     BytesIO,
     StringIO,
 )
-from lzma import LZMAError
+from lzma import (
+    LZMAError,
+)
 import os
-from tarfile import ReadError
-from urllib.error import HTTPError
-from xml.etree.ElementTree import ParseError
-from zipfile import BadZipFile
+from tarfile import (
+    ReadError,
+)
+from urllib.error import (
+    HTTPError,
+)
+from xml.etree.ElementTree import (
+    ParseError,
+)
+from zipfile import (
+    BadZipFile,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_ci_environment
-from pandas.compat._optional import import_optional_dependency
+from pandas.compat import (
+    is_ci_environment,
+)
+from pandas.compat._optional import (
+    import_optional_dependency,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -34,8 +50,12 @@ from pandas.core.arrays import (
     StringArray,
 )
 
-from pandas.io.common import get_handle
-from pandas.io.xml import read_xml
+from pandas.io.common import (
+    get_handle,
+)
+from pandas.io.xml import (
+    read_xml,
+)
 
 # CHECK LIST
 
@@ -477,7 +497,9 @@ def test_file_handle_close(datapath, parser):
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_lxml(val):
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     msg = "|".join(
         [
@@ -498,7 +520,9 @@ def test_empty_string_etree(val):
 
 @td.skip_if_no("lxml")
 def test_wrong_file_path_lxml():
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     filename = os.path.join("data", "html", "books.xml")
 
@@ -571,7 +595,9 @@ def test_bad_xpath_etree(datapath):
 
 @td.skip_if_no("lxml")
 def test_bad_xpath_lxml(datapath):
-    from lxml.etree import XPathEvalError
+    from lxml.etree import (
+        XPathEvalError,
+    )
 
     filename = datapath("io", "data", "xml", "books.xml")
     with pytest.raises(XPathEvalError, match=("Invalid expression")):
@@ -685,7 +711,9 @@ def test_missing_prefix_definition_etree(datapath):
 
 @td.skip_if_no("lxml")
 def test_missing_prefix_definition_lxml(datapath):
-    from lxml.etree import XPathEvalError
+    from lxml.etree import (
+        XPathEvalError,
+    )
 
     filename = datapath("io", "data", "xml", "cta_rail_lines.kml")
     with pytest.raises(XPathEvalError, match=("Undefined namespace prefix")):
@@ -1237,7 +1265,9 @@ def test_style_charset():
 
 @td.skip_if_no("lxml")
 def test_not_stylesheet(datapath):
-    from lxml.etree import XSLTParseError
+    from lxml.etree import (
+        XSLTParseError,
+    )
 
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "books.xml")
@@ -1248,7 +1278,9 @@ def test_not_stylesheet(datapath):
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_syntax(datapath):
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -1280,7 +1312,9 @@ def test_incorrect_xsl_syntax(datapath):
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_eval(datapath):
-    from lxml.etree import XSLTParseError
+    from lxml.etree import (
+        XSLTParseError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -1310,7 +1344,9 @@ def test_incorrect_xsl_eval(datapath):
 
 @td.skip_if_no("lxml")
 def test_incorrect_xsl_apply(datapath):
-    from lxml.etree import XSLTApplyError
+    from lxml.etree import (
+        XSLTApplyError,
+    )
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1332,7 +1368,9 @@ def test_incorrect_xsl_apply(datapath):
 
 @td.skip_if_no("lxml")
 def test_wrong_stylesheet():
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
     xsl = os.path.join("data", "xml", "flatten.xsl")
@@ -1376,7 +1414,9 @@ def test_stylesheet_with_etree():
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
-    from lxml.etree import XMLSyntaxError
+    from lxml.etree import (
+        XMLSyntaxError,
+    )
 
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
@@ -1879,7 +1919,9 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
 
     if dtype_backend == "pyarrow":
         pa = pytest.importorskip("pyarrow")
-        from pandas.arrays import ArrowExtensionArray
+        from pandas.arrays import (
+            ArrowExtensionArray,
+        )
 
         expected = DataFrame(
             {

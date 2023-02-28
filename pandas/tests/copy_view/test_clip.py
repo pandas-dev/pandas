@@ -1,8 +1,12 @@
 import numpy as np
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+)
 import pandas._testing as tm
-from pandas.tests.copy_view.util import get_array
+from pandas.tests.copy_view.util import (
+    get_array,
+)
 
 
 def test_clip_inplace_reference(using_copy_on_write):

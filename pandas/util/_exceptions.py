@@ -1,10 +1,14 @@
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 import contextlib
 import inspect
 import os
 import re
-from typing import Generator
+from typing import (
+    Generator,
+)
 import warnings
 
 

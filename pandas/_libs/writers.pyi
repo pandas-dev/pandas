@@ -1,6 +1,8 @@
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+)
 
 def write_csv_rows(
     data: list[ArrayLike],

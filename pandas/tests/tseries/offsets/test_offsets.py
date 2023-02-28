@@ -1,7 +1,9 @@
 """
 Tests of pandas.tseries.offsets
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from datetime import (
     datetime,
@@ -28,8 +30,12 @@ from pandas._libs.tslibs.offsets import (
     _get_offset,
     _offset_map,
 )
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import PerformanceWarning
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+)
+from pandas.errors import (
+    PerformanceWarning,
+)
 
 from pandas import (
     DatetimeIndex,
@@ -37,9 +43,13 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import WeekDay
+from pandas.tests.tseries.offsets.common import (
+    WeekDay,
+)
 
-from pandas.tseries import offsets
+from pandas.tseries import (
+    offsets,
+)
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,

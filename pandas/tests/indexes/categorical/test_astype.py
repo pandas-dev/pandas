@@ -1,4 +1,6 @@
-from datetime import date
+from datetime import (
+    date,
+)
 
 import numpy as np
 import pytest

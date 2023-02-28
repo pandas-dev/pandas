@@ -9,7 +9,9 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
+from pandas.tests.extension.base.base import (
+    BaseExtensionTests,
+)
 
 
 class BaseGroupbyTests(BaseExtensionTests):

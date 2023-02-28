@@ -4,7 +4,9 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -16,10 +18,16 @@ from typing import (
 )
 
 import numpy as np
-from numpy import ma
+from numpy import (
+    ma,
+)
 
-from pandas._libs import lib
-from pandas._libs.tslibs.period import Period
+from pandas._libs import (
+    lib,
+)
+from pandas._libs.tslibs.period import (
+    Period,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -50,7 +58,9 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import (
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -59,7 +69,9 @@ from pandas.core.dtypes.generic import (
     ABCRangeIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+)
 
 import pandas.core.common as com
 
@@ -68,7 +80,9 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays.base import (
+        ExtensionArray,
+    )
 
 
 def array(
@@ -298,7 +312,9 @@ def array(
         PeriodArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_ import (
+        StringDtype,
+    )
 
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
@@ -461,12 +477,16 @@ def ensure_wrapped_if_datetimelike(arr):
     """
     if isinstance(arr, np.ndarray):
         if arr.dtype.kind == "M":
-            from pandas.core.arrays import DatetimeArray
+            from pandas.core.arrays import (
+                DatetimeArray,
+            )
 
             return DatetimeArray._from_sequence(arr)
 
         elif arr.dtype.kind == "m":
-            from pandas.core.arrays import TimedeltaArray
+            from pandas.core.arrays import (
+                TimedeltaArray,
+            )
 
             return TimedeltaArray._from_sequence(arr)
 

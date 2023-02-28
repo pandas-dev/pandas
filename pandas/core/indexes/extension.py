@@ -1,7 +1,9 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from __future__ import annotations
+from __future__ import (
+    annotations,
+)
 
 from typing import (
     TYPE_CHECKING,
@@ -20,13 +22,21 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+)
 
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import (
+    Index,
+)
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import IntervalArray
-    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+    from pandas.core.arrays import (
+        IntervalArray,
+    )
+    from pandas.core.arrays._mixins import (
+        NDArrayBackedExtensionArray,
+    )
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 _ExtensionIndexT = TypeVar("_ExtensionIndexT", bound="ExtensionIndex")
