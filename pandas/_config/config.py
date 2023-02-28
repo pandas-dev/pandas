@@ -67,13 +67,11 @@ from typing import (
 )
 import warnings
 
+from pandas._typing import T  # noqa: TCH001
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        F,
-        T,
-    )
+    from pandas._typing import F
 
 
 class DeprecatedOption(NamedTuple):
