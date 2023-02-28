@@ -18,6 +18,7 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     TypeVar,
     cast,
@@ -30,16 +31,18 @@ from pandas._libs.lib import (
     is_bool,
     is_integer,
 )
-from pandas._typing import (
-    Axis,
-    AxisInt,
-)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
     validate_args_and_kwargs,
     validate_kwargs,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+    )
 
 AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 

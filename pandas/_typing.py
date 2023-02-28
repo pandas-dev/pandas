@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from datetime import (
-    datetime,
-    timedelta,
-    tzinfo,
-)
-from os import PathLike
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,12 +19,18 @@ from typing import (
     Union,
 )
 
-import numpy as np
-
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
+    from datetime import (
+        datetime,
+        timedelta,
+        tzinfo,
+    )
+    from os import PathLike
+
+    import numpy as np
     import numpy.typing as npt
 
     from pandas._libs import (

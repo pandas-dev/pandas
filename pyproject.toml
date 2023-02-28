@@ -218,6 +218,8 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
+  # type-checking imports
+  "TCH",
 ]
 
 ignore = [
@@ -282,6 +284,40 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
+# TCH to be enabled gradually
+"pandas/core/arrays/*" = ["TCH"]
+"pandas/core/io/*" = ["TCH"]
+"pandas/core/indexers/*" = ["TCH"]
+"pandas/core/indexes/*" = ["TCH"]
+"pandas/core/internals/*" = ["TCH"]
+"pandas/core/groupby/*" = ["TCH"]
+"pandas/core/methods/*" = ["TCH"]
+"pandas/core/array_algos/*" = ["TCH"]
+"pandas/core/dtypes/*" = ["TCH"]
+"pandas/core/generic.py" = ["TCH"]
+"pandas/core/frame.py" = ["TCH"]
+"pandas/core/series.py" = ["TCH"]
+"pandas/core/resample.py" = ["TCH"]
+"pandas/core/nanops.py" = ["TCH"]
+"pandas/core/apply.py" = ["TCH"]
+"pandas/core/base.py" = ["TCH"]
+"pandas/core/algorithms.py" = ["TCH"]
+"pandas/core/ops/*" = ["TCH"]
+"pandas/core/sorting.py" = ["TCH"]
+"pandas/core/construction.py" = ["TCH"]
+"pandas/core/common.py" = ["TCH"]
+"pandas/core/missing.py" = ["TCH"]
+"pandas/core/util/*" = ["TCH"]
+"pandas/core/reshape/*" = ["TCH"]
+"pandas/core/strings/*" = ["TCH"]
+"pandas/core/tools/*" = ["TCH"]
+"pandas/core/window/*" = ["TCH"]
+"pandas/io/*" = ["TCH"]
+"pandas/tseries/*" = ["TCH"]
+"pandas/tests/*" = ["TCH"]
+"pandas/plotting/*" = ["TCH"]
+"pandas/util/*" = ["TCH"]
+"pandas/_libs/*" = ["TCH"]
 
 [tool.pylint.messages_control]
 max-line-length = 88

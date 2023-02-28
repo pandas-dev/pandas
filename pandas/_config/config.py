@@ -56,6 +56,7 @@ from contextlib import (
 )
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generator,
@@ -66,11 +67,13 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        F,
+        T,
+    )
 
 
 class DeprecatedOption(NamedTuple):
