@@ -701,8 +701,7 @@ class Block(PandasObject):
             # TODO: avoid special-casing
             # GH49404
             if using_cow and inplace:
-                # TODO(CoW): Optimize
-                blk = self.copy()
+                blk = self.copy(deep=self.refs.has_reference())
             else:
                 blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
