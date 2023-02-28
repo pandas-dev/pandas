@@ -3748,6 +3748,8 @@ class MultiIndex(Index):
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
+            if len(values) == 0:
+                return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
