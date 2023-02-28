@@ -23,58 +23,13 @@ See NUMPY_LICENSE.txt for the license.
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
+#include "np_datetime.h"
+#include "np_datetime_strings.h"
+#include "date_conversions.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct {
-  npy_int64 days;
-  npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
-} pandas_timedeltastruct;
-
-const npy_datetimestruct _AS_MIN_DTS = {1969, 12,     31,     23,    59,
-                                        50,   776627, 963145, 224193};
-const npy_datetimestruct _FS_MIN_DTS = {1969, 12,     31,     21,    26,
-                                        16,   627963, 145224, 193000};
-const npy_datetimestruct _PS_MIN_DTS = {1969, 9,      16,     5, 57,
-                                        7,    963145, 224193, 0};
-const npy_datetimestruct _NS_MIN_DTS = {1677, 9,      21,     0, 12,
-                                        43,   145224, 193000, 0};
-const npy_datetimestruct _US_MIN_DTS = {-290308, 12,     21, 19, 59,
-                                        05,      224193, 0,  0};
-const npy_datetimestruct _MS_MIN_DTS = {-292275055, 5,      16, 16, 47,
-                                        4,          193000, 0,  0};
-const npy_datetimestruct _S_MIN_DTS = {
-    -292277022657, 1, 27, 8, 29, 53, 0, 0, 0};
-const npy_datetimestruct _M_MIN_DTS = {
-    -17536621475646, 5, 4, 5, 53, 0, 0, 0, 0};
-
-const npy_datetimestruct _AS_MAX_DTS = {1970, 1,      1,     0,     0,
-                                        9,    223372, 36854, 775807};
-const npy_datetimestruct _FS_MAX_DTS = {1970, 1,      1,      2,     33,
-                                        43,   372036, 854775, 807000};
-const npy_datetimestruct _PS_MAX_DTS = {1970, 4,     17,     18, 2,
-                                        52,   36854, 775807, 0};
-const npy_datetimestruct _NS_MAX_DTS = {2262, 4,      11,     23, 47,
-                                        16,   854775, 807000, 0};
-const npy_datetimestruct _US_MAX_DTS = {294247, 1, 10, 4, 0, 54, 775807, 0, 0};
-const npy_datetimestruct _MS_MAX_DTS = {292278994, 8,      17, 7, 12,
-                                        55,        807000, 0,  0};
-const npy_datetimestruct _S_MAX_DTS = {292277026596, 12, 4, 15, 30, 7, 0, 0, 0};
-const npy_datetimestruct _M_MAX_DTS = {
-    17536621479585, 8, 30, 18, 7, 0, 0, 0, 0};
-
-/* 'format_requirement' can be one of three values:
- *      * PARTIAL_MATCH : Only require a partial match with 'format'.
- *           For example, if the string is '2020-01-01 05:00:00' and
- *           'format' is '%Y-%m-%d', then parse '2020-01-01';
- *      * EXACT_MATCH : require an exact match with 'format'. If the
- *           string is '2020-01-01', then the only format which will
- *           be able to parse it without error is '%Y-%m-%d';
- *      * INFER_FORMAT: parse without comparing 'format' (i.e. infer it).
- */
-typedef enum { PARTIAL_MATCH, EXACT_MATCH, INFER_FORMAT } FormatRequirement;
 
 typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,

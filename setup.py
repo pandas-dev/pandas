@@ -116,17 +116,20 @@ class CleanCommand(Command):
 
         base = pjoin("pandas", "_libs", "src")
         tsbase = pjoin("pandas", "_libs", "tslibs", "src")
+        dt = pjoin(tsbase, "datetime")
         util = pjoin("pandas", "util")
         parser = pjoin(base, "parser")
         ujson_python = pjoin(base, "ujson", "python")
         ujson_lib = pjoin(base, "ujson", "lib")
         self._clean_exclude = [
+            pjoin(dt, "np_datetime.c"),
+            pjoin(dt, "np_datetime_strings.c"),
+            pjoin(dt, "date_conversions.c"),
             pjoin(parser, "tokenizer.c"),
             pjoin(parser, "io.c"),
             pjoin(ujson_python, "ujson.c"),
             pjoin(ujson_python, "objToJSON.c"),
             pjoin(ujson_python, "JSONtoObj.c"),
-            pjoin(ujson_python, "date_conversions.c"),
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
@@ -644,7 +647,14 @@ extensions.append(ujson_ext)
 pd_dt_ext = Extension(
     "pandas._libs.pandas_datetime",
     depends=["pandas/_libs/tslibs/datetime/pd_datetime.h"],
-    sources=(["pandas/_libs/tslibs/src/datetime/pd_datetime.c"]),
+    sources=(
+        [
+            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
+            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
+            "pandas/_libs/tslibs/src/datetime/date_conversions.c",
+            "pandas/_libs/tslibs/src/datetime/pd_datetime.c",
+        ]
+    ),
     include_dirs=tseries_includes
     + [
         numpy.get_include(),
