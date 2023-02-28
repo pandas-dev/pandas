@@ -24,13 +24,17 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+    is_fsspec_url,
+)
 
 
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    filesystem=None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -64,6 +68,11 @@ def read_orc(
 
         .. versionadded:: 2.0
 
+    filesystem : fsspec or pyarrow filesystem, default None
+        Filesystem object to use when reading the parquet file.
+
+        .. versionadded:: 2.1.0
+
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
@@ -75,6 +84,11 @@ def read_orc(
     -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
     and :ref:`install optional dependencies <install.warn_orc>`.
+
+    If ``path`` is a URI scheme pointing to a local or remote file (e.g. "s3://"),
+    a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
+    pyarrow or fsspec filesystem object into the filesystem keyword to override this
+    behavior.
     """
     # we require a newer version of pyarrow than we support for parquet
 
@@ -87,8 +101,18 @@ def read_orc(
     )
 
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = orc.ORCFile(handles.handle)
-        pa_table = orc_file.read(columns=columns, **kwargs)
+        source = handles.handle
+        if is_fsspec_url(path) and filesystem is None:
+            pa = import_optional_dependency("pyarrow")
+            pa_fs = import_optional_dependency("pyarrow.fs")
+            try:
+                filesystem, source = pa_fs.FileSystem.from_uri(path)
+            except (TypeError, pa.ArrowInvalid):
+                pass
+
+        pa_table = orc.read_table(
+            source=source, columns=columns, filesystem=filesystem, **kwargs
+        )
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
         if dtype_backend == "pyarrow":

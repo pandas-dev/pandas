@@ -656,6 +656,8 @@ class DataFrame(NDFrame, OpsMixin):
                 data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            if using_copy_on_write():
+                data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
             # -> use fastpath (without checking Manager type)
             if index is None and columns is None and dtype is None and not copy:
@@ -2801,8 +2803,12 @@ class DataFrame(NDFrame, OpsMixin):
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
-        compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
+        compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+            The supported compression methods actually depend on which engine
+            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
+            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
+            supported.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -4751,6 +4757,14 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
 
+        if isinstance(value, DataFrame) and len(value.columns) > 1:
+            raise ValueError(
+                f"Expected a one-dimensional object, got a DataFrame with "
+                f"{len(value.columns)} columns instead."
+            )
+        elif isinstance(value, DataFrame):
+            value = value.iloc[:, 0]
+
         value = self._sanitize_column(value)
         self._mgr.insert(loc, column, value)
 
@@ -4837,11 +4851,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        # We can get there through isetitem with a DataFrame
-        # or through loc single_block_path
-        if isinstance(value, DataFrame):
-            return _reindex_for_setitem(value, self.index)
-        elif is_dict_like(value):
+        # Using a DataFrame would mean coercing values to one dtype
+        assert not isinstance(value, DataFrame)
+        if is_dict_like(value):
             return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):

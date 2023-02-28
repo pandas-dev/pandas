@@ -557,6 +557,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
         This should return a 1-D array the same length as 'self'.
         """
+        # GH51630: fast paths
+        null_count = self._data.null_count
+        if null_count == 0:
+            return np.zeros(len(self), dtype=np.bool_)
+        elif null_count == len(self):
+            return np.ones(len(self), dtype=np.bool_)
+
         return self._data.is_null().to_numpy()
 
     def argsort(
@@ -1134,6 +1141,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
+        # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
+        if name in ["any", "all"] and "min_count" not in kwargs:
+            kwargs["min_count"] = 0
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
