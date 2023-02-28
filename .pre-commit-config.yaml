@@ -409,9 +409,9 @@ repos:
         - flake8-pyi==22.8.1
     -   id: future-annotations
         name: import annotations from __future__
-        entry: 'from __future__ import annotations'
+        entry: 'from __future__ import \(\n    annotations'
         language: pygrep
-        args: [--negate]
+        args: [--negate, --multiline]
         files: ^pandas/
         types: [python]
         exclude: |
