@@ -4563,7 +4563,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
 cdef int _roll_qtrday(npy_datetimestruct* dts,
                       int n,
                       int months_since,
-                      str day_opt) nogil except? -1:
+                      str day_opt) except? -1 nogil:
     """
     See roll_qtrday.__doc__
     """
