@@ -21,6 +21,8 @@ from numpy cimport (
 
 cnp.import_array()
 
+import cython
+
 from pandas._libs.algos import is_monotonic
 
 
@@ -1733,7 +1735,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 # ----------------------------------------------------------------------
 # Exponentially weighted moving
-
+@cython.cpow(True)
 def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         int minp, float64_t com, bint adjust, bint ignore_na,
         const float64_t[:] deltas=None, bint normalize=True) -> np.ndarray:
