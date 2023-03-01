@@ -35,6 +35,7 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_integer,
     is_numeric_dtype,
 )
@@ -1177,7 +1178,10 @@ class PythonParser(ParserBase):
                 if (
                     isinstance(self.dtype, dict)
                     and self.columns[i] in self.dtype
-                    and not is_numeric_dtype(self.dtype[self.columns[i]])
+                    and (
+                        not is_numeric_dtype(self.dtype[self.columns[i]])
+                        or is_bool_dtype(self.dtype[self.columns[i]])
+                    )
                 ):
                     no_thousands_columns.add(i)
         return no_thousands_columns
