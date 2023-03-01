@@ -1603,8 +1603,8 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        s: Hashable | Sequence[str] = None,
-        c: Hashable | Sequence[str] = None,
+        s: Hashable | Sequence[Hashable] = None,
+        c: Hashable | Sequence[Hashable] = None,
         **kwargs,
     ) -> PlotAccessor:
         """
