@@ -734,7 +734,14 @@ class BaseGrouper:
         Generator yielding subsetted objects
         """
         ids, _, ngroups = self.group_info
-        return _get_splitter(data, ids, ngroups, axis=axis)
+        return _get_splitter(
+            data,
+            ids,
+            ngroups,
+            sorted_ids=self._sorted_ids,
+            sort_idx=self._sort_idx,
+            axis=axis,
+        )
 
     @final
     @cache_readonly
@@ -1029,6 +1036,22 @@ class BaseGrouper:
 
         return result
 
+    # ------------------------------------------------------------
+    # Methods for sorting subsets of our GroupBy's object
+
+    @final
+    @cache_readonly
+    def _sort_idx(self) -> npt.NDArray[np.intp]:
+        # Counting sort indexer
+        ids, _, ngroups = self.group_info
+        return get_group_index_sorter(ids, ngroups)
+
+    @final
+    @cache_readonly
+    def _sorted_ids(self) -> npt.NDArray[np.intp]:
+        ids, _, _ = self.group_info
+        return ids.take(self._sort_idx)
+
 
 class BinGrouper(BaseGrouper):
     """
@@ -1211,24 +1234,20 @@ class DataSplitter(Generic[NDFrameT]):
         data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
+        *,
+        sort_idx: npt.NDArray[np.intp],
+        sorted_ids: npt.NDArray[np.intp],
         axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
+        self._slabels = sorted_ids
+        self._sort_idx = sort_idx
+
         self.axis = axis
         assert isinstance(axis, int), axis
-
-    @cache_readonly
-    def _slabels(self) -> npt.NDArray[np.intp]:
-        # Sorted labels
-        return self.labels.take(self._sort_idx)
-
-    @cache_readonly
-    def _sort_idx(self) -> npt.NDArray[np.intp]:
-        # Counting sort indexer
-        return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self) -> Iterator:
         sdata = self._sorted_data
@@ -1272,7 +1291,13 @@ class FrameSplitter(DataSplitter):
 
 
 def _get_splitter(
-    data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
+    data: NDFrame,
+    labels: npt.NDArray[np.intp],
+    ngroups: int,
+    *,
+    sort_idx: npt.NDArray[np.intp],
+    sorted_ids: npt.NDArray[np.intp],
+    axis: AxisInt = 0,
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
@@ -1280,4 +1305,6 @@ def _get_splitter(
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, labels, ngroups, axis)
+    return klass(
+        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
+    )
