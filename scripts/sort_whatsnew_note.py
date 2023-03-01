@@ -3,8 +3,8 @@ Sort whatsnew note blocks by issue number.
 
 NOTE: this assumes that each entry is on its own line, and ends with an issue number.
 If that's not the case, then an entry might not get sorted. However, virtually all
-whatsnew entries follow this pattern. So, although not perfect, this script should be
-good enough to significantly reduce merge conflicts.
+recent-enough whatsnew entries follow this pattern. So, although not perfect, this
+script should be good enough to significantly reduce merge conflicts.
 
 For example:
 
@@ -41,8 +41,6 @@ def sort_whatsnew_note(content: str) -> int:
         if line.startswith("- ") and pattern.search(line) is not None:
             block.append(line)
         else:
-            # Ignoring mypy here as we've already validated that all lines inside
-            # 'block' match `pattern`.
             key = lambda x: int(pattern.search(x).group(1))
             block = sorted(block, key=key)
             new_lines.extend(block)

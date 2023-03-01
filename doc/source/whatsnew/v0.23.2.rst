@@ -61,13 +61,13 @@ Fixed regressions
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 - Re-allowed duplicate level names of a ``MultiIndex``. Accessing a level that has a duplicate name by name still raises an error (:issue:`19029`).
-- Fixed printing of DataFrames with hierarchical columns with long names (:issue:`21180`)
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
+- Fixed printing of DataFrames with hierarchical columns with long names (:issue:`21180`)
 - Fixed regression in :meth:`~DataFrame.reindex` and :meth:`~DataFrame.groupby`
   with a MultiIndex or multiple keys that contains categorical datetime-like values (:issue:`21390`).
-- Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
-- Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
 - Fixed regression in unary negative operations with object dtype (:issue:`21380`)
+- Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
+- Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 
 
 Build changes
@@ -82,13 +82,13 @@ Bug fixes
 
 **Conversion**
 
-- Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
 - Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
+- Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
 
 **Indexing**
 
-- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
+- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :meth:`DataFrame.drop` behaviour is not consistent for unique and non-unique indexes (:issue:`21494`)
 - Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
 
@@ -103,13 +103,13 @@ Bug fixes
 
 **Timezones**
 
+- Bug in :class:`Timestamp` and :class:`DatetimeIndex` where passing a :class:`Timestamp` localized after a DST transition would return a datetime before the DST transition (:issue:`20854`)
+- Bug in comparing :class:`DataFrame` with tz-aware :class:`DatetimeIndex` columns with a DST transition that raised a ``KeyError`` (:issue:`19970`)
+- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
 - Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
-- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
-- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
-- Bug in comparing :class:`DataFrame` with tz-aware :class:`DatetimeIndex` columns with a DST transition that raised a ``KeyError`` (:issue:`19970`)
-- Bug in :class:`Timestamp` and :class:`DatetimeIndex` where passing a :class:`Timestamp` localized after a DST transition would return a datetime before the DST transition (:issue:`20854`)
 
 **Timedelta**
 

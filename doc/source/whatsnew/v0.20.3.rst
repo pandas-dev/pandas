@@ -37,8 +37,8 @@ Indexing
 ^^^^^^^^
 
 - Bug in ``Float64Index`` causing an empty array instead of ``None`` to be returned from ``.get(np.nan)`` on a Series whose index did not contain any ``NaN`` s (:issue:`8569`)
-- Fixed a bug in a slicing DataFrame/Series that have a  ``TimedeltaIndex`` (:issue:`16637`)
 - Bug in ``MultiIndex.isin`` causing an error when passing an empty iterable (:issue:`16777`)
+- Fixed a bug in a slicing DataFrame/Series that have a  ``TimedeltaIndex`` (:issue:`16637`)
 
 IO
 ^^
@@ -52,8 +52,8 @@ IO
 Plotting
 ^^^^^^^^
 
-- Fixed an issue with :meth:`DataFrame.plot.scatter` that incorrectly raised a ``KeyError`` when categorical data is used for plotting (:issue:`16199`)
 - Fixed regression that prevented RGB and RGBA tuples from being used as color arguments (:issue:`16233`)
+- Fixed an issue with :meth:`DataFrame.plot.scatter` that incorrectly raised a ``KeyError`` when categorical data is used for plotting (:issue:`16199`)
 
 Reshaping
 ^^^^^^^^^
