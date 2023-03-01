@@ -362,3 +362,14 @@ def test_replace_list_none_inplace_refs(using_copy_on_write):
         tm.assert_frame_equal(df_orig, view)
     else:
         assert np.shares_memory(arr, get_array(df, "a"))
+
+
+def test_replace_columnwise_no_op(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df_orig = df.copy()
+    df2 = df.replace({"a": 10}, 100)
+    df2.iloc[0, 0] = 100
+    if using_copy_on_write:
+        # TODO(CoW): This should share memory
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)

@@ -4106,7 +4106,10 @@ class DataFrame(NDFrame, OpsMixin):
             self._check_setitem_copy()
 
     def _iset_item(self, loc: int, value: Series) -> None:
-        self._iset_item_mgr(loc, value._values, inplace=True)
+        # We are only called from _replace_columnwise which guarantees that
+        # no reindex is necessary
+        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
+        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
