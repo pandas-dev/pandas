@@ -24,7 +24,9 @@ from pandas.util._decorators import doc
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
+    RangeIndex,
     arrays,
     get_option,
 )
@@ -250,14 +252,28 @@ class PyArrowImpl(BaseImpl):
             if dtype_backend == "pandas":
                 result = pa_table.to_pandas(**to_pandas_kwargs)
             elif dtype_backend == "pyarrow":
-                result = DataFrame(
-                    {
-                        col_name: arrays.ArrowExtensionArray(pa_col)
-                        for col_name, pa_col in zip(
-                            pa_table.column_names, pa_table.itercolumns()
-                        )
-                    }
-                )
+                index_columns = pa_table.schema.pandas_metadata.get("index_columns", [])
+                result_dc = {
+                    col_name: arrays.ArrowExtensionArray(pa_col)
+                    for col_name, pa_col in zip(
+                        pa_table.column_names, pa_table.itercolumns()
+                    )
+                }
+                if len(index_columns) == 1 and isinstance(index_columns[0], dict):
+                    params = index_columns[0]
+                    idx = RangeIndex(
+                        params.get("start"), params.get("stop"), params.get("step")
+                    )
+
+                else:
+                    index_data = [
+                        result_dc.pop(index_col) for index_col in index_columns
+                    ]
+                    if len(index_data) == 1:
+                        idx = Index(index_data[0], name=index_columns[0])
+                    else:
+                        idx = MultiIndex.from_arrays(index_data, names=index_columns)
+                result = DataFrame(result_dc, index=idx)
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result

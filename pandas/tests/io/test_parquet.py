@@ -18,6 +18,7 @@ from pandas.compat.pyarrow import (
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import RangeIndex
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -1225,3 +1226,31 @@ class TestParquetFastParquet(Base):
 
             result = read_parquet(path, engine=engine)
         tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("index", ["A", ["A", "B"]])
+    def test_pyarrow_backed_df_index(self, index, pa):
+        # GH#48944
+        obj = pd.DataFrame(data={"A": [0, 1], "B": [1, 0], "C": 1})
+        df = obj.set_index(index)
+        with tm.ensure_clean("test.parquet") as path:
+            with open(path.encode(), "wb") as f:
+                df.to_parquet(f)
+
+            with pd.option_context("mode.dtype_backend", "pyarrow"):
+                result = read_parquet(path, engine="pyarrow")
+        expected = obj.astype("int64[pyarrow]").set_index(index)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pyarrow_backed_df_range_index(self, pa):
+        # GH#48944
+        df = pd.DataFrame(
+            data={"A": [0, 1], "B": [1, 0]}, index=RangeIndex(start=100, stop=102)
+        )
+        with tm.ensure_clean("test.parquet") as path:
+            with open(path.encode(), "wb") as f:
+                df.to_parquet(f)
+
+            with pd.option_context("mode.dtype_backend", "pyarrow"):
+                result = read_parquet(path, engine="pyarrow")
+        expected = df.astype("int64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
