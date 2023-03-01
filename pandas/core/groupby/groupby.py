@@ -29,6 +29,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -1902,7 +1903,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-
             result = self._get_cythonized_result(
                 numeric_only=numeric_only,
                 ddof=ddof,
@@ -3601,7 +3601,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ids, _, ngroups = grouper.group_info
 
         def blk_func(values: ArrayLike) -> ArrayLike:
-
             if isinstance(values, ExtensionArray):
                 if how == "std":
                     return values._groupby_std(
