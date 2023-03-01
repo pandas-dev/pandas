@@ -512,6 +512,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_factorized \
         pandas.api.extensions.ExtensionArray._from_sequence \
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
+        pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \

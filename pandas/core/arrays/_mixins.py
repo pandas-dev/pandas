@@ -192,6 +192,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _values_for_factorize(self):
         return self._ndarray, self._internal_fill_value
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        from pandas.core.util.hashing import hash_array
+
+        values = self._ndarray
+        return hash_array(
+            values, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
