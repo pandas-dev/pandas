@@ -1464,20 +1464,22 @@ class Block(PandasObject):
         """
         if not self.is_numeric or self.is_bool:
             return self.copy(deep=not using_cow)
-        # If self.values is a numpy array of type int
-        # and decimals >= 0, this is a no-op and numpy
-        # returns the same array, so need to set refs
-        # https://github.com/numpy/numpy/blob/486878b37fc7439a3b2b87747f50db9b62fea8eb/numpy/core/src/multiarray/calculation.c#L625-L636
         refs = None
-        if not self.is_extension and self.dtype.kind == "i" and decimals >= 0:
-            refs = self.refs
         # TODO: round only defined on BaseMaskedArray
         # Series also does this, so would need to fix both places
         # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
         # has no attribute "round"
-        return new_block_2d(
-            self.values.round(decimals),  # type: ignore[union-attr]
-            placement=self._mgr_locs,
+        values = self.values.round(decimals)  # type: ignore[union-attr]
+        if values is self.values:
+            refs = self.refs
+            if not using_cow:
+                # Normally would need to do this before, but
+                # numpy only returns same array when round operation
+                # is no-op
+                # https://github.com/numpy/numpy/blob/486878b37fc7439a3b2b87747f50db9b62fea8eb/numpy/core/src/multiarray/calculation.c#L625-L636
+                values = values.copy()
+        return self.make_block_same_class(
+            values,
             refs=refs,
         )
 
