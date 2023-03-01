@@ -9927,12 +9927,14 @@ Parrot 2  Parrot       24.0
                 raise TypeError("Values in decimals must be integers")
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
-            # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.items()]
+            # Dispatch to Block.round
+            return self._constructor(
+                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+            ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
-        if len(new_cols) > 0:
+        if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
