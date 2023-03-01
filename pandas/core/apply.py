@@ -1323,17 +1323,23 @@ def relabel_result(
     columns: New columns name for relabelling
     order: New order for relabelling
 
-    Examples:
-    ---------
-    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
-    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    Examples
+    --------
+    >>> from pandas.core.apply import relabel_result
+    >>> result = pd.DataFrame(
+    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
+    ...     index=["max", "mean", "min"]
+    ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
-    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
+    >>> result_in_dict = relabel_result(result, funcs, columns, order)
+    >>> pd.DataFrame(result_in_dict, index=columns)
+           A    C    B
+    foo  2.0  NaN  NaN
+    aab  NaN  6.0  NaN
+    bar  NaN  NaN  4.0
+    dat  NaN  NaN  2.5
     """
     from pandas.core.indexes.base import Index
 
