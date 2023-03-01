@@ -838,6 +838,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated parsing datetime strings with system-local timezone to ``tzlocal``, pass a ``tz`` keyword or explicitly call ``tz_localize`` instead (:issue:`50791`)
+- Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
@@ -1169,6 +1170,7 @@ Performance improvements
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+- Performance improvement in :meth:`DataFrame.replace` and :meth:`Series.replace` when using a large dict for ``to_replace`` (:issue:`6697`)
 - Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
 
 .. ---------------------------------------------------------------------------
