@@ -259,6 +259,7 @@ class PyArrowImpl(BaseImpl):
                         pa_table.column_names, pa_table.itercolumns()
                     )
                 }
+                idx: Index | None
                 if len(index_columns) == 0:
                     idx = None
                 elif len(index_columns) == 1 and isinstance(index_columns[0], dict):
