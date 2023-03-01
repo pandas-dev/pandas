@@ -3897,6 +3897,12 @@ class DataFrame(NDFrame, OpsMixin):
             if is_scalar(loc):
                 loc = [loc]
 
+            if len(loc) != len(value.columns):
+                raise ValueError(
+                    f"Got {len(loc)} positions but value has {len(value.columns)} "
+                    f"columns."
+                )
+
             for i, idx in enumerate(loc):
                 arraylike = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False)
@@ -4757,6 +4763,14 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
 
+        if isinstance(value, DataFrame) and len(value.columns) > 1:
+            raise ValueError(
+                f"Expected a one-dimensional object, got a DataFrame with "
+                f"{len(value.columns)} columns instead."
+            )
+        elif isinstance(value, DataFrame):
+            value = value.iloc[:, 0]
+
         value = self._sanitize_column(value)
         self._mgr.insert(loc, column, value)
 
@@ -4843,11 +4857,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        # We can get there through isetitem with a DataFrame
-        # or through loc single_block_path
-        if isinstance(value, DataFrame):
-            return _reindex_for_setitem(value, self.index)
-        elif is_dict_like(value):
+        # Using a DataFrame would mean coercing values to one dtype
+        assert not isinstance(value, DataFrame)
+        if is_dict_like(value):
             return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):

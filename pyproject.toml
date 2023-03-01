@@ -216,6 +216,8 @@ select = [
   "PIE",
   # tidy imports
   "TID",
+  # implicit string concatenation
+  "ISC",
 ]
 
 ignore = [
@@ -259,12 +261,18 @@ ignore = [
   "PLR0912",
   # Too many statements
   "PLR0915",
+  # Global statements are discouraged
+  "PLW0603",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
+  # Outer loop variable overwritten by inner assignment
+  "PLW2901",
+  # Consider `elif` instead of `else` then `if` to remove indendation level
+  "PLR5501",
 ]
 
 exclude = [
