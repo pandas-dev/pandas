@@ -1170,12 +1170,6 @@ Performance improvements
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
 - Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
-- :class:`Period`'s default formatter (`period_format`) is now significantly
-  (~twice) faster. This improves performance of ``str(Period)``, ``repr(Period)``, and
-  :meth:`Period.strftime(fmt=None)`, as well as ``PeriodArray.strftime(fmt=None)``,
-  ``PeriodIndex.strftime(fmt=None)`` and ``PeriodIndex.format(fmt=None)``. Finally,
-  ``to_csv`` operations involving :class:`PeriodArray` or :class:`PeriodIndex` with
-  default ``date_format`` are also significantly accelerated. (:issue:`51459`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
