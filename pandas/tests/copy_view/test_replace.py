@@ -52,7 +52,7 @@ def test_replace_regex_inplace_refs(using_copy_on_write):
     df_orig = df.copy()
     view = df[:]
     arr = get_array(df, "a")
-    df.replace(to_replace=r"^a.$", value="new", inplace=True, regex=True)
+    df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     if using_copy_on_write:
         assert not np.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
