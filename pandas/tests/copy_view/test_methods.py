@@ -994,8 +994,12 @@ def test_round(using_copy_on_write, decimals):
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        # TODO: Make inplace by using out parameter of ndarray.round?
         if decimals >= 0:
+            # Ensure lazy copy if no-op
             assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        else:
+            assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
@@ -1003,8 +1007,7 @@ def test_round(using_copy_on_write, decimals):
     df2.iloc[0, 0] = 4
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        if decimals >= 0:
-            assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
 
 
