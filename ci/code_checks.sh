@@ -512,6 +512,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_factorized \
         pandas.api.extensions.ExtensionArray._from_sequence \
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
+        pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
@@ -564,9 +565,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.types.is_datetime64_any_dtype \
         pandas.api.types.is_datetime64_ns_dtype \
         pandas.api.types.is_datetime64tz_dtype \
-        pandas.plotting.andrews_curves \
-        pandas.plotting.autocorrelation_plot \
-        pandas.plotting.lag_plot \
         pandas.plotting.parallel_coordinates
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

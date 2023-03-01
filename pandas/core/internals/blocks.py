@@ -651,6 +651,7 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         mask=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -665,6 +666,8 @@ class Block(PandasObject):
             Perform inplace modification.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
+        using_cow: bool, default False
+            Specifying if copy on write is enabled.
 
         Returns
         -------
@@ -673,15 +676,27 @@ class Block(PandasObject):
         if not self._can_hold_element(to_replace):
             # i.e. only ObjectBlock, but could in principle include a
             #  String ExtensionBlock
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
         rx = re.compile(to_replace)
 
-        new_values = self.values if inplace else self.values.copy()
+        if using_cow:
+            if inplace and not self.refs.has_reference():
+                refs = self.refs
+                new_values = self.values
+            else:
+                refs = None
+                new_values = self.values.copy()
+        else:
+            refs = None
+            new_values = self.values if inplace else self.values.copy()
+
         replace_regex(new_values, rx, value, mask)
 
-        block = self.make_block(new_values)
-        return block.convert(copy=False)
+        block = self.make_block(new_values, refs=refs)
+        return block.convert(copy=False, using_cow=using_cow)
 
     @final
     def replace_list(
@@ -701,8 +716,7 @@ class Block(PandasObject):
             # TODO: avoid special-casing
             # GH49404
             if using_cow and inplace:
-                # TODO(CoW): Optimize
-                blk = self.copy()
+                blk = self.copy(deep=self.refs.has_reference())
             else:
                 blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
@@ -724,16 +738,25 @@ class Block(PandasObject):
         if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(values)
-            masks = [
-                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
+            na_mask = ~isna(values)
+            masks: Iterable[npt.NDArray[np.bool_]] = (
+                extract_bool_array(
+                    cast(
+                        ArrayLike,
+                        compare_or_regex_search(
+                            values, s[0], regex=regex, mask=na_mask
+                        ),
+                    )
+                )
                 for s in pairs
-            ]
+            )
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(values, s[0]) for s in pairs]
-
-        masks = [extract_bool_array(x) for x in masks]
+            masks = (missing.mask_missing(values, s[0]) for s in pairs)
+        # Materialize if inplace = True, since the masks can change
+        # as we replace
+        if inplace:
+            masks = list(masks)
 
         if using_cow and inplace:
             # Don't set up refs here, otherwise we will think that we have
@@ -741,7 +764,8 @@ class Block(PandasObject):
             rb = [self]
         else:
             rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(pairs):
+
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
 
@@ -750,9 +774,9 @@ class Block(PandasObject):
             # where to index into the mask
             for blk_num, blk in enumerate(rb):
                 if len(rb) == 1:
-                    m = masks[i]
+                    m = mask
                 else:
-                    mib = masks[i]
+                    mib = mask
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
@@ -762,7 +786,7 @@ class Block(PandasObject):
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
-                    mask=m,  # type: ignore[arg-type]
+                    mask=m,
                     inplace=inplace,
                     regex=regex,
                     using_cow=using_cow,
