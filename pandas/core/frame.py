@@ -685,6 +685,8 @@ class DataFrame(NDFrame, OpsMixin):
                 # INFO(ArrayManager) by default copy the 2D input array to get
                 # contiguous 1D arrays
                 copy = True
+            elif using_copy_on_write() and isinstance(data, np.ndarray):
+                pass
             else:
                 copy = False
 

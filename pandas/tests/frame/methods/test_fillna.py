@@ -57,7 +57,10 @@ class TestFillNA:
 
         # i.e. we didn't create a new 49-column block
         assert len(df._mgr.arrays) == 1
-        assert np.shares_memory(df.values, arr)
+        if using_copy_on_write:
+            assert not np.shares_memory(df.values, arr)
+        else:
+            assert np.shares_memory(df.values, arr)
 
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
