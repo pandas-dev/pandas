@@ -259,7 +259,9 @@ class PyArrowImpl(BaseImpl):
                         pa_table.column_names, pa_table.itercolumns()
                     )
                 }
-                if len(index_columns) == 1 and isinstance(index_columns[0], dict):
+                if len(index_columns) == 0:
+                    idx = None
+                elif len(index_columns) == 1 and isinstance(index_columns[0], dict):
                     params = index_columns[0]
                     idx = RangeIndex(
                         params.get("start"), params.get("stop"), params.get("step")
@@ -270,7 +272,10 @@ class PyArrowImpl(BaseImpl):
                         result_dc.pop(index_col) for index_col in index_columns
                     ]
                     if len(index_data) == 1:
-                        idx = Index(index_data[0], name=index_columns[0])
+                        name = index_columns[0]
+                        if isinstance(name, str) and name.startswith("__index_level_"):
+                            name = None
+                        idx = Index(index_data[0], name=name)
                     else:
                         idx = MultiIndex.from_arrays(index_data, names=index_columns)
                 result = DataFrame(result_dc, index=idx)
