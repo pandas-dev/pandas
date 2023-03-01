@@ -275,7 +275,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 warnings.warn(
                     "Pinning the groupby key to each group in "
                     f"{type(self).__name__}.agg is deprecated, and cases that "
-                    "relied on it will raise in a future version.",
+                    "relied on it will raise in a future version. "
+                    "If your operation requires utilizing the groupby keys, "
+                    "iterate over the groupby object instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
