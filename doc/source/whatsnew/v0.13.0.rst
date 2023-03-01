@@ -208,9 +208,9 @@ Prior version deprecations/changes
 
 These were announced changes in 0.12 or prior that are taking effect as of 0.13.0
 
-- Remove deprecated ``Factor`` (:issue:`3650`)
 - Remove deprecated ``set_printoptions/reset_printoptions`` (:issue:`3046`)
 - Remove deprecated ``_verbose_info`` (:issue:`3215`)
+- Remove deprecated ``Factor`` (:issue:`3650`)
 - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
   These are available as functions in the main pandas namespace (e.g. ``pd.read_clipboard``)
 - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
@@ -1193,8 +1193,8 @@ Bug fixes
   (:issue:`4853`)
 - Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser)
   with thousands != "," (:issue:`4596`)
-- Bug in getitem with a duplicate index when using where (:issue:`4879`)
 - Fix Type inference code coerces float column into datetime (:issue:`4601`)
+- Bug in getitem with a duplicate index when using where (:issue:`4879`)
 - Fixed ``_ensure_numeric`` does not check for complex numbers
   (:issue:`4902`)
 - Fixed a bug in ``Series.hist`` where two figures were being created when
@@ -1256,8 +1256,8 @@ Bug fixes
   parser cleaning (:issue:`5121`).
 - Treat a list/ndarray identically for ``iloc`` indexing with list-like
   (:issue:`5006`)
-- Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
 - Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
+- Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
 - Fix a bug where ``TestReadHtml`` wasn't calling the correct ``read_html()``
   function (:issue:`5150`).
 - Fix a bug with ``NDFrame.replace()`` which made replacement appear as
@@ -1310,8 +1310,8 @@ Bug fixes
 - The GroupBy methods ``transform`` and ``filter`` can be used on Series
   and DataFrames that have repeated (non-unique) indices. (:issue:`4620`)
 - Fix empty series not printing name in repr (:issue:`4651`)
-- Make tests create temp files in temp directory by default. (:issue:`5419`)
 - ``pd.to_timedelta`` of a scalar returns a scalar (:issue:`5410`)
+- Make tests create temp files in temp directory by default. (:issue:`5419`)
 - ``pd.to_timedelta`` accepts ``NaN`` and ``NaT``, returning ``NaT`` instead of raising (:issue:`5437`)
 - performance improvements in ``isnull`` on larger size pandas objects
 - Fixed various setitem with 1d ndarray that does not have a matching

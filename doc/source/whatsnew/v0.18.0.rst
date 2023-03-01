@@ -508,12 +508,12 @@ method. See the :ref:`available options docs <options.available>` for more info.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
 - Handle truncated floats in SAS xport files (:issue:`11713`)
 - Added option to hide index in ``Series.to_string`` (:issue:`11729`)
-- ``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)
-- add support for ``AWS_S3_HOST`` env variable when reading from s3 (:issue:`12198`)
 - A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)
 - For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)
+- add support for ``AWS_S3_HOST`` env variable when reading from s3 (:issue:`12198`)
 - ``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the
   values it contains (:issue:`11597`)
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
@@ -531,13 +531,13 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- the leading white spaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
+- the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)
 - the ``out`` parameter has been removed from the ``Series.round()`` method. (:issue:`11763`)
+- the leading white spaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 - ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
 - ``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)
 - ``to_msgpack`` and ``read_msgpack`` encoding now defaults to ``'utf-8'``. (:issue:`12170`)
-- the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)
 - ``NaTType.isoformat`` now returns the string ``'NaT`` to allow the result to
   be passed to the constructor of ``Timestamp``. (:issue:`12300`)
 
@@ -997,16 +997,16 @@ Other API changes
      In [2]: s.between_time('20150101 07:00:00','20150101 09:00:00')
      ValueError: Cannot convert arg ['20150101 07:00:00'] to a time.
 
-- ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info()`` (:issue:`11597`)
 - ``DataFrame.to_latex()`` now supports non-ascii encodings (eg ``utf-8``) in Python 2 with the parameter ``encoding`` (:issue:`7061`)
-- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 - ``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)
+- ``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info()`` (:issue:`11597`)
+- ``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)
 - As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregate>`.
-- Statistical functions for ``NDFrame`` objects (like ``sum(), mean(), min()``) will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
-- ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
-- More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
 - ``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)
+- More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)
 - More helpful error message with an invalid ``.transform`` with user defined input (:issue:`10165`)
+- ``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)
+- Statistical functions for ``NDFrame`` objects (like ``sum(), mean(), min()``) will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)
 - Exponentially weighted functions now allow specifying alpha directly (:issue:`10789`) and raise ``ValueError`` if parameters violate ``0 < alpha <= 1`` (:issue:`12492`)
 
 .. _whatsnew_0180.deprecations:
@@ -1047,9 +1047,9 @@ Deprecations
 
   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').mean().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
-- ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
 - ``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)
 - ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)
+- ``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)
 - show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where the ``where`` clause is not a string-like (:issue:`12027`)
 
 - The ``pandas.options.display.mpl_style`` configuration has been deprecated
@@ -1171,8 +1171,8 @@ Removal of prior version deprecations/changes
 
 - Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)
 - Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)
-- Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)
 - Removal of ``cols`` keyword in favor of ``subset`` in ``DataFrame.duplicated()`` and ``DataFrame.drop_duplicates()`` (:issue:`6680`)
+- Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)
 - Removal of the ``read_frame`` and ``frame_query`` (both aliases for ``pd.read_sql``)
   and ``write_frame`` (alias of ``to_sql``) functions in the ``pd.io.sql`` namespace,
   deprecated since 0.14.0 (:issue:`6292`).
@@ -1183,10 +1183,10 @@ Removal of prior version deprecations/changes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved performance of ``andrews_curves`` (:issue:`11534`)
 - Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)
-- Improved performance of ``pandas.concat`` (:issue:`11958`)
+- Improved performance of ``andrews_curves`` (:issue:`11534`)
 - Improved performance of ``StataReader`` (:issue:`11591`)
+- Improved performance of ``pandas.concat`` (:issue:`11958`)
 - Improved performance in construction of ``Categoricals`` with ``Series`` of datetimes containing ``NaT`` (:issue:`12077`)
 
 
@@ -1205,63 +1205,63 @@ Bug fixes
 - Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)
 - Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`, :issue:`12409`)
 - Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)
+- Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
+- Bug in ``read_csv`` when reading from a ``StringIO`` in threads (:issue:`11790`)
 - Accept unicode in ``Timedelta`` constructor (:issue:`11995`)
 - Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)
-- Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)
 - Compat for numpy 1.11 w.r.t. ``NaT`` comparison changes (:issue:`12049`)
-- Bug in ``read_csv`` when reading from a ``StringIO`` in threads (:issue:`11790`)
 - Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)
 - Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)
 - Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)
 - Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`, :issue:`12217`)
-- Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
-- Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
-- Bug in resampling with ``.nunique`` and a sparse index (:issue:`12352`)
-- Removed some compiler warnings (:issue:`12471`)
-- Work around compat issues with ``boto`` in python 3.5 (:issue:`11915`)
-- Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
-- Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)
-- Use compat iterators in PY2 to support ``.next()`` (:issue:`12299`)
-- Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
+- Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
 - Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)
+- Bug in ``Timedelta.round`` with negative values (:issue:`11690`)
+- Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)
 - Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)
 - Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)
-- Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)
+- Work around compat issues with ``boto`` in python 3.5 (:issue:`11915`)
+- Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)
+- Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)
+- Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)
+- Use compat iterators in PY2 to support ``.next()`` (:issue:`12299`)
+- Bug in resampling with ``.nunique`` and a sparse index (:issue:`12352`)
 - Bug in ``DataFrame.set_index()`` with tz-aware ``Series`` (:issue:`12358`)
+- Removed some compiler warnings (:issue:`12471`)
 
 
 
-- Bug in subclasses of ``DataFrame`` where ``AttributeError`` did not propagate (:issue:`11808`)
-- Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
-- Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
 - Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)
+- Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)
+- Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)
+- Bug in subclasses of ``DataFrame`` where ``AttributeError`` did not propagate (:issue:`11808`)
 
 - Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)
 - Bug in ``.resample`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)
 
 
-- Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
 - Bug in ``Index`` creation from ``Timestamp`` with mixed tz coerces to UTC (:issue:`11488`)
-- Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
-- Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
 - Bug in ``df.plot`` using incorrect colors for bar plots under matplotlib 1.5+ (:issue:`11614`)
+- Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)
+- Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)
+- Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)
 - Bug in the ``groupby`` ``plot`` method when using keyword arguments (:issue:`11805`).
-- Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting ``keep=False`` (:issue:`11864`)
-- Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
-- Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
-- Bug in ``DataFrame.style`` with spurious zeros (:issue:`12134`)
-- Bug in ``DataFrame.style`` with integer columns not starting at 0 (:issue:`12125`)
-- Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
-- Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
-- Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)
-- Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
-- Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
-- Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
-- Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
-- Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
-- Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
+- Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)
+- Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)
+- Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
+- Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)
+- Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
+- Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)
+- Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)
+- Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)
+- Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)
+- Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)
+- Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting ``keep=False`` (:issue:`11864`)
+- Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)
 - Bug in ``MultiIndex.drop`` for not lexsorted MultiIndexes (:issue:`12078`)
+- Bug in ``DataFrame.style`` with integer columns not starting at 0 (:issue:`12125`)
+- Bug in ``DataFrame.style`` with spurious zeros (:issue:`12134`)
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
@@ -1273,27 +1273,27 @@ Bug fixes
 - Bug in ``read_excel`` failing to read one empty column (:issue:`12292`, :issue:`9002`)
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
 - Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
-- Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)
 - Bug in building *pandas* with debugging symbols (:issue:`12123`)
+- Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)
 
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
-- Removed ``pandas._testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
-- Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
 - Bug in ``.style`` indexes and MultiIndexes not appearing (:issue:`11655`)
+- Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
+- Removed ``pandas._testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
 - Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`).
-- Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 - Bug in ``Timestamp`` constructor where microsecond resolution was lost if HHMMSS were not separated with ':' (:issue:`10041`)
+- Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 - Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)
 
 - Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)
 
+- Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
 - Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)
 - Bug when initializing categorical series with a scalar value. (:issue:`12336`)
-- Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)
-- Bug when increasing the buffer size of CSV reader in ``read_csv`` (:issue:`12494`)
 - Bug when setting columns of a ``DataFrame`` with duplicate column names (:issue:`12344`)
+- Bug when increasing the buffer size of CSV reader in ``read_csv`` (:issue:`12494`)
 
 
 .. _whatsnew_0.18.0.contributors:

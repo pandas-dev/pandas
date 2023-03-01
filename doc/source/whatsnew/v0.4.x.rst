@@ -29,8 +29,8 @@ New features
   ``MultiIndex`` (:issue:`151`)
 - ``DataFrame.rename`` has a new ``copy`` parameter to :ref:`rename
   <basics.rename>` a DataFrame in place (ENHed_)
-- :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)
 - :ref:`Enable <advanced.sortlevel_byname>` ``sortlevel`` to work by level (:issue:`141`)
+- :ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)
 
 Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -11,17 +11,17 @@ New features
 
 - :ref:`Added <basics.df_join>` ``DataFrame.align`` method with standard join options
 - :ref:`Added <io.parse_dates>` ``parse_dates`` option to ``read_csv`` and ``read_table`` methods to optionally try to parse dates in the index columns
-- :ref:`Added <io.parse_dates>` ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (:issue:`242`)
 - :ref:`Added <merging.multikey_join>` ability to join on multiple columns in ``DataFrame.join`` (:issue:`214`)
+- :ref:`Added <io.parse_dates>` ``nrows``, ``chunksize``, and ``iterator`` arguments to ``read_csv`` and ``read_table``. The last two return a new ``TextParser`` class capable of lazily iterating through chunks of a flat file (:issue:`242`)
 - Added private ``_get_duplicates`` function to ``Index`` for identifying duplicate values more easily (ENH5c_)
 - :ref:`Added <indexing.df_cols>` column attribute access to DataFrame.
 - :ref:`Added <indexing.df_cols>` Python tab completion hook for DataFrame columns. (:issue:`233`, :issue:`230`)
+- :ref:`Added<reshaping.pivot>` ``pivot_table`` convenience function to pandas namespace (:issue:`234`)
 - :ref:`Implemented <basics.describe>` ``Series.describe`` for Series containing objects (:issue:`241`)
+- :ref:`Implemented <basics.rename_axis>` ``Panel.rename_axis`` function (:issue:`243`)
 - :ref:`Added <merging.df_inner_join>` inner join option to ``DataFrame.join`` when joining on key(s) (:issue:`248`)
 - :ref:`Implemented <indexing.df_cols>` selecting DataFrame columns by passing a list to ``__getitem__`` (:issue:`253`)
 - :ref:`Implemented <indexing.set_ops>` & and | to intersect / union Index objects, respectively (:issue:`261`)
-- :ref:`Added<reshaping.pivot>` ``pivot_table`` convenience function to pandas namespace (:issue:`234`)
-- :ref:`Implemented <basics.rename_axis>` ``Panel.rename_axis`` function (:issue:`243`)
 - DataFrame will show index level names in console output (:issue:`334`)
 - :ref:`Implemented <advanced.take>` ``Panel.take``
 - :ref:`Added<basics.console_output>` ``set_eng_float_format`` for alternate DataFrame floating point string formatting (ENH61_)

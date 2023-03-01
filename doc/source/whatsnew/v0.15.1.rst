@@ -279,24 +279,24 @@ Enhancements
 Bug fixes
 ~~~~~~~~~
 
+- Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in unpickling of a ``CustomBusinessDay`` object (:issue:`8591`)
 - Bug in coercing ``Categorical`` to a records array, e.g. ``df.to_records()`` (:issue:`8626`)
 - Bug in ``Categorical`` not created properly with ``Series.to_frame()`` (:issue:`8626`)
 - Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
-- Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
 - Bug in writing Categorical columns to an SQL database with ``to_sql`` (:issue:`8624`).
-- Bug in comparing ``Categorical`` of datetime raising when being compared to a scalar datetime (:issue:`8687`)
+- Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
+- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Bug in selecting from a ``Categorical`` with ``.iloc`` (:issue:`8623`)
 - Bug in groupby-transform with a Categorical (:issue:`8623`)
 - Bug in duplicated/drop_duplicates with a Categorical (:issue:`8623`)
 - Bug in ``Categorical`` reflected comparison operator raising if the first argument was a numpy array scalar (e.g. np.int64) (:issue:`8658`)
+- Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
+- Bug in comparing ``Categorical`` of datetime raising when being compared to a scalar datetime (:issue:`8687`)
+- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue:`8703`)
 - Bug in Panel indexing with a list-like (:issue:`8710`)
 - Compat issue is ``DataFrame.dtypes`` when ``options.mode.use_inf_as_null`` is True (:issue:`8722`)
-- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue:`8703`)
 - Bug in slicing a MultiIndex level with an empty-list (:issue:`8737`)
-- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
-- Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
-- Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
 - Bug when doing label based indexing with integers not found in the index for
   non-unique but monotonic indexes (:issue:`8680`).
 - Bug when indexing a Float64Index with ``np.nan`` on numpy 1.7 (:issue:`8980`).
@@ -306,8 +306,8 @@ Bug fixes
 - Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
 - Fix regression in plotting of a DatetimeIndex directly with matplotlib (:issue:`8614`).
 - Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
-- Bug in Setting by indexer to a scalar value with a mixed-dtype ``Panel4d`` was failing (:issue:`8702`)
 - Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
+- Bug in Setting by indexer to a scalar value with a mixed-dtype ``Panel4d`` was failing (:issue:`8702`)
 - Bug in ``get_quote_yahoo`` that wouldn't allow non-float return values (:issue:`5229`).
 
 

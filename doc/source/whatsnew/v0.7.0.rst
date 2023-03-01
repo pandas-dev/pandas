@@ -354,8 +354,8 @@ Performance improvements
   don't match data (:issue:`497`)
 - Substantially improve performance of multi-GroupBy aggregation when a
   Python function is passed, reuse ndarray object in Cython (:issue:`496`)
-- Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
 - Don't print length by default in Series.to_string, add ``length`` option (:issue:`489`)
+- Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
 - Improve Cython code for multi-groupby to aggregate without having to sort
   the data (:issue:`93`)
 - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
