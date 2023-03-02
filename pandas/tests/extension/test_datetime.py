@@ -116,11 +116,6 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
         # Timestamp.__add__(Timestamp) not defined
         pass
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        super().test_fillna_copy_series(
-            data_missing, no_op_with_cow=using_copy_on_write
-        )
-
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
     pass
