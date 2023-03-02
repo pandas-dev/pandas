@@ -2843,3 +2843,37 @@ def test_obj_with_exclusions_duplicate_columns():
     result = gb._obj_with_exclusions
     expected = df.take([0, 2, 3], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_numeric_only_std_no_result():
+    # GH 51080
+    dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
+    df = DataFrame(dicts_non_numeric)
+    dfgb = df.groupby("a")
+    result = dfgb.std(numeric_only=True)
+
+    assert result.empty
+
+
+def test_groupby_std_raises_error():
+    # GH 51080
+    dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
+    df = DataFrame(dicts_non_numeric)
+    dfgb = df.groupby("a")
+    with pytest.raises(ValueError, match="could not convert string to float: 'bar'"):
+        dfgb.std(numeric_only=True)
+
+
+def test_groupby_numeric_only_mixed_data_std():
+    # GH 51080
+    dicts = [
+        {"a": "foo", "b": "bar"},
+        {"a": "car", "b": "dar"},
+        {"a": 10, "b": 20},
+    ]
+    df = DataFrame(dicts)
+    dfgb = df.groupby("a", as_index=False)
+    result = dfgb.std(numeric_only=True)
+    expected = DataFrame([10, "car", "foo"], columns=["a"])
+
+    tm.assert_frame_equal(result, expected)
