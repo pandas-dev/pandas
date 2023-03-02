@@ -5182,7 +5182,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = type(self)._simple_new(res, name=self._name)
         if isinstance(result._engine, libindex.IndexEngine):  # may also be IntervalTree
             reverse = slobj.step is not None and slobj.step < 0
-            result._engine._update_from_other(self._engine, reverse=reverse)
+            result._engine._update_from_sliced(self._engine, reverse=reverse)
 
         return result
 
