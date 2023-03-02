@@ -70,13 +70,11 @@ static int pandas_datetime_exec(PyObject *module) {
     PyErr_SetString(PyExc_ImportError,
                     "pd_datetime.c could not import module pandas");
     Py_DECREF(capsule);
-    // cpython doesn't PyMem_Free(capi) here - mistake or intentional?
     return -1;
   }
 
   if (PyModule_AddObject(pandas, "_pandas_datetime_CAPI", capsule) < 0) {
     Py_DECREF(capsule);
-    // cpython doesn't PyMem_Free(capi) here - mistake or intentional?
     return -1;
   }
 
