@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -151,3 +152,11 @@ class TestSeriesConcat:
         obj = frame_or_series([100])
         result = concat([obj.iloc[::-1]])
         tm.assert_equal(result, obj)
+
+    @pytest.mark.parametrize("dtype", tm.ALL_PYARROW_DTYPES)
+    def test_concat_empty_arrow_backed_series(self, dtype):
+        # GH#51734
+        ser = Series([], dtype=ArrowDtype(dtype))
+        expected = ser.copy()
+        result = concat([ser[np.array([], dtype=np.bool_)]])
+        tm.assert_series_equal(result, expected)

@@ -349,7 +349,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
-                return type(self)(pa.chunked_array([], type=pa_dtype))
+                return type(self)(pa.array([], type=pa_dtype, from_pandas=True))
             elif is_integer_dtype(item.dtype):
                 return self.take(item)
             elif is_bool_dtype(item.dtype):
