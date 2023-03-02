@@ -256,24 +256,24 @@ cdef class IndexEngine:
 
     cdef _do_monotonic_check(self):
         cdef:
-            bint is_unique
+            bint is_strict_monotonic
         if self.mask is not None and np.any(self.mask):
             self.monotonic_inc = 0
             self.monotonic_dec = 0
         else:
             try:
                 values = self.values
-                self.monotonic_inc, self.monotonic_dec, is_unique = \
+                self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
             except TypeError:
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
-                is_unique = 0
+                is_strict_monotonic = 0
 
             self.need_monotonic_check = 0
 
-            # we can only be sure of uniqueness if is_unique=1
-            if is_unique:
+            # we can only be sure of uniqueness if is_strict_monotonic=1
+            if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
 
