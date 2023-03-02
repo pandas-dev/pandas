@@ -1837,6 +1837,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Name: B, dtype: float64
         """
 
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                print("df")
+                print(df)
+                return self.obj._constructor(df).mean()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
