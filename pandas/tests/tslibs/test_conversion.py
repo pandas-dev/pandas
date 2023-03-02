@@ -110,11 +110,10 @@ def test_length_zero_copy(dtype, copy):
     result = astype_overflowsafe(arr, copy=copy, dtype=np.dtype("M8[ns]"))
     if copy:
         assert not np.shares_memory(result, arr)
+    elif arr.dtype == result.dtype:
+        assert result is arr
     else:
-        if arr.dtype == result.dtype:
-            assert result is arr
-        else:
-            assert not np.shares_memory(result, arr)
+        assert not np.shares_memory(result, arr)
 
 
 def test_ensure_datetime64ns_bigendian():
