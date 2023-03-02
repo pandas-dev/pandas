@@ -19,6 +19,7 @@ from pandas._typing import (
     ReadBuffer,
     WriteBuffer,
 )
+from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -209,17 +210,18 @@ def to_orc(
         engine_kwargs = {}
 
     # If unsupported dtypes are found raise NotImplementedError
-    # In Pyarrow 9.0.0 this check will no longer be needed
-    for dtype in df.dtypes:
-        if (
-            is_categorical_dtype(dtype)
-            or is_interval_dtype(dtype)
-            or is_period_dtype(dtype)
-            or is_unsigned_integer_dtype(dtype)
-        ):
-            raise NotImplementedError(
-                "The dtype of one or more columns is not supported yet."
-            )
+    # In Pyarrow 8.0.0 this check will no longer be needed
+    if pa_version_under8p0:
+        for dtype in df.dtypes:
+            if (
+                is_categorical_dtype(dtype)
+                or is_interval_dtype(dtype)
+                or is_period_dtype(dtype)
+                or is_unsigned_integer_dtype(dtype)
+            ):
+                raise NotImplementedError(
+                    "The dtype of one or more columns is not supported yet."
+                )
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
