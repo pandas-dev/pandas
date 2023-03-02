@@ -651,6 +651,7 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         mask=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -665,6 +666,8 @@ class Block(PandasObject):
             Perform inplace modification.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
+        using_cow: bool, default False
+            Specifying if copy on write is enabled.
 
         Returns
         -------
@@ -673,15 +676,27 @@ class Block(PandasObject):
         if not self._can_hold_element(to_replace):
             # i.e. only ObjectBlock, but could in principle include a
             #  String ExtensionBlock
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
         rx = re.compile(to_replace)
 
-        new_values = self.values if inplace else self.values.copy()
+        if using_cow:
+            if inplace and not self.refs.has_reference():
+                refs = self.refs
+                new_values = self.values
+            else:
+                refs = None
+                new_values = self.values.copy()
+        else:
+            refs = None
+            new_values = self.values if inplace else self.values.copy()
+
         replace_regex(new_values, rx, value, mask)
 
-        block = self.make_block(new_values)
-        return block.convert(copy=False)
+        block = self.make_block(new_values, refs=refs)
+        return block.convert(copy=False, using_cow=using_cow)
 
     @final
     def replace_list(
@@ -1446,6 +1461,39 @@ class Block(PandasObject):
         #  is ndarray, e.g. IntegerArray, SparseArray
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
+
+    def round(self, decimals: int, using_cow: bool = False) -> Block:
+        """
+        Rounds the values.
+        If the block is not of an integer or float dtype, nothing happens.
+        This is consistent with DataFrame.round behavivor.
+        (Note: Series.round would raise)
+
+        Parameters
+        ----------
+        decimals: int,
+            Number of decimal places to round to.
+            Caller is responsible for validating this
+        using_cow: bool,
+            Whether Copy on Write is enabled right now
+        """
+        if not self.is_numeric or self.is_bool:
+            return self.copy(deep=not using_cow)
+        refs = None
+        # TODO: round only defined on BaseMaskedArray
+        # Series also does this, so would need to fix both places
+        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
+        # has no attribute "round"
+        values = self.values.round(decimals)  # type: ignore[union-attr]
+        if values is self.values:
+            refs = self.refs
+            if not using_cow:
+                # Normally would need to do this before, but
+                # numpy only returns same array when round operation
+                # is no-op
+                # https://github.com/numpy/numpy/blob/486878b37fc7439a3b2b87747f50db9b62fea8eb/numpy/core/src/multiarray/calculation.c#L625-L636
+                values = values.copy()
+        return self.make_block_same_class(values, refs=refs)
 
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
