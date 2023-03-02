@@ -1629,7 +1629,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Callable:
+    def _obj_1d_constructor(self):
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -1844,7 +1844,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
+                alt=lambda x: self._obj_1d_constructor(x).mean(
+                    numeric_only=numeric_only
+                ),
                 numeric_only=numeric_only,
             )
             return result.__finalize__(self.obj, method="groupby")

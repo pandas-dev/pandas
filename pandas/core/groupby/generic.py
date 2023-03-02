@@ -271,7 +271,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._aggregate_named(func, *args, **kwargs)
 
                 # result is a dict whose keys are the elements of result_index
-                result = Series(result, index=self.grouper.result_index)
+                result = self._obj_1d_constructor(
+                    result, index=self.grouper.result_index
+                )
                 result = self._wrap_aggregated_output(result)
                 return result
 
@@ -674,7 +676,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # in a backward compatible way
             # GH38672 relates to categorical dtype
             ser = self.apply(
-                Series.value_counts,
+                self._obj_1d_constructor.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
@@ -693,7 +695,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(self.obj._constructor(val), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(
@@ -1276,9 +1278,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(DataFrame, result)
+            result = cast(self._obj_1d_constructor, result)
             result = result.iloc[:, order]
-            result = cast(DataFrame, result)
+            result = cast(self._obj_1d_constructor, result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
@@ -1321,7 +1323,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 else:
                     # GH#32040, GH#35246
                     # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(DataFrame, result)
+                    result = cast(self._obj_1d_constructor, result)
                     result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
@@ -1449,7 +1451,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         is_transform: bool,
     ) -> DataFrame | Series:
         kwargs = first_not_none._construct_axes_dict()
-        backup = Series(**kwargs)
+        backup = self._obj_1d_constructor(**kwargs)
         values = [x if (x is not None) else backup for x in values]
 
         all_indexed_same = all_indexes_same(x.index for x in values)
@@ -1840,7 +1842,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not len(results):
             # concat would raise
-            res_df = DataFrame([], columns=columns, index=self.grouper.result_index)
+            res_df = self.obj._constructor(
+                [], columns=columns, index=self.grouper.result_index
+            )
         else:
             res_df = concat(results, keys=columns, axis=1)
 
