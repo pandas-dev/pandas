@@ -1,0 +1,224 @@
+.. _whatsnew_210:
+
+What's new in 2.1.0 (Month XX, 2023)
+--------------------------------------
+
+These are the changes in pandas 2.1.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_210.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_210.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_210.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+- Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_210.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+|                 |                 |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_210.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
+- Performance improvement in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` for extension array dtypes (:issue:`51549`)
+- Performance improvement in :meth:`DataFrame.clip` and :meth:`Series.clip` (:issue:`51472`)
+- Performance improvement in :func:`read_parquet` on string columns when using ``use_nullable_dtypes=True`` (:issue:`47345`)
+- Performance improvement in :meth:`read_orc` when reading a remote URI file path. (:issue:`51609`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
+-
+
+Timedelta
+^^^^^^^^^
+- Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
+- Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+- Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+-
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+- Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_210.contributors:
+
+Contributors
+~~~~~~~~~~~~
