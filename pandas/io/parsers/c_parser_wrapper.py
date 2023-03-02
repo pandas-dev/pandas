@@ -394,26 +394,26 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         dtype = dtypes.pop()
         if is_categorical_dtype(dtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
+       
+        elif isinstance(dtype, ExtensionDtype):
+            # TODO: concat_compat?
+            array_type = dtype.construct_array_type()
+            # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
+            # has incompatible type "List[Union[ExtensionArray, ndarray]]";
+            # expected "Sequence[ExtensionArray]"
+            result[name] = array_type._concat_same_type(
+                arrs  # type: ignore[arg-type]
+            )
         else:
-            if isinstance(dtype, ExtensionDtype):
-                # TODO: concat_compat?
-                array_type = dtype.construct_array_type()
-                # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
-                # has incompatible type "List[Union[ExtensionArray, ndarray]]";
-                # expected "Sequence[ExtensionArray]"
-                result[name] = array_type._concat_same_type(
-                    arrs  # type: ignore[arg-type]
-                )
-            else:
-                # error: Argument 1 to "concatenate" has incompatible
-                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
-                # ; expected "Union[_SupportsArray[dtype[Any]],
-                # Sequence[_SupportsArray[dtype[Any]]],
-                # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
-                # , Sequence[Sequence[Sequence[Sequence[
-                # _SupportsArray[dtype[Any]]]]]]]"
-                result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
+            # error: Argument 1 to "concatenate" has incompatible
+            # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+            # ; expected "Union[_SupportsArray[dtype[Any]],
+            # Sequence[_SupportsArray[dtype[Any]]],
+            # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+            # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+            # , Sequence[Sequence[Sequence[Sequence[
+            # _SupportsArray[dtype[Any]]]]]]]"
+            result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
         warning_names = ",".join(warning_columns)

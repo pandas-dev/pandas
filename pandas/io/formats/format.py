@@ -2103,11 +2103,11 @@ class EngFormatter:
 
         if self.use_eng_prefix:
             prefix = self.ENG_PREFIXES[int_pow10]
+
+        elif int_pow10 < 0:
+            prefix = f"E-{-int_pow10:02d}"
         else:
-            if int_pow10 < 0:
-                prefix = f"E-{-int_pow10:02d}"
-            else:
-                prefix = f"E+{int_pow10:02d}"
+            prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10**pow10)
 
