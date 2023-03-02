@@ -533,10 +533,10 @@ Rolling/expanding moments improvements
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-- Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
-- Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
 - Bug in :func:`rolling_count` and :func:`expanding_*()` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
 - Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
+- Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
+- Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
 
 - Bug in :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, and :func:`ewmcov`
   calculation of de-biasing factors when ``bias=False`` (the default).
@@ -876,8 +876,8 @@ Other notable API changes:
 
 - ``DataFrame.info()`` now ends its output with a newline character (:issue:`8114`)
 - Concatenating no objects will now raise a ``ValueError`` rather than a bare ``Exception``.
-- ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 - Merge errors will now be sub-classes of ``ValueError`` rather than raw ``Exception`` (:issue:`8501`)
+- ``DataFrame.plot`` and ``Series.plot`` keywords are now have consistent orders (:issue:`8037`)
 
 
 .. _whatsnew_0150.refactoring:
@@ -1011,10 +1011,10 @@ Other:
                     'C': [1, 2, 3]})
     pd.get_dummies(df)
 
+- ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``pandas.tseries.holiday`` has added support for additional holidays and ways to observe holidays (:issue:`7070`)
 - ``pandas.tseries.holiday.Holiday`` now supports a list of offsets in Python3 (:issue:`7070`)
 - ``pandas.tseries.holiday.Holiday`` now supports a days_of_week parameter (:issue:`7070`)
-- ``PeriodIndex`` supports ``resolution`` as the same as ``DatetimeIndex`` (:issue:`7708`)
 - ``GroupBy.nth()`` now supports selecting multiple nth values (:issue:`7910`)
 
   .. ipython:: python
@@ -1096,13 +1096,13 @@ Other:
 Performance
 ~~~~~~~~~~~
 
+- Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
 - Performance improvements in ``Period`` creation (and ``PeriodIndex`` setitem) (:issue:`5155`)
 - Improvements in Series.transform for significant performance gains (revised) (:issue:`6496`)
-- Performance improvements in ``DatetimeIndex.__iter__`` to allow faster iteration (:issue:`7683`)
 - Performance improvements in ``StataReader`` when reading large files (:issue:`8040`, :issue:`8073`)
-- Performance improvements in groupby ``.agg`` and ``.apply`` where builtins max/min were not mapped to numpy/cythonized versions (:issue:`7722`)
 - Performance improvements in ``StataWriter`` when writing large files (:issue:`8079`)
 - Performance and memory usage improvements in multi-key ``groupby`` (:issue:`8128`)
+- Performance improvements in groupby ``.agg`` and ``.apply`` where builtins max/min were not mapped to numpy/cythonized versions (:issue:`7722`)
 - Performance improvement in writing to sql (``to_sql``) of up to 50% (:issue:`8208`).
 - Performance benchmarking of groupby for large value of ngroups (:issue:`6787`)
 - Performance improvement in ``CustomBusinessDay``, ``CustomBusinessMonth`` (:issue:`8236`)
@@ -1115,50 +1115,50 @@ Performance
 Bug fixes
 ~~~~~~~~~
 
-- Bug in ``read_csv`` where ``squeeze=True`` would return a view (:issue:`8217`)
 - Bug in pivot_table, when using margins and a dict aggfunc (:issue:`8349`)
+- Bug in ``read_csv`` where ``squeeze=True`` would return a view (:issue:`8217`)
 - Bug in checking of table name in ``read_sql`` in certain cases (:issue:`7826`).
-- Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
-- Bug in ``HDFStore.select_column()`` not preserving UTC timezone info when selecting a ``DatetimeIndex`` (:issue:`7777`)
-- Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)
-- Bug in ``Series`` 0-division with a float and integer operand dtypes  (:issue:`7785`)
 - Bug in ``DataFrame.groupby`` where ``Grouper`` does not recognize level when frequency is specified (:issue:`7885`)
 - Bug in multiindexes dtypes getting mixed up when DataFrame is saved to SQL table (:issue:`8021`)
+- Bug in ``Series`` 0-division with a float and integer operand dtypes  (:issue:`7785`)
+- Bug in ``Series.astype("unicode")`` not calling ``unicode`` on the values correctly (:issue:`7758`)
+- Bug in ``DataFrame.as_matrix()`` with mixed ``datetime64[ns]`` and ``timedelta64[ns]`` dtypes (:issue:`7778`)
+- Bug in ``HDFStore.select_column()`` not preserving UTC timezone info when selecting a ``DatetimeIndex`` (:issue:`7777`)
 - Bug in ``to_datetime`` when ``format='%Y%m%d'`` and ``coerce=True`` are specified, where previously an object array was returned (rather than
   a coerced time-series with ``NaT``), (:issue:`7930`)
-- Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
 - Bug in adding and subtracting ``PeriodIndex`` with ``PeriodIndex`` raise ``TypeError`` (:issue:`7741`)
-- Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is referred internally (:issue:`7748`)
+- Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
 - Bug in MultiIndex slicing with missing indexers (:issue:`7866`)
+- Bug in MultiIndex slicing with various edge cases (:issue:`8132`)
 - Regression in MultiIndex indexing with a non-scalar type object (:issue:`7914`)
 - Bug in ``Timestamp`` comparisons with ``==`` and ``int64`` dtype (:issue:`8058`)
-- Bug in MultiIndex slicing with various edge cases (:issue:`8132`)
+- Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is referred internally (:issue:`7748`)
 - Bug in ``Panel`` when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
 - Bug in putting a ``PeriodIndex`` into a ``Series`` would convert to ``int64`` dtype, rather than ``object`` of ``Periods`` (:issue:`7932`)
 - Bug in ``HDFStore`` iteration when passing a where (:issue:`8014`)
 - Bug in ``DataFrameGroupby.transform`` when transforming with a passed non-sorted key (:issue:`8046`, :issue:`8430`)
+- Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
+- Bug in inference in a ``MultiIndex`` with ``datetime.date`` inputs (:issue:`7888`)
+- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-- Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
-- Bug in repeated timeseries line and area plot may result in ``ValueError`` or incorrect kind (:issue:`7733`)
-- Bug in inconsistent panel setitem with a rhs of a ``DataFrame`` for alignment (:issue:`7763`)
-- Bug in inference in a ``MultiIndex`` with ``datetime.date`` inputs (:issue:`7888`)
 - Bug in sorting a MultiIndex frame with a ``Float64Index`` (:issue:`8017`)
+- Bug in inconsistent panel setitem with a rhs of a ``DataFrame`` for alignment (:issue:`7763`)
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
-- Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
 - Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
+- Bug in ``PeriodIndex.unique`` returns int64 ``np.ndarray`` (:issue:`7540`)
 - Bug in ``groupby.apply`` with a non-affecting mutation in the function (:issue:`8467`)
 - Bug in ``DataFrame.reset_index`` which has ``MultiIndex`` contains ``PeriodIndex`` or ``DatetimeIndex`` with tz raises ``ValueError`` (:issue:`7746`, :issue:`7793`)
-- Bug in ``DataFrame.join`` when doing left join on index and there are multiple matches (:issue:`5391`)
-- Bug in ``DatetimeIndex.value_counts`` doesn't preserve tz  (:issue:`7735`)
-- Bug in ``PeriodIndex.value_counts`` results in ``Int64Index`` (:issue:`7735`)
 - Bug in ``DataFrame.plot`` with ``subplots=True`` may draw unnecessary minor xticks and yticks (:issue:`7801`)
 - Bug in ``StataReader`` which did not read variable labels in 117 files due to difference between Stata documentation and implementation (:issue:`7816`)
-- Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
 - Bug in ``StataReader`` where strings were always converted to 244 characters-fixed width irrespective of underlying string size (:issue:`7858`)
+- Bug in ``DataFrame.plot`` and ``Series.plot`` may ignore ``rot`` and ``fontsize`` keywords (:issue:`7844`)
+- Bug in ``DatetimeIndex.value_counts`` doesn't preserve tz  (:issue:`7735`)
+- Bug in ``PeriodIndex.value_counts`` results in ``Int64Index`` (:issue:`7735`)
+- Bug in ``DataFrame.join`` when doing left join on index and there are multiple matches (:issue:`5391`)
 - Bug in ``GroupBy.transform()`` where int groups with a transform that
   didn't preserve the index were incorrectly truncated (:issue:`7972`).
 - Bug in ``groupby`` where callable objects without name attributes would take the wrong path,
@@ -1166,20 +1166,20 @@ Bug fixes
 - Bug in ``groupby`` error message when a DataFrame grouping column is duplicated (:issue:`7511`)
 - Bug in ``read_html`` where the ``infer_types`` argument forced coercion of
   date-likes incorrectly (:issue:`7762`, :issue:`7032`).
-- Bug in ``tslib.tz_convert`` and ``tslib.tz_convert_single`` may return different results (:issue:`7798`)
-- Bug in ``Timestamp`` with string offset and ``tz`` results incorrect (:issue:`7833`)
 - Bug in ``Series.str.cat`` with an index which was filtered as to not include the first item (:issue:`7857`)
 - Bug in ``Timestamp`` cannot parse ``nanosecond`` from string (:issue:`7878`)
+- Bug in ``Timestamp`` with string offset and ``tz`` results incorrect (:issue:`7833`)
+- Bug in ``tslib.tz_convert`` and ``tslib.tz_convert_single`` may return different results (:issue:`7798`)
 - Bug in ``DatetimeIndex.intersection`` of non-overlapping timestamps with tz raises ``IndexError`` (:issue:`7880`)
 - Bug in alignment with TimeOps and non-unique indexes (:issue:`8363`)
 - Bug in ``GroupBy.filter()`` where fast path vs. slow path made the filter
   return a non scalar value that appeared valid but wasn't (:issue:`7870`).
 - Bug in ``date_range()``/``DatetimeIndex()`` when the timezone was inferred from input dates yet incorrect
   times were returned when crossing DST boundaries (:issue:`7835`, :issue:`7901`).
-- ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
 - Bug in ``to_excel()`` where a negative sign was being prepended to positive infinity and was absent for negative infinity (:issue:`7949`)
-- Bug in ``Holiday`` with no offset or observance (:issue:`7987`)
 - Bug in area plot draws legend with incorrect ``alpha`` when ``stacked=True`` (:issue:`8027`)
+- ``Period`` and ``PeriodIndex`` addition/subtraction with ``np.timedelta64`` results in incorrect internal representations (:issue:`7740`)
+- Bug in ``Holiday`` with no offset or observance (:issue:`7987`)
 - Bug in ``DataFrame.to_latex`` formatting when columns or index is a ``MultiIndex`` (:issue:`7982`).
 - Bug in ``DateOffset`` around Daylight Savings Time produces unexpected results (:issue:`5175`).
 - Bug in ``DataFrame.shift`` where empty columns would throw ``ZeroDivisionError`` on numpy 1.7 (:issue:`8019`)
@@ -1188,9 +1188,9 @@ Bug fixes
 - Bug in ``read_html`` where ``bytes`` objects were not tested for in
   ``_read`` (:issue:`7927`).
 - Bug in ``DataFrame.stack()`` when one of the column levels was a datelike (:issue:`8039`)
-- Bug in ``DataFrame.plot(kind='scatter')`` draws points and errorbars with different colors when the color is specified by ``c`` keyword (:issue:`8081`)
-- Bug in ``pivot_table`` performed with nameless ``index`` and ``columns`` raises ``KeyError`` (:issue:`8103`)
 - Bug in broadcasting numpy scalars with ``DataFrame`` (:issue:`8116`)
+- Bug in ``pivot_table`` performed with nameless ``index`` and ``columns`` raises ``KeyError`` (:issue:`8103`)
+- Bug in ``DataFrame.plot(kind='scatter')`` draws points and errorbars with different colors when the color is specified by ``c`` keyword (:issue:`8081`)
 - Bug in ``Float64Index`` where ``iat`` and ``at`` were not testing and were
   failing (:issue:`8092`).
 - Bug in ``DataFrame.boxplot()`` where y-limits were not set correctly when
@@ -1221,14 +1221,14 @@ Bug fixes
   (:issue:`5884`).
 - Bug in ``DataFrame.dropna`` that interpreted non-existent columns in the subset argument as the 'last column' (:issue:`8303`)
 - Bug in ``Index.intersection`` on non-monotonic non-unique indexes (:issue:`8362`).
-- Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
-- Suppress FutureWarning generated by NumPy when comparing object arrays containing NaN for equality (:issue:`7065`)
-- Bug in item assignment of a ``DataFrame`` with MultiIndex columns where right-hand-side columns were not aligned (:issue:`7655`)
-- Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
-- Bug in assignment with indexer where type diversity would break alignment (:issue:`8258`)
 - Bug in masked series assignment where mismatching types would break alignment (:issue:`8387`)
 - Bug in ``NDFrame.equals`` gives false negatives with dtype=object (:issue:`8437`)
+- Bug in assignment with indexer where type diversity would break alignment (:issue:`8258`)
+- Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
+- Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
 - Bug in ``Series`` that allows it to be indexed by a ``DataFrame`` which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
+- Bug in item assignment of a ``DataFrame`` with MultiIndex columns where right-hand-side columns were not aligned (:issue:`7655`)
+- Suppress FutureWarning generated by NumPy when comparing object arrays containing NaN for equality (:issue:`7065`)
 - Bug in ``DataFrame.eval()`` where the dtype of the ``not`` operator (``~``)
   was not correctly inferred as ``bool``.
 

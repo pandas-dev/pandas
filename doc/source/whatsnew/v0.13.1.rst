@@ -384,12 +384,12 @@ Performance improvements for 0.13.1
 
 - Series datetime/timedelta binary operations (:issue:`5801`)
 - DataFrame ``count/dropna`` for ``axis=1``
-- Regression in JSON IO (:issue:`5765`)
 - Series.str.contains now has a ``regex=False`` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
 - Series.str.extract (:issue:`5944`)
 - ``dtypes/ftypes`` methods (:issue:`5968`)
 - indexing with object dtypes (:issue:`5968`)
 - ``DataFrame.apply`` (:issue:`6013`)
+- Regression in JSON IO (:issue:`5765`)
 - Index construction from Series (:issue:`6150`)
 
 Experimental
@@ -402,37 +402,37 @@ There are no experimental changes in 0.13.1
 Bug fixes
 ~~~~~~~~~
 
-- Bug in Series replace with timestamp dict (:issue:`5797`)
 - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
+- Bug in Series replace with timestamp dict (:issue:`5797`)
 - read_csv/read_table now respects the ``prefix`` kwarg (:issue:`5732`).
-- Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
-- Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
-- Bug in internal caching, related to (:issue:`5727`)
-- Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
 - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
-- Bug in DataFrame.tail with empty frame (:issue:`5846`)
-- Bug in propagating metadata on ``resample`` (:issue:`5862`)
+- Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
+- Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
 - Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
 - Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
-- Testing bug in reading JSON/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
 - Regression in handling of empty Series as indexers to Series  (:issue:`5877`)
-- Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)
+- Bug in internal caching, related to (:issue:`5727`)
+- Testing bug in reading JSON/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
 - Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
 - Bug in fully reindexing a Panel (:issue:`5905`)
-- Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
 - Bug in idxmin/max with object dtypes (:issue:`5914`)
+- Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)
 - Bug in assigning to chained series with a series via ix (:issue:`5928`)
 - Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
+- Bug in DataFrame.tail with empty frame (:issue:`5846`)
+- Bug in propagating metadata on ``resample`` (:issue:`5862`)
+- Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
+- Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
 - ``pd.match`` not returning passed sentinel
 - ``Panel.to_frame()`` no longer fails when ``major_axis`` is a
   ``MultiIndex`` (:issue:`5402`).
 - Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequency
   incorrectly (:issue:`5947`)
-- Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
-- Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
 - Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``'s  (:issue:`5961`)
-- Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
+- Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
 - Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)
+- Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
+- Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
 - Recent changes in IPython cause warnings to be emitted when using previous versions
   of pandas in QTConsole, now fixed. If you're using an older version and
   need to suppress the warnings, see (:issue:`5922`).
@@ -448,8 +448,8 @@ Bug fixes
   (:issue:`6043`)
 - ``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)
 - Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
-- Bug with insert of strings into DatetimeIndex (:issue:`5818`)
 - Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
+- Bug with insert of strings into DatetimeIndex (:issue:`5818`)
 - Fixed unicode bug in to_html/HTML repr (:issue:`6098`)
 - Fixed missing arg validation in get_options_data (:issue:`6105`)
 - Bug in assignment with duplicate columns in a frame where the locations

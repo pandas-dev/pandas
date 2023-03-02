@@ -442,3 +442,4 @@ repos:
         types: [rst]
         language: python
         files: ^doc/source/whatsnew/v
+        exclude: ^doc/source/whatsnew/v(0|1)

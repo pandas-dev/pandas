@@ -191,20 +191,20 @@ Other enhancements
 
 
 - Allow Stata files to be read incrementally with an iterator; support for long strings in Stata files. See the docs :ref:`here<io.stata_reader>` (:issue:`9493`:).
-- SQL code now safely escapes table and column names (:issue:`8986`)
-- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
 - Paths beginning with ~ will now be expanded to begin with the user's home directory (:issue:`9066`)
 - Added time interval selection in ``get_data_yahoo`` (:issue:`9071`)
-- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
 - Added ``Timestamp.to_datetime64()`` to complement ``Timedelta.to_timedelta64()`` (:issue:`9255`)
+- ``tseries.frequencies.to_offset()`` now accepts ``Timedelta`` as input (:issue:`9064`)
+- Lag parameter was added to the autocorrelation method of ``Series``, defaults to lag-1 autocorrelation (:issue:`9192`)
 - ``Timedelta`` will now accept ``nanoseconds`` keyword in constructor (:issue:`9273`)
+- SQL code now safely escapes table and column names (:issue:`8986`)
 - Added auto-complete for ``Series.str.<tab>``, ``Series.dt.<tab>`` and ``Series.cat.<tab>`` (:issue:`9322`)
 - ``Index.get_indexer`` now supports ``method='pad'`` and ``method='backfill'`` even for any target array, not just monotonic targets. These methods also work for monotonic decreasing as well as monotonic increasing indexes (:issue:`9258`).
 - ``Index.asof`` now works on all index types (:issue:`9258`).
-- Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
-- Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
 - A ``verbose`` argument has been augmented in ``io.read_excel()``, defaults to False. Set to True to print sheet names as they are parsed. (:issue:`9450`)
 - Added ``days_in_month`` (compatibility alias ``daysinmonth``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex``, and ``Series.dt`` (:issue:`9572`)
+- Added ``decimal`` option in ``to_csv`` to provide formatting for non-'.' decimal separators (:issue:`781`)
+- Added ``normalize`` option for ``Timestamp`` to normalized to midnight (:issue:`8794`)
 - Added example for ``DataFrame`` import to R using HDF5 file and ``rhdf5``
   library. See the documentation for more
   (:issue:`9636`).
@@ -561,12 +561,12 @@ Performance improvements
 - Performance improvements in ``MultiIndex.duplicated`` by working with labels instead of values (:issue:`9125`)
 - Improved the speed of ``nunique`` by calling ``unique`` instead of ``value_counts`` (:issue:`9129`, :issue:`7771`)
 - Performance improvement of up to 10x in ``DataFrame.count`` and ``DataFrame.dropna`` by taking advantage of homogeneous/heterogeneous dtypes appropriately (:issue:`9136`)
-- Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
 - Performance improvement of up to 20x in ``DataFrame.count`` when using a ``MultiIndex`` and the ``level`` keyword argument  (:issue:`9163`)
-- Performance and memory usage improvements in ``DataFrame.duplicated`` (:issue:`9398`)
+- Performance and memory usage improvements in ``merge`` when key space exceeds ``int64`` bounds (:issue:`9151`)
 - Performance improvements in multi-key ``groupby`` (:issue:`9429`)
-- Cythonized ``Period`` (:issue:`9440`)
 - Performance improvements in ``MultiIndex.sortlevel`` (:issue:`9445`)
+- Performance and memory usage improvements in ``DataFrame.duplicated`` (:issue:`9398`)
+- Cythonized ``Period`` (:issue:`9440`)
 - Decreased memory usage on ``to_hdf`` (:issue:`9648`)
 
 .. _whatsnew_0160.bug_fixes:
@@ -575,10 +575,10 @@ Bug fixes
 ~~~~~~~~~
 
 - Changed ``.to_html`` to remove leading/trailing spaces in table body (:issue:`4987`)
+- Fixed issue using ``read_csv`` on s3 with Python 3 (:issue:`9452`)
 - Fixed compatibility issue in ``DatetimeIndex`` affecting architectures where ``numpy.int_`` defaults to ``numpy.int32`` (:issue:`8943`)
 - Bug in Panel indexing with an object-like (:issue:`9140`)
 - Bug in the returned ``Series.dt.components`` index was reset to the default index (:issue:`9247`)
-- Fixed issue using ``read_csv`` on s3 with Python 3 (:issue:`9452`)
 - Bug in ``Categorical.__getitem__/__setitem__`` with listlike input getting incorrect results from indexer coercion (:issue:`9469`)
 - Bug in partial setting with a DatetimeIndex (:issue:`9478`)
 - Bug in groupby for integer and datetime64 columns when applying an aggregator that caused the value to be
@@ -587,8 +587,8 @@ Bug fixes
   column with timezone info) to the appropriate sqlalchemy type (:issue:`9085`).
 - Fixed bug in ``to_sql`` ``dtype`` argument not accepting an instantiated
   SQLAlchemy type  (:issue:`9083`).
-- Incorrect dtypes inferred on datetimelike looking ``Series`` & on ``.xs`` slices (:issue:`9477`)
 - Bug in ``.loc`` partial setting with a ``np.datetime64`` (:issue:`9516`)
+- Incorrect dtypes inferred on datetimelike looking ``Series`` & on ``.xs`` slices (:issue:`9477`)
 - Items in ``Categorical.unique()`` (and ``s.unique()`` if ``s`` is of dtype ``category``) now appear in the order in which they are originally found, not in sorted order (:issue:`9331`). This is now consistent with the behavior for other dtypes in pandas.
 - Fixed bug on big endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
@@ -599,37 +599,37 @@ Bug fixes
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
 - Bug in ``rank`` where comparing floats with tolerance will cause inconsistent behaviour (:issue:`8365`).
 - Fixed character encoding bug in ``read_stata`` and ``StataReader`` when loading data from a URL (:issue:`9231`).
-- Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
 - Bug in adding ``offsets.Nano`` to other offsets raises ``TypeError`` (:issue:`9284`)
+- Bug in ``DatetimeIndex`` iteration, related to (:issue:`8890`), fixed in (:issue:`9100`)
 - Bugs in ``resample`` around DST transitions. This required fixing offset classes so they behave correctly on DST transitions. (:issue:`5172`, :issue:`8744`, :issue:`8653`, :issue:`9173`, :issue:`9468`).
 - Bug in binary operator method (eg ``.mul()``) alignment with integer levels (:issue:`9463`).
 - Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
-- Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
-- Bug in ``to_sql`` not storing float64 values using double precision. (:issue:`9009`)
-- Bug in ``read_csv`` when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
-- Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
-- ``DataFrame`` now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
-- ``isnull`` now detects ``NaT`` in ``PeriodIndex`` (:issue:`9129`)
-- Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format was applied. This prevented other row or column formatting being applied. (:issue:`9167`)
-- Accessing ``Series.str`` methods on with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
-- Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
-- Bug where ``wide_to_long`` would modify the input stub names list (:issue:`9204`)
+- Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)
 - Bug in using grouper functions that need passed through arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
+- ``DataFrame`` now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
+- Bug in ``read_csv`` when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
+- ``isnull`` now detects ``NaT`` in ``PeriodIndex`` (:issue:`9129`)
+- Bug in groupby ``.nth()`` with a multiple column groupby (:issue:`8979`)
 - Bug in ``DataFrame.where`` and ``Series.where`` coerce numerics to string incorrectly (:issue:`9280`)
 - Bug in ``DataFrame.where`` and ``Series.where`` raise ``ValueError`` when string list-like is passed. (:issue:`9280`)
-- Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)
+- Accessing ``Series.str`` methods on with non-string values now raises ``TypeError`` instead of producing incorrect results (:issue:`9184`)
 - Bug in ``DatetimeIndex.__contains__`` when index has duplicates and is not monotonic increasing (:issue:`9512`)
+- Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
+- Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format was applied. This prevented other row or column formatting being applied. (:issue:`9167`)
+- Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
+- Bug where ``wide_to_long`` would modify the input stub names list (:issue:`9204`)
+- Bug in ``to_sql`` not storing float64 values using double precision. (:issue:`9009`)
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
-- Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
 - Regression in merging ``Categorical`` and ``object`` dtypes (:issue:`9426`)
+- Bug in ``read_csv`` with buffer overflows with certain malformed input files (:issue:`9205`)
 - Bug in groupby MultiIndex with missing pair (:issue:`9049`, :issue:`9344`)
-- Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
-- Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
-- Fix bug in ``DataFrame.Groupby`` where ``sort=False`` is ignored in the case of Categorical columns. (:issue:`8868`)
-- Fixed missing numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
-- Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
 - Fixed bug in ``Series.groupby`` where grouping on ``MultiIndex`` levels would ignore the sort argument (:issue:`9444`)
+- Fix bug in ``DataFrame.Groupby`` where ``sort=False`` is ignored in the case of Categorical columns. (:issue:`8868`)
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
+- Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
+- Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
+- Fixed missing numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
+- Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
 - ``Series`` text representation disconnected from ``max_rows``/``max_columns`` (:issue:`7508`).
 
 \

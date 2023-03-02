@@ -51,14 +51,14 @@ Bug fixes
 
 - Silenced a warning on some Windows environments about "tput: terminal attributes: No such device or address" when
   detecting the terminal size. This fix only applies to python 3 (:issue:`16496`)
+- Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
 - Bug in ``Index.symmetric_difference()`` on two equal MultiIndex's, results in a ``TypeError`` (:issue:`13490`)
 - Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
-- Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
 - Passing an invalid engine to :func:`read_csv` now raises an informative
   ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
-- Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on ``Categoricals`` (:issue:`16409`)
-- Bug in :func:`cut` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)
 - Bug in :func:`unique` on an array of tuples (:issue:`16519`)
+- Bug in :func:`cut` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)
+- Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on ``Categoricals`` (:issue:`16409`)
 
 Conversion
 ^^^^^^^^^^
@@ -77,13 +77,13 @@ Indexing
 IO
 ^^
 
-- Bug where ``pd.read_hdf()`` returns numpy strings for index names (:issue:`13492`)
-- Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)
-- Bug that raised ``IndexError`` when HTML-rendering an empty ``DataFrame`` (:issue:`15953`)
-- Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
 - Bug in :func:`read_csv` when ``comment`` is passed in a space delimited text file (:issue:`16472`)
-- Bug where ``DataFrame.to_html()`` ignored the ``index_names`` parameter (:issue:`16493`)
+- Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)
+- Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
+- Bug that raised ``IndexError`` when HTML-rendering an empty ``DataFrame`` (:issue:`15953`)
 - Bug in :func:`read_csv` in which tarfile object inputs were raising an error in Python 2.x for the C engine (:issue:`16530`)
+- Bug where ``DataFrame.to_html()`` ignored the ``index_names`` parameter (:issue:`16493`)
+- Bug where ``pd.read_hdf()`` returns numpy strings for index names (:issue:`13492`)
 
 - Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)
 
@@ -91,8 +91,8 @@ Plotting
 ^^^^^^^^
 
 - Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
-- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
 - Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue:`12405`)
+- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
 
 
 
