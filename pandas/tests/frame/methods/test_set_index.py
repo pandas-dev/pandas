@@ -10,7 +10,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
@@ -402,7 +401,6 @@ class TestSetIndex:
             tm.assert_frame_equal(result, df)
 
     def test_set_index_datetime(self):
-        pd.options.mode.copy_on_write = True
         # GH#3950
         df = DataFrame(
             {
