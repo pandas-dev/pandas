@@ -38,6 +38,7 @@ from pandas._typing import (
     npt,
     type_t,
 )
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -79,7 +80,6 @@ class PandasExtensionDtype(ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE
     """
 
-    type: Any
     kind: Any
     # The Any type annotations above are here only because mypy seems to have a
     # problem dealing with multiple inheritance from PandasExtensionDtype
@@ -176,12 +176,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     # TODO: Document public vs. private API
     name = "category"
-    type: type[CategoricalDtypeType] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @property
+    @doc(ExtensionDtype.type)
+    def type(self) -> type[CategoricalDtypeType]:
+        return CategoricalDtypeType
 
     def __init__(self, categories=None, ordered: Ordered = False) -> None:
         self._finalize(categories, ordered, fastpath=False)
@@ -666,13 +670,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
     datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
     """
 
-    type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     num = 101
     base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @property
+    @doc(ExtensionDtype.type)
+    def type(self) -> type[Timestamp]:
+        return Timestamp
 
     @property
     def na_value(self) -> NaTType:
@@ -847,7 +855,6 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     period[M]
     """
 
-    type: type[Period] = Period
     kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
@@ -855,6 +862,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+
+    @property
+    @doc(ExtensionDtype.type)
+    def type(self) -> type[Period]:
+        return Period
 
     def __new__(cls, freq=None):
         """
@@ -1407,7 +1419,6 @@ class BaseMaskedDtype(ExtensionDtype):
 
     name: str
     base = None
-    type: type
 
     @property
     def na_value(self) -> libmissing.NAType:

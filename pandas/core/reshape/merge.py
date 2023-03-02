@@ -2441,12 +2441,7 @@ def _convert_arrays_and_get_rizer_klass(
             else:
                 lk = lk.astype(dtype)
                 rk = rk.astype(dtype)
-        if isinstance(lk, BaseMaskedArray):
-            #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
-            #  expected type "Type[object]"
-            klass = _factorizers[lk.dtype.type]  # type: ignore[index]
-        else:
-            klass = _factorizers[lk.dtype.type]
+        klass = _factorizers[lk.dtype.type]
 
     else:
         klass = libhashtable.ObjectFactorizer

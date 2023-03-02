@@ -64,10 +64,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # https://github.com/python/mypy/issues/4125
-    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
-    def type(self) -> type:  # type: ignore[override]
+    def type(self) -> type[np.bool_]:
         return np.bool_
 
     @property
