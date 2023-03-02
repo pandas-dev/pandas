@@ -16,7 +16,7 @@ would become
 - Fixed bug in groupby (:issue:`123`)
 - Fixed bug in resample (:issue:`321`)
 
-The motivation is to reduce merge conflicts by reducing the changes that multiple
+The motivation is to reduce merge conflicts by reducing the chances that multiple
 contributors will edit the same line of code.
 
 You can run this manually with
