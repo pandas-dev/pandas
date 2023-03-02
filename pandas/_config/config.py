@@ -66,10 +66,8 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F  # noqa: TCH001
+from pandas._typing import T  # noqa: TCH001
 from pandas.util._exceptions import find_stack_level
 
 
@@ -424,6 +422,7 @@ class option_context(ContextDecorator):
 
     Examples
     --------
+    >>> from pandas import option_context
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     pass
     """

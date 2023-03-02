@@ -294,9 +294,9 @@ date_parser : function, default ``None``
   .. deprecated:: 2.0.0
    Use ``date_format`` instead, or read in as ``object`` and then apply
    :func:`to_datetime` as-needed.
-date_format : str, default ``None``
+date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex (e.g. different formats for different columns),
+   format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
     .. versionadded:: 2.0.0
@@ -912,7 +912,7 @@ Finally, the parser allows you to specify a custom ``date_format``.
 Performance-wise, you should try these methods of parsing dates in order:
 
 1. If you know the format, use ``date_format``, e.g.:
-   ``date_format="%d/%m/%Y"``.
+   ``date_format="%d/%m/%Y"`` or ``date_format={column_name: "%d/%m/%Y"}``.
 
 2. If you different formats for different columns, or want to pass any extra options (such
    as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
@@ -3634,11 +3634,6 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. versionchanged:: 1.0.0
-
-Passing in an integer for ``usecols`` will no longer work. Please pass in a list
-of ints from 0 to ``usecols`` inclusive instead.
-
 You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
@@ -3880,8 +3875,6 @@ Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadshee
 
 Binary Excel (.xlsb) files
 --------------------------
-
-.. versionadded:: 1.0.0
 
 The :func:`~pandas.read_excel` method can also read binary Excel files
 using the ``pyxlsb`` module. The semantics and features for reading
@@ -5419,8 +5412,6 @@ The above example creates a partitioned dataset that may look like:
 ORC
 ---
 
-.. versionadded:: 1.0.0
-
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. pandas provides both the reader and the writer for the
 ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
@@ -6041,6 +6032,14 @@ values will have ``object`` data type.
    Setting ``preserve_dtypes=False`` will upcast to the standard pandas data types:
    ``int64`` for all integer types and ``float64`` for floating point data.  By default,
    the Stata data types are preserved when importing.
+
+.. note::
+
+   All :class:`~pandas.io.stata.StataReader` objects, whether created by :func:`~pandas.read_stata`
+   (when using ``iterator=True`` or ``chunksize``) or instantiated by hand, must be used as context
+   managers (e.g. the ``with`` statement).
+   While the :meth:`~pandas.io.stata.StataReader.close` method is available, its use is unsupported.
+   It is not part of the public API and will be removed in with future without warning.
 
 .. ipython:: python
    :suppress:
