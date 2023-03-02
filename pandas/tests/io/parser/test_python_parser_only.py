@@ -492,67 +492,48 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
 
 
 @pytest.mark.parametrize(
-    "data,dtype,thousands,expected",
+    "dtype", [{"a": object}, {"a": str, "b": np.int64, "c": np.int64}]
+)
+def test_no_thousand_convert_with_dot_for_non_numeric_cols(python_parser_only, dtype):
+    # GH#50270
+    parser = python_parser_only
+    data = """\
+a;b;c
+0000.7995;16.000;0
+3.03.001.00514;0;4.000
+4923.600.041;23.000;131"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype=dtype,
+        thousands=".",
+    )
+    expected = DataFrame(
+        {
+            "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
+            "b": [16000, 0, 23000],
+            "c": [0, 4000, 131],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype,expected",
     [
         (
-            """\
-a;b;c
-0000.7995;16.000;0
-3.03.001.00514;0;4.000
-4923.600.041;23.000;131""",
-            {"a": object},
-            ".",
-            DataFrame(
-                {
-                    "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
-                    "b": [16000, 0, 23000],
-                    "c": [0, 4000, 131],
-                }
-            ),
-        ),
-        (
-            """\
-a;b;c
-0000.7995;16.000;0
-3.03.001.00514;0;4.000
-4923.600.041;23.000;131""",
-            {"a": str, "b": np.int64, "c": np.int64},
-            ".",
-            DataFrame(
-                {
-                    "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
-                    "b": [16000, 0, 23000],
-                    "c": [0, 4000, 131],
-                }
-            ),
-        ),
-        (
-            """\
-a;b;c
-0000,7995;16,000.1;0
-3,03,001,00514;0;4,001
-4923,600,041;23,000;131""",
             {"a": str, "b": np.float64, "c": np.int64},
-            ",",
             DataFrame(
                 {
-                    "a": ["0000,7995", "3,03,001,00514", "4923,600,041"],
                     "b": [16000.1, 0, 23000],
                     "c": [0, 4001, 131],
                 }
             ),
         ),
         (
-            """\
-a;b;c
-0000,7995;16,000.1;0
-3,03,001,00514;0;4,001
-4923,600,041;23,000;131""",
             str,
-            ",",
             DataFrame(
                 {
-                    "a": ["0000,7995", "3,03,001,00514", "4923,600,041"],
                     "b": ["16,000.1", "0", "23,000"],
                     "c": ["0", "4,001", "131"],
                 }
@@ -560,15 +541,19 @@ a;b;c
         ),
     ],
 )
-def test_no_thousand_convert_for_non_numeric_cols(
-    python_parser_only, data, dtype, thousands, expected
-):
+def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, expected):
     # GH#50270
     parser = python_parser_only
+    data = """a;b;c
+0000,7995;16,000.1;0
+3,03,001,00514;0;4,001
+4923,600,041;23,000;131
+"""
     result = parser.read_csv(
         StringIO(data),
         sep=";",
         dtype=dtype,
-        thousands=thousands,
+        thousands=",",
     )
+    expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)
