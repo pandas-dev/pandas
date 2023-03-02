@@ -25,11 +25,6 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas._typing import (
-    Dtype,
-    Frequency,
-    NpDtype,
-)
 from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
@@ -118,6 +113,12 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        Frequency,
+        NpDtype,
+    )
+
     from pandas import (
         PeriodIndex,
         TimedeltaIndex,

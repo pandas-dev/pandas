@@ -12,8 +12,8 @@ from __future__ import annotations
 import os
 import platform
 import sys
+from typing import TYPE_CHECKING
 
-from pandas._typing import F
 from pandas.compat._constants import (
     IS64,
     PY39,
@@ -32,6 +32,9 @@ from pandas.compat.pyarrow import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import F
 
 
 def set_function_name(f: F, name: str, cls) -> F:

@@ -6,22 +6,25 @@ from pathlib import Path
 import tempfile
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Generator,
 )
 import uuid
 
-from pandas._typing import (
-    BaseBuffer,
-    CompressionOptions,
-    FilePath,
-)
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
 from pandas import set_option
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        BaseBuffer,
+        CompressionOptions,
+        FilePath,
+    )
 
 
 @contextmanager

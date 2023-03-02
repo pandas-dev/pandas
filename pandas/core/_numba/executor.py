@@ -6,9 +6,11 @@ from typing import (
     Callable,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import Scalar
+
 import numpy as np
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 

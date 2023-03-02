@@ -1,14 +1,16 @@
 # pyright: reportIncompleteStub = false
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Literal,
     overload,
 )
 
-import numba
+if TYPE_CHECKING:
+    import numba
 
-from pandas._typing import F
+    from pandas._typing import F
 
 def __getattr__(name: str) -> Any: ...  # incomplete
 @overload

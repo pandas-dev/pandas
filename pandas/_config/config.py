@@ -66,10 +66,8 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F  # noqa: TCH001
+from pandas._typing import T  # noqa: TCH001
 from pandas.util._exceptions import find_stack_level
 
 

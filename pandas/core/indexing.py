@@ -17,10 +17,6 @@ from pandas._config import using_copy_on_write
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas._typing import (
-    Axis,
-    AxisInt,
-)
 from pandas.compat import PYPY
 from pandas.errors import (
     AbstractMethodError,
@@ -79,6 +75,11 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+    )
+
     from pandas import (
         DataFrame,
         Series,
