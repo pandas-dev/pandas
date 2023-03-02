@@ -253,7 +253,6 @@ if not pa_version_under7p0:
 else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
-    ALL_PYARROW_DTYPES = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")

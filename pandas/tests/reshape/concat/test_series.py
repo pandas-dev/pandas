@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -153,6 +155,7 @@ class TestSeriesConcat:
         result = concat([obj.iloc[::-1]])
         tm.assert_equal(result, obj)
 
+    @td.skip_if_no("pyarrow", min_version="7.0.0")
     @pytest.mark.parametrize("dtype", tm.ALL_PYARROW_DTYPES)
     def test_concat_empty_arrow_backed_series(self, dtype):
         # GH#51734
