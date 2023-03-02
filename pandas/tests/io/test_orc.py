@@ -301,10 +301,7 @@ def test_orc_roundtrip_bytesio():
 def test_orc_writer_dtypes_not_supported(df_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
-    msg = (
-        "The dtype of one or more columns is not supported yet.|"
-        "Unknown or unsupported Arrow type"
-    )
+    msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
         df_not_supported.to_orc()
 

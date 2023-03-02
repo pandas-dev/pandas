@@ -226,6 +226,7 @@ def to_orc(
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
+    pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
     was_none = path is None
@@ -240,7 +241,7 @@ def to_orc(
                 handles.handle,
                 **engine_kwargs,
             )
-        except TypeError as e:
+        except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."
             ) from e
