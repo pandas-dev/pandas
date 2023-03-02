@@ -686,7 +686,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # contiguous 1D arrays
                 copy = True
             elif using_copy_on_write() and isinstance(data, np.ndarray):
-                pass
+                copy = True
             else:
                 copy = False
 

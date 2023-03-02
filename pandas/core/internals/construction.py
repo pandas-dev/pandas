@@ -257,7 +257,7 @@ def ndarray_to_mgr(
 
     # if the array preparation does a copy -> avoid this for ArrayManager,
     # since the copy is done on conversion to 1D arrays
-    copy_on_sanitize = False if typ == "array" or copy is None else copy
+    copy_on_sanitize = False if typ == "array" else copy
 
     vdtype = getattr(values, "dtype", None)
     if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
@@ -295,9 +295,9 @@ def ndarray_to_mgr(
         using_copy_on_write()
         and isinstance(values, np.ndarray)
         and (dtype is None or is_dtype_equal(values.dtype, dtype))
-        and copy is not False
+        and copy_on_sanitize
     ):
-        values = np.array(values, order="F", copy=False if copy is None else copy)
+        values = np.array(values, order="F", copy=copy_on_sanitize)
         values = _ensure_2d(values)
 
     elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
