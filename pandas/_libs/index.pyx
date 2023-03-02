@@ -230,6 +230,18 @@ cdef class IndexEngine:
     def __sizeof__(self) -> int:
         return self.sizeof()
 
+    cpdef _update_from_other(self, IndexEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        self.need_monotonic_check = other.need_monotonic_check
+        if reverse and not self.need_monotonic_check:
+            # the slice reverses the index
+            self.monotonic_inc = other.monotonic_dec
+            self.monotonic_dec = other.monotonic_inc
+        else:
+            self.monotonic_inc = other.monotonic_inc
+            self.monotonic_dec = other.monotonic_dec
+
     @property
     def is_unique(self) -> bool:
         if self.need_unique_check:

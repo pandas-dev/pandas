@@ -5153,9 +5153,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization com.is_bool_indexer and ndim checks.
-            result = getitem(key)
-            # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self._name)
+            return self._getitem_slice(key)
 
         if com.is_bool_indexer(key):
             # if we have list[bools, length=1e5] then doing this check+convert
@@ -5181,7 +5179,12 @@ class Index(IndexOpsMixin, PandasObject):
         Fastpath for __getitem__ when we know we have a slice.
         """
         res = self._data[slobj]
-        return type(self)._simple_new(res, name=self._name)
+        result = type(self)._simple_new(res, name=self._name)
+        if isinstance(result._engine, libindex.IndexEngine):  # may also be IntervalTree
+            reverse = slobj.step is not None and slobj.step < 0
+            result._engine._update_from_other(self._engine, reverse=reverse)
+
+        return result
 
     @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
