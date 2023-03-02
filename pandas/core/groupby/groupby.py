@@ -1840,8 +1840,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (type(self.obj) == Series or type(self.obj) == DataFrame):
 
             def f(df, *args, **kwargs):
-                print("df")
-                print(df)
                 return self.obj._constructor(df).mean()
 
             result = self.agg(f)
