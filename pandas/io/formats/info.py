@@ -659,8 +659,7 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
                 with_counts=self.show_counts,
             )
         elif self.verbose is False:  # specifically set to False, not necessarily None
-            return DataFrameTableBuilderNonVerbose(info=self.info)
-    
+            return DataFrameTableBuilderNonVerbose(info=self.info)    
         elif self.exceeds_info_cols:
             return DataFrameTableBuilderNonVerbose(info=self.info)
         else:

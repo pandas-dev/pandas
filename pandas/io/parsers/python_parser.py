@@ -554,12 +554,10 @@ class PythonParser(ParserBase):
                 columns = [list(range(ncols))]
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
-                )
-        
+                )        
             elif self.usecols is None or len(names) >= num_original_columns:
                 columns = self._handle_usecols([names], names, num_original_columns)
-                num_original_columns = len(names)
-        
+                num_original_columns = len(names)        
             elif not callable(self.usecols) and len(names) != len(self.usecols):
                 raise ValueError(
                     "Number of passed names did not match number of "

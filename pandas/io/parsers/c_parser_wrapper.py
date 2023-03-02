@@ -393,8 +393,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
 
         dtype = dtypes.pop()
         if is_categorical_dtype(dtype):
-            result[name] = union_categoricals(arrs, sort_categories=False)
-       
+            result[name] = union_categoricals(arrs, sort_categories=False)       
         elif isinstance(dtype, ExtensionDtype):
             # TODO: concat_compat?
             array_type = dtype.construct_array_type()

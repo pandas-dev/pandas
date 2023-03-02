@@ -351,11 +351,10 @@ class TestTimestampUnaryOps:
                             with pytest.raises(err_cls, match=msg):
                                 method(ts, unit)
                             return
-                    else:
-                        if lb < cls.min._value:
-                            with pytest.raises(err_cls, match=msg):
-                                method(ts, unit)
-                            return
+                    elif lb < cls.min._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
 
             res = method(ts, unit)
 
