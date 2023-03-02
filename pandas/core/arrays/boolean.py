@@ -43,8 +43,6 @@ class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
-    .. versionadded:: 1.0.0
-
     .. warning::
 
        BooleanDtype is considered experimental. The implementation and
@@ -246,8 +244,6 @@ class BooleanArray(BaseMaskedArray):
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
-    .. versionadded:: 1.0.0
-
     .. warning::
 
        BooleanArray is considered experimental. The implementation and
@@ -347,7 +343,6 @@ class BooleanArray(BaseMaskedArray):
         return coerce_to_array(value, copy=copy)
 
     def _logical_method(self, other, op):
-
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None

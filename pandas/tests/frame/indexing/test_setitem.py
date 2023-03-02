@@ -72,7 +72,6 @@ class TestDataFrameSetItem:
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
     def test_setitem_error_msmgs(self):
-
         # GH 7432
         df = DataFrame(
             {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
@@ -321,7 +320,6 @@ class TestDataFrameSetItem:
         assert (df["dates"].values == ex_vals).all()
 
     def test_setitem_dt64tz(self, timezone_frame):
-
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -472,7 +470,6 @@ class TestDataFrameSetItem:
             df[["a", "b"]] = rhs
 
     def test_setitem_intervals(self):
-
         df = DataFrame({"A": range(10)})
         ser = cut(df["A"], 5)
         assert isinstance(ser.cat.categories, IntervalIndex)
@@ -997,7 +994,6 @@ class TestDataFrameSetItemBooleanMask:
         ids=["dataframe", "array"],
     )
     def test_setitem_boolean_mask(self, mask_type, float_frame):
-
         # Test for issue #18582
         df = float_frame.copy()
         mask = mask_type(df)

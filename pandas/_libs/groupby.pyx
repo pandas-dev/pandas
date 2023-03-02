@@ -818,6 +818,7 @@ def group_var(
     int64_t ddof=1,
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
+    bint is_datetimelike=False,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -852,8 +853,13 @@ def group_var(
 
                 if uses_mask:
                     isna_entry = mask[i, j]
+                elif is_datetimelike:
+                    # With group_var, we cannot just use _treat_as_na bc
+                    #  datetimelike dtypes get cast to float64 instead of
+                    #  to int64.
+                    isna_entry = val == NPY_NAT
                 else:
-                    isna_entry = _treat_as_na(val, False)
+                    isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not isna_entry:
                     nobs[lab, j] += 1

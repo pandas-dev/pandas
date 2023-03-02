@@ -108,7 +108,10 @@ cpdef cnp.ndarray astype_overflowsafe(
     bint round_ok=*,
     bint is_coerce=*,
 )
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
+cdef int64_t get_conversion_factor(
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit,
+) except? -1
 
 cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)
 cdef get_implementation_bounds(

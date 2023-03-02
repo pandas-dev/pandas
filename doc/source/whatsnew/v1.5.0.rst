@@ -361,7 +361,6 @@ Other enhancements
 - Added ``numeric_only`` argument to :meth:`DataFrame.corr`, :meth:`DataFrame.corrwith`, :meth:`DataFrame.cov`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.var`, :meth:`.SeriesGroupBy.var`, :meth:`.DataFrameGroupBy.std`, :meth:`.SeriesGroupBy.std`, :meth:`.DataFrameGroupBy.sem`, :meth:`.SeriesGroupBy.sem`, and :meth:`.DataFrameGroupBy.quantile` (:issue:`46560`)
 - A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`, :issue:`46725`)
 - Added ``validate`` argument to :meth:`DataFrame.join` (:issue:`46622`)
-- A :class:`errors.PerformanceWarning` is now thrown when using ``string[pyarrow]`` dtype with methods that don't dispatch to ``pyarrow.compute`` methods (:issue:`42613`)
 - Added ``numeric_only`` argument to :meth:`.Resampler.sum`, :meth:`.Resampler.prod`, :meth:`.Resampler.min`, :meth:`.Resampler.max`, :meth:`.Resampler.first`, and :meth:`.Resampler.last` (:issue:`46442`)
 - ``times`` argument in :class:`.ExponentialMovingWindow` now accepts ``np.timedelta64`` (:issue:`47003`)
 - :class:`.DataError`, :class:`.SpecificationError`, :class:`.SettingWithCopyError`, :class:`.SettingWithCopyWarning`, :class:`.NumExprClobberingError`, :class:`.UndefinedVariableError`, :class:`.IndexingError`, :class:`.PyperclipException`, :class:`.PyperclipWindowsException`, :class:`.CSSWarning`, :class:`.PossibleDataLossError`, :class:`.ClosedFileError`, :class:`.IncompatibilityWarning`, :class:`.AttributeConflictWarning`, :class:`.DatabaseError`, :class:`.PossiblePrecisionLoss`, :class:`.ValueLabelTypeMismatch`, :class:`.InvalidColumnName`, and :class:`.CategoricalConversionWarning` are now exposed in ``pandas.errors`` (:issue:`27656`)
@@ -1014,7 +1013,6 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_sql` and :meth:`DataFrame.to_sql` (:class:`SQLiteTable`) when processing time arrays. (:issue:`44764`)
 - Performance improvement to :func:`read_sas` (:issue:`47404`)
 - Performance improvement in ``argmax`` and ``argmin`` for :class:`arrays.SparseArray` (:issue:`34197`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_150.bug_fixes:
@@ -1041,19 +1039,16 @@ Datetimelike
 - Bug in :class:`.DatetimeArray` construction when passed another :class:`.DatetimeArray` and ``freq=None`` incorrectly inferring the freq from the given array (:issue:`47296`)
 - Bug in :func:`to_datetime` where ``OutOfBoundsDatetime`` would be thrown even if ``errors=coerce`` if there were more than 50 rows (:issue:`45319`)
 - Bug when adding a :class:`DateOffset` to a :class:`Series` would not add the ``nanoseconds`` field (:issue:`47856`)
--
 
 Timedelta
 ^^^^^^^^^
 - Bug in :func:`astype_nansafe` astype("timedelta64[ns]") fails when np.nan is included (:issue:`45798`)
 - Bug in constructing a :class:`Timedelta` with a ``np.timedelta64`` object and a ``unit`` sometimes silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`46827`)
 - Bug in constructing a :class:`Timedelta` from a large integer or float with ``unit="W"`` silently overflowing and returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`47268`)
--
 
 Time Zones
 ^^^^^^^^^^
 - Bug in :class:`Timestamp` constructor raising when passed a ``ZoneInfo`` tzinfo object (:issue:`46425`)
--
 
 Numeric
 ^^^^^^^
@@ -1078,13 +1073,11 @@ Conversion
 - Bug in :meth:`DataFrame.apply` that returns a :class:`DataFrame` instead of a :class:`Series` when applied to an empty :class:`DataFrame` and ``axis=1`` (:issue:`39111`)
 - Bug when inferring the dtype from an iterable that is *not* a NumPy ``ndarray`` consisting of all NumPy unsigned integer scalars did not result in an unsigned integer dtype (:issue:`47294`)
 - Bug in :meth:`DataFrame.eval` when pandas objects (e.g. ``'Timestamp'``) were column names (:issue:`44603`)
--
 
 Strings
 ^^^^^^^
 - Bug in :meth:`str.startswith` and :meth:`str.endswith` when using other series as parameter _pat_. Now raises ``TypeError`` (:issue:`3485`)
 - Bug in :meth:`Series.str.zfill` when strings contain leading signs, padding '0' before the sign character rather than after as ``str.zfill`` from standard library (:issue:`20868`)
--
 
 Interval
 ^^^^^^^^
@@ -1192,7 +1185,6 @@ Period
 - Bug in adding ``np.timedelta64("NaT", "ns")`` to a :class:`Period` with a timedelta-like freq incorrectly raising ``IncompatibleFrequency`` instead of returning ``NaT`` (:issue:`47196`)
 - Bug in adding an array of integers to an array with :class:`PeriodDtype` giving incorrect results when ``dtype.freq.n > 1`` (:issue:`47209`)
 - Bug in subtracting a :class:`Period` from an array with :class:`PeriodDtype` returning incorrect results instead of raising ``OverflowError`` when the operation overflows (:issue:`47538`)
--
 
 Plotting
 ^^^^^^^^
@@ -1236,7 +1228,6 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.resample` raises ``KeyError`` when getting the result from a key list which misses the resample key (:issue:`47362`)
 - Bug in :meth:`DataFrame.groupby` would lose index columns when the DataFrame is empty for transforms, like fillna (:issue:`47787`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` with ``dropna=False`` and ``sort=False`` would put any null groups at the end instead the order that they are encountered (:issue:`46584`)
--
 
 Reshaping
 ^^^^^^^^^

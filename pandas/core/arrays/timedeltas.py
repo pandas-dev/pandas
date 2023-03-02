@@ -7,6 +7,7 @@ from typing import (
     Iterator,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -137,13 +138,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     _bool_ops: list[str] = []
     _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
         "floor",
         "ceil",
+        "as_unit",
     ]
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
@@ -265,7 +267,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _generate_range(  # type: ignore[override]
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ):
-
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
@@ -466,6 +467,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
+                if freq.n == 0:
+                    # GH#51575 Better to have no freq than an incorrect one
+                    freq = None
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
@@ -525,17 +529,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # Note: freq gets division, not floor-division, even if op
                 #  is floordiv.
                 freq = self.freq / other
-
-                # TODO: 2022-12-24 test_ufunc_coercions, test_tdi_ops_attributes
-                #  get here for truediv, no tests for floordiv
-
-                if op is operator.floordiv:
-                    if freq.nanos == 0 and self.freq.nanos != 0:
-                        # e.g. if self.freq is Nano(1) then dividing by 2
-                        #  rounds down to zero
-                        # TODO: 2022-12-24 should implement the same check
-                        #  for truediv case
-                        freq = None
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
 
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
@@ -917,11 +914,20 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
-        base = data.astype(np.int64)
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            base = data.astype(np.int64)
         frac = data - base
         if p:
             frac = np.round(frac, p)
-        data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
         data[mask] = iNaT
         copy = False
 

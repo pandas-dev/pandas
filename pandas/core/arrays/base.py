@@ -89,7 +89,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -141,6 +140,7 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
+    _hash_pandas_object
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -462,8 +462,6 @@ class ExtensionArray:
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
-
-        .. versionadded:: 1.0.0
 
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.
@@ -1005,11 +1003,6 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -1454,6 +1447,31 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        Default is likely non-performant.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+
+        Returns
+        -------
+        np.ndarray[uint64]
+        """
+        from pandas.core.util.hashing import hash_array
+
+        values = self.to_numpy(copy=False)
+        return hash_array(
+            values, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
 
     def tolist(self) -> list:
         """

@@ -303,7 +303,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
-
         df = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -529,7 +528,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_and_reconstruction(self):
-
         # GH#15622
         # lexsortedness should be identical
         # across MultiIndex construction methods
@@ -610,7 +608,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
-
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
@@ -680,7 +677,6 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-
         np.random.seed(0)
         data = np.random.randn(3, 4)
 
