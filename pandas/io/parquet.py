@@ -265,7 +265,10 @@ class PyArrowImpl(BaseImpl):
                 elif len(index_columns) == 1 and isinstance(index_columns[0], dict):
                     params = index_columns[0]
                     idx = RangeIndex(
-                        params.get("start"), params.get("stop"), params.get("step")
+                        params.get("start"),
+                        params.get("stop"),
+                        params.get("step"),
+                        name=params.get("name"),
                     )
 
                 else:

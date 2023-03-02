@@ -1241,11 +1241,13 @@ class TestParquetFastParquet(Base):
         expected = obj.astype("int64[pyarrow]").set_index(index)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("name", [None, "test"])
     @pytest.mark.parametrize("index", [True, False, None])
-    def test_pyarrow_backed_df_range_index(self, pa, index):
+    def test_pyarrow_backed_df_range_index(self, pa, index, name):
         # GH#48944
         df = pd.DataFrame(
-            data={"A": [0, 1], "B": [1, 0]}, index=RangeIndex(start=100, stop=102)
+            data={"A": [0, 1], "B": [1, 0]},
+            index=RangeIndex(start=100, stop=102, name=name),
         )
         with tm.ensure_clean("test.parquet") as path:
             with open(path.encode(), "wb") as f:
@@ -1257,5 +1259,5 @@ class TestParquetFastParquet(Base):
         if index is False:
             expected = expected.reset_index(drop=True)
         elif index:
-            expected.index = pd.Index([100, 101], dtype="int64[pyarrow]")
+            expected.index = pd.Index([100, 101], dtype="int64[pyarrow]", name=name)
         tm.assert_frame_equal(result, expected)
