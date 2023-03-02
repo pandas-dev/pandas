@@ -240,40 +240,39 @@ class _XMLFrameParser:
                 for el in elems
             ]
 
-        else:
-            if self.names:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            nm: ch.text.strip() if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
-                        },
-                    }
-                    for el in elems
-                ]
+        elif self.names:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        nm: ch.text.strip() if ch.text else None
+                        for nm, ch in zip(self.names, el.findall("*"))
+                    },
+                }
+                for el in elems
+            ]
 
-            else:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            ch.tag: ch.text.strip() if ch.text else None
-                            for ch in el.findall("*")
-                        },
-                    }
-                    for el in elems
-                ]
+        else:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        ch.tag: ch.text.strip() if ch.text else None
+                        for ch in el.findall("*")
+                    },
+                }
+                for el in elems
+            ]
 
         dicts = [
             {k.split("}")[1] if "}" in k else k: v for k, v in d.items()} for d in dicts
