@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import string
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import NpDtype
-
+if TYPE_CHECKING:
+    from pandas._typing import NpDtype
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
 
 
