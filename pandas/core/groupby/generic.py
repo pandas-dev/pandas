@@ -1291,9 +1291,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
-            result = cast(self._obj_1d_constructor, result)
+            result = cast(self.obj._constructor, result)
             result = result.iloc[:, order]
-            result = cast(self._obj_1d_constructor, result)
+            result = cast(self.obj._constructor, result)
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
