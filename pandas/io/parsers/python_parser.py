@@ -563,10 +563,11 @@ class PythonParser(ParserBase):
                     "Number of passed names did not match number of "
                     "header fields in the file"
                 )
-            # Ignore output but set used columns.
-            self._handle_usecols([names], names, ncols)
-            columns = [names]
-            num_original_columns = ncols
+            else:
+                # Ignore output but set used columns.
+                self._handle_usecols([names], names, ncols)
+                columns = [names]
+                num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 
