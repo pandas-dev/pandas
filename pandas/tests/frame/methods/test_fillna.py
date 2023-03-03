@@ -47,7 +47,7 @@ class TestFillNA:
     def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
 
         # TODO(CoW): This should raise a chained assignment error
         df[0].fillna(-1, inplace=True)
@@ -58,10 +58,7 @@ class TestFillNA:
 
         # i.e. we didn't create a new 49-column block
         assert len(df._mgr.arrays) == 1
-        if using_copy_on_write:
-            assert not np.shares_memory(df.values, arr)
-        else:
-            assert np.shares_memory(df.values, arr)
+        assert np.shares_memory(df.values, arr)
 
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
