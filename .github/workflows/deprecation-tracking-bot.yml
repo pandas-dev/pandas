@@ -11,8 +11,7 @@ permissions:
 
 jobs:
   deprecation_update:
-    permissions:
-      issues: write
+    permissions: write-all
     if: >-
       contains(github.event.pull_request.labels.*.name, 'Deprecate')
     runs-on: ubuntu-22.04
