@@ -323,6 +323,9 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
+    def round(self: T, decimals: int, using_cow: bool = False) -> T:
+        return self.apply_with_block("round", decimals=decimals, using_cow=using_cow)
+
     def setitem(self: T, indexer, value) -> T:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
@@ -633,7 +636,6 @@ class BaseArrayManager(DataManager):
         indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> T:
         """
         Take items along any axis.
@@ -647,8 +649,7 @@ class BaseArrayManager(DataManager):
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
