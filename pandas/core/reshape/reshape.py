@@ -748,7 +748,7 @@ def _stack_multi_columns(
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
-            subset = this[this.columns[loc]]
+            subset = this.iloc[:, loc]
             dtype = find_common_type(subset.dtypes.tolist())
             if is_extension_array_dtype(dtype):
                 # TODO(EA2D): won't need special case, can go through .values
