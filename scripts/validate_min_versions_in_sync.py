@@ -39,7 +39,6 @@ ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
 EXCLUSION_LIST = {
     "python=3.8[build=*_pypy]": None,
-    "tzdata": None,
     "pyarrow": None,
 }
 # pandas package is not available
