@@ -103,3 +103,46 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)
+
+
+def test_groupby_overridden_methods():
+    class UnitSeries(Series):
+        @property
+        def _constructor(self):
+            return UnitSeries
+
+        @property
+        def _constructor_expanddim(self):
+            return UnitDataFrame
+
+        def mean(self, *args, **kwargs):
+            return 1
+
+        def beans(self, *args, **kwargs):
+            return "series toast"
+
+    class UnitDataFrame(DataFrame):
+        @property
+        def _constructor(self):
+            return UnitDataFrame
+
+        @property
+        def _constructor_expanddim(self):
+            return UnitSeries
+
+        def mean(self, *args, **kwargs):
+            return 1
+
+        def beans(self, *args, **kwargs):
+            return "df toast"
+
+    params = ["a", "b"]
+    data = np.random.rand(4, 2)
+    udf = UnitDataFrame(data, columns=params)
+    udf["group"] = np.ones(4, dtype=int)
+    udf.loc[2:, "group"] = 2
+
+    assert udf.mean() == 1
+    assert all(udf.groupby("group").mean() == 1)
+    assert udf.beans() == "df toast"
+    # print(udf.groupby('group').beans()) # AttributeError
