@@ -116,7 +116,7 @@ def test_groupby_overridden_methods():
             return UnitDataFrame
 
         def mean(self, *args, **kwargs):
-            return 2
+            return 1
 
         def median(self, *args, **kwargs):
             return 2
@@ -149,7 +149,7 @@ def test_groupby_overridden_methods():
             return UnitSeries
 
         def mean(self, *args, **kwargs):
-            return 2
+            return 1
 
         def median(self, *args, **kwargs):
             return 2
