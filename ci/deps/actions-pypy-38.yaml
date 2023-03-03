@@ -22,3 +22,4 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
+  - tzdata>=2022a

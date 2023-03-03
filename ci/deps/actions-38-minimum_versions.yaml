@@ -21,6 +21,7 @@ dependencies:
   - python-dateutil=2.8.2
   - numpy=1.20.3
   - pytz=2020.1
+  - tzdata=2022a
 
   # optional dependencies
   - beautifulsoup4=4.9.3
@@ -52,7 +53,6 @@ dependencies:
   - scipy=1.7.1
   - sqlalchemy=1.4.16
   - tabulate=0.8.9
-  - tzdata=2022a
   - xarray=0.21.0
   - xlrd=2.0.1
   - xlsxwriter=1.4.3

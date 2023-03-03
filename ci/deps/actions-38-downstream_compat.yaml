@@ -20,6 +20,7 @@ dependencies:
   - python-dateutil
   - numpy
   - pytz
+  - tzdata>=2022a
 
   # optional dependencies
   - beautifulsoup4>=4.9.3
