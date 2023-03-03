@@ -185,6 +185,10 @@ Plotting
 -
 -
 
+Groupby
+- Bug in :meth:`GroupBy.mean`, :meth:`GroupBy.median`, :meth:`GroupBy.std`, :meth:`GroupBy.var`, :meth:`GroupBy.sem`, :meth:`GroupBy.prod`, :meth:`GroupBy.min`, :meth:`GroupBy.max` don't use corresponding methods of subclasses of :class:`Series` or :class:`DataFrame` (:issue:`51757`)
+-
+
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
