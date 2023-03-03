@@ -1807,6 +1807,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         insp = inspect(temp_conn)
         assert insp.has_table("temp_frame")
 
+        # Cleanup
+        with sql.SQLDatabase(temp_conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("temp_frame")
+
     def test_drop_table(self):
         from sqlalchemy import inspect
 
@@ -2917,7 +2921,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + f"AND tbl_name = '{tbl_name}'",
+            f"AND tbl_name = '{tbl_name}'",
             self.conn,
         )
         ix_cols = []

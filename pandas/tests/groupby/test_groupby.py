@@ -65,7 +65,7 @@ def test_groupby_std_datetimelike():
 
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
-def test_basic(dtype):
+def test_basic_aggregations(dtype):
     data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
     index = np.arange(9)
@@ -102,7 +102,13 @@ def test_basic(dtype):
         grouped.aggregate({"one": np.mean, "two": np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
-    agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
+    msg = (
+        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
+        "and cases that relied on it will raise in a future version"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#41090
+        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
     assert agged[1] == 21
 
     # corner cases
@@ -1984,6 +1990,8 @@ def test_empty_groupby(
 
     result = get_result()
     expected = df.set_index(keys)[columns]
+    if op in ["idxmax", "idxmin"]:
+        expected = expected.astype(df.index.dtype)
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
@@ -2774,6 +2782,9 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:invalid value encountered in remainder:RuntimeWarning"
+)
 @pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
 def test_groupby_method_drop_na(method):
     # GH 21755
