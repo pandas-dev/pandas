@@ -2109,6 +2109,9 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : structured ndarray, sequence of tuples or dicts, or DataFrame
             Structured input data.
+
+            .. deprecated:: 2.1.0
+                Passing a DataFrame is deprecated.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2171,6 +2174,23 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if isinstance(data, DataFrame):
+            warnings.warn(
+                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+                "set_index and/or drop to modify the DataFrame instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if columns is not None:
+                if is_scalar(columns):
+                    columns = [columns]
+                data = data[columns]
+            if index is not None:
+                data = data.set_index(index)
+            if exclude is not None:
+                data = data.drop(columns=exclude)
+            return data
+
         result_index = None
 
         # Make a copy of the input columns so we can modify it
@@ -2238,7 +2258,7 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, arr_columns, columns, index
                 )
 
-        elif isinstance(data, (np.ndarray, DataFrame)):
+        elif isinstance(data, np.ndarray):
             arrays, columns = to_arrays(data, columns)
             arr_columns = columns
         else:
