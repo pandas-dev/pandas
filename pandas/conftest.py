@@ -522,9 +522,7 @@ def multiindex_dataframe_random_data(
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
-        np.random.randn(10, 3),
-        index=index,
-        columns=Index(["A", "B", "C"], name="exp"),
+        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
     )
 
 
