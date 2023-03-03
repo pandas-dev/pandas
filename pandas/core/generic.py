@@ -1496,9 +1496,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [False]}).bool()
         False
         """
+
         warnings.warn(
-            "NDFrame.bool is deprecated"
-            "and will removed in a future version.",
+            "NDFrame.bool is deprecated and will removed in a future version.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
