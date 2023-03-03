@@ -2979,9 +2979,7 @@ class TestFromScalar:
         elif frame_or_series is Series:
             return lambda x, **kwargs: frame_or_series([x, x], **extra, **kwargs)
         else:
-            return lambda x, **kwargs: frame_or_series(
-                {"A": [x, x]}, **extra, **kwargs
-            )
+            return lambda x, **kwargs: frame_or_series({"A": [x, x]}, **extra, **kwargs)
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_from_nat_scalar(self, dtype, constructor):

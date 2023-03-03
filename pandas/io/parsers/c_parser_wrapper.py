@@ -400,9 +400,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
             # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
             # has incompatible type "List[Union[ExtensionArray, ndarray]]";
             # expected "Sequence[ExtensionArray]"
-            result[name] = array_type._concat_same_type(
-                arrs  # type: ignore[arg-type]
-            )
+            result[name] = array_type._concat_same_type(arrs)  # type: ignore[arg-type]
         else:
             # error: Argument 1 to "concatenate" has incompatible
             # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"

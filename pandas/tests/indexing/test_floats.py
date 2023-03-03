@@ -32,7 +32,7 @@ class TestFloatIndexers:
         elif getitem:
             expected = original.iloc[:, indexer]
         else:
-                expected = original.iloc[indexer]
+            expected = original.iloc[indexer]
 
         tm.assert_almost_equal(result, expected)
 
