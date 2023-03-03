@@ -171,6 +171,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow import ArrowDtype, ArrowExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -664,6 +665,17 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
                 return
+
+        try:
+            import pyarrow as pa
+        except ImportError:
+            pass
+        else:
+            if isinstance(data, pa.Table):
+                data = {
+                    name: ArrowExtensionArray(array)
+                    for name, array in zip(data.column_names, data.columns)
+                }
 
         manager = get_option("mode.data_manager")
 

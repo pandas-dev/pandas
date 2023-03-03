@@ -20,6 +20,7 @@ import warnings
 import numpy as np
 from numpy import ma
 from numpy.ma import mrecords
+import pyarrow as pa
 import pytest
 import pytz
 
@@ -60,6 +61,7 @@ from pandas.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow import ArrowDtype
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -2339,6 +2341,30 @@ class TestDataFrameConstructors:
         expected = DataFrame(Series(extension_arr))
         result = DataFrame(extension_arr)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
+            ([1, 2, 3], pa.uint8()),
+            ([1.0, 2.0, 3.0], pa.float64()),
+            (["foo", "bar", "foobar"], pa.string()),
+        ],
+    )
+    def test_constructor_with_pyarrow_table(self, data, dtype):
+        array = pa.array(data, type=dtype)
+        table = pa.table([array], names=["col"])
+        result = DataFrame(table)
+        assert isinstance(result["col"].dtype, ArrowDtype)
+        result_array = result["col"]._data.array._data.chunks[0]
+        assert result_array == array
+
+        for result_buffer, expected_buffer in zip(
+            result_array.buffers(), array.buffers()
+        ):
+            if result_buffer is None and expected_buffer is None:
+                continue
+            assert result_buffer.address == expected_buffer.address
+            assert result_buffer.size == expected_buffer.size
 
     def test_datetime_date_tuple_columns_from_dict(self):
         # GH 10863
