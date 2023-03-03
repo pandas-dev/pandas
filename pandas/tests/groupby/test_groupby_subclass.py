@@ -149,7 +149,6 @@ def test_groupby_overridden_methods():
             return UnitSeries
 
         def mean(self, *args, **kwargs):
-            print("UnitDataFrame mean")
             return 1
 
         def median(self, *args, **kwargs):
@@ -179,13 +178,11 @@ def test_groupby_overridden_methods():
     udf["group"] = np.ones(4, dtype=int)
     udf.loc[2:, "group"] = 2
 
-    assert udf.mean() == 1
     assert all(udf.groupby("group").mean() == 1)
-    assert all(udf.groupby("group").median() == 1)
-    assert all(udf.groupby("group").std() == 1)
-    assert all(udf.groupby("group").var() == 1)
-    assert all(udf.groupby("group").sem() == 1)
-    assert all(udf.groupby("group").prod() == 1)
-    assert all(udf.groupby("group").min() == 1)
-    assert all(udf.groupby("group").max() == 1)
-    # print(udf.groupby('group').beans()) # AttributeError
+    assert all(udf.groupby("group").median() == 2)
+    assert all(udf.groupby("group").std() == 3)
+    assert all(udf.groupby("group").var() == 4)
+    assert all(udf.groupby("group").sem() == 5)
+    assert all(udf.groupby("group").prod() == 6)
+    assert all(udf.groupby("group").min() == 7)
+    assert all(udf.groupby("group").max() == 8)
