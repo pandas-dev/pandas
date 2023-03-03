@@ -9,10 +9,11 @@ import typing
 
 import numpy as np
 
-from pandas._typing import DtypeObj
-
 import pandas as pd
 from pandas.api.types import is_datetime64_dtype
+
+if typing.TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 class ArrowCTypes:
