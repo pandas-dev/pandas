@@ -28,7 +28,6 @@ from pandas._libs.sparse import (
     SparseIndex,
 )
 from pandas._libs.tslibs import NaT
-
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -108,8 +107,6 @@ if TYPE_CHECKING:
 
     SparseIndexKind = Literal["integer", "block"]
 
-    from pandas import Series
-
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -123,6 +120,8 @@ if TYPE_CHECKING:
         SequenceIndexer,
         npt,
     )
+
+    from pandas import Series
 
 else:
     ellipsis = type(Ellipsis)

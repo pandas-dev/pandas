@@ -39,7 +39,6 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
     truediv_object_array,
 )
-
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
@@ -66,14 +65,16 @@ from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
     from pandas._typing import (
-    AxisInt,
-    DateTimeErrorChoices,
-    DtypeObj,
-    NpDtype,
-    npt,
+        AxisInt,
+        DateTimeErrorChoices,
+        DtypeObj,
+        NpDtype,
+        npt,
     )
+
+    from pandas import DataFrame
+
 
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:

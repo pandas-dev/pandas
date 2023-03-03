@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import (
-    TYPE_CHECKING,
-    )
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -10,7 +9,6 @@ from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
 )
-
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
@@ -40,6 +38,7 @@ if TYPE_CHECKING:
         Scalar,
         npt,
     )
+
 
 class PandasArray(
     OpsMixin,

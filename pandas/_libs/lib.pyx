@@ -150,11 +150,11 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     Does not include the actual bytes of the pointers
     """
-    cdef:
-        Py_ssize_t i
-        Py_ssize_t n
-        int64_t size = 0
+    i: Py_ssize_t
+    n: Py_ssize_t
+    size: int64_t
 
+    size = 0
     n = len(arr)
     for i in range(n):
         size += arr[i].__sizeof__()

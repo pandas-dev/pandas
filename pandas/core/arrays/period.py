@@ -45,7 +45,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -76,8 +75,12 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        AnyArrayLike,
+        Dtype,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        npt,
     )
 
     from pandas.core.arrays import (
@@ -85,12 +88,6 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
     from pandas.core.arrays.base import ExtensionArray
-    from pandas._typing import (
-        AnyArrayLike,
-        Dtype,
-        NpDtype,
-        npt,
-    )
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)

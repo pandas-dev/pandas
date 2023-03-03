@@ -14,7 +14,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-
 from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -52,19 +51,17 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        AxisInt,
+        Dtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Scalar,
+        npt,
+        type_t,
     )
 
     from pandas import Series
 
-    from pandas._typing import (
-    AxisInt,
-    Dtype,
-    Scalar,
-    npt,
-    type_t,
-    )
 
 @register_extension_dtype
 class StringDtype(StorageExtensionDtype):

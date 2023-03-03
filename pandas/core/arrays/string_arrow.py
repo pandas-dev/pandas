@@ -13,6 +13,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+
 # from pandas._typing import (
 #     Dtype,
 #     Scalar,
@@ -50,13 +51,10 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
-    Dtype,
-    Scalar,
-    npt,
+        Dtype,
+        Scalar,
+        npt,
     )
-
-
-
 
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]

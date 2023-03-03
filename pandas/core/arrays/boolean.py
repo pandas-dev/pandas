@@ -13,7 +13,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 
-
 from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
@@ -31,11 +30,10 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
-
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        npt,
         type_t,
     )
 

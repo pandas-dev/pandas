@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import (
-    TYPE_CHECKING,)
+
 from datetime import (
     date,
     datetime,
@@ -9,6 +8,7 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -16,7 +16,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
-
 from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
 
@@ -29,11 +28,12 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
-    from pandas.core.arrays.arrow import ArrowExtensionArray
     from pandas._typing import (
         DtypeObj,
         type_t,
     )
+
+    from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
 @register_extension_dtype
