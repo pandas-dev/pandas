@@ -349,7 +349,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
-                return type(self)(pa.array([], type=pa_dtype))
+                return type(self)(pa.chunked_array([], type=pa_dtype))
             elif is_integer_dtype(item.dtype):
                 return self.take(item)
             elif is_bool_dtype(item.dtype):
@@ -1012,7 +1012,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ArrowExtensionArray
         """
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pa.chunked_array(chunks)
+        if to_concat[0].dtype == "string":
+            pa_dtype = pa.string()
+        else:
+            pa_dtype = to_concat[0].dtype.pyarrow_dtype
+        arr = pa.chunked_array(chunks, type=pa_dtype)
         return cls(arr)
 
     def _accumulate(
