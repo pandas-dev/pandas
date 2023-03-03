@@ -2861,19 +2861,4 @@ def test_groupby_std_raises_error():
     df = DataFrame(dicts_non_numeric)
     dfgb = df.groupby("a")
     with pytest.raises(ValueError, match="could not convert string to float: 'bar'"):
-        dfgb.std(numeric_only=True)
-
-
-def test_groupby_numeric_only_mixed_data_std():
-    # GH 51080
-    dicts = [
-        {"a": "foo", "b": "bar"},
-        {"a": "car", "b": "dar"},
-        {"a": 10, "b": 20},
-    ]
-    df = DataFrame(dicts)
-    dfgb = df.groupby("a", as_index=False)
-    result = dfgb.std(numeric_only=True)
-    expected = DataFrame([10, "car", "foo"], columns=["a"])
-
-    tm.assert_frame_equal(result, expected)
+        dfgb.std()

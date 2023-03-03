@@ -1915,7 +1915,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionadded:: 1.4.0
 
         numeric_only : bool, default False
-            Include only `float`, `int` or `boolean` data.
+            Include only `float`, `int` or `boolean` columns.
 
             .. versionadded:: 1.5.0
 
@@ -1998,7 +1998,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             .. versionadded:: 1.4.0
 
         numeric_only : bool, default False
-            Include only `float`, `int` or `boolean` data.
+            Include only `float`, `int` or `boolean` columns.
 
             .. versionadded:: 1.5.0
 
@@ -2167,7 +2167,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Degrees of freedom.
 
         numeric_only : bool, default False
-            Include only `float`, `int` or `boolean` data.
+            Include only `float`, `int` or `boolean` columns.
 
             .. versionadded:: 1.5.0
 
@@ -3093,7 +3093,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Method to use when the desired quantile falls between two points.
         numeric_only : bool, default False
-            Include only `float`, `int` or `boolean` data.
+            Include only `float`, `int` or `boolean` columns.
 
             .. versionadded:: 1.5.0
 
