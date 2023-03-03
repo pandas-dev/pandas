@@ -567,10 +567,7 @@ def _homogenize(
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            if isinstance(val._mgr, SingleBlockManager):
-                refs.append(val._mgr._block.refs)
-            else:
-                refs.append(None)
+            refs.append(val._references)
             val = val._values
         else:
             if isinstance(val, dict):
@@ -772,19 +769,6 @@ def to_arrays(
     -----
     Ensures that len(result_arrays) == len(result_index).
     """
-    if isinstance(data, ABCDataFrame):
-        # see test_from_records_with_index_data, test_from_records_bad_index_column
-        if columns is not None:
-            arrays = [
-                data._ixs(i, axis=1)._values
-                for i, col in enumerate(data.columns)
-                if col in columns
-            ]
-        else:
-            columns = data.columns
-            arrays = [data._ixs(i, axis=1)._values for i in range(len(columns))]
-
-        return arrays, columns
 
     if not len(data):
         if isinstance(data, np.ndarray):
