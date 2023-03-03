@@ -118,8 +118,26 @@ def test_groupby_overridden_methods():
         def mean(self, *args, **kwargs):
             return 1
 
-        def beans(self, *args, **kwargs):
-            return "series toast"
+        def median(self, *args, **kwargs):
+            return 2
+
+        def std(self, *args, **kwargs):
+            return 3
+
+        def var(self, *args, **kwargs):
+            return 4
+
+        def sem(self, *args, **kwargs):
+            return 5
+
+        def prod(self, *args, **kwargs):
+            return 6
+
+        def min(self, *args, **kwargs):
+            return 7
+
+        def max(self, *args, **kwargs):
+            return 8
 
     class UnitDataFrame(DataFrame):
         @property
@@ -131,10 +149,29 @@ def test_groupby_overridden_methods():
             return UnitSeries
 
         def mean(self, *args, **kwargs):
+            print("UnitDataFrame mean")
             return 1
 
-        def beans(self, *args, **kwargs):
-            return "df toast"
+        def median(self, *args, **kwargs):
+            return 2
+
+        def std(self, *args, **kwargs):
+            return 3
+
+        def var(self, *args, **kwargs):
+            return 4
+
+        def sem(self, *args, **kwargs):
+            return 5
+
+        def prod(self, *args, **kwargs):
+            return 6
+
+        def min(self, *args, **kwargs):
+            return 7
+
+        def max(self, *args, **kwargs):
+            return 8
 
     params = ["a", "b"]
     data = np.random.rand(4, 2)
@@ -144,5 +181,11 @@ def test_groupby_overridden_methods():
 
     assert udf.mean() == 1
     assert all(udf.groupby("group").mean() == 1)
-    assert udf.beans() == "df toast"
+    assert all(udf.groupby("group").median() == 1)
+    assert all(udf.groupby("group").std() == 1)
+    assert all(udf.groupby("group").var() == 1)
+    assert all(udf.groupby("group").sem() == 1)
+    assert all(udf.groupby("group").prod() == 1)
+    assert all(udf.groupby("group").min() == 1)
+    assert all(udf.groupby("group").max() == 1)
     # print(udf.groupby('group').beans()) # AttributeError
