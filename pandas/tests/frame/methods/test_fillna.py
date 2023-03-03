@@ -49,6 +49,7 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr)
 
+        # TODO(CoW): This should raise a chained assignment error
         df[0].fillna(-1, inplace=True)
         if using_copy_on_write:
             assert np.isnan(arr[:, 0]).all()

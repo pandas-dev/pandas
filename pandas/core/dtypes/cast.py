@@ -1616,6 +1616,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                     DeprecationWarning,
                 )
                 if using_copy_on_write():
+                    # switch to same memory layout as with blk.copy()
                     casted = np.array(arr, dtype=dtype, copy=False, order="F")
                 else:
                     casted = np.array(arr, dtype=dtype, copy=False)
@@ -1623,6 +1624,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 if using_copy_on_write():
+                    # switch to same memory layout as with blk.copy()
                     casted = arr.astype(dtype, copy=False, order="F")
                 else:
                     casted = arr.astype(dtype, copy=False)
