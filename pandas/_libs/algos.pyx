@@ -752,7 +752,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     tuple
         is_monotonic_inc : bool
         is_monotonic_dec : bool
-        is_unique : bool
+        is_strict_monotonic : bool
     """
     cdef:
         Py_ssize_t i, n
