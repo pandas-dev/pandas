@@ -86,8 +86,6 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "datetime"
     elif is_timedelta64_dtype(x):
         return "duration"
-    elif is_categorical_dtype(x):
-        return "any"
     elif is_extension_array_dtype(x):
         return "any"
     elif is_string_dtype(x):

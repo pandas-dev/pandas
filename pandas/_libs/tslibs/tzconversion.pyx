@@ -153,7 +153,6 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_utc(tz) or tz is None:
-        # TODO: test with non-nano
         return val
 
     elif is_tzlocal(tz):

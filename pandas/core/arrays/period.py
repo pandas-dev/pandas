@@ -760,6 +760,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
+        # Similar to _check_timedeltalike_freq_compat, but we raise with a
+        #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False

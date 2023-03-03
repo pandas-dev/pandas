@@ -263,7 +263,7 @@ def align_method_FRAME(
             # We need to pass dtype=right.dtype to retain object dtype
             #  otherwise we lose consistency with Index and array ops
             dtype = None
-            if getattr(right, "dtype", None) == object:
+            if right.dtype == object:
                 # can't pass right.dtype unconditionally as that would break on e.g.
                 #  datetime64[h] ndarray
                 dtype = object

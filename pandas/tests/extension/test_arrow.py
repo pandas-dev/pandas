@@ -389,7 +389,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             # xfailing takes a long time to run because pytest
             # renders the exception messages even when not showing them
-            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
+            opt = request.config.option
+            if opt.markexpr and "not slow" in opt.markexpr:
+                pytest.skip(
+                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+                )
+            mark = pytest.mark.xfail(
+                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+            )
+            request.node.add_marker(mark)
 
         elif all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
@@ -1269,13 +1277,15 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
 
-    # but as of GH#50689, timestamptz is supported
+    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
+
+
+def test_arrowdtype_construct_from_string_supports_dt64tz():
+    # as of GH#50689, timestamptz is supported
     dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
-
-    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
 
 
 def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
