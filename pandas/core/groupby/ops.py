@@ -760,6 +760,11 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
+            # Pinning name is needed for
+            #  test_group_apply_once_per_group,
+            #  test_inconsistent_return_type, test_set_group_name,
+            #  test_group_name_available_in_inference_pass,
+            #  test_groupby_multi_timezone
             object.__setattr__(group, "name", key)
 
             # group might be modified
