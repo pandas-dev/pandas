@@ -181,11 +181,11 @@ def pin_min_versions_to_yaml_file(
             data = data.replace(old_dep, new_dep, 1)
             continue
         toml_version = version.parse(min_dep)
-        yaml_versions = clean_version_list(yaml_versions, toml_version)
-        cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
+        yaml_versions_lst = clean_version_list(yaml_versions, toml_version)
+        cleaned_yaml_versions = [x for x in yaml_versions_lst if "-" not in x]
         new_dep = yaml_package
-        for yaml_version in cleaned_yaml_versions:
-            new_dep += yaml_version + ", "
+        for clean_yaml_version in cleaned_yaml_versions:
+            new_dep += clean_yaml_version + ", "
         operator = get_operator_from(new_dep)
         if operator != "=":
             new_dep += ">=" + min_dep

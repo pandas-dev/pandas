@@ -361,7 +361,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         scalar
-            The first element of %(klass)s.
+            The first element of Series.
 
         Raises
         ------

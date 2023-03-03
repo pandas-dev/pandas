@@ -52,8 +52,8 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
     for n, line in enumerate(content.splitlines(), start=1):
         if n in to_replace:
             for col_offset in reversed(to_replace[n]):
-                line = line[:col_offset] + "bool_t" + line[col_offset + 4 :]
-        new_lines.append(line)
+                line_new = line[:col_offset] + "bool_t" + line[col_offset + 4 :]
+        new_lines.append(line_new)
     return "\n".join(new_lines)
 
 
