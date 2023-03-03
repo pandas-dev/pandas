@@ -525,7 +525,6 @@ def multiindex_dataframe_random_data(
         np.random.randn(10, 3),
         index=index,
         columns=Index(["A", "B", "C"], name="exp"),
-        copy=False,
     )
 
 
