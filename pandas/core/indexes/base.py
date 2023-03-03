@@ -144,6 +144,7 @@ from pandas.core.array_algos.putmask import (
     validate_putmask,
 )
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
     ExtensionArray,
@@ -169,7 +170,7 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     nargsort,
 )
-from pandas.core.strings import StringMethods
+from pandas.core.strings.accessor import StringMethods
 
 from pandas.io.formats.printing import (
     PrettyDict,
@@ -220,6 +221,19 @@ _masked_engines = {
     "Int16": libindex.MaskedInt16Engine,
     "Int8": libindex.MaskedInt8Engine,
     "boolean": libindex.MaskedBoolEngine,
+    "double[pyarrow]": libindex.MaskedFloat64Engine,
+    "float64[pyarrow]": libindex.MaskedFloat64Engine,
+    "float32[pyarrow]": libindex.MaskedFloat32Engine,
+    "float[pyarrow]": libindex.MaskedFloat32Engine,
+    "uint64[pyarrow]": libindex.MaskedUInt64Engine,
+    "uint32[pyarrow]": libindex.MaskedUInt32Engine,
+    "uint16[pyarrow]": libindex.MaskedUInt16Engine,
+    "uint8[pyarrow]": libindex.MaskedUInt8Engine,
+    "int64[pyarrow]": libindex.MaskedInt64Engine,
+    "int32[pyarrow]": libindex.MaskedInt32Engine,
+    "int16[pyarrow]": libindex.MaskedInt16Engine,
+    "int8[pyarrow]": libindex.MaskedInt8Engine,
+    "bool[pyarrow]": libindex.MaskedBoolEngine,
 }
 
 
@@ -795,8 +809,12 @@ class Index(IndexOpsMixin, PandasObject):
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
         if isinstance(target_values, ExtensionArray):
-            if isinstance(target_values, BaseMaskedArray):
-                return _masked_engines[target_values.dtype.name](target_values)
+            if isinstance(target_values, (BaseMaskedArray, ArrowExtensionArray)):
+                try:
+                    return _masked_engines[target_values.dtype.name](target_values)
+                except KeyError:
+                    # Not supported yet e.g. decimal
+                    pass
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
 
@@ -4850,8 +4868,10 @@ class Index(IndexOpsMixin, PandasObject):
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
-            return isinstance(self.dtype, np.dtype) or isinstance(
-                self.values, BaseMaskedArray
+            return (
+                isinstance(self.dtype, np.dtype)
+                or isinstance(self.values, BaseMaskedArray)
+                or isinstance(self._values, ArrowExtensionArray)
             )
         return not is_interval_dtype(self.dtype)
 
@@ -4929,6 +4949,12 @@ class Index(IndexOpsMixin, PandasObject):
             type(self) is Index
             and isinstance(self._values, ExtensionArray)
             and not isinstance(self._values, BaseMaskedArray)
+            and not (
+                isinstance(self._values, ArrowExtensionArray)
+                and is_numeric_dtype(self.dtype)
+                # Exclude decimal
+                and self.dtype.kind != "O"
+            )
         ):
             # TODO(ExtensionIndex): remove special-case, just use self._values
             return self._values.astype(object)
@@ -4942,6 +4968,10 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, BaseMaskedArray):
             # This is only used if our array is monotonic, so no NAs present
             return self._values._data
+        elif isinstance(self._values, ArrowExtensionArray):
+            # This is only used if our array is monotonic, so no missing values
+            # present
+            return self._values.to_numpy()
         return self._get_engine_target()
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
@@ -4951,6 +4981,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
+        elif isinstance(self.values, ArrowExtensionArray):
+            return type(self.values)._from_sequence(result)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
