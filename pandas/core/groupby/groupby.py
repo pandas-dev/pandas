@@ -1880,9 +1880,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).median()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only),
+            alt=lambda x: self._obj_1d_constructor(x).median(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -1938,6 +1946,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).std()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
@@ -2021,6 +2037,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Variance of values within each group.
         """
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).var()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
@@ -2028,7 +2052,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._cython_agg_general(
                 "var",
-                alt=lambda x: Series(x).var(ddof=ddof),
+                alt=lambda x: self._obj_1d_constructor(x).var(ddof=ddof),
                 numeric_only=numeric_only,
                 ddof=ddof,
             )
@@ -2190,6 +2214,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard error of the mean of values within each group.
         """
+        # TODO: think sem() needs considering more closely
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).sem()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.sem called with "
@@ -2248,6 +2281,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).sum()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_sum
 
@@ -2272,6 +2313,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
     def prod(self, numeric_only: bool = False, min_count: int = 0):
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).prod()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -2285,6 +2334,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).min()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
@@ -2306,6 +2363,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
+        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+
+            def f(df, *args, **kwargs):
+                return self.obj._constructor(df).max()
+
+            result = self.agg(f)
+            return result.__finalize__(self.obj, method="groupby")
+
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
