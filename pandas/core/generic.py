@@ -1496,6 +1496,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [False]}).bool()
         False
         """
+        warnings.warn(
+            "NDFrame.bool is deprecated"
+            "and will removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
             return bool(v)
@@ -1503,15 +1509,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
                 f"{type(self).__name__}"
-            )
-        else:
-            warnings.warn(
-                f"Passing a slice to {type(self).__name__}.take is deprecated "
-                "and will raise in a future version. Use `obj[slicer]` or pass "
-                "a sequence of integers instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            )  
 
         self.__nonzero__()
         # for mypy (__nonzero__ raises)

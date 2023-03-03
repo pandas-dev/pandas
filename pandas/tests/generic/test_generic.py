@@ -4,6 +4,7 @@ from copy import (
 )
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
@@ -441,3 +442,11 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+    def test_bool_dep(self) -> None:
+        msg = (
+        "NDFRame.bool is now deprecated and will be removed in future releases "
+        "and cases that relied on it will raise in a future version"
+    )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            pd.DataFrame({'col': [False]}).bool()
