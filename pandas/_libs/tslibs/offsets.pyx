@@ -4096,7 +4096,7 @@ cpdef to_offset(freq):
 
     Returns
     -------
-    BaseOffset (or subclass) or None
+    BaseOffset subclass or None
 
     Raises
     ------
