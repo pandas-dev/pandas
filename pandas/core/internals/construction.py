@@ -567,10 +567,7 @@ def _homogenize(
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            if isinstance(val._mgr, SingleBlockManager):
-                refs.append(val._mgr._block.refs)
-            else:
-                refs.append(None)
+            refs.append(val._references)
             val = val._values
         else:
             if isinstance(val, dict):
