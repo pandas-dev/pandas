@@ -3897,6 +3897,12 @@ class DataFrame(NDFrame, OpsMixin):
             if is_scalar(loc):
                 loc = [loc]
 
+            if len(loc) != len(value.columns):
+                raise ValueError(
+                    f"Got {len(loc)} positions but value has {len(value.columns)} "
+                    f"columns."
+                )
+
             for i, idx in enumerate(loc):
                 arraylike = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False)
@@ -4105,9 +4111,11 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value) -> None:
-        arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=True)
+    def _iset_item(self, loc: int, value: Series) -> None:
+        # We are only called from _replace_columnwise which guarantees that
+        # no reindex is necessary
+        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
+        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -9940,12 +9948,14 @@ Parrot 2  Parrot       24.0
                 raise TypeError("Values in decimals must be integers")
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
-            # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.items()]
+            # Dispatch to Block.round
+            return self._constructor(
+                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+            ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
-        if len(new_cols) > 0:
+        if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
