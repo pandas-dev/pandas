@@ -1509,7 +1509,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(
                 "bool cannot act on a non-boolean single element "
                 f"{type(self).__name__}"
-            )  
+            )
 
         self.__nonzero__()
         # for mypy (__nonzero__ raises)
