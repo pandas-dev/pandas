@@ -558,15 +558,15 @@ class PythonParser(ParserBase):
             elif self.usecols is None or len(names) >= num_original_columns:
                 columns = self._handle_usecols([names], names, num_original_columns)
                 num_original_columns = len(names)
-            elif not callable(self.usecols) and len(names) != len(self.usecols):
-                raise ValueError(
-                    "Number of passed names did not match number of "
-                    "header fields in the file"
-                )
-            # Ignore output but set used columns.
-            self._handle_usecols([names], names, ncols)
-            columns = [names]
-            num_original_columns = ncols
+                if not callable(self.usecols) and len(names) != len(self.usecols):
+                    raise ValueError(
+                        "Number of passed names did not match number of "
+                        "header fields in the file"
+                    )
+                # Ignore output but set used columns.
+                self._handle_usecols([names], names, ncols)
+                columns = [names]
+                num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 
