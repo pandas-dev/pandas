@@ -7,10 +7,12 @@ on:
 
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deprecation_update:
+    permissions:
+      issues: write
     if: >-
       contains(github.event.pull_request.labels.*.name, 'Deprecate')
     runs-on: ubuntu-22.04
