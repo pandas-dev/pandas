@@ -1504,6 +1504,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "bool cannot act on a non-boolean single element "
                 f"{type(self).__name__}"
             )
+        else:
+            warnings.warn(
+                f"Passing a slice to {type(self).__name__}.take is deprecated "
+                "and will raise in a future version. Use `obj[slicer]` or pass "
+                "a sequence of integers instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         self.__nonzero__()
         # for mypy (__nonzero__ raises)
