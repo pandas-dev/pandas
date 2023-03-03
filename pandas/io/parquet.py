@@ -250,7 +250,9 @@ class PyArrowImpl(BaseImpl):
             if dtype_backend == "pandas":
                 result = pa_table.to_pandas(**to_pandas_kwargs)
             elif dtype_backend == "pyarrow":
-                to_pandas_kwargs["types_mapper"] = pd.ArrowDtype
+                # Incompatible types in assignment (expression has type
+                # "Type[ArrowDtype]", target has type overloaded function
+                to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
                 result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if manager == "array":
