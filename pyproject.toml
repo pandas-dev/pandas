@@ -292,7 +292,6 @@ exclude = [
 "asv_bench/*" = ["TID"]
 # TCH to be enabled gradually
 "pandas/core/arrays/*" = ["TCH"]
-"pandas/core/io/*" = ["TCH"]
 "pandas/core/indexers/*" = ["TCH"]
 "pandas/core/indexes/*" = ["TCH"]
 "pandas/core/internals/*" = ["TCH"]
