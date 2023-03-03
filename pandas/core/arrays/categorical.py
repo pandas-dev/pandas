@@ -25,18 +25,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
+
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
@@ -113,6 +102,18 @@ if TYPE_CHECKING:
         DataFrame,
         Index,
         Series,
+    )
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
     )
 
 

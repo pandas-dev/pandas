@@ -3,6 +3,10 @@ Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
 from __future__ import annotations
+from typing import (
+    TYPE_CHECKING,
+)
+
 
 import numpy as np
 
@@ -14,8 +18,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
-from pandas._typing import npt
 
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 def generate_regular_range(
     start: Timestamp | Timedelta | None,

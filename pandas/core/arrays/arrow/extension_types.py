@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 
 import pyarrow
-
-from pandas._typing import IntervalClosedType
+from typing import (
+    TYPE_CHECKING,)
 
 from pandas.core.arrays.interval import VALID_CLOSED
 
+if TYPE_CHECKING:
+    from pandas._typing import IntervalClosedType
 
 class ArrowPeriodType(pyarrow.ExtensionType):
     def __init__(self, freq) -> None:

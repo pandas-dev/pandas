@@ -1,4 +1,7 @@
 from __future__ import annotations
+from typing import (
+    TYPE_CHECKING,
+    )
 
 import numpy as np
 
@@ -7,13 +10,7 @@ from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
 )
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Scalar,
-    npt,
-)
+
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
@@ -35,6 +32,14 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Scalar,
+        npt,
+    )
 
 class PandasArray(
     OpsMixin,

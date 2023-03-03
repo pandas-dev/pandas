@@ -10,13 +10,9 @@ from typing import (
     Iterable,
 )
 
-import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    IndexLabel,
-    npt,
-)
+
 
 from pandas.core.dtypes.missing import notna
 
@@ -26,6 +22,11 @@ from pandas.core.series import Series
 
 if TYPE_CHECKING:
     import scipy.sparse
+    from pandas._typing import (
+        IndexLabel,
+        npt,
+    )
+    import numpy as np
 
 
 def _check_is_partition(parts: Iterable, whole: Iterable):
