@@ -252,7 +252,13 @@ class Preprocessors:
         and linked from there. This preprocessor obtains the list of
         PDEP's in different status from the directory tree and GitHub.
         """
-        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        KNOWN_STATUS = {
+            "Under discussion",
+            "Accepted",
+            "Implemented",
+            "Rejected",
+            "Withdrawn",
+        }
         context["pdeps"] = collections.defaultdict(list)
 
         # accepted, rejected and implemented
@@ -301,9 +307,9 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
             json.dump(pdeps, f)
 
-        for pdep in pdeps["items"]:
+        for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
             context["pdeps"]["Under discussion"].append(
-                {"title": pdep["title"], "url": pdep["url"]}
+                {"title": pdep["title"], "url": pdep["html_url"]}
             )
 
         return context
@@ -418,6 +424,9 @@ def main(
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
+                # Apply Bootstrap's table formatting manually
+                # Python-Markdown doesn't let us config table attributes by hand
+                body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)

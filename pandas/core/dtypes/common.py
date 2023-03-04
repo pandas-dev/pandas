@@ -207,6 +207,7 @@ def is_sparse(arr) -> bool:
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
 
+    >>> from pandas.api.types import is_sparse
     >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
     True
     >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
@@ -321,6 +322,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64tz_dtype
     >>> is_datetime64tz_dtype(object)
     False
     >>> is_datetime64tz_dtype([1, 2, 3])
@@ -330,6 +332,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
 
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     >>> s = pd.Series([], dtype=dtype)
     >>> is_datetime64tz_dtype(dtype)
@@ -522,6 +525,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_string_dtype
     >>> is_string_dtype(str)
     True
     >>> is_string_dtype(object)
@@ -673,6 +677,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_integer_dtype
     >>> is_integer_dtype(str)
     False
     >>> is_integer_dtype(int)
@@ -785,6 +790,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_unsigned_integer_dtype
     >>> is_unsigned_integer_dtype(str)
     False
     >>> is_unsigned_integer_dtype(int)  # signed
@@ -882,6 +888,8 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_any_dtype
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_datetime64_any_dtype(str)
     False
     >>> is_datetime64_any_dtype(int)
@@ -924,6 +932,8 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_ns_dtype
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_datetime64_ns_dtype(str)
     False
     >>> is_datetime64_ns_dtype(int)

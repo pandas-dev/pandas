@@ -1099,11 +1099,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
-    def _indexed_output_to_ndframe(
-        self, result: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        raise AbstractMethodError(self)
-
     @final
     def _maybe_transpose_result(self, result: NDFrameT) -> NDFrameT:
         if self.axis == 1:
@@ -3076,9 +3071,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 sort=self.sort,
             )
 
-        grb = dropped.groupby(
-            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
-        )
+        if self.axis == 1:
+            grb = dropped.T.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        else:
+            grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
 
     @final
@@ -3184,12 +3180,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
                         # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
                         # [union-attr]
-                        return type(orig_vals)(
-                            vals.astype(
-                                inference.numpy_dtype  # type: ignore[union-attr]
-                            ),
-                            result_mask,
-                        )
+                        with warnings.catch_warnings():
+                            # vals.astype with nan can warn with numpy >1.24
+                            warnings.filterwarnings("ignore", category=RuntimeWarning)
+                            return type(orig_vals)(
+                                vals.astype(
+                                    inference.numpy_dtype  # type: ignore[union-attr]
+                                ),
+                                result_mask,
+                            )
 
                 elif not (
                     is_integer_dtype(inference)
@@ -3884,10 +3883,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(
-            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
-        )
-        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
+        if self.axis == 0:
+            fill_grp = filled.groupby(self.grouper.codes, group_keys=self.group_keys)
+        else:
+            fill_grp = filled.T.groupby(self.grouper.codes, group_keys=self.group_keys)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        if self.axis == 1:
+            shifted = shifted.T
         return (filled / shifted) - 1
 
     @final

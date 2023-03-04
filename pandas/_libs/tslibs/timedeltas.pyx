@@ -489,6 +489,7 @@ cdef int64_t _item_to_timedelta64(
             raise
 
 
+@cython.cpow(True)
 cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
@@ -1824,7 +1825,12 @@ class Timedelta(_Timedelta):
         unit = delta_to_nanoseconds(to_offset(freq), self._creso)
 
         arr = np.array([self._value], dtype="i8")
-        result = round_nsint64(arr, mode, unit)[0]
+        try:
+            result = round_nsint64(arr, mode, unit)[0]
+        except OverflowError as err:
+            raise OutOfBoundsTimedelta(
+                f"Cannot round {self} to freq={freq} without overflow"
+            ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
     def round(self, freq):

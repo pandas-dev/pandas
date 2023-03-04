@@ -108,7 +108,11 @@ class ArrowDtype(StorageExtensionDtype):
             return float
         elif pa.types.is_string(pa_type):
             return str
-        elif pa.types.is_binary(pa_type):
+        elif (
+            pa.types.is_binary(pa_type)
+            or pa.types.is_fixed_size_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
             return bytes
         elif pa.types.is_boolean(pa_type):
             return bool
@@ -197,11 +201,12 @@ class ArrowDtype(StorageExtensionDtype):
         if string == "string[pyarrow]":
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        base_type = string.split("[pyarrow]")[0]
+
+        base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
-            has_parameters = re.search(r"\[.*\]", base_type)
+            has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
             if has_parameters:
                 # Fallback to try common temporal types
                 try:
