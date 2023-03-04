@@ -1059,6 +1059,20 @@ class TestParquetPyArrow(Base):
                 expected=expected,
             )
 
+    def test_read_use_nullable_types_pyarrow_config_index(self, pa):
+        df = pd.DataFrame(
+            {"a": [1, 2]}, index=pd.Index([3, 4], name="test"), dtype="int64[pyarrow]"
+        )
+        expected = df.copy()
+
+        with pd.option_context("mode.dtype_backend", "pyarrow"):
+            check_round_trip(
+                df,
+                engine=pa,
+                read_kwargs={"use_nullable_dtypes": True},
+                expected=expected,
+            )
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
