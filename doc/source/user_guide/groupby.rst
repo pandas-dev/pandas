@@ -479,9 +479,9 @@ Aggregation
 -----------
 
 An aggregation is a GroupBy operation that reduces the dimension of the grouping
-object. The result of an aggregation is, or at least treated as,
-a scalar value for each column in a group. For example, producing a sum of each
-column in group of values.
+object. The result of an aggregation is, or at least is treated as,
+a scalar value for each column in a group. For example, producing the sum of each
+column in a group of values.
 
 .. ipython:: python
 
@@ -633,7 +633,7 @@ Users can also provide their own User-Defined Functions (UDFs) for custom aggreg
 .. warning::
 
     When aggregating with a UDF, the UDF should not mutate the
-    provided ``Series``, see :ref:`gotchas.udf-mutation` for more information.
+    provided ``Series``. See :ref:`gotchas.udf-mutation` for more information.
 
 .. note::
 
@@ -674,7 +674,7 @@ column, which produces an aggregated result with a hierarchical index:
    grouped[["C", "D"]].agg(["sum", "mean", "std"])
 
 
-The resulting aggregations are named for the functions themselves. If you
+The resulting aggregations are named after the functions themselves. If you
 need to rename, then you can add in a chained operation for a ``Series`` like this:
 
 .. ipython:: python
@@ -752,7 +752,7 @@ accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGr
    )
 
 
-If your desired output column names are not valid Python keywords, construct a dictionary
+If column names you want are not valid Python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python
@@ -766,7 +766,7 @@ and unpack the keyword arguments
 When using named aggregation, additional keyword arguments are not passed through
 to the aggregation functions; only pairs
 of ``(column, aggfunc)`` should be passed as ``**kwargs``. If your aggregation functions
-requires additional arguments, partially apply them with :meth:`functools.partial`.
+require additional arguments, apply them partially with :meth:`functools.partial`.
 
 Named aggregation is also valid for Series groupby aggregations. In this case there's
 no column selection, so the values are just the functions.
@@ -789,7 +789,7 @@ columns of a DataFrame:
    grouped.agg({"C": "sum", "D": lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
-must be either implemented on GroupBy:
+must be implemented on GroupBy:
 
 .. ipython:: python
 
@@ -912,7 +912,7 @@ Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that o
 transformation function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
 
-Suppose we wished to standardize the data within each group:
+Suppose we wish to standardize the data within each group:
 
 .. ipython:: python
 
@@ -985,7 +985,7 @@ Another common data transform is to replace missing data with the group mean.
 
    transformed = grouped.transform(lambda x: x.fillna(x.mean()))
 
-We can verify that the group means have not changed in the transformed data
+We can verify that the group means have not changed in the transformed data,
 and that the transformed data contains no NAs.
 
 .. ipython:: python
@@ -1030,7 +1030,7 @@ It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
 
 The example below will apply the ``rolling()`` method on the samples of
-the column B based on the groups of column A.
+the column B, based on the groups of column A.
 
 .. ipython:: python
 
@@ -1050,7 +1050,7 @@ group.
 
 
 Suppose you want to use the ``resample()`` method to get a daily
-frequency in each group of your dataframe and wish to complete the
+frequency in each group of your dataframe, and wish to complete the
 missing values with the ``ffill()`` method.
 
 .. ipython:: python
