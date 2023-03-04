@@ -93,13 +93,11 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     convert_dtypes,
-    find_common_type,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_integer,
     is_iterator,
@@ -3268,18 +3266,22 @@ Keep all original rows and also all original values
         falcon      NaN
         dtype: float64
         """
+        from pandas.core.reshape.concat import concat
+
         new_index = self.index.union(other.index)
-        this = self.reindex(new_index, copy=False)
-        other = other.reindex(new_index, copy=False)
+
+        this = self
+        null_mask = isna(this)
+        if null_mask.any():
+            drop = this.index[null_mask].intersection(other.index[notna(other)])
+            if len(drop):
+                this = this.drop(drop)
+
+        other = other.reindex(other.index.difference(this.index), copy=False)
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
-
-        combined = this.where(notna(this), other)
-
-        if not is_dtype_equal(combined.dtype, self.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
-            combined = combined.astype(dtype, copy=False)
-
+        combined = concat([this, other]).reindex(new_index, copy=False)
+        combined.name = self.name
         return combined
 
     def update(self, other: Series | Sequence | Mapping) -> None:
