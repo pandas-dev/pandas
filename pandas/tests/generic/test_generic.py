@@ -8,7 +8,6 @@ import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -449,4 +448,4 @@ class TestNDFrame:
             "and cases that relied on it will raise in a future version"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            pd.DataFrame({"col": [False]}).bool()
+            DataFrame({"col": [False]}).bool()
