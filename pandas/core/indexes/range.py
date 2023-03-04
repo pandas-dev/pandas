@@ -4,6 +4,7 @@ from datetime import timedelta
 import operator
 from sys import getsizeof
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -20,10 +21,6 @@ from pandas._libs import (
 )
 from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
-from pandas._typing import (
-    Dtype,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -51,6 +48,11 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        npt,
+    )
 _empty_range = range(0)
 
 
