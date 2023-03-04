@@ -525,6 +525,7 @@ class TestPeriodDtype(Base):
 
         msg = "PeriodDtype argument should be string or BaseOffet, got NoneType"
         with pytest.raises(TypeError, match=msg):
+            # GH#51790
             PeriodDtype(None)
 
     def test_not_string(self):
