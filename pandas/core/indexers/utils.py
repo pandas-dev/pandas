@@ -10,8 +10,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import AnyArrayLike
-
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -26,6 +24,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import AnyArrayLike
+
     from pandas.core.frame import DataFrame
     from pandas.core.indexes.base import Index
 

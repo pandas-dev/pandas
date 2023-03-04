@@ -17,12 +17,6 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -52,6 +46,13 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        npt,
+    )
+
     from pandas.core.generic import NDFrame
 
 

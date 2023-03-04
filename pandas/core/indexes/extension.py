@@ -11,10 +11,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -25,6 +21,11 @@ from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.indexes.base import Index
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
     from pandas.core.arrays import IntervalArray
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 

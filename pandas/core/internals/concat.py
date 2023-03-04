@@ -15,13 +15,6 @@ from pandas._libs import (
     internals as libinternals,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Manager,
-    Shape,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.astype import astype_array
@@ -64,6 +57,14 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Manager,
+        Shape,
+    )
+
     from pandas import Index
     from pandas.core.internals.blocks import Block
 

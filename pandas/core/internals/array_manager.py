@@ -4,6 +4,7 @@ Experimental manager based on storing a collection of 1D arrays
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -17,13 +18,6 @@ from pandas._libs import (
     NaT,
     algos as libalgos,
     lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    npt,
 )
 from pandas.util._validators import validate_bool_kwarg
 
@@ -93,6 +87,14 @@ from pandas.core.internals.blocks import (
     to_native_types,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        QuantileInterpolation,
+        npt,
+    )
 T = TypeVar("T", bound="BaseArrayManager")
 
 

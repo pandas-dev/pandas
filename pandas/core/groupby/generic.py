@@ -32,18 +32,6 @@ from pandas._libs import (
     lib,
     reduction as libreduction,
 )
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    FillnaOptions,
-    IndexLabel,
-    Manager,
-    Manager2D,
-    SingleManager,
-    TakeIndexer,
-)
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
@@ -96,6 +84,19 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        AxisInt,
+        CorrelationMethod,
+        FillnaOptions,
+        IndexLabel,
+        Manager,
+        Manager2D,
+        SingleManager,
+        TakeIndexer,
+    )
+
     from pandas import Categorical
     from pandas.core.generic import NDFrame
 
