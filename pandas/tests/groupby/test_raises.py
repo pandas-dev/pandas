@@ -13,6 +13,7 @@ from pandas import (
     Grouper,
     Series,
 )
+import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -342,25 +343,25 @@ def test_groupby_raises_category(
         "cummax": (
             (NotImplementedError, TypeError),
             "(category type does not support cummax operations|"
-            + "category dtype not supported|"
-            + "cummax is not supported for category dtype)",
+            "category dtype not supported|"
+            "cummax is not supported for category dtype)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
             "(category type does not support cummin operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cummin is not supported for category dtype)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(category type does not support cumprod operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cumprod is not supported for category dtype)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
             "(category type does not support cumsum operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cumsum is not supported for category dtype)",
         ),
         "diff": (
@@ -371,7 +372,7 @@ def test_groupby_raises_category(
         "fillna": (
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
-            + "set the categories first",
+            "set the categories first",
         )
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
@@ -539,33 +540,33 @@ def test_groupby_raises_category_on_category(
         "cummax": (
             (NotImplementedError, TypeError),
             "(cummax is not supported for category dtype|"
-            + "category dtype not supported|"
-            + "category type does not support cummax operations)",
+            "category dtype not supported|"
+            "category type does not support cummax operations)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
             "(cummin is not supported for category dtype|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "category type does not support cummin operations)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(cumprod is not supported for category dtype|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "category type does not support cumprod operations)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
             "(cumsum is not supported for category dtype|"
-            + "category dtype not supported|"
-            + "category type does not support cumsum operations)",
+            "category dtype not supported|"
+            "category type does not support cumsum operations)",
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "fillna": (
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
-            + "set the categories first",
+            "set the categories first",
         )
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
@@ -628,6 +629,8 @@ def test_groupby_raises_category_on_category(
 def test_subsetting_columns_axis_1_raises():
     # GH 35443
     df = DataFrame({"a": [1], "b": [2], "c": [3]})
-    gb = df.groupby("a", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("a", axis=1)
     with pytest.raises(ValueError, match="Cannot subset columns when using axis=1"):
         gb["b"]
