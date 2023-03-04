@@ -193,7 +193,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` (:issue:`51764`)
 -
 
 Sparse
