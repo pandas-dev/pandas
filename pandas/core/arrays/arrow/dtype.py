@@ -108,7 +108,11 @@ class ArrowDtype(StorageExtensionDtype):
             return float
         elif pa.types.is_string(pa_type):
             return str
-        elif pa.types.is_binary(pa_type):
+        elif (
+            pa.types.is_binary(pa_type)
+            or pa.types.is_fixed_size_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
             return bytes
         elif pa.types.is_boolean(pa_type):
             return bool
