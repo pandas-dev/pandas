@@ -574,8 +574,8 @@ number of unique values.
 
 .. note::
 
-   Aggregation functions **will not** operate on the groups that you are aggregating over
-   if they are named *columns*, when ``as_index=True``, the default. The grouped columns will
+   Aggregation functions **will not** return the groups that you are aggregating over
+   as named *columns*, when ``as_index=True``, the default. The grouped columns will
    be the **indices** of the returned object.
 
    Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
@@ -752,7 +752,7 @@ accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGr
    )
 
 
-If column names you want are not valid Python keywords, construct a dictionary
+If the column names you want are not valid Python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python
