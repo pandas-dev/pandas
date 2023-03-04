@@ -344,7 +344,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     _name: Hashable
     _metadata: list[str] = ["_name"]
-    _internal_names_set = {"index"} | NDFrame._internal_names_set
+    _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
