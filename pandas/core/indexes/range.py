@@ -903,8 +903,7 @@ class RangeIndex(Index):
         Conserve RangeIndex type for scalar and slice keys.
         """
         if isinstance(key, slice):
-            new_range = self._range[key]
-            return self._simple_new(new_range, name=self._name)
+            return self._getitem_slice(key)
         elif is_integer(key):
             new_key = int(key)
             try:
@@ -927,7 +926,12 @@ class RangeIndex(Index):
         Fastpath for __getitem__ when we know we have a slice.
         """
         res = self._range[slobj]
-        return type(self)._simple_new(res, name=self._name)
+        result = type(self)._simple_new(res, name=self._name)
+        if "_engine" in self._cache:
+            reverse = slobj.step is not None and slobj.step < 0
+            result._engine._update_from_sliced(self._engine, reverse=reverse)
+
+        return result
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
