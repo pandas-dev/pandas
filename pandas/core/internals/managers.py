@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -23,15 +24,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    Shape,
-    npt,
-    type_t,
-)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -86,6 +78,16 @@ from pandas.core.internals.ops import (
     operate_blockwise,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        QuantileInterpolation,
+        Shape,
+        npt,
+        type_t,
+    )
 T = TypeVar("T", bound="BaseBlockManager")
 
 
@@ -367,6 +369,13 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
+    def round(self: T, decimals: int, using_cow: bool = False) -> T:
+        return self.apply(
+            "round",
+            decimals=decimals,
+            using_cow=using_cow,
+        )
+
     def setitem(self: T, indexer, value) -> T:
         """
         Set values with indexer.
@@ -467,7 +476,7 @@ class BaseBlockManager(DataManager):
         )
 
     def replace_regex(self, **kwargs):
-        return self.apply("_replace_regex", **kwargs)
+        return self.apply("_replace_regex", **kwargs, using_cow=using_copy_on_write())
 
     def replace_list(
         self: T,
