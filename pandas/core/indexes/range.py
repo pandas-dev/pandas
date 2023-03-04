@@ -926,12 +926,7 @@ class RangeIndex(Index):
         Fastpath for __getitem__ when we know we have a slice.
         """
         res = self._range[slobj]
-        result = type(self)._simple_new(res, name=self._name)
-        if "_engine" in self._cache:
-            reverse = slobj.step is not None and slobj.step < 0
-            result._engine._update_from_sliced(self._engine, reverse=reverse)
-
-        return result
+        return type(self)._simple_new(res, name=self._name)
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
