@@ -1,4 +1,4 @@
-.. _copy_on_write:
+.. _copy_on_write_dev:
 
 {{ header }}
 
@@ -9,7 +9,8 @@ Copy on write
 Copy on Write is a mechanism to simplify the indexing API and improve
 performance through avoiding copies if possible.
 CoW means that any DataFrame or Series derived from another in any way always
-behaves as a copy.
+behaves as a copy. An explanation on how to use Copy on Write efficiently can be
+found :ref:`here <copy_on_write>`.
 
 Reference tracking
 ------------------
