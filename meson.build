@@ -2,9 +2,11 @@
 project(
     'pandas',
     'c', 'cpp', 'cython',
-    version: '2.0.0.dev0',
+    # TODO: Delete this in a future meson-python version
+    # since we
+    version: '2.1.0.dev0',
     license: 'BSD-3',
-    meson_version: '>=0.64',
+    meson_version: '>=1.0.1',
     default_options: [
         # TODO: investigate, does meson try to compile against debug Python
         # when buildtype = debug, this seems to be causing problems on CI
@@ -18,11 +20,6 @@ project(
 
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
-
-# This is a cython bug
-# TODO: Remove once cython/cython#4804 addressed
-add_project_arguments('-DNDEBUG', language : 'c')
-add_project_arguments('-DNDEBUG', language : 'cpp')
 
 py_mod = import('python')
 fs = import('fs')

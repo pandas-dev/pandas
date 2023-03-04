@@ -6,6 +6,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
+  - meson[ninja]=1.0.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -20,8 +21,8 @@ dependencies:
   - pip
   - pip:
     - "cython"
-    - "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
     - "git+https://github.com/mesonbuild/meson-python.git@main"
+    - "git+https://github.com/pytest-dev/pytest-cov.git@master"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"

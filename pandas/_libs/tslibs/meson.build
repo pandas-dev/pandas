@@ -1,27 +1,3 @@
-tslibs_pxd_sources_list = [
-    # List of cython sources e.g. .pyx, .pxd & __init__.py
-    # Does NOT include .pxi.in
-    '__init__.py',
-    'base.pxd',
-    'ccalendar.pxd',
-    'conversion.pxd',
-    'dtypes.pxd',
-    'nattype.pxd',
-    'np_datetime.pxd',
-    'offsets.pxd',
-    'parsing.pxd',
-    'period.pxd',
-    'timedeltas.pxd',
-    'timestamps.pxd',
-    'timezones.pxd',
-    'tzconversion.pxd',
-    'util.pxd',
-]
-
-foreach source: tslibs_pxd_sources_list
-    source_pxd = fs.copyfile(source)
-endforeach
-
 tslibs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
@@ -58,6 +34,7 @@ foreach ext_name, ext_dict : tslibs_sources
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
+        cython_args: ['--include-dir', meson.current_build_dir()],
         include_directories: [inc_np] + ext_dict.get('include_dirs', ''),
         dependencies: ext_dict.get('deps', ''),
         subdir: 'pandas/_libs/tslibs',

@@ -55,69 +55,33 @@ _intervaltree_helper = custom_target('intervaltree_helper_pxi',
     ]
 )
 _khash_primitive_helper_dep = declare_dependency(sources: _khash_primitive_helper)
-# TODO: can this be removed, I wish meson copied .pyx source to the build dir automatically
-# The reason we can't build the pyx files inplace and copy to build dir is because
-# the generated pxi files cannot be written to the source directory.
-# (Meson only supports out of tree builds)
-cython_sources_list = [
-    # List of cython sources e.g. .pyx, .pxd & __init__.py
-    # Does NOT include .pxi.in
-    '__init__.py',
-    'algos.pxd',
-    'algos.pyx',
-    'arrays.pxd',
-    'dtypes.pxd',
-    'hashtable.pxd',
-    'hashtable.pyx',
-    'index.pyx',
-    'indexing.pyx',
-    'internals.pyx',
-    'interval.pyx',
-    'join.pyx',
-    'khash.pxd',
-    'lib.pxd',
-    'missing.pxd',
-    'parsers.pyx',
-    'sparse.pyx',
-    'testing.pyx',
-    'tslib.pyx',
-    'util.pxd',
-]
-cython_sources = {}
-cython_sources_tgts = []
-
-foreach source: cython_sources_list
-    source_pyx = fs.copyfile(source)
-    cython_sources += {source: source_pyx}
-    cython_sources_tgts += source_pyx
-endforeach
 
 subdir('tslibs')
 
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
-    'algos': {'sources': [cython_sources['algos.pyx'], _algos_common_helper, _algos_take_helper, _khash_primitive_helper],
+    'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper, _khash_primitive_helper],
               'include_dirs': klib_include},
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx']},
     'hashing': {'sources': ['hashing.pyx']},
-    'hashtable': {'sources': [cython_sources['hashtable.pyx'], _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper],
+    'hashtable': {'sources': ['hashtable.pyx', _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper],
                   'include_dirs': klib_include},
-    'index': {'sources': [cython_sources['index.pyx'], _index_class_helper],
+    'index': {'sources': ['index.pyx', _index_class_helper],
               'include_dirs': [klib_include, 'tslibs']},
     'indexing': {'sources': ['indexing.pyx']},
     'internals': {'sources': ['internals.pyx']},
-    'interval': {'sources': [cython_sources['interval.pyx'], _intervaltree_helper],
+    'interval': {'sources': ['interval.pyx', _intervaltree_helper],
                 'include_dirs': [klib_include, 'tslibs']},
-    'join': {'sources': [cython_sources['join.pyx'], _khash_primitive_helper],
+    'join': {'sources': ['join.pyx', _khash_primitive_helper],
              'include_dirs': klib_include,
              'deps': _khash_primitive_helper_dep},
     'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c'],
             'include_dirs': [klib_include, inc_datetime]},
     'missing': {'sources': ['missing.pyx'],
                 'include_dirs': [inc_datetime]},
-    'parsers': {'sources': [cython_sources['parsers.pyx'], 'src/parser/tokenizer.c', 'src/parser/io.c'],
+    'parsers': {'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
                 'include_dirs': [klib_include, 'src'],
                 'deps': _khash_primitive_helper_dep},
     'json': {'sources': ['src/ujson/python/ujson.c',
@@ -134,7 +98,7 @@ libs_sources = {
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
     'properties': {'sources': ['properties.pyx']},
     'reshape': {'sources': ['reshape.pyx']},
-    'sparse': {'sources': [cython_sources['sparse.pyx'], _sparse_op_helper]},
+    'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
     'tslib': {'sources': ['tslib.pyx', 'tslibs/src/datetime/np_datetime.c'],
               'include_dirs': inc_datetime},
     'testing': {'sources': ['testing.pyx']},

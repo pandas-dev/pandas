@@ -4,6 +4,7 @@
 pip
 versioneer[toml]
 cython==0.29.33
+meson[ninja]==1.0.1
 pytest>=7.0.0
 pytest-cov
 pytest-xdist>=2.2.0
@@ -87,5 +88,4 @@ pyyaml
 requests
 pygments
 sphinx-toggleprompt
-meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master
 git+https://github.com/mesonbuild/meson-python.git@main

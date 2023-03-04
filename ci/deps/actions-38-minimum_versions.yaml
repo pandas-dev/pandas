@@ -9,6 +9,7 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython>=0.29.33
+  - meson[ninja]=1.0.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -58,6 +59,5 @@ dependencies:
   - xlsxwriter=1.4.3
   - zstandard=0.15.2
   - pip:
-      - "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
       - "git+https://github.com/mesonbuild/meson-python.git@main"
       - pyqt5==5.15.1

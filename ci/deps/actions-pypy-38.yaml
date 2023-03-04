@@ -10,6 +10,7 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython>=0.29.33
+  - meson[ninja]=1.0.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -23,5 +24,4 @@ dependencies:
   - python-dateutil
   - pytz
   - pip:
-      - "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
       - "git+https://github.com/mesonbuild/meson-python.git@main"
