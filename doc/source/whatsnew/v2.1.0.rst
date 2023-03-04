@@ -39,6 +39,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter (:issue:`44279`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
