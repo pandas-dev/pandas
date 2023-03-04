@@ -8,17 +8,13 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
-)
-from pandas._typing import (
-    TYPE_CHECKING,
-    DtypeObj,
-    type_t,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
@@ -32,6 +28,11 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        type_t,
+    )
+
     from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
@@ -108,11 +109,7 @@ class ArrowDtype(StorageExtensionDtype):
             return float
         elif pa.types.is_string(pa_type):
             return str
-        elif (
-            pa.types.is_binary(pa_type)
-            or pa.types.is_fixed_size_binary(pa_type)
-            or pa.types.is_large_binary(pa_type)
-        ):
+        elif pa.types.is_binary(pa_type):
             return bytes
         elif pa.types.is_boolean(pa_type):
             return bool
