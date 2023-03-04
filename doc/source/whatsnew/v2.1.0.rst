@@ -108,6 +108,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)
 - Performance improvement in :meth:`read_orc` when reading a remote URI file path. (:issue:`51609`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
+- Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
