@@ -94,15 +94,13 @@ object (more on what the GroupBy object is later), you may do the following:
     )
     speeds
 
-    # default is axis=0
     grouped = speeds.groupby("class")
-    grouped = speeds.groupby("order", axis="columns")
     grouped = speeds.groupby(["class", "order"])
 
 The mapping can be specified many different ways:
 
 * A Python function, to be called on each of the axis labels.
-* A list or NumPy array of the same length as the selected axis.
+* A list or NumPy array of the same length as the index.
 * A dict or ``Series``, providing a ``label -> group name`` mapping.
 * For ``DataFrame`` objects, a string indicating either a column name or
   an index level name to be used to group.
@@ -147,8 +145,8 @@ but the specified columns
    grouped = df2.groupby(level=df2.index.names.difference(["B"]))
    grouped.sum()
 
-These will split the DataFrame on its index (rows). We could also split by the
-columns:
+These will split the DataFrame on its index (rows). To split by columns, first do
+a tranpose:
 
 .. ipython::
 
@@ -159,7 +157,7 @@ columns:
        ...:         return 'consonant'
        ...:
 
-    In [5]: grouped = df.groupby(get_letter_type, axis=1)
+    In [5]: grouped = df.T.groupby(get_letter_type)
 
 pandas :class:`~pandas.Index` objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
@@ -254,7 +252,7 @@ above example we have:
 .. ipython:: python
 
    df.groupby("A").groups
-   df.groupby(get_letter_type, axis=1).groups
+   df.T.groupby(get_letter_type).groups
 
 Calling the standard Python ``len`` function on the GroupBy object just returns
 the length of the ``groups`` dict, so it is largely just a convenience:
@@ -496,7 +494,7 @@ An obvious one is aggregation via the
    grouped.aggregate(np.sum)
 
 As you can see, the result of the aggregation will have the group names as the
-new index along the grouped axis. In the case of multiple keys, the result is a
+new index. In the case of multiple keys, the result is a
 :ref:`MultiIndex <advanced.hierarchical>` by default, though this can be
 changed by using the ``as_index`` option:
 
@@ -1556,7 +1554,8 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 
    df = pd.DataFrame({"a": [1, 0, 0], "b": [0, 1, 0], "c": [1, 0, 0], "d": [2, 3, 4]})
    df
-   df.groupby(df.sum(), axis=1).sum()
+   dft = df.T
+   dft.groupby(dft.sum()).sum()
 
 .. _groupby.multicolumn_factorization:
 

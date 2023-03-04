@@ -281,7 +281,9 @@ def column_group_df():
 
 
 def test_column_axis(column_group_df):
-    g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
     result = g._positional_selector[1:-1]
     expected = column_group_df.iloc[:, [1, 3]]
 

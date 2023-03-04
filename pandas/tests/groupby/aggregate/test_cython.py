@@ -122,10 +122,15 @@ def test_cython_agg_frame_columns():
     # #2113
     df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
 
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
 
 
 def test_cython_agg_return_dict():

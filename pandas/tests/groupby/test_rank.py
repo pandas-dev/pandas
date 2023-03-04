@@ -619,7 +619,9 @@ def test_rank_multiindex():
         axis=1,
     )
 
-    gb = df.groupby(level=0, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=1)
     result = gb.rank(axis=1)
 
     expected = concat(
@@ -639,7 +641,9 @@ def test_groupby_axis0_rank_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
     res = gb.rank(axis=1)
 
@@ -661,7 +665,9 @@ def test_groupby_axis0_cummax_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
     cmax = gb.cummax(axis=1)
     expected = df[[0, 1]].astype(np.float64)

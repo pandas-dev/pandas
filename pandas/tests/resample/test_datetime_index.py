@@ -642,7 +642,9 @@ def test_resample_dup_index():
     )
     df.iloc[3, :] = np.nan
     result = df.resample("Q", axis=1).mean()
-    expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
     expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
     tm.assert_frame_equal(result, expected)
 

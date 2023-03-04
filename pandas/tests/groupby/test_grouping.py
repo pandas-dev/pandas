@@ -210,7 +210,10 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        g = df.groupby(Grouper(key="A", axis=0))
+        msg = "Grouper axis keyword is deprecated and will be removed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gpr = Grouper(key="A", axis=0)
+        g = df.groupby(gpr)
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -338,7 +341,9 @@ class TestGrouping:
         )
         cat_columns = CategoricalIndex(columns, categories=categories, ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
-        result = df.groupby(axis=1, level=0, observed=observed).sum()
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.groupby(axis=1, level=0, observed=observed).sum()
         expected_data = np.array([[4, 2], [4, 2], [4, 2], [4, 2], [4, 2]], int)
         expected_columns = CategoricalIndex(
             categories, categories=categories, ordered=True
@@ -348,7 +353,9 @@ class TestGrouping:
 
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
-        result = df.groupby(axis=0, level=0, observed=observed).sum()
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby(axis=0, level=0, observed=observed).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         tm.assert_frame_equal(result, expected)
 
@@ -453,7 +460,10 @@ class TestGrouping:
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         df.columns = MultiIndex.from_tuples([(0, 1), (1, 1), (2, 1)])
 
-        result = df.groupby(axis=1, level=[0, 1]).first()
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            gb = df.groupby(axis=1, level=[0, 1])
+        result = gb.first()
         tm.assert_frame_equal(result, df)
 
     def test_multiindex_negative_level(self, mframe):
@@ -559,9 +569,10 @@ class TestGrouping:
         tm.assert_frame_equal(result1, expected1)
 
         # axis=1
-
-        result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
-        result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
+            result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
         tm.assert_frame_equal(result0, expected0.T)
         tm.assert_frame_equal(result1, expected1.T)
 
@@ -577,10 +588,15 @@ class TestGrouping:
         )
         if axis in (1, "columns"):
             df = df.T
-        df.groupby(level="exp", axis=axis)
+            depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        else:
+            depr_msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            df.groupby(level="exp", axis=axis)
         msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
-            df.groupby(level="foo", axis=axis)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
@@ -958,7 +974,9 @@ class TestIteration:
 
         # axis = 1
         three_levels = three_group.groupby(["A", "B", "C"]).mean()
-        grouped = three_levels.T.groupby(axis=1, level=(1, 2))
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            grouped = three_levels.T.groupby(axis=1, level=(1, 2))
         for key, group in grouped:
             pass
 

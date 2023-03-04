@@ -94,8 +94,13 @@ def test_fill_consistency():
         np.nan,
     ]
 
-    expected = df.groupby(level=0, axis=0).fillna(method="ffill")
-    result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(level=0, axis=0).fillna(method="ffill")
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
     tm.assert_frame_equal(result, expected)
 
 
