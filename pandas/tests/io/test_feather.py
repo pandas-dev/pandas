@@ -34,7 +34,7 @@ class TestFeather:
 
     def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
         if expected is None:
-            expected = df
+            expected = df.copy()
 
         with tm.ensure_clean() as path:
             to_feather(df, path, **write_kwargs)
@@ -250,3 +250,7 @@ class TestFeather:
             )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_int_columns_and_index(self):
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([3, 4, 5], name="test"))
+        self.check_round_trip(df)
