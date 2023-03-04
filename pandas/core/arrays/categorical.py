@@ -25,18 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
@@ -109,6 +97,19 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
+    )
+
     from pandas import (
         DataFrame,
         Index,

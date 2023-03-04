@@ -45,12 +45,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import (
-    AnyArrayLike,
-    Dtype,
-    NpDtype,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -81,8 +75,12 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        AnyArrayLike,
+        Dtype,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        npt,
     )
 
     from pandas.core.arrays import (
