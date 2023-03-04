@@ -281,7 +281,7 @@ Other enhancements
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
-- :class:`DataFrame` constructor supports PyArrow tables as input (:issue:`51760`)
+- Added methods :meth:`DataFrame.from_pyarrow` and :meth:`DataFrame.to_pyarrow` to convert data from and to PyArrow tables (:issue:`51760`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:

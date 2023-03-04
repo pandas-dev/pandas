@@ -171,7 +171,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.arrow import ArrowDtype, ArrowExtensionArray
+from pandas.core.arrays.arrow import (
+    ArrowDtype,
+    ArrowExtensionArray,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -665,17 +668,6 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
                 return
-
-        try:
-            import pyarrow as pa
-        except ImportError:
-            pass
-        else:
-            if isinstance(data, pa.Table):
-                data = {
-                    name: ArrowExtensionArray(array)
-                    for name, array in zip(data.column_names, data.columns)
-                }
 
         manager = get_option("mode.data_manager")
 
@@ -1774,6 +1766,79 @@ class DataFrame(NDFrame, OpsMixin):
             index = create_index(data["index"], data["index_names"])
             columns = create_index(data["columns"], data["column_names"])
             return cls(realdata, index=index, columns=columns, dtype=dtype)
+
+    @classmethod
+    def from_pyarrow(
+        cls,
+        table,
+    ) -> DataFrame:
+        """
+        Convert a pyarrow table to DataFrame.
+
+        Parameters
+        ----------
+        table: pyarrow.Table
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        DataFrame.to_pyarrow
+        pyarrow.Table.to_pandas
+
+        Notes
+        -----
+        The conversion is zero-copy, and the resulting DataFrame uses
+        Arrow-backend data types.
+
+        For customization of the conversion use the
+        `to_pandas <https://arrow.apache.org/docs/python/generated/\
+pyarrow.Table.html#pyarrow.Table.to_pandas>`__
+        method of the Table object.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> table = pa.table([pa.array([1, 2, 3])], names=["my_column"])
+        >>> pd.DataFrame.from_pyarrow(table)
+           my_column
+        0          1
+        1          2
+        2          3
+        """
+        return table.to_pandas(types_mapper=ArrowDtype)
+
+    def to_pyarrow(
+        self,
+    ):
+        """
+        Convert the DataFrame to a pyarrow.Table object.
+
+        Returns
+        -------
+        pyarrow.Table
+
+        See Also
+        --------
+        DataFrame.from_pyarrow
+        pyarrow.Table.from_pandas
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.to_pyarrow()
+        pyarrow.Table
+        col1: int64
+        col2: int64
+        ----
+        col1: [[1,2]]
+        col2: [[3,4]]
+        """
+        import pyarrow as pa
+
+        return pa.Table.from_pandas(self)
 
     def to_numpy(
         self,
