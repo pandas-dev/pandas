@@ -1204,7 +1204,11 @@ class Window(BaseWindow):
             def calc(x):
                 additional_nans = np.array([np.nan] * offset)
                 x = np.concatenate((x, additional_nans))
-                return func(x, window, self.min_periods or len(window))
+                return func(
+                    x,
+                    window,
+                    self.min_periods if self.min_periods is not None else len(window),
+                )
 
             with np.errstate(all="ignore"):
                 # Our weighted aggregations return memoryviews
