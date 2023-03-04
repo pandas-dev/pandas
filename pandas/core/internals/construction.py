@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
@@ -17,12 +18,6 @@ from numpy import ma
 from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    Manager,
-    npt,
-)
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -91,6 +86,13 @@ from pandas.core.internals.managers import (
     create_block_manager_from_column_arrays,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        Manager,
+        npt,
+    )
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
