@@ -102,7 +102,7 @@ class CSVFormatter:
         return self.fmt.decimal
 
     @property
-    def header(self) -> bool | Sequence[str]:
+    def header(self) -> bool | list[str]:
         return self.fmt.header
 
     @property
@@ -245,7 +245,6 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
-
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
                 handles.handle,

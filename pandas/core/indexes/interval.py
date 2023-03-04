@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Literal,
@@ -25,12 +26,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     to_offset,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    IntervalClosedType,
-    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
@@ -92,6 +87,13 @@ from pandas.core.indexes.timedeltas import (
     timedelta_range,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        IntervalClosedType,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -218,7 +220,6 @@ class IntervalIndex(ExtensionIndex):
         name: Hashable = None,
         verify_integrity: bool = True,
     ) -> IntervalIndex:
-
         name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -673,7 +674,6 @@ class IntervalIndex(ExtensionIndex):
         limit: int | None = None,
         tolerance: Any | None = None,
     ) -> npt.NDArray[np.intp]:
-
         if isinstance(target, IntervalIndex):
             # We only get here with not self.is_overlapping
             # -> at most one match per interval in target

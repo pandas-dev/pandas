@@ -7,7 +7,6 @@ from abc import (
     ABC,
     abstractmethod,
 )
-from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -31,10 +30,6 @@ from pandas._libs.tslibs import (
     Tick,
     parsing,
     to_offset,
-)
-from pandas._typing import (
-    Axis,
-    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import NullFrequencyError
@@ -70,6 +65,13 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    from pandas._typing import (
+        Axis,
+        npt,
+    )
+
     from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -300,7 +302,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):

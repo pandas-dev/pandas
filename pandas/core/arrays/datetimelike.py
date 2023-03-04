@@ -148,7 +148,6 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -259,8 +258,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
-        10000000000
+        >>> arr = pd.arrays.DatetimeArray(np.array(['1970-01-01'], 'datetime64[ns]'))
+        >>> arr._unbox_scalar(arr[0])
+        numpy.datetime64('1970-01-01T00:00:00.000000000')
         """
         raise AbstractMethodError(self)
 
@@ -1363,7 +1363,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
-
         other_dtype = getattr(other, "dtype", None)
         other = ensure_wrapped_if_datetimelike(other)
 

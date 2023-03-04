@@ -187,7 +187,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["first", "last"])
     def test_first_last(self, df, method):
-
         expected_columns = Index(
             [
                 "int",
@@ -206,7 +205,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-
         expected_columns_numeric = Index(["int", "float", "category_int"])
         expected_columns = Index(
             ["int", "float", "string", "category_int", "timedelta"]
@@ -219,7 +217,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
-
         expected_columns = Index(["int", "float", "category_int"])
         expected_columns_numeric = expected_columns
 
@@ -333,7 +330,6 @@ class TestGroupByNonCythonPaths:
 
 
 def test_cython_api2():
-
     # this takes the fast apply path
 
     # cumsum (GH5614)
@@ -1139,7 +1135,9 @@ def test_frame_describe_multikey(tsframe):
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
 
-    groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
     # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
@@ -1151,7 +1149,6 @@ def test_frame_describe_multikey(tsframe):
 
 
 def test_frame_describe_tupleindex():
-
     # GH 14848 - regression from 0.19.0 to 0.19.1
     df1 = DataFrame(
         {

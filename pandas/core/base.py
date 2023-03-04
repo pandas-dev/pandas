@@ -70,7 +70,6 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -302,6 +301,20 @@ class IndexOpsMixin(OpsMixin):
         transpose,
         doc="""
         Return the transpose, which is by definition self.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.T
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
         """,
     )
 
@@ -326,6 +339,17 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.ndim
+        1
         """
         return 1
 
@@ -337,7 +361,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         scalar
-            The first element of %(klass)s.
+            The first element of Series.
 
         Raises
         ------
@@ -352,6 +376,17 @@ class IndexOpsMixin(OpsMixin):
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.nbytes
+        24
         """
         return self._values.nbytes
 
@@ -359,6 +394,17 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.size
+        3
         """
         return len(self._values)
 
@@ -450,14 +496,9 @@ class IndexOpsMixin(OpsMixin):
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
-
-            .. versionadded:: 1.0.0
-
         **kwargs
             Additional keywords passed through to the ``to_numpy`` method
             of the underlying array (for extension arrays).
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -1159,7 +1200,6 @@ class IndexOpsMixin(OpsMixin):
         sort: bool = False,
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], Index]:
-
         codes, uniques = algorithms.factorize(
             self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
@@ -1307,7 +1347,6 @@ class IndexOpsMixin(OpsMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-
         if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be 1-D array-like or scalar, "
@@ -1343,6 +1382,8 @@ class IndexOpsMixin(OpsMixin):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
         rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)
+        if isinstance(rvalues, range):
+            rvalues = np.arange(rvalues.start, rvalues.stop, rvalues.step)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)

@@ -110,7 +110,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, expected)
 
     def test_constructor_unsortable(self):
-
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype="O")
         factor = Categorical(arr, ordered=False)
@@ -134,7 +133,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, ii)
 
     def test_constructor(self):
-
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
         c1 = Categorical(exp_arr)
         tm.assert_numpy_array_equal(c1.__array__(), exp_arr)
@@ -263,7 +261,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], categories="a")
 
     def test_constructor_with_null(self):
-
         # Cannot have NaN in categories
         msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):

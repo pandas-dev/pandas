@@ -150,11 +150,11 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     Does not include the actual bytes of the pointers
     """
-    i: Py_ssize_t
-    n: Py_ssize_t
-    size: int64_t
+    cdef:
+        Py_ssize_t i
+        Py_ssize_t n
+        int64_t size = 0
 
-    size = 0
     n = len(arr)
     for i in range(n):
         size += arr[i].__sizeof__()
@@ -777,7 +777,10 @@ cpdef ndarray[object] ensure_string_array(
             already_copied = True
 
         if not checknull(val):
-            if not util.is_float_object(val):
+            if isinstance(val, bytes):
+                # GH#49658 discussion of desired behavior here
+                result[i] = val.decode()
+            elif not util.is_float_object(val):
                 # f"{val}" is faster than str(val)
                 result[i] = f"{val}"
             else:
@@ -921,29 +924,19 @@ def get_level_sorter(
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                    const intp_t[:] labels,
                    Py_ssize_t max_bin,
-                   int axis):
+                   ):
     cdef:
         Py_ssize_t i, j, k, n
         ndarray[int64_t, ndim=2] counts
 
-    assert (axis == 0 or axis == 1)
     n, k = (<object>mask).shape
 
-    if axis == 0:
-        counts = np.zeros((max_bin, k), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[labels[i], j] += 1
-
-    else:  # axis == 1
-        counts = np.zeros((n, max_bin), dtype="i8")
-        with nogil:
-            for i in range(n):
-                for j in range(k):
-                    if mask[i, j]:
-                        counts[i, labels[j]] += 1
+    counts = np.zeros((n, max_bin), dtype="i8")
+    with nogil:
+        for i in range(n):
+            for j in range(k):
+                if mask[i, j]:
+                    counts[i, labels[j]] += 1
 
     return counts
 
@@ -1427,7 +1420,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
-    >>> import datetime
+    >>> from pandas.api.types import infer_dtype
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
@@ -1452,6 +1445,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype(['a', 1])
     'mixed-integer'
 
+    >>> from decimal import Decimal
     >>> infer_dtype([Decimal(1), Decimal(2.0)])
     'decimal'
 
@@ -1464,6 +1458,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     >>> infer_dtype([pd.Timestamp('20130101')])
     'datetime'
 
+    >>> import datetime
     >>> infer_dtype([datetime.date(2013, 1, 1)])
     'date'
 
@@ -1710,6 +1705,7 @@ cdef class Validator:
 
     cdef bint is_valid_null(self, object value) except -1:
         return value is None or value is C_NA or util.is_nan(value)
+        # TODO: include decimal NA?
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -2371,6 +2367,7 @@ def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
                           bint safe=False,
+                          bint convert_numeric=True,  # NB: different default!
                           bint convert_datetime=False,
                           bint convert_timedelta=False,
                           bint convert_period=False,
@@ -2390,6 +2387,8 @@ def maybe_convert_objects(ndarray[object] objects,
     safe : bool, default False
         Whether to upcast numeric type (e.g. int cast to float). If set to
         True, no upcasting will be performed.
+    convert_numeric : bool, default True
+        Whether to convert numeric entries.
     convert_datetime : bool, default False
         If an array-like object contains only datetime values or NaT is
         encountered, whether to convert and return an array of M8[ns] dtype.
@@ -2467,9 +2466,13 @@ def maybe_convert_objects(ndarray[object] objects,
         elif util.is_bool_object(val):
             seen.bool_ = True
             bools[i] = val
+            if not convert_numeric:
+                break
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
             seen.float_ = True
+            if not convert_numeric:
+                break
         elif is_timedelta(val):
             if convert_timedelta:
                 seen.timedelta_ = True
@@ -2501,10 +2504,14 @@ def maybe_convert_objects(ndarray[object] objects,
                 else:
                     uints[i] = val
                     ints[i] = val
+            if not convert_numeric:
+                break
 
         elif util.is_complex_object(val):
             complexes[i] = val
             seen.complex_ = True
+            if not convert_numeric:
+                break
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
@@ -2641,6 +2648,12 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
         else:
             seen.object_ = True
+
+    if not convert_numeric:
+        # Note: we count "bool" as numeric here. This is becase
+        #  np.array(list_of_items) will convert bools just like it will numeric
+        #  entries.
+        return objects
 
     if seen.bool_:
         if seen.is_bool:

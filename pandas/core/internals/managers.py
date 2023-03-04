@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -11,6 +12,7 @@ from typing import (
     cast,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -22,15 +24,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    Shape,
-    npt,
-    type_t,
-)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -85,6 +78,16 @@ from pandas.core.internals.ops import (
     operate_blockwise,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        QuantileInterpolation,
+        Shape,
+        npt,
+        type_t,
+    )
 T = TypeVar("T", bound="BaseBlockManager")
 
 
@@ -247,6 +250,28 @@ class BaseBlockManager(DataManager):
         """
         return not self.blocks[blkno].refs.has_reference()
 
+    def add_references(self, mgr: BaseBlockManager) -> None:
+        """
+        Adds the references from one manager to another. We assume that both
+        managers have the same block structure.
+        """
+        if len(self.blocks) != len(mgr.blocks):
+            # If block structure changes, then we made a copy
+            return
+        for i, blk in enumerate(self.blocks):
+            blk.refs = mgr.blocks[i].refs
+            # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
+            # "Block"; expected "SharedBlock"
+            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+
+    def references_same_values(self, mgr: BaseBlockManager, blkno: int) -> bool:
+        """
+        Checks if two blocks from two different block managers reference the
+        same underlying values.
+        """
+        ref = weakref.ref(self.blocks[blkno])
+        return ref in mgr.blocks[blkno].refs.referenced_blocks
+
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
         return dtypes.take(self.blknos)
@@ -307,9 +332,7 @@ class BaseBlockManager(DataManager):
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
-
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -343,6 +366,14 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
+            using_cow=using_copy_on_write(),
+        )
+
+    def round(self: T, decimals: int, using_cow: bool = False) -> T:
+        return self.apply(
+            "round",
+            decimals=decimals,
+            using_cow=using_cow,
         )
 
     def setitem(self: T, indexer, value) -> T:
@@ -394,7 +425,6 @@ class BaseBlockManager(DataManager):
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -438,11 +468,15 @@ class BaseBlockManager(DataManager):
         assert not is_list_like(to_replace)
         assert not is_list_like(value)
         return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            using_cow=using_copy_on_write(),
         )
 
     def replace_regex(self, **kwargs):
-        return self.apply("_replace_regex", **kwargs)
+        return self.apply("_replace_regex", **kwargs, using_cow=using_copy_on_write())
 
     def replace_list(
         self: T,
@@ -829,8 +863,9 @@ class BaseBlockManager(DataManager):
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
+                    deep = not (only_slice or using_copy_on_write())
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=False)
+                        newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
 
@@ -888,36 +923,28 @@ class BaseBlockManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> T:
         """
         Take items along any axis.
 
-        indexer : np.ndarray or slice
+        indexer : np.ndarray[np.intp]
         axis : int, default 1
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
-        convert_indices : bool, default True
-            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
         BlockManager
         """
-        # We have 6 tests that get here with a slice
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype=np.intp)
-        )
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
         n = self.shape[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -945,7 +972,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         axes: Sequence[Index],
         verify_integrity: bool = True,
     ) -> None:
-
         if verify_integrity:
             # Assertion disabled for performance
             # assert all(isinstance(x, Index) for x in axes)
@@ -998,6 +1024,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
+            # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
+            #  is this ruled out in the general case?
             result = self.blocks[0].iget((slice(None), loc))
             # in the case of a single block, the new block is a view
             block = new_block(
@@ -2201,7 +2229,6 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
-
     placement, arrays = zip(*tuples)
 
     first = arrays[0]
@@ -2234,12 +2261,10 @@ def _consolidate(blocks: tuple[Block, ...]) -> tuple[Block, ...]:
 def _merge_blocks(
     blocks: list[Block], dtype: DtypeObj, can_consolidate: bool
 ) -> tuple[list[Block], bool]:
-
     if len(blocks) == 1:
         return blocks, False
 
     if can_consolidate:
-
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])

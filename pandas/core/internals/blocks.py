@@ -15,7 +15,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
-    Timestamp,
     internals as libinternals,
     lib,
     writers,
@@ -63,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
     PeriodDtype,
@@ -130,7 +130,6 @@ def maybe_split(meth: F) -> F:
 
     @wraps(meth)
     def newfunc(self, *args, **kwargs) -> list[Block]:
-
         if self.ndim == 1 or self.shape[0] == 1:
             return meth(self, *args, **kwargs)
         else:
@@ -249,7 +248,6 @@ class Block(PandasObject):
         if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
-
             shape = " x ".join([str(s) for s in self.shape])
             result = f"{name}: {self.mgr_locs.indexer}, {shape}, dtype: {self.dtype}"
 
@@ -431,6 +429,7 @@ class Block(PandasObject):
             return blocks
 
         if self.dtype == _dtype_obj:
+            # TODO: does it matter that self.dtype might not match blocks[i].dtype?
             # GH#44241 We downcast regardless of the argument;
             #  respecting 'downcast=None' may be worthwhile at some point,
             #  but ATM it breaks too much existing code.
@@ -553,6 +552,7 @@ class Block(PandasObject):
         inplace: bool = False,
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -567,7 +567,12 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self if inplace else self.copy()
+            if using_cow and (self.refs.has_reference() or not inplace):
+                blk = self.copy()
+            elif using_cow:
+                blk = self.copy(deep=False)
+            else:
+                blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
@@ -577,22 +582,36 @@ class Block(PandasObject):
             #  replacing it is a no-op.
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
-            return [self] if inplace else [self.copy()]
+            if using_cow:
+                return [self.copy(deep=False)]
+            else:
+                return [self] if inplace else [self.copy()]
 
         if mask is None:
             mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
-            return [self] if inplace else [self.copy()]
+            if using_cow:
+                return [self.copy(deep=False)]
+            else:
+                return [self] if inplace else [self.copy()]
 
         elif self._can_hold_element(value):
-            blk = self if inplace else self.copy()
+            # TODO(CoW): Maybe split here as well into columns where mask has True
+            # and rest?
+            if using_cow:
+                if inplace:
+                    blk = self.copy(deep=self.refs.has_reference())
+                else:
+                    blk = self.copy()
+            else:
+                blk = self if inplace else self.copy()
             putmask_inplace(blk.values, mask, value)
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(copy=False)
+                blocks = blk.convert(copy=False, using_cow=using_cow)
             else:
                 blocks = [blk]
             return blocks
@@ -620,6 +639,7 @@ class Block(PandasObject):
                         value=value,
                         inplace=True,
                         mask=mask[i : i + 1],
+                        using_cow=using_cow,
                     )
                 )
             return blocks
@@ -631,6 +651,7 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         mask=None,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -645,6 +666,8 @@ class Block(PandasObject):
             Perform inplace modification.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
+        using_cow: bool, default False
+            Specifying if copy on write is enabled.
 
         Returns
         -------
@@ -653,15 +676,27 @@ class Block(PandasObject):
         if not self._can_hold_element(to_replace):
             # i.e. only ObjectBlock, but could in principle include a
             #  String ExtensionBlock
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
         rx = re.compile(to_replace)
 
-        new_values = self.values if inplace else self.values.copy()
+        if using_cow:
+            if inplace and not self.refs.has_reference():
+                refs = self.refs
+                new_values = self.values
+            else:
+                refs = None
+                new_values = self.values.copy()
+        else:
+            refs = None
+            new_values = self.values if inplace else self.values.copy()
+
         replace_regex(new_values, rx, value, mask)
 
-        block = self.make_block(new_values)
-        return block.convert(copy=False)
+        block = self.make_block(new_values, refs=refs)
+        return block.convert(copy=False, using_cow=using_cow)
 
     @final
     def replace_list(
@@ -681,8 +716,7 @@ class Block(PandasObject):
             # TODO: avoid special-casing
             # GH49404
             if using_cow and inplace:
-                # TODO(CoW): Optimize
-                blk = self.copy()
+                blk = self.copy(deep=self.refs.has_reference())
             else:
                 blk = self if inplace else self.copy()
             values = cast(Categorical, blk.values)
@@ -694,6 +728,8 @@ class Block(PandasObject):
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
         ]
         if not len(pairs):
+            if using_cow:
+                return [self.copy(deep=False)]
             # shortcut, nothing to replace
             return [self] if inplace else [self.copy()]
 
@@ -702,23 +738,34 @@ class Block(PandasObject):
         if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
-            mask = ~isna(values)
-            masks = [
-                compare_or_regex_search(values, s[0], regex=regex, mask=mask)
+            na_mask = ~isna(values)
+            masks: Iterable[npt.NDArray[np.bool_]] = (
+                extract_bool_array(
+                    cast(
+                        ArrayLike,
+                        compare_or_regex_search(
+                            values, s[0], regex=regex, mask=na_mask
+                        ),
+                    )
+                )
                 for s in pairs
-            ]
+            )
         else:
             # GH#38086 faster if we know we dont need to check for regex
-            masks = [missing.mask_missing(values, s[0]) for s in pairs]
-
-        masks = [extract_bool_array(x) for x in masks]
+            masks = (missing.mask_missing(values, s[0]) for s in pairs)
+        # Materialize if inplace = True, since the masks can change
+        # as we replace
+        if inplace:
+            masks = list(masks)
 
         if using_cow and inplace:
-            # TODO(CoW): Optimize
-            rb = [self.copy()]
+            # Don't set up refs here, otherwise we will think that we have
+            # references when we check again later
+            rb = [self]
         else:
             rb = [self if inplace else self.copy()]
-        for i, (src, dest) in enumerate(pairs):
+
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
 
@@ -727,9 +774,9 @@ class Block(PandasObject):
             # where to index into the mask
             for blk_num, blk in enumerate(rb):
                 if len(rb) == 1:
-                    m = masks[i]
+                    m = mask
                 else:
-                    mib = masks[i]
+                    mib = mask
                     assert not isinstance(mib, bool)
                     m = mib[blk_num : blk_num + 1]
 
@@ -739,13 +786,19 @@ class Block(PandasObject):
                 result = blk._replace_coerce(
                     to_replace=src,
                     value=dest,
-                    mask=m,  # type: ignore[arg-type]
+                    mask=m,
                     inplace=inplace,
                     regex=regex,
+                    using_cow=using_cow,
                 )
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks([b.convert(copy=True) for b in result])
+                    result = extend_blocks(
+                        [
+                            b.convert(copy=True and not using_cow, using_cow=using_cow)
+                            for b in result
+                        ]
+                    )
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -758,6 +811,7 @@ class Block(PandasObject):
         mask: npt.NDArray[np.bool_],
         inplace: bool = True,
         regex: bool = False,
+        using_cow: bool = False,
     ) -> list[Block]:
         """
         Replace value corresponding to the given boolean array with another
@@ -791,14 +845,24 @@ class Block(PandasObject):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
-                    nb = self.astype(np.dtype(object), copy=False)
-                    if nb is self and not inplace:
+                    has_ref = self.refs.has_reference()
+                    nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
+                    if (nb is self or using_cow) and not inplace:
+                        nb = nb.copy()
+                    elif inplace and has_ref and nb.refs.has_reference():
+                        # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
+                if using_cow:
+                    return [self.copy(deep=False)]
                 return [self] if inplace else [self.copy()]
             return self.replace(
-                to_replace=to_replace, value=value, inplace=inplace, mask=mask
+                to_replace=to_replace,
+                value=value,
+                inplace=inplace,
+                mask=mask,
+                using_cow=using_cow,
             )
 
     # ---------------------------------------------------------------------
@@ -1045,7 +1109,6 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
-
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
@@ -1073,7 +1136,9 @@ class Block(PandasObject):
                     res_blocks.extend(rbs)
                 return res_blocks
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1104,6 +1169,8 @@ class Block(PandasObject):
         icond, noop = validate_putmask(values, ~cond)
         if noop:
             # GH-39595: Always return a copy; short-circuit up/downcasting
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         if other is lib.no_default:
@@ -1123,8 +1190,10 @@ class Block(PandasObject):
                 # no need to split columns
 
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond)
-                return self._maybe_downcast(blocks, downcast=_downcast)
+                blocks = block.where(orig_other, cond, using_cow=using_cow)
+                return self._maybe_downcast(
+                    blocks, downcast=_downcast, using_cow=using_cow
+                )
 
             else:
                 # since _maybe_downcast would split blocks anyway, we
@@ -1141,7 +1210,9 @@ class Block(PandasObject):
                         oth = other[:, i : i + 1]
 
                     submask = cond[:, i : i + 1]
-                    rbs = nb.where(oth, submask, _downcast=_downcast)
+                    rbs = nb.where(
+                        oth, submask, _downcast=_downcast, using_cow=using_cow
+                    )
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1255,7 +1326,6 @@ class Block(PandasObject):
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -1392,6 +1462,39 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
+    def round(self, decimals: int, using_cow: bool = False) -> Block:
+        """
+        Rounds the values.
+        If the block is not of an integer or float dtype, nothing happens.
+        This is consistent with DataFrame.round behavivor.
+        (Note: Series.round would raise)
+
+        Parameters
+        ----------
+        decimals: int,
+            Number of decimal places to round to.
+            Caller is responsible for validating this
+        using_cow: bool,
+            Whether Copy on Write is enabled right now
+        """
+        if not self.is_numeric or self.is_bool:
+            return self.copy(deep=not using_cow)
+        refs = None
+        # TODO: round only defined on BaseMaskedArray
+        # Series also does this, so would need to fix both places
+        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
+        # has no attribute "round"
+        values = self.values.round(decimals)  # type: ignore[union-attr]
+        if values is self.values:
+            refs = self.refs
+            if not using_cow:
+                # Normally would need to do this before, but
+                # numpy only returns same array when round operation
+                # is no-op
+                # https://github.com/numpy/numpy/blob/486878b37fc7439a3b2b87747f50db9b62fea8eb/numpy/core/src/multiarray/calculation.c#L625-L636
+                values = values.copy()
+        return self.make_block_same_class(values, refs=refs)
+
     # ---------------------------------------------------------------------
     # Abstract Methods Overridden By EABackedBlock and NumpyBlock
 
@@ -1426,7 +1529,6 @@ class Block(PandasObject):
         # don't share data
         refs = self.refs if self.refs.has_reference() else None
         for idx in loc:
-
             if idx == previous_loc + 1:
                 # There is no column between current and last idx
                 pass
@@ -1532,7 +1634,9 @@ class EABackedBlock(Block):
         else:
             return self
 
-    def where(self, other, cond, _downcast: str | bool = "infer") -> list[Block]:
+    def where(
+        self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
+    ) -> list[Block]:
         # _downcast private bc we only specify it when calling from fillna
         arr = self.values.T
 
@@ -1550,6 +1654,8 @@ class EABackedBlock(Block):
         if noop:
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
+            if using_cow:
+                return [self.copy(deep=False)]
             return [self.copy()]
 
         try:
@@ -1558,19 +1664,22 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
                     blk = self.coerce_to_target_dtype(orig_other)
-                    nbs = blk.where(orig_other, orig_cond)
-                    return self._maybe_downcast(nbs, downcast=_downcast)
+                    nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
+                    return self._maybe_downcast(
+                        nbs, downcast=_downcast, using_cow=using_cow
+                    )
 
                 else:
                     raise
@@ -1588,7 +1697,7 @@ class EABackedBlock(Block):
                         n = orig_other[:, i : i + 1]
 
                     submask = orig_cond[:, i : i + 1]
-                    rbs = nb.where(n, submask)
+                    rbs = nb.where(n, submask, using_cow=using_cow)
                     res_blocks.extend(rbs)
                 return res_blocks
 
@@ -1630,7 +1739,6 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-
                 if is_interval_dtype(self.dtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
@@ -1748,9 +1856,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 downcast=downcast,
                 using_cow=using_cow,
             )
-        new_values = self.values.fillna(value=value, method=None, limit=limit)
-        nb = self.make_block_same_class(new_values)
-        return nb._maybe_downcast([nb], downcast)
+        if using_cow and self._can_hold_na and not self.values._hasna:
+            refs = self.refs
+            new_values = self.values
+        else:
+            refs = None
+            new_values = self.values.fillna(value=value, method=None, limit=limit)
+        nb = self.make_block_same_class(new_values, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 
     @cache_readonly
     def shape(self) -> Shape:
@@ -1824,40 +1937,38 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         """
         # TODO: ATM this doesn't work for iget/_slice, can we change that?
 
-        if isinstance(indexer, tuple):
+        if isinstance(indexer, tuple) and len(indexer) == 2:
             # TODO(EA2D): not needed with 2D EAs
             #  Should never have length > 2.  Caller is responsible for checking.
             #  Length 1 is reached vis setitem_single_block and setitem_single_column
             #  each of which pass indexer=(pi,)
-            if len(indexer) == 2:
-
-                if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
-                    # GH#44703 went through indexing.maybe_convert_ix
-                    first, second = indexer
-                    if not (
-                        second.size == 1 and (second == 0).all() and first.shape[1] == 1
-                    ):
-                        raise NotImplementedError(
-                            "This should not be reached. Please report a bug at "
-                            "github.com/pandas-dev/pandas/"
-                        )
-                    indexer = first[:, 0]
-
-                elif lib.is_integer(indexer[1]) and indexer[1] == 0:
-                    # reached via setitem_single_block passing the whole indexer
-                    indexer = indexer[0]
-
-                elif com.is_null_slice(indexer[1]):
-                    indexer = indexer[0]
-
-                elif is_list_like(indexer[1]) and indexer[1][0] == 0:
-                    indexer = indexer[0]
-
-                else:
+            if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
+                # GH#44703 went through indexing.maybe_convert_ix
+                first, second = indexer
+                if not (
+                    second.size == 1 and (second == 0).all() and first.shape[1] == 1
+                ):
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
+                indexer = first[:, 0]
+
+            elif lib.is_integer(indexer[1]) and indexer[1] == 0:
+                # reached via setitem_single_block passing the whole indexer
+                indexer = indexer[0]
+
+            elif com.is_null_slice(indexer[1]):
+                indexer = indexer[0]
+
+            elif is_list_like(indexer[1]) and indexer[1][0] == 0:
+                indexer = indexer[0]
+
+            else:
+                raise NotImplementedError(
+                    "This should not be reached. Please report a bug at "
+                    "github.com/pandas-dev/pandas/"
+                )
         return indexer
 
     @property
@@ -2228,9 +2339,8 @@ def get_block_type(dtype: DtypeObj):
     -------
     cls : class, subclass of Block
     """
-    # We use vtype and kind checks because they are much more performant
+    # We use kind checks because it is much more performant
     #  than is_foo_dtype
-    vtype = dtype.type
     kind = dtype.kind
 
     cls: type[Block]
@@ -2238,7 +2348,7 @@ def get_block_type(dtype: DtypeObj):
     if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
-    elif vtype is Timestamp:
+    elif isinstance(dtype, DatetimeTZDtype):
         cls = DatetimeTZBlock
     elif isinstance(dtype, PeriodDtype):
         cls = NDArrayBackedExtensionBlock
@@ -2451,7 +2561,6 @@ def to_native_types(
         return new_values
 
     else:
-
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
 

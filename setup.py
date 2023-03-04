@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.32"
+min_cython_ver = "0.29.33"
 
 try:
     from Cython import (
@@ -392,6 +392,7 @@ macros.append(("NPY_NO_DEPRECATED_API", "0"))
 
 # ----------------------------------------------------------------------
 # Specification of Dependencies
+
 
 # TODO(cython#4518): Need to check to see if e.g. `linetrace` has changed and
 #  possibly re-compile.

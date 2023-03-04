@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import operator
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
+    Sequence,
     TypeVar,
     cast,
 )
@@ -47,6 +51,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
@@ -55,6 +60,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.tseries.frequencies import to_offset
 
@@ -100,7 +106,7 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide_checked(left, right))
+        result = pc.floor(pc.divide(left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -112,8 +118,8 @@ if not pa_version_under7p0:
         "rsub": lambda x, y: pc.subtract_checked(y, x),
         "mul": pc.multiply_checked,
         "rmul": lambda x, y: pc.multiply_checked(y, x),
-        "truediv": lambda x, y: pc.divide_checked(cast_for_truediv(x, y), y),
-        "rtruediv": lambda x, y: pc.divide_checked(y, cast_for_truediv(x, y)),
+        "truediv": lambda x, y: pc.divide(cast_for_truediv(x, y), y),
+        "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
         "mod": NotImplemented,
@@ -165,7 +171,7 @@ def to_pyarrow_type(
     return None
 
 
-class ArrowExtensionArray(OpsMixin, ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 
@@ -454,6 +460,29 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return BooleanArray(values, mask)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        pa_type = self._data.type
+        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
+            operator.add,
+            roperator.radd,
+        ]:
+            length = self._data.length()
+
+            seps: list[str] | list[bytes]
+            if pa.types.is_string(pa_type):
+                seps = [""] * length
+            else:
+                seps = [b""] * length
+
+            if is_scalar(other):
+                other = [other] * length
+            elif isinstance(other, type(self)):
+                other = other._data
+            if op is operator.add:
+                result = pc.binary_join_element_wise(self._data, other, seps)
+            else:
+                result = pc.binary_join_element_wise(other, self._data, seps)
+            return type(self)(result)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
@@ -506,6 +535,18 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         """
         return len(self._data)
 
+    def __contains__(self, key) -> bool:
+        # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
+        if isna(key) and key is not self.dtype.na_value:
+            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+                return pc.any(pc.is_nan(self._data)).as_py()
+
+            # e.g. date or timestamp types we do not allow None here to match pd.NA
+            return False
+            # TODO: maybe complex? object?
+
+        return bool(super().__contains__(key))
+
     @property
     def _hasna(self) -> bool:
         return self._data.null_count > 0
@@ -516,6 +557,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
+        # GH51630: fast paths
+        null_count = self._data.null_count
+        if null_count == 0:
+            return np.zeros(len(self), dtype=np.bool_)
+        elif null_count == len(self):
+            return np.ones(len(self), dtype=np.bool_)
+
         return self._data.is_null().to_numpy()
 
     def argsort(
@@ -528,14 +576,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under7p0:
-            # Although pc.array_sort_indices exists in version 6
-            # there's a bug that affects the pa.ChunkedArray backing
-            # https://issues.apache.org/jira/browse/ARROW-12042
-            fallback_performancewarning("7")
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+        if null_placement is None:
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
@@ -594,15 +636,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         method: FillnaOptions | None = None,
         limit: int | None = None,
     ) -> ArrowExtensionArrayT:
-
         value, method = validate_fillna_kwargs(value, method)
 
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
-        if method is not None and pa_version_under7p0:
-            # fill_null_{forward|backward} added in pyarrow 7.0
-            fallback_performancewarning(version="7")
+        if method is not None:
+            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if is_array_like(value):
@@ -865,15 +905,22 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             na_value = self.dtype.na_value
 
         pa_type = self._data.type
-        if (
-            is_object_dtype(dtype)
-            or pa.types.is_timestamp(pa_type)
-            or pa.types.is_duration(pa_type)
-        ):
+        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
+            # temporal types with units and/or timezones currently
+            #  require pandas/python scalars to pass all tests
+            # TODO: improve performance (this is slow)
             result = np.array(list(self), dtype=dtype)
+        elif is_object_dtype(dtype) and self._hasna:
+            result = np.empty(len(self), dtype=object)
+            mask = ~self.isna()
+            result[mask] = np.asarray(self[mask]._data)
+        elif self._hasna:
+            data = self.copy()
+            data[self.isna()] = na_value
+            return np.asarray(data._data, dtype=dtype)
         else:
             result = np.asarray(self._data, dtype=dtype)
-            if copy or self._hasna:
+            if copy:
                 result = result.copy()
         if self._hasna:
             result[self.isna()] = na_value
@@ -943,12 +990,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count").astype("Int64")
+        return Series(counts, index=index, name="count")
 
     @classmethod
     def _concat_same_type(
@@ -1051,6 +1097,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
+            or pa.types.is_decimal(pa_type)
         ):
             # pyarrow only supports any/all for boolean dtype, we allow
             #  for other dtypes, matching our non-pyarrow behavior
@@ -1094,6 +1141,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
+        # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
+        if name in ["any", "all"] and "min_count" not in kwargs:
+            kwargs["min_count"] = 0
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -1323,7 +1374,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         ----------
         dropna : bool, default True
             Don't consider counts of NA values.
-            Not implemented by pyarrow.
 
         Returns
         -------
@@ -1342,12 +1392,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         else:
             data = self._data
 
-        modes = pc.mode(data, pc.count_distinct(data).as_py())
-        values = modes.field(0)
-        counts = modes.field(1)
-        # counts sorted descending i.e counts[0] = max
-        mask = pc.equal(counts, counts[0])
-        most_common = values.filter(mask)
+        if dropna:
+            data = data.drop_null()
+
+        res = pc.value_counts(data)
+        most_common = res.field("values").filter(
+            pc.equal(res.field("counts"), pc.max(res.field("counts")))
+        )
 
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
@@ -1463,6 +1514,317 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
+
+    def _str_count(self, pat: str, flags: int = 0):
+        if flags:
+            raise NotImplementedError(f"count not implemented with {flags=}")
+        return type(self)(pc.count_substring_regex(self._data, pat))
+
+    def _str_pad(
+        self,
+        width: int,
+        side: Literal["left", "right", "both"] = "left",
+        fillchar: str = " ",
+    ):
+        if side == "left":
+            pa_pad = pc.utf8_lpad
+        elif side == "right":
+            pa_pad = pc.utf8_rpad
+        elif side == "both":
+            pa_pad = pc.utf8_center
+        else:
+            raise ValueError(
+                f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
+            )
+        return type(self)(pa_pad(self._data, width=width, padding=fillchar))
+
+    def _str_contains(
+        self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
+    ):
+        if flags:
+            raise NotImplementedError(f"contains not implemented with {flags=}")
+
+        if regex:
+            pa_contains = pc.match_substring_regex
+        else:
+            pa_contains = pc.match_substring
+        result = pa_contains(self._data, pat, ignore_case=not case)
+        if not isna(na):
+            result = result.fill_null(na)
+        return type(self)(result)
+
+    def _str_startswith(self, pat: str, na=None):
+        result = pc.starts_with(self._data, pattern=pat)
+        if not isna(na):
+            result = result.fill_null(na)
+        return type(self)(result)
+
+    def _str_endswith(self, pat: str, na=None):
+        result = pc.ends_with(self._data, pattern=pat)
+        if not isna(na):
+            result = result.fill_null(na)
+        return type(self)(result)
+
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
+        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+            raise NotImplementedError(
+                "replace is not supported with a re.Pattern, callable repl, "
+                "case=False, or flags!=0"
+            )
+
+        func = pc.replace_substring_regex if regex else pc.replace_substring
+        result = func(self._data, pattern=pat, replacement=repl, max_replacements=n)
+        return type(self)(result)
+
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if not isinstance(repeats, int):
+            raise NotImplementedError(
+                f"repeat is not implemented when repeats is {type(repeats).__name__}"
+            )
+        elif pa_version_under7p0:
+            raise NotImplementedError("repeat is not implemented for pyarrow < 7")
+        else:
+            return type(self)(pc.binary_repeat(self._data, repeats))
+
+    def _str_match(
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.startswith("^"):
+            pat = f"^{pat}"
+        return self._str_contains(pat, case, flags, na, regex=True)
+
+    def _str_fullmatch(
+        self, pat, case: bool = True, flags: int = 0, na: Scalar | None = None
+    ):
+        if not pat.endswith("$") or pat.endswith("//$"):
+            pat = f"{pat}$"
+        return self._str_match(pat, case, flags, na)
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if start != 0 and end is not None:
+            slices = pc.utf8_slice_codeunits(self._data, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            not_found = pc.equal(result, -1)
+            offset_result = pc.add(result, end - start)
+            result = pc.if_else(not_found, result, offset_result)
+        elif start == 0 and end is None:
+            slices = self._data
+            result = pc.find_substring(slices, sub)
+        else:
+            raise NotImplementedError(
+                f"find not implemented with {sub=}, {start=}, {end=}"
+            )
+        return type(self)(result)
+
+    def _str_get(self, i: int):
+        lengths = pc.utf8_length(self._data)
+        if i >= 0:
+            out_of_bounds = pc.greater_equal(i, lengths)
+            start = i
+            stop = i + 1
+            step = 1
+        else:
+            out_of_bounds = pc.greater(-i, lengths)
+            start = i
+            stop = i - 1
+            step = -1
+        not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True))
+        selected = pc.utf8_slice_codeunits(
+            self._data, start=start, stop=stop, step=step
+        )
+        result = pa.array([None] * self._data.length(), type=self._data.type)
+        result = pc.if_else(not_out_of_bounds, selected, result)
+        return type(self)(result)
+
+    def _str_join(self, sep: str):
+        return type(self)(pc.binary_join(self._data, sep))
+
+    def _str_partition(self, sep: str, expand: bool):
+        raise NotImplementedError(
+            "str.partition not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_rpartition(self, sep: str, expand: bool):
+        raise NotImplementedError(
+            "str.rpartition not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._data, start=start, stop=stop, step=step)
+        )
+
+    def _str_slice_replace(
+        self, start: int | None = None, stop: int | None = None, repl: str | None = None
+    ):
+        if repl is None:
+            repl = ""
+        if start is None:
+            start = 0
+        return type(self)(pc.utf8_replace_slice(self._data, start, stop, repl))
+
+    def _str_isalnum(self):
+        return type(self)(pc.utf8_is_alnum(self._data))
+
+    def _str_isalpha(self):
+        return type(self)(pc.utf8_is_alpha(self._data))
+
+    def _str_isdecimal(self):
+        return type(self)(pc.utf8_is_decimal(self._data))
+
+    def _str_isdigit(self):
+        return type(self)(pc.utf8_is_digit(self._data))
+
+    def _str_islower(self):
+        return type(self)(pc.utf8_is_lower(self._data))
+
+    def _str_isnumeric(self):
+        return type(self)(pc.utf8_is_numeric(self._data))
+
+    def _str_isspace(self):
+        return type(self)(pc.utf8_is_space(self._data))
+
+    def _str_istitle(self):
+        return type(self)(pc.utf8_is_title(self._data))
+
+    def _str_capitalize(self):
+        return type(self)(pc.utf8_capitalize(self._data))
+
+    def _str_title(self):
+        return type(self)(pc.utf8_title(self._data))
+
+    def _str_isupper(self):
+        return type(self)(pc.utf8_is_upper(self._data))
+
+    def _str_swapcase(self):
+        return type(self)(pc.utf8_swapcase(self._data))
+
+    def _str_len(self):
+        return type(self)(pc.utf8_length(self._data))
+
+    def _str_lower(self):
+        return type(self)(pc.utf8_lower(self._data))
+
+    def _str_upper(self):
+        return type(self)(pc.utf8_upper(self._data))
+
+    def _str_strip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_trim_whitespace(self._data)
+        else:
+            result = pc.utf8_trim(self._data, characters=to_strip)
+        return type(self)(result)
+
+    def _str_lstrip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_ltrim_whitespace(self._data)
+        else:
+            result = pc.utf8_ltrim(self._data, characters=to_strip)
+        return type(self)(result)
+
+    def _str_rstrip(self, to_strip=None):
+        if to_strip is None:
+            result = pc.utf8_rtrim_whitespace(self._data)
+        else:
+            result = pc.utf8_rtrim(self._data, characters=to_strip)
+        return type(self)(result)
+
+    def _str_removeprefix(self, prefix: str):
+        raise NotImplementedError(
+            "str.removeprefix not supported with pd.ArrowDtype(pa.string())."
+        )
+        # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
+        # starts_with = pc.starts_with(self._data, pattern=prefix)
+        # removed = pc.utf8_slice_codeunits(self._data, len(prefix))
+        # result = pc.if_else(starts_with, removed, self._data)
+        # return type(self)(result)
+
+    def _str_removesuffix(self, suffix: str):
+        ends_with = pc.ends_with(self._data, pattern=suffix)
+        removed = pc.utf8_slice_codeunits(self._data, 0, stop=-len(suffix))
+        result = pc.if_else(ends_with, removed, self._data)
+        return type(self)(result)
+
+    def _str_casefold(self):
+        raise NotImplementedError(
+            "str.casefold not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_encode(self, encoding, errors: str = "strict"):
+        raise NotImplementedError(
+            "str.encode not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
+        raise NotImplementedError(
+            "str.extract not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_findall(self, pat, flags: int = 0):
+        raise NotImplementedError(
+            "str.findall not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_get_dummies(self, sep: str = "|"):
+        raise NotImplementedError(
+            "str.get_dummies not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_index(self, sub, start: int = 0, end=None):
+        raise NotImplementedError(
+            "str.index not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_rindex(self, sub, start: int = 0, end=None):
+        raise NotImplementedError(
+            "str.rindex not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_normalize(self, form):
+        raise NotImplementedError(
+            "str.normalize not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_rfind(self, sub, start: int = 0, end=None):
+        raise NotImplementedError(
+            "str.rfind not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
+        raise NotImplementedError(
+            "str.split not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_rsplit(self, pat=None, n=-1):
+        raise NotImplementedError(
+            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_translate(self, table):
+        raise NotImplementedError(
+            "str.translate not supported with pd.ArrowDtype(pa.string())."
+        )
+
+    def _str_wrap(self, width, **kwargs):
+        raise NotImplementedError(
+            "str.wrap not supported with pd.ArrowDtype(pa.string())."
+        )
 
     @property
     def _dt_day(self):

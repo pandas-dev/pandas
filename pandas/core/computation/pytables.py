@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -11,7 +14,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
-from pandas._typing import npt
 from pandas.errors import UndefinedVariableError
 
 from pandas.core.dtypes.common import is_list_like
@@ -32,6 +34,9 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 class PyTablesScope(_scope.Scope):
@@ -93,7 +98,6 @@ class Constant(Term):
 
 
 class BinOp(ops.BinOp):
-
     _max_selectors = 31
 
     op: str
@@ -283,7 +287,6 @@ class FilterBinOp(BinOp):
         return [self.filter]
 
     def evaluate(self):
-
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -291,10 +294,8 @@ class FilterBinOp(BinOp):
         values = list(rhs)
 
         if self.is_in_table:
-
             # if too many values to create the expression, use a filter instead
             if self.op in ["==", "!="] and len(values) > self._max_selectors:
-
                 filter_op = self.generate_filter_op()
                 self.filter = (self.lhs, filter_op, Index(values))
 
@@ -303,7 +304,6 @@ class FilterBinOp(BinOp):
 
         # equality conditions
         if self.op in ["==", "!="]:
-
             filter_op = self.generate_filter_op()
             self.filter = (self.lhs, filter_op, Index(values))
 
@@ -347,7 +347,6 @@ class ConditionBinOp(BinOp):
         return self.condition
 
     def evaluate(self):
-
         if not self.is_valid:
             raise ValueError(f"query term is not valid [{self}]")
 
@@ -360,7 +359,6 @@ class ConditionBinOp(BinOp):
 
         # equality conditions
         if self.op in ["==", "!="]:
-
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
@@ -383,7 +381,6 @@ class JointConditionBinOp(ConditionBinOp):
 
 class UnaryOp(ops.UnaryOp):
     def prune(self, klass):
-
         if self.op != "~":
             raise NotImplementedError("UnaryOp only support invert type ops")
 
@@ -471,7 +468,6 @@ class PyTablesExprVisitor(BaseExprVisitor):
             try:
                 return self.term_type(getattr(resolved, attr), self.env)
             except AttributeError:
-
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
@@ -551,7 +547,6 @@ class PyTablesExpr(expr.Expr):
         encoding=None,
         scope_level: int = 0,
     ) -> None:
-
         where = _validate_where(where)
 
         self.encoding = encoding

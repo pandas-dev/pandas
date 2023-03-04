@@ -329,7 +329,6 @@ class Apply(metaclass=abc.ABCMeta):
         with context_manager:
             # degenerate case
             if selected_obj.ndim == 1:
-
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
                     if isinstance(colg, (ABCSeries, ABCDataFrame)):
@@ -359,7 +358,7 @@ class Apply(metaclass=abc.ABCMeta):
                 keys = selected_obj.columns.take(indices)
 
         try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -371,16 +370,6 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> DataFrame | Series:
         """
@@ -793,7 +782,6 @@ class FrameApply(NDFrameApply):
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
             if ares == 1:
-
                 # must match return dim
                 if result_compare != len(res):
                     raise ValueError("cannot broadcast result")
@@ -946,7 +934,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for (arr, name) in zip(values, self.index):
+            for arr, name in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -1199,7 +1187,6 @@ def reconstruct_func(
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
-
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(
@@ -1336,17 +1323,23 @@ def relabel_result(
     columns: New columns name for relabelling
     order: New order for relabelling
 
-    Examples:
-    ---------
-    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
-    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    Examples
+    --------
+    >>> from pandas.core.apply import relabel_result
+    >>> result = pd.DataFrame(
+    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
+    ...     index=["max", "mean", "min"]
+    ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
-    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
+    >>> result_in_dict = relabel_result(result, funcs, columns, order)
+    >>> pd.DataFrame(result_in_dict, index=columns)
+           A    C    B
+    foo  2.0  NaN  NaN
+    aab  NaN  6.0  NaN
+    bar  NaN  NaN  4.0
+    dat  NaN  NaN  2.5
     """
     from pandas.core.indexes.base import Index
 

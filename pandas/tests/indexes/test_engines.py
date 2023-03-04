@@ -142,7 +142,6 @@ class TestObjectEngine:
     values = list("abc")
 
     def test_is_monotonic(self):
-
         num = 1000
         arr = np.array(["a"] * num + ["a"] * num + ["c"] * num, dtype=self.dtype)
 

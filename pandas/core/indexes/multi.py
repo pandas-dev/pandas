@@ -321,7 +321,6 @@ class MultiIndex(Index):
         name=None,
         verify_integrity: bool = True,
     ) -> MultiIndex:
-
         # compat with Index
         if name is not None:
             names = name
@@ -614,11 +613,8 @@ class MultiIndex(Index):
             level).
         names : list / sequence of str, optional
             Names for the levels in the index.
-
-            .. versionchanged:: 1.0.0
-
-               If not explicitly provided, names will be inferred from the
-               elements of iterables if an element has a name attribute
+            If not explicitly provided, names will be inferred from the
+            elements of iterables if an element has a name attribute.
 
         Returns
         -------
@@ -1337,7 +1333,6 @@ class MultiIndex(Index):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
-
                 formatted = lev.take(level_codes).format(formatter=formatter)
 
                 # we have some NA
@@ -1535,7 +1530,6 @@ class MultiIndex(Index):
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic_increasing
         except TypeError:
-
             # we have mixed types and np.lexsort is not happy
             return Index(self._values).is_monotonic_increasing
 
@@ -1661,7 +1655,6 @@ class MultiIndex(Index):
 
     @doc(Index.unique)
     def unique(self, level=None):
-
         if level is None:
             return self.drop_duplicates()
         else:
@@ -1881,7 +1874,6 @@ class MultiIndex(Index):
         new_codes = []
 
         for lev, level_codes in zip(self.levels, self.codes):
-
             if not lev.is_monotonic_increasing:
                 try:
                     # indexer to reorder the levels
@@ -1948,7 +1940,6 @@ class MultiIndex(Index):
 
         changed = False
         for lev, level_codes in zip(self.levels, self.codes):
-
             # Since few levels are typically unused, bincount() is more
             # efficient than unique() - however it only accepts positive values
             # (and drops order):
@@ -1956,7 +1947,6 @@ class MultiIndex(Index):
             has_na = int(len(uniques) and (uniques[0] == -1))
 
             if len(uniques) != len(lev) + has_na:
-
                 if lev.isna().any() and len(uniques) == len(lev):
                     break
                 # We have unused levels
@@ -2449,7 +2439,6 @@ class MultiIndex(Index):
 
         # level ordering
         else:
-
             codes = list(self.codes)
             shape = list(self.levshape)
 
@@ -2534,7 +2523,6 @@ class MultiIndex(Index):
     def _get_indexer_strict(
         self, key, axis_name: str
     ) -> tuple[Index, npt.NDArray[np.intp]]:
-
         keyarr = key
         if not isinstance(keyarr, Index):
             keyarr = com.asarray_tuplesafe(keyarr)
@@ -2755,6 +2743,7 @@ class MultiIndex(Index):
         Index.get_loc : The get_loc method for (single-level) index.
         """
         if is_scalar(key) and isna(key):
+            # TODO: need is_valid_na_for_dtype(key, level_index.dtype)
             return -1
         else:
             return level_index.get_loc(key)
@@ -2827,6 +2816,8 @@ class MultiIndex(Index):
             )
 
         if keylen == self.nlevels and self.is_unique:
+            # TODO: what if we have an IntervalIndex level?
+            #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
             except TypeError:
@@ -2979,7 +2970,6 @@ class MultiIndex(Index):
             key = tuple(key)
 
         if isinstance(key, tuple) and level == 0:
-
             try:
                 # Check if this tuple is a single key in our first level
                 if key in self.levels[0]:
@@ -2990,7 +2980,6 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
                     try:
@@ -3138,7 +3127,6 @@ class MultiIndex(Index):
                 else:
                     stop = len(level_index) - 1
             except KeyError:
-
                 # we have a partial slice (like looking up a partial date
                 # string)
                 start = stop = level_index.slice_indexer(key.start, key.stop, key.step)
@@ -3166,7 +3154,6 @@ class MultiIndex(Index):
                 return slice(i, j, step)
 
         else:
-
             idx = self._get_loc_single_level_index(level_index, key)
 
             if level > 0 or self._lexsort_depth == 0:
@@ -3258,7 +3245,6 @@ class MultiIndex(Index):
         indexer: npt.NDArray[np.bool_] | None = None
 
         for i, k in enumerate(seq):
-
             lvl_indexer: npt.NDArray[np.bool_] | slice | None = None
 
             if com.is_bool_indexer(k):
@@ -3622,7 +3608,6 @@ class MultiIndex(Index):
         result_names = self.names
 
         if not isinstance(other, Index):
-
             if len(other) == 0:
                 return self[:0], self.names
             else:
@@ -3763,6 +3748,8 @@ class MultiIndex(Index):
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
+            if len(values) == 0:
+                return np.zeros((len(self),), dtype=np.bool_)
             if not isinstance(values, MultiIndex):
                 values = MultiIndex.from_tuples(values)
             return values.unique().get_indexer_for(self) != -1
@@ -3868,6 +3855,8 @@ def maybe_droplevels(index: Index, key) -> Index:
     # drop levels
     original_index = index
     if isinstance(key, tuple):
+        # Caller is responsible for ensuring the key is not an entry in the first
+        #  level of the MultiIndex.
         for _ in key:
             try:
                 index = index._drop_level_numbers([0])

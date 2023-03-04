@@ -153,7 +153,6 @@ class WrappedCythonOp:
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
-
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
@@ -749,7 +748,7 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(
+    def apply_groupwise(
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
         mutated = False
@@ -761,6 +760,11 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter)
 
         for key, group in zipped:
+            # Pinning name is needed for
+            #  test_group_apply_once_per_group,
+            #  test_inconsistent_return_type, test_set_group_name,
+            #  test_group_name_available_in_inference_pass,
+            #  test_groupby_multi_timezone
             object.__setattr__(group, "name", key)
 
             # group might be modified
