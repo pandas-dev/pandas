@@ -1,17 +1,34 @@
-# PDEP-9: Implement pandas I/O connectors as extensions
+# PDEP-9: Allow third-party projects to register pandas connectors with a standard API
 
-- Created: 26 February 2023
+- Created: 5 March 2023
 - Status: Draft
 - Discussion: [#XXXX](https://github.com/pandas-dev/pandas/pull/XXXX)
 - Author: [Marc Garcia](https://github.com/datapythonista)
 - Revision: 1
 
-## Introduction
+## PDEP Summary
+
+This document proposes that third-party projects implementing I/O or memory
+connectors, can register them using Python's entrypoint system, and make them
+available to pandas users with a standard interface in a dedicated namespace
+`DataFrame.io`. For example:
+
+```python
+import pandas
+
+df = pandas.DataFrame.io.from_duckdb("SELECT * FROM 'dataset.parquet';")
+
+df.io.to_hive(hive_conn, "hive_table")
+```
+
+## Current state
 
 pandas supports importing and exporting data from different formats using
-connectors, currently implemented in `pandas/io`. In many cases, those
-connectors wrap an existing Python library, while in some others, pandas
-implements the format logic.
+I/O connectors, currently implemented in `pandas/io`, as well as connectors
+to in-memory structure, like Python structures or other library formats.
+In many cases, those connectors wrap an existing Python library, while in
+some others, pandas implements the logic to read and write to a particular
+format.
 
 In some cases, different engines exist for the same format. The API to use
 those connectors is `pandas.read_<format>(engine='<engine-name>', ...)` to
@@ -20,13 +37,14 @@ export data.
 
 For objects exported to memory (like a Python dict) the API is the same as
 for I/O, `DataFrame.to_<format>(...)`. For formats imported from objects in
-memory, the API is different, `DataFrame.from_<format>(...)`.
+memory, the API is different using the `from_` prefix instead of `read_`,
+`DataFrame.from_<format>(...)`.
 
 In some cases, the pandas API provides `DataFrame.to_*` methods that are not
 used to export the data to a disk or memory object, but instead to transform
 the index of a `DataFrame`: `DataFrame.to_period` and `DataFrame.to_timestamp`.
 
-Dependencies of the I/O connectors are not loaded by default, and will be
+Dependencies of the connectors are not loaded by default, and will be
 imported when the connector is used. If the dependencies are not installed,
 an `ImportError` is raised.
 
@@ -42,14 +60,15 @@ Use pip or conda to install pandas-gbq.
 
 ### Supported formats
 
-The list of formats can be found in the [IO guide](https://pandas.pydata.org/docs/dev/user_guide/io.html).
-A more detailed table, including in memory objects, with
-the engines and dependencies is presented next.
+The list of formats can be found in the
+[IO guide](https://pandas.pydata.org/docs/dev/user_guide/io.html).
+A more detailed table, including in memory objects, and I/O connectors in the
+DataFrame styler is presented next:
 
-| Format       | Reader | Writer | Engines                  | Dependencies |
-|--------------|--------|--------|--------------------------|--------------|
-| CSV          | X      | X      | `c`, `python`, `pyarrow` | `pyarrow`    |
-| FWF          | X      |        |                          |              |
+| Format       | Reader | Writer |
+|--------------|--------|--------|
+| CSV          | X      | X      |
+| FWF          | X      |        |
 | JSON         | X      | X      |
 | HTML         | X      | X      |
 | LaTeX        |        | X      |
@@ -63,7 +82,7 @@ the engines and dependencies is presented next.
 | Stata        | X      | X      |
 | SAS          | X      |        |
 | SPSS         | X      |        |
-| Pickle       | X      | X      |                          |               |
+| Pickle       | X      | X      |
 | SQL          | X      | X      |
 | BigQuery     |        |        |
 | dict         | X      | X      |
@@ -72,152 +91,180 @@ the engines and dependencies is presented next.
 | markdown     |        | X      |
 | xarray       |        | X      |
 
-### Inclusion criteria
+At the time of writing this document, the `io/` module contains
+close to 100,000 lines of Python, C and Cython code.
 
 There is no objective criteria for when a format is included
-in pandas, and the list above is mostly the result of developers
+in pandas, and the list above is mostly the result of a developer
 being interested in implementing the connectors for a certain
 format in pandas.
 
-The number of existing formats is constantly increasing, and its
-difficult for pandas to keep up to date even with popular formats.
-It could probably make sense to have connectors to pyarrow,
-pyspark, Iceberg, DuckDB, Polars, and others.
+The number of existing formats available for data that can be processed with
+pandas is constantly increasing, and its difficult for pandas to keep up to
+date even with popular formats. It could possibly make sense to have connectors
+to PyArrow, PySpark, Iceberg, DuckDB, Hive, Polars, and many others.
 
-At the same time, some of the formats are not frequently used as
-shown in the [2019 user survey](https://pandas.pydata.org//community/blog/2019-user-survey.html).
+At the same time, some of the formats are not frequently used as shown in the
+[2019 user survey](https://pandas.pydata.org//community/blog/2019-user-survey.html).
 Those less popular formats include SPSS, SAS, Google BigQuery and
-Stata. Note that only I/O formats (and not memory formats like
-records or xarray) where included in the survey.
+Stata. Note that only I/O formats (and not memory formats like records or xarray)
+where included in the survey.
+
+The maintenance cost of supporting all formats is not only in maintaining the
+code and reviewing pull requests, but also it has a significant cost in time
+spent on CI systems installing dependencies, compiling code, running tests, etc.
+
+In some cases, the main maintainers of some of the connectors are not part of
+the pandas core development team, but people specialized in one of the formats
+without commit rights.
 
 ## Proposal
 
-The main proposal in this PDEP is to open the development of pandas
-connectors to third-parties. This would not only allow the development
-of new connectors in a faster and easier way, without the intervention of
-the pandas team, but also remove from the pandas code base a number of the
-existing connectors, simplifying the code, the CI and the builds.
-While a limited set of core connectors could live in the pandas code base,
-most of the existing connectors would be moved to third-party projects.
+While the current pandas approach has worked reasonably well, it is difficult
+to find a stable solution where the maintenance incurred in pandas is not
+too big, while at the same time users can interact with all different formats
+and representations they are interested in, in an easy and intuitive way.
 
-The user experience would remain similar to the existing one, but making
-better use of namespaces, and adding consistency. Any pandas connector
-(regardless of being implemented as a third-party module or not) would define
-a Python entrypoint specifying the format they connect to, the operations
-they support (read and/or write) and the name of the engine to be used.
-On load, pandas would access this registry of connectors, and would create
-the corresponding import and export methods.
+Third-party packages are already able to implement connectors to pandas, but
+there are some limitations to it:
 
-To use the connectors for the format, users would install the third-party
-connector package, instead of installing the required dependencies as they
-need to do now.
+- Given the large number of formats supported by pandas itself, third-party
+  connectors are likely seen as second class citizens, not important enough
+  to be used, or not well supported.
+- There is no standard API for I/O connectors, and users of them need to learn
+  each of them individually.
+- Method chaining, is not possible with third-party I/O connectors to export
+  data, unless authors monkey patch the `DataFrame` class, which should not
+  be encouraged.
 
-### Python API
+This document proposes to open the development of pandas I/O connectors to
+third-party libraries in a standard way that overcomes those limitations.
 
-The Python API can be improved from the current one to make better use
-of namespaces, and avoid inconsistencies. The proposed API is:
+### Proposal implementation
 
-```python
-import pandas
+Implementing this proposal would not require major changes to pandas, and
+the API defined next would be used.
 
-df = pandas.DataFrame.io.read_<format>(engine='<engine>', ...)
+A new `.io` accessor would be created for the `DataFrame` class, where all
+I/O connector methods from third-parties would be loaded. Nothing else would
+live under that namespace.
 
-df.io.write_<format>(engine='<engine>', ...)
-```
-The `engine` parameter would only be required when more than an engine
-is available for a format. This is similar to the the current API, that
-would use the default engine if not specified.
+Third-party packages would implement a
+[setuptools entrypoint](https://setuptools.pypa.io/en/latest/userguide/entry_point.html#entry-points-for-plugins)
+to define the connectors that they implement, under a group `dataframe.io`.
 
-For example:
+For example, a hypothetical project `pandas_duckdb` implementing a `from_duckdb`
+function, could use `pyproject.toml` to define the next entry point:
 
-```python
-import pandas
-
-df = pandas.DataFrame.io.read_hdf5('input.hdf5')
-
-df.io.write_parquet('output.parquet')
+```toml
+[project.entry-points."dataframe.io"]
+from_duckdb = "pandas_duckdb:from_duckdb"
 ```
 
-All the I/O connectors would be accessed via `DataFrame.io`, significantly
-reducing the number of items in the namespace of the `pandas` module, and
-the `DataFrame` class. Introspection would make it fast and simple to
-list the existing connectors `dir(pandas.DataFrame.io)`.
+On import of the pandas module, it would read the entrypoint registry for the
+`dataframe.io` group, and would dynamically create methods in the `DataFrame.io`
+namespace for them. Method names would only be allowed to start with `from_` or
+`to_`, and any other prefix would make pandas raise an exception. This would
+guarantee a reasonably consistent API among third-party I/O connectors.
 
-The API is more intuitive than the current one, as it would be used for
-both in memory formats and disk formats, and does not mix read/to (users
-in general would expect read/write, from/to, import/export, input/output,
-and not a mix of those pairs).
+Connectors would use Apache Arrow as the only interface to load data from and
+to pandas. This would prevent that changes to the pandas API affecting
+connectors in any way. This would simplify the development of connectors,
+make testing of them much more reliable and resistant to changes in pandas, and
+allow connectors to be reused by other projects of the ecosystem.
 
-### Ecosystem of connectors
+In case a `from_` method returned something different than a PyArrow table,
+pandas would raise an exception. pandas would expect all `to_` methods to have
+`table: pyarrow.Table` as the first parameter, and it would raise an exception
+otherwise. The `table` parameter would be exposed as the `self` parameter in
+pandas, when the original function is registered as a method of the `.io`
+accessor.
 
-In the same way Python can be extended with third-party modules, pandas
-would be extendable with I/O plugins. This has some advantages:
+### Connector examples
 
-- **Supression of the pandas maintainers bottleneck.** Everybody would be
-  able to develop and promote their own I/O connectors, without the
-  approval or intervention of pandas maintainers.
-- **Lower the entry barrier to pandas code.** Since pandas is a huge and
-  mature project, writing code in pandas itself is complex. Several
-  linters and autoformatters are required, policies like adding release
-  notes need to be followed. Proper testing must be implemented.
-  CI is slow and takes hours to complete. pandas needs to be compiled
-  due to its C extensions. All those would not be necessary, and
-  creating new I/O connectors would be faster and simpler.
-- **CI and packaging simplification.** pandas has currently around 20
-  dependencies required by connectors. And a significant number of
-  tests, some of them requiring a high level of customization (such as
-  an available database server to test `read_sql`, or a virtual
-  clipboard to test `read_clipboard`). Moving connectors out of
-  pandas would make the CI faster, and the number of problems caused
-  by updates in dependencies smaller.
-- **Competition and alternatives for I/O operations.** Some of the
-  supported formats allow for different approaches in terms of
-  implementation. For example, `csv` connectors can be optimized
-  for performance and reliability, or for easiness of use. When
-  building a production pipeline, users would often appreciate a
-  loader that requires an expected schema, loads faster because of
-  it, and fails if the file contains errors. While Jupyter users
-  may prefer inference and magic that helps them write code faster.
-- **Reusability with other projects.** In some cases, it can make
-  sense to load a format into for example Apache Arrow, and then
-  convert it to a pandas `DataFrame` in the connector. It could
-  also be quite simple when that is implemented to return a Vaex
-  or a Polars object. Having connectors as third-party packages
-  would allow to implement this, as opposed as our current
-  connectors. This reusability would not only benefit other
-  dataframe projects, but it would also have better maintained
-  connectors, as they will be shared by a larger ecosystem.
+This section lists specific examples of connectors that could immediately
+benefit from this proposal.
 
-## Disadvantages
+**PyArrow** currently provides `Table.from_pandas` and `Table.to_pandas`.
+With the new interface, it could also register `DataFrame.from_pyarrow`
+and `DataFrame.to_pyarrow`, so pandas users can use the converters with
+the interface they are used to, when PyArrow is installed in the environment.
 
-The main disadvantages to implementing this PDEP are:
+_Current API_:
 
-- **Backward compatibility**.
-- **More verbose API.**
-- **Fragmented documentation.**
+```python
+pyarrow.Table.from_pandas(table.to_pandas()
+                               .query('my_col > 0'))
+```
 
-## Transition period
+_Proposed API_:
 
-This proposal involves some important changes regarding user
-facing code.
+```python
+(pandas.DataFrame.io.from_pyarrow(table)
+                 .query('my_col > 0')
+                 .io.to_pyarrow())
+```
 
-The implementation of connectors as third-party packages is quite
-small for users, who would just need to install `pandas-xarray`
-instead of `xarray` to be able to use `DataFrame.to_xarray`. Also,
-the `ImportError` message users would get in case it was not
-properly installed, can provide the required information for users
-to install the right package without issues.
+**Polars**, **Vaex** and other dataframe frameworks could benefit from
+third-party projects that make the interoperability with pandas use a
+more explicitly API.
 
-The part that requires more careful management and a long transition
-period is the change to the Python API proposed here. The
-new API does not overlap with the old one (everything would be in
-the new `DataFrame.io` accessor). This allows to easily implement
-both the new and old API in parallel, raising `FutureWarning`
-warnings in the old API, so users can slowly adapt their code,
-and get used to the new API. Since the changes affect all pandas
-users, keeping the old behavior until at least pandas 4.0 seems
-a reasonable transition period.
+_Current API_:
+
+```python
+polars.DataFrame(df.to_pandas()
+                   .query('my_col > 0'))
+```
+
+_Proposed API_:
+
+```python
+(pandas.DataFrame.io.from_polars(df)
+                 .query('my_col > 0')
+                 .io.to_polars())
+```
+
+**DuckDB** provides an out-of-core engine able to push predicates before
+the data is loaded, making much better use of memory and significantly
+decreasing loading time. pandas, because of its eager nature is not able
+to easily implement this itself, but could benefit from a DuckDB loader.
+The loader can already be implemented inside pandas, or as a third-party
+extension with an arbitrary API. But this proposal would let the creation
+of a third-party extension with a standard and intuitive API:
+
+```python
+pandas.DataFrame.io.from_duckdb("SELECT *
+                                 FROM 'dataset.parquet'
+                                 WHERE my_col > 0")
+```
+
+**Big data** systems such as Hive, Iceberg, Presto, etc. could benefit
+from a standard way to load data to pandas. Also regular **SQL databases**
+that can return their query results as Arrow, would benefit from better
+and faster connectors than the existing ones based on SQL Alchemy and
+Python structures.
+
+Any other format, including **domain-specific formats** could easily
+implement pandas connectors with a clear an intuitive API.
+
+## Proposal extensions
+
+The scope of the current proposal is limited to the addition of the
+`DataFrame.io` namespace, and the automatic registration of functions defined
+by third-party projects, if an entrypoint is defined.
+
+Any changes to the current I/O of pandas are out of scope for this proposal,
+but the next tasks can be considered for future work and proposals:
+
+- Migrate I/O connectors currently implemented in pandas to the new interface.
+  This would require a transition period where users would be warned that
+  existing `DataFrame.read_*` may have been moved to `DataFrame.io.from_*`,
+  and that the old API will stop working in a future version.
+- Move out of the pandas repository and into their own third-party projects
+  some of the existing I/O connectors.
+- Implement with the new interface some of the data structures that the
+  `DataFrame` constructor accepts.
 
 ## PDEP-9 History
 
-- 26 February 2023: Initial version
+- 5 March 2023: Initial version
