@@ -214,7 +214,7 @@ def radviz(
 
     Returns
     -------
-    class:`matplotlib.axes.Axes`
+    :class:`matplotlib.axes.Axes`
 
     See Also
     --------
@@ -246,8 +246,7 @@ def radviz(
         ...         ]
         ...     }
         ... )
-        >>> pd.plotting.radviz(df, 'Category')
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        >>> pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -274,12 +273,13 @@ def andrews_curves(
 
     Andrews curves have the functional form:
 
-    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) +
-           x_4 sin(2t) + x_5 cos(2t) + ...
+    .. math::
+        f(t) = \\frac{x_1}{\\sqrt{2}} + x_2 \\sin(t) + x_3 \\cos(t) +
+        x_4 \\sin(2t) + x_5 \\cos(2t) + \\cdots
 
-    Where x coefficients correspond to the values of each dimension and t is
-    linearly spaced between -pi and +pi. Each row of frame then corresponds to
-    a single curve.
+    Where :math:`x` coefficients correspond to the values of each dimension
+    and :math:`t` is linearly spaced between :math:`-\\pi` and :math:`+\\pi`.
+    Each row of frame then corresponds to a single curve.
 
     Parameters
     ----------
@@ -302,7 +302,7 @@ def andrews_curves(
 
     Returns
     -------
-    class:`matplotlip.axis.Axes`
+    :class:`matplotlib.axes.Axes`
 
     Examples
     --------
@@ -314,8 +314,7 @@ def andrews_curves(
         ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
-        >>> pd.plotting.andrews_curves(df, 'Name')
-        <AxesSubplot: title={'center': 'width'}>
+        >>> pd.plotting.andrews_curves(df, 'Name')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -369,8 +368,8 @@ def bootstrap_plot(
 
     See Also
     --------
-    DataFrame.plot : Basic plotting for DataFrame objects.
-    Series.plot : Basic plotting for Series objects.
+    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
+    pandas.Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -434,7 +433,7 @@ def parallel_coordinates(
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -448,8 +447,7 @@ def parallel_coordinates(
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
-        ... )
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        ... )  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
@@ -485,7 +483,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -499,8 +497,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         >>> np.random.seed(5)
         >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
-        >>> s.plot()
-        <AxesSubplot: xlabel='Midrange'>
+        >>> s.plot()  # doctest: +SKIP
 
     A lag plot with ``lag=1`` returns
 
@@ -529,7 +526,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -542,8 +539,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
-        >>> pd.plotting.autocorrelation_plot(s)
-        <AxesSubplot: title={'center': 'width'}, xlabel='Lag', ylabel='Autocorrelation'>
+        >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)

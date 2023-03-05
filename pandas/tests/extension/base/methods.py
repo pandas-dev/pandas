@@ -18,6 +18,17 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
 
+    def test_hash_pandas_object(self, data):
+        # _hash_pandas_object should return a uint64 ndarray of the same length
+        # as the data
+        res = data._hash_pandas_object(
+            encoding="utf-8",
+            hash_key=pd.core.util.hashing._default_hash_key,
+            categorize=False,
+        )
+        assert res.dtype == np.uint64
+        assert res.shape == data.shape
+
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
         if not hasattr(data, "value_counts"):
@@ -48,9 +59,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.value_counts(normalize=True).sort_index()
 
         if not isinstance(data, pd.Categorical):
-            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+            expected = pd.Series(
+                [1 / len(values)] * len(values), index=result.index, name="proportion"
+            )
         else:
-            expected = pd.Series(0.0, index=result.index)
+            expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
         if na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
@@ -241,21 +254,25 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
+        df_orig = df.copy()
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.A.values is not result.A.values
+        result.iloc[0, 0] = filled_val
+
+        self.assert_frame_equal(df, df_orig)
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
+        ser_orig = ser.copy()
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
+        result.iloc[0] = filled_val
 
-        assert ser._values is not result._values
-        assert ser._values is arr
+        self.assert_series_equal(ser, ser_orig)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."

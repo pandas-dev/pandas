@@ -194,7 +194,6 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
-
         _, ax = self.plt.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis="log")
@@ -510,8 +509,9 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
-        with tm.RNGContext(1):
-            df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+        df = DataFrame(
+            np.random.RandomState(42).randn(10, 4), columns=["A", "B", "C", "D"]
+        )
         df["E"] = ["x", "y"] * 5
         _, ax = self.plt.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
@@ -665,8 +665,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender_int = np.random.choice([0, 1], size=n)
+        gender_int = np.random.RandomState(42).choice([0, 1], size=n)
         df_int = DataFrame({"height": height, "weight": weight, "gender": gender_int})
         gb = df_int.groupby("gender")
         axes = gb.hist()

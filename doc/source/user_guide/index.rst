@@ -64,8 +64,10 @@ Guides
     dsintro
     basics
     io
+    pyarrow
     indexing
     advanced
+    copy_on_write
     merging
     reshaping
     text

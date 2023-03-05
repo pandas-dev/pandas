@@ -30,13 +30,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    NpDtype,
-    RandomState,
-    T,
-)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -54,6 +47,14 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        NpDtype,
+        RandomState,
+        T,
+    )
+
     from pandas import Index
 
 
@@ -227,7 +228,6 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLik
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
-
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
@@ -313,6 +313,18 @@ def is_null_slice(obj) -> bool:
         and obj.start is None
         and obj.stop is None
         and obj.step is None
+    )
+
+
+def is_empty_slice(obj) -> bool:
+    """
+    We have an empty slice, e.g. no values are selected.
+    """
+    return (
+        isinstance(obj, slice)
+        and obj.start is not None
+        and obj.stop is not None
+        and obj.start == obj.stop
     )
 
 

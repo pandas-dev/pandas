@@ -43,7 +43,6 @@ def get_utc_offset_hours(ts):
 
 
 class TestDST:
-
     # one microsecond before the DST transition
     ts_pre_fallback = "2013-11-03 01:59:59.999999"
     ts_pre_springfwd = "2013-03-10 01:59:59.999999"

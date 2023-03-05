@@ -42,7 +42,6 @@ class TestDataFrameInsert:
         assert df.columns.name == "some_name"
 
     def test_insert_column_bug_4032(self):
-
         # GH#4032, inserting a column and renaming causing errors
         df = DataFrame({"b": [1.1, 2.2]})
 
@@ -101,6 +100,8 @@ class TestDataFrameInsert:
         # GH#42403
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
 
-        msg = r"Expected a 1D array, got an array with shape \(2, 2\)"
+        msg = (
+            "Expected a one-dimensional object, got a DataFrame with 2 columns instead."
+        )
         with pytest.raises(ValueError, match=msg):
             df.insert(1, "newcol", df)

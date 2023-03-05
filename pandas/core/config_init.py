@@ -210,13 +210,6 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
-pc_latex_repr_doc = """
-: boolean
-    Whether to produce a latex DataFrame representation for jupyter
-    environments that support it.
-    (default: False)
-"""
-
 pc_table_schema_doc = """
 : boolean
     Whether to publish a Table Schema representation for frontends
@@ -290,41 +283,6 @@ pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
     df.info() is called. Valid values True,False,'deep'
-"""
-
-pc_latex_escape = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses escapes special
-    characters.
-    Valid values: False,True
-"""
-
-pc_latex_longtable = """
-:bool
-    This specifies if the to_latex method of a Dataframe uses the longtable
-    format.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multicolumns
-    to pretty-print MultiIndex columns.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn_format = """
-: string
-    This specifies the format for multicolumn headers.
-    Can be surrounded with '|'.
-    Valid values: 'l', 'c', 'r', 'p{<width>}'
-"""
-
-pc_latex_multirow = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multirows
-    to pretty-print MultiIndex rows.
-    Valid values: False,True
 """
 
 
@@ -425,16 +383,6 @@ with cf.config_prefix("display"):
     cf.register_option(
         "unicode.ambiguous_as_wide", False, pc_east_asian_width_doc, validator=is_bool
     )
-    cf.register_option("latex.repr", False, pc_latex_repr_doc, validator=is_bool)
-    cf.register_option("latex.escape", True, pc_latex_escape, validator=is_bool)
-    cf.register_option("latex.longtable", False, pc_latex_longtable, validator=is_bool)
-    cf.register_option(
-        "latex.multicolumn", True, pc_latex_multicolumn, validator=is_bool
-    )
-    cf.register_option(
-        "latex.multicolumn_format", "l", pc_latex_multicolumn, validator=is_text
-    )
-    cf.register_option("latex.multirow", False, pc_latex_multirow, validator=is_bool)
     cf.register_option(
         "html.table_schema",
         False,

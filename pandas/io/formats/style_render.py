@@ -89,7 +89,6 @@ class StylerRenderer:
         cell_ids: bool = True,
         precision: int | None = None,
     ) -> None:
-
         # validate ordered args
         if isinstance(data, Series):
             data = data.to_frame()
@@ -964,9 +963,6 @@ class StylerRenderer:
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
-
-            .. versionadded:: 1.0.0
-
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
@@ -1077,8 +1073,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -1276,7 +1272,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
-        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ...  # doctest: +SKIP
                        A       B
               2.0    nan     4.0
@@ -1815,7 +1811,7 @@ def _maybe_wrap_formatter(
     if na_rep is None:
         return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_3(x)
+        return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
@@ -2152,7 +2148,7 @@ def _parse_latex_cell_styles(
     """
     if convert_css:
         latex_styles = _parse_latex_css_conversion(latex_styles)
-    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+    for command, options in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
             "--nowrap": f"\\{command}--to_parse {display_value}",
@@ -2295,7 +2291,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     }
 
     latex_styles: CSSList = []
-    for (attribute, value) in styles:
+    for attribute, value in styles:
         if isinstance(value, str) and "--latex" in value:
             # return the style without conversion but drop '--latex'
             latex_styles.append((attribute, value.replace("--latex", "")))

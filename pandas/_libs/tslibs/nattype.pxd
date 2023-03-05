@@ -8,7 +8,7 @@ cdef set c_nat_strings
 
 cdef class _NaT(datetime):
     cdef readonly:
-        int64_t value
+        int64_t _value
 
 cdef _NaT c_NaT
 

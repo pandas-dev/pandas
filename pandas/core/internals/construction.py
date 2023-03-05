@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
@@ -15,12 +16,6 @@ import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    Manager,
-    npt,
-)
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -89,6 +84,13 @@ from pandas.core.internals.managers import (
     create_block_manager_from_column_arrays,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        Manager,
+        npt,
+    )
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -116,7 +118,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays = _homogenize(arrays, index, dtype)
+        arrays, refs = _homogenize(arrays, index, dtype)
         # _homogenize ensures
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
@@ -126,8 +128,10 @@ def arrays_to_mgr(
     else:
         index = ensure_index(index)
         arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        # with _from_arrays, the passed arrays should never be Series objects
+        refs = [None] * len(arrays)
 
-        # Reached via DataFrame._from_arrays; we do validation here
+        # Reached via DataFrame._from_arrays; we do minimal validation here
         for arr in arrays:
             if (
                 not isinstance(arr, (np.ndarray, ExtensionArray))
@@ -148,7 +152,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays, axes, consolidate=consolidate
+            arrays, axes, consolidate=consolidate, refs=refs
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])
@@ -315,7 +319,6 @@ def ndarray_to_mgr(
     _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
-
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
 
@@ -361,6 +364,7 @@ def ndarray_to_mgr(
         block_values = [nb]
 
     if len(columns) == 0:
+        # TODO: check len(values) == 0?
         block_values = []
 
     return create_block_manager_from_blocks(
@@ -505,6 +509,8 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
     # We only get here with `not treat_as_nested(values)`
 
     if len(values) == 0:
+        # TODO: check for length-zero range, in which case return int64 dtype?
+        # TODO: re-use anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)
@@ -547,9 +553,13 @@ def _ensure_2d(values: np.ndarray) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
+def _homogenize(
+    data, index: Index, dtype: DtypeObj | None
+) -> tuple[list[ArrayLike], list[Any]]:
     oindex = None
     homogenized = []
+    # if the original array-like in `data` is a Series, keep track of this Series' refs
+    refs: list[Any] = []
 
     for val in data:
         if isinstance(val, ABCSeries):
@@ -559,7 +569,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-
+            refs.append(val._references)
             val = val._values
         else:
             if isinstance(val, dict):
@@ -578,10 +588,11 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
 
             val = sanitize_array(val, index, dtype=dtype, copy=False)
             com.require_length_match(val, index)
+            refs.append(None)
 
         homogenized.append(val)
 
-    return homogenized
+    return homogenized, refs
 
 
 def _extract_index(data) -> Index:
@@ -760,19 +771,6 @@ def to_arrays(
     -----
     Ensures that len(result_arrays) == len(result_index).
     """
-    if isinstance(data, ABCDataFrame):
-        # see test_from_records_with_index_data, test_from_records_bad_index_column
-        if columns is not None:
-            arrays = [
-                data._ixs(i, axis=1).values
-                for i, col in enumerate(data.columns)
-                if col in columns
-            ]
-        else:
-            columns = data.columns
-            arrays = [data._ixs(i, axis=1).values for i in range(len(columns))]
-
-        return arrays, columns
 
     if not len(data):
         if isinstance(data, np.ndarray):
@@ -942,7 +940,6 @@ def _validate_or_indexify_columns(
     if columns is None:
         columns = default_index(len(content))
     else:
-
         # Add mask for data which is composed of list of lists
         is_mi_list = isinstance(columns, list) and all(
             isinstance(col, list) for col in columns
@@ -955,7 +952,6 @@ def _validate_or_indexify_columns(
                 f"{len(content)} columns"
             )
         if is_mi_list:
-
             # check if nested list column, length of each sub-list should be equal
             if len({len(col) for col in columns}) > 1:
                 raise ValueError(
@@ -1000,6 +996,12 @@ def convert_object_array(
                 try_float=coerce_float,
                 convert_to_nullable_dtype=use_nullable_dtypes,
             )
+            # Notes on cases that get here 2023-02-15
+            # 1) we DO get here when arr is all Timestamps and dtype=None
+            # 2) disabling this doesn't break the world, so this must be
+            #    getting caught at a higher level
+            # 3) passing convert_datetime to maybe_convert_objects get this right
+            # 4) convert_timedelta?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):

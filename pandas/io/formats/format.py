@@ -120,7 +120,7 @@ common_docstring: Final = """
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
-        columns : sequence, optional, default None
+        columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
@@ -564,9 +564,9 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -686,11 +686,9 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
-            # GH 47231 - columns doesn't have to be `Sequence[str]`
-            # Will fix in later PR
-            cols = ensure_index(cast(Axes, columns))
+            cols = ensure_index(columns)
             self.frame = self.frame[cols]
             return cols
         else:
@@ -1229,7 +1227,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -1916,7 +1916,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 
