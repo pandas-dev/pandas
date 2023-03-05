@@ -2160,18 +2160,18 @@ class TestSeriesFormatting:
     def test_to_string_mixed(self):
         s = Series(["foo", np.nan, -1.23, 4.56])
         result = s.to_string()
-        expected = "0     foo\n" + "1     NaN\n" + "2   -1.23\n" + "3    4.56"
+        expected = "".join(["0     foo\n", "1     NaN\n", "2   -1.23\n", "3    4.56"])
         assert result == expected
 
         # but don't count NAs as floats
         s = Series(["foo", np.nan, "bar", "baz"])
         result = s.to_string()
-        expected = "0    foo\n" + "1    NaN\n" + "2    bar\n" + "3    baz"
+        expected = "".join(["0    foo\n", "1    NaN\n", "2    bar\n", "3    baz"])
         assert result == expected
 
         s = Series(["foo", 5, "bar", "baz"])
         result = s.to_string()
-        expected = "0    foo\n" + "1      5\n" + "2    bar\n" + "3    baz"
+        expected = "".join(["0    foo\n", "1      5\n", "2    bar\n", "3    baz"])
         assert result == expected
 
     def test_to_string_float_na_spacing(self):
@@ -2181,10 +2181,10 @@ class TestSeriesFormatting:
         result = s.to_string()
         expected = (
             "0       NaN\n"
-            + "1    1.5678\n"
-            + "2       NaN\n"
-            + "3   -3.0000\n"
-            + "4       NaN"
+            "1    1.5678\n"
+            "2       NaN\n"
+            "3   -3.0000\n"
+            "4       NaN"
         )
         assert result == expected
 
@@ -2192,7 +2192,7 @@ class TestSeriesFormatting:
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = "1\n" + "2\n" + "3\n" + "4"
+        expected = "\n".join(["1", "2", "3", "4"])
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2823,7 +2823,9 @@ class TestGenericArrayFormatter:
 
         series = Series(ExtTypeStub())
         res = repr(series)  # This line crashed before #33770 was fixed.
-        expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
+        expected = "\n".join(
+            ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]
+        )
         assert res == expected
 
 
