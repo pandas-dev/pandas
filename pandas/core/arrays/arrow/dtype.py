@@ -154,7 +154,7 @@ class ArrowDtype(StorageExtensionDtype):
             return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_duration(self.pyarrow_dtype):
             # pa.duration(unit).to_pandas_dtype() returns ns units
-            # regardless of the pyarrow timestamp units
+            # regardless of the pyarrow duration units
             return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_string(self.pyarrow_dtype):
             # pa.string().to_pandas_dtype() = object which we don't want
