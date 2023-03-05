@@ -47,7 +47,6 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    from pandas import Index
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
         RandomState,
         T,
     )
+    from pandas import Index
 
 
 def flatten(line):
