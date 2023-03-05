@@ -640,11 +640,7 @@ class TestBaseDtype(base.BaseDtypeTests):
         if (
             pa.types.is_date(pa_dtype)
             or pa.types.is_time(pa_dtype)
-            or (
-                pa.types.is_timestamp(pa_dtype)
-                and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
-            )
-            or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
             or pa.types.is_binary(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
