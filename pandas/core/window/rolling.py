@@ -1204,7 +1204,11 @@ class Window(BaseWindow):
             def calc(x):
                 additional_nans = np.array([np.nan] * offset)
                 x = np.concatenate((x, additional_nans))
-                return func(x, window, self.min_periods or len(window))
+                return func(
+                    x,
+                    window,
+                    self.min_periods if self.min_periods is not None else len(window),
+                )
 
             with np.errstate(all="ignore"):
                 # Our weighted aggregations return memoryviews
@@ -1310,7 +1314,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1329,7 +1332,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,

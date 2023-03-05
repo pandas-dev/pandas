@@ -42,13 +42,14 @@ class TestSeriesCov:
         assert isna(ts1.cov(ts2, min_periods=12))
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
-    def test_cov_ddof(self, test_ddof):
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_cov_ddof(self, test_ddof, dtype):
         # GH#34611
         np_array1 = np.random.rand(10)
         np_array2 = np.random.rand(10)
 
-        s1 = Series(np_array1)
-        s2 = Series(np_array2)
+        s1 = Series(np_array1, dtype=dtype)
+        s2 = Series(np_array2, dtype=dtype)
 
         result = s1.cov(s2, ddof=test_ddof)
         expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
@@ -57,8 +58,11 @@ class TestSeriesCov:
 
 class TestSeriesCorr:
     @td.skip_if_no_scipy
-    def test_corr(self, datetime_series):
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_corr(self, datetime_series, dtype):
         from scipy import stats
+
+        datetime_series = datetime_series.astype(dtype)
 
         # full overlap
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)

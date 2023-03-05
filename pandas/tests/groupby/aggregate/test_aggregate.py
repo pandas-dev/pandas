@@ -124,7 +124,9 @@ def test_groupby_aggregation_multi_level_column():
         columns=MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 0), ("B", 1)]),
     )
 
-    gb = df.groupby(level=1, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
     result = gb.sum(numeric_only=False)
     expected = DataFrame({0: [2.0, True, True, True], 1: [1, 0, 1, 1]})
 
@@ -253,7 +255,11 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
         [[1, 2, 3, 4, 5, 6]] * 3,
         columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
     ).astype({("a", "j"): dtype, ("b", "j"): dtype})
-    result = df.groupby(level=1, axis=1).agg(func)
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=1, axis=1)
+    result = gb.agg(func)
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
@@ -278,7 +284,11 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         columns=Index([10, 20, 10, 20], name="x"),
         dtype="int64",
     ).astype({10: "Int64"})
-    result = df.groupby("x", axis=1).agg(func)
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("x", axis=1)
+    result = gb.agg(func)
     expected = DataFrame(
         data=expected_data,
         index=Index([0, 1, 0], name="y"),
@@ -321,8 +331,8 @@ def test_wrap_agg_out(three_group):
 
     with pytest.raises(TypeError, match="Test error message"):
         grouped.aggregate(func)
-    result = grouped[[c for c in three_group if c != "C"]].aggregate(func)
-    exp_grouped = three_group.loc[:, three_group.columns != "C"]
+    result = grouped[["D", "E", "F"]].aggregate(func)
+    exp_grouped = three_group.loc[:, ["A", "B", "D", "E", "F"]]
     expected = exp_grouped.groupby(["A", "B"]).aggregate(func)
     tm.assert_frame_equal(result, expected)
 
@@ -1447,7 +1457,9 @@ def test_groupby_complex_raises(func):
 def test_multi_axis_1_raises(func):
     # GH#46995
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    gb = df.groupby("a", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("a", axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         gb.agg(func)
 
@@ -1520,4 +1532,17 @@ def test__series_groupy_agg_list_like_func_with_args():
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]], index=Index([1, 2, 3]), columns=["foo1", "foo2"]
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_groupings_selection():
+    # GH#51186 - a selected grouping should be in the output of agg
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 3, 4], "c": [5, 6, 7]})
+    gb = df.groupby(["a", "b"])
+    selected_gb = gb[["b", "c"]]
+    result = selected_gb.agg(lambda x: x.sum())
+    index = MultiIndex(
+        levels=[[1, 2], [3, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
+    )
+    expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=index)
     tm.assert_frame_equal(result, expected)

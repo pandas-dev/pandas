@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Literal,
@@ -25,12 +26,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     to_offset,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    IntervalClosedType,
-    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
@@ -92,6 +87,13 @@ from pandas.core.indexes.timedeltas import (
     timedelta_range,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        IntervalClosedType,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
