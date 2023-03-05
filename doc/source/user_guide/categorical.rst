@@ -617,8 +617,8 @@ even if some categories are not present in the data:
     df = pd.DataFrame(
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
-    )
-    df.groupby(axis=1, level=1).sum()
+    ).T
+    df.groupby(level=1).sum()
 
 Groupby will also show "unused" categories:
 
