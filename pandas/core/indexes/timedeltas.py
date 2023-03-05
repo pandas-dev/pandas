@@ -172,7 +172,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr, name=name)
+        refs = None
+        if not copy and isinstance(data, TimedeltaIndex):
+            refs = data._references
+
+        return cls._simple_new(tdarr, name=name, refs=refs)
 
     # -------------------------------------------------------------------
 

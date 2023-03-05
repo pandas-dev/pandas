@@ -353,6 +353,7 @@ class MultiIndex(Index):
             result._codes = new_codes
 
         result._reset_identity()
+        result._references = None
 
         return result
 
