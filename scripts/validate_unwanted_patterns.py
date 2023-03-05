@@ -232,55 +232,6 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
                 yield (node.lineno, f"Import of internal function {repr(module_name)}")
 
 
-def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
-    """
-    This test case is necessary after 'Black' (https://github.com/psf/black),
-    is formatting strings over multiple lines.
-
-    For example, when this:
-
-    >>> foo = (
-    ...     "bar "
-    ...     "baz"
-    ... )
-
-    Is becoming this:
-
-    >>> foo = ("bar " "baz")
-
-    'Black' is not considering this as an
-    issue (see https://github.com/psf/black/issues/1051),
-    so we are checking it here instead.
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #30454
-    """
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
-
-    for current_token, next_token in zip(tokens, tokens[1:]):
-        if current_token.type == next_token.type == token.STRING:
-            yield (
-                current_token.start[0],
-                (
-                    "String unnecessarily split in two by black. "
-                    "Please merge them manually."
-                ),
-            )
-
-
 def strings_with_wrong_placed_whitespace(
     file_obj: IO[str],
 ) -> Iterable[Tuple[int, str]]:
@@ -457,7 +408,6 @@ if __name__ == "__main__":
         "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",
-        "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
 
