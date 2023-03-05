@@ -54,6 +54,7 @@ if TYPE_CHECKING:
         RandomState,
         T,
     )
+
     from pandas import Index
 
 
