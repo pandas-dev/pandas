@@ -792,6 +792,28 @@ class TestExcelWriter:
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
+    @pytest.mark.xfail(reason="na_values aren't applied to Index")
+    def test_to_excel_multiindex_nan_level(self, frame, path):
+        """
+        Tests https://github.com/pandas-dev/pandas/issues/51252
+        """
+        cols_index = MultiIndex.from_tuples(
+            [
+                ("Item", "Type 1", "Class A"),
+                ("Item", "Type 1", "Class B"),
+                ("Item", "Type 2", "Class A"),
+                ("Item", "Type 2", "Class B"),
+                ("Item", "Type 3", None),
+            ]
+        )
+        df = pd.DataFrame(np.random.randn(10, 5), columns=cols_index)
+        df.to_excel(path, "test1")
+        with ExcelFile(path) as reader:
+            df2 = pd.read_excel(
+                reader, sheet_name="test1", header=[0, 1, 2], index_col=[0]
+            )
+        tm.assert_frame_equal(df, df2)
+
     def test_to_excel_multiindex_dates(self, merge_cells, tsframe, path):
         # try multiindex with dates
         new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]

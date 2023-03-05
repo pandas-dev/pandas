@@ -640,7 +640,9 @@ class ExcelFormatter:
             for lnum, (spans, levels, level_codes) in enumerate(
                 zip(level_lengths, columns.levels, columns.codes)
             ):
-                values = levels.take(level_codes)
+                values = levels.take(
+                    level_codes, fill_value=self.na_rep if -1 in level_codes else None
+                )
                 for i, span_val in spans.items():
                     mergestart, mergeend = None, None
                     if span_val > 1:
