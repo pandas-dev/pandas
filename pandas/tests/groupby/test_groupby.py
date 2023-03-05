@@ -2845,20 +2845,19 @@ def test_obj_with_exclusions_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_numeric_only_std_no_result():
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_groupby_numeric_only_std_no_result(numeric_only):
     # GH 51080
     dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
     df = DataFrame(dicts_non_numeric)
-    dfgb = df.groupby("a")
-    result = dfgb.std(numeric_only=True)
+    dfgb = df.groupby("a", as_index=False, sort=False)
 
-    assert result.empty
-
-
-def test_groupby_std_raises_error():
-    # GH 51080
-    dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
-    df = DataFrame(dicts_non_numeric)
-    dfgb = df.groupby("a")
-    with pytest.raises(ValueError, match="could not convert string to float: 'bar'"):
-        dfgb.std()
+    if numeric_only:
+        result = dfgb.std(numeric_only=True)
+        expected_df = DataFrame(["foo", "car"], columns=["a"])
+        tm.assert_frame_equal(result, expected_df)
+    else:
+        with pytest.raises(
+            ValueError, match="could not convert string to float: 'bar'"
+        ):
+            dfgb.std(numeric_only=numeric_only)
