@@ -30,13 +30,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    NpDtype,
-    RandomState,
-    T,
-)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -55,6 +48,13 @@ from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas import Index
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        NpDtype,
+        RandomState,
+        T,
+    )
 
 
 def flatten(line):
