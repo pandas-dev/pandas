@@ -517,16 +517,16 @@ listed below, those with a ``*`` do *not* have a Cython-optimized implementation
         :meth:`~.DataFrameGroupBy.all`;Compute whether all of the values in the groups are truthy
         :meth:`~.DataFrameGroupBy.count`;Compute the number of non-NA values in the groups
         :meth:`~.DataFrameGroupBy.cov` * ;Compute the covariance of the groups
-        :meth:`~.DataFrameGroupBy.first` *;Compute the first occurring value in each group
+        :meth:`~.DataFrameGroupBy.first`;Compute the first occurring value in each group
         :meth:`~.DataFrameGroupBy.idxmax` *;Compute the index of the maximum value in each group
         :meth:`~.DataFrameGroupBy.idxmin` *;Compute the index of the minimum value in each group
-        :meth:`~.DataFrameGroupBy.last` *;Compute the last occurring value in each group
-        :meth:`~.DataFrameGroupBy.max` *;Compute the maximum value in each group
+        :meth:`~.DataFrameGroupBy.last`;Compute the last occurring value in each group
+        :meth:`~.DataFrameGroupBy.max`;Compute the maximum value in each group
         :meth:`~.DataFrameGroupBy.mean`;Compute the mean of each group
         :meth:`~.DataFrameGroupBy.median`;Compute the median of each group
-        :meth:`~.DataFrameGroupBy.min` *;Compute the minimum value in each group
+        :meth:`~.DataFrameGroupBy.min`;Compute the minimum value in each group
         :meth:`~.DataFrameGroupBy.nunique`;Compute the number of unique values in each group
-        :meth:`~.DataFrameGroupBy.prod` *;Compute the product of the values in each group
+        :meth:`~.DataFrameGroupBy.prod`;Compute the product of the values in each group
         :meth:`~.DataFrameGroupBy.quantile`;Compute a given quantile of the values in each group
         :meth:`~.DataFrameGroupBy.sem`;Compute the standard error of the mean of the values in each group
         :meth:`~.DataFrameGroupBy.size`;Compute the number of values in each group
@@ -614,8 +614,9 @@ changed by using the ``as_index`` option:
 
    df.groupby("A", as_index=False)[["C", "D"]].agg("sum")
 
-Note that you could use the ``reset_index`` DataFrame function to achieve the
-same result as the column names are stored in the resulting ``MultiIndex``:
+Note that you could use the :meth:`DataFrame.reset_index` DataFrame function to achieve
+the same result as the column names are stored in the resulting ``MultiIndex``, although
+this will make an extra copy.
 
 .. ipython:: python
 
@@ -1000,7 +1001,8 @@ and that the transformed data contains no NAs.
 .. _groupby_efficient_transforms:
 
 As mentioned in the note above, each of the examples in this section can be computed
-more efficiently using built-in methods.
+more efficiently using built-in methods. In the code below, the inefficient way
+using a UDF is commented out and the faster alternative appears below.
 
 .. ipython:: python
 
@@ -1082,8 +1084,8 @@ In the following example, ``class`` is included in the result.
 .. note::
 
     Unlike aggregations, filtrations do not add the group keys to the index of the
-    result. Because of this, passing ``as_index=False`` will not affect these
-    transformation methods.
+    result. Because of this, passing ``as_index=False`` or ``sort=True`` will not
+    affect these methods.
 
 Filtrations will respect subsetting the columns of the GroupBy object.
 
