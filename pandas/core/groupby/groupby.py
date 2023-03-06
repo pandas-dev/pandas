@@ -1880,7 +1880,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (
+            self.obj.median is Series.median or self.obj.median is DataFrame.median
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).median()
@@ -1946,7 +1948,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.std is Series.std or self.obj.std is DataFrame.std):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).std()
@@ -2037,7 +2039,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Variance of values within each group.
         """
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.var is Series.var or self.obj.var is DataFrame.var):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).var()
@@ -2215,7 +2217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Standard error of the mean of values within each group.
         """
         # TODO: think sem() needs considering more closely
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.sem is Series.sem or self.obj.sem is DataFrame.sem):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).sem()
@@ -2281,7 +2283,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.sum is Series.sum or self.obj.sum is DataFrame.sum):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).sum()
@@ -2313,7 +2315,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
     def prod(self, numeric_only: bool = False, min_count: int = 0):
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.prod is Series.prod or self.obj.prod is DataFrame.prod):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).prod()
@@ -2334,7 +2336,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.min is Series.min or self.obj.min is DataFrame.min):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).min()
@@ -2363,7 +2365,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.max is Series.max or self.obj.max is DataFrame.max):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).max()
