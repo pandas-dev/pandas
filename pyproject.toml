@@ -307,7 +307,6 @@ exclude = [
 "pandas/core/sorting.py" = ["TCH"]
 "pandas/core/construction.py" = ["TCH"]
 "pandas/core/missing.py" = ["TCH"]
-"pandas/core/util/*" = ["TCH"]
 "pandas/core/reshape/*" = ["TCH"]
 "pandas/core/strings/*" = ["TCH"]
 "pandas/core/tools/*" = ["TCH"]
