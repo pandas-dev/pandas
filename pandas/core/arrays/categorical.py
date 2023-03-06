@@ -1198,7 +1198,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
         """
         Map categories using an input mapping or function.
 
@@ -1267,6 +1267,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
+        if na_action is not None:
+            raise NotImplementedError
+
         new_categories = self.categories.map(mapper)
         try:
             return self.from_codes(
