@@ -179,7 +179,8 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
+- Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 -
 
 Plotting
