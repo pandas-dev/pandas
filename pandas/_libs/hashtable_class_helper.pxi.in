@@ -1269,7 +1269,7 @@ cdef class PyObjectHashTable(HashTable):
             khiter_t k
         hash(key)
 
-        k = kh_get_pymap(self.table, <PyObject*>key)
+        k = kh_get_pymap(self.table, key)
         return k != self.table.n_buckets
 
     def sizeof(self, deep: bool = False) -> int:
@@ -1296,7 +1296,7 @@ cdef class PyObjectHashTable(HashTable):
         cdef:
             khiter_t k
 
-        k = kh_get_pymap(self.table, <PyObject*>val)
+        k = kh_get_pymap(self.table, val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -1310,7 +1310,7 @@ cdef class PyObjectHashTable(HashTable):
 
         hash(key)
 
-        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        k = kh_put_pymap(self.table, key, &ret)
         if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:
@@ -1328,7 +1328,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+            k = kh_put_pymap(self.table, val, &ret)
             self.table.vals[k] = i
 
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
@@ -1345,7 +1345,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_get_pymap(self.table, <PyObject*>val)
+            k = kh_get_pymap(self.table, val)
             if k != self.table.n_buckets:
                 locs[i] = self.table.vals[k]
             else:
@@ -1418,10 +1418,10 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = na_sentinel
                 continue
 
-            k = kh_get_pymap(self.table, <PyObject*>val)
+            k = kh_get_pymap(self.table, val)
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                k = kh_put_pymap(self.table, val, &ret)
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count

@@ -53,9 +53,9 @@ cdef extern from "khash_python.h":
     kh_pymap_t* kh_init_pymap()
     void kh_destroy_pymap(kh_pymap_t*)
     void kh_clear_pymap(kh_pymap_t*)
-    khuint_t kh_get_pymap(kh_pymap_t*, PyObject*)
+    khuint_t kh_get_pymap(kh_pymap_t*, object)
     void kh_resize_pymap(kh_pymap_t*, khuint_t)
-    khuint_t kh_put_pymap(kh_pymap_t*, PyObject*, int*)
+    khuint_t kh_put_pymap(kh_pymap_t*, object, int*)
     void kh_del_pymap(kh_pymap_t*, khuint_t)
 
     bint kh_exist_pymap(kh_pymap_t*, khiter_t)
@@ -76,7 +76,7 @@ cdef extern from "khash_python.h":
 
     bint kh_exist_pyset(kh_pyset_t*, khiter_t)
 
-    ctypedef char* kh_cstr_t
+    ctypedef const char* kh_cstr_t
 
     ctypedef struct kh_str_t:
         khuint_t n_buckets, size, n_occupied, upper_bound

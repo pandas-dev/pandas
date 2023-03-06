@@ -194,13 +194,20 @@ class ClipDt:
 
 
 class ValueCounts:
-    params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object"]]
+    params = [[10**3, 10**4, 10**5], ["int", "uint", "float", "object", "string"]]
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
-        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
+        ser = Series(np.random.randint(0, N, size=10 * N))
+        if dtype == "string":
+            self.s = ser.astype(object).apply(str)
+        else:
+            self.s = ser.astype(dtype)
 
     def time_value_counts(self, N, dtype):
+        self.s.value_counts()
+
+    def peakmem_value_counts(self, N, dtype):
         self.s.value_counts()
 
 
