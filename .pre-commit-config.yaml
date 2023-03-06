@@ -42,6 +42,13 @@ repos:
     rev: v2.2.2
     hooks:
     -   id: codespell
+        exclude: |
+            (?x)
+            pandas/tests/io/data/xml
+            |pandas/_libs/ops_dispatch.pyx
+            |pandas/_libs/tslibs/strptime
+            |web/pandas/config.yml
+
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.12.5
