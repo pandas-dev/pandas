@@ -2344,7 +2344,7 @@ default 'raise'
         Monday == 1 ... Sunday == 7.
         """
         # same as super().isoweekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return self.weekday() + 1
 
     def weekday(self):
@@ -2354,7 +2354,7 @@ default 'raise'
         Monday == 0 ... Sunday == 6.
         """
         # same as super().weekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return ccalendar.dayofweek(self.year, self.month, self.day)
 
 

@@ -55,7 +55,7 @@ def hash_object_array(
         char **vecs
         char *cdata
         object val
-        list datas = []
+        list data_list = []
 
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
@@ -97,7 +97,7 @@ def hash_object_array(
 
         # keep the references alive through the end of the
         # function
-        datas.append(data)
+        data_list.append(data)
         vecs[i] = cdata
 
     result = np.empty(n, dtype=np.uint64)

@@ -1106,7 +1106,7 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self) -> float:
         """Total seconds in the duration."""
-        # We need to override bc we overrided days/seconds/microseconds
+        # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
