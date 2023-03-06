@@ -43,10 +43,6 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
-        exclude: |
-            (?x)
-            |pandas/_libs/ops_dispatch.pyx
-            |pandas/_libs/tslibs/strptime
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.12.5
