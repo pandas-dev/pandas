@@ -126,6 +126,7 @@ from pandas.core.internals import (
     SingleBlockManager,
 )
 from pandas.core.methods import selectn
+from pandas.core.ops.methods import SeriesOps
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -239,7 +240,7 @@ def _coerce_method(converter):
 # definition in base class "NDFrame"
 # error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
 # definition in base class "NDFrame"
-class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(SeriesOps, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -6060,6 +6061,3 @@ Keep all original rows and also all original values
 
 
 Series._add_numeric_operations()
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series)

@@ -175,6 +175,7 @@ from pandas.core.internals.construction import (
     treat_as_nested,
 )
 from pandas.core.methods import selectn
+from pandas.core.ops.methods import FrameOps
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -491,7 +492,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
-class DataFrame(NDFrame, OpsMixin):
+class DataFrame(FrameOps, NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -11843,8 +11844,6 @@ Parrot 2  Parrot       24.0
 
 
 DataFrame._add_numeric_operations()
-
-ops.add_flex_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data) -> collections.defaultdict:
