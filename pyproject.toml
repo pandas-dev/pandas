@@ -291,13 +291,6 @@ exclude = [
 # TCH to be enabled gradually
 "pandas/core/*" = ["PLW2901"]
 "pandas/core/arrays/*" = ["TCH"]
-"pandas/core/io/*" = ["TCH"]
-"pandas/core/array_algos/*" = ["TCH"]
-"pandas/core/dtypes/*" = ["TCH"]
-"pandas/core/generic.py" = ["TCH"]
-"pandas/core/frame.py" = ["TCH"]
-"pandas/core/series.py" = ["TCH"]
-"pandas/core/resample.py" = ["TCH"]
 "pandas/core/nanops.py" = ["TCH"]
 "pandas/core/apply.py" = ["TCH"]
 "pandas/core/base.py" = ["TCH"]
@@ -305,9 +298,7 @@ exclude = [
 "pandas/core/ops/*" = ["TCH"]
 "pandas/core/sorting.py" = ["TCH"]
 "pandas/core/construction.py" = ["TCH"]
-"pandas/core/common.py" = ["TCH"]
 "pandas/core/missing.py" = ["TCH"]
-"pandas/core/util/*" = ["TCH"]
 "pandas/core/reshape/*" = ["TCH"]
 "pandas/core/strings/*" = ["TCH"]
 "pandas/core/tools/*" = ["TCH"]
@@ -614,5 +605,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
 ignore-regex = 'https://([\w/\.])+'
