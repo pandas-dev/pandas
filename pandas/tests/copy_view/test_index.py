@@ -27,7 +27,7 @@ def test_set_index_update_column(using_copy_on_write):
     if using_copy_on_write:
         tm.assert_index_equal(df.index, expected)
     else:
-        tm.assert_index_equal(df.index, Index([100, 1]))
+        tm.assert_index_equal(df.index, Index([100, 2], name="a"))
 
 
 def test_set_index_drop_update_column(using_copy_on_write):
@@ -36,10 +36,7 @@ def test_set_index_drop_update_column(using_copy_on_write):
     df = df.set_index("a", drop=True)
     expected = df.index.copy(deep=True)
     view.iloc[0, 0] = 100
-    if using_copy_on_write:
-        tm.assert_index_equal(df.index, expected)
-    else:
-        tm.assert_index_equal(df.index, Index([100, 1]))
+    tm.assert_index_equal(df.index, expected)
 
 
 def test_set_index_series(using_copy_on_write):
@@ -51,7 +48,7 @@ def test_set_index_series(using_copy_on_write):
     if using_copy_on_write:
         tm.assert_index_equal(df.index, expected)
     else:
-        tm.assert_index_equal(df.index, Index([100, 1]))
+        tm.assert_index_equal(df.index, Index([100, 11]))
 
 
 def test_assign_index_as_series(using_copy_on_write):
@@ -63,7 +60,7 @@ def test_assign_index_as_series(using_copy_on_write):
     if using_copy_on_write:
         tm.assert_index_equal(df.index, expected)
     else:
-        tm.assert_index_equal(df.index, Index([100, 1]))
+        tm.assert_index_equal(df.index, Index([100, 11]))
 
 
 def test_assign_index_as_index(using_copy_on_write):
@@ -77,7 +74,7 @@ def test_assign_index_as_index(using_copy_on_write):
     if using_copy_on_write:
         tm.assert_index_equal(df.index, expected)
     else:
-        tm.assert_index_equal(df.index, Index([100, 1]))
+        tm.assert_index_equal(df.index, Index([100, 11]))
 
 
 def test_index_from_series(using_copy_on_write):
@@ -85,8 +82,10 @@ def test_index_from_series(using_copy_on_write):
     idx = Index(ser)
     expected = idx.copy(deep=True)
     ser.iloc[0] = 100
-    print(idx)
-    tm.assert_index_equal(idx, expected)
+    if using_copy_on_write:
+        tm.assert_index_equal(idx, expected)
+    else:
+        tm.assert_index_equal(idx, Index([100, 2]))
 
 
 def test_index_from_series_copy(using_copy_on_write):
@@ -103,7 +102,10 @@ def test_index_from_index(using_copy_on_write):
     idx = Index(idx)
     expected = idx.copy(deep=True)
     ser.iloc[0] = 100
-    tm.assert_index_equal(idx, expected)
+    if using_copy_on_write:
+        tm.assert_index_equal(idx, expected)
+    else:
+        tm.assert_index_equal(idx, Index([100, 2]))
 
 
 @pytest.mark.parametrize(
