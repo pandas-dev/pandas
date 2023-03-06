@@ -4,17 +4,22 @@ for missing values.
 """
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import (
-    AxisInt,
-    npt,
-)
 
 from pandas.core.nanops import check_below_min_count
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        npt,
+    )
 
 
 def _reductions(

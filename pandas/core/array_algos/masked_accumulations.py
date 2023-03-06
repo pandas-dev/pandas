@@ -5,17 +5,21 @@ for missing values.
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
-
-from pandas._typing import npt
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
     is_integer_dtype,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 def _cum_func(

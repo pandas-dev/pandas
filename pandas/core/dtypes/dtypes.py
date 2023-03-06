@@ -31,13 +31,6 @@ from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Ordered,
-    npt,
-    type_t,
-)
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -56,6 +49,14 @@ if TYPE_CHECKING:
     from datetime import tzinfo
 
     import pyarrow
+
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Ordered,
+        npt,
+        type_t,
+    )
 
     from pandas import (
         Categorical,

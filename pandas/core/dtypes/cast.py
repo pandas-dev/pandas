@@ -36,14 +36,6 @@ from pandas._libs.tslibs import (
     is_supported_unit,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._typing import (
-    ArrayLike,
-    Dtype,
-    DtypeObj,
-    NumpyIndexT,
-    Scalar,
-    npt,
-)
 from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
@@ -100,6 +92,15 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Dtype,
+        DtypeObj,
+        NumpyIndexT,
+        Scalar,
+        npt,
+    )
+
     from pandas import Index
     from pandas.core.arrays import (
         Categorical,

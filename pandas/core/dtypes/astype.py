@@ -15,11 +15,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    IgnoreRaise,
-)
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
@@ -37,8 +32,13 @@ from pandas.core.dtypes.dtypes import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        IgnoreRaise,
+    )
 
+    from pandas.core.arrays import ExtensionArray
 
 _dtype_obj = np.dtype(object)
 

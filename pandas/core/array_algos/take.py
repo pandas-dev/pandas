@@ -13,11 +13,6 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    npt,
-)
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -29,6 +24,12 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        npt,
+    )
+
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
