@@ -30,7 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
-- :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`xxxxx`).
+- :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
