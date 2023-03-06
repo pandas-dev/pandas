@@ -1837,7 +1837,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Name: B, dtype: float64
         """
 
-        if not (type(self.obj) == Series or type(self.obj) == DataFrame):
+        if not (self.obj.mean is Series.mean or self.obj.mean is DataFrame.mean):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).mean()
