@@ -25,16 +25,16 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
     from pandas import (
         DataFrame,
         Index,
         MultiIndex,
         Series,
-    )
-
-    from pandas._typing import (
-        ArrayLike,
-        npt,
     )
 
 
