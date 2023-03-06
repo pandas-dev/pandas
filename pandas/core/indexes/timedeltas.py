@@ -1,6 +1,8 @@
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -10,7 +12,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -27,6 +28,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 @inherit_names(
