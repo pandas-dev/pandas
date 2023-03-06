@@ -32,18 +32,6 @@ from pandas._libs import (
     lib,
     reduction as libreduction,
 )
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    FillnaOptions,
-    IndexLabel,
-    Manager,
-    Manager2D,
-    SingleManager,
-    TakeIndexer,
-)
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
@@ -96,6 +84,19 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        AxisInt,
+        CorrelationMethod,
+        FillnaOptions,
+        IndexLabel,
+        Manager,
+        Manager2D,
+        SingleManager,
+        TakeIndexer,
+    )
+
     from pandas import Categorical
     from pandas.core.generic import NDFrame
 
@@ -2248,6 +2249,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             the same results as :meth:`.DataFrame.fillna`. When the
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
+
+            .. deprecated:: 2.0.0
+                Use frame.T.groupby(...) instead.
+
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -2310,7 +2315,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Propagate non-null values forward or backward within each group along rows.
 
-        >>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="ffill")
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="ffill").T
            key    A    B    C
         0  0.0  0.0  2.0  2.0
         1  0.0  2.0  3.0  3.0
@@ -2318,7 +2323,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  1.0  3.0  NaN  NaN
         4  1.0  1.0  NaN  NaN
 
-        >>> df.groupby([0, 0, 1, 1], axis=1).fillna(method="bfill")
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).fillna(method="bfill").T
            key    A    B    C
         0  0.0  NaN  2.0  NaN
         1  0.0  2.0  3.0  NaN

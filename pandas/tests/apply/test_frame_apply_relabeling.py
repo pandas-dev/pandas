@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+from pandas.compat import is_numpy_dev
 
 import pandas as pd
 import pandas._testing as tm
@@ -42,6 +45,7 @@ def test_agg_relabel_multi_columns_multi_methods():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(is_numpy_dev, reason="name of min now equals name of np.min")
 def test_agg_relabel_partial_functions():
     # GH 26513, test on partial, functools or more complex cases
     df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
