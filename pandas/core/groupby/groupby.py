@@ -1840,7 +1840,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.mean is Series.mean or self.obj.mean is DataFrame.mean):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).mean()
+                return self.obj._constructor(df).mean(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -1885,7 +1885,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).median()
+                return self.obj._constructor(df).median(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -1951,7 +1951,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.std is Series.std or self.obj.std is DataFrame.std):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).std()
+                return self.obj._constructor(df).std(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2042,7 +2042,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.var is Series.var or self.obj.var is DataFrame.var):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).var()
+                return self.obj._constructor(df).var(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2220,7 +2220,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.sem is Series.sem or self.obj.sem is DataFrame.sem):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).sem()
+                return self.obj._constructor(df).sem(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2286,7 +2286,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.sum is Series.sum or self.obj.sum is DataFrame.sum):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).sum()
+                return self.obj._constructor(df).sum(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2318,7 +2318,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.prod is Series.prod or self.obj.prod is DataFrame.prod):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).prod()
+                return self.obj._constructor(df).prod(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2339,7 +2339,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.min is Series.min or self.obj.min is DataFrame.min):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).min()
+                return self.obj._constructor(df).min(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
@@ -2368,7 +2368,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not (self.obj.max is Series.max or self.obj.max is DataFrame.max):
 
             def f(df, *args, **kwargs):
-                return self.obj._constructor(df).max()
+                return self.obj._constructor(df).max(numeric_only=numeric_only)
 
             result = self.agg(f)
             return result.__finalize__(self.obj, method="groupby")
