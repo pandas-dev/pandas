@@ -145,7 +145,7 @@ observed : bool, default False
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
 
-    .. deprecated:: 2.2.0
+    .. deprecated:: 2.1.0
 
         The default value will change to True in a future version of pandas.
 
