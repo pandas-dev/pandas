@@ -183,57 +183,8 @@ Copy-on-Write improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - A new lazy copy mechanism that defers the copy until the object in question is modified
-  was added to the following methods:
-
-  - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
-  - :meth:`DataFrame.set_index`
-  - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
-  - :meth:`DataFrame.set_flags` / :meth:`Series.set_flags`
-  - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
-  - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
-  - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
-  - :meth:`DataFrame.assign`
-  - :meth:`DataFrame.drop`
-  - :meth:`DataFrame.dropna` / :meth:`Series.dropna`
-  - :meth:`DataFrame.select_dtypes`
-  - :meth:`DataFrame.align` / :meth:`Series.align`
-  - :meth:`Series.to_frame`
-  - :meth:`DataFrame.rename` / :meth:`Series.rename`
-  - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
-  - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
-  - :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
-  - :meth:`DataFrame.droplevel` / :meth:`Series.droplevel`
-  - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
-  - :meth:`DataFrame.between_time` / :meth:`Series.between_time`
-  - :meth:`DataFrame.filter` / :meth:`Series.filter`
-  - :meth:`DataFrame.head` / :meth:`Series.head`
-  - :meth:`DataFrame.tail` / :meth:`Series.tail`
-  - :meth:`DataFrame.isetitem`
-  - :meth:`DataFrame.pipe` / :meth:`Series.pipe`
-  - :meth:`DataFrame.pop` / :meth:`Series.pop`
-  - :meth:`DataFrame.replace` / :meth:`Series.replace`
-  - :meth:`DataFrame.shift` / :meth:`Series.shift`
-  - :meth:`DataFrame.sort_index` / :meth:`Series.sort_index`
-  - :meth:`DataFrame.sort_values` / :meth:`Series.sort_values`
-  - :meth:`DataFrame.squeeze` / :meth:`Series.squeeze`
-  - :meth:`DataFrame.swapaxes`
-  - :meth:`DataFrame.swaplevel` / :meth:`Series.swaplevel`
-  - :meth:`DataFrame.take` / :meth:`Series.take`
-  - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
-  - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
-  - :meth:`DataFrame.truncate`
-  - :meth:`DataFrame.iterrows`
-  - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
-  - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
-  - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
-  - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
-  - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
-  - :meth:`DataFrame.where` / :meth:`Series.where`
-  - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
-  - :meth:`DataFrame.astype` / :meth:`Series.astype`
-  - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
-  - :func:`concat`
-
+  was added to the methods listed in
+  :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
   These methods return views when Copy-on-Write is enabled, which provides a significant
   performance improvement compared to the regular execution (:issue:`49473`).
 
@@ -245,6 +196,10 @@ Copy-on-Write improvements
 - The :class:`Series` constructor will now create a lazy copy (deferring the copy until
   a modification to the data happens) when constructing a Series from an existing
   Series with the default of ``copy=False`` (:issue:`50471`)
+
+- The :class:`DataFrame` constructor will now create a lazy copy (deferring the copy until
+  a modification to the data happens) when constructing from an existing
+  :class:`DataFrame` with the default of ``copy=False`` (:issue:`51239`)
 
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Series objects and specifying ``copy=False``, will now use a lazy copy
@@ -834,6 +789,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated parsing datetime strings with system-local timezone to ``tzlocal``, pass a ``tz`` keyword or explicitly call ``tz_localize`` instead (:issue:`50791`)
+- Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
@@ -1165,8 +1121,9 @@ Performance improvements
 - Fixed a reference leak in :func:`read_hdf` (:issue:`37441`)
 - Fixed a memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing datetimes and timedeltas (:issue:`40443`)
 - Decreased memory usage in many :class:`DataFrameGroupBy` methods (:issue:`51090`)
+- Performance improvement in :meth:`DataFrame.round` for an integer ``decimal`` parameter (:issue:`17254`)
+- Performance improvement in :meth:`DataFrame.replace` and :meth:`Series.replace` when using a large dict for ``to_replace`` (:issue:`6697`)
 - Memory improvement in :class:`StataReader` when reading seekable files (:issue:`48922`)
-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.bug_fixes:
