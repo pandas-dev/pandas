@@ -42,7 +42,6 @@ repos:
     rev: v2.2.2
     hooks:
     -   id: codespell
-        types_or: [python, rst, markdown]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.12.5
