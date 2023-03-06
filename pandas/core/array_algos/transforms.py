@@ -4,9 +4,12 @@ transforms.py is for shape-preserving functions.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas._typing import AxisInt
+if TYPE_CHECKING:
+    from pandas._typing import AxisInt
 
 
 def shift(values: np.ndarray, periods: int, axis: AxisInt, fill_value) -> np.ndarray:
