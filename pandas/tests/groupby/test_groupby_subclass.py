@@ -186,3 +186,12 @@ def test_groupby_overridden_methods():
     assert np.all(udf.groupby("group").prod() == 6)
     assert np.all(udf.groupby("group").min() == 7)
     assert np.all(udf.groupby("group").max() == 8)
+    for useries in udf:
+        assert np.all(useries.groupby("group").mean() == 1)
+        assert np.all(useries.groupby("group").median() == 2)
+        assert np.all(useries.groupby("group").std() == 3)
+        assert np.all(useries.groupby("group").var() == 4)
+        assert np.all(useries.groupby("group").sem() == 5)
+        assert np.all(useries.groupby("group").prod() == 6)
+        assert np.all(useries.groupby("group").min() == 7)
+        assert np.all(useries.groupby("group").max() == 8)
