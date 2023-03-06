@@ -1837,7 +1837,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Name: B, dtype: float64
         """
 
-        if not (self.obj.mean is Series.mean or self.obj.mean is DataFrame.mean):
+        if not (
+            type(self.obj).mean is Series.mean or type(self.obj).mean is DataFrame.mean
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).mean(numeric_only=numeric_only)
@@ -1881,7 +1883,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Median of values within each group.
         """
         if not (
-            self.obj.median is Series.median or self.obj.median is DataFrame.median
+            type(self.obj).median is Series.median
+            or type(self.obj).median is DataFrame.median
         ):
 
             def f(df, *args, **kwargs):
@@ -1948,7 +1951,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        if not (self.obj.std is Series.std or self.obj.std is DataFrame.std):
+        if not (
+            type(self.obj).std is Series.std or type(self.obj).std is DataFrame.std
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).std(numeric_only=numeric_only)
@@ -2039,7 +2044,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Variance of values within each group.
         """
-        if not (self.obj.var is Series.var or self.obj.var is DataFrame.var):
+        if not (
+            type(self.obj).var is Series.var or type(self.obj).var is DataFrame.var
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).var(numeric_only=numeric_only)
@@ -2217,7 +2224,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Standard error of the mean of values within each group.
         """
         # TODO: think sem() needs considering more closely
-        if not (self.obj.sem is Series.sem or self.obj.sem is DataFrame.sem):
+        if not (
+            type(self.obj).sem is Series.sem or type(self.obj).sem is DataFrame.sem
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).sem(numeric_only=numeric_only)
@@ -2283,7 +2292,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (self.obj.sum is Series.sum or self.obj.sum is DataFrame.sum):
+        if not (
+            type(self.obj).sum is Series.sum or type(self.obj).sum is DataFrame.sum
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).sum(numeric_only=numeric_only)
@@ -2315,7 +2326,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
     def prod(self, numeric_only: bool = False, min_count: int = 0):
-        if not (self.obj.prod is Series.prod or self.obj.prod is DataFrame.prod):
+        if not (
+            type(self.obj).prod is Series.prod or type(self.obj).prod is DataFrame.prod
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).prod(numeric_only=numeric_only)
@@ -2336,7 +2349,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (self.obj.min is Series.min or self.obj.min is DataFrame.min):
+        if not (
+            type(self.obj).min is Series.min or type(self.obj).min is DataFrame.min
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).min(numeric_only=numeric_only)
@@ -2365,7 +2380,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        if not (self.obj.max is Series.max or self.obj.max is DataFrame.max):
+        if not (
+            type(self.obj).max is Series.max or type(self.obj).max is DataFrame.max
+        ):
 
             def f(df, *args, **kwargs):
                 return self.obj._constructor(df).max(numeric_only=numeric_only)
