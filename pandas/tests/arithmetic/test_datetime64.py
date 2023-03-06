@@ -34,7 +34,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.ops import roperator
+from pandas.core import roperator
 from pandas.tests.arithmetic.common import (
     assert_cannot_add,
     assert_invalid_addsub_type,

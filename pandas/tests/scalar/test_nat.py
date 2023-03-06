@@ -27,12 +27,12 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
 
 
 @pytest.mark.parametrize(

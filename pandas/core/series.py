@@ -6027,7 +6027,7 @@ Keep all original rows and also all original values
 
     def _logical_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
-        self, other = ops.align_method_SERIES(self, other, align_asobject=True)
+        self, other = self._align_for_op(other, align_asobject=True)
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
@@ -6036,8 +6036,27 @@ Keep all original rows and also all original values
         return self._construct_result(res_values, name=res_name)
 
     def _arith_method(self, other, op):
-        self, other = ops.align_method_SERIES(self, other)
+        self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
+
+    def _align_for_op(self, right, align_asobject: bool = False):
+        """align lhs and rhs Series"""
+        # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
+        # are not coerced here
+        # because Series has inconsistencies described in GH#13637
+        left = self
+
+        if isinstance(right, Series):
+            # avoid repeated alignment
+            if not left.index.equals(right.index):
+                if align_asobject:
+                    # to keep original value's dtype for bool ops
+                    left = left.astype(object)
+                    right = right.astype(object)
+
+                left, right = left.align(right, copy=False)
+
+        return left, right
 
 
 Series._add_numeric_operations()
