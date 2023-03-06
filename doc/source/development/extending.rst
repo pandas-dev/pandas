@@ -497,7 +497,7 @@ Arithmetic with 3rd party types
 In order to control how arithmetic works between a custom type and a pandas type,
 implement ``__pandas_priority__``.  Similar to numpy's ``__array_priority__``
 semantics, arithmetic methods on :class:`DataFrame`, :class:`Series`, and :class:`Index`
-objects will delegate to ``other``, if it has an attribute ``__array_priority__`` with a higher value.
+objects will delegate to ``other``, if it has an attribute ``__pandas_priority__`` with a higher value.
 
 By default, pandas objects try to operate with other objects, even if they are not types known to pandas:
 
@@ -514,6 +514,8 @@ In some cases, it is useful to delegate to the other type the operation. For exa
 custom list object, and I want the result of adding my custom list with a pandas :class:`Series` to be an instance of my list
 and not a :class:`Series` as seen in the previous example. This is now possible by defining the ``__pandas_priority__`` attribute
 of my custom list, and setting it to a higher value, than the priority of the pandas objects I want to operate with.
+
+The ``__pandas_priority__`` of :class:`DataFrame`, :class:`Series`, and :class:`Index` are ``4000``, ``3000``, and ``2000`` respectively.  The base ``ExtensionArray.__pandas_priority__`` is ``1000``.
 
 .. code-block:: python
 
