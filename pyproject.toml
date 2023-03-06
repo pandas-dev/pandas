@@ -298,7 +298,6 @@ exclude = [
 "pandas/core/generic.py" = ["TCH"]
 "pandas/core/frame.py" = ["TCH"]
 "pandas/core/series.py" = ["TCH"]
-"pandas/core/resample.py" = ["TCH"]
 "pandas/core/nanops.py" = ["TCH"]
 "pandas/core/apply.py" = ["TCH"]
 "pandas/core/base.py" = ["TCH"]
