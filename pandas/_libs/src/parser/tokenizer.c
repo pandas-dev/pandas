@@ -1828,7 +1828,7 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
     // 'normalize' representation to C-locale; replace decimal with '.' and
-    // remove t(housand)sep.
+    // remove thousands separator.
     char *endptr;
     char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
     // This is called from a nogil block in parsers.pyx

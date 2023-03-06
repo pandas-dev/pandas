@@ -42,7 +42,7 @@ repos:
     rev: v2.2.2
     hooks:
     -   id: codespell
-        types_or: [python, rst, markdown]
+        types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.12.5
@@ -436,3 +436,10 @@ repos:
         types: [python]
         files: ^pandas/tests
         language: python
+    -   id: sort-whatsnew-items
+        name: sort whatsnew entries by issue number
+        entry: python -m scripts.sort_whatsnew_note
+        types: [rst]
+        language: python
+        files: ^doc/source/whatsnew/v
+        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
