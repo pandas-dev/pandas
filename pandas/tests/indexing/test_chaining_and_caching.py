@@ -572,7 +572,6 @@ class TestChaining:
         )
         df["f"] = 0
         df_orig = df.copy()
-        # TODO(CoW) protect underlying values of being written to?
         if using_copy_on_write:
             with pytest.raises(ValueError, match="read-only"):
                 df.f.values[3] = 1
