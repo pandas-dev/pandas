@@ -649,12 +649,15 @@ def test_map_defaultdict_ignore_na():
     tm.assert_series_equal(result, expected)
 
 
-def test_map_categorical_na_ignore():
+@pytest.mark.parametrize(
+    "na_action, expected",
+    [(None, Series([10.0, 42.0, np.nan])), ("ignore", Series([10, np.nan, np.nan]))],
+)
+def test_map_categorical_na_ignore(na_action, expected):
     # GH#47527
-    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
+    values = pd.Categorical([1, np.nan, 2], categories=[10, 1, 2])
     ser = Series(values)
-    result = ser.map({1: 10, np.nan: 42})
-    expected = Series([10, np.nan, np.nan])
+    result = ser.map({1: 10, np.nan: 42}, na_action=na_action)
     tm.assert_series_equal(result, expected)
 
 
