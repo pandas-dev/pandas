@@ -358,8 +358,6 @@ class Series(SeriesOps, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
-    div: Callable[[Series, Any], Series]
-    rdiv: Callable[[Series, Any], Series]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -2967,79 +2965,6 @@ Name: Max Speed, dtype: float64
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
-
-    def _binop(self, other: Series, func, level=None, fill_value=None):
-        """
-        Perform generic binary operation with optional fill value.
-
-        Parameters
-        ----------
-        other : Series
-        func : binary operator
-        fill_value : float or object
-            Value to substitute for NA/null values. If both Series are NA in a
-            location, the result will be NA regardless of the passed fill value.
-        level : int or level name, default None
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
-
-        Returns
-        -------
-        Series
-        """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
-        this = self
-
-        if not self.index.equals(other.index):
-            this, other = self.align(other, level=level, join="outer", copy=False)
-
-        this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
-
-        with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
-
-        name = ops.get_op_result_name(self, other)
-        return this._construct_result(result, name)
-
-    def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
-    ) -> Series | tuple[Series, Series]:
-        """
-        Construct an appropriately-labelled Series from the result of an op.
-
-        Parameters
-        ----------
-        result : ndarray or ExtensionArray
-        name : Label
-
-        Returns
-        -------
-        Series
-            In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
-        """
-        if isinstance(result, tuple):
-            # produced by divmod or rdivmod
-
-            res1 = self._construct_result(result[0], name=name)
-            res2 = self._construct_result(result[1], name=name)
-
-            # GH#33427 assertions to keep mypy happy
-            assert isinstance(res1, Series)
-            assert isinstance(res2, Series)
-            return (res1, res2)
-
-        # TODO: result should always be ArrayLike, but this fails for some
-        #  JSONArray tests
-        dtype = getattr(result, "dtype", None)
-        out = self._constructor(result, index=self.index, dtype=dtype)
-        out = out.__finalize__(self)
-
-        # Set the result's name after __finalize__ is called because __finalize__
-        #  would set it back to self.name
-        out.name = name
-        return out
 
     @doc(
         _shared_docs["compare"],
