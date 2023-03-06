@@ -93,8 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.item \
         pandas.Series.pipe \
         pandas.Series.mode \
-        pandas.Series.sem \
-        pandas.Series.skew \
         pandas.Series.is_unique \
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
@@ -542,8 +540,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
-        pandas.DataFrame.sem \
-        pandas.DataFrame.skew \
         pandas.DataFrame.backfill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
