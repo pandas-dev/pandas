@@ -103,33 +103,33 @@ def get_api_items(api_doc_fd):
     previous_line = current_section = current_subsection = ""
     position = None
     for line in api_doc_fd:
-        line_strip = line.strip()
-        if len(line_strip) == len(previous_line):
-            if set(line_strip) == set("-"):
+        line_stripped = line.strip()
+        if len(line_stripped) == len(previous_line):
+            if set(line_stripped) == set("-"):
                 current_section = previous_line
                 continue
-            if set(line_strip) == set("~"):
+            if set(line_stripped) == set("~"):
                 current_subsection = previous_line
                 continue
 
-        if line_strip.startswith(".. currentmodule::"):
-            current_module = line_strip.replace(".. currentmodule::", "").strip()
+        if line_stripped.startswith(".. currentmodule::"):
+            current_module = line_stripped.replace(".. currentmodule::", "").strip()
             continue
 
-        if line_strip == ".. autosummary::":
+        if line_stripped == ".. autosummary::":
             position = "autosummary"
             continue
 
         if position == "autosummary":
-            if line_strip == "":
+            if line_stripped == "":
                 position = "items"
                 continue
 
         if position == "items":
-            if line_strip == "":
+            if line_stripped == "":
                 position = None
                 continue
-            item = line_strip.strip()
+            item = line_stripped.strip()
             if item in IGNORE_VALIDATION:
                 continue
             func = importlib.import_module(current_module)
@@ -143,7 +143,7 @@ def get_api_items(api_doc_fd):
                 current_subsection,
             )
 
-        previous_line = line_strip
+        previous_line = line_stripped
 
 
 class PandasDocstring(Validator):

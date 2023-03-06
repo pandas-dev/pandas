@@ -369,9 +369,9 @@ def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     Generate the list of files present in the source directory.
     """
     for root, dirs, fnames in os.walk(source_path):
-        root_new = os.path.relpath(root, source_path)
+        root_rel_path = os.path.relpath(root, source_path)
         for fname in fnames:
-            yield os.path.join(root_new, fname)
+            yield os.path.join(root_rel_path, fname)
 
 
 def extend_base_template(content: str, base_template: str) -> str:
@@ -430,8 +430,8 @@ def main(
                 content = extend_base_template(body, context["main"]["base_template"])
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
-            fname_split = os.path.splitext(fname)[0] + ".html"
-            with open(os.path.join(target_path, fname_split), "w") as f:
+            fname_splitted = os.path.splitext(fname)[0] + ".html"
+            with open(os.path.join(target_path, fname_splitted), "w") as f:
                 f.write(content)
         else:
             shutil.copy(
