@@ -1166,7 +1166,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
 
 
 cdef str _period_default_format(int64_t value, int freq):
-    """A faster default formatting function leveraging string formatting."""
+    """A fast default formatting function leveraging string formatting."""
 
     cdef:
         int freq_group, quarter
