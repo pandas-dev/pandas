@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import collections
 from collections import abc
-import datetime
 import functools
 from io import StringIO
 import itertools
@@ -51,46 +50,6 @@ from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
     no_default,
-)
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    ColspaceArgType,
-    CompressionOptions,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    MergeHow,
-    NaPosition,
-    PythonFuncType,
-    QuantileInterpolation,
-    ReadBuffer,
-    Renamer,
-    Scalar,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
 )
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
@@ -235,6 +194,49 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    import datetime
+
+    from pandas._typing import (
+        AggFuncType,
+        AlignJoin,
+        AnyAll,
+        AnyArrayLike,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        ColspaceArgType,
+        CompressionOptions,
+        CorrelationMethod,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        FloatFormatType,
+        FormattersType,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        Level,
+        MergeHow,
+        NaPosition,
+        PythonFuncType,
+        QuantileInterpolation,
+        ReadBuffer,
+        Renamer,
+        Scalar,
+        SortKind,
+        StorageOptions,
+        Suffixes,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+        ValueKeyFunc,
+        WriteBuffer,
+        npt,
+    )
+
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
@@ -8247,7 +8249,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -8255,11 +8257,29 @@ Parrot 2  Parrot       24.0
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            if axis == 1:
+                warnings.warn(
+                    "DataFrame.groupby with axis=1 is deprecated. Do "
+                    "`frame.T.groupby(...)` without axis instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "The 'axis' keyword in DataFrame.groupby is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
+
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        axis = self._get_axis_number(axis)
 
         return DataFrameGroupBy(
             obj=self,

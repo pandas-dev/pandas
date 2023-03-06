@@ -25,15 +25,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Frequency,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -60,6 +51,16 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Frequency,
+        IntervalClosedType,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
+    )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
