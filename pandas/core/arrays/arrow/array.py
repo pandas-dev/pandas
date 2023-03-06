@@ -299,9 +299,19 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             # "coerce" to allow "null times" (None) to not raise
             scalars = to_time(strings, errors="coerce")
         elif pa.types.is_boolean(pa_type):
-            from pandas.core.arrays import BooleanArray
-
-            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+            # pyarrow string->bool casting is case-insensitive:
+            #   "true" or "1" -> True
+            #   "false" or "0" -> False
+            # Note: BooleanArray was previously used to parse these strings
+            #   and allows "1.0" and "0.0". Pyarrow casting does not support
+            #   this, but we allow it here.
+            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                scalars = strings
+            else:
+                scalars = pa.array(strings, type=pa.string(), from_pandas=True)
+            scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
+            scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
+            scalars = scalars.cast(pa.bool_())
         elif (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
