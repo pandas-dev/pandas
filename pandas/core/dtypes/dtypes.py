@@ -857,21 +857,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, freq=None):
+    def __new__(cls, freq):
         """
         Parameters
         ----------
-        freq : frequency
+        freq : PeriodDtype, BaseOffset, or string
         """
         if isinstance(freq, PeriodDtype):
             return freq
-
-        elif freq is None:
-            # empty constructor for pickle compat
-            # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = PeriodDtypeBase.__new__(cls, -10_000)
-            u._freq = None
-            return u
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -907,7 +900,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             if freq_offset is not None:
                 return freq_offset
 
-        raise ValueError("could not construct PeriodDtype")
+        raise TypeError(
+            "PeriodDtype argument should be string or BaseOffet, "
+            f"got {type(freq).__name__}"
+        )
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> PeriodDtype:
