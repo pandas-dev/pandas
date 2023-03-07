@@ -889,3 +889,517 @@ _shared_docs[
     Beef              co2_emissions
     dtype: object
 """
+
+window_doc = """
+Provide rolling window calculations.
+
+Parameters
+----------
+window : int, timedelta, str, offset, or BaseIndexer subclass
+    Size of the moving window.
+
+    If an integer, the fixed number of observations used for
+    each window.
+
+    If a timedelta, str, or offset, the time period of each window. Each
+    window will be a variable sized based on the observations included in
+    the time-period. This is only valid for datetimelike indexes.
+    To learn more about the offsets & frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+
+    If a BaseIndexer subclass, the window boundaries
+    based on the defined ``get_window_bounds`` method. Additional rolling
+    keyword arguments, namely ``min_periods``, ``center``, ``closed`` and
+    ``step`` will be passed to ``get_window_bounds``.
+
+min_periods : int, default None
+    Minimum number of observations in window required to have a value;
+    otherwise, result is ``np.nan``.
+
+    For a window that is specified by an offset, ``min_periods`` will default to 1.
+
+    For a window that is specified by an integer, ``min_periods`` will default
+    to the size of the window.
+
+center : bool, default False
+    If False, set the window labels as the right edge of the window index.
+
+    If True, set the window labels as the center of the window index.
+
+win_type : str, default None
+    If ``None``, all points are evenly weighted.
+
+    If a string, it must be a valid `scipy.signal window function
+    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
+
+    Certain Scipy window types require additional parameters to be passed
+    in the aggregation function. The additional parameters must match
+    the keywords specified in the Scipy window type method signature.
+
+on : str, optional
+    For a DataFrame, a column label or Index level on which
+    to calculate the rolling window, rather than the DataFrame's index.
+
+    Provided integer column is ignored and excluded from result since
+    an integer index is not used to calculate the rolling window.
+
+axis : int or str, default 0
+    If ``0`` or ``'index'``, roll across the rows.
+
+    If ``1`` or ``'columns'``, roll across the columns.
+
+    For `Series` this parameter is unused and defaults to 0.
+
+closed : str, default None
+    If ``'right'``, the first point in the window is excluded from calculations.
+
+    If ``'left'``, the last point in the window is excluded from calculations.
+
+    If ``'both'``, the no points in the window are excluded from calculations.
+
+    If ``'neither'``, the first and last points in the window are excluded
+    from calculations.
+
+    Default ``None`` (``'right'``).
+
+    .. versionchanged:: 1.2.0
+
+        The closed parameter with fixed windows is now supported.
+
+step : int, default None
+
+    .. versionadded:: 1.5.0
+
+    Evaluate the window at every ``step`` result, equivalent to slicing as
+    ``[::step]``. ``window`` must be an integer. Using a step argument other
+    than None or 1 will produce a result with a different shape than the input.
+
+method : str {'single', 'table'}, default 'single'
+
+    .. versionadded:: 1.3.0
+
+    Execute the rolling operation per single column or row (``'single'``)
+    or over the entire object (``'table'``).
+
+    This argument is only implemented when specifying ``engine='numba'``
+    in the method call.
+
+Returns
+-------
+``Window`` subclass if a ``win_type`` is passed
+
+``Rolling`` subclass if ``win_type`` is not passed
+
+See Also
+--------
+expanding : Provides expanding transformations.
+ewm : Provides exponential weighted functions.
+
+Notes
+-----
+See :ref:`Windowing Operations <window.generic>` for further usage details
+and examples.
+
+Examples
+--------
+>>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+>>> df
+     B
+0  0.0
+1  1.0
+2  2.0
+3  NaN
+4  4.0
+
+**window**
+
+Rolling sum with a window length of 2 observations.
+
+>>> df.rolling(2).sum()
+     B
+0  NaN
+1  1.0
+2  3.0
+3  NaN
+4  NaN
+
+Rolling sum with a window span of 2 seconds.
+
+>>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+...                        index = [pd.Timestamp('20130101 09:00:00'),
+...                                 pd.Timestamp('20130101 09:00:02'),
+...                                 pd.Timestamp('20130101 09:00:03'),
+...                                 pd.Timestamp('20130101 09:00:05'),
+...                                 pd.Timestamp('20130101 09:00:06')])
+
+>>> df_time
+                       B
+2013-01-01 09:00:00  0.0
+2013-01-01 09:00:02  1.0
+2013-01-01 09:00:03  2.0
+2013-01-01 09:00:05  NaN
+2013-01-01 09:00:06  4.0
+
+>>> df_time.rolling('2s').sum()
+                       B
+2013-01-01 09:00:00  0.0
+2013-01-01 09:00:02  1.0
+2013-01-01 09:00:03  3.0
+2013-01-01 09:00:05  NaN
+2013-01-01 09:00:06  4.0
+
+Rolling sum with forward looking windows with 2 observations.
+
+>>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+>>> df.rolling(window=indexer, min_periods=1).sum()
+     B
+0  1.0
+1  3.0
+2  2.0
+3  4.0
+4  4.0
+
+**min_periods**
+
+Rolling sum with a window length of 2 observations, but only needs a minimum of 1
+observation to calculate a value.
+
+>>> df.rolling(2, min_periods=1).sum()
+     B
+0  0.0
+1  1.0
+2  3.0
+3  2.0
+4  4.0
+
+**center**
+
+Rolling sum with the result assigned to the center of the window index.
+
+>>> df.rolling(3, min_periods=1, center=True).sum()
+     B
+0  1.0
+1  3.0
+2  3.0
+3  6.0
+4  4.0
+
+>>> df.rolling(3, min_periods=1, center=False).sum()
+     B
+0  0.0
+1  1.0
+2  3.0
+3  3.0
+4  6.0
+
+**step**
+
+Rolling sum with a window length of 2 observations, minimum of 1 observation to
+calculate a value, and a step of 2.
+
+>>> df.rolling(2, min_periods=1, step=2).sum()
+     B
+0  0.0
+2  3.0
+4  4.0
+
+**win_type**
+
+Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
+window type. ``std`` is required in the aggregation function.
+
+>>> df.rolling(2, win_type='gaussian').sum(std=3)
+          B
+0       NaN
+1  0.986207
+2  2.958621
+3       NaN
+4       NaN
+
+**on**
+
+Rolling sum with a window length of 2 days.
+
+>>> df = pd.DataFrame({
+...     'A': [pd.to_datetime('2020-01-01'),
+...           pd.to_datetime('2020-01-01'),
+...           pd.to_datetime('2020-01-02'),],
+...     'B': [1, 2, 3], },
+...     index=pd.date_range('2020', periods=3))
+
+>>> df
+                    A  B
+2020-01-01 2020-01-01  1
+2020-01-02 2020-01-01  2
+2020-01-03 2020-01-02  3
+
+>>> df.rolling('2D', on='A').sum()
+                    A    B
+2020-01-01 2020-01-01  1.0
+2020-01-02 2020-01-01  3.0
+2020-01-03 2020-01-02  6.0
+"""
+
+
+expanding_doc = """
+Provide expanding window calculations.
+
+Parameters
+----------
+min_periods : int, default 1
+    Minimum number of observations in window required to have a value;
+    otherwise, result is ``np.nan``.
+
+axis : int or str, default 0
+    If ``0`` or ``'index'``, roll across the rows.
+
+    If ``1`` or ``'columns'``, roll across the columns.
+
+    For `Series` this parameter is unused and defaults to 0.
+
+method : str {'single', 'table'}, default 'single'
+    Execute the rolling operation per single column or row (``'single'``)
+    or over the entire object (``'table'``).
+
+    This argument is only implemented when specifying ``engine='numba'``
+    in the method call.
+
+    .. versionadded:: 1.3.0
+
+Returns
+-------
+``Expanding`` subclass
+
+See Also
+--------
+rolling : Provides rolling window calculations.
+ewm : Provides exponential weighted functions.
+
+Notes
+-----
+See :ref:`Windowing Operations <window.expanding>` for further usage details
+and examples.
+
+Examples
+--------
+>>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
+>>> df
+     B
+0  0.0
+1  1.0
+2  2.0
+3  NaN
+4  4.0
+
+**min_periods**
+
+Expanding sum with 1 vs 3 observations needed to calculate a value.
+
+>>> df.expanding(1).sum()
+     B
+0  0.0
+1  1.0
+2  3.0
+3  3.0
+4  7.0
+>>> df.expanding(3).sum()
+     B
+0  NaN
+1  NaN
+2  3.0
+3  3.0
+4  7.0
+"""
+
+exponential_moving_window_doc = r"""
+Provide exponentially weighted (EW) calculations.
+
+Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
+provided if ``times`` is not provided. If ``times`` is provided,
+``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
+
+Parameters
+----------
+com : float, optional
+    Specify decay in terms of center of mass
+
+    :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
+
+span : float, optional
+    Specify decay in terms of span
+
+    :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
+
+halflife : float, str, timedelta, optional
+    Specify decay in terms of half-life
+
+    :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
+    :math:`halflife > 0`.
+
+    If ``times`` is specified, a timedelta convertible unit over which an
+    observation decays to half its value. Only applicable to ``mean()``,
+    and halflife value will not apply to the other functions.
+
+    .. versionadded:: 1.1.0
+
+alpha : float, optional
+    Specify smoothing factor :math:`\alpha` directly
+
+    :math:`0 < \alpha \leq 1`.
+
+min_periods : int, default 0
+    Minimum number of observations in window required to have a value;
+    otherwise, result is ``np.nan``.
+
+adjust : bool, default True
+    Divide by decaying adjustment factor in beginning periods to account
+    for imbalance in relative weightings (viewing EWMA as a moving average).
+
+    - When ``adjust=True`` (default), the EW function is calculated using weights
+      :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
+      [:math:`x_0, x_1, ..., x_t`] would be:
+
+    .. math::
+        y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
+        \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+
+    - When ``adjust=False``, the exponentially weighted function is calculated
+      recursively:
+
+    .. math::
+        \begin{split}
+            y_0 &= x_0\\
+            y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+        \end{split}
+ignore_na : bool, default False
+    Ignore missing values when calculating weights.
+
+    - When ``ignore_na=False`` (default), weights are based on absolute positions.
+      For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
+      the final weighted average of [:math:`x_0`, None, :math:`x_2`] are
+      :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
+      :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+
+    - When ``ignore_na=True``, weights are based
+      on relative positions. For example, the weights of :math:`x_0` and :math:`x_2`
+      used in calculating the final weighted average of
+      [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
+      ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
+
+axis : {0, 1}, default 0
+    If ``0`` or ``'index'``, calculate across the rows.
+
+    If ``1`` or ``'columns'``, calculate across the columns.
+
+    For `Series` this parameter is unused and defaults to 0.
+
+times : np.ndarray, Series, default None
+
+    .. versionadded:: 1.1.0
+
+    Only applicable to ``mean()``.
+
+    Times corresponding to the observations. Must be monotonically increasing and
+    ``datetime64[ns]`` dtype.
+
+    If 1-D array like, a sequence with the same shape as the observations.
+
+method : str {'single', 'table'}, default 'single'
+    .. versionadded:: 1.4.0
+
+    Execute the rolling operation per single column or row (``'single'``)
+    or over the entire object (``'table'``).
+
+    This argument is only implemented when specifying ``engine='numba'``
+    in the method call.
+
+    Only applicable to ``mean()``
+
+Returns
+-------
+``ExponentialMovingWindow`` subclass
+
+See Also
+--------
+rolling : Provides rolling window calculations.
+expanding : Provides expanding transformations.
+
+Notes
+-----
+See :ref:`Windowing Operations <window.exponentially_weighted>`
+for further usage details and examples.
+
+Examples
+--------
+>>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+>>> df
+     B
+0  0.0
+1  1.0
+2  2.0
+3  NaN
+4  4.0
+
+>>> df.ewm(com=0.5).mean()
+          B
+0  0.000000
+1  0.750000
+2  1.615385
+3  1.615385
+4  3.670213
+>>> df.ewm(alpha=2 / 3).mean()
+          B
+0  0.000000
+1  0.750000
+2  1.615385
+3  1.615385
+4  3.670213
+
+**adjust**
+
+>>> df.ewm(com=0.5, adjust=True).mean()
+          B
+0  0.000000
+1  0.750000
+2  1.615385
+3  1.615385
+4  3.670213
+>>> df.ewm(com=0.5, adjust=False).mean()
+          B
+0  0.000000
+1  0.666667
+2  1.555556
+3  1.555556
+4  3.650794
+
+**ignore_na**
+
+>>> df.ewm(com=0.5, ignore_na=True).mean()
+          B
+0  0.000000
+1  0.750000
+2  1.615385
+3  1.615385
+4  3.225000
+>>> df.ewm(com=0.5, ignore_na=False).mean()
+          B
+0  0.000000
+1  0.750000
+2  1.615385
+3  1.615385
+4  3.670213
+
+**times**
+
+Exponentially weighted mean with weights calculated with a timedelta ``halflife``
+relative to ``times``.
+
+>>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+>>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+          B
+0  0.000000
+1  0.585786
+2  1.523889
+3  1.523889
+4  3.233686
+"""

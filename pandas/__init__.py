@@ -98,11 +98,9 @@ from pandas.core.api import (
     to_timedelta,
     # misc
     Flags,
-    Grouper,
     factorize,
     unique,
     value_counts,
-    NamedAgg,
     array,
     Categorical,
     set_eng_float_format,
@@ -182,6 +180,15 @@ v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
+
+
+def __getattr__(name: str):
+    # Lazify imports to speed "import pandas as pd"
+    if name in ("Grouper", "NamedAgg"):
+        import pandas.core.groupby
+
+        return getattr(pandas.core.groupby, name)
+    raise AttributeError(name)
 
 
 # module level doc-string

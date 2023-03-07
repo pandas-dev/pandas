@@ -90,7 +90,10 @@ from pandas.errors import (
     SettingWithCopyError,
     SettingWithCopyWarning,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
@@ -171,14 +174,13 @@ from pandas.core.missing import (
 )
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
-from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import get_indexer_indexer
-from pandas.core.window import (
-    Expanding,
-    ExponentialMovingWindow,
-    Rolling,
-    Window,
+from pandas.core.shared_docs import (
+    _shared_docs,
+    expanding_doc,
+    exponential_moving_window_doc,
+    window_doc,
 )
+from pandas.core.sorting import get_indexer_indexer
 
 from pandas.io.formats.format import (
     DataFrameFormatter,
@@ -193,6 +195,12 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
+    from pandas.core.window import (
+        Expanding,
+        ExponentialMovingWindow,
+        Rolling,
+        Window,
+    )
 
     from pandas.io.pytables import HDFStore
 
@@ -11868,7 +11876,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         setattr(cls, "min", min)
 
     @final
-    @doc(Rolling)
+    @Appender(window_doc)
     def rolling(
         self,
         window: int | dt.timedelta | str | BaseOffset | BaseIndexer,
@@ -11881,6 +11889,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
+        from pandas.core.window import (
+            Rolling,
+            Window,
+        )
+
         axis = self._get_axis_number(axis)
 
         if win_type is not None:
@@ -11911,18 +11924,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(Expanding)
+    @Appender(expanding_doc)
     def expanding(
         self,
         min_periods: int = 1,
         axis: Axis = 0,
         method: str = "single",
     ) -> Expanding:
+        from pandas.core.window import Expanding
+
         axis = self._get_axis_number(axis)
         return Expanding(self, min_periods=min_periods, axis=axis, method=method)
 
     @final
-    @doc(ExponentialMovingWindow)
+    @Appender(exponential_moving_window_doc)
     def ewm(
         self,
         com: float | None = None,
@@ -11936,6 +11951,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         times: np.ndarray | DataFrame | Series | None = None,
         method: str = "single",
     ) -> ExponentialMovingWindow:
+        from pandas.core.window import ExponentialMovingWindow
+
         axis = self._get_axis_number(axis)
         return ExponentialMovingWindow(
             self,

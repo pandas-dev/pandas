@@ -44,10 +44,6 @@ from pandas.core.arrays.integer import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array
 from pandas.core.flags import Flags
-from pandas.core.groupby import (
-    Grouper,
-    NamedAgg,
-)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     DatetimeIndex,
@@ -80,7 +76,18 @@ from pandas.tseries.offsets import DateOffset
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
 
-__all__ = [
+
+def __getattr__(name: str):
+    # Lazify these so that we can avoid importing groupby at import-time
+    if name in ("Grouper", "NamedAgg"):
+        import pandas.core.groupby
+
+        return getattr(pandas.core.groupby, name)
+    else:
+        raise AttributeError(name)
+
+
+__all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "array",
     "ArrowDtype",
     "bdate_range",

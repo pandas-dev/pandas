@@ -31,7 +31,6 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
-from pandas.core.groupby import Grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -142,6 +141,8 @@ def __internal_pivot_table(
         for i in values:
             if i not in data:
                 raise KeyError(i)
+
+        from pandas.core.groupby import Grouper
 
         to_filter = []
         for x in keys + values:
@@ -483,6 +484,8 @@ def _generate_marginal_results_without_values(
 
 
 def _convert_by(by):
+    from pandas.core.groupby import Grouper
+
     if by is None:
         by = []
     elif (
