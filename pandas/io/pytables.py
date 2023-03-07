@@ -2196,7 +2196,6 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-
             elif value is not None or existing_value is not None:
                 idx[key] = value
 
