@@ -29,7 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
--
+- Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -92,6 +92,9 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
+- Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
+- Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
 -
 
@@ -106,6 +109,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)
 - Performance improvement in :meth:`read_orc` when reading a remote URI file path. (:issue:`51609`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
+- Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -141,7 +145,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 -
 
 Strings
@@ -176,7 +180,8 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
+- Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 -
 
 Plotting
@@ -187,6 +192,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
+- Bug in weighted rolling aggregations when specifying ``min_periods=0`` (:issue:`51449`)
 -
 
 Reshaping
