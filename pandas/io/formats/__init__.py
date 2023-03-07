@@ -1,5 +1,9 @@
-# import modules that have public classes/functions
-from pandas.io.formats import style
+# ruff: noqa: TCH004
+from typing import TYPE_CHECKING
 
-# and mark only those modules as public
-__all__ = ["style"]
+if TYPE_CHECKING:
+    # import modules that have public classes/functions
+    from pandas.io.formats import style
+
+    # and mark only those modules as public
+    __all__ = ["style"]
