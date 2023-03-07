@@ -8,10 +8,11 @@ authors
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -31,6 +32,9 @@ from pandas.core.internals.blocks import (
     get_block_type,
     maybe_coerce_values,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import Dtype
 
 
 def make_block(

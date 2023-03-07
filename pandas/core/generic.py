@@ -2204,7 +2204,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with pd.ExcelWriter('output.xlsx',
         ...                     mode='a') as writer:  # doctest: +SKIP
-        ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+        ...     df1.to_excel(writer, sheet_name='Sheet_name_3')
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
@@ -5864,9 +5864,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the {klass}.
-        args : iterable, optional
+        *args : iterable, optional
             Positional arguments passed into ``func``.
-        kwargs : mapping, optional
+        **kwargs : mapping, optional
             A dictionary of keyword arguments passed into ``func``.
 
         Returns
@@ -5883,25 +5883,70 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         Use ``.pipe`` when chaining together functions that expect
-        Series, DataFrames or GroupBy objects. Instead of writing
+        Series, DataFrames or GroupBy objects.
 
-        >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+        Examples
+        --------
+        Constructing a income DataFrame from a dictionary.
+
+        >>> data = [[8000, 1000], [9500, np.nan], [5000, 2000]]
+        >>> df = pd.DataFrame(data, columns=['Salary', 'Others'])
+        >>> df
+           Salary  Others
+        0    8000  1000.0
+        1    9500     NaN
+        2    5000  2000.0
+
+        Functions that perform tax reductions on an income DataFrame.
+
+        >>> def subtract_federal_tax(df):
+        ...     return df * 0.9
+        >>> def subtract_state_tax(df, rate):
+        ...     return df * (1 - rate)
+        >>> def subtract_national_insurance(df, rate, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return df * (1 - new_rate)
+
+        Instead of writing
+
+        >>> subtract_national_insurance(
+        ...     subtract_state_tax(subtract_federal_tax(df), rate=0.12),
+        ...     rate=0.05,
+        ...     rate_increase=0.02)  # doctest: +SKIP
 
         You can write
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe(func, arg2=b, arg3=c)
-        ... )  # doctest: +SKIP
+        >>> (
+        ...     df.pipe(subtract_federal_tax)
+        ...     .pipe(subtract_state_tax, rate=0.12)
+        ...     .pipe(subtract_national_insurance, rate=0.05, rate_increase=0.02)
+        ... )
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
-        data. For example, suppose ``func`` takes its data as ``arg2``:
+        data. For example, suppose ``national_insurance`` takes its data as ``df``
+        in the second argument:
 
-        >>> (df.pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
-        ...  )  # doctest: +SKIP
+        >>> def subtract_national_insurance(rate, df, rate_increase):
+        ...     new_rate = rate + rate_increase
+        ...     return df * (1 - new_rate)
+        >>> (
+        ...     df.pipe(subtract_federal_tax)
+        ...     .pipe(subtract_state_tax, rate=0.12)
+        ...     .pipe(
+        ...         (subtract_national_insurance, 'df'),
+        ...         rate=0.05,
+        ...         rate_increase=0.02
+        ...     )
+        ... )
+            Salary   Others
+        0  5892.48   736.56
+        1  6997.32      NaN
+        2  3682.80  1473.12
         """
         if using_copy_on_write():
             return common.pipe(self.copy(deep=None), func, *args, **kwargs)
@@ -11337,7 +11382,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
-            examples="",
+            examples="""
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.sem().round(6)
+            0.57735
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': [2, 3]}, index=['tiger', 'zebra'])
+            >>> df
+                   a   b
+            tiger  1   2
+            zebra  2   3
+            >>> df.sem()
+            a   0.5
+            b   0.5
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.sem(axis=1)
+            tiger   0.5
+            zebra   0.5
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True`
+            to avoid getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2], 'b': ['T', 'Z']},
+            ...                   index=['tiger', 'zebra'])
+            >>> df.sem(numeric_only=True)
+            a   0.5
+            dtype: float64""",
         )
         def sem(
             self,
@@ -11570,7 +11649,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis_descr=axis_descr,
             min_count="",
             see_also="",
-            examples="",
+            examples="""
+
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.skew()
+            0.0
+
+            With a DataFrame
+
+            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4], 'c': [1, 3, 5]},
+            ...                  index=['tiger', 'zebra', 'cow'])
+            >>> df
+                    a   b   c
+            tiger   1   2   1
+            zebra   2   3   3
+            cow     3   4   5
+            >>> df.skew()
+            a   0.0
+            b   0.0
+            c   0.0
+            dtype: float64
+
+            Using axis=1
+
+            >>> df.skew(axis=1)
+            tiger   1.732051
+            zebra  -1.732051
+            cow     0.000000
+            dtype: float64
+
+            In this case, `numeric_only` should be set to `True` to avoid
+            getting an error.
+
+            >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': ['T', 'Z', 'X']},
+            ...                  index=['tiger', 'zebra', 'cow'])
+            >>> df.skew(numeric_only=True)
+            a   0.0
+            dtype: float64""",
         )
         def skew(
             self,

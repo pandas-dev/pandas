@@ -79,8 +79,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
+    MSG='Validate docstrings (EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
@@ -93,8 +93,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.item \
         pandas.Series.pipe \
         pandas.Series.mode \
-        pandas.Series.sem \
-        pandas.Series.skew \
         pandas.Series.is_unique \
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
@@ -512,6 +510,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_factorized \
         pandas.api.extensions.ExtensionArray._from_sequence \
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
+        pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
@@ -541,8 +540,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
-        pandas.DataFrame.sem \
-        pandas.DataFrame.skew \
         pandas.DataFrame.backfill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
@@ -555,21 +552,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (EX02)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02 --ignore_functions \
-        pandas.DataFrame.plot.line \
-        pandas.Series.plot.line \
-        pandas.api.types.is_datetime64_any_dtype \
-        pandas.api.types.is_datetime64_ns_dtype \
-        pandas.api.types.is_datetime64tz_dtype \
-        pandas.plotting.andrews_curves \
-        pandas.plotting.autocorrelation_plot \
-        pandas.plotting.lag_plot \
-        pandas.plotting.parallel_coordinates \
-        pandas.plotting.radviz \
-        pandas.tseries.frequencies.to_offset
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -28,7 +28,7 @@ repos:
         types_or: [python, pyi]
         additional_dependencies: [black==23.1.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.244
+    rev: v0.0.253
     hooks:
     -   id: ruff
 -   repo: https://github.com/jendrikseipp/vulture
@@ -42,10 +42,10 @@ repos:
     rev: v2.2.2
     hooks:
     -   id: codespell
-        types_or: [python, rst, markdown]
+        types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.12.4
+    rev: v0.12.5
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -78,12 +78,12 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.16.1
+    rev: v2.16.2
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.16.1
+    rev: v2.16.2
     hooks:
     -   id: pylint
         alias: redefined-outer-name
@@ -342,11 +342,6 @@ repos:
             (?x)
             ^(asv_bench|pandas/tests|doc)/
             |scripts/validate_min_versions_in_sync\.py$
-    -   id: unwanted-patterns-strings-to-concatenate
-        name: Check for use of not concatenated strings
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        types_or: [python, cython]
     -   id: unwanted-patterns-strings-with-misplaced-whitespace
         name: Check for strings with misplaced spaces
         language: python
@@ -441,3 +436,10 @@ repos:
         types: [python]
         files: ^pandas/tests
         language: python
+    -   id: sort-whatsnew-items
+        name: sort whatsnew entries by issue number
+        entry: python -m scripts.sort_whatsnew_note
+        types: [rst]
+        language: python
+        files: ^doc/source/whatsnew/v
+        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
