@@ -816,7 +816,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             isinstance(keys, list)
             and len(keys) == 1
             or isinstance(level, list)
-            and len(level, list)
+            and len(level) == 1
         ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             # GH#51583 - when level is a list, return tuples even when length is 1
