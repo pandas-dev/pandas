@@ -54,6 +54,11 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     -------
     ndarray[int64]
     """
+    if tz is None or is_utc(tz) or stamps.size == 0:
+        # Much faster than going through the "standard" pattern below;
+        #  do this before initializing Localizer.
+        return stamps.copy()
+
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
@@ -61,10 +66,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 
         ndarray result
         cnp.broadcast mi
-
-    if tz is None or is_utc(tz) or stamps.size == 0:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
 
     result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
     mi = cnp.PyArray_MultiIterNew2(result, stamps)
