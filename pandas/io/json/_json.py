@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -961,16 +962,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 pa_table = pyarrow_json.read_json(self.data)
                 if self.use_nullable_dtypes:
                     if get_option("mode.dtype_backend") == "pyarrow":
-                        from pandas.arrays import ArrowExtensionArray
+                        return pa_table.to_pandas(types_mapper=ArrowDtype)
 
-                        return DataFrame(
-                            {
-                                col_name: ArrowExtensionArray(pa_col)
-                                for col_name, pa_col in zip(
-                                    pa_table.column_names, pa_table.itercolumns()
-                                )
-                            }
-                        )
                     elif get_option("mode.dtype_backend") == "pandas":
                         from pandas.io._util import _arrow_dtype_mapping
 

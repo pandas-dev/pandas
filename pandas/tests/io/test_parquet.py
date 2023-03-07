@@ -1034,14 +1034,7 @@ class TestParquetPyArrow(Base):
         df["bool_with_none"] = [True, None, True]
 
         pa_table = pyarrow.Table.from_pandas(df)
-        expected = pd.DataFrame(
-            {
-                col_name: pd.arrays.ArrowExtensionArray(pa_column)
-                for col_name, pa_column in zip(
-                    pa_table.column_names, pa_table.itercolumns()
-                )
-            }
-        )
+        expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         # pyarrow infers datetimes as us instead of ns
         expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
