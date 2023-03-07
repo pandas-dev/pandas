@@ -172,9 +172,9 @@ def test_groupby_overridden_methods():
         def max(self, *args, **kwargs):
             return 8
 
-    params = ["a", "b"]
+    columns = ["a", "b"]
     data = np.random.rand(4, 2)
-    udf = UnitDataFrame(data, columns=params)
+    udf = UnitDataFrame(data, columns=columns)
     udf["group"] = np.ones(4, dtype=int)
     udf.loc[2:, "group"] = 2
 
@@ -186,12 +186,12 @@ def test_groupby_overridden_methods():
     assert np.all(udf.groupby("group").prod() == 6)
     assert np.all(udf.groupby("group").min() == 7)
     assert np.all(udf.groupby("group").max() == 8)
-    for useries in udf:
-        assert np.all(useries.groupby("group").mean() == 1)
-        assert np.all(useries.groupby("group").median() == 2)
-        assert np.all(useries.groupby("group").std() == 3)
-        assert np.all(useries.groupby("group").var() == 4)
-        assert np.all(useries.groupby("group").sem() == 5)
-        assert np.all(useries.groupby("group").prod() == 6)
-        assert np.all(useries.groupby("group").min() == 7)
-        assert np.all(useries.groupby("group").max() == 8)
+
+    assert np.all(udf.groupby("group").transform("mean") == 1)
+    assert np.all(udf.groupby("group").transform("median") == 2)
+    assert np.all(udf.groupby("group").transform("std") == 3)
+    assert np.all(udf.groupby("group").transform("var") == 4)
+    assert np.all(udf.groupby("group").transform("sem") == 5)
+    assert np.all(udf.groupby("group").transform("prod") == 6)
+    assert np.all(udf.groupby("group").transform("min") == 7)
+    assert np.all(udf.groupby("group").transform("max") == 8)
