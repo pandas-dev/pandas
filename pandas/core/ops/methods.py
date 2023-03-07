@@ -36,6 +36,7 @@ from pandas.core import (
 from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     comparison_op,
+    fill_binop,
     get_array_op,
     logical_op,
     maybe_prepare_scalar_for_op,
@@ -428,7 +429,6 @@ class FrameOps:
             _arith_op = func
 
         else:
-            from pandas.core.ops import fill_binop
 
             def _arith_op(left, right):
                 # for the mixed_type case where we iterate over columns,
@@ -729,8 +729,6 @@ class SeriesOps:
             this, other = self.align(  # type: ignore[attr-defined]
                 other, level=level, join="outer", copy=False
             )
-
-        from pandas.core.ops import fill_binop
 
         this_vals, other_vals = fill_binop(this._values, other._values, fill_value)
 
