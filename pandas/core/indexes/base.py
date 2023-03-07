@@ -460,6 +460,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     str = CachedAccessor("str", StringMethods)
 
+    _references = None
+
     # --------------------------------------------------------------------
     # Constructors
 
