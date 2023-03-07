@@ -2709,6 +2709,22 @@ def test_single_element_list_grouping():
     assert result == expected
 
 
+def test_single_element_list_level_grouping():
+    # GH 51583
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    result = [key for key, _ in df.groupby(level=[0])]
+    expected = [("x",), ("y",)]
+    assert result == expected
+
+
+def test_single_element_list_multiindex_level_grouping():
+    # GH 51583
+    df = MultiIndex.from_product([[1, 2], [3, 4]], names=["x", "y"]).to_frame()
+    result = [key for key, _ in df.groupby(level=[0])]
+    expected = [(1,), (2,)]
+    assert result == expected
+
+
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])
 def test_groupby_avoid_casting_to_float(func):
     # GH#37493
