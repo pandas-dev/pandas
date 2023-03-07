@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from pandas._typing import ReadBuffer
+from typing import TYPE_CHECKING
+
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
@@ -12,6 +13,9 @@ from pandas import (
 )
 
 from pandas.io.parsers.base_parser import ParserBase
+
+if TYPE_CHECKING:
+    from pandas._typing import ReadBuffer
 
 
 class ArrowParserWrapper(ParserBase):
