@@ -74,7 +74,6 @@ __all__ = [
     "kleene_or",
     "kleene_xor",
     "logical_op",
-    "maybe_dispatch_ufunc_to_dunder_op",
     "radd",
     "rand_",
     "rdiv",
