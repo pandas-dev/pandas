@@ -289,9 +289,8 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
+"pandas/core/*" = ["PLR5501", "PLW2901"]
 # TCH to be enabled gradually
-"pandas/core/*" = ["PLW2901"]
 "pandas/core/arrays/*" = ["TCH"]
 "pandas/core/nanops.py" = ["TCH"]
 "pandas/core/apply.py" = ["TCH"]
