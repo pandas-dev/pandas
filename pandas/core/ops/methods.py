@@ -45,6 +45,8 @@ from pandas.core.ops.common import get_op_result_name
 from pandas.core.ops.docstrings import make_flex_doc
 
 if TYPE_CHECKING:
+    from pandas._libs.properties import AxisProperty
+
     from pandas import (
         DataFrame,
         Series,
@@ -56,8 +58,12 @@ if TYPE_CHECKING:
 
 
 class FrameOps:
+    _constructor: Callable[..., DataFrame]
     _get_axis_number: Callable[[Any], int]
     _mgr: BlockManager | ArrayManager
+    index: AxisProperty
+    columns: AxisProperty
+    shape: tuple[int, int]
 
     def _cmp_method(self, other, op):
         axis: Literal[1] = 1  # only relevant for Series other case
@@ -75,8 +81,7 @@ class FrameOps:
         axis: Literal[1] = 1  # only relevant for Series other case
         other = maybe_prepare_scalar_for_op(
             other,
-            # error: "FrameOps" has no attribute "shape"
-            (self.shape[axis],),  # type: ignore[attr-defined]
+            (self.shape[axis],),
         )
 
         self, other = self._align_for_op(other, axis, flex=True, level=None)
@@ -145,10 +150,8 @@ class FrameOps:
             # TODO: any other cases we should handle here?
 
             # Intersection is always unique so we have to check the unique columns
-            # error: "FrameOps" has no attribute "columns"
-            left_uniques = self.columns.unique()  # type: ignore[attr-defined]
-            # error: "FrameOps" has no attribute "columns"
-            right_uniques = right.columns.unique()  # type: ignore[attr-defined]
+            left_uniques = self.columns.unique()
+            right_uniques = right.columns.unique()
             cols = left_uniques.intersection(right_uniques)
             if len(cols) and not (
                 len(cols) == len(left_uniques) and len(cols) == len(right_uniques)
@@ -318,16 +321,12 @@ class FrameOps:
         else:
             rvalues = rvalues.reshape(1, -1)
 
-        # error: "FrameOps" has no attribute "shape"
-        rvalues = np.broadcast_to(rvalues, self.shape)  # type: ignore[attr-defined]
+        rvalues = np.broadcast_to(rvalues, self.shape)
         # pass dtype to avoid doing inference
-        # error: "FrameOps" has no attribute "_constructor"
-        return self._constructor(  # type: ignore[attr-defined]
+        return self._constructor(
             rvalues,
-            # error: "FrameOps" has no attribute "index"
-            index=self.index,  # type: ignore[attr-defined]
-            # error: "FrameOps" has no attribute "columns"
-            columns=self.columns,  # type: ignore[attr-defined]
+            index=self.index,
+            columns=self.columns,
             dtype=rvalues.dtype,
         )
 
@@ -354,14 +353,11 @@ class FrameOps:
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
-            # error: "FrameOps" has no attribute "_constructor"
-            return self._constructor(bm)  # type: ignore[attr-defined]
+            return self._constructor(bm)
 
         elif isinstance(right, FrameOps):
-            # error: "FrameOps" has no attribute "index"
-            assert self.index.equals(right.index)  # type: ignore[attr-defined]
-            # error: "FrameOps" has no attribute "columns"
-            assert self.columns.equals(right.columns)  # type: ignore[attr-defined]
+            assert self.index.equals(right.index)
+            assert self.columns.equals(right.columns)
             # TODO: The previous assertion `assert right._indexed_same(self)`
             #  fails in cases with empty columns reached via
             #  _arith_method_with_reindex
@@ -378,13 +374,11 @@ class FrameOps:
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
-            # error: "FrameOps" has no attribute "_constructor"
-            return self._constructor(bm)  # type: ignore[attr-defined]
+            return self._constructor(bm)
 
         elif isinstance(right, SeriesOps) and axis == 1:
             # axis=1 means we want to operate row-by-row
-            # error: "FrameOps" has no attribute "columns"
-            assert right.index.equals(self.columns)  # type: ignore[attr-defined]
+            assert right.index.equals(self.columns)
 
             right = right._values
             # maybe_align_as_frame ensures we do not have an ndarray here
@@ -398,8 +392,7 @@ class FrameOps:
                 ]
 
         elif isinstance(right, SeriesOps):
-            # error: "FrameOps" has no attribute "index"
-            assert right.index.equals(self.index)  # type: ignore[attr-defined]
+            assert right.index.equals(self.index)
             right = right._values
 
             # error: "FrameOps" has no attribute "_iter_column_arrays"
@@ -413,10 +406,8 @@ class FrameOps:
         # error: "Type[FrameOps]" has no attribute "_from_arrays"
         return type(self)._from_arrays(  # type: ignore[attr-defined]
             arrays,
-            # error: "FrameOps" has no attribute "columns"
-            self.columns,  # type: ignore[attr-defined]
-            # error: "FrameOps" has no attribute "index"
-            self.index,  # type: ignore[attr-defined]
+            self.columns,
+            self.index,
             verify_integrity=False,
         )
 
@@ -452,15 +443,12 @@ class FrameOps:
         -------
         DataFrame
         """
-        # error: "FrameOps" has no attribute "_constructor"
-        out = self._constructor(result, copy=False)  # type: ignore[attr-defined]
+        out = self._constructor(result, copy=False)
         out = out.__finalize__(self)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
-        # error: "FrameOps" has no attribute "columns"
-        out.columns = self.columns  # type: ignore[attr-defined]
-        # error: "FrameOps" has no attribute "index"
-        out.index = self.index  # type: ignore[attr-defined]
+        out.columns = self.columns
+        out.index = self.index
         return out
 
     def __divmod__(self, other) -> tuple[DataFrame, DataFrame]:
@@ -490,8 +478,7 @@ class FrameOps:
 
         other = maybe_prepare_scalar_for_op(
             other,
-            # error: "FrameOps" has no attribute "shape"
-            self.shape,  # type: ignore[attr-defined]
+            self.shape,
         )
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
@@ -638,8 +625,10 @@ class FrameOps:
 
 
 class SeriesOps:
+    _constructor: Callable[..., Series]
     _get_axis_number: Callable[[Any], int]
     _values: ArrayLike
+    index: AxisProperty
 
     def _cmp_method(self, other, op):
         res_name = get_op_result_name(self, other)
@@ -683,8 +672,7 @@ class SeriesOps:
 
         if isinstance(right, SeriesOps):
             # avoid repeated alignment
-            # error: "SeriesOps" has no attribute "index"
-            if not left.index.equals(right.index):  # type: ignore[attr-defined]
+            if not left.index.equals(right.index):
                 if align_asobject:
                     # to keep original value's dtype for bool ops
                     # error: "SeriesOps" has no attribute "astype"
@@ -723,8 +711,7 @@ class SeriesOps:
 
         this = self
 
-        # error: "SeriesOps" has no attribute "index"
-        if not self.index.equals(other.index):  # type: ignore[attr-defined]
+        if not self.index.equals(other.index):
             # error: "SeriesOps" has no attribute "align"
             this, other = self.align(  # type: ignore[attr-defined]
                 other, level=level, join="outer", copy=False
@@ -768,11 +755,9 @@ class SeriesOps:
         # TODO: result should always be ArrayLike, but this fails for some
         #  JSONArray tests
         dtype = getattr(result, "dtype", None)
-        # error: "SeriesOps" has no attribute "_constructor"
-        out = self._constructor(  # type: ignore[attr-defined]
+        out = self._constructor(
             result,
-            # error: "SeriesOps" has no attribute "index"
-            index=self.index,  # type: ignore[attr-defined]
+            index=self.index,
             dtype=dtype,
         )
         out = out.__finalize__(self)
@@ -795,8 +780,7 @@ class SeriesOps:
             # expected "Sized"
             if len(other) != len(self):  # type: ignore[arg-type]
                 raise ValueError("Lengths must be equal")
-            # error: "SeriesOps" has no attribute "index"
-            other = self._constructor(other, self.index)  # type: ignore[attr-defined]
+            other = self._constructor(other, self.index)
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result.name = res_name
             return result

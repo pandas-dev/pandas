@@ -552,7 +552,8 @@ class Series(SeriesOps, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
 
     @property
-    def _constructor(self) -> Callable[..., Series]:
+    # error: Cannot override writeable attribute with read-only property
+    def _constructor(self) -> Callable[..., Series]:  # type: ignore[override]
         return Series
 
     @property

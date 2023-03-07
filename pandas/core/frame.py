@@ -632,7 +632,8 @@ class DataFrame(NDFrame, FrameOps, OpsMixin):  # type: ignore[misc]
     _mgr: BlockManager | ArrayManager
 
     @property
-    def _constructor(self) -> Callable[..., DataFrame]:
+    # error: Cannot override writeable attribute with read-only property
+    def _constructor(self) -> Callable[..., DataFrame]:  # type: ignore[override]
         return DataFrame
 
     _constructor_sliced: Callable[..., Series] = Series
@@ -906,7 +907,8 @@ class DataFrame(NDFrame, FrameOps, OpsMixin):  # type: ignore[misc]
         return [self.index, self.columns]
 
     @property
-    def shape(self) -> tuple[int, int]:
+    # error: Cannot override writeable attribute with read-only property
+    def shape(self) -> tuple[int, int]:  # type: ignore[override]
         """
         Return a tuple representing the dimensionality of the DataFrame.
 
