@@ -76,6 +76,18 @@ the pyarrow array constructor on the :class:`Series` or :class:`Index`.
    idx = pd.Index(ser)
    pa.array(idx)
 
+To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`, you can call the
+:external+pyarrow:py:meth:`pyarrow.Table.to_pandas` method with ``types_mapper=pd.ArrowDtype``.
+
+.. ipython:: python
+
+   table = pa.table([pa.array([1, 2, 3], type=pa.int64())], names=["a"])
+
+   df = table.to_pandas(types_mapper=pd.ArrowDtype)
+   df
+   df.dtypes
+
+
 Operations
 ----------
 
