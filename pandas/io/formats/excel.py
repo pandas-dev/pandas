@@ -10,6 +10,7 @@ from functools import (
 import itertools
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -23,10 +24,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import (
-    IndexLabel,
-    StorageOptions,
-)
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -52,6 +49,12 @@ from pandas.io.formats.css import (
 )
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        IndexLabel,
+        StorageOptions,
+    )
 
 
 class ExcelCell:
