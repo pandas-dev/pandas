@@ -151,7 +151,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 -
 
 Strings

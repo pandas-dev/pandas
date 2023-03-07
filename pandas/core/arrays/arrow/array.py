@@ -81,10 +81,10 @@ if not pa_version_under7p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and_": pc.and_kleene,
+        "rand_": lambda x, y: pc.and_kleene(y, x),
+        "or_": pc.or_kleene,
+        "ror_": lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
@@ -501,7 +501,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, pa.array(other, from_pandas=True))
         elif is_scalar(other):
-            result = pc_func(self._data, pa.scalar(other))
+            if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
+                # pyarrow kleene ops require null to be typed
+                pa_scalar = pa.scalar(None, type=self._data.type)
+            else:
+                pa_scalar = pa.scalar(other)
+            result = pc_func(self._data, pa_scalar)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"

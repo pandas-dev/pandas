@@ -640,11 +640,7 @@ class TestBaseDtype(base.BaseDtypeTests):
         if (
             pa.types.is_date(pa_dtype)
             or pa.types.is_time(pa_dtype)
-            or (
-                pa.types.is_timestamp(pa_dtype)
-                and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
-            )
-            or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
             or pa.types.is_binary(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
@@ -1263,6 +1259,150 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             NotImplementedError, match=".* not implemented for <class 'object'>"
         ):
             comparison_op(data, object())
+
+
+class TestLogicalOps:
+    """Various Series and DataFrame logical ops methods."""
+
+    def test_kleene_or(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a | b
+        expected = pd.Series(
+            [True, True, True, True, False, None, True, None, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b | a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [True, None, None]),
+            (pd.NA, [True, None, None]),
+            (True, [True, True, True]),
+            (np.bool_(True), [True, True, True]),
+            (False, [True, False, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_or_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a | other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other | a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
+
+    def test_kleene_and(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a & b
+        expected = pd.Series(
+            [True, False, None, False, False, False, None, False, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b & a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [None, False, None]),
+            (pd.NA, [None, False, None]),
+            (True, [True, False, None]),
+            (False, [False, False, False]),
+            (np.bool_(True), [True, False, None]),
+            (np.bool_(False), [False, False, False]),
+        ],
+    )
+    def test_kleene_and_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a & other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other & a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
+
+    def test_kleene_xor(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a ^ b
+        expected = pd.Series(
+            [False, True, None, True, False, None, None, None, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b ^ a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [None, None, None]),
+            (pd.NA, [None, None, None]),
+            (True, [False, True, None]),
+            (np.bool_(True), [False, True, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_xor_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a ^ other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other ^ a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
