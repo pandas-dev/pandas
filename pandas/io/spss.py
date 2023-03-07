@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Sequence,
@@ -16,6 +15,8 @@ from pandas.core.dtypes.inference import is_list_like
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pandas import DataFrame
 
 

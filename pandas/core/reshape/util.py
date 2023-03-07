@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas._typing import NumpyIndexT
-
 from pandas.core.dtypes.common import is_list_like
+
+if TYPE_CHECKING:
+    from pandas._typing import NumpyIndexT
 
 
 def cartesian_product(X) -> list[np.ndarray]:

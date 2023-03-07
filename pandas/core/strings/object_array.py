@@ -16,10 +16,6 @@ import numpy as np
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import (
-    NpDtype,
-    Scalar,
-)
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
@@ -27,6 +23,11 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        NpDtype,
+        Scalar,
+    )
+
     from pandas import Series
 
 

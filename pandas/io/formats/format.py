@@ -49,19 +49,6 @@ from pandas._libs.tslibs import (
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -109,6 +96,20 @@ from pandas.io.common import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axes,
+        ColspaceArgType,
+        ColspaceType,
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        FormattersType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Sequence,
 )
@@ -9,12 +10,6 @@ from typing import (
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -26,6 +21,14 @@ from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @doc(storage_options=_shared_docs["storage_options"])

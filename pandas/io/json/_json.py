@@ -7,7 +7,6 @@ from abc import (
 from collections import abc
 from io import StringIO
 from itertools import islice
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -32,17 +31,6 @@ from pandas._libs.json import (
     loads,
 )
 from pandas._libs.tslibs import iNaT
-from pandas._typing import (
-    CompressionOptions,
-    DtypeArg,
-    FilePath,
-    IndexLabel,
-    JSONEngine,
-    JSONSerializable,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
@@ -83,6 +71,20 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionOptions,
+        DtypeArg,
+        FilePath,
+        IndexLabel,
+        JSONEngine,
+        JSONSerializable,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])

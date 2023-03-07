@@ -14,12 +14,6 @@ import numpy as np
 from pandas._config.config import get_option
 
 from pandas._libs import parsers
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    ReadCsvBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -44,6 +38,13 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        ReadCsvBuffer,
+    )
+
     from pandas import (
         Index,
         MultiIndex,

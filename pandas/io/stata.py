@@ -17,7 +17,6 @@ from io import BytesIO
 import os
 import struct
 import sys
-from types import TracebackType
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -36,13 +35,6 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.errors import (
     CategoricalConversionWarning,
     InvalidColumnName,
@@ -81,7 +73,16 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from types import TracebackType
     from typing import Literal
+
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "

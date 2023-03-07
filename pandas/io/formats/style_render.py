@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -22,10 +23,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    Level,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -46,6 +43,11 @@ from pandas import (
 from pandas.api.types import is_list_like
 import pandas.core.common as com
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        Level,
+    )
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 

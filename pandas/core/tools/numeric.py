@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -10,10 +13,6 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._typing import (
-    DateTimeErrorChoices,
-    npt,
-)
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -35,6 +34,12 @@ from pandas.core.dtypes.generic import (
 
 import pandas as pd
 from pandas.core.arrays import BaseMaskedArray
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        DateTimeErrorChoices,
+        npt,
+    )
 
 
 def to_numeric(

@@ -12,16 +12,11 @@ from __future__ import annotations
 from collections import abc
 from datetime import datetime
 import struct
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    CompressionOptions,
-    DatetimeNaTType,
-    FilePath,
-    ReadBuffer,
-)
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
@@ -30,6 +25,13 @@ import pandas as pd
 from pandas.io.common import get_handle
 from pandas.io.sas.sasreader import ReaderBase
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        DatetimeNaTType,
+        FilePath,
+        ReadBuffer,
+    )
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
     "000000000000000000000000000000  "

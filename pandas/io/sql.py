@@ -35,11 +35,6 @@ import numpy as np
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    DateTimeErrorChoices,
-    DtypeArg,
-    IndexLabel,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -72,6 +67,12 @@ if TYPE_CHECKING:
     from sqlalchemy.sql.expression import (
         Select,
         TextClause,
+    )
+
+    from pandas._typing import (
+        DateTimeErrorChoices,
+        DtypeArg,
+        IndexLabel,
     )
 
 

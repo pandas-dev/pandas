@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
@@ -14,17 +15,6 @@ from typing import (
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    TYPE_CHECKING,
-    CompressionOptions,
-    ConvertersArg,
-    DtypeArg,
-    FilePath,
-    ParseDatesArg,
-    ReadBuffer,
-    StorageOptions,
-    XMLParsers,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -50,6 +40,17 @@ if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
     from lxml import etree
+
+    from pandas._typing import (
+        CompressionOptions,
+        ConvertersArg,
+        DtypeArg,
+        FilePath,
+        ParseDatesArg,
+        ReadBuffer,
+        StorageOptions,
+        XMLParsers,
+    )
 
     from pandas import DataFrame
 
