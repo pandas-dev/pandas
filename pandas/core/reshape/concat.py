@@ -19,11 +19,6 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    HashableT,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
@@ -51,6 +46,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        HashableT,
+    )
+
     from pandas import (
         DataFrame,
         Series,
