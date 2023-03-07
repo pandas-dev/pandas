@@ -7,7 +7,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 import operator
-from typing import Any
+from typing import (
+    Any,
+    TYPE_CHECKING
+)
 
 import numpy as np
 
@@ -19,10 +22,6 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas._libs.tslibs import BaseOffset
-from pandas._typing import (
-    ArrayLike,
-    Shape,
-)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -55,6 +54,12 @@ from pandas.core.ops import (
 )
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Shape,
+    )
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):

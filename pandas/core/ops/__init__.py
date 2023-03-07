@@ -14,11 +14,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    Level,
-)
+
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -75,6 +71,11 @@ from pandas.core.roperator import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        Level,
+    )
     from pandas import (
         DataFrame,
         Series,
