@@ -328,9 +328,8 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg.format(q_arr / 100.0))
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q_arr / 100.0))
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
 
 

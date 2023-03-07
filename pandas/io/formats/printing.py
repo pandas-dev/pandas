@@ -272,10 +272,9 @@ def enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype] = TableSchemaFormatter()
         # enable it if it's been disabled:
         formatters[mimetype].enabled = True
-    else:
-        # unregister tableschema mime-type
-        if mimetype in formatters:
-            formatters[mimetype].enabled = False
+    # unregister tableschema mime-type
+    elif mimetype in formatters:
+        formatters[mimetype].enabled = False
 
 
 def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:

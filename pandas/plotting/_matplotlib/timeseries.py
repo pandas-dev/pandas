@@ -216,9 +216,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    else:  # do not use tsplot if irregular was plotted first
-        if (ax_freq is None) and (len(ax.get_lines()) > 0):
-            return False
+    # do not use tsplot if irregular was plotted first
+    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+        return False
 
     if freq is None:
         return False

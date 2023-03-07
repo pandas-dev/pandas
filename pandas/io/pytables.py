@@ -2197,9 +2197,8 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-            else:
-                if value is not None or existing_value is not None:
-                    idx[key] = value
+            elif value is not None or existing_value is not None:
+                idx[key] = value
 
     def set_info(self, info) -> None:
         """set my state from the passed info"""

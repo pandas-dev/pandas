@@ -29,11 +29,10 @@ class TestFloatIndexers:
         """
         if isinstance(original, Series):
             expected = original.iloc[indexer]
+        elif getitem:
+            expected = original.iloc[:, indexer]
         else:
-            if getitem:
-                expected = original.iloc[:, indexer]
-            else:
-                expected = original.iloc[indexer]
+            expected = original.iloc[indexer]
 
         tm.assert_almost_equal(result, expected)
 

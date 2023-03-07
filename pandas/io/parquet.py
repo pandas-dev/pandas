@@ -134,9 +134,8 @@ class BaseImpl:
                      each level of the MultiIndex
                     """
                 )
-        else:
-            if df.columns.inferred_type not in {"string", "empty"}:
-                raise ValueError("parquet must have string column names")
+        elif df.columns.inferred_type not in {"string", "empty"}:
+            raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
