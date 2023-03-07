@@ -1343,7 +1343,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 else:
                     # GH#32040, GH#35246
                     # e.g. test_groupby_as_index_select_column_sum_empty_df
-                    result = cast(self._obj_1d_constructor, result)
+                    result = cast(self._constructor, result)
                     result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
