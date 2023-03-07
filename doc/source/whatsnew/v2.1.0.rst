@@ -197,7 +197,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 -
 
 Sparse

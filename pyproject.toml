@@ -288,6 +288,8 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
+# to be enabled gradually
+"pandas/core/*" = ["PLR5501"]
 # TCH to be enabled gradually
 "pandas/core/*" = ["PLW2901"]
 "pandas/core/arrays/*" = ["TCH"]
@@ -299,11 +301,7 @@ exclude = [
 "pandas/core/sorting.py" = ["TCH"]
 "pandas/core/construction.py" = ["TCH"]
 "pandas/core/missing.py" = ["TCH"]
-"pandas/core/reshape/*" = ["TCH"]
-"pandas/core/strings/*" = ["TCH"]
-"pandas/core/tools/*" = ["TCH"]
-"pandas/core/window/*" = ["TCH"]
-"pandas/io/*" = ["TCH", "PLW2901"]
+"pandas/io/*" = ["PLW2901"]
 "pandas/tseries/*" = ["TCH"]
 "pandas/tests/*" = ["TCH", "PLW2901"]
 "pandas/plotting/*" = ["TCH", "PLW2901"]

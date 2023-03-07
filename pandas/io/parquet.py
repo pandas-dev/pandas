@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import os
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
@@ -12,12 +13,6 @@ from warnings import catch_warnings
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
@@ -38,6 +33,14 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 def get_engine(engine: str) -> BaseImpl:
@@ -131,9 +134,8 @@ class BaseImpl:
                      each level of the MultiIndex
                     """
                 )
-        else:
-            if df.columns.inferred_type not in {"string", "empty"}:
-                raise ValueError("parquet must have string column names")
+        elif df.columns.inferred_type not in {"string", "empty"}:
+            raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
