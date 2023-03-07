@@ -779,7 +779,7 @@ class SeriesOps:
 
         # Set the result's name after __finalize__ is called because __finalize__
         #  would set it back to self.name
-        out.name = name
+        out.name = name  # pyright: ignore[reportGeneralTypeIssues]
         return out
 
     def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
