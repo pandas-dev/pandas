@@ -29,9 +29,9 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
 )
 
-from pandas import RangeIndex
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame
+from pandas.core.indexes.api import default_index
 
 from pandas.io.common import (
     get_handle,
@@ -216,7 +216,7 @@ def to_orc(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not df.index.equals(RangeIndex.from_range(range(len(df)))):
+    if not df.index.equals(default_index(len(df))):
         raise ValueError(
             "orc does not support serializing a non-default index for the index; "
             "you can .reset_index() to make the index into column(s)"
