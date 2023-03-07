@@ -5,6 +5,7 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Literal,
     TypeVar,
     final,
@@ -12,12 +13,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Shape,
-)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import (
@@ -31,6 +26,13 @@ from pandas.core.indexes.api import (
     default_index,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Shape,
+    )
 T = TypeVar("T", bound="DataManager")
 
 
