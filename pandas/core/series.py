@@ -38,38 +38,6 @@ from pandas._libs.lib import (
     is_range_indexer,
     no_default,
 )
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    NaPosition,
-    QuantileInterpolation,
-    Renamer,
-    Scalar,
-    SingleManager,
-    SortKind,
-    StorageOptions,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
-)
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -175,10 +143,41 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from pandas._libs.internals import BlockValuesRefs
     from pandas._typing import (
+        AggFuncType,
+        AlignJoin,
+        AnyAll,
+        AnyArrayLike,
+        ArrayLike,
+        Axis,
+        AxisInt,
+        CorrelationMethod,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        Level,
+        NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
+        QuantileInterpolation,
+        Renamer,
+        Scalar,
+        SingleManager,
+        SortKind,
+        StorageOptions,
         Suffixes,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+        ValueKeyFunc,
+        WriteBuffer,
+        npt,
     )
 
     from pandas.core.frame import DataFrame
@@ -733,6 +732,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         """
         return self._mgr.internal_values()
+
+    @property
+    def _references(self) -> BlockValuesRefs | None:
+        if isinstance(self._mgr, SingleArrayManager):
+            return None
+        return self._mgr._block.refs
 
     # error: Decorated property not supported
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]

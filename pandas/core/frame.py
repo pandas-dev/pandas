@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import collections
 from collections import abc
-import datetime
 import functools
 from io import StringIO
 import itertools
@@ -51,46 +50,6 @@ from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
     no_default,
-)
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    ColspaceArgType,
-    CompressionOptions,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    MergeHow,
-    NaPosition,
-    PythonFuncType,
-    QuantileInterpolation,
-    ReadBuffer,
-    Renamer,
-    Scalar,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
 )
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
@@ -235,6 +194,49 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    import datetime
+
+    from pandas._typing import (
+        AggFuncType,
+        AlignJoin,
+        AnyAll,
+        AnyArrayLike,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        ColspaceArgType,
+        CompressionOptions,
+        CorrelationMethod,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        FloatFormatType,
+        FormattersType,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        Level,
+        MergeHow,
+        NaPosition,
+        PythonFuncType,
+        QuantileInterpolation,
+        ReadBuffer,
+        Renamer,
+        Scalar,
+        SortKind,
+        StorageOptions,
+        Suffixes,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+        ValueKeyFunc,
+        WriteBuffer,
+        npt,
+    )
+
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
@@ -2109,6 +2111,9 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : structured ndarray, sequence of tuples or dicts, or DataFrame
             Structured input data.
+
+            .. deprecated:: 2.1.0
+                Passing a DataFrame is deprecated.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2171,6 +2176,23 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if isinstance(data, DataFrame):
+            warnings.warn(
+                "Passing a DataFrame to DataFrame.from_records is deprecated. Use "
+                "set_index and/or drop to modify the DataFrame instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            if columns is not None:
+                if is_scalar(columns):
+                    columns = [columns]
+                data = data[columns]
+            if index is not None:
+                data = data.set_index(index)
+            if exclude is not None:
+                data = data.drop(columns=exclude)
+            return data
+
         result_index = None
 
         # Make a copy of the input columns so we can modify it
@@ -2238,7 +2260,7 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, arr_columns, columns, index
                 )
 
-        elif isinstance(data, (np.ndarray, DataFrame)):
+        elif isinstance(data, np.ndarray):
             arrays, columns = to_arrays(data, columns)
             arr_columns = columns
         else:
@@ -3555,7 +3577,11 @@ class DataFrame(NDFrame, OpsMixin):
                 new_vals = new_vals.copy()
 
             result = self._constructor(
-                new_vals, index=self.columns, columns=self.index, copy=False
+                new_vals,
+                index=self.columns,
+                columns=self.index,
+                copy=False,
+                dtype=new_vals.dtype,
             )
             if using_copy_on_write() and len(self) > 0:
                 result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
@@ -3577,7 +3603,9 @@ class DataFrame(NDFrame, OpsMixin):
             new_arr = self.values.T
             if copy:
                 new_arr = new_arr.copy()
-            result = self._constructor(new_arr, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_arr, index=self.columns, columns=self.index, dtype=new_arr.dtype
+            )
 
         return result.__finalize__(self, method="transpose")
 
@@ -3897,6 +3925,12 @@ class DataFrame(NDFrame, OpsMixin):
             if is_scalar(loc):
                 loc = [loc]
 
+            if len(loc) != len(value.columns):
+                raise ValueError(
+                    f"Got {len(loc)} positions but value has {len(value.columns)} "
+                    f"columns."
+                )
+
             for i, idx in enumerate(loc):
                 arraylike = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False)
@@ -4105,9 +4139,11 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value) -> None:
-        arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=True)
+    def _iset_item(self, loc: int, value: Series) -> None:
+        # We are only called from _replace_columnwise which guarantees that
+        # no reindex is necessary
+        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
+        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -4757,6 +4793,14 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(loc, int):
             raise TypeError("loc must be int")
 
+        if isinstance(value, DataFrame) and len(value.columns) > 1:
+            raise ValueError(
+                f"Expected a one-dimensional object, got a DataFrame with "
+                f"{len(value.columns)} columns instead."
+            )
+        elif isinstance(value, DataFrame):
+            value = value.iloc[:, 0]
+
         value = self._sanitize_column(value)
         self._mgr.insert(loc, column, value)
 
@@ -4843,11 +4887,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         self._ensure_valid_index(value)
 
-        # We can get there through isetitem with a DataFrame
-        # or through loc single_block_path
-        if isinstance(value, DataFrame):
-            return _reindex_for_setitem(value, self.index)
-        elif is_dict_like(value):
+        # Using a DataFrame would mean coercing values to one dtype
+        assert not isinstance(value, DataFrame)
+        if is_dict_like(value):
             return _reindex_for_setitem(Series(value), self.index)
 
         if is_list_like(value):
@@ -8213,7 +8255,7 @@ Parrot 2  Parrot       24.0
     def groupby(
         self,
         by=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -8221,11 +8263,29 @@ Parrot 2  Parrot       24.0
         observed: bool = False,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            if axis == 1:
+                warnings.warn(
+                    "DataFrame.groupby with axis=1 is deprecated. Do "
+                    "`frame.T.groupby(...)` without axis instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "The 'axis' keyword in DataFrame.groupby is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
+
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
-        axis = self._get_axis_number(axis)
 
         return DataFrameGroupBy(
             obj=self,
@@ -9934,12 +9994,14 @@ Parrot 2  Parrot       24.0
                 raise TypeError("Values in decimals must be integers")
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
-            # Dispatch to Series.round
-            new_cols = [_series_round(v, decimals) for _, v in self.items()]
+            # Dispatch to Block.round
+            return self._constructor(
+                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+            ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
-        if len(new_cols) > 0:
+        if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
                 concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")

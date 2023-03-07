@@ -187,7 +187,7 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if isna(a) and not isna(b) or not isna(a) and isna(b):
-        # boolean value of pd.NA is ambigous
+        # boolean value of pd.NA is ambiguous
         raise AssertionError(f"{a} != {b}")
 
     if a == b:

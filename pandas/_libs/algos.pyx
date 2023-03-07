@@ -166,7 +166,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_lexsorted(list_of_arrays: list) -> bint:
+def is_lexsorted(list_of_arrays: list) -> bool:
     cdef:
         Py_ssize_t i
         Py_ssize_t n, nlevels
@@ -752,7 +752,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     tuple
         is_monotonic_inc : bool
         is_monotonic_dec : bool
-        is_unique : bool
+        is_strict_monotonic : bool
     """
     cdef:
         Py_ssize_t i, n
