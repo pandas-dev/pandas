@@ -430,8 +430,8 @@ def main(
                 content = extend_base_template(body, context["main"]["base_template"])
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
-            fname_splitted = os.path.splitext(fname)[0] + ".html"
-            with open(os.path.join(target_path, fname_splitted), "w") as f:
+            fname_html = os.path.splitext(fname)[0] + ".html"
+            with open(os.path.join(target_path, fname_html), "w") as f:
                 f.write(content)
         else:
             shutil.copy(
