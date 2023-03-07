@@ -1013,6 +1013,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         """
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
         if to_concat[0].dtype == "string":
+            # StringDtype has no attrivute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
