@@ -4,7 +4,7 @@
 
 _pandas_ is made with love by more than [2,000 volunteer contributors](https://github.com/pandas-dev/pandas/graphs/contributors).
 
-If you want to support pandas development, you can find information in the [donations page](../donate.html).
+If you want to support pandas development, you can find information in the [donations page]({{ base_url }}donate.html).
 
 ## Active maintainers
 
@@ -35,7 +35,7 @@ If you want to support pandas development, you can find information in the [dona
 > or anyone willing to increase the diversity of our team.
 > We have identified visible gaps and obstacles in sustaining diversity and inclusion in the open-source communities and we are proactive in increasing
 > the diversity of our team.
-> We have a [code of conduct](../community/coc.html) to ensure a friendly and welcoming environment.
+> We have a [code of conduct]({{ base_url }}community/coc.html) to ensure a friendly and welcoming environment.
 > Please send an email to [pandas-code-of-conduct-committee](mailto:pandas-coc@googlegroups.com), if you think we can do a
 > better job at achieving this goal.
 
@@ -43,7 +43,7 @@ If you want to support pandas development, you can find information in the [dona
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
-The project governance is available in the [project governance page](governance.html).
+The project governance is available in the [project governance page]({{ base_url }}governance.html).
 
 ## Workgroups
 
@@ -52,7 +52,15 @@ The project governance is available in the [project governance page](governance.
 ### {{ workgroup.name }}
 
 <ul>
-    <li><b>Contact:</b> <a href="mailto:{{ workgroup.contact }}">{{ workgroup.contact }}</a></li>
+    <li><b>Contact:</b>
+        <a id="{{ workgroup.name|replace(' ', '-') }}" href="mailto:asp.{{ workgroup.contact }}">asp.{{ workgroup.contact }}</a>
+        <script TYPE="text/javascript">
+            var mail_tag_id = '{{ workgroup.name|replace(' ', '-') }}';
+            var mail_tag_element = document.getElementById( mail_tag_id );
+            mail_tag_element.innerHTML = mail_tag_element.innerHTML.replace(/^asp./, "");
+            mail_tag_element.setAttribute('href', "mailto:"+mail_tag_element.innerHTML);
+        </script>
+    </li>
     <li><b>Responsibilities:</b> {{ workgroup.responsibilities }}</li>
     <li><b>Members:</b>
         <ul>

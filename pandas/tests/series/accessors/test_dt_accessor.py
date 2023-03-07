@@ -55,6 +55,7 @@ ok_for_dt_methods = [
     "day_name",
     "month_name",
     "isocalendar",
+    "as_unit",
 ]
 ok_for_td = TimedeltaArray._datetimelike_ops
 ok_for_td_methods = [
@@ -64,6 +65,7 @@ ok_for_td_methods = [
     "round",
     "floor",
     "ceil",
+    "as_unit",
 ]
 
 
@@ -143,7 +145,6 @@ class TestSeriesDatetimeValues:
         dti = date_range("20130101", periods=5, tz="US/Eastern")
         ser = Series(dti, name="xxx")
         for prop in ok_for_dt:
-
             # we test freq below
             if prop != "freq":
                 self._compare(ser, prop)
@@ -223,7 +224,6 @@ class TestSeriesDatetimeValues:
         assert freq_result == PeriodIndex(ser.values).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
-
         # both
         index = date_range("20130101", periods=3, freq="D")
         dti = date_range("20140204", periods=3, freq="s")
@@ -287,8 +287,8 @@ class TestSeriesDatetimeValues:
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
-                # TODO(CoW) it would be nice to keep a warning/error for this case
-                ser.dt.hour[0] = 5
+                with tm.raises_chained_assignment_error():
+                    ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
                     ser.dt.hour[0] = 5

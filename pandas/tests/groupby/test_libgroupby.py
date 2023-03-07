@@ -194,7 +194,7 @@ def test_cython_group_transform_cumsum(np_dtype):
 def test_cython_group_transform_cumprod():
     # see gh-4095
     dtype = np.float64
-    pd_op, np_op = group_cumprod, np.cumproduct
+    pd_op, np_op = group_cumprod, np.cumprod
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 

@@ -3,7 +3,6 @@ timedelta support tools
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -30,6 +29,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
         ArrayLike,
@@ -240,7 +241,9 @@ def _convert_listlike(
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+        if not hasattr(arg, "__array__"):
+            arg = list(arg)
+        arg = np.array(arg, dtype=object)
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

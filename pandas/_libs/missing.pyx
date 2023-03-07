@@ -3,6 +3,11 @@ import numbers
 from sys import maxsize
 
 cimport cython
+from cpython.datetime cimport (
+    date,
+    time,
+    timedelta,
+)
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -47,7 +52,7 @@ cdef:
 cpdef bint check_na_tuples_nonequal(object left, object right):
     """
     When we have NA in one of the tuples but not the other we have to check here,
-    because our regular checks fail before with ambigous boolean value.
+    because our regular checks fail before with ambiguous boolean value.
 
     Parameters
     ----------
@@ -307,6 +312,7 @@ def is_numeric_na(values: ndarray) -> ndarray:
 
 
 def _create_binary_propagating_op(name, is_divmod=False):
+    is_cmp = name.strip("_") in ["eq", "ne", "le", "lt", "ge", "gt"]
 
     def method(self, other):
         if (other is C_NA or isinstance(other, (str, bytes))
@@ -328,6 +334,17 @@ def _create_binary_propagating_op(name, is_divmod=False):
                 return out, out.copy()
             else:
                 return out
+
+        elif is_cmp and isinstance(other, (date, time, timedelta)):
+            return NA
+
+        elif isinstance(other, date):
+            if name in ["__sub__", "__rsub__"]:
+                return NA
+
+        elif isinstance(other, timedelta):
+            if name in ["__sub__", "__rsub__", "__add__", "__radd__"]:
+                return NA
 
         return NotImplemented
 
@@ -354,8 +371,6 @@ class NAType(C_NAType):
     .. warning::
 
        Experimental: the behaviour of NA can still change without warning.
-
-    .. versionadded:: 1.0.0
 
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).

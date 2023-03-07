@@ -3,7 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -24,7 +23,6 @@ test_frame = DataFrame(
 
 
 @async_mark()
-@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
@@ -45,7 +43,6 @@ async def test_tab_complete_ipython6_warning(ip):
 
 
 def test_deferred_with_groupby():
-
     # GH 12486
     # support deferred resample ops with groupby
     data = [
@@ -103,7 +100,6 @@ def test_getitem():
 
 
 def test_getitem_multiple():
-
     # GH 13174
     # multiple calls after selection causing an issue with aliasing
     data = [{"id": 1, "buyer": "A"}, {"id": 2, "buyer": "B"}]
@@ -176,7 +172,6 @@ def test_groupby_with_origin():
 
 
 def test_nearest():
-
     # GH 17496
     # Resample nearest
     index = date_range("1/1/2000", periods=3, freq="T")
@@ -249,7 +244,6 @@ def test_methods_std_var(f):
 
 
 def test_apply():
-
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -329,7 +323,6 @@ def test_resample_groupby_with_label():
 
 
 def test_consistency_with_window():
-
     # consistent return values with window
     df = test_frame
     expected = Index([1, 2, 3], name="A")
@@ -536,3 +529,82 @@ def test_groupby_resample_size_all_index_same():
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys():
+    # GH 50840
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "val": [3, 1, 4, 1, 5, 9, 2, 6],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    result = df.groupby("group").resample("2D")[["val"]].mean()
+    expected = DataFrame(
+        data={
+            "val": [2.0, 2.5, 7.0, 4.0],
+        },
+        index=Index(
+            data=[
+                (0, Timestamp("2016-01-01")),
+                (0, Timestamp("2016-01-03")),
+                (1, Timestamp("2016-01-05")),
+                (1, Timestamp("2016-01-07")),
+            ],
+            name=("group", "date"),
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys_multi_columns():
+    # GH 50876
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "first_val": [3, 1, 4, 1, 5, 9, 2, 6],
+            "second_val": [2, 7, 1, 8, 2, 8, 1, 8],
+            "third_val": [1, 4, 1, 4, 2, 1, 3, 5],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    result = df.groupby("group").resample("2D")[["first_val", "second_val"]].mean()
+    expected = DataFrame(
+        data={
+            "first_val": [2.0, 2.5, 7.0, 4.0],
+            "second_val": [4.5, 4.5, 5.0, 4.5],
+        },
+        index=Index(
+            data=[
+                (0, Timestamp("2016-01-01")),
+                (0, Timestamp("2016-01-03")),
+                (1, Timestamp("2016-01-05")),
+                (1, Timestamp("2016-01-07")),
+            ],
+            name=("group", "date"),
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_on_index_with_list_of_keys_missing_column():
+    # GH 50876
+    df = DataFrame(
+        data={
+            "group": [0, 0, 0, 0, 1, 1, 1, 1],
+            "val": [3, 1, 4, 1, 5, 9, 2, 6],
+        },
+        index=Series(
+            date_range(start="2016-01-01", periods=8),
+            name="date",
+        ),
+    )
+    with pytest.raises(KeyError, match="Columns not found"):
+        df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()

@@ -13,6 +13,23 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_rank_unordered_categorical_typeerror():
+    # GH#51034 should be TypeError, not NotImplementedError
+    cat = pd.Categorical([], ordered=False)
+    ser = Series(cat)
+    df = ser.to_frame()
+
+    msg = "Cannot perform rank with non-ordered Categorical"
+
+    gb = ser.groupby(cat)
+    with pytest.raises(TypeError, match=msg):
+        gb.rank()
+
+    gb2 = df.groupby(cat)
+    with pytest.raises(TypeError, match=msg):
+        gb2.rank()
+
+
 def test_rank_apply():
     lev1 = tm.rands_array(10, 100)
     lev2 = tm.rands_array(10, 130)
@@ -602,7 +619,9 @@ def test_rank_multiindex():
         axis=1,
     )
 
-    gb = df.groupby(level=0, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=1)
     result = gb.rank(axis=1)
 
     expected = concat(
@@ -622,7 +641,9 @@ def test_groupby_axis0_rank_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
     res = gb.rank(axis=1)
 
@@ -644,7 +665,9 @@ def test_groupby_axis0_cummax_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
     cmax = gb.cummax(axis=1)
     expected = df[[0, 1]].astype(np.float64)

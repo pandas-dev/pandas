@@ -10,13 +10,6 @@ from typing import (
     Any,
 )
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
@@ -32,6 +25,14 @@ from pandas.io.xml import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import DataFrame
 
 
@@ -299,7 +300,6 @@ class BaseXMLFormatter:
         raise AbstractMethodError(self)
 
     def _build_elems(self, sub_element_cls, d: dict[str, Any], elem_row: Any) -> None:
-
         if not self.elem_cols:
             return
 

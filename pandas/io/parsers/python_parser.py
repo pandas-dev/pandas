@@ -24,11 +24,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    ReadCsvBuffer,
-    Scalar,
-)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -47,6 +42,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        ReadCsvBuffer,
+        Scalar,
+    )
+
     from pandas import (
         Index,
         MultiIndex,
@@ -126,7 +127,6 @@ class PythonParser(ParserBase):
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
         # error: Cannot determine type of 'index_names'
-        self.columns: list[Hashable]
         (
             self.columns,
             self.index_names,
@@ -477,7 +477,6 @@ class PythonParser(ParserBase):
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
-
                     # if we have grabbed an extra line, but its not in our
                     # format so save in the buffer, and create an blank extra
                     # line for the rest of the parsing code
@@ -678,7 +677,6 @@ class PythonParser(ParserBase):
                 new_row += first_row_bom[end + 1 :]
 
         else:
-
             # No quotation so just remove BOM from first element
             new_row = first_row_bom[1:]
 
@@ -915,7 +913,7 @@ class PythonParser(ParserBase):
     _implicit_index = False
 
     def _get_index_name(
-        self, columns: list[Hashable]
+        self, columns: Sequence[Hashable]
     ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
@@ -1009,7 +1007,6 @@ class PythonParser(ParserBase):
             and self.index_col is not False  # type: ignore[comparison-overlap]
             and self.usecols is None
         ):
-
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1017,7 +1014,7 @@ class PythonParser(ParserBase):
             content_len = len(content)
             content = []
 
-            for (i, _content) in iter_content:
+            for i, _content in iter_content:
                 actual_len = len(_content)
 
                 if actual_len > col_len:
@@ -1111,7 +1108,6 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-
                         rows_to_skip = 0
                         if self.skiprows is not None and self.pos is not None:
                             # Only read additional rows if pos is in skiprows

@@ -14,10 +14,6 @@ import warnings
 
 from pandas._libs.json import loads
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    DtypeObj,
-    JSONSerializable,
-)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
@@ -39,6 +35,11 @@ from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        JSONSerializable,
+    )
+
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
@@ -265,6 +266,7 @@ def build_table_schema(
 
     Examples
     --------
+    >>> from pandas.io.json._table_schema import build_table_schema
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],

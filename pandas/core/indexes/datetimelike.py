@@ -3,7 +3,10 @@ Base and utility classes for tseries type pandas objects.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from abc import (
+    ABC,
+    abstractmethod,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -27,10 +30,6 @@ from pandas._libs.tslibs import (
     Tick,
     parsing,
     to_offset,
-)
-from pandas._typing import (
-    Axis,
-    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import NullFrequencyError
@@ -61,14 +60,18 @@ from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
 )
-from pandas.core.indexes.extension import (
-    NDArrayBackedExtensionIndex,
-    inherit_names,
-)
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
+    from pandas._typing import (
+        Axis,
+        npt,
+    )
+
     from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -77,21 +80,17 @@ _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
 _TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
-@inherit_names(
-    ["inferred_freq", "_resolution_obj", "resolution"],
-    DatetimeLikeArrayMixin,
-    cache=True,
-)
-@inherit_names(["mean", "freqstr"], DatetimeLikeArrayMixin)
-class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
+class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
-    freqstr: str | None
-    _resolution_obj: Resolution
+
+    @doc(DatetimeLikeArrayMixin.mean)
+    def mean(self, *, skipna: bool = True, axis: int | None = 0):
+        return self._data.mean(skipna=skipna, axis=axis)
 
     @property
     def freq(self) -> BaseOffset | None:
@@ -105,6 +104,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
         return self._data.asi8
+
+    @property
+    @doc(DatetimeLikeArrayMixin.freqstr)
+    def freqstr(self) -> str | None:
+        return self._data.freqstr
+
+    @cache_readonly
+    @abstractmethod
+    def _resolution_obj(self) -> Resolution:
+        ...
+
+    @cache_readonly
+    @doc(DatetimeLikeArrayMixin.resolution)
+    def resolution(self) -> str:
+        return self._data.resolution
 
     # ------------------------------------------------------------------------
 
@@ -288,7 +302,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-
             if len(self) and (
                 (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
@@ -390,7 +403,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return Index(res, dtype=res.dtype)
 
 
-class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
+class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
@@ -461,6 +474,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         )
         return type(self)._simple_new(result, name=self.name)
 
+    @cache_readonly
+    @doc(DatetimeLikeArrayMixin.inferred_freq)
+    def inferred_freq(self) -> str | None:
+        return self._data.inferred_freq
+
     # --------------------------------------------------------------------
     # Set Operation Methods
 
@@ -469,8 +487,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta.value
-        rng = range(self[0].value, self[-1].value + tick, tick)
+        tick = freq.delta._value
+        rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
     def _can_range_setop(self, other):

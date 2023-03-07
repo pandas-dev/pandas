@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import importlib
 import sys
-import types
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
+
+if TYPE_CHECKING:
+    import types
 
 # Update install.rst & setup.cfg when updating versions!
 
@@ -31,7 +34,7 @@ VERSIONS = {
     "pandas_gbq": "0.15.0",
     "psycopg2": "2.8.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "6.0.0",
+    "pyarrow": "7.0.0",
     "pyreadstat": "1.1.2",
     "pytest": "7.0.0",
     "pyxlsb": "1.0.8",

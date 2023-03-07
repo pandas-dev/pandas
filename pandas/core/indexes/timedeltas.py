@@ -1,15 +1,17 @@
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._libs import (
     index as libindex,
     lib,
 )
 from pandas._libs.tslibs import (
+    Resolution,
     Timedelta,
     to_offset,
 )
-from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
@@ -26,6 +28,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 @inherit_names(
@@ -111,6 +116,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
+
+    # error: Signature of "_resolution_obj" incompatible with supertype
+    # "DatetimeIndexOpsMixin"
+    @property
+    def _resolution_obj(self) -> Resolution | None:  # type: ignore[override]
+        return self._data._resolution_obj
 
     # -------------------------------------------------------------------
     # Constructors

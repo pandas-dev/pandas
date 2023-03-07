@@ -10,6 +10,7 @@ from functools import (
 import itertools
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -23,10 +24,6 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import (
-    IndexLabel,
-    StorageOptions,
-)
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -52,6 +49,12 @@ from pandas.io.formats.css import (
 )
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        IndexLabel,
+        StorageOptions,
+    )
 
 
 class ExcelCell:
@@ -556,7 +559,6 @@ class ExcelFormatter:
             self.style_converter = None
         self.df = df
         if cols is not None:
-
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
@@ -803,7 +805,6 @@ class ExcelFormatter:
 
             # if index labels are not empty go ahead and dump
             if com.any_not_none(*index_labels) and self.header is not False:
-
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
@@ -817,7 +818,6 @@ class ExcelFormatter:
                 for spans, levels, level_codes in zip(
                     level_lengths, self.df.index.levels, self.df.index.codes
                 ):
-
                     values = levels.take(
                         level_codes,
                         allow_fill=levels._can_hold_na,
