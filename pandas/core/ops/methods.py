@@ -33,8 +33,11 @@ from pandas.core import (
     algorithms,
     roperator,
 )
+from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
+    comparison_op,
     get_array_op,
+    logical_op,
     maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import get_op_result_name
@@ -637,6 +640,64 @@ class FrameOps:
 class SeriesOps:
     _get_axis_number: Callable[[Any], int]
     _values: ArrayLike
+
+    def _cmp_method(self, other, op):
+        res_name = get_op_result_name(self, other)
+
+        if isinstance(other, SeriesOps):
+            # error: "SeriesOps" has no attribute "_indexed_same"
+            if not self._indexed_same(other):  # type: ignore[attr-defined]
+                raise ValueError("Can only compare identically-labeled Series objects")
+
+        lvalues = self._values
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+
+        with np.errstate(all="ignore"):
+            res_values = comparison_op(lvalues, rvalues, op)
+
+        return self._construct_result(res_values, name=res_name)
+
+    def _logical_method(self, other, op):
+        res_name = get_op_result_name(self, other)
+        self, other = self._align_for_op(other, align_asobject=True)
+
+        lvalues = self._values
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+
+        res_values = logical_op(lvalues, rvalues, op)
+        return self._construct_result(res_values, name=res_name)
+
+    def _arith_method(self, other, op):
+        self, other = self._align_for_op(other)
+
+        # use IndexOpsMixin._arith_method
+        # error: "_arith_method" undefined in superclass
+        return super()._arith_method(other, op)  # type: ignore[misc]
+
+    def _align_for_op(self, right, align_asobject: bool = False):
+        """align lhs and rhs Series"""
+        # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
+        # are not coerced here
+        # because Series has inconsistencies described in GH#13637
+        left = self
+
+        if isinstance(right, SeriesOps):
+            # avoid repeated alignment
+            # error: "SeriesOps" has no attribute "index"
+            if not left.index.equals(right.index):  # type: ignore[attr-defined]
+                if align_asobject:
+                    # to keep original value's dtype for bool ops
+                    # error: "SeriesOps" has no attribute "astype"
+                    left = left.astype(object)  # type: ignore[attr-defined]
+                    # error: "SeriesOps" has no attribute "astype"
+                    right = right.astype(object)  # type: ignore[attr-defined]
+
+                # error: "SeriesOps" has no attribute "align"
+                left, right = left.align(  # type: ignore[attr-defined]
+                    right, copy=False
+                )
+
+        return left, right
 
     def _binop(self, other: SeriesOps, func, level=None, fill_value=None):
         """

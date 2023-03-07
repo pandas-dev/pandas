@@ -97,10 +97,7 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.construction import (
-    extract_array,
-    sanitize_array,
-)
+from pandas.core.construction import sanitize_array
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import (
     disallow_ndim_indexing,
@@ -5933,56 +5930,6 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
     hist = pandas.plotting.hist_series
-
-    # ----------------------------------------------------------------------
-    # Template-Based Arithmetic/Comparison Methods
-
-    def _cmp_method(self, other, op):
-        res_name = ops.get_op_result_name(self, other)
-
-        if isinstance(other, Series) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled Series objects")
-
-        lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
-
-        with np.errstate(all="ignore"):
-            res_values = ops.comparison_op(lvalues, rvalues, op)
-
-        return self._construct_result(res_values, name=res_name)
-
-    def _logical_method(self, other, op):
-        res_name = ops.get_op_result_name(self, other)
-        self, other = self._align_for_op(other, align_asobject=True)
-
-        lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
-
-        res_values = ops.logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
-
-    def _arith_method(self, other, op):
-        self, other = self._align_for_op(other)
-        return base.IndexOpsMixin._arith_method(self, other, op)
-
-    def _align_for_op(self, right, align_asobject: bool = False):
-        """align lhs and rhs Series"""
-        # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
-        # are not coerced here
-        # because Series has inconsistencies described in GH#13637
-        left = self
-
-        if isinstance(right, Series):
-            # avoid repeated alignment
-            if not left.index.equals(right.index):
-                if align_asobject:
-                    # to keep original value's dtype for bool ops
-                    left = left.astype(object)
-                    right = right.astype(object)
-
-                left, right = left.align(right, copy=False)
-
-        return left, right
 
 
 Series._add_numeric_operations()
