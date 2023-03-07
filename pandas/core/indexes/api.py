@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import textwrap
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -9,7 +12,6 @@ from pandas._libs import (
     NaT,
     lib,
 )
-from pandas._typing import Axis
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
@@ -30,6 +32,8 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas._typing import Axis
 _sort_msg = textwrap.dedent(
     """\
 Sorting because non-concatenation axis is not aligned. A future version
