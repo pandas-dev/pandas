@@ -7,16 +7,6 @@ from typing import (
     Callable,
 )
 
-from pandas._typing import (
-    Axis,
-    QuantileInterpolation,
-    WindowingRankType,
-)
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
-
 from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
@@ -39,6 +29,19 @@ from pandas.core.window.rolling import (
     BaseWindowGroupby,
     RollingAndExpandingMixin,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
 class Expanding(RollingAndExpandingMixin):
