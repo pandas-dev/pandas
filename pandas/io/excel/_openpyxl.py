@@ -10,13 +10,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -34,6 +27,14 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
     from openpyxl.workbook import Workbook
+
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 
 
 class OpenpyxlWriter(ExcelWriter):

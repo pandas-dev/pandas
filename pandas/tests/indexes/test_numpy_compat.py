@@ -92,14 +92,13 @@ def test_numpy_ufuncs_basic(index, func):
         else:
             # e.g. np.exp with Int64 -> Float64
             assert type(result) is Index
+    # raise AttributeError or TypeError
+    elif len(index) == 0:
+        pass
     else:
-        # raise AttributeError or TypeError
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised((TypeError, AttributeError)):
-                with np.errstate(all="ignore"):
-                    func(index)
+        with tm.external_error_raised((TypeError, AttributeError)):
+            with np.errstate(all="ignore"):
+                func(index)
 
 
 @pytest.mark.parametrize(
@@ -144,12 +143,11 @@ def test_numpy_ufuncs_other(index, func):
         else:
             tm.assert_numpy_array_equal(out, result)
 
+    elif len(index) == 0:
+        pass
     else:
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised(TypeError):
-                func(index)
+        with tm.external_error_raised(TypeError):
+            func(index)
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
@@ -14,17 +15,6 @@ from typing import (
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    TYPE_CHECKING,
-    CompressionOptions,
-    ConvertersArg,
-    DtypeArg,
-    FilePath,
-    ParseDatesArg,
-    ReadBuffer,
-    StorageOptions,
-    XMLParsers,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -50,6 +40,17 @@ if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
     from lxml import etree
+
+    from pandas._typing import (
+        CompressionOptions,
+        ConvertersArg,
+        DtypeArg,
+        FilePath,
+        ParseDatesArg,
+        ReadBuffer,
+        StorageOptions,
+        XMLParsers,
+    )
 
     from pandas import DataFrame
 
@@ -240,40 +241,39 @@ class _XMLFrameParser:
                 for el in elems
             ]
 
-        else:
-            if self.names:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            nm: ch.text.strip() if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
-                        },
-                    }
-                    for el in elems
-                ]
+        elif self.names:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        nm: ch.text.strip() if ch.text else None
+                        for nm, ch in zip(self.names, el.findall("*"))
+                    },
+                }
+                for el in elems
+            ]
 
-            else:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            ch.tag: ch.text.strip() if ch.text else None
-                            for ch in el.findall("*")
-                        },
-                    }
-                    for el in elems
-                ]
+        else:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        ch.tag: ch.text.strip() if ch.text else None
+                        for ch in el.findall("*")
+                    },
+                }
+                for el in elems
+            ]
 
         dicts = [
             {k.split("}")[1] if "}" in k else k: v for k, v in d.items()} for d in dicts
