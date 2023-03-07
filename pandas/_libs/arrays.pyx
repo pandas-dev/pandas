@@ -126,11 +126,12 @@ cdef class NDArrayBacked:
 
     @property
     def size(self) -> int:
-        return self._ndarray.size
+        # TODO(cython3): use self._ndarray.size
+        return cnp.PyArray_SIZE(self._ndarray)
 
     @property
     def nbytes(self) -> int:
-        return self._ndarray.nbytes
+        return cnp.PyArray_NBYTES(self._ndarray)
 
     def copy(self, order="C"):
         cdef:

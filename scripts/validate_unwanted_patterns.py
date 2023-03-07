@@ -46,7 +46,6 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_matplotlib",
     "_arrow_utils",
     "_registry",
-    "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
     "_testing",
     "_test_decorators",

@@ -72,7 +72,7 @@ class TestFromRecords:
 
         # this is actually tricky to create the recordlike arrays and
         # have the dtypes be intact
-        blocks = df._to_dict_of_blocks()
+        blocks = df._to_dict_of_blocks(copy=False)
         tuples = []
         columns = []
         dtypes = []
@@ -153,7 +153,7 @@ class TestFromRecords:
 
         # columns is in a different order here than the actual items iterated
         # from the dict
-        blocks = df._to_dict_of_blocks()
+        blocks = df._to_dict_of_blocks(copy=False)
         columns = []
         for b in blocks.values():
             columns.extend(b.columns)

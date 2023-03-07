@@ -176,6 +176,9 @@ cpdef inline (int64_t, int) precision_from_unit(
         multiplier = periods_per_second(out_reso)
         m = multiplier * 2629746
     else:
+        # Careful: if get_conversion_factor raises, the exception does
+        #  not propagate, instead we get a warning about an ignored exception.
+        #  https://github.com/pandas-dev/pandas/pull/51483#discussion_r1115198951
         m = get_conversion_factor(reso, out_reso)
 
     p = <int>log10(m)  # number of digits in 'm' minus 1

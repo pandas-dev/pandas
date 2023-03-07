@@ -47,12 +47,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import roperator
 from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.ops import (
-    missing,
-    roperator,
-)
+from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 

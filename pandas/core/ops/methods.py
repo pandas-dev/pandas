@@ -10,7 +10,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.ops import roperator
+from pandas.core import roperator
 
 
 def _get_method_wrappers(cls):

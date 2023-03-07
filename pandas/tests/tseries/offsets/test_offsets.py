@@ -522,18 +522,21 @@ class TestCommon:
             # We don't have an optimized apply_index
             warn = PerformanceWarning
 
-        with tm.assert_produces_warning(warn):
+        # stacklevel checking is slow, and we have ~800 of variants of this
+        #  test, so let's only check the stacklevel in a subset of them
+        check_stacklevel = tz_naive_fixture is None
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 

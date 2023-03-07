@@ -595,3 +595,10 @@ class TestCustomDatetimeIndex:
         result = idx1.intersection(idx2)
         expected = date_range("2020-03-30", periods=2, freq="D", tz=tz)
         tm.assert_index_equal(result, expected)
+
+        # GH#45863 same problem for union
+        index1 = date_range("2021-10-28", periods=3, freq="D", tz="Europe/London")
+        index2 = date_range("2021-10-30", periods=4, freq="D", tz="Europe/London")
+        result = index1.union(index2)
+        expected = date_range("2021-10-28", periods=6, freq="D", tz="Europe/London")
+        tm.assert_index_equal(result, expected)
