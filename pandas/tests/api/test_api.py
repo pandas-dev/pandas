@@ -27,6 +27,7 @@ class TestPDApi(Base):
     # these are optionally imported based on testing
     # & need to be ignored
     ignored = ["tests", "locale", "conftest"]
+    lazy = ["Grouper", "NamedAgg"]
 
     # top-level sub-packages
     public_lib = [
@@ -201,6 +202,9 @@ class TestPDApi(Base):
             + self.private_modules
         )
         self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
+        for name in self.lazy:
+            getattr(pd, name)
+            assert name in dir(pd)
 
     def test_api_all(self):
         expected = set(

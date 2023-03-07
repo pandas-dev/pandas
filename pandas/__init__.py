@@ -188,7 +188,14 @@ def __getattr__(name: str):
         import pandas.core.groupby
 
         return getattr(pandas.core.groupby, name)
-    raise AttributeError(name)
+    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+
+
+def __dir__() -> list[str]:
+    # include lazy imports defined in __getattr__ in dir()
+    base = list(globals().keys())
+    result = base + ["Grouper", "NamedAgg"]
+    return result
 
 
 # module level doc-string
