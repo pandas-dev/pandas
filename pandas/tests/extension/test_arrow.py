@@ -1222,7 +1222,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             expected = ser.combine(other, comparison_op)
             expected[8] = na_value
             expected[97] = na_value
-            tm.assert_series_equal(result, expected)
+            self.assert_series_equal(result, expected)
 
         else:
             exc = None
@@ -1234,7 +1234,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             if exc is None:
                 # Didn't error, then should match point-wise behavior
                 expected = ser.combine(other, comparison_op)
-                tm.assert_series_equal(result, expected)
+                self.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, comparison_op)
