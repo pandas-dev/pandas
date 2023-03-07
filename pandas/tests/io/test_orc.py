@@ -406,3 +406,21 @@ def test_orc_uri_path():
         uri = pathlib.Path(path).as_uri()
         result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.RangeIndex(start=2, stop=5, step=1),
+        pd.RangeIndex(start=0, stop=3, step=1, name="non-default"),
+        pd.Index([1, 2, 3]),
+    ],
+)
+def test_to_orc_non_default_index(index):
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+    msg = (
+        "orc does not support serializing a non-default index|"
+        "orc does not serialize index meta-data"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_orc()
