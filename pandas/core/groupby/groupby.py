@@ -923,7 +923,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.observed = observed
         self.dropna = dropna
 
         if grouper is None:
@@ -933,14 +932,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=axis,
                 level=level,
                 sort=sort,
-                observed=observed,
+                observed=False if observed is lib.no_default else observed,
                 dropna=self.dropna,
             )
-
-        self.obj = obj
-        self.axis = obj._get_axis_number(axis)
-        self.grouper = grouper
-        self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
         if observed is lib.no_default:
             if any(ping._passed_categorical for ping in grouper.groupings):
@@ -952,7 +946,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            self.observed = False
+            observed = False
+        self.observed = observed
+
+        self.obj = obj
+        self.axis = obj._get_axis_number(axis)
+        self.grouper = grouper
+        self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
