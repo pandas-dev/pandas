@@ -24,11 +24,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    ReadCsvBuffer,
-    Scalar,
-)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -47,6 +42,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        ReadCsvBuffer,
+        Scalar,
+    )
+
     from pandas import (
         Index,
         MultiIndex,

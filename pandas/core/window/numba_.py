@@ -9,10 +9,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import jit_user_function
+
+if TYPE_CHECKING:
+    from pandas._typing import Scalar
 
 
 @functools.lru_cache(maxsize=None)
