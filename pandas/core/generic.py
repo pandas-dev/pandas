@@ -169,7 +169,6 @@ from pandas.core.missing import (
     clean_reindex_fill_method,
     find_valid_index,
 )
-from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
@@ -6123,8 +6122,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _check_inplace_setting(self, value) -> bool_t:
         """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
-            # allow an actual np.nan thru
-            if is_float(value) and np.isnan(value):
+            # allow an actual np.nan through
+            if is_float(value) and np.isnan(value) or value is lib.no_default:
                 return True
 
             raise TypeError(
@@ -8069,7 +8068,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(self, ABCSeries):
                 threshold = self._constructor(threshold, index=self.index)
             else:
-                threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
+                threshold = self._align_for_op(threshold, axis, flex=None)[1]
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
