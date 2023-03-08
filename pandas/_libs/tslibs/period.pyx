@@ -1215,6 +1215,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
                 f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
 
     elif fmt is None:
+        # `freq_group` is invalid, raise
         raise ValueError(f"Unknown freq: {freq}")
 
     else:
