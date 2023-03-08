@@ -224,29 +224,6 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
     return year + 2000;
 }
 
-/*
- * Adjusts a datetimestruct based on a seconds offset. Assumes
- * the current values are valid.
- */
-NPY_NO_EXPORT void add_seconds_to_datetimestruct(npy_datetimestruct *dts,
-                                                 int seconds) {
-    int minutes;
-
-    dts->sec += seconds;
-    if (dts->sec < 0) {
-        minutes = dts->sec / 60;
-        dts->sec = dts->sec % 60;
-        if (dts->sec < 0) {
-            --minutes;
-            dts->sec += 60;
-        }
-        add_minutes_to_datetimestruct(dts, minutes);
-    } else if (dts->sec >= 60) {
-        minutes = dts->sec / 60;
-        dts->sec = dts->sec % 60;
-        add_minutes_to_datetimestruct(dts, minutes);
-    }
-}
 
 /*
  * Fills in the year, month, day in 'dts' based on the days
