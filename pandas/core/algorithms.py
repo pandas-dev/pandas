@@ -1744,7 +1744,7 @@ def map_array(arr: ArrayLike, mapper, na_action=None):
         return new_values
 
     # we must convert to python types
-    values = arr.astype(object)
+    values = arr.astype(object, copy=False)
     if na_action is None:
         return lib.map_infer(values, mapper)
     else:
