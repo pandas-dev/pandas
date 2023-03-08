@@ -451,8 +451,7 @@ def parallel_coordinates(
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
-        ... )
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        ... )  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(

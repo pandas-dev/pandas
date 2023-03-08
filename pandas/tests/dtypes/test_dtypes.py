@@ -517,11 +517,16 @@ class TestPeriodDtype(Base):
         assert not is_period_dtype(np.dtype("float64"))
         assert not is_period_dtype(1.0)
 
-    def test_empty(self):
-        dt = PeriodDtype()
-        msg = "object has no attribute 'freqstr'"
-        with pytest.raises(AttributeError, match=msg):
-            str(dt)
+    def test_freq_argument_required(self):
+        # GH#27388
+        msg = "missing 1 required positional argument: 'freq'"
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype()
+
+        msg = "PeriodDtype argument should be string or BaseOffet, got NoneType"
+        with pytest.raises(TypeError, match=msg):
+            # GH#51790
+            PeriodDtype(None)
 
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string

@@ -21,18 +21,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    FilePath,
-    IndexLabel,
-    Level,
-    QuantileInterpolation,
-    Scalar,
-    StorageOptions,
-    WriteBuffer,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import (
     Substitution,
@@ -71,6 +59,19 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
+
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        FilePath,
+        IndexLabel,
+        Level,
+        QuantileInterpolation,
+        Scalar,
+        StorageOptions,
+        WriteBuffer,
+        WriteExcelBuffer,
+    )
 
     from pandas import ExcelWriter
 
