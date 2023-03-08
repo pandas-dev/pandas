@@ -176,8 +176,8 @@ _divmod_example_SERIES = (
     + """
 >>> a.divmod(b, fill_value=0)
 (a    1.0
- b    NaN
- c    NaN
+ b    inf
+ c    inf
  d    0.0
  e    NaN
  dtype: float64,
