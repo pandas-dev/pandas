@@ -2329,3 +2329,11 @@ def test_from_sequence_of_strings_boolean():
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+
+
+def test_concat_empty_arrow_backed_series(dtype):
+    # GH#51734
+    ser = pd.Series([], dtype=dtype)
+    expected = ser.copy()
+    result = pd.concat([ser[np.array([], dtype=np.bool_)]])
+    tm.assert_series_equal(result, expected)
