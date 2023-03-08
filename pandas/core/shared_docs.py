@@ -120,7 +120,7 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
     This argument has no effect on some aggregating functions, such as
-    :ref:`head, tail <basics.head-and-tail>` and ``nth[:]``.
+    :ref:`head, tail <basics.aggregate>` and ``nth[:]``.
 
     .. versionchanged:: 2.0.0
 
