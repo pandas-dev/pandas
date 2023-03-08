@@ -181,6 +181,21 @@ def test_concat_mixed_series_frame(using_copy_on_write):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("copy", [True, None, False])
+def test_concat_copy_keyword(using_copy_on_write, copy):
+    df = DataFrame({"a": [1, 2]})
+    df2 = DataFrame({"b": [1.5, 2.5]})
+
+    result = concat([df, df2], axis=1, copy=copy)
+
+    if using_copy_on_write or copy is False:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
+
+
 @pytest.mark.parametrize(
     "func",
     [
@@ -280,3 +295,18 @@ def test_merge_on_key_enlarging_one(using_copy_on_write, func, how):
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
     tm.assert_frame_equal(df1, df1_orig)
     tm.assert_frame_equal(df2, df2_orig)
+
+
+@pytest.mark.parametrize("copy", [True, None, False])
+def test_merge_copy_keyword(using_copy_on_write, copy):
+    df = DataFrame({"a": [1, 2]})
+    df2 = DataFrame({"b": [3, 4.5]})
+
+    result = df.merge(df2, copy=copy, left_index=True, right_index=True)
+
+    if using_copy_on_write or copy is False:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+        assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
