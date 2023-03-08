@@ -1,45 +1,41 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Any
 
-import numpy as np
-
-from pandas._libs import lib
+from pandas.core.dtypes.common import is_array_like
 
 import pandas as pd
 import pandas.core.common as com
 
 
-def case_when(*args, default: Any = lib.no_default) -> Callable:
+def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     """
-    Create a callable for assignment based on a condition or multiple conditions.
+    Returns a Series based on multiple conditions assignment.
 
     This is useful when you want to assign a column based on multiple conditions.
-    Uses `np.select` to perform the assignment.
+    Uses `Series.mask` to perform the assignment.
 
     Parameters
     ----------
+    obj : Dataframe or Series on which the conditions will be applied.
     args : Variable argument of conditions and expected values.
         Takes the form:
             `condition0`, `value0`, `condition1`, `value1`, ...
         `condition` can be a 1-D boolean array/series or a callable
-        that evaluate to a 1-D boolean array/series.
-    default : Any, default is `np.nan`.
+        that evaluate to a 1-D boolean array/series. See examples below.
+    default : Any
         The default value to be used if all conditions evaluate False. This value
-        will be passed to the underlying `np.select` call.
+        will be used to create the `Series` on which `Series.mask` will be called.
+        If this value is not already an array like (i.e. it is not of type `Series`,
+        `np.array` or `list`) it will be repeated `obj.shape[0]` times in order to
+        create an array like object from it and then apply the `Series.mask`.
 
     Returns
     -------
-    Callable
-        The Callable returned in `case_when` can be used with `df.assign(...)`
-        for multi-condition assignment. See examples below for more info.
+    Series
+        Series with the corresponding values based on the conditions, their values
+        and the default value.
 
-    See Also
-    --------
-    DataFrame.assign: Assign new columns to a DataFrame.
 
     Examples
     --------
@@ -50,17 +46,51 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
     1  2  5
     2  3  6
 
-    >>> df.assign(
-    ...     new_column = pd.case_when(
-    ...         lambda x: x.a == 1, 'first',
-    ...         lambda x: (x.a > 1) & (x.b == 5), 'second',
-    ...         default='default'
-    ...     )
+    >>> pd.case_when(
+    ...     df,
+    ...     lambda x: x.a == 1,
+    ...     'first',
+    ...     lambda x: (x.a == 2) & (x.b == 5),
+    ...     'second',
+    ...     default='default',
     ... )
-       a  b new_column
-    0  1  4      first
-    1  2  5     second
-    2  3  6    default
+    0      first
+    1     second
+    2    default
+    dtype: object
+
+    >>> pd.case_when(
+    ...     df,
+    ...     lambda x: (x.a > 1) & (x.b > 1),
+    ...     -1,
+    ...     default=df.a,
+    ... )
+    0    1
+    1   -1
+    2   -1
+    Name: a, dtype: int64
+
+    >>> pd.case_when(
+    ...     df.a,
+    ...     lambda x: x == 1,
+    ...     -1,
+    ...     default=df.a,
+    ... )
+    0   -1
+    1    2
+    2    3
+    Name: a, dtype: int64
+
+    >>> pd.case_when(
+    ...     df.a,
+    ...     df.a  > 1,
+    ...     -1,
+    ...     default=df.a,
+    ... )
+    0    1
+    1   -1
+    2   -1
+    Name: a, dtype: int64
     """
     len_args = len(args)
 
@@ -73,21 +103,23 @@ def case_when(*args, default: Any = lib.no_default) -> Callable:
             f"and {len_args//2} values."
         )
 
-    if default is lib.no_default:
-        default = np.nan
+    # construct series on which we will apply `Series.mask`
+    if is_array_like(default):
+        series = pd.Series(default)
+    else:
+        series = pd.Series([default] * obj.shape[0])
 
-    def _eval(df: pd.DataFrame) -> np.ndarray:
-        booleans = []
-        replacements = []
+    for i in range(0, len_args, 2):
+        # get conditions
+        if callable(args[i]):
+            conditions = com.apply_if_callable(args[i], obj)
+        else:
+            conditions = args[i]
 
-        for index, value in enumerate(args):
-            if not index % 2:
-                if callable(value):
-                    value = com.apply_if_callable(value, df)
-                booleans.append(value)
-            else:
-                replacements.append(value)
+        # get replacements
+        replacements = args[i + 1]
 
-        return np.select(booleans, replacements, default=default)
+        # `Series.mask` call
+        series = series.mask(conditions, replacements)
 
-    return _eval
+    return series
