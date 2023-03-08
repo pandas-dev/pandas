@@ -113,10 +113,9 @@ class ToCSVPeriod(BaseIO):
         self.data.to_csv(self.fname)
 
     def time_frame_period_formatting(self, nobs, freq):
-        """IMPORTANT: date_format is not actually taken into account here today
-        So the behaviour and perf is identical to `time_frame_period_no_format` above.
-        Not sure if this is a bug or a desired feature. Keeping the ASV for reference
-        for now"""
+        # Nb: `date_format` is not actually taken into account here today, so the
+        # behaviour and perf is currently identical to `time_frame_period_no_format`
+        # above. This timer is therefore expected to degrade when GH#51621 is fixed.
         self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
 
