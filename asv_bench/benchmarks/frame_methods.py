@@ -444,6 +444,22 @@ class Dropna:
         self.df_mixed.dropna(how=how, axis=axis)
 
 
+class Isna:
+    params = ["float64", "Float64", "float64[pyarrow]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(10000, 1000)
+        # all-na columns
+        data[:, 600:800] = np.nan
+        # partial-na columns
+        data[800:1000, 4000:5000] = np.nan
+        self.df = DataFrame(data, dtype=dtype)
+
+    def time_isna(self, dtype):
+        self.df.isna()
+
+
 class Count:
     params = [0, 1]
     param_names = ["axis"]
@@ -752,6 +768,39 @@ class MemoryUsage:
 
     def time_memory_usage_object_dtype(self):
         self.df2.memory_usage(deep=True)
+
+
+class Round:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 10))
+        self.df_t = self.df.transpose(copy=True)
+
+    def time_round(self):
+        self.df.round()
+
+    def time_round_transposed(self):
+        self.df_t.round()
+
+    def peakmem_round(self):
+        self.df.round()
+
+    def peakmem_round_transposed(self):
+        self.df_t.round()
+
+
+class Where:
+    params = (
+        [True, False],
+        ["float64", "Float64", "float64[pyarrow]"],
+    )
+    param_names = ["dtype"]
+
+    def setup(self, inplace, dtype):
+        self.df = DataFrame(np.random.randn(100_000, 10), dtype=dtype)
+        self.mask = self.df < 0
+
+    def time_where(self, inplace, dtype):
+        self.df.where(self.mask, other=0.0, inplace=inplace)
 
 
 class FindValidIndex:

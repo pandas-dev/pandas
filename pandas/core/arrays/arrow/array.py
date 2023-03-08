@@ -81,10 +81,10 @@ if not pa_version_under7p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and_": pc.and_kleene,
+        "rand_": lambda x, y: pc.and_kleene(y, x),
+        "or_": pc.or_kleene,
+        "ror_": lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
@@ -299,9 +299,19 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             # "coerce" to allow "null times" (None) to not raise
             scalars = to_time(strings, errors="coerce")
         elif pa.types.is_boolean(pa_type):
-            from pandas.core.arrays import BooleanArray
-
-            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+            # pyarrow string->bool casting is case-insensitive:
+            #   "true" or "1" -> True
+            #   "false" or "0" -> False
+            # Note: BooleanArray was previously used to parse these strings
+            #   and allows "1.0" and "0.0". Pyarrow casting does not support
+            #   this, but we allow it here.
+            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                scalars = strings
+            else:
+                scalars = pa.array(strings, type=pa.string(), from_pandas=True)
+            scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
+            scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
+            scalars = scalars.cast(pa.bool_())
         elif (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -491,7 +501,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, pa.array(other, from_pandas=True))
         elif is_scalar(other):
-            result = pc_func(self._data, pa.scalar(other))
+            if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
+                # pyarrow kleene ops require null to be typed
+                pa_scalar = pa.scalar(None, type=self._data.type)
+            else:
+                pa_scalar = pa.scalar(other)
+            result = pc_func(self._data, pa_scalar)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
@@ -557,6 +572,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
 
         This should return a 1-D array the same length as 'self'.
         """
+        # GH51630: fast paths
+        null_count = self._data.null_count
+        if null_count == 0:
+            return np.zeros(len(self), dtype=np.bool_)
+        elif null_count == len(self):
+            return np.ones(len(self), dtype=np.bool_)
+
         return self._data.is_null().to_numpy()
 
     def argsort(
@@ -569,14 +591,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ) -> np.ndarray:
         order = "ascending" if ascending else "descending"
         null_placement = {"last": "at_end", "first": "at_start"}.get(na_position, None)
-        if null_placement is None or pa_version_under7p0:
-            # Although pc.array_sort_indices exists in version 6
-            # there's a bug that affects the pa.ChunkedArray backing
-            # https://issues.apache.org/jira/browse/ARROW-12042
-            fallback_performancewarning("7")
-            return super().argsort(
-                ascending=ascending, kind=kind, na_position=na_position
-            )
+        if null_placement is None:
+            raise ValueError(f"invalid na_position: {na_position}")
 
         result = pc.array_sort_indices(
             self._data, order=order, null_placement=null_placement
@@ -640,9 +656,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
-        if method is not None and pa_version_under7p0:
-            # fill_null_{forward|backward} added in pyarrow 7.0
-            fallback_performancewarning(version="7")
+        if method is not None:
+            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if is_array_like(value):
@@ -990,12 +1005,11 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         if pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
-        # No missing values so we can adhere to the interface and return a numpy array.
-        counts = np.array(counts)
+        counts = ArrowExtensionArray(counts)
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count").astype("Int64")
+        return Series(counts, index=index, name="count")
 
     @classmethod
     def _concat_same_type(
@@ -1142,6 +1156,10 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             if pyarrow_meth is None:
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
+
+        # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
+        if name in ["any", "all"] and "min_count" not in kwargs:
+            kwargs["min_count"] = 0
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)

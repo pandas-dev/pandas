@@ -38,38 +38,6 @@ from pandas._libs.lib import (
     is_range_indexer,
     no_default,
 )
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axis,
-    AxisInt,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    NaPosition,
-    QuantileInterpolation,
-    Renamer,
-    Scalar,
-    SingleManager,
-    SortKind,
-    StorageOptions,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
-)
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -175,10 +143,41 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from pandas._libs.internals import BlockValuesRefs
     from pandas._typing import (
+        AggFuncType,
+        AlignJoin,
+        AnyAll,
+        AnyArrayLike,
+        ArrayLike,
+        Axis,
+        AxisInt,
+        CorrelationMethod,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        Level,
+        NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
+        QuantileInterpolation,
+        Renamer,
+        Scalar,
+        SingleManager,
+        SortKind,
+        StorageOptions,
         Suffixes,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+        ValueKeyFunc,
+        WriteBuffer,
+        npt,
     )
 
     from pandas.core.frame import DataFrame
@@ -733,6 +732,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         """
         return self._mgr.internal_values()
+
+    @property
+    def _references(self) -> BlockValuesRefs | None:
+        if isinstance(self._mgr, SingleArrayManager):
+            return None
+        return self._mgr._block.refs
 
     # error: Decorated property not supported
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
@@ -1969,7 +1974,7 @@ Name: Max Speed, dtype: float64
         level: IndexLabel = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = True,
         observed: bool = False,
         dropna: bool = True,
     ) -> SeriesGroupBy:
@@ -2643,9 +2648,12 @@ Name: Max Speed, dtype: float64
         if len(this) == 0:
             return np.nan
 
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
+
         if method in ["pearson", "spearman", "kendall"] or callable(method):
             return nanops.nancorr(
-                this.values, other.values, method=method, min_periods=min_periods
+                this_values, other_values, method=method, min_periods=min_periods
             )
 
         raise ValueError(
@@ -2698,8 +2706,10 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
+        this_values = np.asarray(this._values)
+        other_values = np.asarray(other._values)
         return nanops.nancov(
-            this.values, other.values, min_periods=min_periods, ddof=ddof
+            this_values, other_values, min_periods=min_periods, ddof=ddof
         )
 
     @doc(

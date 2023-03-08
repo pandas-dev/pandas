@@ -9,9 +9,9 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from types import TracebackType
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -28,15 +28,6 @@ from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import (
-    CompressionOptions,
-    CSVEngine,
-    DtypeArg,
-    FilePath,
-    IndexLabel,
-    ReadCsvBuffer,
-    StorageOptions,
-)
 from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
@@ -73,6 +64,18 @@ from pandas.io.parsers.python_parser import (
     PythonParser,
 )
 
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionOptions,
+        CSVEngine,
+        DtypeArg,
+        FilePath,
+        IndexLabel,
+        ReadCsvBuffer,
+        StorageOptions,
+    )
 _doc_read_csv_and_table = (
     r"""
 {summary}
