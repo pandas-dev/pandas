@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
 )
 
-from pandas.core.arrays import ArrowExtensionArray
+import pandas as pd
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import get_handle
@@ -99,14 +99,7 @@ def read_orc(
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
         if dtype_backend == "pyarrow":
-            df = DataFrame(
-                {
-                    col_name: ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(
-                        pa_table.column_names, pa_table.itercolumns()
-                    )
-                }
-            )
+            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             from pandas.io._util import _arrow_dtype_mapping
 
