@@ -600,3 +600,20 @@ Install pandas-stubs to enable basic type coverage of pandas API.
 Learn more by reading through :issue:`14468`, :issue:`26766`, :issue:`28142`.
 
 See installation and usage instructions on the `GitHub page <https://github.com/pandas-dev/pandas-stubs>`__.
+
+`Hamilton <https://github.com/dagworks-inc/hamilton>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was designed to help one manage a Pandas code base, specifically with respect to feature engineering for machine learning models.
+
+It prescibes an opinionated paradigm, that ensures all code is:
+
+* unit testable
+* integration testing friendly
+* documentation friendly
+* transformation logic is reusable, as it is decoupled from the context of where it is used.
+* integratable with runtime data quality checks.
+
+This helps one to scale your pandas code base, at the same time, keeping maintenance costs low.
+
+For more information, see `documentation <https://hamilton.readthedocs.io/>`__.
