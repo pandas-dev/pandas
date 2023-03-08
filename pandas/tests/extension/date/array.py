@@ -1,6 +1,5 @@
 import datetime as dt
 from typing import (
-    TYPE_CHECKING,
     Any,
     Optional,
     Sequence,
@@ -11,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Dtype  # noqa: TCH001
 from pandas._typing import PositionalIndexer  # noqa: TCH001
 
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -20,9 +20,6 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.api.types import pandas_dtype
-
-if TYPE_CHECKING:
-    from pandas._typing import Dtype
 
 
 @register_extension_dtype
