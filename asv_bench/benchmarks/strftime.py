@@ -100,19 +100,3 @@ class BusinessHourStrftime:
 
     def time_frame_offset_repr(self, nobs):
         self.data["off"].apply(repr)
-
-
-class ToCSVPeriod:
-
-    params = ([1000, 10000], ["D", "H"])
-    param_names = ["nobs", "freq"]
-
-    def setup(self, nobs, freq):
-        rng = pd.period_range(start="2000-01-01", periods=nobs, freq=freq)
-        self.data = pd.DataFrame(rng)
-
-    def time_frame_period_formatting(self, nobs, freq):
-        self.data.to_csv(date_format="%Y-%m-%d___%H:%M:%S")
-
-    def time_frame_period_no_format(self, nobs, freq):
-        self.data.to_csv()
