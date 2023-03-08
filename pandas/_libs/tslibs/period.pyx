@@ -1156,7 +1156,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
     cdef:
         int freq_group
         npy_datetimestruct dts
-        bool is_fmt_none
+        bint is_fmt_none
 
     if value == NPY_NAT:
         return "NaT"
