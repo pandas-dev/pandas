@@ -84,7 +84,7 @@ class PeriodUnaryMethods:
         self.per.strftime(None)
 
     def time_strftime_default_explicit(self, freq):
-        self.per.strftime(fmt=self.default_fmt)
+        self.per.strftime(self.default_fmt)
 
     def time_strftime_custom(self, freq):
         self.per.strftime("%b. %d, %Y was a %A")
