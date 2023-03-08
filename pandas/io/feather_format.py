@@ -13,10 +13,8 @@ from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import (
-    arrays,
-    get_option,
-)
+import pandas as pd
+from pandas import get_option
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
@@ -140,11 +138,4 @@ def read_feather(
             return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
 
         elif dtype_backend == "pyarrow":
-            return DataFrame(
-                {
-                    col_name: arrays.ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(
-                        pa_table.column_names, pa_table.itercolumns()
-                    )
-                }
-            )
+            return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
