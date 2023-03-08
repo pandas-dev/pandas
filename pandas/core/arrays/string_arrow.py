@@ -13,12 +13,11 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-
-# from pandas._typing import (
-#     Dtype,
-#     Scalar,
-#     npt,
-# )
+from pandas._typing import (
+    Dtype,
+    Scalar,
+    npt,
+)
 from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
