@@ -836,7 +836,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # self.array instead of self._values so we piggyback on PandasArray
         #  implementation
         res_values = self.array.view(dtype)
-        res_ser = self._constructor(res_values, index=self.index)
+        res_ser = self._constructor(res_values, index=self.index, copy=False)
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -1027,9 +1027,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
-        )
+        return self._constructor(
+            self._values[indexer], index=new_index, copy=False
+        ).__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
@@ -1066,7 +1066,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
-            new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            new_ser = self._constructor(
+                new_values, index=new_index, name=self.name, copy=False
+            )
             return new_ser.__finalize__(self)
 
         else:
@@ -1362,7 +1364,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_repeat((), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
-        return self._constructor(new_values, index=new_index).__finalize__(
+        return self._constructor(new_values, index=new_index, copy=False).__finalize__(
             self, method="repeat"
         )
 
@@ -1528,7 +1530,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self.index = new_index
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index
+                    self._values.copy(), index=new_index, copy=False
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -2050,7 +2052,7 @@ Name: Max Speed, dtype: float64
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name
+            res_values, index=range(len(res_values)), name=self.name, copy=False
         )
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -2314,7 +2316,7 @@ Name: Max Speed, dtype: float64
         dtype: bool
         """
         res = self._duplicated(keep=keep)
-        result = self._constructor(res, index=self.index)
+        result = self._constructor(res, index=self.index, copy=False)
         return result.__finalize__(self, method="duplicated")
 
     def idxmin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2492,7 +2494,7 @@ Name: Max Speed, dtype: float64
         """
         nv.validate_round(args, kwargs)
         result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index).__finalize__(
+        result = self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="round"
         )
 
@@ -2798,7 +2800,7 @@ Name: Max Speed, dtype: float64
         {examples}
         """
         result = algorithms.diff(self._values, periods)
-        return self._constructor(result, index=self.index).__finalize__(
+        return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="diff"
         )
 
@@ -2916,7 +2918,7 @@ Name: Max Speed, dtype: float64
 
         if isinstance(other, ABCDataFrame):
             return self._constructor(
-                np.dot(lvals, rvals), index=other.columns
+                np.dot(lvals, rvals), index=other.columns, copy=False
             ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
@@ -3032,7 +3034,7 @@ Name: Max Speed, dtype: float64
         # TODO: result should always be ArrayLike, but this fails for some
         #  JSONArray tests
         dtype = getattr(result, "dtype", None)
-        out = self._constructor(result, index=self.index, dtype=dtype)
+        out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
@@ -3218,7 +3220,7 @@ Keep all original rows and also all original values
         # try_float=False is to match agg_series
         npvalues = lib.maybe_convert_objects(new_values, try_float=False)
         res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
-        return self._constructor(res_values, index=new_index, name=new_name)
+        return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:
         """
@@ -3569,7 +3571,7 @@ Keep all original rows and also all original values
             return self.copy(deep=None)
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index]
+            self._values[sorted_index], index=self.index[sorted_index], copy=False
         )
 
         if ignore_index:
@@ -3817,7 +3819,9 @@ Keep all original rows and also all original values
         else:
             result = np.argsort(values, kind=kind)
 
-        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        res = self._constructor(
+            result, index=self.index, name=self.name, dtype=np.intp, copy=False
+        )
         return res.__finalize__(self, method="argsort")
 
     def nlargest(
@@ -4192,7 +4196,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        return self._constructor(values, index=index, name=self.name)
+        return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
         """
@@ -4323,7 +4327,7 @@ Keep all original rows and also all original values
         dtype: object
         """
         new_values = self._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(
+        return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )
 
@@ -4617,7 +4621,7 @@ Keep all original rows and also all original values
         new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
-        return self._constructor(new_values, index=new_index)
+        return self._constructor(new_values, index=new_index, copy=False)
 
     def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
@@ -5332,7 +5336,7 @@ Keep all original rows and also all original values
         dtype: bool
         """
         result = algorithms.isin(self._values, values)
-        return self._constructor(result, index=self.index).__finalize__(
+        return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="isin"
         )
 

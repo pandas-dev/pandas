@@ -1594,16 +1594,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(other, DataFrame):
             return self._constructor(
-                np.dot(lvals, rvals), index=left.index, columns=other.columns
+                np.dot(lvals, rvals),
+                index=left.index,
+                columns=other.columns,
+                copy=False,
             )
         elif isinstance(other, Series):
-            return self._constructor_sliced(np.dot(lvals, rvals), index=left.index)
+            return self._constructor_sliced(
+                np.dot(lvals, rvals), index=left.index, copy=False
+            )
         elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
             if result.ndim == 2:
-                return self._constructor(result, index=left.index)
+                return self._constructor(result, index=left.index, copy=False)
             else:
-                return self._constructor_sliced(result, index=left.index)
+                return self._constructor_sliced(result, index=left.index, copy=False)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
@@ -3604,7 +3609,11 @@ class DataFrame(NDFrame, OpsMixin):
             if copy:
                 new_arr = new_arr.copy()
             result = self._constructor(
-                new_arr, index=self.columns, columns=self.index, dtype=new_arr.dtype
+                new_arr,
+                index=self.columns,
+                columns=self.index,
+                dtype=new_arr.dtype,
+                copy=False,
             )
 
         return result.__finalize__(self, method="transpose")
@@ -3830,7 +3839,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 new_values = self.values[:, loc]
                 result = self._constructor(
-                    new_values, index=self.index, columns=result_columns
+                    new_values, index=self.index, columns=result_columns, copy=False
                 )
                 result = result.__finalize__(self)
 
@@ -4065,7 +4074,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(key, np.ndarray):
             if key.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
-            key = self._constructor(key, **self._construct_axes_dict())
+            key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
         if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
             raise TypeError(
@@ -4983,7 +4992,9 @@ class DataFrame(NDFrame, OpsMixin):
             #  condition more specific.
             indexer = row_indexer, col_indexer
             new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
-            return self._constructor(new_values, index=new_index, columns=new_columns)
+            return self._constructor(
+                new_values, index=new_index, columns=new_columns, copy=False
+            )
         else:
             return self._reindex_with_indexers(
                 {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
@@ -10122,7 +10133,7 @@ Parrot 2  Parrot       24.0
                 f"'{method}' was supplied"
             )
 
-        result = self._constructor(correl, index=idx, columns=cols)
+        result = self._constructor(correl, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="corr")
 
     def cov(
@@ -10253,7 +10264,7 @@ Parrot 2  Parrot       24.0
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
 
-        result = self._constructor(base_cov, index=idx, columns=cols)
+        result = self._constructor(base_cov, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="cov")
 
     def corrwith(
@@ -10366,7 +10377,9 @@ Parrot 2  Parrot       24.0
                 return nanops.nancorr(x[0], x[1], method=method)
 
             correl = self._constructor_sliced(
-                map(c, zip(left.values.T, right.values.T)), index=left.columns
+                map(c, zip(left.values.T, right.values.T)),
+                index=left.columns,
+                copy=False,
             )
 
         else:
@@ -10477,7 +10490,7 @@ Parrot 2  Parrot       24.0
                 series_counts = notna(frame).sum(axis=axis)
                 counts = series_counts.values
                 result = self._constructor_sliced(
-                    counts, index=frame._get_agg_axis(axis)
+                    counts, index=frame._get_agg_axis(axis), copy=False
                 )
 
         return result.astype("int64").__finalize__(self, method="count")
@@ -10586,7 +10599,7 @@ Parrot 2  Parrot       24.0
             middle = func(arr, axis=0, skipna=skipna)
             result = ufunc(result, middle)
 
-        res_ser = self._constructor_sliced(result, index=self.index)
+        res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
@@ -11268,6 +11281,7 @@ Parrot 2  Parrot       24.0
                 ).reshape(self.shape),
                 self.index,
                 self.columns,
+                copy=False,
             )
         return result.__finalize__(self, method="isin")
 

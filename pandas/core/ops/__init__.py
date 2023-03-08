@@ -190,7 +190,7 @@ def flex_method_SERIES(op):
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
-            other = self._constructor(other, self.index)
+            other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result.name = res_name
             return result
