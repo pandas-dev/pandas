@@ -1618,7 +1618,7 @@ The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
 operation.
 
-Any function available via :ref:`dispatching <groupby.dispatch>` is available as
+Any built-in method available via :ref:`GroupBy <api.groupby>` is available as
 a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
 ``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``:
 
