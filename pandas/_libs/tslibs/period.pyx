@@ -1165,7 +1165,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
     get_date_info(value, freq, &dts)
     freq_group = get_freq_group(freq)
 
-    # get the appropriate default format depending on frequency group
+    # use the appropriate default format depending on frequency group
     is_fmt_none = fmt is None
     if freq_group == FR_ANN and (is_fmt_none or fmt == "%Y"):
         return f"{dts.year}"
