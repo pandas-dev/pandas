@@ -4,8 +4,8 @@ Functions for defining unary operations.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
-    TYPE_CHECKING
 )
 
 from pandas.core.dtypes.generic import ABCExtensionArray

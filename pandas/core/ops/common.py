@@ -6,8 +6,8 @@ from __future__ import annotations
 from functools import wraps
 import sys
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    TYPE_CHECKING
 )
 
 from pandas._libs.lib import item_from_zerodim
