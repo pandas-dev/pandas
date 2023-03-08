@@ -239,7 +239,7 @@ def test_comparison_methods_array(comparison_op, dtype):
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
     expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
-    expected = np.empty_like(a, dtype="object")
+    expected = np.full(len(a), fill_value=None, dtype="object")
     expected[-1] = getattr(other[-1], op_name)(a[-1])
     expected = pd.array(expected, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
