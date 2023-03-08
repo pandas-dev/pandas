@@ -2,22 +2,27 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadPickleBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadPickleBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @doc(
