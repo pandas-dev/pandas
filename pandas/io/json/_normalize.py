@@ -9,6 +9,7 @@ from collections import (
 import copy
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Iterable,
@@ -17,13 +18,15 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas._typing import (
-    IgnoreRaise,
-    Scalar,
-)
 
 import pandas as pd
 from pandas import DataFrame
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        IgnoreRaise,
+        Scalar,
+    )
 
 
 def convert_to_line_delimits(s: str) -> str:

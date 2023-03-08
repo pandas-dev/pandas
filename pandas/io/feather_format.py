@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Sequence,
 )
@@ -9,12 +10,6 @@ from typing import (
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -22,13 +17,18 @@ from pandas import (
     arrays,
     get_option,
 )
-from pandas.core.api import (
-    DataFrame,
-    RangeIndex,
-)
+from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @doc(storage_options=_shared_docs["storage_options"])
@@ -59,39 +59,6 @@ def to_feather(
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
-
-    valid_types = {"string", "unicode"}
-
-    # validate index
-    # --------------
-
-    # validate that we have only a default index
-    # raise on anything else as we don't serialize the index
-
-    if not df.index.dtype == "int64":
-        typ = type(df.index)
-        raise ValueError(
-            f"feather does not support serializing {typ} "
-            "for the index; you can .reset_index() to make the index into column(s)"
-        )
-
-    if not df.index.equals(RangeIndex.from_range(range(len(df)))):
-        raise ValueError(
-            "feather does not support serializing a non-default index for the index; "
-            "you can .reset_index() to make the index into column(s)"
-        )
-
-    if df.index.name is not None:
-        raise ValueError(
-            "feather does not serialize index meta-data on a default index"
-        )
-
-    # validate columns
-    # ----------------
-
-    # must have value column names (strings only)
-    if df.columns.inferred_type not in valid_types:
-        raise ValueError("feather must have string column names")
 
     with get_handle(
         path, "wb", storage_options=storage_options, is_text=False
