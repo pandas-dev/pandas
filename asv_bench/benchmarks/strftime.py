@@ -24,6 +24,9 @@ class DatetimeStrftime:
         self.data["d"].astype(str)
 
     def time_frame_date_formatting_default(self, nobs):
+        self.data["d"].dt.strftime(date_format=None)
+
+    def time_frame_date_formatting_default_explicit(self, nobs):
         self.data["d"].dt.strftime(date_format="%Y-%m-%d")
 
     def time_frame_date_formatting_custom(self, nobs):
@@ -62,6 +65,10 @@ class PeriodStrftime:
         )
         self.data["i"] = self.data["p"]
         self.data.set_index("i", inplace=True)
+        if freq == "D":
+            self.default_fmt = "%Y-%m-%d"
+        elif freq == "H":
+            self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_to_str(self, nobs, freq):
         self.data["p"].astype(str)
@@ -69,8 +76,14 @@ class PeriodStrftime:
     def time_frame_period_formatting_default(self, nobs, freq):
         self.data["p"].dt.strftime(date_format=None)
 
+    def time_frame_period_formatting_default_explicit(self, nobs, freq):
+        self.data["p"].dt.strftime(date_format=self.default_fmt)
+
     def time_frame_period_formatting_index_default(self, nobs, freq):
         self.data.index.format()
+
+    def time_frame_period_formatting_index_default_explicit(self, nobs, freq):
+        self.data.index.format(self.default_fmt)
 
     def time_frame_period_formatting_custom(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")

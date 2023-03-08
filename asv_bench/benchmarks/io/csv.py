@@ -108,14 +108,22 @@ class ToCSVPeriod(BaseIO):
     def setup(self, nobs, freq):
         rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
         self.data = DataFrame(rng)
+        if freq == "D":
+            self.default_fmt = "%Y-%m-%d"
+        elif freq == "H":
+            self.default_fmt = "%Y-%m-%d %H:00"
 
-    def time_frame_period_no_format(self, nobs, freq):
+    def time_frame_period_formatting_default(self, nobs, freq):
         self.data.to_csv(self.fname)
+
+    def time_frame_period_formatting_default_explicit(self, nobs, freq):
+        self.data.to_csv(self.fname, date_format=self.default_fmt)
 
     def time_frame_period_formatting(self, nobs, freq):
         # Nb: `date_format` is not actually taken into account here today, so the
-        # behaviour and perf is currently identical to `time_frame_period_no_format`
+        # performance is currently identical to `time_frame_period_formatting_default`
         # above. This timer is therefore expected to degrade when GH#51621 is fixed.
+        # (Remove this comment when GH#51621 is fixed.)
         self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
 
@@ -128,12 +136,19 @@ class ToCSVPeriodIndex(BaseIO):
     def setup(self, nobs, freq):
         rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
         self.data = DataFrame({"a": 1}, index=rng)
+        if freq == "D":
+            self.default_fmt = "%Y-%m-%d"
+        elif freq == "H":
+            self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_formatting_index(self, nobs, freq):
         self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
-    def time_frame_period_no_format_index(self, nobs, freq):
+    def time_frame_period_formatting_index_default(self, nobs, freq):
         self.data.to_csv(self.fname)
+
+    def time_frame_period_formatting_index_default_explicit(self, nobs, freq):
+        self.data.to_csv(self.fname, date_format=self.default_fmt)
 
 
 class ToCSVDatetimeBig(BaseIO):
