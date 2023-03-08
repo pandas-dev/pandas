@@ -535,8 +535,7 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.parametrize("option", [True, False])
-    def test_use_nullable_dtypes(self, read_ext, dtype_backend, option):
+    def test_dtype_backend(self, read_ext, dtype_backend):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -557,14 +556,9 @@ class TestReaders:
         )
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if not option:
-                    result = pd.read_excel(
-                        file_path, sheet_name="test", use_nullable_dtypes=True
-                    )
-                else:
-                    with pd.option_context("mode.nullable_dtypes", True):
-                        result = pd.read_excel(file_path, sheet_name="test")
+            result = pd.read_excel(
+                file_path, sheet_name="test", dtype_backend=dtype_backend
+            )
         if dtype_backend == "pyarrow":
             import pyarrow as pa
 
@@ -586,7 +580,7 @@ class TestReaders:
             expected = df
         tm.assert_frame_equal(result, expected)
 
-    def test_use_nullabla_dtypes_and_dtype(self, read_ext):
+    def test_dtype_backend_and_dtype(self, read_ext):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -595,12 +589,15 @@ class TestReaders:
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
             result = pd.read_excel(
-                file_path, sheet_name="test", use_nullable_dtypes=True, dtype="float64"
+                file_path,
+                sheet_name="test",
+                dtype_backend="numpy_nullable",
+                dtype="float64",
             )
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    def test_use_nullable_dtypes_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -617,7 +614,7 @@ class TestReaders:
             with tm.ensure_clean(read_ext) as file_path:
                 df.to_excel(file_path, "test", index=False)
                 result = pd.read_excel(
-                    file_path, sheet_name="test", use_nullable_dtypes=True
+                    file_path, sheet_name="test", dtype_backend="numpy_nullable"
                 )
 
             if string_storage == "python":

@@ -18,8 +18,6 @@ from typing import (
     cast,
 )
 
-from pandas._config import using_nullable_dtypes
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -48,6 +46,7 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from pandas._typing import (
         BaseBuffer,
+        DtypeBackend,
         FilePath,
         ReadBuffer,
     )
@@ -1007,7 +1006,7 @@ def read_html(
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1108,18 +1107,9 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
-    use_nullable_dtypes : bool = False
-        Whether to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
-
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable extension dtypes or pyarrow dtypes.
 
         .. versionadded:: 2.0
 
@@ -1177,12 +1167,6 @@ def read_html(
         )
     validate_header_arg(header)
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
-
     io = stringify_path(io)
 
     return _parse(
@@ -1202,5 +1186,5 @@ def read_html(
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
         extract_links=extract_links,
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
     )

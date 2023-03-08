@@ -377,3 +377,4 @@ CorrelationMethod = Union[
     Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
+DtypeBackend = Literal["pyarrow", "numpy_nullable"]

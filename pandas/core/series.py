@@ -155,6 +155,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeBackend,
         DtypeObj,
         FilePath,
         FillnaOptions,
@@ -5439,6 +5440,7 @@ Keep all original rows and also all original values
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Series:
         input_series = self
         if infer_objects:
@@ -5447,7 +5449,6 @@ Keep all original rows and also all original values
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
-            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
