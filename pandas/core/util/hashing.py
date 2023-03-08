@@ -14,10 +14,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs.hashing import hash_object_array
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -29,6 +25,11 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
     from pandas import (
         DataFrame,
         Index,

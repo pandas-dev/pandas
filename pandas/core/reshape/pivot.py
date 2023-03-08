@@ -11,12 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AggFuncType,
-    AggFuncTypeBase,
-    AggFuncTypeDict,
-    IndexLabel,
-)
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -48,6 +42,13 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AggFuncType,
+        AggFuncTypeBase,
+        AggFuncTypeDict,
+        IndexLabel,
+    )
+
     from pandas import DataFrame
 
 
