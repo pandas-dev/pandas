@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
