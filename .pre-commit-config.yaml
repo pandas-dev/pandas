@@ -160,14 +160,6 @@ repos:
         types: [pyi]
         args: [scripts/run_stubtest.py]
         stages: [manual]
-    -   id: flake8-rst
-        name: flake8-rst
-        description: Run flake8 on code snippets in docstrings or RST files
-        language: python
-        entry: flake8-rst
-        types: [rst]
-        args: [--filename=*.rst]
-        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py
