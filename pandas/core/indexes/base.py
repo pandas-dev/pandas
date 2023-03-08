@@ -1893,7 +1893,11 @@ class Index(IndexOpsMixin, PandasObject):
         return 0
 
     def sortlevel(
-        self, level=None, ascending: bool | list[bool] = True, sort_remaining=None
+        self,
+        level=None,
+        ascending: bool | list[bool] = True,
+        sort_remaining=None,
+        na_position: str_t = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -1904,6 +1908,11 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         ascending : bool, default True
             False to sort in descending order
+        na_position : {'first' or 'last'}, default 'first'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 2.1.0
 
         level, sort_remaining are compat parameters
 
@@ -1925,7 +1934,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(ascending, bool):
             raise TypeError("ascending must be a bool value")
 
-        return self.sort_values(return_indexer=True, ascending=ascending)
+        return self.sort_values(
+            return_indexer=True, ascending=ascending, na_position=na_position
+        )
 
     def _get_level_values(self, level) -> Index:
         """
