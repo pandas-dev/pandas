@@ -5993,6 +5993,54 @@ Keep all original rows and also all original values
 
     index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
+            """
+
+            A one-dimensional ndarray with hashable type axis labels. 
+
+            Pandas Series.index attribute is used to get or set the index labels of the given Series object.
+            The object supports both integer- and label-based indexing and provides a host of methods for performing 
+            operations involving the index. 
+            The labels need not be unique but must be of the hashable type.
+
+            Returns
+            -------
+            index
+
+            Examples
+            --------
+
+            **Use the Series.index attribute to set the index label for the given Series object.** 
+
+            >>> s = pd.Series(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'])
+            >>> print(s)
+            0     Kolkata
+            1     Chicago
+            2     Toronto
+            3      Lisbon
+            dtype: object
+
+            The ``Series.index`` attribute will now be used to set the index label for the given object.
+
+            >>> s.index = ['City 1', 'City 2', 'City 3', 'City 4'] 
+            >>> print(s)
+            City 1     Kolkata
+            City 2     Chicago
+            City 3     Toronto
+            City 4      Lisbon
+            dtype: object
+
+            As we can see in the output, the ``Series.index`` attribute has successfully set the index labels for the given Series object. 
+
+            **We can also assign duplicate or nonunique indexes in Pandas.**
+
+            >>> s.index = ['City 1', 'City 1', 'City 3', 'City 3'] 
+            >>> print(s)
+            City 1     Kolkata
+            City 1     Chicago
+            City 3     Toronto
+            City 3      Lisbon
+            dtype: object
+            """
     )
 
     # ----------------------------------------------------------------------
