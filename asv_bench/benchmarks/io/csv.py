@@ -103,16 +103,16 @@ class ToCSVPeriod(BaseIO):
     fname = "__test__.csv"
 
     params = ([1000, 10000], ["D", "H"])
-    param_names = ["obs", "fq"]
+    param_names = ["nobs", "freq"]
 
-    def setup(self, obs, fq):
-        rng = period_range(start="2000-01-01", periods=obs, freq=fq)
+    def setup(self, nobs, freq):
+        rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
         self.data = DataFrame(rng)
 
-    def time_frame_period_no_format(self, obs, fq):
+    def time_frame_period_no_format(self, nobs, freq):
         self.data.to_csv(self.fname)
 
-    def time_frame_period_formatting(self, obs, fq):
+    def time_frame_period_formatting(self, nobs, freq):
         """IMPORTANT: date_format is not actually taken into account here today
         So the behaviour and perf is identical to `time_frame_period_no_format` above.
         Not sure if this is a bug or a desired feature. Keeping the ASV for reference
@@ -124,16 +124,16 @@ class ToCSVPeriodIndex(BaseIO):
     fname = "__test__.csv"
 
     params = ([1000, 10000], ["D", "H"])
-    param_names = ["obs", "fq"]
+    param_names = ["nobs", "freq"]
 
-    def setup(self, obs, fq):
-        rng = period_range(start="2000-01-01", periods=obs, freq=fq)
+    def setup(self, nobs, freq):
+        rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
         self.data = DataFrame({"a": 1}, index=rng)
 
-    def time_frame_period_formatting_index(self, obs, fq):
+    def time_frame_period_formatting_index(self, nobs, freq):
         self.data.to_csv(self.fname, date_format="%Y-%m-%d___%H:%M:%S")
 
-    def time_frame_period_no_format_index(self, obs, fq):
+    def time_frame_period_no_format_index(self, nobs, freq):
         self.data.to_csv(self.fname)
 
 
@@ -141,20 +141,20 @@ class ToCSVDatetimeBig(BaseIO):
     fname = "__test__.csv"
     timeout = 1500
     params = [1000, 10000, 100000]
-    param_names = ["obs"]
+    param_names = ["nobs"]
 
-    def setup(self, obs):
+    def setup(self, nobs):
         d = "2018-11-29"
         dt = "2018-11-26 11:18:27.0"
         self.data = DataFrame(
             {
-                "dt": [np.datetime64(dt)] * obs,
-                "d": [np.datetime64(d)] * obs,
-                "r": [np.random.uniform()] * obs,
+                "dt": [np.datetime64(dt)] * nobs,
+                "d": [np.datetime64(d)] * nobs,
+                "r": [np.random.uniform()] * nobs,
             }
         )
 
-    def time_frame(self, obs):
+    def time_frame(self, nobs):
         self.data.to_csv(self.fname)
 
 
