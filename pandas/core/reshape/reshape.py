@@ -10,7 +10,6 @@ import warnings
 import numpy as np
 
 import pandas._libs.reshape as libreshape
-from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -44,6 +43,8 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import npt
+
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.frozen import FrozenList
 
@@ -95,7 +96,6 @@ class _Unstacker:
     """
 
     def __init__(self, index: MultiIndex, level=-1, constructor=None) -> None:
-
         if constructor is None:
             constructor = DataFrame
         self.constructor = constructor
@@ -205,7 +205,6 @@ class _Unstacker:
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
     def get_result(self, values, value_columns, fill_value) -> DataFrame:
-
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
@@ -221,7 +220,6 @@ class _Unstacker:
         )
 
     def get_new_values(self, values, fill_value=None):
-
         if values.ndim == 1:
             values = values[:, np.newaxis]
 
@@ -461,7 +459,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj: Series | DataFrame, level, fill_value=None):
-
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,

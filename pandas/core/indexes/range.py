@@ -21,10 +21,6 @@ from pandas._libs import (
 )
 from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
-from pandas._typing import (
-    Dtype,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -46,17 +42,21 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import maybe_extract_name
-from pandas.core.indexes.numeric import NumericIndex
+from pandas.core.indexes.base import (
+    Index,
+    maybe_extract_name,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from pandas import Index
-
+    from pandas._typing import (
+        Dtype,
+        npt,
+    )
 _empty_range = range(0)
 
 
-class RangeIndex(NumericIndex):
+class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -98,6 +98,7 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _values: np.ndarray
 
     @property
     def _engine_type(self) -> type[libindex.Int64Engine]:
@@ -178,14 +179,25 @@ class RangeIndex(NumericIndex):
         result._reset_identity()
         return result
 
+    @classmethod
+    def _validate_dtype(cls, dtype: Dtype | None) -> None:
+        if dtype is None:
+            return
+
+        validation_func, expected = cls._dtype_validation_metadata
+        if not validation_func(dtype):
+            raise ValueError(
+                f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            )
+
     # --------------------------------------------------------------------
 
-    # error: Return type "Type[NumericIndex]" of "_constructor" incompatible with return
+    # error: Return type "Type[Index]" of "_constructor" incompatible with return
     # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[NumericIndex]:  # type: ignore[override]
+    def _constructor(self) -> type[Index]:  # type: ignore[override]
         """return the class to use for construction"""
-        return NumericIndex
+        return Index
 
     # error: Signature of "_data" incompatible with supertype "Index"
     @cache_readonly
@@ -326,7 +338,7 @@ class RangeIndex(NumericIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    @doc(NumericIndex.get_loc)
+    @doc(Index.get_loc)
     def get_loc(self, key):
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
@@ -367,21 +379,28 @@ class RangeIndex(NumericIndex):
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
 
+    @cache_readonly
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        Should an integer key be treated as positional?
+        """
+        return False
+
     # --------------------------------------------------------------------
 
     def tolist(self) -> list[int]:
         return list(self._range)
 
-    @doc(NumericIndex.__iter__)
+    @doc(Index.__iter__)
     def __iter__(self) -> Iterator[int]:
         yield from self._range
 
-    @doc(NumericIndex._shallow_copy)
+    @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
         name = self.name if name is no_default else name
 
         if values.dtype.kind == "f":
-            return NumericIndex(values, name=name, dtype=np.float64)
+            return Index(values, name=name, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
         # more memory-compact RangeIndex instead of Index with 64-bit dtype
         unique_diffs = unique_deltas(values)
@@ -390,14 +409,14 @@ class RangeIndex(NumericIndex):
             new_range = range(values[0], values[-1] + diff, diff)
             return type(self)._simple_new(new_range, name=name)
         else:
-            return NumericIndex._simple_new(values, name=name)
+            return self._constructor._simple_new(values, name=name)
 
     def _view(self: RangeIndex) -> RangeIndex:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
-    @doc(NumericIndex.copy)
+    @doc(Index.copy)
     def copy(self, name: Hashable = None, deep: bool = False):
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
@@ -671,7 +690,7 @@ class RangeIndex(NumericIndex):
         if not isinstance(other, RangeIndex):
             return super()._difference(other, sort=sort)
 
-        if sort is None and self.step < 0:
+        if sort is not False and self.step < 0:
             return self[::-1]._difference(other)
 
         res_name = ops.get_op_result_name(self, other)
@@ -912,7 +931,6 @@ class RangeIndex(NumericIndex):
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
                 start = self.start // other

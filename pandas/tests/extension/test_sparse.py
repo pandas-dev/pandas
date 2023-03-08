@@ -270,30 +270,9 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
-    def test_combine_le(self, data_repeated):
-        # We return a Series[SparseArray].__le__ returns a
-        # Series[Sparse[bool]]
-        # rather than Series[bool]
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            SparseArray(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-                fill_value=False,
-            )
-        )
-        self.assert_series_equal(result, expected)
+    _combine_le_expected_dtype = "Sparse[bool]"
 
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
-        )
-        self.assert_series_equal(result, expected)
-
-    def test_fillna_copy_frame(self, data_missing):
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr}, copy=False)
 
@@ -301,17 +280,24 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = df.fillna(filled_val)
 
         if hasattr(df._mgr, "blocks"):
-            assert df.values.base is not result.values.base
+            if using_copy_on_write:
+                assert df.values.base is result.values.base
+            else:
+                assert df.values.base is not result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
-    def test_fillna_copy_series(self, data_missing):
+    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        assert ser._values is not result._values
+        if using_copy_on_write:
+            assert ser._values is result._values
+
+        else:
+            assert ser._values is not result._values
         assert ser._values.to_dense() is arr.to_dense()
 
     @pytest.mark.xfail(reason="Not Applicable")

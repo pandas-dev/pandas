@@ -252,7 +252,13 @@ class Preprocessors:
         and linked from there. This preprocessor obtains the list of
         PDEP's in different status from the directory tree and GitHub.
         """
-        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        KNOWN_STATUS = {
+            "Under discussion",
+            "Accepted",
+            "Implemented",
+            "Rejected",
+            "Withdrawn",
+        }
         context["pdeps"] = collections.defaultdict(list)
 
         # accepted, rejected and implemented
@@ -278,7 +284,7 @@ class Preprocessors:
             context["pdeps"][status].append(
                 {
                     "title": title,
-                    "url": f"/pdeps/{html_file}",
+                    "url": f"pdeps/{html_file}",
                 }
             )
 
@@ -301,9 +307,9 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
             json.dump(pdeps, f)
 
-        for pdep in pdeps["items"]:
+        for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
             context["pdeps"]["Under discussion"].append(
-                {"title": pdep["title"], "url": pdep["url"]}
+                {"title": pdep["title"], "url": pdep["html_url"]}
             )
 
         return context
@@ -383,7 +389,6 @@ def extend_base_template(content: str, base_template: str) -> str:
 def main(
     source_path: str,
     target_path: str,
-    base_url: str,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -397,7 +402,7 @@ def main(
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, base_url=base_url, target_path=target_path)
+    context = get_context(config_fname, target_path=target_path)
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])
@@ -419,7 +424,11 @@ def main(
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
+                # Apply Bootstrap's table formatting manually
+                # Python-Markdown doesn't let us config table attributes by hand
+                body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
+            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
             fname = os.path.splitext(fname)[0] + ".html"
             with open(os.path.join(target_path, fname), "w") as f:
@@ -438,8 +447,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target-path", default="build", help="directory where to write the output"
     )
-    parser.add_argument(
-        "--base-url", default="", help="base url where the website is served from"
-    )
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path, args.base_url))
+    sys.exit(main(args.source_path, args.target_path))

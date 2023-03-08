@@ -153,7 +153,6 @@ cdef int64_t tz_localize_to_utc_single(
         return val
 
     elif is_utc(tz) or tz is None:
-        # TODO: test with non-nano
         return val
 
     elif is_tzlocal(tz):
@@ -224,6 +223,11 @@ timedelta-like}
     -------
     localized : ndarray[int64_t]
     """
+
+    if tz is None or is_utc(tz) or vals.size == 0:
+        # Fastpath, avoid overhead of creating Localizer
+        return vals.copy()
+
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, n = vals.shape[0]
@@ -244,8 +248,6 @@ timedelta-like}
         npy_datetimestruct dts
 
     # Vectorized version of DstTzInfo.localize
-    if info.use_utc:
-        return vals.copy()
 
     # silence false-positive compiler warning
     ambiguous_array = np.empty(0, dtype=bool)
@@ -545,7 +547,7 @@ cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
 
         pandas_datetime_to_datetimestruct(val, creso, &dts)
         # casting to pydatetime drops nanoseconds etc, which we will
-        #  need to re-add later as 'extra''
+        #  need to re-add later as 'extra'
         extra = (dts.ps // 1000) * (pps // 1_000_000_000)
 
         dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,

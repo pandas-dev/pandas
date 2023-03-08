@@ -1306,9 +1306,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
-            if (PyObject_HasAttrString(item, "value")) {
+            if (PyObject_HasAttrString(item, "_value")) {
                 // see test_date_index_and_values for case with non-nano
-                nanosecVal = get_long_attr(item, "value");
+                nanosecVal = get_long_attr(item, "_value");
             } else {
                 if (PyDelta_Check(item)) {
                     nanosecVal = total_seconds(item) *
@@ -1554,8 +1554,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
         return;
     } else if (PyDelta_Check(obj)) {
-        if (PyObject_HasAttrString(obj, "value")) {
-            value = get_long_attr(obj, "value");
+        if (PyObject_HasAttrString(obj, "_value")) {
+            value = get_long_attr(obj, "_value");
         } else {
             value = total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
         }

@@ -7,6 +7,7 @@ from typing import (
     Iterator,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -62,12 +63,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+    roperator,
+)
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -137,13 +140,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     _bool_ops: list[str] = []
     _object_ops: list[str] = ["freq"]
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
         "floor",
         "ceil",
+        "as_unit",
     ]
 
     # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
@@ -151,7 +155,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _box_func(self, x: np.timedelta64) -> Timedelta | NaTType:
         y = x.view("i8")
-        if y == NaT.value:
+        if y == NaT._value:
             return NaT
         return Timedelta._from_value_and_reso(y, reso=self._creso)
 
@@ -265,7 +269,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _generate_range(  # type: ignore[override]
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ):
-
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
@@ -298,7 +301,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq, unit=unit)
         else:
-            index = np.linspace(start.value, end.value, periods).astype("i8")
+            index = np.linspace(start._value, end._value, periods).astype("i8")
 
         if not left_closed:
             index = index[1:]
@@ -316,7 +319,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value.value, "ns")
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit).asm8
 
@@ -466,6 +469,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
+                if freq.n == 0:
+                    # GH#51575 Better to have no freq than an incorrect one
+                    freq = None
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
@@ -525,17 +531,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # Note: freq gets division, not floor-division, even if op
                 #  is floordiv.
                 freq = self.freq / other
-
-                # TODO: 2022-12-24 test_ufunc_coercions, test_tdi_ops_attributes
-                #  get here for truediv, no tests for floordiv
-
-                if op is operator.floordiv:
-                    if freq.nanos == 0 and self.freq.nanos != 0:
-                        # e.g. if self.freq is Nano(1) then dividing by 2
-                        #  rounds down to zero
-                        # TODO: 2022-12-24 should implement the same check
-                        #  for truediv case
-                        freq = None
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
 
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
@@ -726,10 +725,10 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         Returns
         -------
-        ndarray, Float64Index or Series
+        ndarray, Index or Series
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
-            the return type is a Float64Index. When the calling object
+            the return type is an Index with a float64 dtype. When the calling object
             is a Series, the return type is Series of type `float64` whose
             index is the same as the original.
 
@@ -769,8 +768,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                        dtype='timedelta64[ns]', freq=None)
 
         >>> idx.total_seconds()
-        NumericIndex([0.0, 86400.0, 172800.0, 259200.0, 345600.0],
-                     dtype='float64')
+        Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
         return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
@@ -918,11 +916,20 @@ def sequence_to_td64ns(
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
         m, p = precision_from_unit(unit or "ns")
-        base = data.astype(np.int64)
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            base = data.astype(np.int64)
         frac = data - base
         if p:
             frac = np.round(frac, p)
-        data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "invalid value encountered in cast", RuntimeWarning
+            )
+            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
         data[mask] = iNaT
         copy = False
 

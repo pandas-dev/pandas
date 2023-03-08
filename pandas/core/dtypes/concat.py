@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import AxisInt
-
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
@@ -26,6 +24,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import AxisInt
+
     from pandas.core.arrays import Categorical
 
 
@@ -48,6 +48,7 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     -------
     a single array, preserving the combined dtypes
     """
+
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x) -> bool:
@@ -102,7 +103,6 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
         if len(kinds) != 1:
-
             if not len(kinds - {"i", "u", "f"}) or not len(kinds - {"b", "i", "u"}):
                 # let numpy coerce
                 pass

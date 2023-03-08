@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 
 import pandas as pd
 import pandas._testing as tm
@@ -15,8 +15,8 @@ from pandas.core.arrays.string_ import (
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 skip_if_no_pyarrow = pytest.mark.skipif(
-    pa_version_under6p0,
-    reason="pyarrow>=6.0.0 is required for PyArrow backed StringArray",
+    pa_version_under7p0,
+    reason="pyarrow>=7.0.0 is required for PyArrow backed StringArray",
 )
 
 
@@ -119,11 +119,11 @@ def test_from_sequence_wrong_dtype_raises():
 
 
 @pytest.mark.skipif(
-    not pa_version_under6p0,
+    not pa_version_under7p0,
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=6.0.0 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=7.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")

@@ -33,3 +33,8 @@ from pandas._config.display import detect_console_encoding
 def using_copy_on_write():
     _mode_options = _global_config["mode"]
     return _mode_options["copy_on_write"] and _mode_options["data_manager"] == "block"
+
+
+def using_nullable_dtypes():
+    _mode_options = _global_config["mode"]
+    return _mode_options["nullable_dtypes"]
