@@ -575,6 +575,8 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a low_memory test")
 
+    # csv takes 10 seconds to construct, spikes memory to 8GB+, the whole test
+    #  spikes up to 10.4GB on the c_high case
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
