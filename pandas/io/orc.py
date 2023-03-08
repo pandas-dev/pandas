@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
@@ -14,11 +15,6 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
 from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 
@@ -29,13 +25,21 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
 )
 
-from pandas.core.arrays import ArrowExtensionArray
-from pandas.core.frame import DataFrame
+import pandas as pd
 
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        WriteBuffer,
+    )
+
+    from pandas.core.frame import DataFrame
 
 
 def read_orc(
@@ -124,14 +128,7 @@ def read_orc(
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
         if dtype_backend == "pyarrow":
-            df = DataFrame(
-                {
-                    col_name: ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(
-                        pa_table.column_names, pa_table.itercolumns()
-                    )
-                }
-            )
+            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             from pandas.io._util import _arrow_dtype_mapping
 
