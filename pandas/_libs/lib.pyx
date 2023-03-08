@@ -150,11 +150,11 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     Does not include the actual bytes of the pointers
     """
-    i: Py_ssize_t
-    n: Py_ssize_t
-    size: int64_t
+    cdef:
+        Py_ssize_t i
+        Py_ssize_t n
+        int64_t size = 0
 
-    size = 0
     n = len(arr)
     for i in range(n):
         size += arr[i].__sizeof__()
@@ -2650,7 +2650,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
 
     if not convert_numeric:
-        # Note: we count "bool" as numeric here. This is becase
+        # Note: we count "bool" as numeric here. This is because
         #  np.array(list_of_items) will convert bools just like it will numeric
         #  entries.
         return objects

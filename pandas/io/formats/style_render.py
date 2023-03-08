@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -22,10 +23,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    Level,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -46,6 +43,11 @@ from pandas import (
 from pandas.api.types import is_list_like
 import pandas.core.common as com
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        Level,
+    )
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
@@ -985,6 +987,8 @@ class StylerRenderer:
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
+            Use 'latex-math' to replace the characters the same way as in 'latex' mode,
+            except for math substrings, which start and end with ``$``.
             Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
@@ -1101,16 +1105,28 @@ class StylerRenderer:
         <td .. >NA</td>
         ...
 
-        Using a ``formatter`` with LaTeX ``escape``.
+        Using a ``formatter`` with ``escape`` in 'latex' mode.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
         >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
         ...  # doctest: +SKIP
         \begin{tabular}{ll}
-        {} & {0} \\
+         & 0 \\
         0 & \textbf{123} \\
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
         2 & \textbf{\$\%\#} \\
+        \end{tabular}
+
+        Using ``escape`` in 'latex-math' mode.
+
+        >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
+        ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
+        1 & \%\#\textasciicircum \space $ \$x^2 $ \\
         \end{tabular}
 
         Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
@@ -1272,7 +1288,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
-        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ...  # doctest: +SKIP
                        A       B
               2.0    nan     4.0
@@ -1739,9 +1755,12 @@ def _str_escape(x, escape):
             return escape_html(x)
         elif escape == "latex":
             return _escape_latex(x)
+        elif escape == "latex-math":
+            return _escape_latex_math(x)
         else:
             raise ValueError(
-                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+                f"`escape` only permitted in {{'html', 'latex', 'latex-math'}}, \
+got {escape}"
             )
     return x
 
@@ -2340,3 +2359,36 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
+
+
+def _escape_latex_math(s):
+    r"""
+    All characters between two characters ``$`` are preserved.
+
+    The substrings in LaTeX math mode, which start with the character ``$``
+    and end with ``$``, are preserved without escaping. Otherwise
+    regular LaTeX escaping applies. See ``_escape_latex()``.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    pattern = re.compile(r"\$.*?\$")
+    pos = 0
+    ps = pattern.search(s, pos)
+    res = []
+    while ps:
+        res.append(_escape_latex(s[pos : ps.span()[0]]))
+        res.append(ps.group())
+        pos = ps.span()[1]
+        ps = pattern.search(s, pos)
+
+    res.append(_escape_latex(s[pos : len(s)]))
+    return "".join(res).replace(r"rt8§=§7wz", r"\$")

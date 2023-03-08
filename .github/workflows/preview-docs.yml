@@ -1,0 +1,22 @@
+name: Preview docs
+on:
+  issue_comment:
+    types: created
+
+permissions:
+  contents: read
+
+jobs:
+  preview_docs:
+    permissions:
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-22.04
+    steps:
+    - if: github.event.comment.body == '/preview'
+      run: |
+        if curl --output /dev/null --silent --head --fail "https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"; then
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "Website preview of this PR available at: https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
+        else
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "No preview found for PR #${{ github.event.issue.number }}. Did the docs build complete?"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
+        fi

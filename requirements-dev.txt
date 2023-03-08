@@ -3,7 +3,7 @@
 
 pip
 versioneer[toml]
-cython==0.29.32
+cython==0.29.33
 pytest>=7.0.0
 pytest-cov
 pytest-xdist>=2.2.0
@@ -85,5 +85,6 @@ markdown
 feedparser
 pyyaml
 requests
+pygments
 sphinx-toggleprompt
 setuptools>=61.0.0
