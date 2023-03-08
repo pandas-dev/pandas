@@ -1218,6 +1218,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         raise ValueError(f"Unknown freq: {freq}")
 
     else:
+        # A custom format is requested
         if isinstance(fmt, str):
             # Encode using current locale, in case fmt contains non-utf8 chars
             fmt = <bytes>util.string_encode_locale(fmt)
