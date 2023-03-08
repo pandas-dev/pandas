@@ -907,3 +907,10 @@ class TestDataFrameSortIndexKey:
         result = expected.sort_index(level=0)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_na_position(self):
+        # GH#51612
+        df = DataFrame([1, 2], index=MultiIndex.from_tuples([(1, 1), (1, pd.NA)]))
+        expected = df.copy()
+        result = df.sort_index(level=[0, 1], na_position="last")
+        tm.assert_frame_equal(result, expected)

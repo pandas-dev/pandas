@@ -83,11 +83,14 @@ def get_indexer_indexer(
 
     if level is not None:
         _, indexer = target.sortlevel(
-            level, ascending=ascending, sort_remaining=sort_remaining
+            level,
+            ascending=ascending,
+            sort_remaining=sort_remaining,
+            na_position=na_position,
         )
     elif isinstance(target, ABCMultiIndex):
         indexer = lexsort_indexer(
-            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
+            target.codes, orders=ascending, na_position=na_position, codes_given=True
         )
     else:
         # Check monotonic-ness before sort an index (GH 11080)
@@ -302,7 +305,11 @@ def indexer_from_factorized(
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Callable | None = None
+    keys,
+    orders=None,
+    na_position: str = "last",
+    key: Callable | None = None,
+    codes_given: bool = False,
 ) -> npt.NDArray[np.intp]:
     """
     Performs lexical sorting on a set of keys
@@ -321,6 +328,8 @@ def lexsort_indexer(
         Determines placement of NA elements in the sorted list ("last" or "first")
     key : Callable, optional
         Callable key function applied to every element in keys before sorting
+    codes_given: bool, False
+        Avoid categorical materialization if codes are already provided.
 
     Returns
     -------
@@ -338,15 +347,27 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        cat = Categorical(k, ordered=True)
-
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        n = len(cat.categories)
-        codes = cat.codes.copy()
+        if codes_given:
+            mask = k == -1
+            codes = k.copy()
+            n = len(codes)
+            mask_n = n
+            if mask.any():
+                n -= 1
 
-        mask = cat.codes == -1
+        else:
+            cat = Categorical(k, ordered=True)
+            n = len(cat.categories)
+            codes = cat.codes.copy()
+            mask = cat.codes == -1
+            if mask.any():
+                mask_n = n + 1
+            else:
+                mask_n = n
+
         if order:  # ascending
             if na_position == "last":
                 codes = np.where(mask, n, codes)
@@ -357,10 +378,8 @@ def lexsort_indexer(
                 codes = np.where(mask, n, n - codes - 1)
             elif na_position == "first":
                 codes = np.where(mask, 0, n - codes)
-        if mask.any():
-            n += 1
 
-        shape.append(n)
+        shape.append(mask_n)
         labels.append(codes)
 
     return indexer_from_factorized(labels, tuple(shape))

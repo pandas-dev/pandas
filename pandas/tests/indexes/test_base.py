@@ -1262,6 +1262,13 @@ class TestIndex(Base):
         result = index.sortlevel(ascending=False)
         tm.assert_index_equal(result[0], expected)
 
+    def test_sortlevel_na_position(self):
+        # GH#51612
+        idx = Index([1, np.nan])
+        result = idx.sortlevel(na_position="first")[0]
+        expected = Index([np.nan, 1])
+        tm.assert_index_equal(result, expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
