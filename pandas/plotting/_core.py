@@ -4,7 +4,6 @@ import importlib
 from typing import (
     TYPE_CHECKING,
     Sequence,
-    types,
 )
 
 from pandas._config import get_option
@@ -26,6 +25,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    import types
+
     from matplotlib.axes import Axes
 
     from pandas._typing import IndexLabel
