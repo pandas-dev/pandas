@@ -15,12 +15,6 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
-from pandas._typing import (
-    DtypeObj,
-    Shape,
-    npt,
-    type_t,
-)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
@@ -30,6 +24,13 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        Shape,
+        npt,
+        type_t,
+    )
+
     from pandas.core.arrays import ExtensionArray
 
     # To parameterize on same ExtensionDtype
@@ -261,6 +262,7 @@ class ExtensionDtype:
         For extension dtypes with arguments the following may be an
         adequate implementation.
 
+        >>> import re
         >>> @classmethod
         ... def construct_from_string(cls, string):
         ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")

@@ -105,11 +105,10 @@ class TestDataFrameIndexingWhere:
 
                 if is_scalar(other):
                     o = other
+                elif isinstance(other, np.ndarray):
+                    o = Series(other[:, i], index=result.index).values
                 else:
-                    if isinstance(other, np.ndarray):
-                        o = Series(other[:, i], index=result.index).values
-                    else:
-                        o = other[k].values
+                    o = other[k].values
 
                 new_values = d if c.all() else np.where(c, d, o)
                 expected = Series(new_values, index=result.index, name=k)

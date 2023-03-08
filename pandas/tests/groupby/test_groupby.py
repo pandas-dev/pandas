@@ -65,7 +65,7 @@ def test_groupby_std_datetimelike():
 
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
-def test_basic(dtype):
+def test_basic_aggregations(dtype):
     data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
     index = np.arange(9)
@@ -102,7 +102,13 @@ def test_basic(dtype):
         grouped.aggregate({"one": np.mean, "two": np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
-    agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
+    msg = (
+        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
+        "and cases that relied on it will raise in a future version"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#41090
+        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
     assert agged[1] == 21
 
     # corner cases
@@ -441,7 +447,9 @@ def test_frame_groupby(tsframe):
 
 def test_frame_groupby_columns(tsframe):
     mapping = {"A": 0, "B": 0, "C": 1, "D": 1}
-    grouped = tsframe.groupby(mapping, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = tsframe.groupby(mapping, axis=1)
 
     # aggregate
     aggregated = grouped.aggregate(np.mean)
@@ -450,7 +458,9 @@ def test_frame_groupby_columns(tsframe):
 
     # transform
     tf = lambda x: x - x.mean()
-    groupedT = tsframe.T.groupby(mapping, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        groupedT = tsframe.T.groupby(mapping, axis=0)
     tm.assert_frame_equal(groupedT.transform(tf).T, grouped.transform(tf))
 
     # iterate
@@ -844,8 +854,10 @@ def test_groupby_as_index_corner(df, ts):
         ts.groupby(lambda x: x.weekday(), as_index=False)
 
     msg = "as_index=False only valid for axis=0"
+    depr_msg = "DataFrame.groupby with axis=1 is deprecated"
     with pytest.raises(ValueError, match=msg):
-        df.groupby(lambda x: x.lower(), as_index=False, axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
 def test_groupby_multiple_key():
@@ -854,9 +866,11 @@ def test_groupby_multiple_key():
     agged = grouped.sum()
     tm.assert_almost_equal(df.values, agged.values)
 
-    grouped = df.T.groupby(
-        [lambda x: x.year, lambda x: x.month, lambda x: x.day], axis=1
-    )
+    depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        grouped = df.T.groupby(
+            [lambda x: x.year, lambda x: x.month, lambda x: x.day], axis=1
+        )
 
     agged = grouped.agg(lambda x: x.sum())
     tm.assert_index_equal(agged.index, df.columns)
@@ -895,7 +909,9 @@ def test_raises_on_nuisance(df):
         grouped.sum()
 
     # won't work with axis = 1
-    grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
+    depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
     msg = "does not support reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
@@ -1140,7 +1156,10 @@ def test_groupby_with_hier_columns():
     result = df.groupby(level=0).mean()
     tm.assert_index_equal(result.columns, columns)
 
-    result = df.groupby(level=0, axis=1).mean()
+    depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        gb = df.groupby(level=0, axis=1)
+    result = gb.mean()
     tm.assert_index_equal(result.index, df.index)
 
     result = df.groupby(level=0).agg(np.mean)
@@ -1149,7 +1168,9 @@ def test_groupby_with_hier_columns():
     result = df.groupby(level=0).apply(lambda x: x.mean())
     tm.assert_index_equal(result.columns, columns)
 
-    result = df.groupby(level=0, axis=1).agg(lambda x: x.mean(1))
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        gb = df.groupby(level=0, axis=1)
+    result = gb.agg(lambda x: x.mean(1))
     tm.assert_index_equal(result.columns, Index(["A", "B"]))
     tm.assert_index_equal(result.index, df.index)
 
@@ -2121,7 +2142,11 @@ def test_groupby_axis_1(group_name):
     df.index.name = "y"
     df.columns.name = "x"
 
-    results = df.groupby(group_name, axis=1).sum()
+    depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        gb = df.groupby(group_name, axis=1)
+
+    results = gb.sum()
     expected = df.T.groupby(group_name).sum().T
     tm.assert_frame_equal(results, expected)
 
@@ -2129,7 +2154,9 @@ def test_groupby_axis_1(group_name):
     iterables = [["bar", "baz", "foo"], ["one", "two"]]
     mi = MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
     df = DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
-    results = df.groupby(group_name, axis=1).sum()
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        gb = df.groupby(group_name, axis=1)
+    results = gb.sum()
     expected = df.T.groupby(group_name).sum().T
     tm.assert_frame_equal(results, expected)
 
@@ -2282,8 +2309,12 @@ def test_groupby_crash_on_nunique(axis):
     axis_number = df._get_axis_number(axis)
     if not axis_number:
         df = df.T
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    else:
+        msg = "DataFrame.groupby with axis=1 is deprecated"
 
-    gb = df.groupby(axis=axis_number, level=0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(axis=axis_number, level=0)
     result = gb.nunique()
 
     expected = DataFrame({"A": [1, 2], "D": [1, 1]}, index=dti)
@@ -2295,11 +2326,13 @@ def test_groupby_crash_on_nunique(axis):
 
     if axis_number == 0:
         # same thing, but empty columns
-        gb2 = df[[]].groupby(axis=axis_number, level=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gb2 = df[[]].groupby(axis=axis_number, level=0)
         exp = expected[[]]
     else:
         # same thing, but empty rows
-        gb2 = df.loc[[]].groupby(axis=axis_number, level=0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gb2 = df.loc[[]].groupby(axis=axis_number, level=0)
         # default for empty when we can't infer a dtype is float64
         exp = expected.loc[[]].astype(np.float64)
 
@@ -2379,7 +2412,10 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
 
 def test_subsetting_columns_axis_1():
     # GH 37725
-    g = DataFrame({"A": [1], "B": [2], "C": [3]}).groupby([0, 0, 1], axis=1)
+    df = DataFrame({"A": [1], "B": [2], "C": [3]})
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        g = df.groupby([0, 0, 1], axis=1)
     match = "Cannot subset columns when using axis=1"
     with pytest.raises(ValueError, match=match):
         g[["A", "B"]].sum()
@@ -2837,3 +2873,21 @@ def test_obj_with_exclusions_duplicate_columns():
     result = gb._obj_with_exclusions
     expected = df.take([0, 2, 3], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_groupby_numeric_only_std_no_result(numeric_only):
+    # GH 51080
+    dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
+    df = DataFrame(dicts_non_numeric)
+    dfgb = df.groupby("a", as_index=False, sort=False)
+
+    if numeric_only:
+        result = dfgb.std(numeric_only=True)
+        expected_df = DataFrame(["foo", "car"], columns=["a"])
+        tm.assert_frame_equal(result, expected_df)
+    else:
+        with pytest.raises(
+            ValueError, match="could not convert string to float: 'bar'"
+        ):
+            dfgb.std(numeric_only=numeric_only)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
@@ -14,23 +15,37 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
+from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
+
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_period_dtype,
+    is_unsigned_integer_dtype,
+)
 
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+    is_fsspec_url,
+)
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        WriteBuffer,
+    )
 
 
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    filesystem=None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -64,6 +79,11 @@ def read_orc(
 
         .. versionadded:: 2.0
 
+    filesystem : fsspec or pyarrow filesystem, default None
+        Filesystem object to use when reading the parquet file.
+
+        .. versionadded:: 2.1.0
+
     **kwargs
         Any additional kwargs are passed to pyarrow.
 
@@ -75,6 +95,11 @@ def read_orc(
     -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
     and :ref:`install optional dependencies <install.warn_orc>`.
+
+    If ``path`` is a URI scheme pointing to a local or remote file (e.g. "s3://"),
+    a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
+    pyarrow or fsspec filesystem object into the filesystem keyword to override this
+    behavior.
     """
     # we require a newer version of pyarrow than we support for parquet
 
@@ -87,8 +112,18 @@ def read_orc(
     )
 
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = orc.ORCFile(handles.handle)
-        pa_table = orc_file.read(columns=columns, **kwargs)
+        source = handles.handle
+        if is_fsspec_url(path) and filesystem is None:
+            pa = import_optional_dependency("pyarrow")
+            pa_fs = import_optional_dependency("pyarrow.fs")
+            try:
+                filesystem, source = pa_fs.FileSystem.from_uri(path)
+            except (TypeError, pa.ArrowInvalid):
+                pass
+
+        pa_table = orc.read_table(
+            source=source, columns=columns, filesystem=filesystem, **kwargs
+        )
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
         if dtype_backend == "pyarrow":
@@ -176,6 +211,20 @@ def to_orc(
         index = df.index.names[0] is not None
     if engine_kwargs is None:
         engine_kwargs = {}
+
+    # If unsupported dtypes are found raise NotImplementedError
+    # In Pyarrow 8.0.0 this check will no longer be needed
+    if pa_version_under8p0:
+        for dtype in df.dtypes:
+            if (
+                is_categorical_dtype(dtype)
+                or is_interval_dtype(dtype)
+                or is_period_dtype(dtype)
+                or is_unsigned_integer_dtype(dtype)
+            ):
+                raise NotImplementedError(
+                    "The dtype of one or more columns is not supported yet."
+                )
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")

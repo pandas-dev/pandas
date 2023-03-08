@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=61.0.0",
     "wheel",
-    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
@@ -216,6 +216,10 @@ select = [
   "PIE",
   # tidy imports
   "TID",
+  # implicit string concatenation
+  "ISC",
+  # type-checking imports
+  "TCH",
 ]
 
 ignore = [
@@ -259,12 +263,18 @@ ignore = [
   "PLR0912",
   # Too many statements
   "PLR0915",
+  # Global statements are discouraged
+  "PLW0603",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
+  # Outer loop variable overwritten by inner assignment
+  "PLW2901",
+  # Consider `elif` instead of `else` then `if` to remove indentation level
+  "PLR5501",
 ]
 
 exclude = [
@@ -280,6 +290,25 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
+# to be enabled gradually
+"pandas/core/*" = ["PLR5501"]
+# TCH to be enabled gradually
+"pandas/core/arrays/*" = ["TCH"]
+"pandas/core/nanops.py" = ["TCH"]
+"pandas/core/apply.py" = ["TCH"]
+"pandas/core/base.py" = ["TCH"]
+"pandas/core/algorithms.py" = ["TCH"]
+"pandas/core/ops/*" = ["TCH"]
+"pandas/core/sorting.py" = ["TCH"]
+"pandas/core/construction.py" = ["TCH"]
+"pandas/core/missing.py" = ["TCH"]
+"pandas/tseries/*" = ["TCH"]
+"pandas/tests/*" = ["TCH"]
+"pandas/plotting/*" = ["TCH"]
+"pandas/util/*" = ["TCH"]
+"pandas/_libs/*" = ["TCH"]
+# Keep this one enabled
+"pandas/_typing.py" = ["TCH"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -574,5 +603,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
 ignore-regex = 'https://([\w/\.])+'
