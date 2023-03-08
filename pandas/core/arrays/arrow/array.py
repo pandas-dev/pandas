@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import operator
 import re
 from typing import (
@@ -81,10 +80,10 @@ if not pa_version_under7p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and_": pc.and_kleene,
+        "rand_": lambda x, y: pc.and_kleene(y, x),
+        "or_": pc.or_kleene,
+        "ror_": lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
@@ -243,7 +242,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             if copy and is_array_like(scalars):
                 # pa array should not get updated when numpy array is updated
-                scalars = deepcopy(scalars)
+                scalars = scalars.copy()
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -299,9 +298,19 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             # "coerce" to allow "null times" (None) to not raise
             scalars = to_time(strings, errors="coerce")
         elif pa.types.is_boolean(pa_type):
-            from pandas.core.arrays import BooleanArray
-
-            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+            # pyarrow string->bool casting is case-insensitive:
+            #   "true" or "1" -> True
+            #   "false" or "0" -> False
+            # Note: BooleanArray was previously used to parse these strings
+            #   and allows "1.0" and "0.0". Pyarrow casting does not support
+            #   this, but we allow it here.
+            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                scalars = strings
+            else:
+                scalars = pa.array(strings, type=pa.string(), from_pandas=True)
+            scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
+            scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
+            scalars = scalars.cast(pa.bool_())
         elif (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -491,7 +500,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, pa.array(other, from_pandas=True))
         elif is_scalar(other):
-            result = pc_func(self._data, pa.scalar(other))
+            if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
+                # pyarrow kleene ops require null to be typed
+                pa_scalar = pa.scalar(None, type=self._data.type)
+            else:
+                pa_scalar = pa.scalar(other)
+            result = pc_func(self._data, pa_scalar)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
@@ -1012,7 +1026,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ArrowExtensionArray
         """
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pa.chunked_array(chunks)
+        if to_concat[0].dtype == "string":
+            # StringDtype has no attrivute pyarrow_dtype
+            pa_dtype = pa.string()
+        else:
+            pa_dtype = to_concat[0].dtype.pyarrow_dtype
+        arr = pa.chunked_array(chunks, type=pa_dtype)
         return cls(arr)
 
     def _accumulate(
