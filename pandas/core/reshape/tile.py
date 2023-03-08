@@ -4,6 +4,7 @@ Quantilization functions and related stuff
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Literal,
@@ -16,7 +17,6 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.lib import infer_dtype
-from pandas._typing import IntervalLeftRight
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -45,6 +45,9 @@ from pandas import (
 )
 from pandas.core import nanops
 import pandas.core.algorithms as algos
+
+if TYPE_CHECKING:
+    from pandas._typing import IntervalLeftRight
 
 
 def cut(

@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
@@ -14,11 +15,6 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
 from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 
@@ -36,6 +32,13 @@ from pandas.io.common import (
     get_handle,
     is_fsspec_url,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        WriteBuffer,
+    )
 
 
 def read_orc(
