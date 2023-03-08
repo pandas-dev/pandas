@@ -903,8 +903,7 @@ class RangeIndex(Index):
         Conserve RangeIndex type for scalar and slice keys.
         """
         if isinstance(key, slice):
-            new_range = self._range[key]
-            return self._simple_new(new_range, name=self._name)
+            return self._getitem_slice(key)
         elif is_integer(key):
             new_key = int(key)
             try:
