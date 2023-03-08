@@ -3269,13 +3269,13 @@ Keep all original rows and also all original values
         new_index = self.index.union(other.index)
 
         this = self
-        null_mask = isna(this)
-        if null_mask.any():
-            drop = this.index[null_mask].intersection(other.index[notna(other)])
-            if len(drop):
-                this = this.drop(drop)
+        # identify the index subset to keep for each series
+        keep_other = other.index.difference(this.index[notna(this)])
+        keep_this = this.index.difference(keep_other)
 
-        other = other.reindex(other.index.difference(this.index), copy=False)
+        this = this.reindex(keep_this, copy=False)
+        other = other.reindex(keep_other, copy=False)
+
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
         combined = concat([this, other])
