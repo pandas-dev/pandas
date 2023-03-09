@@ -512,12 +512,15 @@ def read_parquet(
     """
     impl = get_engine(engine)
     if use_nullable_dtypes is not lib.no_default:
-        warnings.warn(
-            "The argument 'use_nullable_dtypes' is deprecated. Use "
-            "dtype_backend='numpy_nullable' instead of use_nullable_dtype=True.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
+        msg = (
+            "The argument 'use_nullable_dtypes' is deprecated and will be removed "
+            "in a future version."
         )
+        if use_nullable_dtypes is True:
+            msg += (
+                "Use dtype_backend='numpy_nullable' instead of use_nullable_dtype=True."
+            )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
     else:
         use_nullable_dtypes = False
 
