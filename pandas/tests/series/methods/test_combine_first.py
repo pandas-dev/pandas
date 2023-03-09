@@ -115,8 +115,8 @@ class TestCombineFirst:
 
     def test_combine_first_preserves_dtype(self):
         # GH51764
-        s1 = Series([np.iinfo(np.int64).min, np.iinfo(np.int64).max])
+        s1 = Series([1666880195890293744, 1666880195890293837])
         s2 = Series([1, 2, 3])
         result = s1.combine_first(s2)
-        expected = Series([np.iinfo(np.int64).min, np.iinfo(np.int64).max, 3])
+        expected = Series([1666880195890293744, 1666880195890293837, 3])
         tm.assert_series_equal(result, expected)
