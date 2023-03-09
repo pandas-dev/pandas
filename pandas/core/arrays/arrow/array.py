@@ -439,7 +439,7 @@ class ArrowExtensionArray(
         return state
 
     def __setstate__(self, state) -> None:
-        state["_data"] = pa.chunked_array(state["_data"])
+        state["_pa_array"] = pa.chunked_array(state["_data"])
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
@@ -2091,7 +2091,7 @@ class ArrowExtensionArray(
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
     def _dt_to_pydatetime(self):
-        return np.array(self._data.to_pylist(), dtype=object)
+        return np.array(self._pa_array.to_pylist(), dtype=object)
 
     def _dt_tz_localize(
         self,
