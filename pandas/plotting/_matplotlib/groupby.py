@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import TYPE_CHECKING
 
-from pandas._typing import (
-    Dict,
-    IndexLabel,
-)
+import numpy as np
 
 from pandas.core.dtypes.missing import remove_na_arraylike
 
@@ -17,6 +14,12 @@ from pandas import (
 )
 
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dict,
+        IndexLabel,
+    )
 
 
 def create_iter_data_given_by(
