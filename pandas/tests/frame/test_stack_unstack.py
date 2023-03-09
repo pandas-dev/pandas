@@ -2202,11 +2202,18 @@ Thu,Lunch,Yes,51.51,17"""
         df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
         result = df.stack("station")
 
-        expected = (
-            df.astype(object)
-            .stack("station")
-            .astype({"r": pd.Float64Dtype(), "t_mean": pd.Int64Dtype()})
+        expected = DataFrame(
+            {
+                "r": pd.array(
+                    [50.0, 10.0, 10.0, 9.0, 305.0, 111.0], dtype=pd.Float64Dtype()
+                ),
+                "t_mean": pd.array(
+                    [226, 215, 215, 220, 232, 220], dtype=pd.Int64Dtype()
+                ),
+            },
+            index=MultiIndex.from_product([index, columns.levels[0]]),
         )
+        expected.columns.name = "element"
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_mixed_level_names(self):
