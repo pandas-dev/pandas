@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import operator
 import re
 from typing import (
@@ -53,7 +52,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    ExtensionArraySupportsAnyAll,
+)
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -81,10 +83,10 @@ if not pa_version_under7p0:
     }
 
     ARROW_LOGICAL_FUNCS = {
-        "and": pc.and_kleene,
-        "rand": lambda x, y: pc.and_kleene(y, x),
-        "or": pc.or_kleene,
-        "ror": lambda x, y: pc.or_kleene(y, x),
+        "and_": pc.and_kleene,
+        "rand_": lambda x, y: pc.and_kleene(y, x),
+        "or_": pc.or_kleene,
+        "ror_": lambda x, y: pc.or_kleene(y, x),
         "xor": pc.xor,
         "rxor": lambda x, y: pc.xor(y, x),
     }
@@ -171,7 +173,9 @@ def to_pyarrow_type(
     return None
 
 
-class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
+class ArrowExtensionArray(
+    OpsMixin, ExtensionArraySupportsAnyAll, BaseStringArrayMethods
+):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 
@@ -243,7 +247,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             if copy and is_array_like(scalars):
                 # pa array should not get updated when numpy array is updated
-                scalars = deepcopy(scalars)
+                scalars = scalars.copy()
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -299,9 +303,19 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             # "coerce" to allow "null times" (None) to not raise
             scalars = to_time(strings, errors="coerce")
         elif pa.types.is_boolean(pa_type):
-            from pandas.core.arrays import BooleanArray
-
-            scalars = BooleanArray._from_sequence_of_strings(strings).to_numpy()
+            # pyarrow string->bool casting is case-insensitive:
+            #   "true" or "1" -> True
+            #   "false" or "0" -> False
+            # Note: BooleanArray was previously used to parse these strings
+            #   and allows "1.0" and "0.0". Pyarrow casting does not support
+            #   this, but we allow it here.
+            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                scalars = strings
+            else:
+                scalars = pa.array(strings, type=pa.string(), from_pandas=True)
+            scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
+            scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
+            scalars = scalars.cast(pa.bool_())
         elif (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -429,8 +443,6 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import BooleanArray
-
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowExtensionArray):
             result = pc_func(self._data, other._data)
@@ -444,20 +456,13 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
                 result[valid] = op(np.array(self)[valid], other)
-                return BooleanArray(result, mask)
+                result = pa.array(result, type=pa.bool_())
+                result = pc.if_else(valid, result, None)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
             )
-
-        if result.null_count > 0:
-            # GH50524: avoid conversion to object for better perf
-            values = pc.fill_null(result, False).to_numpy()
-            mask = result.is_null().to_numpy()
-        else:
-            values = result.to_numpy()
-            mask = np.zeros(len(values), dtype=np.bool_)
-        return BooleanArray(values, mask)
+        return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
         pa_type = self._data.type
@@ -491,7 +496,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, pa.array(other, from_pandas=True))
         elif is_scalar(other):
-            result = pc_func(self._data, pa.scalar(other))
+            if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
+                # pyarrow kleene ops require null to be typed
+                pa_scalar = pa.scalar(None, type=self._data.type)
+            else:
+                pa_scalar = pa.scalar(other)
+            result = pc_func(self._data, pa_scalar)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
@@ -565,6 +575,122 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
             return np.ones(len(self), dtype=np.bool_)
 
         return self._data.is_null().to_numpy()
+
+    def any(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether any element is truthy.
+
+        Returns False unless there is at least one element that is truthy.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be False, as for an empty array.
+            If `skipna` is False, the result will still be True if there is
+            at least one element that is truthy, otherwise NA will be returned
+            if there are NA's present.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        ArrowExtensionArray.all : Return whether all elements are truthy.
+
+        Examples
+        --------
+        The result indicates whether any element is truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, False, True], dtype="boolean[pyarrow]").any()
+        True
+        >>> pd.array([True, False, pd.NA], dtype="boolean[pyarrow]").any()
+        True
+        >>> pd.array([False, False, pd.NA], dtype="boolean[pyarrow]").any()
+        False
+        >>> pd.array([], dtype="boolean[pyarrow]").any()
+        False
+        >>> pd.array([pd.NA], dtype="boolean[pyarrow]").any()
+        False
+        >>> pd.array([pd.NA], dtype="float64[pyarrow]").any()
+        False
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, False, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
+        True
+        >>> pd.array([1, 0, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
+        True
+        >>> pd.array([False, False, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
+        <NA>
+        >>> pd.array([0, 0, pd.NA], dtype="boolean[pyarrow]").any(skipna=False)
+        <NA>
+        """
+        return self._reduce("any", skipna=skipna, **kwargs)
+
+    def all(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether all elements are truthy.
+
+        Returns True unless there is at least one element that is falsey.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be True, as for an empty array.
+            If `skipna` is False, the result will still be False if there is
+            at least one element that is falsey, otherwise NA will be returned
+            if there are NA's present.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        ArrowExtensionArray.any : Return whether any element is truthy.
+
+        Examples
+        --------
+        The result indicates whether all elements are truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, True, pd.NA], dtype="boolean[pyarrow]").all()
+        True
+        >>> pd.array([1, 1, pd.NA], dtype="boolean[pyarrow]").all()
+        True
+        >>> pd.array([True, False, pd.NA], dtype="boolean[pyarrow]").all()
+        False
+        >>> pd.array([], dtype="boolean[pyarrow]").all()
+        True
+        >>> pd.array([pd.NA], dtype="boolean[pyarrow]").all()
+        True
+        >>> pd.array([pd.NA], dtype="float64[pyarrow]").all()
+        True
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, True, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
+        <NA>
+        >>> pd.array([1, 1, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
+        <NA>
+        >>> pd.array([True, False, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
+        False
+        >>> pd.array([1, 0, pd.NA], dtype="boolean[pyarrow]").all(skipna=False)
+        False
+        """
+        return self._reduce("all", skipna=skipna, **kwargs)
 
     def argsort(
         self,
@@ -1012,7 +1138,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ArrowExtensionArray
         """
         chunks = [array for ea in to_concat for array in ea._data.iterchunks()]
-        arr = pa.chunked_array(chunks)
+        if to_concat[0].dtype == "string":
+            # StringDtype has no attrivute pyarrow_dtype
+            pa_dtype = pa.string()
+        else:
+            pa_dtype = to_concat[0].dtype.pyarrow_dtype
+        arr = pa.chunked_array(chunks, type=pa_dtype)
         return cls(arr)
 
     def _accumulate(
@@ -1958,6 +2089,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         nonexistent: TimeNonexistent = "raise",
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
+
+    def _dt_to_pydatetime(self):
+        return np.array(self._data.to_pylist(), dtype=object)
 
     def _dt_tz_localize(
         self,

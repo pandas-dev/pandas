@@ -9,15 +9,6 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    Axis,
-    TimedeltaConvertibleTypes,
-)
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
-
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -59,6 +50,18 @@ from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        TimedeltaConvertibleTypes,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
 def get_center_of_mass(

@@ -281,6 +281,7 @@ Other enhancements
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
+- Added new escape mode "latex-math" to avoid escaping "$" in formatter (:issue:`50040`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.notable_bug_fixes:
@@ -789,7 +790,6 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated parsing datetime strings with system-local timezone to ``tzlocal``, pass a ``tz`` keyword or explicitly call ``tz_localize`` instead (:issue:`50791`)
-- Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated argument ``infer_datetime_format`` in :func:`to_datetime` and :func:`read_csv`, as a strict version of it is now the default (:issue:`48621`)
 - Deprecated behavior of :func:`to_datetime` with ``unit`` when parsing strings, in a future version these will be parsed as datetimes (matching unit-less behavior) instead of cast to floats. To retain the old behavior, cast strings to numeric types before calling :func:`to_datetime` (:issue:`50735`)
 - Deprecated :func:`pandas.io.sql.execute` (:issue:`50185`)
@@ -1248,6 +1248,7 @@ Indexing
 - Bug in :meth:`DataFrame.compare` does not recognize differences when comparing ``NA`` with value in nullable dtypes (:issue:`48939`)
 - Bug in :meth:`Series.rename` with :class:`MultiIndex` losing extension array dtypes (:issue:`21055`)
 - Bug in :meth:`DataFrame.isetitem` coercing extension array dtypes in :class:`DataFrame` to object (:issue:`49922`)
+- Bug in :meth:`Series.__getitem__` returning corrupt object when selecting from an empty pyarrow backed object (:issue:`51734`)
 - Bug in :class:`BusinessHour` would cause creation of :class:`DatetimeIndex` to fail when no opening hour was included in the index (:issue:`49835`)
 
 Missing
@@ -1370,6 +1371,7 @@ ExtensionArray
 - Bug in :class:`Series` constructor unnecessarily overflowing for nullable unsigned integer dtypes (:issue:`38798`, :issue:`25880`)
 - Bug in setting non-string value into ``StringArray`` raising ``ValueError`` instead of ``TypeError`` (:issue:`49632`)
 - Bug in :meth:`DataFrame.reindex` not honoring the default ``copy=True`` keyword in case of columns with ExtensionDtype (and as a result also selecting multiple columns with getitem (``[]``) didn't correctly result in a copy) (:issue:`51197`)
+- Bug in :class:`~arrays.ArrowExtensionArray` logical operations ``&`` and ``|`` raising ``KeyError`` (:issue:`51688`)
 
 Styler
 ^^^^^^
