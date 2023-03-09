@@ -2191,7 +2191,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tbl = "test_get_schema_create_table"
         create_sql = sql.get_schema(test_frame3, tbl, con=self.conn)
         blank_test_df = test_frame3.iloc[:0]
-        print(blank_test_df.dtypes)
 
         self.drop_table(tbl, self.conn)
         create_sql = text(create_sql)
