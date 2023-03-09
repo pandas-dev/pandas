@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
@@ -14,20 +15,31 @@ from pandas._config import (
 )
 
 from pandas._libs import lib
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
+from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.arrays import ArrowExtensionArray
-from pandas.core.frame import DataFrame
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_interval_dtype,
+    is_period_dtype,
+    is_unsigned_integer_dtype,
+)
+
+import pandas as pd
 
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        WriteBuffer,
+    )
+
+    from pandas.core.frame import DataFrame
 
 
 def read_orc(
@@ -116,14 +128,7 @@ def read_orc(
     if use_nullable_dtypes:
         dtype_backend = get_option("mode.dtype_backend")
         if dtype_backend == "pyarrow":
-            df = DataFrame(
-                {
-                    col_name: ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(
-                        pa_table.column_names, pa_table.itercolumns()
-                    )
-                }
-            )
+            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             from pandas.io._util import _arrow_dtype_mapping
 
@@ -200,6 +205,20 @@ def to_orc(
         index = df.index.names[0] is not None
     if engine_kwargs is None:
         engine_kwargs = {}
+
+    # If unsupported dtypes are found raise NotImplementedError
+    # In Pyarrow 8.0.0 this check will no longer be needed
+    if pa_version_under8p0:
+        for dtype in df.dtypes:
+            if (
+                is_categorical_dtype(dtype)
+                or is_interval_dtype(dtype)
+                or is_period_dtype(dtype)
+                or is_unsigned_integer_dtype(dtype)
+            ):
+                raise NotImplementedError(
+                    "The dtype of one or more columns is not supported yet."
+                )
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")

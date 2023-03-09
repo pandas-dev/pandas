@@ -1167,8 +1167,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(ids, ngroups)
-        sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
+        sorted_index = self.grouper._sort_idx
+        sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         if len(self.grouper.groupings) > 1:
@@ -3071,9 +3071,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 sort=self.sort,
             )
 
-        grb = dropped.groupby(
-            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
-        )
+        if self.axis == 1:
+            grb = dropped.T.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        else:
+            grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
 
     @final
@@ -3882,10 +3883,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(
-            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
-        )
-        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
+        if self.axis == 0:
+            fill_grp = filled.groupby(self.grouper.codes, group_keys=self.group_keys)
+        else:
+            fill_grp = filled.T.groupby(self.grouper.codes, group_keys=self.group_keys)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        if self.axis == 1:
+            shifted = shifted.T
         return (filled / shifted) - 1
 
     @final

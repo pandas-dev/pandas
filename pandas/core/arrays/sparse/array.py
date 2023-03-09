@@ -78,10 +78,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import (
-    arraylike,
-    ops,
-)
+from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -1643,7 +1640,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:

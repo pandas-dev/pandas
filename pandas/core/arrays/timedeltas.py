@@ -63,12 +63,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+    roperator,
+)
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
