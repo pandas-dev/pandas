@@ -7,17 +7,14 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.missing cimport checknull
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
     is_real_number_object,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
@@ -133,7 +130,7 @@ cpdef assert_almost_equal(a, b,
                 raise_assert_detail(
                     obj, f"{obj} shapes are different", a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
+            if check_dtype and a.dtype != b.dtype:
                 from pandas._testing import assert_attr_equal
                 assert_attr_equal("dtype", a, b, obj=obj)
 
@@ -181,12 +178,12 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if isna(a) and isna(b):
+    if checknull(a) and checknull(b):
         # TODO: Should require same-dtype NA?
         # nan / None comparison
         return True
 
-    if isna(a) and not isna(b) or not isna(a) and isna(b):
+    if (checknull(a) and not checknull(b)) or (not checknull(a) and checknull(b)):
         # boolean value of pd.NA is ambiguous
         raise AssertionError(f"{a} != {b}")
 
@@ -195,10 +192,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
@@ -207,10 +200,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_complex_object(a) and is_complex_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
