@@ -114,8 +114,8 @@ level : int, level name, or sequence of such, default None
 as_index : bool, default True
     For aggregated output, return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output. This argument has no effect on filtrations
-    (see the `groupby user guide
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `groupby user guide
     <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
     such as ``head()``, ``tail()`` and ``nth()``.
 sort : bool, default True

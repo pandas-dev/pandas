@@ -15,6 +15,7 @@ from collections import abc
 import functools
 from io import StringIO
 import itertools
+import operator
 import sys
 from textwrap import dedent
 from typing import (
@@ -88,6 +89,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
+    is_array_like,
     is_bool_dtype,
     is_dataclass,
     is_dict_like,
@@ -116,6 +118,7 @@ from pandas.core import (
     common as com,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import (
@@ -7459,20 +7462,20 @@ class DataFrame(NDFrame, OpsMixin):
     def _cmp_method(self, other, op):
         axis: Literal[1] = 1  # only relevant for Series other case
 
-        self, other = ops.align_method_FRAME(self, other, axis, flex=False, level=None)
+        self, other = self._align_for_op(other, axis, flex=False, level=None)
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
     def _arith_method(self, other, op):
-        if ops.should_reindex_frame_op(self, other, op, 1, None, None):
-            return ops.frame_arith_method_with_reindex(self, other, op)
+        if self._should_reindex_frame_op(other, op, 1, None, None):
+            return self._arith_method_with_reindex(other, op)
 
         axis: Literal[1] = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
 
-        self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
+        self, other = self._align_for_op(other, axis, flex=True, level=None)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
@@ -7540,14 +7543,13 @@ class DataFrame(NDFrame, OpsMixin):
                 ]
 
         elif isinstance(right, Series):
-            assert right.index.equals(self.index)  # Handle other cases later
+            assert right.index.equals(self.index)
             right = right._values
 
             with np.errstate(all="ignore"):
                 arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
-            # Remaining cases have less-obvious dispatch rules
             raise NotImplementedError(right)
 
         return type(self)._from_arrays(
@@ -7573,6 +7575,275 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
+
+    def _arith_method_with_reindex(self, right: DataFrame, op) -> DataFrame:
+        """
+        For DataFrame-with-DataFrame operations that require reindexing,
+        operate only on shared columns, then reindex.
+
+        Parameters
+        ----------
+        right : DataFrame
+        op : binary operator
+
+        Returns
+        -------
+        DataFrame
+        """
+        left = self
+
+        # GH#31623, only operate on shared columns
+        cols, lcols, rcols = left.columns.join(
+            right.columns, how="inner", level=None, return_indexers=True
+        )
+
+        new_left = left.iloc[:, lcols]
+        new_right = right.iloc[:, rcols]
+        result = op(new_left, new_right)
+
+        # Do the join on the columns instead of using left._align_for_op
+        #  to avoid constructing two potentially large/sparse DataFrames
+        join_columns, _, _ = left.columns.join(
+            right.columns, how="outer", level=None, return_indexers=True
+        )
+
+        if result.columns.has_duplicates:
+            # Avoid reindexing with a duplicate axis.
+            # https://github.com/pandas-dev/pandas/issues/35194
+            indexer, _ = result.columns.get_indexer_non_unique(join_columns)
+            indexer = algorithms.unique1d(indexer)
+            result = result._reindex_with_indexers(
+                {1: [join_columns, indexer]}, allow_dups=True
+            )
+        else:
+            result = result.reindex(join_columns, axis=1)
+
+        return result
+
+    def _should_reindex_frame_op(self, right, op, axis: int, fill_value, level) -> bool:
+        """
+        Check if this is an operation between DataFrames that will need to reindex.
+        """
+        if op is operator.pow or op is roperator.rpow:
+            # GH#32685 pow has special semantics for operating with null values
+            return False
+
+        if not isinstance(right, DataFrame):
+            return False
+
+        if fill_value is None and level is None and axis == 1:
+            # TODO: any other cases we should handle here?
+
+            # Intersection is always unique so we have to check the unique columns
+            left_uniques = self.columns.unique()
+            right_uniques = right.columns.unique()
+            cols = left_uniques.intersection(right_uniques)
+            if len(cols) and not (
+                len(cols) == len(left_uniques) and len(cols) == len(right_uniques)
+            ):
+                # TODO: is there a shortcut available when len(cols) == 0?
+                return True
+
+        return False
+
+    def _align_for_op(
+        self, other, axis, flex: bool | None = False, level: Level = None
+    ):
+        """
+        Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
+
+        Parameters
+        ----------
+        left : DataFrame
+        right : Any
+        axis : int, str, or None
+        flex : bool or None, default False
+            Whether this is a flex op, in which case we reindex.
+            None indicates not to check for alignment.
+        level : int or level name, default None
+
+        Returns
+        -------
+        left : DataFrame
+        right : Any
+        """
+        left, right = self, other
+
+        def to_series(right):
+            msg = (
+                "Unable to coerce to Series, "
+                "length must be {req_len}: given {given_len}"
+            )
+
+            # pass dtype to avoid doing inference, which would break consistency
+            #  with Index/Series ops
+            dtype = None
+            if getattr(right, "dtype", None) == object:
+                # can't pass right.dtype unconditionally as that would break on e.g.
+                #  datetime64[h] ndarray
+                dtype = object
+
+            if axis is not None and left._get_axis_number(axis) == 0:
+                if len(left.index) != len(right):
+                    raise ValueError(
+                        msg.format(req_len=len(left.index), given_len=len(right))
+                    )
+                right = left._constructor_sliced(right, index=left.index, dtype=dtype)
+            else:
+                if len(left.columns) != len(right):
+                    raise ValueError(
+                        msg.format(req_len=len(left.columns), given_len=len(right))
+                    )
+                right = left._constructor_sliced(right, index=left.columns, dtype=dtype)
+            return right
+
+        if isinstance(right, np.ndarray):
+            if right.ndim == 1:
+                right = to_series(right)
+
+            elif right.ndim == 2:
+                # We need to pass dtype=right.dtype to retain object dtype
+                #  otherwise we lose consistency with Index and array ops
+                dtype = None
+                if right.dtype == object:
+                    # can't pass right.dtype unconditionally as that would break on e.g.
+                    #  datetime64[h] ndarray
+                    dtype = object
+
+                if right.shape == left.shape:
+                    right = left._constructor(
+                        right, index=left.index, columns=left.columns, dtype=dtype
+                    )
+
+                elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
+                    # Broadcast across columns
+                    right = np.broadcast_to(right, left.shape)
+                    right = left._constructor(
+                        right, index=left.index, columns=left.columns, dtype=dtype
+                    )
+
+                elif right.shape[1] == left.shape[1] and right.shape[0] == 1:
+                    # Broadcast along rows
+                    right = to_series(right[0, :])
+
+                else:
+                    raise ValueError(
+                        "Unable to coerce to DataFrame, shape "
+                        f"must be {left.shape}: given {right.shape}"
+                    )
+
+            elif right.ndim > 2:
+                raise ValueError(
+                    "Unable to coerce to Series/DataFrame, "
+                    f"dimension must be <= 2: {right.shape}"
+                )
+
+        elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
+            # GH#36702. Raise when attempting arithmetic with list of array-like.
+            if any(is_array_like(el) for el in right):
+                raise ValueError(
+                    f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+                )
+            # GH#17901
+            right = to_series(right)
+
+        if flex is not None and isinstance(right, DataFrame):
+            if not left._indexed_same(right):
+                if flex:
+                    left, right = left.align(
+                        right, join="outer", level=level, copy=False
+                    )
+                else:
+                    raise ValueError(
+                        "Can only compare identically-labeled (both index and columns) "
+                        "DataFrame objects"
+                    )
+        elif isinstance(right, Series):
+            # axis=1 is default for DataFrame-with-Series op
+            axis = left._get_axis_number(axis) if axis is not None else 1
+
+            if not flex:
+                if not left.axes[axis].equals(right.index):
+                    raise ValueError(
+                        "Operands are not aligned. Do "
+                        "`left, right = left.align(right, axis=1, copy=False)` "
+                        "before operating."
+                    )
+
+            left, right = left.align(
+                # error: Argument 1 to "align" of "DataFrame" has incompatible
+                # type "Series"; expected "DataFrame"
+                right,  # type: ignore[arg-type]
+                join="outer",
+                axis=axis,
+                level=level,
+                copy=False,
+            )
+            right = left._maybe_align_series_as_frame(right, axis)
+
+        return left, right
+
+    def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
+        """
+        If the Series operand is not EA-dtype, we can broadcast to 2D and operate
+        blockwise.
+        """
+        rvalues = series._values
+        if not isinstance(rvalues, np.ndarray):
+            # TODO(EA2D): no need to special-case with 2D EAs
+            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
+                # We can losslessly+cheaply cast to ndarray
+                rvalues = np.asarray(rvalues)
+            else:
+                return series
+
+        if axis == 0:
+            rvalues = rvalues.reshape(-1, 1)
+        else:
+            rvalues = rvalues.reshape(1, -1)
+
+        rvalues = np.broadcast_to(rvalues, self.shape)
+        # pass dtype to avoid doing inference
+        return self._constructor(
+            rvalues,
+            index=self.index,
+            columns=self.columns,
+            dtype=rvalues.dtype,
+        )
+
+    def _flex_arith_method(
+        self, other, op, *, axis: Axis = "columns", level=None, fill_value=None
+    ):
+        axis = self._get_axis_number(axis) if axis is not None else 1
+
+        if self._should_reindex_frame_op(other, op, axis, fill_value, level):
+            return self._arith_method_with_reindex(other, op)
+
+        if isinstance(other, Series) and fill_value is not None:
+            # TODO: We could allow this in cases where we end up going
+            #  through the DataFrame path
+            raise NotImplementedError(f"fill_value {fill_value} not supported.")
+
+        other = ops.maybe_prepare_scalar_for_op(
+            other,
+            self.shape,
+        )
+        self, other = self._align_for_op(other, axis, flex=True, level=level)
+
+        if isinstance(other, DataFrame):
+            # Another DataFrame
+            new_data = self._combine_frame(other, op, fill_value)
+
+        elif isinstance(other, Series):
+            new_data = self._dispatch_frame_op(other, op, axis=axis)
+        else:
+            # in this case we always have `np.ndim(other) == 0`
+            if fill_value is not None:
+                self = self.fillna(fill_value)
+
+            new_data = self._dispatch_frame_op(other, op)
+
+        return self._construct_result(new_data)
 
     def _construct_result(self, result) -> DataFrame:
         """
@@ -7604,6 +7875,131 @@ class DataFrame(NDFrame, OpsMixin):
         div = other // self
         mod = other - div * self
         return div, mod
+
+    def _flex_cmp_method(self, other, op, *, axis: Axis = "columns", level=None):
+        axis = self._get_axis_number(axis) if axis is not None else 1
+
+        self, other = self._align_for_op(other, axis, flex=True, level=level)
+
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        return self._construct_result(new_data)
+
+    @Appender(ops.make_flex_doc("eq", "dataframe"))
+    def eq(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.eq, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("ne", "dataframe"))
+    def ne(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.ne, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("le", "dataframe"))
+    def le(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.le, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("lt", "dataframe"))
+    def lt(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.lt, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("ge", "dataframe"))
+    def ge(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.ge, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("gt", "dataframe"))
+    def gt(self, other, axis: Axis = "columns", level=None):
+        return self._flex_cmp_method(other, operator.gt, axis=axis, level=level)
+
+    @Appender(ops.make_flex_doc("add", "dataframe"))
+    def add(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.add, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("radd", "dataframe"))
+    def radd(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.radd, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("sub", "dataframe"))
+    def sub(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.sub, level=level, fill_value=fill_value, axis=axis
+        )
+
+    subtract = sub
+
+    @Appender(ops.make_flex_doc("rsub", "dataframe"))
+    def rsub(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("mul", "dataframe"))
+    def mul(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.mul, level=level, fill_value=fill_value, axis=axis
+        )
+
+    multiply = mul
+
+    @Appender(ops.make_flex_doc("rmul", "dataframe"))
+    def rmul(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("truediv", "dataframe"))
+    def truediv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.truediv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    div = truediv
+    divide = truediv
+
+    @Appender(ops.make_flex_doc("rtruediv", "dataframe"))
+    def rtruediv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    rdiv = rtruediv
+
+    @Appender(ops.make_flex_doc("floordiv", "dataframe"))
+    def floordiv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rfloordiv", "dataframe"))
+    def rfloordiv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("mod", "dataframe"))
+    def mod(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.mod, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rmod", "dataframe"))
+    def rmod(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("pow", "dataframe"))
+    def pow(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, operator.pow, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rpow", "dataframe"))
+    def rpow(self, other, axis: Axis = "columns", level=None, fill_value=None):
+        return self._flex_arith_method(
+            other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
+        )
 
     # ----------------------------------------------------------------------
     # Combination-Related
@@ -11095,7 +11491,7 @@ Parrot 2  Parrot       24.0
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -11152,7 +11548,7 @@ Parrot 2  Parrot       24.0
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
@@ -11618,8 +12014,6 @@ Parrot 2  Parrot       24.0
 
 
 DataFrame._add_numeric_operations()
-
-ops.add_flex_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data) -> collections.defaultdict:
