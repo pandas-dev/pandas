@@ -251,7 +251,10 @@ class TestDatetimeIndexOps:
     )
     def test_round_int64(self, start, index_freq, periods, round_freq):
         dt = date_range(start=start, freq=index_freq, periods=periods)
-        unit = to_offset(round_freq).nanos
+        if round_freq == "1D":
+            unit = 24 * 3600 * 10**9
+        else:
+            unit = to_offset(round_freq).nanos
 
         # test floor
         result = dt.floor(round_freq)

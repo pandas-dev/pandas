@@ -50,7 +50,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             offset_overflow + stamp
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
@@ -68,7 +68,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             offset_overflow + stamp
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):

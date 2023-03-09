@@ -826,15 +826,21 @@ class TestPeriodIndex:
     )
     def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
         # GH 23882 & 31809
-        s = Series(0, index=period_range(start, end, freq=start_freq))
-        s = s + np.arange(len(s))
-        result = s.resample(end_freq, offset=offset).mean()
+        pi = period_range(start, end, freq=start_freq)
+        ser = Series(np.arange(len(pi)), index=pi)
+        result = ser.resample(end_freq, offset=offset).mean()
         result = result.to_timestamp(end_freq)
 
-        expected = s.to_timestamp().resample(end_freq, offset=offset).mean()
+        expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
         if end_freq == "M":
             # TODO: is non-tick the relevant characteristic? (GH 33815)
             expected.index = expected.index._with_freq(None)
+        elif expected.index.freq.freqstr.endswith("H") and result.index.freq.freqstr.endswith("D"):
+            # TODO: this is a kludge introduced when implementing GH#41943 bc
+            #  Tick comparison used to consider 24H==1D but no longer does.
+            #  Implement a cleaner fix somewhere.
+            if expected.index.freq.n == 24 * result.index.freq.n:
+                expected.index.freq = result.index.freq
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

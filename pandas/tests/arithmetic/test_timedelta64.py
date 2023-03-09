@@ -33,6 +33,7 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
+from pandas._libs.tslibs import Day
 
 
 def assert_dtype(obj, expected_dtype):
@@ -624,27 +625,27 @@ class TestTimedelta64ArithmeticUnsorted:
         result = rng + 1 * rng.freq
         exp = timedelta_range("4 days", periods=5, freq="2D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "2D"
+        assert result.freq == "48H"
 
         result = rng - 2 * rng.freq
         exp = timedelta_range("-2 days", periods=5, freq="2D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "2D"
+        assert result.freq == "48H"
 
         result = rng * 2
         exp = timedelta_range("4 days", periods=5, freq="4D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "4D"
+        assert result.freq == "96H"
 
         result = rng / 2
         exp = timedelta_range("1 days", periods=5, freq="D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "D"
+        assert result.freq == "24H"
 
         result = -rng
         exp = timedelta_range("-2 days", periods=5, freq="-2D", name="x")
         tm.assert_index_equal(result, exp)
-        assert result.freq == "-2D"
+        assert result.freq == "-48H"
 
         rng = timedelta_range("-2 days", periods=5, freq="D", name="x")
 
@@ -1821,6 +1822,16 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = TimedeltaIndex(["1 Day", "2 Days", "0 Days"] * 3)
         expected = tm.box_expected(expected, box_with_array)
 
+        if isinstance(three_days, Day):
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                tdarr % three_days
+            with pytest.raises(TypeError, match=msg):
+                divmod(tdarr, three_days)
+            with pytest.raises(TypeError, match=msg):
+                tdarr // three_days
+            return
+
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
@@ -1863,6 +1874,12 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = ["0 Days", "1 Day", "0 Days"] + ["3 Days"] * 6
         expected = TimedeltaIndex(expected)
         expected = tm.box_expected(expected, box_with_array)
+
+        if isinstance(three_days, Day):
+            msg = "Cannot divide Day by TimedeltaArray"
+            with pytest.raises(TypeError, match=msg):
+                three_days % tdarr
+            return
 
         result = three_days % tdarr
         tm.assert_equal(result, expected)

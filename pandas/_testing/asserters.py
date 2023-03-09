@@ -53,6 +53,7 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
+from pandas._libs.tslibs import Day, Timedelta, Tick
 
 
 def assert_almost_equal(
@@ -546,7 +547,7 @@ def assert_datetime_array_equal(
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
+        assert_freq_equal(left.freq, right.freq)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
@@ -894,7 +895,7 @@ def assert_series_equal(
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
         ridx = right.index
-        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
+        assert_freq_equal(lidx.freq, ridx.freq)
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
@@ -1014,6 +1015,21 @@ def assert_series_equal(
                 obj=f"{obj} category",
                 check_category_order=check_category_order,
             )
+
+
+def assert_freq_equal(left, right):
+    # TODO: sure we want to do this???
+    if isinstance(left, Day):
+        if isinstance(right, Day):
+            assert left == right
+        elif isinstance(right, Tick):
+            assert right == Timedelta(days=left.n)
+        else:
+            assert left == right  # will raise
+    elif isinstance(right, Day):
+        assert_freq_equal(right, left)
+    else:
+        assert left == right
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1234,7 +1250,7 @@ def assert_equal(left, right, **kwargs) -> None:
     if isinstance(left, Index):
         assert_index_equal(left, right, **kwargs)
         if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
-            assert left.freq == right.freq, (left.freq, right.freq)
+            assert_freq_equal(left.freq, right.freq)
     elif isinstance(left, Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, DataFrame):

@@ -36,6 +36,7 @@ from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
+    Day,
     delta_to_tick,
 )
 from pandas._libs.tslibs.period import (
@@ -698,6 +699,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
+        if isinstance(other, Day):
+            other = Timedelta(days=other.n)
+            return self + other
+
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
@@ -712,7 +717,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         -------
         PeriodArray
         """
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, Tick) and not isinstance(self.freq, Day):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise raise_on_incompatible(self, other)
 
@@ -720,7 +725,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # i.e. np.timedelta64("NaT")
             return super()._add_timedeltalike_scalar(other)
 
-        td = np.asarray(Timedelta(other).asm8)
+        if isinstance(other, Day):
+            td = np.asarray(Timedelta(days=other.n).asm8)
+        else:
+            td = np.asarray(Timedelta(other).asm8)
         return self._add_timedelta_arraylike(td)
 
     def _add_timedelta_arraylike(
@@ -736,7 +744,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         PeriodArray
         """
         freq = self.freq
-        if not isinstance(freq, Tick):
+        if not isinstance(freq, (Tick, Day)):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise TypeError(
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"

@@ -1801,6 +1801,11 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
+    if freq2 == "D" and n2 % 1 != 0:
+        with pytest.raises(ValueError):
+            ser.resample(str(n2_) + freq2)
+        return
+
     result1 = ser.resample(str(n1_) + freq1).mean()
     result2 = ser.resample(str(n2_) + freq2).mean()
     tm.assert_series_equal(result1, result2)

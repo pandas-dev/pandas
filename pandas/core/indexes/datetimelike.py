@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     Resolution,
     Tick,
+    Day,
     parsing,
     to_offset,
 )
@@ -544,7 +545,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # At this point we should have result.dtype == self.dtype
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
-            return result._with_freq(None)._with_freq("infer")
+            result = result._with_freq(None)._with_freq("infer")
+
+            # TODO: could share this with the union restore-Day code but
+            #  at this point we have an Index here while we have a DTA/TDA theres
+            if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
+                # If we infer a 24H-like freq but are D, restore "D"
+                td = Timedelta(result.freq)
+                div, mod = divmod(td.value, 24 * 3600 * 10**9)
+                if mod == 0:
+                    freq = to_offset("D") * div
+                    result._data._freq = freq
+            return result
 
         else:
             return self._fast_intersect(other, sort)
@@ -666,7 +678,25 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            result = super()._union(other, sort)._with_freq("infer")
+            if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
+                # If we infer a 24H-like freq but are D, restore "D"
+                td = Timedelta(result.freq)
+                div, mod = divmod(td.value, 24 * 3600 * 10**9)
+                if mod == 0:
+                    freq = to_offset("D") * div
+                    result._freq = freq
+            return result
+
+    def _maybe_restore_day(self, result: DatetimeArray | TimedeltaArray) -> DatetimeArray | TimedeltaArray:
+        if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
+            # If we infer a 24H-like freq but are D, restore "D"
+            td = Timedelta(result.freq)
+            div, mod = divmod(td.value, 24 * 3600 * 10**9)
+            if mod == 0:
+                freq = to_offset("D") * div
+                result._freq = freq
+        return result
 
     # --------------------------------------------------------------------
     # Join Methods

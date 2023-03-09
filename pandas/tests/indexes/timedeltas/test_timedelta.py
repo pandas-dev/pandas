@@ -25,9 +25,9 @@ class TestTimedeltaIndex(DatetimeLike):
     @pytest.fixture
     def simple_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
-        assert index.freq == "D"
+        assert index.freq == "24H"
         ret = index + pd.offsets.Hour(1)
-        assert ret.freq == "D"
+        assert ret.freq == "24H"
         return ret
 
     @pytest.fixture

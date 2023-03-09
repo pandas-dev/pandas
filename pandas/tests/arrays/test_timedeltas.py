@@ -237,7 +237,7 @@ class TestTimedeltaArray:
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = TimedeltaArray(data, freq="D")
+        arr = TimedeltaArray(data, freq="24H")
         if index:
             arr = pd.Index(arr)
 

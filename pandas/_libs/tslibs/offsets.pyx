@@ -926,8 +926,6 @@ cdef class Tick(SingleConstructorOffset):
     # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
-        if type(self) is Day:
-            return Hour(self.n * 24)
         if type(self) is Hour:
             return Minute(self.n * 60)
         if type(self) is Minute:
@@ -1086,12 +1084,42 @@ cdef class Tick(SingleConstructorOffset):
         self.normalize = False
 
 
-cdef class Day(Tick):
-    _nanos_inc = 24 * 3600 * 1_000_000_000
+cdef class Day(SingleConstructorOffset):
+    _adjust_dst = True
+    _attributes = tuple(["n", "normalize"])
+    rule_code = "D"  # used by parse_time_string
     _prefix = "D"
     _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n)
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Day offset with `normalize=True` are not allowed."
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    @apply_wraps
+    def _apply(self, other):
+        if isinstance(other, Day):
+            # TODO: why isn't this handled in __add__?
+            return Day(self.n + other.n)
+        return other + np.timedelta64(self.n, "D")# Timedelta(days=self.n).as_unit("s")
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        return dtarr + np.timedelta64(self.n, "D")#Timedelta(days=self.n).as_unit("s")
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        if self.n != 1:
+            return str(self.n) + "D"
+        return "D"
 
 
 cdef class Hour(Tick):
@@ -1145,16 +1173,13 @@ cdef class Nano(Tick):
 def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
+        seconds = delta.days * 86400 + delta.seconds
+        if seconds % 3600 == 0:
+            return Hour(seconds / 3600)
+        elif seconds % 60 == 0:
+            return Minute(seconds / 60)
         else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
+            return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
         if nanos % 1_000_000 == 0:
@@ -4123,7 +4148,7 @@ cpdef to_offset(freq):
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
-    <Day>
+    <24Hour>
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
@@ -4162,7 +4187,7 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
-                if prefix in {"D", "H", "T", "S", "L", "U", "N"}:
+                if prefix in {"H", "T", "S", "L", "U", "N"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
@@ -4180,6 +4205,12 @@ cpdef to_offset(freq):
 
                 if delta is None:
                     delta = offset
+                elif isinstance(delta, Day) and isinstance(offset, Tick):
+                    # e.g. "1D1H" is treated like "25H"
+                    delta = Hour(delta.n * 24) + offset
+                elif isinstance(offset, Day) and isinstance(delta, Tick):
+                    # e.g. "1H1D" is treated like "25H"
+                    delta = delta + Hour(offset.n * 24)
                 else:
                     delta = delta + offset
         except (ValueError, TypeError) as err:

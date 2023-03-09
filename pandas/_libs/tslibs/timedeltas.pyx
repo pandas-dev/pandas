@@ -1707,6 +1707,7 @@ class Timedelta(_Timedelta):
                 ) * 1_000_000_000
             )
 
+            # TODO: catch OverflowError and re-raise as OutOfBoundsTimedelta
             value = np.timedelta64(
                 int(kwargs.get("nanoseconds", 0))
                 + int(kwargs.get("microseconds", 0) * 1_000)
@@ -1819,9 +1820,14 @@ class Timedelta(_Timedelta):
             int64_t result, unit
             ndarray[int64_t] arr
 
-        from pandas._libs.tslibs.offsets import to_offset
+        from pandas._libs.tslibs.offsets import to_offset, Day
 
-        to_offset(freq).nanos  # raises on non-fixed freq
+        orig = freq
+        freq = to_offset(freq)
+        if isinstance(freq, Day):
+            # In this context it is clear D represents 24 hours
+            freq = 24 * freq.n * to_offset("H")
+        freq.nanos  # raises on non-fixed freq
         unit = delta_to_nanoseconds(to_offset(freq), self._creso)
 
         arr = np.array([self._value], dtype="i8")
@@ -1829,7 +1835,7 @@ class Timedelta(_Timedelta):
             result = round_nsint64(arr, mode, unit)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={freq} without overflow"
+                f"Cannot round {self} to freq={orig} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 

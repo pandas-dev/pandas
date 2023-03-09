@@ -85,7 +85,7 @@ class SharedTests:
     def arr1d(self):
         """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
         return arr
 
     def test_compare_len1_raises(self, arr1d):
@@ -175,7 +175,7 @@ class SharedTests:
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
 
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
@@ -184,7 +184,7 @@ class SharedTests:
     def test_take_fill(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
 
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is NaT
@@ -219,7 +219,7 @@ class SharedTests:
 
     def test_unbox_scalar(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
         result = arr._unbox_scalar(arr[0])
         expected = arr._ndarray.dtype.type
         assert isinstance(result, expected)
@@ -233,7 +233,7 @@ class SharedTests:
 
     def test_check_compatible_with(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         arr._check_compatible_with(arr[0])
         arr._check_compatible_with(arr[:1])
@@ -241,13 +241,13 @@ class SharedTests:
 
     def test_scalar_from_string(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
         result = arr._scalar_from_string(str(arr[0]))
         assert result == arr[0]
 
     def test_reduce_invalid(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         msg = "does not support reduction 'not a method'"
         with pytest.raises(TypeError, match=msg):
@@ -256,7 +256,7 @@ class SharedTests:
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_method_doesnt_change_orig(self, method):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
         arr[4] = NaT
 
         fill_value = arr[3] if method == "pad" else arr[5]
@@ -269,7 +269,7 @@ class SharedTests:
 
     def test_searchsorted(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         # scalar
         result = arr.searchsorted(arr[1])
@@ -407,7 +407,7 @@ class SharedTests:
 
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         arr[0] = arr[1]
         expected = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
@@ -484,7 +484,7 @@ class SharedTests:
 
     def test_setitem_raises(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
         val = arr[0]
 
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
@@ -520,7 +520,7 @@ class SharedTests:
     def test_inplace_arithmetic(self):
         # GH#24115 check that iadd and isub are actually in-place
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         expected = arr + pd.Timedelta(days=1)
         arr += pd.Timedelta(days=1)
@@ -533,7 +533,7 @@ class SharedTests:
     def test_shift_fill_int_deprecated(self):
         # GH#31971, enforced in 2.0
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24H")
 
         with pytest.raises(TypeError, match="value should be a"):
             arr.shift(1, fill_value=1)

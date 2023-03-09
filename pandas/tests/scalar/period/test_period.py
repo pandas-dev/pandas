@@ -532,7 +532,7 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq="-1H1D")
 
-        msg = "Frequency must be positive, because it represents span: 0D"
+        msg = "Frequency must be positive, because it represents span: 0H"
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="0D0H")
         with pytest.raises(ValueError, match=msg):

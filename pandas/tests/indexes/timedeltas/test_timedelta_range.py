@@ -30,7 +30,7 @@ class TestTimedeltas:
         result = timedelta_range("0 days", "10 days", freq="D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta(np.arange(5), unit="D") + Second(2) + Day()
+        expected = to_timedelta(np.arange(5), unit="D") + Second(2) + Timedelta(hours=24)
         result = timedelta_range("1 days, 00:00:02", "5 days, 00:00:02", freq="D")
         tm.assert_index_equal(result, expected)
 

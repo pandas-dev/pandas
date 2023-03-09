@@ -20,6 +20,7 @@ from pandas import (
     TimedeltaIndex,
     array,
 )
+from pandas._libs.tslibs import Day
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
@@ -264,10 +265,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        result = three_days / index
-        tm.assert_equal(result, expected)
+        if isinstance(three_days, Day):
+            # GH#41943 Day is no longer timedelta-like
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                three_days / index
+        else:
+            result = three_days / index
+            tm.assert_equal(result, expected)
+            msg = "cannot use operands with types dtype"
 
-        msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             index / three_days
 

@@ -11,7 +11,7 @@ from pandas.tseries.offsets import (
 
 class TestFreq:
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
-    @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
+    @pytest.mark.parametrize("freq", ["48H", Hour(48)])
     def test_freq_setter(self, values, freq):
         # GH#20678
         idx = TimedeltaIndex(values)
@@ -30,12 +30,13 @@ class TestFreq:
         idx = TimedeltaIndex(["0 days", "2 days", "4 days"])
 
         # setting with an incompatible freq
+        # FIXME: should probably say "48H" rather than "2D"?
         msg = (
             "Inferred frequency 2D from passed values does not conform to "
-            "passed frequency 5D"
+            "passed frequency 120H"
         )
         with pytest.raises(ValueError, match=msg):
-            idx._data.freq = "5D"
+            idx._data.freq = "120H"
 
         # setting with a non-fixed frequency
         msg = r"<2 \* BusinessDays> is a non-fixed frequency"
@@ -57,5 +58,5 @@ class TestFreq:
         assert tdi2.freq is None
 
         # Original was not altered
-        assert tdi.freq == "2D"
-        assert tda.freq == "2D"
+        assert tdi.freq == "48H"
+        assert tda.freq == "48H"

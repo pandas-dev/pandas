@@ -56,7 +56,6 @@ def test_get_freq_roundtrip2(freq):
         ((1.04, "H"), (3744, "S")),
         ((1, "D"), (1, "D")),
         ((0.342931, "H"), (1234551600, "U")),
-        ((1.2345, "D"), (106660800, "L")),
     ],
 )
 def test_resolution_bumping(args, expected):

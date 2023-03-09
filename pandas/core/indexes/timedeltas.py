@@ -11,6 +11,7 @@ from pandas._libs.tslibs import (
     Resolution,
     Timedelta,
     to_offset,
+    Day,
 )
 
 from pandas.core.dtypes.common import (
@@ -271,14 +272,14 @@ def timedelta_range(
     --------
     >>> pd.timedelta_range(start='1 day', periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[ns]', freq='24H')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
     >>> pd.timedelta_range(start='1 day', periods=4, closed='right')
     TimedeltaIndex(['2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[ns]', freq='24H')
 
     The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
     Only fixed frequencies can be passed, non-fixed frequencies such as
@@ -304,10 +305,21 @@ def timedelta_range(
                     '200001 days 00:00:00'],
                    dtype='timedelta64[s]', freq='100000D')
     """
+    orig = freq
     if freq is None and com.any_none(periods, start, end):
-        freq = "D"
+        freq = "24H"
+
+    if isinstance(freq, Day):
+        # If a user specifically passes a Day *object* we disallow it,
+        #  but if they pass a Day-like string we'll convert it to hourly below.
+        raise ValueError("Passing a Day offset to timedelta_range is not allowed, pass an hourly offset instead")
 
     freq, _ = dtl.maybe_infer_freq(freq)
+    if isinstance(freq, Day):
+        freq = 24 * freq.n * to_offset("H")
+    elif isinstance(freq, Timedelta):
+        freq = to_offset(freq)  # FIXME: shouldn't happen right?
+
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )

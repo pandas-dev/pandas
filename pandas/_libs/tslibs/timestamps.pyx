@@ -99,6 +99,7 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
+from pandas._libs.tslibs.offsets import Day
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
@@ -1673,6 +1674,9 @@ class Timestamp(_Timestamp):
             int64_t nanos
 
         freq = to_offset(freq)
+        if isinstance(freq, Day):
+            # In this context it is sufficiently clear that this means 24H
+            freq = freq.n * 24 * to_offset("H")
         freq.nanos  # raises on non-fixed freq
         nanos = delta_to_nanoseconds(freq, self._creso)
         if nanos == 0:

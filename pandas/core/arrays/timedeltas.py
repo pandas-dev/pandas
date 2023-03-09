@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
     NaTType,
+    Day,
     Tick,
     Timedelta,
     astype_overflowsafe,
@@ -201,6 +202,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
+        assert freq is None or isinstance(freq, Tick)
 
         result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
@@ -240,7 +242,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
 
+        if isinstance(freq, Day):
+            raise ValueError(
+                "Day offset object is not valid for TimedeltaIndex, pass e.g. 24H instead."
+            )
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if isinstance(freq, Day):
+            freq = freq.n * 24 * to_offset("H")
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
@@ -259,7 +267,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif freq_infer:
             # Set _freq directly to bypass duplicative _validate_frequency
             # check.
-            result._freq = to_offset(result.inferred_freq)
+            res_freq = to_offset(result.inferred_freq)
+            if isinstance(res_freq, Day):
+                res_freq = res_freq.n * 24 * to_offset("H")
+            result._freq = res_freq
 
         return result
 

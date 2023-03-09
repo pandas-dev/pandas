@@ -264,7 +264,10 @@ class TestTimestampUnaryOps:
         # check that all rounding modes are accurate to int64 precision
         # see GH#22591
         dt = Timestamp(timestamp).as_unit("ns")
-        unit = to_offset(freq).nanos
+        if freq == "1D":
+            unit = 24 * 3600 * 10**9
+        else:
+            unit = to_offset(freq).nanos
 
         # test floor
         result = dt.floor(freq)

@@ -23,6 +23,7 @@ from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     datetime,
+    timedelta,
     import_datetime,
 )
 from libc.stdlib cimport (
@@ -105,7 +106,7 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG, Day
 
 cdef:
     enum:
@@ -1733,7 +1734,7 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t inc
 
-        if not is_tick_object(self.freq):
+        if not is_tick_object(self.freq) and not isinstance(self.freq, Day):
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
@@ -1743,6 +1744,9 @@ cdef class _Period(PeriodMixin):
         ):
             # i.e. np.timedelta64("nat")
             return NaT
+
+        if isinstance(other, Day):
+            other = timedelta(days=other.n)
 
         try:
             inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
@@ -1771,7 +1775,7 @@ cdef class _Period(PeriodMixin):
                 return NaT
             return other.__add__(self)
 
-        if is_any_td_scalar(other):
+        if is_any_td_scalar(other) or isinstance(other, Day):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)
