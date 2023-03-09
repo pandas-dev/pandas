@@ -199,6 +199,9 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
+    # Needed when having two different pairs of variables that should be
+    # allowed to have different NDFrame sub-classes (see _align_as_utc
+    # and align).
     _NDFrameT = TypeVar("_NDFrameT", bound="NDFrame")
 
 
