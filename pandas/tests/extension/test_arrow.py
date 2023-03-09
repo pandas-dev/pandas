@@ -2248,6 +2248,19 @@ def test_dt_ceil_year_floor(freq, method):
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_to_pydatetime():
+    # GH 51859
+    data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
+
+    result = ser.dt.to_pydatetime()
+    expected = np.array(data, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
