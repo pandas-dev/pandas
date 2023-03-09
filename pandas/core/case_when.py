@@ -15,6 +15,8 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     This is useful when you want to assign a column based on multiple conditions.
     Uses `Series.mask` to perform the assignment.
 
+    The returned Series will always have a new index (reset).
+
     Parameters
     ----------
     obj : Dataframe or Series on which the conditions will be applied.
@@ -28,8 +30,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         will be used to create the `Series` on which `Series.mask` will be called.
         If this value is not already an array like (i.e. it is not of type `Series`,
         `np.array` or `list`) it will be repeated `obj.shape[0]` times in order to
-        create an array like object from it and then apply the `Series.mask`. In any
-        case, the default series will be forced to take the index of `obj`.
+        create an array like object from it and then apply the `Series.mask`.
 
     Returns
     -------
@@ -104,7 +105,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     2   -1
     Name: a, dtype: int64
 
-    The index will always follow that of `obj`. For example:
+    The index is not maintained. For example:
     >>> df = pd.DataFrame(
     ...     dict(a=[1, 2, 3], b=[4, 5, 6]),
     ...     index=['index 1', 'index 2', 'index 3']
@@ -121,9 +122,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     ...     df.b,
     ...     default=0,
     ... )
-    index 1    4
-    index 2    0
-    index 3    0
+    0    4
+    1    0
+    2    0
     dtype: int64
     """
     len_args = len(args)
@@ -139,9 +140,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
     # construct series on which we will apply `Series.mask`
     if is_array_like(default):
-        series = pd.Series(default, index=obj.index)
+        series = pd.Series(default).reset_index(drop=True)
     else:
-        series = pd.Series([default] * obj.shape[0], index=obj.index)
+        series = pd.Series([default] * obj.shape[0])
 
     for i in range(0, len_args, 2):
         # get conditions
@@ -152,6 +153,13 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
         # get replacements
         replacements = args[i + 1]
+
+        # if `conditions` or `replacements` are series, make sure to reset their index
+        if isinstance(conditions, pd.Series):
+            conditions = conditions.reset_index(drop=True)
+
+        if isinstance(replacements, pd.Series):
+            replacements = replacements.reset_index(drop=True)
 
         # `Series.mask` call
         series = series.mask(conditions, replacements)
