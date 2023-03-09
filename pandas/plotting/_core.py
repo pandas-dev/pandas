@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import types
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -12,7 +11,6 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._typing import IndexLabel
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -30,8 +28,12 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    import types
+
     from matplotlib.axes import Axes
     import numpy as np
+
+    from pandas._typing import IndexLabel
 
     from pandas import DataFrame
 
