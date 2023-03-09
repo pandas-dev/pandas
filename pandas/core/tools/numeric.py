@@ -8,6 +8,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -161,6 +162,8 @@ def to_numeric(
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
+
+    check_dtype_backend(dtype_backend)
 
     is_series = False
     is_index = False

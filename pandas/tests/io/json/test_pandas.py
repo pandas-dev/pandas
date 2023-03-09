@@ -1944,6 +1944,14 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_json("test", dtype_backend="numpy")
+
 
 def test_invalid_engine():
     # GH 48893

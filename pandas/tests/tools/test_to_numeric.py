@@ -913,3 +913,13 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
         dtype = "Float64"
     expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_invalid_dtype_backend():
+    ser = Series([1, 2, 3])
+    msg = (
+        "dtype_backend numpy invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        to_numeric(ser, dtype_backend="numpy")

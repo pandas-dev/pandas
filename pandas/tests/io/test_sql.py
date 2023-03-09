@@ -2486,6 +2486,19 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
+    def test_read_sql_invalid_dtype_backend_table(self, func):
+        table = "test"
+        df = self.dtype_backend_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        msg = (
+            "dtype_backend numpy invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            getattr(pd, func)(table, self.conn, dtype_backend="numpy")
+
     def dtype_backend_data(self) -> DataFrame:
         return DataFrame(
             {

@@ -94,6 +94,7 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
+    check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -6686,6 +6687,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    <NA>
         dtype: string
         """
+        check_dtype_backend(dtype_backend)
         if self.ndim == 1:
             return self._convert_dtypes(
                 infer_objects,

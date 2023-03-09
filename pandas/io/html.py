@@ -24,6 +24,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -1166,6 +1167,7 @@ def read_html(
             f'"{extract_links}"'
         )
     validate_header_arg(header)
+    check_dtype_backend(dtype_backend)
 
     io = stringify_path(io)
 

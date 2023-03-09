@@ -391,3 +391,15 @@ def test_orc_uri_path():
         uri = pathlib.Path(path).as_uri()
         result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
+
+
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    df = pd.DataFrame({"int": list(range(1, 4))})
+    with tm.ensure_clean("tmp.orc") as path:
+        df.to_orc(path)
+        with pytest.raises(ValueError, match=msg):
+            read_orc(path, dtype_backend="numpy")
