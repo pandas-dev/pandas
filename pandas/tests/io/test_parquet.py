@@ -1037,7 +1037,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(
             df,
             engine=pa,
-            read_kwargs={"dtype_backend": True},
+            read_kwargs={"dtype_backend": "pyarrow"},
             expected=expected,
         )
 
