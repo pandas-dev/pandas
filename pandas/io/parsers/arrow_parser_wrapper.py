@@ -6,9 +6,9 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
+import pandas as pd
 from pandas import (
     DataFrame,
-    arrays,
     get_option,
 )
 
@@ -156,12 +156,7 @@ class ArrowParserWrapper(ParserBase):
             self.kwds["use_nullable_dtypes"]
             and get_option("mode.dtype_backend") == "pyarrow"
         ):
-            frame = DataFrame(
-                {
-                    col_name: arrays.ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(table.column_names, table.itercolumns())
-                }
-            )
+            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
