@@ -7,7 +7,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 import operator
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -19,10 +22,6 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas._libs.tslibs import BaseOffset
-from pandas._typing import (
-    ArrayLike,
-    Shape,
-)
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -53,6 +52,12 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Shape,
+    )
 
 # -----------------------------------------------------------------------------
 # Masking NA values and fallbacks for operations numpy does not support

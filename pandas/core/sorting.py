@@ -20,15 +20,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import (
-    AxisInt,
-    IndexKeyFunc,
-    Level,
-    NaPosition,
-    Shape,
-    SortKind,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -44,6 +35,16 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        IndexKeyFunc,
+        Level,
+        NaPosition,
+        Shape,
+        SortKind,
+        npt,
+    )
+
     from pandas import MultiIndex
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
