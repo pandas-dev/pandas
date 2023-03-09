@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
@@ -26,7 +28,6 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
-from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -42,6 +43,8 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.algorithms import unique
 
+if TYPE_CHECKING:
+    from pandas._typing import npt
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 

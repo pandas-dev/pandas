@@ -7,8 +7,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PlottingOrientation
-
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -41,6 +39,8 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+
+    from pandas._typing import PlottingOrientation
 
     from pandas import DataFrame
 

@@ -23,13 +23,12 @@ import random
 import string
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     Mapping,
 )
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -44,6 +43,9 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.core.indexers import unpack_tuple_and_ellipses
+
+if TYPE_CHECKING:
+    from pandas._typing import type_t
 
 
 class JSONDtype(ExtensionDtype):

@@ -11,6 +11,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -29,10 +30,12 @@ from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
 )
-from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
 from pandas.tseries import offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
+
+if TYPE_CHECKING:
+    from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
 
 @pytest.fixture
