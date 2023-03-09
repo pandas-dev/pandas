@@ -9296,8 +9296,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @doc(**_shared_doc_kwargs)
     def align(
-        self: NDFrameT,
-        other: NDFrameT,
+        self,
+        other: NDFrame,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -9307,7 +9307,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> NDFrameT:
+    ) -> tuple[NDFrame, NDFrame]:
         """
         Align two objects on their axes with the specified join method.
 
@@ -9489,7 +9489,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_frame(
-        self,
+        self: NDFrameT,
         other,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
@@ -9499,7 +9499,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, NDFrameT]:
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -9553,7 +9553,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_series(
-        self,
+        self: NDFrameT,
         other,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
@@ -9563,7 +9563,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, NDFrameT]:
         is_series = isinstance(self, ABCSeries)
         if copy and using_copy_on_write():
             copy = False

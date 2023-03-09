@@ -4997,7 +4997,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
-        other: DataFrame,
+        other: NDFrame,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -5007,8 +5007,10 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> DataFrame:
-        return super().align(
+    ) -> tuple[DataFrame, DataFrame]:
+        # error: Incompatible return value type (got "Tuple[NDFrame, NDFrame]",
+        # expected "Tuple[DataFrame, DataFrame]")
+        return super().align(  # type: ignore[return-value]
             other,
             join=join,
             axis=axis,
@@ -7771,9 +7773,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
             left, right = left.align(
-                # error: Argument 1 to "align" of "DataFrame" has incompatible
-                # type "Series"; expected "DataFrame"
-                right,  # type: ignore[arg-type]
+                right,
                 join="outer",
                 axis=axis,
                 level=level,

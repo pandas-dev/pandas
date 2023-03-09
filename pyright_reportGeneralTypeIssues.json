@@ -1,4 +1,3 @@
-# this becomes obsolete when reportGeneralTypeIssues can be enabled in pyproject.toml
 {
     "typeCheckingMode": "off",
     "reportGeneralTypeIssues": true,
@@ -9,12 +8,11 @@
       ],
     "exclude":
       [
-        # exclude tests
         "pandas/tests",
-        # exclude vendored files
+
         "pandas/io/clipboard",
         "pandas/util/version",
-        # and all files that currently don't pass
+
         "pandas/_testing/__init__.py",
         "pandas/_testing/_hypothesis.py",
         "pandas/_testing/_io.py",

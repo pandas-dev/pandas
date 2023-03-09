@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -4561,7 +4562,7 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -4571,8 +4572,10 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
-        return super().align(
+    ) -> tuple[NDFrameT, NDFrameT]:
+        # error: Incompatible return value type (got "Tuple[NDFrame, NDFrame]",
+        # expected "Tuple[NDFrameT, NDFrameT]")
+        return super().align(  # type: ignore[return-value]
             other,
             join=join,
             axis=axis,
