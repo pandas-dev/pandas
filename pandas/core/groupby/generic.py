@@ -503,7 +503,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
         """
-        Transform with a callable func`.
+        Transform with a callable `func`.
         """
         assert callable(func)
         klass = type(self.obj)

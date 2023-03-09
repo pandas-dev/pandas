@@ -6,9 +6,9 @@ from functools import partial
 from io import BytesIO
 import os
 from textwrap import fill
-from types import TracebackType
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -30,14 +30,6 @@ from pandas._config import (
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import (
-    DtypeArg,
-    FilePath,
-    IntStrT,
-    ReadBuffer,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
@@ -75,6 +67,17 @@ from pandas.io.excel._util import (
 from pandas.io.parsers import TextParser
 from pandas.io.parsers.readers import validate_integer
 
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        DtypeArg,
+        FilePath,
+        IntStrT,
+        ReadBuffer,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
