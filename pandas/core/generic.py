@@ -80,6 +80,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     WriteBuffer,
+    WriteExcelBuffer,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -188,12 +189,14 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
-    from pandas.core.frame import DataFrame
+    from pandas import (
+        DataFrame,
+        ExcelWriter,
+        HDFStore,
+        Series,
+    )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
-    from pandas.core.series import Series
-
-    from pandas.io.pytables import HDFStore
 
 
 # goal is to be able to define the docs close to function, while still being
@@ -2091,7 +2094,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_excel(
         self,
-        excel_writer,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,

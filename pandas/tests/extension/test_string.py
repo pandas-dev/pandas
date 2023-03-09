@@ -221,7 +221,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, ser, data, op, other):
         op_name = f"__{op.__name__}__"
         result = getattr(ser, op_name)(other)
-        expected = getattr(ser.astype(object), op_name)(other).astype("boolean")
+        dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
+        expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
         self.assert_series_equal(result, expected)
 
     def test_compare_scalar(self, data, comparison_op):
