@@ -124,6 +124,7 @@ def init_osx_pbcopy_clipboard():
 
 
 def init_osx_pyobjc_clipboard():
+    # pylint: disable=undefined-variable
     def copy_osx_pyobjc(text):
         """Copy string argument to clipboard"""
         text = _stringifyText(text)  # Converts non-str values to str.
