@@ -14,7 +14,10 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
@@ -746,25 +749,19 @@ def _stack_multi_columns(
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
-            if frame._is_homogeneous_type and is_extension_array_dtype(
-                frame.dtypes.iloc[0]
-            ):
+            subset = this.iloc[:, loc]
+            dtype = find_common_type(subset.dtypes.tolist())
+            if is_extension_array_dtype(dtype):
                 # TODO(EA2D): won't need special case, can go through .values
                 #  paths below (might change to ._values)
-                dtype = this[this.columns[loc]].dtypes.iloc[0]
-                subset = this[this.columns[loc]]
-
                 value_slice = dtype.construct_array_type()._concat_same_type(
-                    [x._values for _, x in subset.items()]
+                    [x._values.astype(dtype, copy=False) for _, x in subset.items()]
                 )
                 N, K = subset.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
-
-            elif frame._is_mixed_type:
-                value_slice = this[this.columns[loc]].values
             else:
-                value_slice = this.values[:, loc]
+                value_slice = subset.values
 
         if value_slice.ndim > 1:
             # i.e. not extension
