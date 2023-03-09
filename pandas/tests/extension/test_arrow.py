@@ -1216,14 +1216,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def assert_series_equal(self, left, right, *args, **kwargs):
-        # Series.combine for "expected" retains bool[pyarrow] dtype
-        # While "result" return "boolean" dtype
-        right = pd.Series(right._values.to_numpy(), dtype="boolean")
-        super().assert_series_equal(left, right, *args, **kwargs)
-
     def test_compare_array(self, data, comparison_op, na_value, request):
-        pa_dtype = data.dtype.pyarrow_dtype
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
@@ -1249,13 +1242,6 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
             if exc is None:
                 # Didn't error, then should match point-wise behavior
-                if pa.types.is_temporal(pa_dtype):
-                    # point-wise comparison with pd.NA raises TypeError
-                    assert result[8] is na_value
-                    assert result[97] is na_value
-                    result = result.drop([8, 97]).reset_index(drop=True)
-                    ser = ser.drop([8, 97])
-                    other = other.drop([8, 97])
                 expected = ser.combine(other, comparison_op)
                 self.assert_series_equal(result, expected)
             else:
