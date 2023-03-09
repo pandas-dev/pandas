@@ -17,10 +17,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
-    arrays,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -134,9 +134,8 @@ class BaseImpl:
                      each level of the MultiIndex
                     """
                 )
-        else:
-            if df.columns.inferred_type not in {"string", "empty"}:
-                raise ValueError("parquet must have string column names")
+        elif df.columns.inferred_type not in {"string", "empty"}:
+            raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
@@ -253,14 +252,11 @@ class PyArrowImpl(BaseImpl):
             if dtype_backend == "pandas":
                 result = pa_table.to_pandas(**to_pandas_kwargs)
             elif dtype_backend == "pyarrow":
-                result = DataFrame(
-                    {
-                        col_name: arrays.ArrowExtensionArray(pa_col)
-                        for col_name, pa_col in zip(
-                            pa_table.column_names, pa_table.itercolumns()
-                        )
-                    }
-                )
+                # Incompatible types in assignment (expression has type
+                # "Type[ArrowDtype]", target has type overloaded function
+                to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
+                result = pa_table.to_pandas(**to_pandas_kwargs)
+
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result

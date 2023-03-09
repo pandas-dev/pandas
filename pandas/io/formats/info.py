@@ -660,14 +660,13 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
             )
         elif self.verbose is False:  # specifically set to False, not necessarily None
             return DataFrameTableBuilderNonVerbose(info=self.info)
+        elif self.exceeds_info_cols:
+            return DataFrameTableBuilderNonVerbose(info=self.info)
         else:
-            if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose(info=self.info)
-            else:
-                return DataFrameTableBuilderVerbose(
-                    info=self.info,
-                    with_counts=self.show_counts,
-                )
+            return DataFrameTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
 
 
 class SeriesInfoPrinter(InfoPrinterAbstract):

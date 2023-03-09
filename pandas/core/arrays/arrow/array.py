@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import operator
 import re
 from typing import (
@@ -243,7 +242,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             if copy and is_array_like(scalars):
                 # pa array should not get updated when numpy array is updated
-                scalars = deepcopy(scalars)
+                scalars = scalars.copy()
             try:
                 scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
             except pa.ArrowInvalid:
@@ -1027,7 +1026,12 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
         ArrowExtensionArray
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
-        arr = pa.chunked_array(chunks)
+        if to_concat[0].dtype == "string":
+            # StringDtype has no attrivute pyarrow_dtype
+            pa_dtype = pa.string()
+        else:
+            pa_dtype = to_concat[0].dtype.pyarrow_dtype
+        arr = pa.chunked_array(chunks, type=pa_dtype)
         return cls(arr)
 
     def _accumulate(
