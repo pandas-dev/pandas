@@ -61,6 +61,17 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
     >>> pd.case_when(
     ...     df,
+    ...     lambda x: (x.a == 1) & (x.b == 4),
+    ...     df.b,
+    ...     default=0,
+    ... )
+    0    4
+    1    0
+    2    0
+    dtype: int64
+
+    >>> pd.case_when(
+    ...     df,
     ...     lambda x: (x.a > 1) & (x.b > 1),
     ...     -1,
     ...     default=df.a,
