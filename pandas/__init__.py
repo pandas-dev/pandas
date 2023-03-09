@@ -185,9 +185,9 @@ del get_versions, v
 def __getattr__(name: str):
     # Lazify imports to speed "import pandas as pd"
     if name in ("Grouper", "NamedAgg"):
-        import pandas.core.groupby
+        from pandas.core import groupby
 
-        return getattr(pandas.core.groupby, name)
+        return getattr(groupby, name)
     raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
 
