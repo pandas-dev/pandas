@@ -1,17 +1,14 @@
+from __future__ import annotations
+
 import datetime as dt
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Optional,
     Sequence,
-    Tuple,
-    Union,
     cast,
 )
 
 import numpy as np
-
-from pandas._typing import Dtype  # noqa: TCH001
-from pandas._typing import PositionalIndexer  # noqa: TCH001
 
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -20,6 +17,12 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.api.types import pandas_dtype
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        PositionalIndexer,
+    )
 
 
 @register_extension_dtype
@@ -59,12 +62,12 @@ class DateDtype(ExtensionDtype):
 class DateArray(ExtensionArray):
     def __init__(
         self,
-        dates: Union[
-            dt.date,
-            Sequence[dt.date],
-            Tuple[np.ndarray, np.ndarray, np.ndarray],
-            np.ndarray,
-        ],
+        dates: (
+            dt.date
+            | Sequence[dt.date]
+            | tuple[np.ndarray, np.ndarray, np.ndarray]
+            | np.ndarray
+        ),
     ) -> None:
         if isinstance(dates, dt.date):
             self._year = np.array([dates.year])
@@ -144,7 +147,7 @@ class DateArray(ExtensionArray):
         else:
             raise NotImplementedError("only ints are supported as indexes")
 
-    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any):
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any):
         if not isinstance(key, int):
             raise NotImplementedError("only ints are supported as indexes")
 
@@ -158,7 +161,7 @@ class DateArray(ExtensionArray):
     def __repr__(self) -> str:
         return f"DateArray{list(zip(self._year, self._month, self._day))}"
 
-    def copy(self) -> "DateArray":
+    def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
 
     def isna(self) -> np.ndarray:
@@ -170,7 +173,7 @@ class DateArray(ExtensionArray):
         )
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if isinstance(scalars, dt.date):
             pass
         elif isinstance(scalars, DateArray):
