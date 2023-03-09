@@ -52,9 +52,13 @@ from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        FilePath,
         IndexLabel,
         StorageOptions,
+        WriteExcelBuffer,
     )
+
+    from pandas import ExcelWriter
 
 
 class ExcelCell:
@@ -890,7 +894,7 @@ class ExcelFormatter:
     @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
-        writer,
+        writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,

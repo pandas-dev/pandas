@@ -3,14 +3,18 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
+    Any,
     Generator,
+    Mapping,
 )
 
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
     from matplotlib.figure import Figure
+    from matplotlib.table import Table
     import numpy as np
 
     from pandas import (
@@ -19,7 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-def table(ax, data, **kwargs):
+def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
 
@@ -93,8 +97,8 @@ def scatter_matrix(
     grid: bool = False,
     diagonal: str = "hist",
     marker: str = ".",
-    density_kwds=None,
-    hist_kwds=None,
+    density_kwds: Mapping[str, Any] | None = None,
+    hist_kwds: Mapping[str, Any] | None = None,
     range_padding: float = 0.05,
     **kwargs,
 ) -> np.ndarray:
@@ -177,7 +181,7 @@ def radviz(
     class_column: str,
     ax: Axes | None = None,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwds,
 ) -> Axes:
     """
@@ -265,7 +269,7 @@ def andrews_curves(
     ax: Axes | None = None,
     samples: int = 200,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwargs,
 ) -> Axes:
     """
@@ -396,9 +400,9 @@ def parallel_coordinates(
     color: list[str] | tuple[str, ...] | None = None,
     use_columns: bool = False,
     xticks: list | tuple | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     axvlines: bool = True,
-    axvlines_kwds=None,
+    axvlines_kwds: Mapping[str, Any] | None = None,
     sort_labels: bool = False,
     **kwargs,
 ) -> Axes:
