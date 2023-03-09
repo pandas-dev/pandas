@@ -52,7 +52,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.base import (
+    ExtensionArray,
+    ExtensionArraySupportsAnyAll,
+)
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -170,7 +173,9 @@ def to_pyarrow_type(
     return None
 
 
-class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
+class ArrowExtensionArray(
+    OpsMixin, ExtensionArraySupportsAnyAll, BaseStringArrayMethods
+):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 
