@@ -127,7 +127,7 @@ The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 * :meth:`DataFrame.convert_dtypes`
 * :meth:`Series.convert_dtypes`
 
-When this option is set to ``numpy_nullable`` it will return a :class:`DataFrame` that is
+When this option is set to ``"numpy_nullable"`` it will return a :class:`DataFrame` that is
 backed by nullable dtypes.
 
 When this keyword is set to ``pyarrow``, then these functions will return pyarrow-backed nullable :class:`ArrowDtype` DataFrames (:issue:`48957`, :issue:`49997`):
