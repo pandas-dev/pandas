@@ -4572,10 +4572,8 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[NDFrameT, NDFrameT]:
-        # error: Incompatible return value type (got "Tuple[NDFrame, NDFrame]",
-        # expected "Tuple[NDFrameT, NDFrameT]")
-        return super().align(  # type: ignore[return-value]
+    ) -> tuple[Series, NDFrameT]:
+        return super().align(
             other,
             join=join,
             axis=axis,
