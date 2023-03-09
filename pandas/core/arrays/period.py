@@ -616,31 +616,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return str
         return "'{}'".format
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
         """
-        values = self.astype(object)
-
-        # Create the formatter function
-        if date_format:
-            formatter = lambda per: per.strftime(date_format)
-        else:
-            # Uses `_Period.str` which in turn uses `format_period`
-            formatter = lambda per: str(per)
-
-        # Apply the formatter to all values in the array, possibly with a mask
-        if self._hasna:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(per) for per in values[imask]])
-        else:
-            values = np.array([formatter(per) for per in values])
-        return values
+        return libperiod.period_array_strftime(
+            self.asi8, self.dtype._dtype_code, na_rep, date_format
+        )
 
     # ------------------------------------------------------------------
 
@@ -760,6 +744,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
+        # Similar to _check_timedeltalike_freq_compat, but we raise with a
+        #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False
