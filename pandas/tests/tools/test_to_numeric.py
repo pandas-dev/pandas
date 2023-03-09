@@ -829,7 +829,7 @@ def test_to_numeric_dtype_backend_na(val, dtype):
         pytest.importorskip("pyarrow")
         dtype_backend = "pyarrow"
     else:
-        dtype_backend = "pandas"
+        dtype_backend = "numpy_nullable"
     ser = Series([val, None], dtype=object)
     result = to_numeric(ser, dtype_backend=dtype_backend)
     expected = Series([val, pd.NA], dtype=dtype)
@@ -861,7 +861,8 @@ def test_to_numeric_dtype_backend_downcasting(val, dtype, downcast):
 
 
 @pytest.mark.parametrize(
-    "smaller, dtype_backend", [["UInt8", "pandas"], ["uint8[pyarrow]", "pyarrow"]]
+    "smaller, dtype_backend",
+    [["UInt8", "numpy_nullable"], ["uint8[pyarrow]", "pyarrow"]],
 )
 def test_to_numeric_dtype_backend_downcasting_uint(smaller, dtype_backend):
     # GH#50505
