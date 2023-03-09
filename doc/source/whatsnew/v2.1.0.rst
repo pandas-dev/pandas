@@ -114,6 +114,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
+- Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
