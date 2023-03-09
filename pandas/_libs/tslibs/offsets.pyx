@@ -1109,11 +1109,11 @@ cdef class Day(SingleConstructorOffset):
         if isinstance(other, Day):
             # TODO: why isn't this handled in __add__?
             return Day(self.n + other.n)
-        return other + np.timedelta64(self.n, "D")# Timedelta(days=self.n).as_unit("s")
+        return other + np.timedelta64(self.n, "D")
 
     @apply_array_wraps
     def _apply_array(self, dtarr):
-        return dtarr + np.timedelta64(self.n, "D")#Timedelta(days=self.n).as_unit("s")
+        return dtarr + np.timedelta64(self.n, "D")
 
     @cache_readonly
     def freqstr(self) -> str:
