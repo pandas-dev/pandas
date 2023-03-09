@@ -823,7 +823,12 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
+            # error: Cannot determine type of "grouping_vector"
+            pings = (
+                ping.grouping_vector  # type: ignore[has-type]
+                for ping in self.groupings
+            )
+            to_groupby = zip(*pings)
             index = Index(to_groupby)
             return self.axis.groupby(index)
 
