@@ -28,7 +28,8 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         will be used to create the `Series` on which `Series.mask` will be called.
         If this value is not already an array like (i.e. it is not of type `Series`,
         `np.array` or `list`) it will be repeated `obj.shape[0]` times in order to
-        create an array like object from it and then apply the `Series.mask`.
+        create an array like object from it and then apply the `Series.mask`. In any
+        case, the default series will be forced to take the index of `obj`.
 
     Returns
     -------
@@ -102,6 +103,28 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     1   -1
     2   -1
     Name: a, dtype: int64
+
+    The index will always follow that of `obj`. For example:
+    >>> df = pd.DataFrame(
+    ...     dict(a=[1, 2, 3], b=[4, 5, 6]),
+    ...     index=['index 1', 'index 2', 'index 3']
+    ... )
+    >>> df
+             a  b
+    index 1  1  4
+    index 2  2  5
+    index 3  3  6
+
+    >>> pd.case_when(
+    ...     df,
+    ...     lambda x: (x.a == 1) & (x.b == 4),
+    ...     df.b,
+    ...     default=0,
+    ... )
+    index 1    4
+    index 2    0
+    index 3    0
+    dtype: int64
     """
     len_args = len(args)
 
@@ -116,9 +139,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
     # construct series on which we will apply `Series.mask`
     if is_array_like(default):
-        series = pd.Series(default)
+        series = pd.Series(default, index=obj.index)
     else:
-        series = pd.Series([default] * obj.shape[0])
+        series = pd.Series([default] * obj.shape[0], index=obj.index)
 
     for i in range(0, len_args, 2):
         # get conditions
