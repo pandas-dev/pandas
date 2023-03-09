@@ -27,6 +27,7 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 if not pa_version_under7p0:
     import pyarrow as pa
@@ -133,9 +134,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_decimal(pa_type):
             return Decimal
         elif pa.types.is_dictionary(pa_type):
-            from pandas.core.arrays import Categorical
-
-            return Categorical
+            # TODO: Potentially change this & CategoricalDtype.type to
+            #  something more representative of the scalar
+            return CategoricalDtypeType
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
             return list
         elif pa.types.is_map(pa_type):
