@@ -370,7 +370,8 @@ NaT   4"""
 1    c     d  [1, c, d]
 2    e     f  [2, e, f]"""
         result = repr(df)
-        
+        assert result == expected
+
     def test_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
