@@ -274,14 +274,14 @@ class TestConstructors(base.BaseConstructorsTests):
 
     def test_from_sequence_pa_array(self, data):
         # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
-        # data._data = pa.ChunkedArray
-        result = type(data)._from_sequence(data._data)
+        # data._pa_array = pa.ChunkedArray
+        result = type(data)._from_sequence(data._pa_array)
         tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._data, pa.ChunkedArray)
+        assert isinstance(result._pa_array, pa.ChunkedArray)
 
-        result = type(data)._from_sequence(data._data.combine_chunks())
+        result = type(data)._from_sequence(data._pa_array.combine_chunks())
         tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._data, pa.ChunkedArray)
+        assert isinstance(result._pa_array, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
         with pytest.raises(NotImplementedError, match="Converting strings to"):
@@ -317,7 +317,7 @@ class TestConstructors(base.BaseConstructorsTests):
                         ),
                     )
                 )
-        pa_array = data._data.cast(pa.string())
+        pa_array = data._pa_array.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
 
@@ -1456,7 +1456,7 @@ def test_quantile(data, interpolation, quantile, request):
         or (pa.types.is_decimal(pa_dtype) and not pa_version_under7p0)
     ):
         pass
-    elif pa.types.is_temporal(data._data.type):
+    elif pa.types.is_temporal(data._pa_array.type):
         pass
     else:
         request.node.add_marker(
@@ -1619,7 +1619,7 @@ def test_pickle_roundtrip(data):
 
 def test_astype_from_non_pyarrow(data):
     # GH49795
-    pd_array = data._data.to_pandas().array
+    pd_array = data._pa_array.to_pandas().array
     result = pd_array.astype(data.dtype)
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
@@ -1638,11 +1638,11 @@ def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
 
-    pa_type = data._data.type
+    pa_type = data._pa_array.type
     if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
         expected = np.array(list(data))
     else:
-        expected = np.array(data._data)
+        expected = np.array(data._pa_array)
 
     if data._hasna:
         expected = expected.astype(object)
@@ -1668,7 +1668,7 @@ def test_setitem_null_slice(data):
     result = orig.copy()
     result[:] = data[0]
     expected = ArrowExtensionArray(
-        pa.array([data[0]] * len(data), type=data._data.type)
+        pa.array([data[0]] * len(data), type=data._pa_array.type)
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -1685,7 +1685,7 @@ def test_setitem_null_slice(data):
 
 def test_setitem_invalid_dtype(data):
     # GH50248
-    pa_type = data._data.type
+    pa_type = data._pa_array.type
     if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
         fill_value = 123
         err = TypeError

@@ -578,7 +578,7 @@ class TestReaders:
             )
             # pyarrow by default infers timestamp resolution as us, not ns
             expected["i"] = ArrowExtensionArray(
-                expected["i"].array._data.cast(pa.timestamp(unit="us"))
+                expected["i"].array._pa_array.cast(pa.timestamp(unit="us"))
             )
             # pyarrow supports a null type, so don't have to default to Int64
             expected["j"] = ArrowExtensionArray(pa.array([None, None]))
