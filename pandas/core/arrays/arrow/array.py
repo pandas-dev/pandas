@@ -1958,6 +1958,9 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray, BaseStringArrayMethods):
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
+    def _dt_to_pydatetime(self):
+        return np.array(self._data.to_pylist(), dtype=object)
+
     def _dt_tz_localize(
         self,
         tz,
