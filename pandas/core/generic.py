@@ -3630,9 +3630,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : str, default 'w'
-            Python write mode. The available write modes are the same as
-            :py:func:`open`.
+        mode : {{'w', 'x', 'a'}}, default 'w'
+            Python write mode. The available write modes are:
+
+            - 'w', opens the file for writing and truncates the file if it already exists. If the file does not exist, it creates a new file.
+            - 'x', opens the file for exclusive creation, meaning it will fail if the file already exists. If the file does not exist, it creates a new file.
+            - 'a', opens the file for writing in append mode. The data is written to the end of the file, without truncating it. If the file does not exist, it creates a new file.
+
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
