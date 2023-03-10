@@ -112,13 +112,23 @@ level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
-    For aggregated output, return object with group labels as the
+    Return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output.
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
+    This argument has no effect on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 
     .. versionchanged:: 2.0.0
 
