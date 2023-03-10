@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
 import codecs
 import json
@@ -8,7 +9,8 @@ import platform
 import struct
 import sys
 
-from pandas._typing import JSONSerializable
+if TYPE_CHECKING:
+    from pandas._typing import JSONSerializable
 from pandas.compat._optional import (
     VERSIONS,
     get_version,
