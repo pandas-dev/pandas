@@ -49,8 +49,8 @@ class TestSeries:
             ser = Series([True])
             assert ser.bool()
 
-        ser = Series([False])
-        assert not ser.bool()
+            ser = Series([False])
+            assert not ser.bool()
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
     def test_nonzero_single_element_raise_1(self, data):
