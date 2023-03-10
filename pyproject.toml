@@ -293,11 +293,6 @@ exclude = [
 # TCH to be enabled gradually
 "pandas/core/arrays/*" = ["TCH"]
 "pandas/core/nanops.py" = ["TCH"]
-"pandas/core/apply.py" = ["TCH"]
-"pandas/core/base.py" = ["TCH"]
-"pandas/core/algorithms.py" = ["TCH"]
-"pandas/core/ops/*" = ["TCH"]
-"pandas/core/sorting.py" = ["TCH"]
 "pandas/io/*" = ["PLW2901"]
 "pandas/tests/*" = ["PLW2901"]
 "pandas/plotting/*" = ["PLW2901"]
