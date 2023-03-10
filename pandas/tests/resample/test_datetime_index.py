@@ -642,7 +642,9 @@ def test_resample_dup_index():
     )
     df.iloc[3, :] = np.nan
     result = df.resample("Q", axis=1).mean()
-    expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
     expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
     tm.assert_frame_equal(result, expected)
 
@@ -1796,14 +1798,11 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = Series(
-        0,
-        index=date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit),
-    )
-    s = s + range(len(s))
+    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    ser = Series(range(len(dti)), index=dti)
 
-    result1 = s.resample(str(n1_) + freq1).mean()
-    result2 = s.resample(str(n2_) + freq2).mean()
+    result1 = ser.resample(str(n1_) + freq1).mean()
+    result2 = ser.resample(str(n2_) + freq2).mean()
     tm.assert_series_equal(result1, result2)
 
 

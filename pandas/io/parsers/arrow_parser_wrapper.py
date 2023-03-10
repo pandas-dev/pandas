@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from pandas._typing import ReadBuffer
+from typing import TYPE_CHECKING
+
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
 
+import pandas as pd
 from pandas import (
     DataFrame,
-    arrays,
     get_option,
 )
 
 from pandas.io.parsers.base_parser import ParserBase
+
+if TYPE_CHECKING:
+    from pandas._typing import ReadBuffer
 
 
 class ArrowParserWrapper(ParserBase):
@@ -112,10 +116,9 @@ class ArrowParserWrapper(ParserBase):
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
                     self.index_col[i] = frame.columns[item]
-                else:
-                    # String case
-                    if item not in frame.columns:
-                        raise ValueError(f"Index {item} invalid")
+                # String case
+                elif item not in frame.columns:
+                    raise ValueError(f"Index {item} invalid")
             frame.set_index(self.index_col, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
@@ -153,12 +156,7 @@ class ArrowParserWrapper(ParserBase):
             self.kwds["use_nullable_dtypes"]
             and get_option("mode.dtype_backend") == "pyarrow"
         ):
-            frame = DataFrame(
-                {
-                    col_name: arrays.ArrowExtensionArray(pa_col)
-                    for col_name, pa_col in zip(table.column_names, table.itercolumns())
-                }
-            )
+            frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

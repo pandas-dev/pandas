@@ -15,12 +15,6 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
-from pandas._typing import (
-    DtypeObj,
-    Shape,
-    npt,
-    type_t,
-)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
@@ -30,6 +24,13 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        Shape,
+        npt,
+        type_t,
+    )
+
     from pandas.core.arrays import ExtensionArray
 
     # To parameterize on same ExtensionDtype
