@@ -138,7 +138,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
-            "pandas.core.generic.py",
+            "pandas.core.generic.NDFrame.bool",
             "NDFrame.bool is deprecated and will removed in a future version",
         ),
     ]
