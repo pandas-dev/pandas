@@ -257,7 +257,7 @@ __all__ = [
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
-    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]
+    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
     "HDFStore",
     "Index",
     "IndexSlice",
@@ -271,7 +271,7 @@ __all__ = [
     "MultiIndex",
     "NA",
     "NaT",
-    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]
+    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
     "Period",
     "PeriodDtype",
     "PeriodIndex",

@@ -104,7 +104,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
-    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]
+    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
     "Index",
     "IndexSlice",
     "Int16Dtype",
@@ -119,7 +119,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "isnull",
     "MultiIndex",
     "NA",
-    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]
+    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
     "NaT",
     "notna",
     "notnull",
