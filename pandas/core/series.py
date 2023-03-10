@@ -5994,7 +5994,6 @@ Keep all original rows and also all original values
     index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
             """
-
             A one-dimensional ndarray with hashable type axis labels. 
 
             Pandas Series.index attribute is used to get or set the index labels of the given Series object.
