@@ -1785,6 +1785,7 @@ class TimeGrouper(Grouper):
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
         # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(
             ax_values, bin_edges, self.closed, hasnans=ax.hasnans
@@ -1843,10 +1844,9 @@ class TimeGrouper(Grouper):
             )
 
         freq = self.freq
-        if isinstance(freq, Day):
-            # TODO: are we super-duper sure this is safe?  maybe we can unify
-            #  conversion earlier?
-            freq = 24 * freq.n * to_offset("H")
+        # TODO: are we super-duper sure this is safe?  maybe we can unify
+        #  conversion earlier?
+        freq = freq._maybe_to_hours()
         if not len(ax):
             if not isinstance(freq, Tick):
                 # FIXME: this seems to be happening in the status quo

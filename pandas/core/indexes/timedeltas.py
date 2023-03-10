@@ -317,10 +317,8 @@ def timedelta_range(
         )
 
     freq, _ = dtl.maybe_infer_freq(freq)
-    if isinstance(freq, Day):
-        freq = 24 * freq.n * to_offset("H")
-    elif isinstance(freq, Timedelta):
-        freq = to_offset(freq)  # FIXME: shouldn't happen right?
+    if freq is not None:
+        freq = freq._maybe_to_hours()
 
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit

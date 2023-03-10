@@ -23,7 +23,6 @@ from pandas._libs.interval import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
-    Day,
     Timedelta,
     Timestamp,
     to_offset,
@@ -1095,10 +1094,8 @@ def interval_range(
             raise ValueError(
                 f"freq must be numeric or convertible to DateOffset, got {freq}"
             ) from err
-        if isinstance(freq, Day) and (
-            isinstance(start, Timedelta) or isinstance(end, Timedelta)
-        ):
-            freq = freq.n * 24 * to_offset("H")
+        if isinstance(start, Timedelta) or isinstance(end, Timedelta):
+            freq = freq._maybe_to_hours()
 
     # verify type compatibility
     if not all(

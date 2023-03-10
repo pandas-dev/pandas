@@ -23,7 +23,6 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
-    Day,
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
@@ -1778,12 +1777,9 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                if isinstance(freq, Day):
-                    # In this context we treat Day as 24H
-                    # TODO: will this cause trouble with tzaware cases?
-                    self._win_freq_i8 = freq.n * 24 * 3600 * 10**9
-                else:
-                    self._win_freq_i8 = freq.nanos
+                # In this context we treat Day as 24H
+                # TODO: will this cause trouble with tzaware cases?
+                self._win_freq_i8 = freq._maybe_to_hours().nanos
 
             # min_periods must be an integer
             if self.min_periods is None:
