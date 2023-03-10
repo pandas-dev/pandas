@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Iterable,
 )
@@ -10,7 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
-from pandas._typing import NpDtype
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -27,6 +27,9 @@ from pandas.core.indexes.api import (
     default_index,
 )
 from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas._typing import NpDtype
 
 
 def get_dummies(
