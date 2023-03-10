@@ -178,7 +178,6 @@ class Sortlevel:
 
 
 class SortValues:
-
     params = ["int64", "Int64"]
     param_names = ["dtype"]
 
@@ -193,7 +192,6 @@ class SortValues:
 
 class Values:
     def setup_cache(self):
-
         level1 = range(1000)
         level2 = date_range(start="1/1/2012", periods=100)
         mi = MultiIndex.from_product([level1, level2])
@@ -208,7 +206,6 @@ class Values:
 
 class CategoricalLevel:
     def setup(self):
-
         self.df = DataFrame(
             {
                 "a": np.arange(1_000_000, dtype=np.int32),
@@ -234,7 +231,6 @@ class Equals:
 
 
 class SetOperations:
-
     params = [
         ("monotonic", "non_monotonic"),
         ("datetime", "int", "string", "ea_int"),
@@ -278,7 +274,6 @@ class SetOperations:
 
 
 class Difference:
-
     params = [
         ("datetime", "int", "string", "ea_int"),
     ]
@@ -377,6 +372,28 @@ class Isin:
 
     def time_isin_large(self, dtype):
         self.midx.isin(self.values_large)
+
+
+class Putmask:
+    def setup(self):
+        N = 10**5
+        level1 = range(1_000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        self.midx = MultiIndex.from_product([level1, level2])
+
+        level1 = range(1_000, 2_000)
+        self.midx_values = MultiIndex.from_product([level1, level2])
+
+        level2 = date_range(start="1/1/2010", periods=N // 1000)
+        self.midx_values_different = MultiIndex.from_product([level1, level2])
+        self.mask = np.array([True, False] * (N // 2))
+
+    def time_putmask(self):
+        self.midx.putmask(self.mask, self.midx_values)
+
+    def time_putmask_all_different(self):
+        self.midx.putmask(self.mask, self.midx_values_different)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

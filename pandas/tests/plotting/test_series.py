@@ -5,6 +5,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_linux
+from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -238,6 +240,11 @@ class TestSeriesPlots(TestPlotBase):
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
     def test_bar_log(self):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
@@ -573,7 +580,6 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-
         s = Series(np.arange(10), name="x")
         s_err = np.abs(np.random.randn(10))
         d_err = DataFrame(
@@ -807,7 +813,7 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh", "hist"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
@@ -818,6 +824,9 @@ class TestSeriesPlots(TestPlotBase):
         if kind == "barh":
             assert ax.get_xlabel() == ""
             assert ax.get_ylabel() == old_label
+        elif kind == "hist":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == "Frequency"
         else:
             assert ax.get_ylabel() == ""
             assert ax.get_xlabel() == old_label

@@ -4,32 +4,33 @@ on:
   push:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
   pull_request:
     branches:
       - main
+      - 2.0.x
       - 1.5.x
     paths-ignore:
       - "doc/**"
-
-env:
-  PANDAS_CI: 1
+      - "web/**"
 
 permissions:
   contents: read
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["7", "8", "9"]
+        pyarrow_version: ["8", "9", "10"]
+        pandas_ci: [1]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -73,16 +74,23 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
+            # There are some warnings failing the build with -werror
+            pandas_ci: 0
         exclude:
+          - env_file: actions-38.yaml
+            pyarrow_version: "8"
+          - env_file: actions-38.yaml
+            pyarrow_version: "9"
           - env_file: actions-39.yaml
-            pyarrow_version: "6"
+            pyarrow_version: "8"
           - env_file: actions-39.yaml
-            pyarrow_version: "7"
+            pyarrow_version: "9"
           - env_file: actions-310.yaml
-            pyarrow_version: "6"
+            pyarrow_version: "8"
           - env_file: actions-310.yaml
-            pyarrow_version: "7"
+            pyarrow_version: "9"
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
@@ -93,6 +101,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
+      PANDAS_CI: ${{ matrix.pandas_ci }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}

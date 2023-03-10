@@ -76,6 +76,12 @@ def delta_to_nanoseconds(
     reso: int = ...,  # NPY_DATETIMEUNIT
     round_ok: bool = ...,
 ) -> int: ...
+def floordiv_object_array(
+    left: np.ndarray, right: npt.NDArray[np.object_]
+) -> np.ndarray: ...
+def truediv_object_array(
+    left: np.ndarray, right: npt.NDArray[np.object_]
+) -> np.ndarray: ...
 
 class Timedelta(timedelta):
     _creso: int
@@ -83,6 +89,7 @@ class Timedelta(timedelta):
     max: ClassVar[Timedelta]
     resolution: ClassVar[Timedelta]
     value: int  # np.int64
+    _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
         cls: type[_S],

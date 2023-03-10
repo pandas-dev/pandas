@@ -350,7 +350,7 @@ some very expressive and fast data manipulations.
    df.stack().mean(1).unstack()
 
    # same result, another way
-   df.groupby(level=1, axis=1).mean()
+   df.T.groupby(level=1).mean()
 
    df.stack().groupby(level=1).mean()
 
@@ -889,8 +889,6 @@ Note to subdivide over multiple columns we can pass in a list to the
 
 Exploding a list-like column
 ----------------------------
-
-.. versionadded:: 0.25.0
 
 Sometimes the values in a column are list-like.
 

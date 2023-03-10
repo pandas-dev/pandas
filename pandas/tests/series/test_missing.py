@@ -18,7 +18,6 @@ import pandas._testing as tm
 
 class TestSeriesMissingData:
     def test_categorical_nan_handling(self):
-
         # NaNs are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
         tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
@@ -36,29 +35,14 @@ class TestSeriesMissingData:
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    @pytest.mark.parametrize(
-        "method, expected",
-        [
-            ["isna", Series([False, True, True, False])],
-            ["dropna", Series(["a", 1.0], index=[0, 3])],
-        ],
-    )
-    def test_isnull_for_inf_deprecated(self, method, expected):
-        # gh-17115
-        s = Series(["a", np.inf, np.nan, 1.0])
-        with pd.option_context("mode.use_inf_as_null", True):
-            result = getattr(s, method)()
-        tm.assert_series_equal(result, expected)
-
     def test_timedelta64_nan(self):
-
         td = Series([timedelta(days=i) for i in range(10)])
 
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
         assert isna(td1[0])
-        assert td1[0].value == iNaT
+        assert td1[0]._value == iNaT
         td1[0] = td[0]
         assert not isna(td1[0])
 
@@ -72,7 +56,7 @@ class TestSeriesMissingData:
 
         td1[2] = NaT
         assert isna(td1[2])
-        assert td1[2].value == iNaT
+        assert td1[2]._value == iNaT
         td1[2] = td[2]
         assert not isna(td1[2])
 

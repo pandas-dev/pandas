@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import array
 import re
 
 import numpy as np
@@ -220,7 +221,7 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
         arr = self.array_cls(data, freq="D")
         result = arr._unbox_scalar(arr[0])
-        expected = arr._data.dtype.type
+        expected = arr._ndarray.dtype.type
         assert isinstance(result, expected)
 
         result = arr._unbox_scalar(NaT)
@@ -338,7 +339,7 @@ class SharedTests:
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
         #  for other tzs
-        i8vals = np.asarray([NaT.value + n for n in range(1, 5)], dtype="i8")
+        i8vals = np.asarray([NaT._value + n for n in range(1, 5)], dtype="i8")
         arr = self.array_cls(i8vals, freq="ns")
         arr[0]  # should not raise OutOfBoundsDatetime
 
@@ -350,13 +351,13 @@ class SharedTests:
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
-        expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
+        expected = type(arr1d)(arr1d._ndarray[:, np.newaxis], dtype=arr1d.dtype)
         result = arr1d[:, np.newaxis]
         tm.assert_equal(result, expected)
 
         # Lookup on a 2D array
         arr2d = expected
-        expected = type(arr2d)(arr2d._data[:3, 0], dtype=arr2d.dtype)
+        expected = type(arr2d)(arr2d._ndarray[:3, 0], dtype=arr2d.dtype)
         result = arr2d[:3, 0]
         tm.assert_equal(result, expected)
 
@@ -366,7 +367,7 @@ class SharedTests:
         assert result == expected
 
     def test_iter_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
         result = list(arr2d)
         assert len(result) == 3
@@ -376,7 +377,7 @@ class SharedTests:
             assert x.dtype == arr1d.dtype
 
     def test_repr_2d(self, arr1d):
-        data2d = arr1d._data[:3, np.newaxis]
+        data2d = arr1d._ndarray[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
 
         result = repr(arr2d)
@@ -429,7 +430,6 @@ class SharedTests:
         ],
     )
     def test_setitem_object_dtype(self, box, arr1d):
-
         expected = arr1d.copy()[::-1]
         if expected.dtype.kind in ["m", "M"]:
             expected = expected._with_freq(None)
@@ -632,7 +632,7 @@ class TestDatetimeArray(SharedTests):
 
         # default asarray gives the same underlying data (for tz naive)
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -641,7 +641,7 @@ class TestDatetimeArray(SharedTests):
 
         # specifying M8[ns] gives the same result as default
         result = np.asarray(arr, dtype="datetime64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="datetime64[ns]", copy=False)
@@ -720,13 +720,13 @@ class TestDatetimeArray(SharedTests):
         assert result.base is None
 
     def test_from_array_keeps_base(self):
-        # Ensure that DatetimeArray._data.base isn't lost.
+        # Ensure that DatetimeArray._ndarray.base isn't lost.
         arr = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         dta = DatetimeArray(arr)
 
-        assert dta._data is arr
+        assert dta._ndarray is arr
         dta = DatetimeArray(arr[:0])
-        assert dta._data.base is arr
+        assert dta._ndarray.base is arr
 
     def test_from_dti(self, arr1d):
         arr = arr1d
@@ -814,7 +814,7 @@ class TestDatetimeArray(SharedTests):
             # Timestamp with mismatched tz-awareness
             arr.take([-1, 1], allow_fill=True, fill_value=now)
 
-        value = NaT.value
+        value = NaT._value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -941,7 +941,7 @@ class TestTimedeltaArray(SharedTests):
 
         # default asarray gives the same underlying data
         result = np.asarray(arr)
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, copy=False)
@@ -950,7 +950,7 @@ class TestTimedeltaArray(SharedTests):
 
         # specifying m8[ns] gives the same result as default
         result = np.asarray(arr, dtype="timedelta64[ns]")
-        expected = arr._data
+        expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
         result = np.array(arr, dtype="timedelta64[ns]", copy=False)
@@ -1037,7 +1037,7 @@ class TestPeriodArray(SharedTests):
     def test_take_fill_valid(self, arr1d):
         arr = arr1d
 
-        value = NaT.value
+        value = NaT._value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # require NaT, not iNaT, as it could be confused with an integer
@@ -1180,15 +1180,15 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     [
         (
             TimedeltaIndex(["1 Day", "3 Hours", "NaT"])._data,
-            (np.datetime64("NaT", "ns"), NaT.value),
+            (np.datetime64("NaT", "ns"), NaT._value),
         ),
         (
             pd.date_range("2000-01-01", periods=3, freq="D")._data,
-            (np.timedelta64("NaT", "ns"), NaT.value),
+            (np.timedelta64("NaT", "ns"), NaT._value),
         ),
         (
             pd.period_range("2000-01-01", periods=3, freq="D")._data,
-            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), NaT.value),
+            (np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns"), NaT._value),
         ),
     ],
     ids=lambda x: type(x).__name__,
@@ -1346,9 +1346,6 @@ def array_likes(request):
     if name == "memoryview":
         data = memoryview(arr)
     elif name == "array":
-        # stdlib array
-        import array
-
         data = array.array("i", arr)
     elif name == "dask":
         import dask.array

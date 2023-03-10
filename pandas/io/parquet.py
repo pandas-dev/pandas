@@ -4,25 +4,23 @@ from __future__ import annotations
 import io
 import os
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
 from warnings import catch_warnings
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
+import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
-    arrays,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -35,6 +33,14 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 def get_engine(engine: str) -> BaseImpl:
@@ -114,7 +120,6 @@ def _get_path_or_handle(
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
-
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
@@ -129,9 +134,8 @@ class BaseImpl:
                      each level of the MultiIndex
                     """
                 )
-        else:
-            if df.columns.inferred_type not in {"string", "empty"}:
-                raise ValueError("parquet must have string column names")
+        elif df.columns.inferred_type not in {"string", "empty"}:
+            raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
@@ -222,27 +226,15 @@ class PyArrowImpl(BaseImpl):
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        nullable_backend = get_option("io.nullable_backend")
+        dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            import pandas as pd
+            if dtype_backend == "pandas":
+                from pandas.io._util import _arrow_dtype_mapping
 
-            if nullable_backend == "pandas":
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                    self.api.float32(): pd.Float32Dtype(),
-                    self.api.float64(): pd.Float64Dtype(),
-                }
+                mapping = _arrow_dtype_mapping()
                 to_pandas_kwargs["types_mapper"] = mapping.get
+
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
@@ -257,17 +249,14 @@ class PyArrowImpl(BaseImpl):
             pa_table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             )
-            if nullable_backend == "pandas":
+            if dtype_backend == "pandas":
                 result = pa_table.to_pandas(**to_pandas_kwargs)
-            elif nullable_backend == "pyarrow":
-                result = DataFrame(
-                    {
-                        col_name: arrays.ArrowExtensionArray(pa_col)
-                        for col_name, pa_col in zip(
-                            pa_table.column_names, pa_table.itercolumns()
-                        )
-                    }
-                )
+            elif dtype_backend == "pyarrow":
+                # Incompatible types in assignment (expression has type
+                # "Type[ArrowDtype]", target has type overloaded function
+                to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
+                result = pa_table.to_pandas(**to_pandas_kwargs)
+
             if manager == "array":
                 result = result._as_manager("array", copy=False)
             return result
@@ -296,9 +285,6 @@ class FastParquetImpl(BaseImpl):
         **kwargs,
     ) -> None:
         self.validate_dataframe(df)
-        # thriftpy/protocol/compact.py:339:
-        # DeprecationWarning: tostring() is deprecated.
-        # Use tobytes() instead.
 
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
@@ -467,7 +453,7 @@ def read_parquet(
     engine: str = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -508,10 +494,13 @@ def read_parquet(
 
         .. versionadded:: 1.2.0
 
-        The nullable dtype implementation can be configured by setting the global
-        ``io.nullable_backend`` configuration option to ``"pandas"`` to use
-        numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
-        nullable dtypes (using ``pd.ArrowDtype``).
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
 
         .. versionadded:: 2.0.0
 
@@ -523,6 +512,12 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
 
     return impl.read(
         path,

@@ -30,15 +30,19 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
-from pandas.tests.tseries.offsets.test_offsets import get_utc_offset_hours
 from pandas.util.version import Version
 
 # error: Module has no attribute "__version__"
 pytz_version = Version(pytz.__version__)  # type: ignore[attr-defined]
 
 
-class TestDST:
+def get_utc_offset_hours(ts):
+    # take a Timestamp and compute total hours of utc offset
+    o = ts.utcoffset()
+    return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
+
+class TestDST:
     # one microsecond before the DST transition
     ts_pre_fallback = "2013-11-03 01:59:59.999999"
     ts_pre_springfwd = "2013-03-10 01:59:59.999999"

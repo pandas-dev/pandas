@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -17,20 +16,26 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     Series,
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -131,6 +136,73 @@ class TestReadHtml:
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
+
+    def test_use_nullable_dtypes(self, string_storage, dtype_backend):
+        # GH#50286
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+        if string_storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.string_storage", string_storage):
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                result = self.read_html(out, use_nullable_dtypes=True)[0]
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_use_nullable_dtypes_option(self):
+        # GH#50748
+        df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.nullable_dtypes", True):
+            result = self.read_html(out)[0]
+
+        expected = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
     @tm.network(
@@ -271,7 +343,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)
@@ -341,10 +412,8 @@ class TestReadHtml:
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, path, *args, **kwargs):
-        return self.read_html(
-            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
-        )
+    def _bank_data(self, path, **kwargs):
+        return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
     def test_multiindex_header(self, banklist_data):
@@ -627,7 +696,7 @@ class TestReadHtml:
         ]
         dfnew = df.applymap(try_remove_ws).replace(old, new)
         gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew._convert(datetime=True, numeric=True)
+        converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
@@ -1113,9 +1182,8 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(
-            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
-        )  # pylint: disable=redundant-keyword-arg
+
+        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1280,9 +1348,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))

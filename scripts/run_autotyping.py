@@ -27,6 +27,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             "autotyping.AutotypeCommand",
             *args.paths,
             "--aggressive",
+            "--no-format",
         ],
         check=True,
     )

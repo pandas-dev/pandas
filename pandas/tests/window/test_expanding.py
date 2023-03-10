@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -13,11 +11,9 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.core.window import Expanding
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.expanding(2).sum()
@@ -40,23 +36,6 @@ def test_constructor_invalid(frame_or_series, w):
     msg = "min_periods must be an integer"
     with pytest.raises(ValueError, match=msg):
         c(min_periods=w)
-
-
-@pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
-def test_numpy_compat(method):
-    # see gh-12811
-    e = Expanding(Series([2, 4, 6]))
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Expanding.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Expanding.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(e, method)(dtype=np.float64)
 
 
 @pytest.mark.parametrize(
@@ -206,7 +185,7 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, df.expanding(min_periods)):
+    for expected, actual in zip(expected, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -225,7 +204,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, ser.expanding(min_periods)):
+    for expected, actual in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -448,14 +427,11 @@ def test_expanding_min_periods_apply(engine_and_raw):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-
     df1 = DataFrame()
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")
 
-    df1_expected = DataFrame(
-        index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
-    )
+    df1_expected = DataFrame(index=MultiIndex.from_product([df1.index, df1.columns]))
     df2_expected = DataFrame(
         index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
         columns=Index(["a"], name="foo"),

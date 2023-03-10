@@ -44,6 +44,10 @@ if TYPE_CHECKING:
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
+    from pandas.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
     from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame
@@ -88,6 +92,14 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
+TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
+
+# list-like
+
+# Cannot use `Sequence` because a string is a sequence, and we don't want to
+# accept that.  Could refine if https://github.com/python/typing/issues/256 is
+# resolved to differentiate between Sequence[str] and str
+ListLike = Union[AnyArrayLike, List, range]
 
 # scalars
 
@@ -125,7 +137,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "BaseOffset"]
-Axes = Union[AnyArrayLike, List, range]
+Axes = ListLike
 
 RandomState = Union[
     int,
@@ -319,6 +331,9 @@ WindowingRankType = Literal["average", "min", "max"]
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
+# read_json engines
+JSONEngine = Literal["ujson", "pyarrow"]
+
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
@@ -342,6 +357,12 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 
 # dropna
 AnyAll = Literal["any", "all"]
+
+# merge
+MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+
+# join
+JoinHow = Literal["left", "right", "inner", "outer"]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[

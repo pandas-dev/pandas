@@ -220,15 +220,9 @@ class TestSetitemSlices:
     def test_setitem_slice_integers(self):
         ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
 
-        msg = r"In a future version, this will be treated as \*label-based\* indexing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser[:4] = 0
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
-            assert (ser[:4] == 0).all()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert not (ser[4:] == 0).any()
+        ser[:4] = 0
+        assert (ser[:4] == 0).all()
+        assert not (ser[4:] == 0).any()
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
@@ -418,14 +412,14 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti[1] == ts
         assert dti.freq == "D"
 
@@ -435,9 +429,9 @@ class TestSetitemViewCopySemantics:
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._data.base is not dti._data._data.base
+        assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert ser._mgr.arrays[0] is not dti
-        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -799,7 +793,8 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         res = Index(obj).where(~mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        expected_idx = Index(expected, dtype=expected.dtype)
+        tm.assert_index_equal(res, expected_idx)
 
     def test_index_putmask(self, obj, key, expected, val):
         mask = np.zeros(obj.shape, dtype=bool)
@@ -904,7 +899,7 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         ser = ser.astype(object)
-        ser.values[0] = np.timedelta64(4, "ns")
+        ser.iloc[0] = np.timedelta64(4, "ns")
         return ser
 
     @pytest.fixture
@@ -954,7 +949,7 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, key):
         exp = Series(period_range("2000-01-01", periods=10, freq="D"))
-        exp._values.view("i8")[key] = NaT.value
+        exp._values.view("i8")[key] = NaT._value
         assert exp[key] is NaT or all(x is NaT for x in exp[key])
         return exp
 

@@ -55,6 +55,7 @@ ok_for_dt_methods = [
     "day_name",
     "month_name",
     "isocalendar",
+    "as_unit",
 ]
 ok_for_td = TimedeltaArray._datetimelike_ops
 ok_for_td_methods = [
@@ -64,6 +65,7 @@ ok_for_td_methods = [
     "round",
     "floor",
     "ceil",
+    "as_unit",
 ]
 
 
@@ -143,7 +145,6 @@ class TestSeriesDatetimeValues:
         dti = date_range("20130101", periods=5, tz="US/Eastern")
         ser = Series(dti, name="xxx")
         for prop in ok_for_dt:
-
             # we test freq below
             if prop != "freq":
                 self._compare(ser, prop)
@@ -223,20 +224,19 @@ class TestSeriesDatetimeValues:
         assert freq_result == PeriodIndex(ser.values).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
-
         # both
         index = date_range("20130101", periods=3, freq="D")
         dti = date_range("20140204", periods=3, freq="s")
         ser = Series(dti, index=index, name="xxx")
         exp = Series(
-            np.array([2014, 2014, 2014], dtype="int64"), index=index, name="xxx"
+            np.array([2014, 2014, 2014], dtype="int32"), index=index, name="xxx"
         )
         tm.assert_series_equal(ser.dt.year, exp)
 
-        exp = Series(np.array([2, 2, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([2, 2, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.month, exp)
 
-        exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
+        exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
         exp = Series([ser[0]] * 3, index=index, name="xxx")
@@ -287,8 +287,8 @@ class TestSeriesDatetimeValues:
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
-                # TODO(CoW) it would be nice to keep a warning/error for this case
-                ser.dt.hour[0] = 5
+                with tm.raises_chained_assignment_error():
+                    ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
                     ser.dt.hour[0] = 5
@@ -386,7 +386,7 @@ class TestSeriesDatetimeValues:
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)
         ser = Series(pd.Categorical(dti), name="foo")
         result = ser.dt.year
-        expected = Series([2017, 2017, 2018, 2018], name="foo")
+        expected = Series([2017, 2017, 2018, 2018], dtype="int32", name="foo")
         tm.assert_series_equal(result, expected)
 
     def test_dt_tz_localize_categorical(self, tz_aware_fixture):
@@ -741,6 +741,7 @@ class TestSeriesDatetimeValues:
         result = dt_series.dt.hour
         expected = Series(
             [0, 1, 2, 3, 4],
+            dtype="int32",
             index=[2, 6, 7, 8, 11],
         )
         tm.assert_series_equal(result, expected)

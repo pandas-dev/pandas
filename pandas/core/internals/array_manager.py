@@ -19,20 +19,12 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    npt,
-)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
-    soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -96,9 +88,13 @@ from pandas.core.internals.blocks import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.api import Float64Index
-
-
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        QuantileInterpolation,
+        npt,
+    )
 T = TypeVar("T", bound="BaseArrayManager")
 
 
@@ -175,6 +171,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self) -> np.ndarray:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
+    def add_references(self, mgr: BaseArrayManager) -> None:
+        """
+        Only implemented on the BlockManager level
+        """
+        return
+
     def __getstate__(self):
         return self.arrays, self._axes
 
@@ -213,7 +215,7 @@ class BaseArrayManager(DataManager):
         -------
         ArrayManager
         """
-        assert "filter" not in kwargs and "ignore_failures" not in kwargs
+        assert "filter" not in kwargs
 
         align_keys = align_keys or []
         result_arrays: list[np.ndarray] = []
@@ -225,9 +227,7 @@ class BaseArrayManager(DataManager):
             f = kwargs.pop("func")
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -269,7 +269,6 @@ class BaseArrayManager(DataManager):
         result_arrays = []
 
         for i, arr in enumerate(self.arrays):
-
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -326,6 +325,9 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
+    def round(self: T, decimals: int, using_cow: bool = False) -> T:
+        return self.apply_with_block("round", decimals=decimals, using_cow=using_cow)
+
     def setitem(self: T, indexer, value) -> T:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
@@ -363,7 +365,6 @@ class BaseArrayManager(DataManager):
         )
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
-
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -372,27 +373,30 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
+    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+        if copy is None:
+            copy = True
+
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(
-        self: T,
-        copy: bool = True,
-        datetime: bool = True,
-        numeric: bool = True,
-        timedelta: bool = True,
-    ) -> T:
+    def convert(self: T, copy: bool | None) -> T:
+        if copy is None:
+            copy = True
+
         def _convert(arr):
             if is_object_dtype(arr.dtype):
                 # extract PandasArray for tests that patch PandasArray._typ
                 arr = np.asarray(arr)
-                return soft_convert_objects(
+                result = lib.maybe_convert_objects(
                     arr,
-                    datetime=datetime,
-                    numeric=numeric,
-                    timedelta=timedelta,
-                    copy=copy,
+                    convert_datetime=True,
+                    convert_timedelta=True,
+                    convert_period=True,
+                    convert_interval=True,
                 )
+                if result is arr and copy:
+                    return arr.copy()
+                return result
             else:
                 return arr.copy() if copy else arr
 
@@ -631,28 +635,23 @@ class BaseArrayManager(DataManager):
 
     def take(
         self: T,
-        indexer,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
     ) -> T:
         """
         Take items along any axis.
         """
-        axis = self._normalize_axis(axis)
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
-        )
+        axis = self._normalize_axis(axis)
 
         if not indexer.ndim == 1:
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
@@ -758,9 +757,9 @@ class ArrayManager(BaseArrayManager):
             result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
         # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
         elif is_datetime64_ns_dtype(dtype):
-            result = DatetimeArray._from_sequence(values, dtype=dtype)._data
+            result = DatetimeArray._from_sequence(values, dtype=dtype)._ndarray
         elif is_timedelta64_ns_dtype(dtype):
-            result = TimedeltaArray._from_sequence(values, dtype=dtype)._data
+            result = TimedeltaArray._from_sequence(values, dtype=dtype)._ndarray
         else:
             result = np.array(values, dtype=dtype)
         return SingleArrayManager([result], [self._axes[1]])
@@ -818,7 +817,6 @@ class ArrayManager(BaseArrayManager):
         """
         # single column -> single integer index
         if lib.is_integer(loc):
-
             # TODO can we avoid needing to unpack this here? That means converting
             # DataFrame into 1D array when loc is an integer
             if isinstance(value, np.ndarray) and value.ndim == 2:
@@ -859,7 +857,9 @@ class ArrayManager(BaseArrayManager):
             self.arrays[mgr_idx] = value_arr
         return
 
-    def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value) -> None:
+    def column_setitem(
+        self, loc: int, idx: int | slice | np.ndarray, value, inplace_only: bool = False
+    ) -> None:
         """
         Set values ("setitem") into a single column (not setting the full column).
 
@@ -870,9 +870,12 @@ class ArrayManager(BaseArrayManager):
             raise TypeError("The column index should be an integer")
         arr = self.arrays[loc]
         mgr = SingleArrayManager([arr], [self._axes[0]])
-        new_mgr = mgr.setitem((idx,), value)
-        # update existing ArrayManager in-place
-        self.arrays[loc] = new_mgr.arrays[0]
+        if inplace_only:
+            mgr.setitem_inplace(idx, value)
+        else:
+            new_mgr = mgr.setitem((idx,), value)
+            # update existing ArrayManager in-place
+            self.arrays[loc] = new_mgr.arrays[0]
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
@@ -923,15 +926,13 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Array-wise Operation
 
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+    def grouped_reduce(self: T, func: Callable) -> T:
         """
         Apply grouped reduction function columnwise, returning a new ArrayManager.
 
         Parameters
         ----------
         func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop columns where func raises TypeError.
 
         Returns
         -------
@@ -943,13 +944,7 @@ class ArrayManager(BaseArrayManager):
         for i, arr in enumerate(self.arrays):
             # grouped_reduce functions all expect 2D arrays
             arr = ensure_block_shape(arr, ndim=2)
-            try:
-                res = func(arr)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
-
+            res = func(arr)
             if res.ndim == 2:
                 # reverse of ensure_block_shape
                 assert res.shape[0] == 1
@@ -959,14 +954,12 @@ class ArrayManager(BaseArrayManager):
             result_indices.append(i)
 
         if len(result_arrays) == 0:
-            index = Index([None])  # placeholder
+            nrows = 0
         else:
-            index = Index(range(result_arrays[0].shape[0]))
+            nrows = result_arrays[0].shape[0]
+        index = Index(range(nrows))
 
-        if ignore_failures:
-            columns = self.items[np.array(result_indices, dtype="int64")]
-        else:
-            columns = self.items
+        columns = self.items
 
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
@@ -991,14 +984,10 @@ class ArrayManager(BaseArrayManager):
             # TODO NaT doesn't preserve dtype, so we need to ensure to create
             # a timedelta result array if original was timedelta
             # what if datetime results in timedelta? (eg std)
-            if res is NaT and is_timedelta64_ns_dtype(arr.dtype):
-                result_arrays.append(np.array(["NaT"], dtype="timedelta64[ns]"))
-            else:
-                # error: Argument 1 to "append" of "list" has incompatible type
-                # "ExtensionArray"; expected "ndarray"
-                result_arrays.append(
-                    sanitize_array([res], None)  # type: ignore[arg-type]
-                )
+            dtype = arr.dtype if res is NaT else None
+            result_arrays.append(
+                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+            )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items
@@ -1023,12 +1012,11 @@ class ArrayManager(BaseArrayManager):
     def quantile(
         self,
         *,
-        qs: Float64Index,
+        qs: Index,  # with dtype float64
         axis: AxisInt = 0,
         transposed: bool = False,
         interpolation: QuantileInterpolation = "linear",
     ) -> ArrayManager:
-
         arrs = [ensure_block_shape(x, 2) for x in self.arrays]
         assert axis == 1
         new_arrs = [
@@ -1154,7 +1142,6 @@ class ArrayManager(BaseArrayManager):
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
-
     __slots__ = [
         "_axes",  # private attribute, because 'axes' has different order, see below
         "arrays",

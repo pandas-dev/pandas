@@ -18,7 +18,7 @@ from pandas._typing import (
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_nansafe
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
@@ -82,7 +82,6 @@ class SparseDtype(ExtensionDtype):
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
     def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
-
         if isinstance(dtype, type(self)):
             if fill_value is None:
                 fill_value = dtype.fill_value
@@ -127,7 +126,15 @@ class SparseDtype(ExtensionDtype):
                     or isinstance(other.fill_value, type(self.fill_value))
                 )
             else:
-                fill_value = self.fill_value == other.fill_value
+                with warnings.catch_warnings():
+                    # Ignore spurious numpy warning
+                    warnings.filterwarnings(
+                        "ignore",
+                        "elementwise comparison failed",
+                        category=DeprecationWarning,
+                    )
+
+                    fill_value = self.fill_value == other.fill_value
 
             return subtype and fill_value
         return False
@@ -354,7 +361,8 @@ class SparseDtype(ExtensionDtype):
             if not isinstance(dtype, np.dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fvarr = astype_nansafe(np.array(self.fill_value), dtype)
+            fv_asarray = np.atleast_1d(np.array(self.fill_value))
+            fvarr = astype_array(fv_asarray, dtype)
             # NB: not fv_0d.item(), as that casts dt64->int
             fill_value = fvarr[0]
             dtype = cls(dtype, fill_value=fill_value)

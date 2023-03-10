@@ -74,7 +74,6 @@ class FromSeries:
 
 
 class FromDictwithTimestamp:
-
     params = [Nano(1), Hour(1)]
     param_names = ["offset"]
 
@@ -89,7 +88,6 @@ class FromDictwithTimestamp:
 
 
 class FromRecords:
-
     params = [None, 1000]
     param_names = ["nrows"]
 
@@ -116,7 +114,6 @@ class FromNDArray:
 
 
 class FromLists:
-
     goal_time = 0.2
 
     def setup(self):
@@ -129,7 +126,6 @@ class FromLists:
 
 
 class FromRange:
-
     goal_time = 0.2
 
     def setup(self):
@@ -162,7 +158,6 @@ class FromScalar:
 
 
 class FromArrays:
-
     goal_time = 0.2
 
     def setup(self):
@@ -203,23 +198,6 @@ class FromArrays:
             columns=self.columns,
             verify_integrity=False,
         )
-
-
-class From3rdParty:
-    # GH#44616
-
-    def setup(self):
-        try:
-            import torch
-        except ImportError:
-            raise NotImplementedError
-
-        row = 700000
-        col = 64
-        self.val_tensor = torch.randn(row, col)
-
-    def time_from_torch(self):
-        DataFrame(self.val_tensor)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

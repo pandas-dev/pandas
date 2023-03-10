@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -18,7 +21,7 @@ from pandas._typing import (
     npt,
     type_t,
 )
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -54,6 +57,11 @@ from pandas.core.missing import isna
 if TYPE_CHECKING:
     import pyarrow
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Series
 
 
@@ -61,8 +69,6 @@ if TYPE_CHECKING:
 class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -107,9 +113,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under6p0:
+        if storage == "pyarrow" and pa_version_under7p0:
             raise ImportError(
-                "pyarrow>=6.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -189,7 +195,6 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
-
             import pyarrow
 
             if isinstance(array, pyarrow.Array):
@@ -198,16 +203,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
-            results = []
-            for arr in chunks:
-                # using _from_sequence to ensure None is converted to NA
-                str_arr = StringArray._from_sequence(np.array(arr))
-                results.append(str_arr)
-
-        if results:
-            return StringArray._concat_same_type(results)
+        if len(chunks) == 0:
+            arr = np.array([], dtype=object)
         else:
-            return StringArray(np.array([], dtype="object"))
+            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
+            arr = lib.convert_nans_to_NA(arr)
+        # Bypass validation inside StringArray constructor, see GH#47781
+        new_string_array = StringArray.__new__(StringArray)
+        NDArrayBacked.__init__(
+            new_string_array,
+            arr,
+            StringDtype(storage="python"),
+        )
+        return new_string_array
 
 
 class BaseStringArray(ExtensionArray):
@@ -225,8 +233,6 @@ class BaseStringArray(ExtensionArray):
 class StringArray(BaseStringArray, PandasArray):
     """
     Extension array for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -266,7 +272,7 @@ class StringArray(BaseStringArray, PandasArray):
 
     See Also
     --------
-    array
+    :func:`pandas.array`
         The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
@@ -406,16 +412,19 @@ class StringArray(BaseStringArray, PandasArray):
             if isna(value):
                 value = libmissing.NA
             elif not isinstance(value, str):
-                raise ValueError(
+                raise TypeError(
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise ValueError("Must provide strings.")
+                raise TypeError("Must provide strings.")
 
-            value[isna(value)] = libmissing.NA
+            mask = isna(value)
+            if mask.any():
+                value = value.copy()
+                value[isna(value)] = libmissing.NA
 
         super().__setitem__(key, value)
 
@@ -446,7 +455,8 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            # Skip the PandasArray.astype method
+            return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -491,6 +501,20 @@ class StringArray(BaseStringArray, PandasArray):
         if deep:
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        return super().searchsorted(value=value, side=side, sorter=sorter)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray

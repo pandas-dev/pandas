@@ -16,7 +16,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -69,9 +68,11 @@ def test_apply_trivial():
         columns=["key", "data"],
     )
     expected = pd.concat([df.iloc[1:], df.iloc[1:]], axis=1, keys=["float64", "object"])
-    result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(
-        lambda x: df.iloc[1:]
-    )
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([str(x) for x in df.dtypes], axis=1)
+    result = gb.apply(lambda x: df.iloc[1:])
 
     tm.assert_frame_equal(result, expected)
 
@@ -83,9 +84,10 @@ def test_apply_trivial_fail():
         columns=["key", "data"],
     )
     expected = pd.concat([df, df], axis=1, keys=["float64", "object"])
-    result = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True).apply(
-        lambda x: df
-    )
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True)
+    result = gb.apply(lambda x: df)
 
     tm.assert_frame_equal(result, expected)
 
@@ -334,6 +336,7 @@ def test_apply_series_to_frame():
     result = grouped.apply(f)
 
     assert isinstance(result, DataFrame)
+    assert not hasattr(result, "name")  # GH49907
     tm.assert_index_equal(result.index, ts.index)
 
 
@@ -709,7 +712,6 @@ def test_time_field_bug():
 
 
 def test_gb_apply_list_of_unequal_len_arrays():
-
     # GH1738
     df = DataFrame(
         {
@@ -798,11 +800,9 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
-    expected = Series(
-        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
-    )
+    expected = Series([Index([1]), Index([2])], index=Index([1, 2], name="a"))
 
     tm.assert_series_equal(result, expected)
 
@@ -1105,10 +1105,15 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
         columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
     )
 
-    by_rows = df.T.groupby(axis=0, level=0).apply(
-        lambda x: x.droplevel(axis=0, level=0)
-    )
-    by_cols = df.groupby(axis=1, level=0).apply(lambda x: x.droplevel(axis=1, level=0))
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.T.groupby(axis=0, level=0)
+    by_rows = gb.apply(lambda x: x.droplevel(axis=0, level=0))
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = df.groupby(axis=1, level=0)
+    by_cols = gb2.apply(lambda x: x.droplevel(axis=1, level=0))
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)

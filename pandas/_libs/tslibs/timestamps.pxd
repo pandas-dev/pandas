@@ -21,7 +21,7 @@ cdef _Timestamp create_timestamp_from_ts(int64_t value,
 
 cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
-        int64_t value, nanosecond, year
+        int64_t _value, nanosecond, year
         NPY_DATETIMEUNIT _creso
 
     cdef bint _get_start_end_field(self, str field, freq)
@@ -33,4 +33,4 @@ cdef class _Timestamp(ABCTimestamp):
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1
     cdef bint _compare_mismatched_resos(_Timestamp self, _Timestamp other, int op)
-    cdef _Timestamp _as_creso(_Timestamp self, NPY_DATETIMEUNIT reso, bint round_ok=*)
+    cdef _Timestamp _as_creso(_Timestamp self, NPY_DATETIMEUNIT creso, bint round_ok=*)

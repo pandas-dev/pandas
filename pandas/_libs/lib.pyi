@@ -71,11 +71,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[False] = ...,
     convert_timedelta: Literal[False] = ...,
     convert_period: Literal[False] = ...,
     convert_interval: Literal[False] = ...,
-    convert_to_nullable_integer: Literal[False] = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> npt.NDArray[np.object_ | np.number]: ...
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
@@ -84,11 +85,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[False] = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[False] = ...,
     convert_interval: Literal[False] = ...,
-    convert_to_nullable_integer: Literal[False] = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> np.ndarray: ...
 @overload
@@ -97,11 +99,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: Literal[True] = ...,
+    convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -110,11 +113,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[True] = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -123,11 +127,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[True] = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -136,11 +141,12 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
     convert_interval: bool = ...,
-    convert_to_nullable_integer: bool = ...,
+    convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
@@ -217,7 +223,6 @@ def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
     labels: np.ndarray,  # const intp_t[:]
     max_bin: int,
-    axis: int,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=2]
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]
@@ -230,8 +235,8 @@ def generate_bins_dt64(
     hasnans: bool = ...,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=1]
 def array_equivalent_object(
-    left: np.ndarray,  # object[:]
-    right: np.ndarray,  # object[:]
+    left: npt.NDArray[np.object_],
+    right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
@@ -240,3 +245,6 @@ def get_reverse_indexer(
 ) -> npt.NDArray[np.intp]: ...
 def is_bool_list(obj: list) -> bool: ...
 def dtypes_all_equal(types: list[DtypeObj]) -> bool: ...
+def is_range_indexer(
+    left: np.ndarray, n: int  # np.ndarray[np.int64, ndim=1]
+) -> bool: ...

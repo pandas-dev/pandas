@@ -245,7 +245,6 @@ class TestDataFrameDrop:
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
-
         # GH#19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
@@ -405,11 +404,11 @@ class TestDataFrameDrop:
         idx = Index([2, 3, 4, 4, 5], name="id")
         idxdt = pd.to_datetime(
             [
-                "201603231400",
-                "201603231500",
-                "201603231600",
-                "201603231600",
-                "201603231700",
+                "2016-03-23 14:00",
+                "2016-03-23 15:00",
+                "2016-03-23 16:00",
+                "2016-03-23 16:00",
+                "2016-03-23 17:00",
             ]
         )
         df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)

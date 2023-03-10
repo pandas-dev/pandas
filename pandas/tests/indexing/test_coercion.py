@@ -16,10 +16,6 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -47,7 +43,6 @@ def check_comprehensiveness(request):
         yield
 
     else:
-
         for combo in combos:
             if not has_test(combo):
                 raise AssertionError(
@@ -58,7 +53,6 @@ def check_comprehensiveness(request):
 
 
 class CoercionBase:
-
     klasses = ["index", "series"]
     dtypes = [
         "object",
@@ -78,7 +72,6 @@ class CoercionBase:
 
 
 class TestSetitemCoercion(CoercionBase):
-
     method = "setitem"
 
     # disable comprehensiveness tests, as most of these have been moved to
@@ -180,7 +173,6 @@ class TestSetitemCoercion(CoercionBase):
 
 
 class TestInsertIndexCoercion(CoercionBase):
-
     klasses = ["index"]
     method = "insert"
 
@@ -210,33 +202,39 @@ class TestInsertIndexCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1, np.int64),
+            (1, 1, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = Int64Index([1, 2, 3, 4])
-        assert obj.dtype == np.int64
+    def test_insert_int_index(
+        self, any_int_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = any_int_numpy_dtype
+        obj = pd.Index([1, 2, 3, 4], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1, coerced_val, 2, 3, 4])
+        exp = pd.Index([1, coerced_val, 2, 3, 4], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1.0, np.float64),
+            (1, 1.0, None),
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
         ],
     )
-    def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = Float64Index([1.0, 2.0, 3.0, 4.0])
-        assert obj.dtype == np.float64
+    def test_insert_float_index(
+        self, float_numpy_dtype, insert, coerced_val, coerced_dtype
+    ):
+        dtype = float_numpy_dtype
+        obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
+        coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
-        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])
+        exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     @pytest.mark.parametrize(
@@ -252,7 +250,6 @@ class TestInsertIndexCoercion(CoercionBase):
         [pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), 1],
     )
     def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
-
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
         )
@@ -265,7 +262,6 @@ class TestInsertIndexCoercion(CoercionBase):
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
         if fill_val.tz:
-
             # mismatched tzawareness
             ts = pd.Timestamp("2012-01-01")
             result = obj.insert(1, ts)
@@ -361,7 +357,6 @@ class TestInsertIndexCoercion(CoercionBase):
 
 
 class TestWhereCoercion(CoercionBase):
-
     method = "where"
     _cond = np.array([True, False, True, False])
 
@@ -541,7 +536,6 @@ class TestWhereCoercion(CoercionBase):
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
-
     # not indexing, but place here for consistency
 
     method = "fillna"
@@ -728,7 +722,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
         ],
     )
     def test_fillna_series_period(self, index_or_series, fill_val):
-
         pi = pd.period_range("2016-01-01", periods=4, freq="D").insert(1, pd.NaT)
         assert isinstance(pi.dtype, pd.PeriodDtype)
         obj = index_or_series(pi)
@@ -748,7 +741,6 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
-
     klasses = ["series"]
     method = "replace"
 
@@ -847,7 +839,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         if (from_key == "float64" and to_key in ("int64")) or (
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
-
             if not IS64 or is_platform_windows():
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 

@@ -27,7 +27,6 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
-from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -40,13 +39,12 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
+    maybe_promote,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -54,6 +52,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCPandasArray,
@@ -128,12 +127,6 @@ def array(
         ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
-
-        .. versionchanged:: 1.0.0
-
-           Pandas infers nullable-integer dtype for integer data,
-           string dtype for string data, and nullable-boolean dtype
-           for boolean data.
 
         .. versionchanged:: 1.2.0
 
@@ -310,6 +303,8 @@ def array(
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
+    elif isinstance(data, ABCDataFrame):
+        raise TypeError("Cannot pass DataFrame to 'pandas.array'")
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
@@ -484,7 +479,11 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     mask = ma.getmaskarray(data)
     if mask.any():
-        data, fill_value = maybe_upcast(data, copy=True)
+        dtype, fill_value = maybe_promote(data.dtype, np.nan)
+        dtype = cast(np.dtype, dtype)
+        # Incompatible types in assignment (expression has type "ndarray[Any,
+        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
+        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
@@ -499,7 +498,6 @@ def sanitize_array(
     copy: bool = False,
     *,
     allow_2d: bool = False,
-    strict_ints: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -513,8 +511,6 @@ def sanitize_array(
     copy : bool, default False
     allow_2d : bool, default False
         If False, raise if we have a 2D Arraylike.
-    strict_ints : bool, default False
-        If False, silently ignore failures to cast float data to int dtype.
 
     Returns
     -------
@@ -567,32 +563,7 @@ def sanitize_array(
         if isinstance(data, np.matrix):
             data = data.A
 
-        if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
-            # possibility of nan -> garbage
-            try:
-                # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
-                # casting aligning with IntCastingNaNError below
-                with np.errstate(invalid="ignore"):
-                    # GH#15832: Check if we are requesting a numeric dtype and
-                    # that we can convert the data to the requested dtype.
-                    subarr = maybe_cast_to_integer_array(data, dtype)
-
-            except IntCastingNaNError:
-                raise
-            except ValueError:
-                # Pre-2.0, we would have different behavior for Series vs DataFrame.
-                #  DataFrame would call np.array(data, dtype=dtype, copy=copy),
-                #  which would cast to the integer dtype even if the cast is lossy.
-                #  See GH#40110.
-                if strict_ints:
-                    raise
-
-                # We ignore the dtype arg and return floating values,
-                #  e.g. test_constructor_floating_data_int_dtype
-                # TODO: where is the discussion that documents the reason for this?
-                subarr = np.array(data, copy=copy)
-
-        elif dtype is None:
+        if dtype is None:
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
@@ -625,27 +596,8 @@ def sanitize_array(
             subarr = np.array([], dtype=np.float64)
 
         elif dtype is not None:
-            try:
-                subarr = _try_cast(data, dtype, copy)
-            except ValueError:
-                if is_integer_dtype(dtype):
-                    if strict_ints:
-                        raise
-                    casted = np.array(data, copy=False)
-                    if casted.dtype.kind == "f":
-                        # GH#40110 match the behavior we have if we passed
-                        #  a ndarray[float] to begin with
-                        return sanitize_array(
-                            casted,
-                            index,
-                            dtype,
-                            copy=False,
-                            allow_2d=allow_2d,
-                        )
-                    else:
-                        raise
-                else:
-                    raise
+            subarr = _try_cast(data, dtype, copy)
+
         else:
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
@@ -711,7 +663,9 @@ def _sanitize_ndim(
         if isinstance(data, np.ndarray):
             if allow_2d:
                 return result
-            raise ValueError("Data must be 1-dimensional")
+            raise ValueError(
+                f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
+            )
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 

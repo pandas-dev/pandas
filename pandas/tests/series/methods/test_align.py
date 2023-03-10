@@ -1,6 +1,7 @@
+from datetime import timezone
+
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -81,7 +82,7 @@ def test_align_fill_method(
     tm.assert_series_equal(ab, eb)
 
 
-def test_align_nocopy(datetime_series):
+def test_align_nocopy(datetime_series, using_copy_on_write):
     b = datetime_series[:5].copy()
 
     # do copy
@@ -94,7 +95,10 @@ def test_align_nocopy(datetime_series):
     a = datetime_series.copy()
     ra, _ = a.align(b, join="left", copy=False)
     ra[:5] = 5
-    assert (a[:5] == 5).all()
+    if using_copy_on_write:
+        assert not (a[:5] == 5).any()
+    else:
+        assert (a[:5] == 5).all()
 
     # do copy
     a = datetime_series.copy()
@@ -108,17 +112,24 @@ def test_align_nocopy(datetime_series):
     b = datetime_series[:5].copy()
     _, rb = a.align(b, join="right", copy=False)
     rb[:2] = 5
-    assert (b[:2] == 5).all()
+    if using_copy_on_write:
+        assert not (b[:2] == 5).any()
+    else:
+        assert (b[:2] == 5).all()
 
 
-def test_align_same_index(datetime_series):
+def test_align_same_index(datetime_series, using_copy_on_write):
     a, b = datetime_series.align(datetime_series, copy=False)
     assert a.index is datetime_series.index
     assert b.index is datetime_series.index
 
     a, b = datetime_series.align(datetime_series, copy=True)
-    assert a.index is not datetime_series.index
-    assert b.index is not datetime_series.index
+    if not using_copy_on_write:
+        assert a.index is not datetime_series.index
+        assert b.index is not datetime_series.index
+    else:
+        assert a.index is datetime_series.index
+        assert b.index is datetime_series.index
 
 
 def test_align_multiindex():
@@ -174,8 +185,8 @@ def test_align_dt64tzindex_mismatched_tzs():
     # different timezones convert to UTC
 
     new1, new2 = ser.align(ser_central)
-    assert new1.index.tz == pytz.UTC
-    assert new2.index.tz == pytz.UTC
+    assert new1.index.tz is timezone.utc
+    assert new2.index.tz is timezone.utc
 
 
 def test_align_periodindex(join_type):

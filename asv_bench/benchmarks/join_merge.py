@@ -23,7 +23,6 @@ except ImportError:
 
 
 class Concat:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -56,7 +55,6 @@ class Concat:
 
 
 class ConcatDataFrames:
-
     params = ([0, 1], [True, False])
     param_names = ["axis", "ignore_index"]
 
@@ -74,7 +72,6 @@ class ConcatDataFrames:
 
 
 class ConcatIndexDtype:
-
     params = (
         ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
         ["monotonic", "non_monotonic", "has_na"],
@@ -114,7 +111,6 @@ class ConcatIndexDtype:
 
 
 class Join:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -223,7 +219,6 @@ class JoinNonUnique:
 
 
 class Merge:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -273,8 +268,38 @@ class Merge:
         merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
 
-class I8Merge:
+class MergeEA:
+    params = [
+        "Int64",
+        "Int32",
+        "Int16",
+        "UInt64",
+        "UInt32",
+        "UInt16",
+        "Float64",
+        "Float32",
+    ]
+    param_names = ["dtype"]
 
+    def setup(self, dtype):
+        N = 10_000
+        indices = np.arange(1, N)
+        key = np.tile(indices[:8000], 10)
+        self.left = DataFrame(
+            {"key": Series(key, dtype=dtype), "value": np.random.randn(80000)}
+        )
+        self.right = DataFrame(
+            {
+                "key": Series(indices[2000:], dtype=dtype),
+                "value2": np.random.randn(7999),
+            }
+        )
+
+    def time_merge(self, dtype):
+        merge(self.left, self.right)
+
+
+class I8Merge:
     params = ["inner", "outer", "left", "right"]
     param_names = ["how"]
 

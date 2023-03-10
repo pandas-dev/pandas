@@ -10,8 +10,6 @@ import pytest
 
 import pandas._config.config as cf
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Index,
     Period,
@@ -76,7 +74,6 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -111,7 +108,6 @@ class TestRegistration:
                 assert Timestamp not in units.registry
             assert Timestamp in units.registry
 
-    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -161,8 +157,8 @@ class TestDateTimeConverter:
         return converter.DatetimeConverter()
 
     def test_convert_accepts_unicode(self, dtc):
-        r1 = dtc.convert("12:22", None, None)
-        r2 = dtc.convert("12:22", None, None)
+        r1 = dtc.convert("2000-01-01 12:22", None, None)
+        r2 = dtc.convert("2000-01-01 12:22", None, None)
         assert r1 == r2, "DatetimeConverter.convert should accept unicode"
 
     def test_conversion(self, dtc):

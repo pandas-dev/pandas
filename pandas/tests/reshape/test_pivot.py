@@ -147,10 +147,8 @@ class TestPivotTable:
         df = DataFrame(
             {"rows": ["a", "b", "c"], "cols": ["x", "y", "z"], "values": [1, 2, 3]}
         )
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = df.pivot_table(columns="cols", aggfunc=np.sum)
-            xp = df.pivot_table(index="cols", aggfunc=np.sum).T
+        rs = df.pivot_table(columns="cols", aggfunc=np.sum)
+        xp = df.pivot_table(index="cols", aggfunc=np.sum).T
         tm.assert_frame_equal(rs, xp)
 
         rs = df.pivot_table(columns="cols", aggfunc={"values": "mean"})
@@ -195,7 +193,6 @@ class TestPivotTable:
         tm.assert_index_equal(pv_ind.index, m)
 
     def test_pivot_table_categorical(self):
-
         cat1 = Categorical(
             ["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True
         )
@@ -344,7 +341,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_dtypes(self):
-
         # can convert dtypes
         f = DataFrame(
             {
@@ -411,7 +407,14 @@ class TestPivotTable:
         res = df.pivot_table(index=df.index.month, columns=df.index.day)
 
         exp_columns = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-        exp = DataFrame([[2.5, 4.0], [2.0, np.nan]], index=[1, 2], columns=exp_columns)
+        exp_columns = exp_columns.set_levels(
+            exp_columns.levels[1].astype(np.int32), level=1
+        )
+        exp = DataFrame(
+            [[2.5, 4.0], [2.0, np.nan]],
+            index=Index([1, 2], dtype=np.int32),
+            columns=exp_columns,
+        )
         tm.assert_frame_equal(res, exp)
 
         df = DataFrame(
@@ -424,7 +427,9 @@ class TestPivotTable:
         res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="M"))
         exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
-        exp = DataFrame([3.25, 2.0], index=[1, 2], columns=exp_columns)
+        exp = DataFrame(
+            [3.25, 2.0], index=Index([1, 2], dtype=np.int32), columns=exp_columns
+        )
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
@@ -792,9 +797,9 @@ class TestPivotTable:
     def test_pivot_columns_none_raise_error(self):
         # GH 30924
         df = DataFrame({"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]})
-        msg = r"pivot\(\) missing 1 required argument: 'columns'"
+        msg = r"pivot\(\) missing 1 required keyword-only argument: 'columns'"
         with pytest.raises(TypeError, match=msg):
-            df.pivot(index="col1", values="col3")
+            df.pivot(index="col1", values="col3")  # pylint: disable=missing-kwoa
 
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
@@ -911,15 +916,20 @@ class TestPivotTable:
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        with pytest.raises(TypeError, match="Could not convert"):
+            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
+        table = data.drop(columns="CC").pivot_table(
+            index=["AA", "BB"], margins=True, aggfunc=np.mean
+        )
         for value_col in table.columns:
             totals = table.loc[("All", ""), value_col]
             assert totals == data[value_col].mean()
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            table = data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        with pytest.raises(TypeError, match="Could not convert"):
+            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+        table = data.drop(columns="CC").pivot_table(
+            index=["AA", "BB"], margins=True, aggfunc="mean"
+        )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == data[item].mean()
@@ -936,7 +946,10 @@ class TestPivotTable:
             (
                 ["A", "B"],
                 "sum",
-                [[9, 13, 22, 5, 6, 11], [14, 18, 32, 11, 11, 22]],
+                [
+                    [9, 13, 22, 5, 6, 11],
+                    [14, 18, 32, 11, 11, 22],
+                ],
                 MultiIndex.from_tuples(
                     [
                         ("bar", "one"),
@@ -974,10 +987,14 @@ class TestPivotTable:
                 "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
             }
         )
-
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        if aggfunc != "sum":
+            with pytest.raises(TypeError, match="Could not convert"):
+                df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        if "B" not in columns:
+            df = df.drop(columns="B")
+        result = df.drop(columns="C").pivot_table(
+            columns=columns, margins=True, aggfunc=aggfunc
+        )
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1087,7 +1104,6 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_columns_lexsorted(self):
-
         n = 10000
 
         dtype = np.dtype(
@@ -1604,7 +1620,7 @@ class TestPivotTable:
         expected = DataFrame(
             {7: [0, 3], 8: [1, 4], 9: [2, 5]},
             index=exp_idx,
-            columns=Index([7, 8, 9], name="dt1"),
+            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1614,8 +1630,8 @@ class TestPivotTable:
 
         expected = DataFrame(
             {7: [0, 3], 8: [1, 4], 9: [2, 5]},
-            index=Index([1, 2], name="dt2"),
-            columns=Index([7, 8, 9], name="dt1"),
+            index=Index([1, 2], dtype=np.int32, name="dt2"),
+            columns=Index([7, 8, 9], dtype=np.int32, name="dt1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1627,10 +1643,16 @@ class TestPivotTable:
         )
 
         exp_col = MultiIndex.from_arrays(
-            [[7, 7, 8, 8, 9, 9], [1, 2] * 3], names=["dt1", "dt2"]
+            [
+                np.array([7, 7, 8, 8, 9, 9], dtype=np.int32),
+                np.array([1, 2] * 3, dtype=np.int32),
+            ],
+            names=["dt1", "dt2"],
         )
         expected = DataFrame(
-            np.array([[0, 3, 1, 4, 2, 5]], dtype="int64"), index=[2013], columns=exp_col
+            np.array([[0, 3, 1, 4, 2, 5]], dtype="int64"),
+            index=Index([2013], dtype=np.int32),
+            columns=exp_col,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1924,7 +1946,7 @@ class TestPivotTable:
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
-        expected = DataFrame(index=index)
+        expected = DataFrame(index=index, columns=[])
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_string_as_func(self):
@@ -2003,11 +2025,9 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
         # GH #18713
         # for consistency purposes
-
-        msg = "pivot_table dropped a column because it failed to aggregate"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = pivot_table(data, index="A", columns="B", aggfunc=f)
-            expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+        data = data.drop(columns="C")
+        result = pivot_table(data, index="A", columns="B", aggfunc=f)
+        expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
@@ -2099,8 +2119,8 @@ class TestPivotTable:
         result = df.pivot_table(
             index="A", columns="D", values="id", aggfunc=np.size, margins=margins
         )
-        expected = DataFrame(index=Index([], dtype="int64", name="A"))
-        expected.columns.name = "D"
+        exp_cols = Index([], name="D")
+        expected = DataFrame(index=Index([], dtype="int64", name="A"), columns=exp_cols)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_no_column_raises(self):
@@ -2289,6 +2309,75 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
+        # GH 50342
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+                ("col5",): [
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "foo",
+                    "bar",
+                    "bar",
+                    "bar",
+                    "bar",
+                ],
+                ("col6", 6): [
+                    "one",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                    "one",
+                    "one",
+                    "two",
+                    "two",
+                ],
+                (7, "seven"): [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+            }
+        )
+        result = pivot_table(
+            df, values="D", index=["A", "B"], columns=[(7, "seven")], aggfunc=np.sum
+        )
+        expected = DataFrame(
+            [[4.0, 5.0], [7.0, 6.0], [4.0, 1.0], [np.nan, 6.0]],
+            columns=Index(["large", "small"], name=(7, "seven")),
+            index=MultiIndex.from_arrays(
+                [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
+            ),
+        )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            expected["small"] = expected["small"].astype("int64")
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
@@ -2334,7 +2423,7 @@ class TestPivot:
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot(index="a", columns="b", values="c")
-        expected = DataFrame()
+        expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_pivot_integer_bug(self):
@@ -2421,8 +2510,8 @@ class TestPivot:
     def test_pivot_columns_not_given(self):
         # GH#48293
         df = DataFrame({"a": [1], "b": 1})
-        with pytest.raises(TypeError, match="missing 1 required argument"):
-            df.pivot()
+        with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
+            df.pivot()  # pylint: disable=missing-kwoa
 
     def test_pivot_columns_is_none(self):
         # GH#48293

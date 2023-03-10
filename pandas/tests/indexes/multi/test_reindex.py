@@ -90,7 +90,6 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
 
 
 def test_reindex_base(idx):
-    idx = idx
     expected = np.arange(idx.size, dtype=np.intp)
 
     actual = idx.get_indexer(idx)
@@ -107,8 +106,7 @@ def test_reindex_non_unique():
 
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-            a.reindex(new_idx)
+        a.reindex(new_idx)
 
 
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])

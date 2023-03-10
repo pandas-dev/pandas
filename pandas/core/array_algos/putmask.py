@@ -3,21 +3,28 @@ EA-compatible analogue to np.putmask
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
 from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.arrays import ExtensionArray
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
+    from pandas import MultiIndex
 
 
 def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:
@@ -96,7 +103,7 @@ def putmask_without_repeat(
 
 
 def validate_putmask(
-    values: ArrayLike, mask: np.ndarray
+    values: ArrayLike | MultiIndex, mask: np.ndarray
 ) -> tuple[npt.NDArray[np.bool_], bool]:
     """
     Validate mask and check if this putmask operation is a no-op.

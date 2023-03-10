@@ -80,7 +80,6 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -331,7 +330,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> np.int64:
         if value is NaT:
             # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value.value)  # type: ignore[union-attr]
+            return np.int64(value._value)  # type: ignore[union-attr]
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -353,8 +352,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Read-only property cannot override read-write property
-    @property  # type: ignore[misc]
+    # error: Cannot override writeable attribute with read-only property
+    @property  # type: ignore[override]
     def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
@@ -538,28 +537,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     # --------------------------------------------------------------------
 
-    def _time_shift(self, periods: int, freq=None) -> PeriodArray:
-        """
-        Shift each value by `periods`.
-
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or str
-            Frequency increment to shift by.
-        """
-        if freq is not None:
-            raise TypeError(
-                "`freq` argument is not supported for "
-                f"{type(self).__name__}._time_shift"
-            )
-        return self + periods
-
     def _box_func(self, x) -> Period | NaTType:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
@@ -639,31 +616,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return str
         return "'{}'".format
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
         """
-        values = self.astype(object)
-
-        # Create the formatter function
-        if date_format:
-            formatter = lambda per: per.strftime(date_format)
-        else:
-            # Uses `_Period.str` which in turn uses `format_period`
-            formatter = lambda per: str(per)
-
-        # Apply the formatter to all values in the array, possibly with a mask
-        if self._hasna:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(per) for per in values[imask]])
-        else:
-            values = np.array([formatter(per) for per in values])
-        return values
+        return libperiod.period_array_strftime(
+            self.asi8, self.dtype._dtype_code, na_rep, date_format
+        )
 
     # ------------------------------------------------------------------
 
@@ -694,30 +655,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
-        # Cast to M8 to get datetime-like NaT placement
+        # Cast to M8 to get datetime-like NaT placement,
+        #  similar to dtl._period_dispatch
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:
-            # view as dt64 so we get treated as timelike in core.missing
+            # view as dt64 so we get treated as timelike in core.missing,
+            #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
             result = dta.fillna(value=value, method=method, limit=limit)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
-
-    def _quantile(
-        self: PeriodArray,
-        qs: npt.NDArray[np.float64],
-        interpolation: str,
-    ) -> PeriodArray:
-        # dispatch to DatetimeArray implementation
-        dtres = self.view("M8[ns]")._quantile(qs, interpolation)
-        # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "PeriodArray")
-        return dtres.view(self.dtype)  # type: ignore[return-value]
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -726,8 +678,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
     ) -> PeriodArray:
         """
-        Add or subtract array of integers; equivalent to applying
-        `_time_shift` pointwise.
+        Add or subtract array of integers.
 
         Parameters
         ----------
@@ -793,6 +744,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
+        # Similar to _check_timedeltalike_freq_compat, but we raise with a
+        #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False

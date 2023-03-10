@@ -5,6 +5,7 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Literal,
     TypeVar,
     final,
@@ -12,12 +13,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Shape,
-)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import (
@@ -31,11 +26,17 @@ from pandas.core.indexes.api import (
     default_index,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Shape,
+    )
 T = TypeVar("T", bound="DataManager")
 
 
 class DataManager(PandasObject):
-
     # TODO share more methods/attributes
 
     axes: list[Index]
@@ -189,12 +190,7 @@ class SingleDataManager(DataManager):
 
         arr[indexer] = value
 
-    def grouped_reduce(self, func, ignore_failures: bool = False):
-        """
-        ignore_failures : bool, default False
-            Not used; for compatibility with ArrayManager/BlockManager.
-        """
-
+    def grouped_reduce(self, func):
         arr = self.array
         res = func(arr)
         index = default_index(len(res))

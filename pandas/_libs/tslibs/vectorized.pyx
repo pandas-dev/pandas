@@ -54,6 +54,11 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     -------
     ndarray[int64]
     """
+    if tz is None or is_utc(tz) or stamps.size == 0:
+        # Much faster than going through the "standard" pattern below;
+        #  do this before initializing Localizer.
+        return stamps.copy()
+
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
@@ -61,10 +66,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 
         ndarray result
         cnp.broadcast mi
-
-    if tz is None or is_utc(tz) or stamps.size == 0:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
 
     result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
     mi = cnp.PyArray_MultiIterNew2(result, stamps)
@@ -106,13 +107,6 @@ def ints_to_pydatetime(
     stamps : array of i8
     tz : str, optional
          convert to this timezone
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-        .. versionadded:: 1.1.0
     box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
         * If datetime, convert to datetime.datetime
         * If date, convert to datetime.date
@@ -205,7 +199,7 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 
-cdef inline c_Resolution _reso_stamp(npy_datetimestruct *dts):
+cdef c_Resolution _reso_stamp(npy_datetimestruct *dts):
     if dts.ps != 0:
         return c_Resolution.RESO_NS
     elif dts.us != 0:

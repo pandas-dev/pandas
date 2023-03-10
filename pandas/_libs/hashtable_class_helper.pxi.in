@@ -140,7 +140,7 @@ ctypedef struct {{name}}VectorData:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void append_data_{{dtype}}({{name}}VectorData *data,
+cdef void append_data_{{dtype}}({{name}}VectorData *data,
                                        {{c_type}} x) nogil:
 
     data.data[data.n] = x
@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef inline bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------
@@ -241,7 +241,7 @@ cdef class {{name}}Vector(Vector):
         self.external_view_exists = True
         return self.ao
 
-    cdef inline void append(self, {{c_type}} x):
+    cdef void append(self, {{c_type}} x):
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -311,7 +311,7 @@ cdef class StringVector(Vector):
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char *x):
+    cdef void append(self, char *x):
 
         if needs_resize(self.data):
             self.resize()
@@ -339,7 +339,7 @@ cdef class ObjectVector(Vector):
     def __len__(self) -> int:
         return self.n
 
-    cdef inline append(self, object obj):
+    cdef append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
@@ -1005,8 +1005,9 @@ cdef class StringHashTable(HashTable):
         return labels
 
     @cython.boundscheck(False)
-    def lookup(self, ndarray[object] values) -> ndarray:
+    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1041,7 +1042,8 @@ cdef class StringHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[object] values) -> None:
+    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1314,7 +1316,8 @@ cdef class PyObjectHashTable(HashTable):
         else:
             raise KeyError(key)
 
-    def map_locations(self, ndarray[object] values) -> None:
+    def map_locations(self, ndarray[object] values, object mask = None) -> None:
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -1328,8 +1331,9 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
-    def lookup(self, ndarray[object] values) -> ndarray:
+    def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
+        # mask not yet implemented
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0

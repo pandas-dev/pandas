@@ -17,12 +17,21 @@ import pathlib
 import re
 import sys
 
-import toml
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 REMAP_VERSION = {"tzdata": "2022.1"}
-RENAME = {"pytables": "tables", "geopandas-base": "geopandas", "pytorch": "torch"}
+RENAME = {
+    "pytables": "tables",
+    "psycopg2": "psycopg2-binary",
+    "dask-core": "dask",
+    "seaborn-base": "seaborn",
+    "sqlalchemy": "SQLAlchemy",
+}
 
 
 def conda_package_to_pip(package: str):
@@ -100,7 +109,8 @@ def generate_pip_from_conda(
     pip_content = header + "\n".join(pip_deps) + "\n"
 
     # add setuptools to requirements-dev.txt
-    meta = toml.load(pathlib.Path(conda_path.parent, "pyproject.toml"))
+    with open(pathlib.Path(conda_path.parent, "pyproject.toml"), "rb") as fd:
+        meta = tomllib.load(fd)
     for requirement in meta["build-system"]["requires"]:
         if "setuptools" in requirement:
             pip_content += requirement

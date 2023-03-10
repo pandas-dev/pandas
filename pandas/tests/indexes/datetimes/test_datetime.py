@@ -98,7 +98,7 @@ class TestDatetimeIndex:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result == expected
 
         index = date_range(
@@ -107,7 +107,7 @@ class TestDatetimeIndex:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result._repr_base == expected._repr_base
             assert result == expected
 
@@ -117,7 +117,7 @@ class TestDatetimeIndex:
         )
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]
+            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
             assert result._repr_base == expected._repr_base
             assert result == expected
 

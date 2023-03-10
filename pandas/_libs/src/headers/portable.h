@@ -1,16 +1,10 @@
 #ifndef _PANDAS_PORTABLE_H_
 #define _PANDAS_PORTABLE_H_
 
-// To get `strdup` from strings.h
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#endif
-
 #include <string.h>
 
 #if defined(_MSC_VER)
 #define strcasecmp( s1, s2 ) _stricmp( s1, s2 )
-#define strdup _strdup
 #endif
 
 // GH-23516 - works around locale perf issues

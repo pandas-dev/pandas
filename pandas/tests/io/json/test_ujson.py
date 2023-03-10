@@ -291,6 +291,15 @@ class TestUltraJSONTests:
         assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
 
+    def test_encode_unicode_error(self):
+        string = "'\udac0'"
+        msg = (
+            r"'utf-8' codec can't encode character '\\udac0' "
+            r"in position 1: surrogates not allowed"
+        )
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            ujson.dumps([string])
+
     def test_encode_array_in_array(self):
         arr_in_arr_input = [[[[]]]]
         output = ujson.encode(arr_in_arr_input)
@@ -383,19 +392,19 @@ class TestUltraJSONTests:
 
     def test_datetime_units(self):
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
-        stamp = Timestamp(val)
+        stamp = Timestamp(val).as_unit("ns")
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="s"))
-        assert roundtrip == stamp.value // 10**9
+        assert roundtrip == stamp._value // 10**9
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ms"))
-        assert roundtrip == stamp.value // 10**6
+        assert roundtrip == stamp._value // 10**6
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="us"))
-        assert roundtrip == stamp.value // 10**3
+        assert roundtrip == stamp._value // 10**3
 
         roundtrip = ujson.decode(ujson.encode(val, date_unit="ns"))
-        assert roundtrip == stamp.value
+        assert roundtrip == stamp._value
 
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
@@ -800,7 +809,6 @@ class TestNumpyJSONTests:
 
 class TestPandasJSONTests:
     def test_dataframe(self, orient):
-
         dtype = np.int64
 
         df = DataFrame(

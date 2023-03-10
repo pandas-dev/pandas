@@ -259,25 +259,3 @@ def frame_of_index_cols():
         }
     )
     return df
-
-
-@pytest.fixture(
-    params=[
-        "any",
-        "all",
-        "count",
-        "sum",
-        "prod",
-        "max",
-        "min",
-        "mean",
-        "median",
-        "skew",
-        "kurt",
-        "sem",
-        "var",
-        "std",
-    ]
-)
-def reduction_functions(request):
-    return request.param

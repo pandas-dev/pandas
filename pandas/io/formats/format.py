@@ -9,7 +9,7 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import decimal
+from decimal import Decimal
 from functools import partial
 from io import StringIO
 import math
@@ -49,20 +49,6 @@ from pandas._libs.tslibs import (
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -89,6 +75,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -106,13 +93,23 @@ from pandas.io.common import (
     check_parent_directory,
     stringify_path,
 )
-from pandas.io.formats.printing import (
-    adjoin,
-    justify,
-    pprint_thing,
-)
+from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axes,
+        ColspaceArgType,
+        ColspaceType,
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        FormattersType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -124,7 +121,7 @@ common_docstring: Final = """
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
-        columns : sequence, optional, default None
+        columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
@@ -339,7 +336,7 @@ class SeriesFormatter:
             if footer:
                 footer += ", "
 
-            series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
+            series_name = printing.pprint_thing(name, escape_chars=("\t", "\r", "\n"))
             footer += f"Name: {series_name}"
 
         if self.length is True or (
@@ -354,7 +351,7 @@ class SeriesFormatter:
             if dtype_name:
                 if footer:
                     footer += ", "
-                footer += f"dtype: {pprint_thing(dtype_name)}"
+                footer += f"dtype: {printing.pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -433,10 +430,12 @@ class TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return justify(texts, max_len, mode=mode)
+        return printing.justify(texts, max_len, mode=mode)
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+        return printing.adjoin(
+            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
+        )
 
 
 class EastAsianTextAdjustment(TextAdjustment):
@@ -566,9 +565,9 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -688,11 +687,9 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
-            # GH 47231 - columns doesn't have to be `Sequence[str]`
-            # Will fix in later PR
-            cols = ensure_index(cast(Axes, columns))
+            cols = ensure_index(columns)
             self.frame = self.frame[cols]
             return cols
         else:
@@ -1136,7 +1133,6 @@ class DataFrameRenderer:
         string = string_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
-    @deprecate_kwarg(old_arg_name="line_terminator", new_arg_name="lineterminator")
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -1232,7 +1228,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -1260,6 +1258,7 @@ def format_array(
     decimal: str = ".",
     leading_space: bool | None = True,
     quoting: int | None = None,
+    fallback_formatter: Callable | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1282,6 +1281,7 @@ def format_array(
         When formatting an Index subclass
         (e.g. IntervalIndex._format_native_types), we don't want the
         leading space since it should be left-aligned.
+    fallback_formatter
 
     Returns
     -------
@@ -1323,6 +1323,7 @@ def format_array(
         decimal=decimal,
         leading_space=leading_space,
         quoting=quoting,
+        fallback_formatter=fallback_formatter,
     )
 
     return fmt_obj.get_result()
@@ -1342,6 +1343,7 @@ class GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
+        fallback_formatter: Callable | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
@@ -1354,6 +1356,7 @@ class GenericArrayFormatter:
         self.quoting = quoting
         self.fixed_width = fixed_width
         self.leading_space = leading_space
+        self.fallback_formatter = fallback_formatter
 
     def get_result(self) -> list[str]:
         fmt_values = self._format_strings()
@@ -1372,10 +1375,12 @@ class GenericArrayFormatter:
 
         if self.formatter is not None:
             formatter = self.formatter
+        elif self.fallback_formatter is not None:
+            formatter = self.fallback_formatter
         else:
             quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
             formatter = partial(
-                pprint_thing,
+                printing.pprint_thing,
                 escape_chars=("\t", "\r", "\n"),
                 quote_strings=quote_strings,
             )
@@ -1397,6 +1402,8 @@ class GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
+            elif isinstance(x, StringDtype):
+                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1418,7 +1425,7 @@ class GenericArrayFormatter:
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space:
+            if not is_float_type[i] and leading_space or self.formatter is not None:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
@@ -1650,8 +1657,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         values = extract_array(self.values, extract_numpy=True)
 
         formatter = self.formatter
+        fallback_formatter = None
         if formatter is None:
-            formatter = values._formatter(boxed=True)
+            fallback_formatter = values._formatter(boxed=True)
 
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
@@ -1670,6 +1678,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             decimal=self.decimal,
             leading_space=self.leading_space,
             quoting=self.quoting,
+            fallback_formatter=fallback_formatter,
         )
         return fmt_values
 
@@ -1794,12 +1803,12 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only_: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
-    if is_dates_only:
+    if is_dates_only_:
         return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
@@ -1908,7 +1917,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 
@@ -2071,12 +2079,12 @@ class EngFormatter:
 
         @return: engineering formatted string
         """
-        dnum = decimal.Decimal(str(num))
+        dnum = Decimal(str(num))
 
-        if decimal.Decimal.is_nan(dnum):
+        if Decimal.is_nan(dnum):
             return "NaN"
 
-        if decimal.Decimal.is_infinite(dnum):
+        if Decimal.is_infinite(dnum):
             return "inf"
 
         sign = 1
@@ -2086,9 +2094,9 @@ class EngFormatter:
             dnum = -dnum
 
         if dnum != 0:
-            pow10 = decimal.Decimal(int(math.floor(dnum.log10() / 3) * 3))
+            pow10 = Decimal(int(math.floor(dnum.log10() / 3) * 3))
         else:
-            pow10 = decimal.Decimal(0)
+            pow10 = Decimal(0)
 
         pow10 = pow10.min(max(self.ENG_PREFIXES.keys()))
         pow10 = pow10.max(min(self.ENG_PREFIXES.keys()))
@@ -2096,11 +2104,10 @@ class EngFormatter:
 
         if self.use_eng_prefix:
             prefix = self.ENG_PREFIXES[int_pow10]
+        elif int_pow10 < 0:
+            prefix = f"E-{-int_pow10:02d}"
         else:
-            if int_pow10 < 0:
-                prefix = f"E-{-int_pow10:02d}"
-            else:
-                prefix = f"E+{int_pow10:02d}"
+            prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10**pow10)
 
@@ -2166,6 +2173,8 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     2   1.0
     3  1.0k
     4  1.0M
+
+    >>> pd.set_option("display.float_format", None)  # unset option
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 

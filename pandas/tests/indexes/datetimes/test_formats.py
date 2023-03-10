@@ -44,6 +44,18 @@ def test_format_native_types():
     result = index._format_native_types(na_rep="pandas")
     tm.assert_numpy_array_equal(result, expected)
 
+    result = index._format_native_types(date_format="%Y-%m-%d %H:%M:%S.%f")
+    expected = np.array(
+        ["2017-01-01 00:00:00.000000", "NaT", "2017-01-03 00:00:00.000000"],
+        dtype=object,
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+    # invalid format
+    result = index._format_native_types(date_format="foo")
+    expected = np.array(["foo", "NaT", "foo"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
 
 class TestDatetimeIndexRendering:
     def test_dti_repr_short(self):

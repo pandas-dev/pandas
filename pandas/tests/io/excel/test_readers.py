@@ -5,6 +5,7 @@ from datetime import (
 from functools import partial
 import os
 from pathlib import Path
+import platform
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -41,7 +42,6 @@ engine_params = [
         "openpyxl",
         marks=[
             td.skip_if_no("openpyxl"),
-            pytest.mark.filterwarnings("ignore:.*html argument"),
         ],
     ),
     pytest.param(
@@ -341,7 +341,8 @@ class TestReaders:
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
             "Usecols do not match columns, "
-            "columns expected but not found: " + r"\['E'\]"
+            "columns expected but not found: "
+            r"\['E'\]"
         )
 
         with pytest.raises(ValueError, match=msg):
@@ -357,7 +358,6 @@ class TestReaders:
             pd.read_excel("test1" + read_ext, usecols=["E1", 0])
 
     def test_excel_stop_iterator(self, read_ext):
-
         parsed = pd.read_excel("test2" + read_ext, sheet_name="Sheet1")
         expected = DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
         tm.assert_frame_equal(parsed, expected)
@@ -447,7 +447,6 @@ class TestReaders:
 
     # GH8212 - support for converters and missing values
     def test_reader_converters(self, read_ext):
-
         basename = "test_converters"
 
         expected = DataFrame.from_dict(
@@ -536,7 +535,8 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    def test_use_nullable_dtypes(self, read_ext):
+    @pytest.mark.parametrize("option", [True, False])
+    def test_use_nullable_dtypes(self, read_ext, dtype_backend, option):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
@@ -557,10 +557,34 @@ class TestReaders:
         )
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, "test", index=False)
-            result = pd.read_excel(
-                file_path, sheet_name="test", use_nullable_dtypes=True
+            with pd.option_context("mode.dtype_backend", dtype_backend):
+                if not option:
+                    result = pd.read_excel(
+                        file_path, sheet_name="test", use_nullable_dtypes=True
+                    )
+                else:
+                    with pd.option_context("mode.nullable_dtypes", True):
+                        result = pd.read_excel(file_path, sheet_name="test")
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
+                    for col in df.columns
+                }
             )
-        tm.assert_frame_equal(result, df)
+            # pyarrow by default infers timestamp resolution as us, not ns
+            expected["i"] = ArrowExtensionArray(
+                expected["i"].array._data.cast(pa.timestamp(unit="us"))
+            )
+            # pyarrow supports a null type, so don't have to default to Int64
+            expected["j"] = ArrowExtensionArray(pa.array([None, None]))
+        else:
+            expected = df
+        tm.assert_frame_equal(result, expected)
 
     def test_use_nullabla_dtypes_and_dtype(self, read_ext):
         # GH#36712
@@ -576,16 +600,14 @@ class TestReaders:
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    @pytest.mark.parametrize("storage", ["pyarrow", "python"])
-    def test_use_nullable_dtypes_string(self, read_ext, storage):
+    def test_use_nullable_dtypes_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
         import pyarrow as pa
 
-        with pd.option_context("mode.string_storage", storage):
-
+        with pd.option_context("mode.string_storage", string_storage):
             df = DataFrame(
                 {
                     "a": np.array(["a", "b"], dtype=np.object_),
@@ -598,7 +620,7 @@ class TestReaders:
                     file_path, sheet_name="test", use_nullable_dtypes=True
                 )
 
-            if storage == "python":
+            if string_storage == "python":
                 expected = DataFrame(
                     {
                         "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -765,7 +787,6 @@ class TestReaders:
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
     def test_excel_read_buffer(self, read_ext):
-
         pth = "test1" + read_ext
         expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0)
         with open(pth, "rb") as f:
@@ -865,7 +886,6 @@ class TestReaders:
 
     @pytest.mark.slow
     def test_read_from_file_url(self, read_ext, datapath):
-
         # FILE
         localtable = os.path.join(datapath("io", "data", "excel"), "test1" + read_ext)
         local_table = pd.read_excel(localtable)
@@ -874,8 +894,6 @@ class TestReaders:
             url_table = pd.read_excel("file://localhost/" + localtable)
         except URLError:
             # fails on some systems
-            import platform
-
             platform_info = " ".join(platform.uname()).strip()
             pytest.skip(f"failing on {platform_info}")
 
@@ -892,9 +910,7 @@ class TestReaders:
         tm.assert_frame_equal(expected, actual)
 
     @td.skip_if_no("py.path")
-    @td.check_file_leaks
     def test_read_from_py_localpath(self, read_ext):
-
         # GH12655
         from py.path import local as LocalPath
 
@@ -906,9 +922,7 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.check_file_leaks
     def test_close_from_py_localpath(self, read_ext):
-
         # GH31467
         str_path = os.path.join("test1" + read_ext)
         with open(str_path, "rb") as f:
@@ -1622,7 +1636,7 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 

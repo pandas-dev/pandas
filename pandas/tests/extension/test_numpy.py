@@ -190,10 +190,7 @@ class BaseNumPyTests:
 
 
 class TestCasting(BaseNumPyTests, base.BaseCastingTests):
-    @skip_nested
-    def test_astype_str(self, data):
-        # ValueError: setting an array element with a sequence
-        super().test_astype_str(data)
+    pass
 
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
@@ -236,8 +233,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
-        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
+    pass
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
@@ -402,9 +398,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         super().test_setitem_mask(data, mask, box_in_series)
-
-    def test_setitem_mask_raises(self, data, box_in_series):
-        super().test_setitem_mask_raises(data, box_in_series)
 
     @skip_nested
     @pytest.mark.parametrize(

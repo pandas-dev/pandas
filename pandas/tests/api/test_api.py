@@ -187,7 +187,6 @@ class TestPDApi(Base):
     ]
 
     def test_api(self):
-
         checkthese = (
             self.public_lib
             + self.private_lib
@@ -250,7 +249,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing  # noqa: PDF015
+        from pandas import testing
 
         self.check(testing, self.funcs)
 

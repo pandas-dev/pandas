@@ -4,7 +4,7 @@ as a CParser-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
-
+from decimal import Decimal
 from io import (
     BytesIO,
     StringIO,
@@ -21,6 +21,7 @@ from pandas.compat import (
     IS64,
     is_ci_environment,
 )
+from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
@@ -114,14 +115,16 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
+    warning = RuntimeWarning if np_version_gte1p24 else None
     with pytest.raises(ValueError, match="cannot safely convert"):
-        parser.read_csv(
-            StringIO(data),
-            sep=r"\s+",
-            header=None,
-            names=["a", "b"],
-            dtype={"a": np.int32},
-        )
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            parser.read_csv(
+                StringIO(data),
+                sep=r"\s+",
+                header=None,
+                names=["a", "b"],
+                dtype={"a": np.int32},
+            )
 
 
 @pytest.mark.parametrize(
@@ -169,8 +172,6 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 @td.skip_if_32bit
 @pytest.mark.slow
 def test_precise_conversion(c_parser_only):
-    from decimal import Decimal
-
     parser = c_parser_only
 
     normal_errors = []
@@ -574,6 +575,8 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a low_memory test")
 
+    # csv takes 10 seconds to construct, spikes memory to 8GB+, the whole test
+    #  spikes up to 10.4GB on the c_high case
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty

@@ -11,7 +11,7 @@ jobs:
   stale:
     permissions:
       pull-requests: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/stale@v4
       with:

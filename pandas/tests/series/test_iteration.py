@@ -4,10 +4,12 @@ class TestIteration:
 
     def test_iter_datetimes(self, datetime_series):
         for i, val in enumerate(datetime_series):
+            # pylint: disable-next=unnecessary-list-index-lookup
             assert val == datetime_series[i]
 
     def test_iter_strings(self, string_series):
         for i, val in enumerate(string_series):
+            # pylint: disable-next=unnecessary-list-index-lookup
             assert val == string_series[i]
 
     def test_iteritems_datetimes(self, datetime_series):

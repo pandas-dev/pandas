@@ -220,3 +220,29 @@ def test_isin_complex_numbers(array, expected):
     # GH 17927
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data,is_in",
+    [([1, [2]], [1]), (["simple str", [{"values": 3}]], ["simple str"])],
+)
+def test_isin_filtering_with_mixed_object_types(data, is_in):
+    # GH 20883
+
+    ser = Series(data)
+    result = ser.isin(is_in)
+    expected = Series([True, False])
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", [[1, 2, 3], [1.0, 2.0, 3.0]])
+@pytest.mark.parametrize("isin", [[1, 2], [1.0, 2.0]])
+def test_isin_filtering_on_iterable(data, isin):
+    # GH 50234
+
+    ser = Series(data)
+    result = ser.isin(i for i in isin)
+    expected_result = Series([True, True, False])
+
+    tm.assert_series_equal(result, expected_result)

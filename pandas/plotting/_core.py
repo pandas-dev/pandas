@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import importlib
-import types
 from typing import (
     TYPE_CHECKING,
+    Callable,
+    Hashable,
+    Literal,
     Sequence,
 )
 
 from pandas._config import get_option
 
-from pandas._typing import IndexLabel
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -27,7 +28,12 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    import types
+
     from matplotlib.axes import Axes
+    import numpy as np
+
+    from pandas._typing import IndexLabel
 
     from pandas import DataFrame
 
@@ -78,9 +84,6 @@ def hist_series(
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
-
-        .. versionadded:: 1.0.0
-
     legend : bool, default False
         Whether to show the legend.
 
@@ -191,8 +194,6 @@ def hist_frame(
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
 
-        .. versionadded:: 1.0.0
-
     legend : bool, default False
         Whether to show the legend.
 
@@ -282,7 +283,7 @@ figsize : A tuple (width, height) in inches
     The size of the figure to create in matplotlib.
 layout : tuple (rows, columns), optional
     For example, (3, 5) will display the subplots
-    using 3 columns and 5 rows, starting from the top-left.
+    using 3 rows and 5 columns, starting from the top-left.
 return_type : {'axes', 'dict', 'both'} or None, default 'axes'
     The kind of object to return. The default is ``axes``.
 
@@ -308,7 +309,7 @@ result
 
 See Also
 --------
-Series.plot.hist: Make a histogram.
+pandas.Series.plot.hist: Make a histogram.
 matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
 
 Notes
@@ -417,8 +418,6 @@ backend : str, default None
     ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
     specify the ``plotting.backend`` for the whole session, set
     ``pd.options.plotting.backend``.
-
-    .. versionadded:: 1.0.0
 """
 
 
@@ -569,9 +568,6 @@ def boxplot_frame_groupby(
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
-
-        .. versionadded:: 1.0.0
-
     **kwargs
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function.
@@ -662,6 +658,7 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
+
           .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
@@ -690,17 +687,11 @@ class PlotAccessor(PandasObject):
     logx : bool or 'sym', default False
         Use log scaling or symlog scaling on x axis.
 
-        .. versionchanged:: 0.25.0
-
     logy : bool or 'sym' default False
         Use log scaling or symlog scaling on y axis.
 
-        .. versionchanged:: 0.25.0
-
     loglog : bool or 'sym', default False
         Use log scaling or symlog scaling on both x and y axes.
-
-        .. versionchanged:: 0.25.0
 
     xticks : sequence
         Values to use for the xticks.
@@ -720,6 +711,10 @@ class PlotAccessor(PandasObject):
 
            Now applicable to planar plots (`scatter`, `hexbin`).
 
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
+
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
@@ -729,6 +724,10 @@ class PlotAccessor(PandasObject):
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
+
+        .. versionchanged:: 2.0.0
+
+            Now applicable to histograms.
 
     rot : float, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
@@ -770,9 +769,6 @@ class PlotAccessor(PandasObject):
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
         specify the ``plotting.backend`` for the whole session, set
         ``pd.options.plotting.backend``.
-
-        .. versionadded:: 1.0.0
-
     **kwargs
         Options to pass to matplotlib plotting method.
 
@@ -937,7 +933,7 @@ class PlotAccessor(PandasObject):
                         f"{kind} requires either y column or 'subplots=True'"
                     )
                 if y is not None:
-                    if is_integer(y) and not data.columns.holds_integer():
+                    if is_integer(y) and not data.columns._holds_integer():
                         y = data.columns[y]
                     # converted to series actually. copy to not modify
                     data = data[y].copy()
@@ -945,7 +941,7 @@ class PlotAccessor(PandasObject):
         elif isinstance(data, ABCDataFrame):
             data_cols = data.columns
             if x is not None:
-                if is_integer(x) and not data.columns.holds_integer():
+                if is_integer(x) and not data.columns._holds_integer():
                     x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
@@ -954,7 +950,7 @@ class PlotAccessor(PandasObject):
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
                 int_y_arg = is_integer(y) or int_ylist
-                if int_y_arg and not data.columns.holds_integer():
+                if int_y_arg and not data.columns._holds_integer():
                     y = data_cols[y]
 
                 label_kw = kwargs["label"] if "label" in kwargs else False
@@ -999,8 +995,7 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> s = pd.Series([1, 3, 2])
-            >>> s.plot.line()
-            <AxesSubplot: ylabel='Density'>
+            >>> s.plot.line()  # doctest: +SKIP
 
         .. plot::
             :context: close-figs
@@ -1044,7 +1039,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def line(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1132,7 +1127,7 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x=None, y=None, **kwargs
+        self, x: Hashable = None, y: Hashable = None, **kwargs
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1219,7 +1214,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x=None, y=None, **kwargs) -> PlotAccessor:
+    def barh(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1231,7 +1226,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by=None, **kwargs) -> PlotAccessor:
+    def box(self, by: IndexLabel = None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1298,7 +1293,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by=None, bins: int = 10, **kwargs) -> PlotAccessor:
+    def hist(self, by: IndexLabel = None, bins: int = 10, **kwargs) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1360,7 +1355,12 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
-    def kde(self, bw_method=None, ind=None, **kwargs) -> PlotAccessor:
+    def kde(
+        self,
+        bw_method: Literal["scott", "silverman"] | float | Callable | None = None,
+        ind: np.ndarray | int | None = None,
+        **kwargs,
+    ) -> PlotAccessor:
         """
         Generate Kernel Density Estimate plot using Gaussian kernels.
 
@@ -1470,7 +1470,9 @@ class PlotAccessor(PandasObject):
 
     density = kde
 
-    def area(self, x=None, y=None, stacked: bool = True, **kwargs) -> PlotAccessor:
+    def area(
+        self, x: Hashable = None, y: Hashable = None, stacked: bool = True, **kwargs
+    ) -> PlotAccessor:
         """
         Draw a stacked area plot.
 
@@ -1598,7 +1600,14 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, s=None, c=None, **kwargs) -> PlotAccessor:
+    def scatter(
+        self,
+        x: Hashable,
+        y: Hashable,
+        s: Hashable | Sequence[Hashable] = None,
+        c: Hashable | Sequence[Hashable] = None,
+        **kwargs,
+    ) -> PlotAccessor:
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1681,22 +1690,16 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        size = kwargs.pop("size", None)
-        if s is not None and size is not None:
-            raise TypeError("Specify exactly one of `s` and `size`")
-        if s is not None or size is not None:
-            kwargs["s"] = s if s is not None else size
-
-        color = kwargs.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        if c is not None or color is not None:
-            kwargs["c"] = c if c is not None else color
-
-        return self(kind="scatter", x=x, y=y, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
     def hexbin(
-        self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs
+        self,
+        x: Hashable,
+        y: Hashable,
+        C: Hashable = None,
+        reduce_C_function: Callable | None = None,
+        gridsize: int | tuple[int, int] | None = None,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Generate a hexagonal binning plot.

@@ -21,17 +21,18 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core.arrays import period_array
 
 
 class TestSeriesFillNA:
     def test_fillna_nat(self):
-        series = Series([0, 1, 2, NaT.value], dtype="M8[ns]")
+        series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
 
         filled = series.fillna(method="pad")
         filled2 = series.fillna(value=series.values[2])
 
         expected = series.copy()
-        expected.values[3] = expected.values[2]
+        expected.iloc[3] = expected.iloc[2]
 
         tm.assert_series_equal(filled, expected)
         tm.assert_series_equal(filled2, expected)
@@ -43,7 +44,7 @@ class TestSeriesFillNA:
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
 
-        series = Series([NaT.value, 0, 1, 2], dtype="M8[ns]")
+        series = Series([NaT._value, 0, 1, 2], dtype="M8[ns]")
 
         filled = series.fillna(method="bfill")
         filled2 = series.fillna(value=series[1])
@@ -319,7 +320,6 @@ class TestSeriesFillNA:
         tm.assert_equal(result, expected)
 
     def test_datetime64_fillna(self):
-
         ser = Series(
             [
                 Timestamp("20130101"),
@@ -793,7 +793,6 @@ class TestSeriesFillNA:
             ser.fillna((1, 2))
 
     def test_fillna_method_and_limit_invalid(self):
-
         # related GH#9217, make sure limit is an int and greater than 0
         ser = Series([1, 2, 3, None])
         msg = "|".join(
@@ -946,3 +945,33 @@ class TestFillnaPad:
         )
 
         tm.assert_series_equal(filled, expected)
+
+    def test_fillna_parr(self):
+        # GH-24537
+        dti = date_range(
+            Timestamp.max - Timedelta(nanoseconds=10), periods=5, freq="ns"
+        )
+        ser = Series(dti.to_period("ns"))
+        ser[2] = NaT
+        arr = period_array(
+            [
+                Timestamp("2262-04-11 23:47:16.854775797"),
+                Timestamp("2262-04-11 23:47:16.854775798"),
+                Timestamp("2262-04-11 23:47:16.854775798"),
+                Timestamp("2262-04-11 23:47:16.854775800"),
+                Timestamp("2262-04-11 23:47:16.854775801"),
+            ],
+            freq="ns",
+        )
+        expected = Series(arr)
+
+        filled = ser.fillna(method="pad")
+
+        tm.assert_series_equal(filled, expected)
+
+    @pytest.mark.parametrize("func", ["pad", "backfill"])
+    def test_pad_backfill_deprecated(self, func):
+        # GH#33396
+        ser = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(ser, func)()

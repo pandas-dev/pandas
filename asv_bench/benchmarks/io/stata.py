@@ -13,7 +13,6 @@ from ..pandas_vb_common import (
 
 
 class Stata(BaseIO):
-
     params = ["tc", "td", "tm", "tw", "th", "tq", "ty"]
     param_names = ["convert_dates"]
 

@@ -55,9 +55,11 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
     is_dtype_equal,
     is_list_like,
     is_scalar,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -87,7 +89,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -133,11 +134,13 @@ class ExtensionArray:
     tolist
     unique
     view
+    _accumulate
     _concat_same_type
     _formatter
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
+    _hash_pandas_object
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -182,8 +185,9 @@ class ExtensionArray:
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
-    One can implement methods to handle array reductions.
+    One can implement methods to handle array accumulations or reductions.
 
+    * _accumulate
     * _reduce
 
     One can implement methods to handle parsing from strings that will be used
@@ -346,7 +350,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set one or more values inplace.
 
@@ -459,8 +463,6 @@ class ExtensionArray:
         """
         Convert to a NumPy ndarray.
 
-        .. versionadded:: 1.0.0
-
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.
 
@@ -562,7 +564,7 @@ class ExtensionArray:
 
         Returns
         -------
-        array : np.ndarray or ExtensionArray
+        np.ndarray or pandas.api.extensions.ExtensionArray
             An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
@@ -578,6 +580,16 @@ class ExtensionArray:
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
+        elif is_datetime64_dtype(dtype):
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
+
+        elif is_timedelta64_dtype(dtype):
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
+
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
@@ -586,7 +598,7 @@ class ExtensionArray:
 
         Returns
         -------
-        na_values : Union[np.ndarray, ExtensionArray]
+        numpy.ndarray or pandas.api.extensions.ExtensionArray
             In most cases, this should return a NumPy ndarray. For
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
@@ -805,7 +817,7 @@ class ExtensionArray:
 
         Returns
         -------
-        valid : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
@@ -866,7 +878,7 @@ class ExtensionArray:
 
         Returns
         -------
-        uniques : ExtensionArray
+        pandas.api.extensions.ExtensionArray
         """
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
@@ -991,11 +1003,6 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -1074,7 +1081,7 @@ class ExtensionArray:
 
         Returns
         -------
-        repeated_array : %(klass)s
+        %(klass)s
             Newly created %(klass)s with repeated elements.
 
         See Also
@@ -1368,6 +1375,38 @@ class ExtensionArray:
     def _can_hold_na(self) -> bool:
         return self.dtype._can_hold_na
 
+    def _accumulate(
+        self, name: str, *, skipna: bool = True, **kwargs
+    ) -> ExtensionArray:
+        """
+        Return an ExtensionArray performing an accumulation operation.
+
+        The underlying data type might change.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            - cummin
+            - cummax
+            - cumsum
+            - cumprod
+        skipna : bool, default True
+            If True, skip NA values.
+        **kwargs
+            Additional keyword arguments passed to the accumulation function.
+            Currently, there is no supported kwarg.
+
+        Returns
+        -------
+        array
+
+        Raises
+        ------
+        NotImplementedError : subclass does not define accumulations
+        """
+        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
@@ -1408,6 +1447,31 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        Default is likely non-performant.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+
+        Returns
+        -------
+        np.ndarray[uint64]
+        """
+        from pandas.core.util.hashing import hash_array
+
+        values = self.to_numpy(copy=False)
+        return hash_array(
+            values, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
 
     def tolist(self) -> list:
         """
@@ -1542,8 +1606,6 @@ class ExtensionArray:
         if axis != 0:
             raise NotImplementedError
 
-        # TODO: we only have tests that get here with dt64 and td64
-        # TODO: all tests that get here use the defaults for all the kwds
         return rank(
             self,
             axis=axis,
@@ -1646,13 +1708,11 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
-        # error: Missing return statement
-        pass
+    def any(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:  # type: ignore[empty-body]
-        # error: Missing return statement
-        pass
+    def all(self, *, skipna: bool = True) -> bool:
+        raise AbstractMethodError(self)
 
 
 class ExtensionOpsMixin:

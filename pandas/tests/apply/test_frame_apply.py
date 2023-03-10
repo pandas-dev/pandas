@@ -114,14 +114,14 @@ def test_apply_with_reduce_empty():
     result = empty_frame.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_frame)
     result = empty_frame.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     empty_with_cols = DataFrame(columns=["a", "b", "c"])
     result = empty_with_cols.apply(x.append, axis=1, result_type="expand")
     tm.assert_frame_equal(result, empty_with_cols)
     result = empty_with_cols.apply(x.append, axis=1, result_type="reduce")
-    expected = Series([], index=pd.Index([], dtype=object), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
     # Ensure that x.append hasn't been called
@@ -135,6 +135,8 @@ def test_apply_funcs_over_empty(func):
 
     result = df.apply(getattr(np, func))
     expected = getattr(df, func)()
+    if func in ("sum", "prod"):
+        expected = expected.astype(float)
     tm.assert_series_equal(result, expected)
 
 
@@ -147,7 +149,7 @@ def test_nunique_empty():
     tm.assert_series_equal(result, expected)
 
     result = df.T.nunique()
-    expected = Series([], index=pd.Index([]), dtype=np.float64)
+    expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
 
@@ -379,7 +381,6 @@ def test_apply_differently_indexed():
 
 
 def test_apply_bug():
-
     # GH 6125
     positions = DataFrame(
         [
@@ -461,7 +462,7 @@ def test_apply_convert_objects():
         }
     )
 
-    result = expected.apply(lambda x: x, axis=1)._convert(datetime=True)
+    result = expected.apply(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -753,7 +754,6 @@ def test_apply_raw_function_runs_once():
 
 
 def test_applymap_function_runs_once():
-
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save values function is applied to
 
@@ -836,7 +836,8 @@ def test_with_dictlike_columns_with_datetime():
     df["author"] = ["X", "Y", "Z"]
     df["publisher"] = ["BBC", "NBC", "N24"]
     df["date"] = pd.to_datetime(
-        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"]
+        ["17-10-2010 07:15:30", "13-05-2011 08:20:35", "15-01-2013 09:09:09"],
+        dayfirst=True,
     )
     result = df.apply(lambda x: {}, axis=1)
     expected = Series([{}, {}, {}])
@@ -1068,7 +1069,6 @@ def test_agg_transform(axis, float_frame):
     other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
-
         f_abs = np.abs(float_frame)
         f_sqrt = np.sqrt(float_frame)
 
@@ -1181,8 +1181,7 @@ def test_agg_multiple_mixed_raises():
     )
 
     # sorted index
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         mdf.agg(["min", "sum"])
 
@@ -1260,7 +1259,6 @@ def test_agg_reduce(axis, float_frame):
 
 
 def test_nuiscance_columns():
-
     # GH 15015
     df = DataFrame(
         {
@@ -1283,7 +1281,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    msg = "DataFrame constructor called with incompatible data and dtype"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg("sum")
 
@@ -1291,15 +1289,13 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    # TODO: GH#49399 will fix error message
-    msg = "DataFrame constructor called with"
+    msg = "does not support reduction"
     with pytest.raises(TypeError, match=msg):
         df.agg(["sum"])
 
 
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_non_callable_aggregates(how):
-
     # GH 16405
     # 'size' is a property of frame/series
     # validate that this is working
@@ -1624,3 +1620,25 @@ def test_any_apply_keyword_non_zero_axis_regression():
 
     result = df.apply("any", 1)
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_func_with_args():
+    # GH 50624
+    df = DataFrame({"x": [1, 2, 3]})
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = df.agg([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame(
+        [[8, 8], [9, 9], [10, 10]],
+        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+    )
+    tm.assert_frame_equal(result, expected)

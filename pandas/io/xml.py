@@ -6,22 +6,15 @@ from __future__ import annotations
 
 import io
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
 )
 
-from pandas._typing import (
-    TYPE_CHECKING,
-    CompressionOptions,
-    ConvertersArg,
-    DtypeArg,
-    FilePath,
-    ParseDatesArg,
-    ReadBuffer,
-    StorageOptions,
-    XMLParsers,
-)
+from pandas._config import using_nullable_dtypes
+
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -46,9 +39,17 @@ from pandas.io.parsers import TextParser
 if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
-    from lxml.etree import (
-        _Element,
-        _XSLTResultTree,
+    from lxml import etree
+
+    from pandas._typing import (
+        CompressionOptions,
+        ConvertersArg,
+        DtypeArg,
+        FilePath,
+        ParseDatesArg,
+        ReadBuffer,
+        StorageOptions,
+        XMLParsers,
     )
 
     from pandas import DataFrame
@@ -240,40 +241,39 @@ class _XMLFrameParser:
                 for el in elems
             ]
 
-        else:
-            if self.names:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            nm: ch.text.strip() if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
-                        },
-                    }
-                    for el in elems
-                ]
+        elif self.names:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        nm: ch.text.strip() if ch.text else None
+                        for nm, ch in zip(self.names, el.findall("*"))
+                    },
+                }
+                for el in elems
+            ]
 
-            else:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            ch.tag: ch.text.strip() if ch.text else None
-                            for ch in el.findall("*")
-                        },
-                    }
-                    for el in elems
-                ]
+        else:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        ch.tag: ch.text.strip() if ch.text else None
+                        for ch in el.findall("*")
+                    },
+                }
+                for el in elems
+            ]
 
         dicts = [
             {k.split("}")[1] if "}" in k else k: v for k, v in d.items()} for d in dicts
@@ -300,7 +300,7 @@ class _XMLFrameParser:
         TypeError
             * If `iterparse` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical, decompressed file on disk.
+            * If `path_or_buffer` is not a physical file on disk or file-like object.
             * If no data is returned from selected items in `iterparse`.
 
         Notes
@@ -325,7 +325,7 @@ class _XMLFrameParser:
                 "for value in iterparse"
             )
 
-        if (
+        if (not hasattr(self.path_or_buffer, "read")) and (
             not isinstance(self.path_or_buffer, str)
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)
@@ -337,6 +337,10 @@ class _XMLFrameParser:
                 "local disk and not as compressed files or online sources."
             )
 
+        iterparse_repeats = len(self.iterparse[row_node]) != len(
+            set(self.iterparse[row_node])
+        )
+
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
@@ -345,12 +349,13 @@ class _XMLFrameParser:
                     row = {}
 
             if row is not None:
-                if self.names:
+                if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
                             elem_val = elem.text.strip() if elem.text else None
-                            if row.get(nm) != elem_val and nm not in row:
+                            if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
+
                         if col in elem.attrib:
                             if elem.attrib[col] not in row.values() and nm not in row:
                                 row[nm] = elem.attrib[col]
@@ -417,7 +422,7 @@ class _XMLFrameParser:
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> Element | _Element:
+    ) -> Element | etree._Element:
         """
         Build tree from path_or_buffer.
 
@@ -533,9 +538,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         with preprocess_data(handle_data) as xml_data:
             curr_parser = XMLParser(encoding=self.encoding)
-            doc = parse(xml_data, parser=curr_parser)
+            document = parse(xml_data, parser=curr_parser)
 
-        return doc.getroot()
+        return document.getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -575,7 +580,6 @@ class _LxmlFrameParser(_XMLFrameParser):
         return xml_dicts
 
     def _validate_path(self) -> list[Any]:
-
         msg = (
             "xpath does not return any nodes or attributes. "
             "Be sure to specify in `xpath` the parent nodes of "
@@ -625,7 +629,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
     def _parse_doc(
         self, raw_doc: FilePath | ReadBuffer[bytes] | ReadBuffer[str]
-    ) -> _Element:
+    ) -> etree._Element:
         from lxml.etree import (
             XMLParser,
             fromstring,
@@ -648,15 +652,15 @@ class _LxmlFrameParser(_XMLFrameParser):
                         "Can not pass encoding None when input is StringIO."
                     )
 
-                doc = fromstring(
+                document = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
             else:
-                doc = parse(xml_data, parser=curr_parser)
+                document = parse(xml_data, parser=curr_parser)
 
-        return doc
+        return document
 
-    def _transform_doc(self) -> _XSLTResultTree:
+    def _transform_doc(self) -> etree._XSLTResultTree:
         """
         Transform original tree using stylesheet.
 
@@ -774,6 +778,7 @@ def _parse(
     iterparse: dict[str, list[str]] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
+    use_nullable_dtypes: bool = False,
     **kwargs,
 ) -> DataFrame:
     """
@@ -843,6 +848,7 @@ def _parse(
         dtype=dtype,
         converters=converters,
         parse_dates=parse_dates,
+        use_nullable_dtypes=use_nullable_dtypes,
         **kwargs,
     )
 
@@ -869,6 +875,7 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -979,6 +986,21 @@ def read_xml(
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
+
+    use_nullable_dtypes : bool = False
+        Whether or not to use nullable dtypes as default when reading data. If
+        set to True, nullable dtypes are used for all dtypes that have a nullable
+        implementation, even if no nulls are present.
+
+        .. note::
+
+            The nullable dtype implementation can be configured by calling
+            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
+            numpy-backed nullable dtypes or
+            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
+            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1097,6 +1119,12 @@ def read_xml(
     2  triangle      180    3.0
     """
 
+    use_nullable_dtypes = (
+        use_nullable_dtypes
+        if use_nullable_dtypes is not lib.no_default
+        else using_nullable_dtypes()
+    )
+
     return _parse(
         path_or_buffer=path_or_buffer,
         xpath=xpath,
@@ -1113,4 +1141,5 @@ def read_xml(
         iterparse=iterparse,
         compression=compression,
         storage_options=storage_options,
+        use_nullable_dtypes=use_nullable_dtypes,
     )
