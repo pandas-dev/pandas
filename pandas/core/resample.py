@@ -24,7 +24,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     to_offset,
-    Day,
 )
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
@@ -1775,7 +1774,6 @@ class TimeGrouper(Grouper):
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
-
         # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(
             ax_values, bin_edges, self.closed, hasnans=ax.hasnans
@@ -1835,7 +1833,8 @@ class TimeGrouper(Grouper):
 
         freq = self.freq
         if isinstance(freq, Day):
-            # TODO: are we super-duper sure this is safe?  maybe we can unify conversion earlier?
+            # TODO: are we super-duper sure this is safe?  maybe we can unify
+            #  conversion earlier?
             freq = 24 * freq.n * to_offset("H")
         if not len(ax):
             if not isinstance(freq, Tick):
@@ -1849,9 +1848,7 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             end += freq
 
-        labels = binner = timedelta_range(
-            start=start, end=end, freq=freq, name=ax.name
-        )
+        labels = binner = timedelta_range(start=start, end=end, freq=freq, name=ax.name)
 
         end_stamps = labels
         if self.closed == "left":
@@ -2024,7 +2021,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
+    if isinstance(freq, (Tick, Day)):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2034,6 +2031,8 @@ def _get_timestamp_range_edges(
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
+            # TODO: should we change behavior for next comment now that Day
+            #  respects DST?
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
             # So "pretend" the dates are naive when adjusting the endpoints
@@ -2043,7 +2042,13 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            freq._maybe_to_hours(),
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)

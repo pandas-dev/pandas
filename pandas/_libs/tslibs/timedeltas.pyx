@@ -1820,13 +1820,11 @@ class Timedelta(_Timedelta):
             int64_t result, unit
             ndarray[int64_t] arr
 
-        from pandas._libs.tslibs.offsets import to_offset, Day
+        from pandas._libs.tslibs.offsets import to_offset
 
         orig = freq
-        freq = to_offset(freq)
-        if isinstance(freq, Day):
-            # In this context it is clear D represents 24 hours
-            freq = 24 * freq.n * to_offset("H")
+        # In this context it is sufficiently clear that "D" this means 24H
+        freq = to_offset(freq)._maybe_to_hours()
         freq.nanos  # raises on non-fixed freq
         unit = delta_to_nanoseconds(to_offset(freq), self._creso)
 

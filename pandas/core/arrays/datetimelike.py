@@ -30,6 +30,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     IncompatibleFrequency,
     NaT,
     NaTType,
@@ -40,7 +41,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     astype_overflowsafe,
     delta_to_nanoseconds,
-    Day,
     get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
@@ -1134,8 +1134,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
         new_freq = self._get_arithmetic_result_freq(other)
-        if isinstance(new_freq, Day):
-            new_freq = new_freq.n * 24 * to_offset("H") # TODO: Day method for this?
+        if new_freq is not None:
+            # TODO: are we sure this is right?
+            new_freq = new_freq._maybe_to_hours()
         return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
 
     @final
@@ -1861,7 +1862,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if copy:
             values = values.copy()
         if freq:
+            if values.dtype.kind == "m" and isinstance(freq, Day):
+                raise TypeError("TimedeltaArray freq must be a Tick or None")
             freq = to_offset(freq)
+            if values.dtype.kind == "m":
+                freq = freq._maybe_to_hours()
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self.freq = freq
@@ -2011,9 +2016,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        freq = to_offset(freq)
-        if isinstance(freq, Day):
-            freq = freq.n * 24 * to_offset("H")
+        # In this context it is clear "D" means "24H""
+        freq = to_offset(freq)._maybe_to_hours()
         nanos = freq.nanos  # raises on non-fixed frequencies
         nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
         result_i8 = round_nsint64(values, mode, nanos)
@@ -2092,9 +2096,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
             freq = to_offset(self.inferred_freq)
-            if isinstance(freq, Day) and self.dtype.kind == "m":
-                # FIXME: inferred_freq is wrong here
-                freq = freq.n * 24 * to_offset("H")
+            if freq is not None and self.dtype.kind == "m":
+                # TODO: handle this in self.inferred_freq?
+                freq = freq._maybe_to_hours()
 
         if self.dtype.kind == "m" and freq is not None:
             assert isinstance(freq, Tick)

@@ -35,8 +35,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
-    Tick,
     Day,
+    Tick,
     delta_to_tick,
 )
 from pandas._libs.tslibs.period import (
@@ -794,7 +794,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         ------
         IncompatibleFrequency
         """
-        assert isinstance(self.freq, Tick)  # checked by calling function
+        assert isinstance(self.freq, (Tick, Day))  # checked by calling function
 
         dtype = np.dtype(f"m8[{self.freq._td64_unit}]")
 

@@ -10,6 +10,11 @@ import numpy as np
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
+from pandas._libs.tslibs import (
+    Day,
+    Tick,
+    Timedelta,
+)
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -53,7 +58,6 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
-from pandas._libs.tslibs import Day, Timedelta, Tick
 
 
 def assert_almost_equal(
@@ -1025,7 +1029,7 @@ def assert_freq_equal(left, right):
         elif isinstance(right, Tick):
             assert right == Timedelta(days=left.n)
         else:
-            assert left == right  # will raise
+            assert left == right, (left, right)
     elif isinstance(right, Day):
         assert_freq_equal(right, left)
     else:

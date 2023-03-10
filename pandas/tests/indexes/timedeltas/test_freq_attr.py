@@ -4,7 +4,6 @@ from pandas import TimedeltaIndex
 
 from pandas.tseries.offsets import (
     DateOffset,
-    Day,
     Hour,
 )
 
@@ -32,7 +31,7 @@ class TestFreq:
         # setting with an incompatible freq
         # FIXME: should probably say "48H" rather than "2D"?
         msg = (
-            "Inferred frequency 2D from passed values does not conform to "
+            "Inferred frequency 48H from passed values does not conform to "
             "passed frequency 120H"
         )
         with pytest.raises(ValueError, match=msg):

@@ -443,10 +443,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     end = end.tz_localize(None)
 
             if isinstance(freq, Tick) or (tz is None and isinstance(freq, Day)):
-                tfreq = freq
-                if isinstance(freq, Day):
-                    tfreq = freq.n * 24 * to_offset("H") 
-                i8values = generate_regular_range(start, end, periods, tfreq, unit=unit)
+                i8values = generate_regular_range(
+                    start, end, periods, freq._maybe_to_hours(), unit=unit
+                )
             else:
                 xdr = _generate_range(
                     start=start, end=end, periods=periods, offset=freq, unit=unit

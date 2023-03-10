@@ -787,6 +787,11 @@ cdef class BaseOffset:
     def nanos(self):
         raise ValueError(f"{self} is a non-fixed frequency")
 
+    def _maybe_to_hours(self):
+        if not isinstance(self, Day):
+            return self
+        return Hour(self.n * 24)
+
     def is_anchored(self) -> bool:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.

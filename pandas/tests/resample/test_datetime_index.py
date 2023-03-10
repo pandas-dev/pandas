@@ -1802,7 +1802,8 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     ser = Series(range(len(dti)), index=dti)
 
     if freq2 == "D" and n2 % 1 != 0:
-        with pytest.raises(ValueError):
+        msg = "Invalid frequency: (0.25|0.5|0.75|1.0|1.5)D"
+        with pytest.raises(ValueError, match=msg):
             ser.resample(str(n2_) + freq2)
         return
 

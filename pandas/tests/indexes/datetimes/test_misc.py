@@ -302,4 +302,5 @@ def test_add_timedelta_preserves_freq():
         freq="D",
     )
     result = dti + Timedelta(days=1)
-    assert result.freq == dti.freq
+    # GH#??? with tzaware we can no longer retain "D" freq in addition
+    assert result.freq is None

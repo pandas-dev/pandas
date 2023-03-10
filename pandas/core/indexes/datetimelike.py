@@ -26,9 +26,9 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
-    Day,
     parsing,
     to_offset,
 )
@@ -546,16 +546,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             result = result._with_freq(None)._with_freq("infer")
-
-            # TODO: could share this with the union restore-Day code but
-            #  at this point we have an Index here while we have a DTA/TDA theres
-            if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
-                # If we infer a 24H-like freq but are D, restore "D"
-                td = Timedelta(result.freq)
-                div, mod = divmod(td.value, 24 * 3600 * 10**9)
-                if mod == 0:
-                    freq = to_offset("D") * div
-                    result._data._freq = freq
+            result = self._maybe_restore_day(result._data)
             return result
 
         else:
@@ -679,16 +670,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             return result
         else:
             result = super()._union(other, sort)._with_freq("infer")
-            if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
-                # If we infer a 24H-like freq but are D, restore "D"
-                td = Timedelta(result.freq)
-                div, mod = divmod(td.value, 24 * 3600 * 10**9)
-                if mod == 0:
-                    freq = to_offset("D") * div
-                    result._freq = freq
-            return result
+            return self._maybe_restore_day(result)
 
-    def _maybe_restore_day(self, result: DatetimeArray | TimedeltaArray) -> DatetimeArray | TimedeltaArray:
+    def _maybe_restore_day(self, result: _TDT) -> _TDT:
         if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
             # If we infer a 24H-like freq but are D, restore "D"
             td = Timedelta(result.freq)
