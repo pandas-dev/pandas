@@ -40,11 +40,6 @@ class TestTimestampArithmetic:
 
         stamp = Timestamp("2017-01-13 00:00:00").as_unit("ns")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = (
-            "the add operation between "
-            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-            "will overflow"
-        )
         lmsg2 = r"Cannot cast -?20169940 days \+?00:00:00 to unit='ns' without overflow"
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):

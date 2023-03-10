@@ -33,7 +33,7 @@ __all__ = [
     "is_supported_unit",
     "npy_unit_to_abbrev",
     "get_supported_reso",
-    "Day"
+    "Day",
 ]
 
 from pandas._libs.tslibs import dtypes
@@ -61,9 +61,9 @@ from pandas._libs.tslibs.np_datetime import (
 )
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
+    Day,
     Tick,
     to_offset,
-    Day,
 )
 from pandas._libs.tslibs.period import (
     IncompatibleFrequency,

@@ -835,7 +835,9 @@ class TestPeriodIndex:
         if end_freq == "M":
             # TODO: is non-tick the relevant characteristic? (GH 33815)
             expected.index = expected.index._with_freq(None)
-        elif expected.index.freq.freqstr.endswith("H") and result.index.freq.freqstr.endswith("D"):
+        elif expected.index.freq.freqstr.endswith(
+            "H"
+        ) and result.index.freq.freqstr.endswith("D"):
             # TODO: this is a kludge introduced when implementing GH#41943 bc
             #  Tick comparison used to consider 24H==1D but no longer does.
             #  Implement a cleaner fix somewhere.

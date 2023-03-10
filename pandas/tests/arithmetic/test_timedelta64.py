@@ -8,6 +8,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import Day
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
@@ -33,7 +34,6 @@ from pandas.tests.arithmetic.common import (
     assert_invalid_comparison,
     get_upcast_box,
 )
-from pandas._libs.tslibs import Day
 
 
 def assert_dtype(obj, expected_dtype):
@@ -1009,7 +1009,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.date_range("2012-01-02", periods=3, tz=tz)
+        expected = pd.date_range("2012-01-02", periods=3, tz=tz, freq="24H")
 
         tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1017,7 +1017,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(ts + tdarr, expected)
         tm.assert_equal(tdarr + ts, expected)
 
-        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
+        expected2 = pd.date_range("2011-12-31", periods=3, freq="-24H", tz=tz)
         expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdarr, expected2)

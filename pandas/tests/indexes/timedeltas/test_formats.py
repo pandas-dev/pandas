@@ -20,7 +20,9 @@ class TestTimedeltaIndexRendering:
 
         exp2 = "TimedeltaIndex(['1 days'], dtype='timedelta64[ns]', freq='24H')"
 
-        exp3 = "TimedeltaIndex(['1 days', '2 days'], dtype='timedelta64[ns]', freq='24H')"
+        exp3 = (
+            "TimedeltaIndex(['1 days', '2 days'], dtype='timedelta64[ns]', freq='24H')"
+        )
 
         exp4 = (
             "TimedeltaIndex(['1 days', '2 days', '3 days'], "

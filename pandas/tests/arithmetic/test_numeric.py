@@ -11,6 +11,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import Day
+
 import pandas as pd
 from pandas import (
     Index,
@@ -20,7 +22,6 @@ from pandas import (
     TimedeltaIndex,
     array,
 )
-from pandas._libs.tslibs import Day
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr

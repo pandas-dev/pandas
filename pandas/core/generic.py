@@ -38,9 +38,9 @@ from pandas._config import (
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
+    Day,
     Period,
     Tick,
-    Day,
     Timestamp,
     to_offset,
 )

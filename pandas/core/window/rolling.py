@@ -23,8 +23,8 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
-    to_offset,
     Day,
+    to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency

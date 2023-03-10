@@ -23,8 +23,8 @@ from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     datetime,
-    timedelta,
     import_datetime,
+    timedelta,
 )
 from libc.stdlib cimport (
     free,
@@ -106,7 +106,10 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG, Day
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    Day,
+)
 
 cdef:
     enum:

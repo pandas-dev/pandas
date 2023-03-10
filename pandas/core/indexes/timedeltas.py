@@ -8,10 +8,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import (
+    Day,
     Resolution,
     Timedelta,
     to_offset,
-    Day,
 )
 
 from pandas.core.dtypes.common import (
@@ -303,16 +303,18 @@ def timedelta_range(
     >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
     TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
                     '200001 days 00:00:00'],
-                   dtype='timedelta64[s]', freq='100000D')
+                   dtype='timedelta64[s]', freq='2400000H')
     """
-    orig = freq
     if freq is None and com.any_none(periods, start, end):
         freq = "24H"
 
     if isinstance(freq, Day):
         # If a user specifically passes a Day *object* we disallow it,
         #  but if they pass a Day-like string we'll convert it to hourly below.
-        raise ValueError("Passing a Day offset to timedelta_range is not allowed, pass an hourly offset instead")
+        raise ValueError(
+            "Passing a Day offset to timedelta_range is not allowed, "
+            "pass an hourly offset instead"
+        )
 
     freq, _ = dtl.maybe_infer_freq(freq)
     if isinstance(freq, Day):
