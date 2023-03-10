@@ -1681,7 +1681,9 @@ def union_with_duplicates(
     return np.repeat(unique_vals, repeats)
 
 
-def map_array(arr: ArrayLike, mapper, na_action=None):
+def map_array(
+    arr: ArrayLike, mapper, na_action: Literal["ignore"] | None = None
+) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
 
