@@ -39,6 +39,7 @@ from pandas.compat import (
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
 import pandas._testing as tm
@@ -1543,9 +1544,23 @@ def test_mode_dropna_false_mode_na(data):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("arrow_dtype", [pa.binary(), pa.binary(16), pa.large_binary()])
-def test_arrow_dtype_type(arrow_dtype):
-    assert ArrowDtype(arrow_dtype).type == bytes
+@pytest.mark.parametrize(
+    "arrow_dtype, expected_type",
+    [
+        [pa.binary(), bytes],
+        [pa.binary(16), bytes],
+        [pa.large_binary(), bytes],
+        [pa.large_string(), str],
+        [pa.list_(pa.int64()), list],
+        [pa.large_list(pa.int64()), list],
+        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
+    ],
+)
+def test_arrow_dtype_type(arrow_dtype, expected_type):
+    # GH 51845
+    # TODO: Redundant with test_getitem_scalar once arrow_dtype exists in data fixture
+    assert ArrowDtype(arrow_dtype).type == expected_type
 
 
 def test_is_bool_dtype():
@@ -1938,7 +1953,7 @@ def test_str_get(i, exp):
 
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
-    raises=NotImplementedError,
+    raises=AttributeError,
 )
 def test_str_join():
     ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
