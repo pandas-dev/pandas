@@ -47,18 +47,23 @@ class TestDataFrame:
 
     def test_nonzero_single_element(self):
         # allow single item via bool method
-        df = DataFrame([[True]])
-        assert df.bool()
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([[True]])
+            assert df.bool()
 
-        df = DataFrame([[False]])
-        assert not df.bool()
+            df = DataFrame([[False]])
+            assert not df.bool()
 
-        df = DataFrame([[False, False]])
-        msg = "The truth value of a DataFrame is ambiguous"
-        with pytest.raises(ValueError, match=msg):
-            df.bool()
-        with pytest.raises(ValueError, match=msg):
-            bool(df)
+            df = DataFrame([[False, False]])
+            msg = "The truth value of a DataFrame is ambiguous"
+            with pytest.raises(ValueError, match=msg):
+                df.bool()
+            with pytest.raises(ValueError, match=msg):
+                bool(df)
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby

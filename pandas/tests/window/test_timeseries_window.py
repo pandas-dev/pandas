@@ -506,13 +506,18 @@ class TestRollingTS:
         dfp = DataFrame(
             {"B": np.random.randn(N)}, index=date_range("20130101", periods=N, freq="s")
         )
-        expected = dfp.rolling(2, min_periods=1).min()
-        result = dfp.rolling("2s").min()
-        assert ((result - expected) < 0.01).all().bool()
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = dfp.rolling(2, min_periods=1).min()
+            result = dfp.rolling("2s").min()
+            assert ((result - expected) < 0.01).all().bool()
 
-        expected = dfp.rolling(200, min_periods=1).min()
-        result = dfp.rolling("200s").min()
-        assert ((result - expected) < 0.01).all().bool()
+            expected = dfp.rolling(200, min_periods=1).min()
+            result = dfp.rolling("200s").min()
+            assert ((result - expected) < 0.01).all().bool()
 
     def test_ragged_max(self, ragged):
         df = ragged

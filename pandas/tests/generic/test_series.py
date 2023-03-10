@@ -41,8 +41,13 @@ class TestSeries:
 
     def test_nonzero_single_element(self):
         # allow single item via bool method
-        ser = Series([True])
-        assert ser.bool()
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([True])
+            assert ser.bool()
 
         ser = Series([False])
         assert not ser.bool()
@@ -58,35 +63,50 @@ class TestSeries:
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
-        series = Series([data])
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            series = Series([data])
 
-        msg = "bool cannot act on a non-boolean single element Series"
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+            msg = "bool cannot act on a non-boolean single element Series"
+            with pytest.raises(ValueError, match=msg):
+                series.bool()
 
     @pytest.mark.parametrize("data", [(True, True), (False, False)])
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
-        series = Series([data])
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            series = Series([data])
 
-        msg = "The truth value of a Series is ambiguous"
-        with pytest.raises(ValueError, match=msg):
-            bool(series)
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+            msg = "The truth value of a Series is ambiguous"
+            with pytest.raises(ValueError, match=msg):
+                bool(series)
+            with pytest.raises(ValueError, match=msg):
+                series.bool()
 
     @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
-        series = Series([data])
+        msg = (
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            series = Series([data])
 
-        msg = "The truth value of a Series is ambiguous"
-        with pytest.raises(ValueError, match=msg):
-            bool(series)
+            msg = "The truth value of a Series is ambiguous"
+            with pytest.raises(ValueError, match=msg):
+                bool(series)
 
-        msg = "bool cannot act on a non-boolean single element Series"
-        with pytest.raises(ValueError, match=msg):
-            series.bool()
+            msg = "bool cannot act on a non-boolean single element Series"
+            with pytest.raises(ValueError, match=msg):
+                series.bool()
 
     def test_metadata_propagation_indiv_resample(self):
         # resample

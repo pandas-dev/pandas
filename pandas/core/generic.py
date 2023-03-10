@@ -1503,7 +1503,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
 
         warnings.warn(
-            "NDFrame.bool is deprecated and will removed in a future version.",
+            "NDFrame.bool is now deprecated and will be removed in future releases "
+            "and cases that relied on it will raise in a future version",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
