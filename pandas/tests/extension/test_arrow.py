@@ -389,7 +389,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             # xfailing takes a long time to run because pytest
             # renders the exception messages even when not showing them
-            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
+            opt = request.config.option
+            if opt.markexpr and "not slow" in opt.markexpr:
+                pytest.skip(
+                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+                )
+            mark = pytest.mark.xfail(
+                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+            )
+            request.node.add_marker(mark)
 
         elif all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
@@ -1207,14 +1215,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def assert_series_equal(self, left, right, *args, **kwargs):
-        # Series.combine for "expected" retains bool[pyarrow] dtype
-        # While "result" return "boolean" dtype
-        right = pd.Series(right._values.to_numpy(), dtype="boolean")
-        super().assert_series_equal(left, right, *args, **kwargs)
-
     def test_compare_array(self, data, comparison_op, na_value, request):
-        pa_dtype = data.dtype.pyarrow_dtype
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
@@ -1240,13 +1241,6 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
             if exc is None:
                 # Didn't error, then should match point-wise behavior
-                if pa.types.is_temporal(pa_dtype):
-                    # point-wise comparison with pd.NA raises TypeError
-                    assert result[8] is na_value
-                    assert result[97] is na_value
-                    result = result.drop([8, 97]).reset_index(drop=True)
-                    ser = ser.drop([8, 97])
-                    other = other.drop([8, 97])
                 expected = ser.combine(other, comparison_op)
                 self.assert_series_equal(result, expected)
             else:
@@ -1409,13 +1403,15 @@ def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
 
-    # but as of GH#50689, timestamptz is supported
+    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
+
+
+def test_arrowdtype_construct_from_string_supports_dt64tz():
+    # as of GH#50689, timestamptz is supported
     dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
-
-    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
 
 
 def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
@@ -2252,6 +2248,19 @@ def test_dt_ceil_year_floor(freq, method):
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_to_pydatetime():
+    # GH 51859
+    data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
+
+    result = ser.dt.to_pydatetime()
+    expected = np.array(data, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2319,3 +2328,11 @@ def test_from_sequence_of_strings_boolean():
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+
+
+def test_concat_empty_arrow_backed_series(dtype):
+    # GH#51734
+    ser = pd.Series([], dtype=dtype)
+    expected = ser.copy()
+    result = pd.concat([ser[np.array([], dtype=np.bool_)]])
+    tm.assert_series_equal(result, expected)
