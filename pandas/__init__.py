@@ -257,7 +257,7 @@ __all__ = [
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
-    "Grouper",
+    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]
     "HDFStore",
     "Index",
     "IndexSlice",
@@ -271,7 +271,7 @@ __all__ = [
     "MultiIndex",
     "NA",
     "NaT",
-    "NamedAgg",
+    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]
     "Period",
     "PeriodDtype",
     "PeriodIndex",

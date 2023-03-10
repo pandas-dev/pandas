@@ -104,7 +104,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
-    "Grouper",
+    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]
     "Index",
     "IndexSlice",
     "Int16Dtype",
@@ -119,7 +119,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "isnull",
     "MultiIndex",
     "NA",
-    "NamedAgg",
+    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]
     "NaT",
     "notna",
     "notnull",
