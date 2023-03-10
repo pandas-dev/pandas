@@ -27,6 +27,7 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 if not pa_version_under7p0:
     import pyarrow as pa
@@ -106,7 +107,7 @@ class ArrowDtype(StorageExtensionDtype):
             return int
         elif pa.types.is_floating(pa_type):
             return float
-        elif pa.types.is_string(pa_type):
+        elif pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
             return str
         elif (
             pa.types.is_binary(pa_type)
@@ -132,6 +133,14 @@ class ArrowDtype(StorageExtensionDtype):
             return time
         elif pa.types.is_decimal(pa_type):
             return Decimal
+        elif pa.types.is_dictionary(pa_type):
+            # TODO: Potentially change this & CategoricalDtype.type to
+            #  something more representative of the scalar
+            return CategoricalDtypeType
+        elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_map(pa_type):
+            return dict
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
