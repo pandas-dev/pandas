@@ -3631,18 +3631,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
         mode : {{'w', 'x', 'a'}}, default 'w'
-            Python write mode. The available write modes are:
+            Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
+            the file opening. Typical values include:
 
-            - 'w', opens the file for writing and truncates the file if it
-              already exists. If the file does not exist, it creates a new
-              file.
-            - 'x', opens the file for exclusive creation, meaning it will fail
-              if the file already exists. If the file does not exist, it
-              creates a new file.
-            - 'a', opens the file for writing in append mode. The data is
-              written to the end of the file, without truncating it. If the
-              file does not exist, it creates a new file.
+            - 'w', open for writing, truncating the file first.
+            - 'x', open for exclusive creation, failing if the file already exists.
+            - 'a', open for writing, appending to the end of file if it exists.
 
+            Including 'b' or 't' in the mode parameter will inform Pandas whether
+            'path_or_buf' requires string or binary data. However, in most cases,
+            this should not be necessary.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
