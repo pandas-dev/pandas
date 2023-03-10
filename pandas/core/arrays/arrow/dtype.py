@@ -108,7 +108,11 @@ class ArrowDtype(StorageExtensionDtype):
             return float
         elif pa.types.is_string(pa_type):
             return str
-        elif pa.types.is_binary(pa_type):
+        elif (
+            pa.types.is_binary(pa_type)
+            or pa.types.is_fixed_size_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
             return bytes
         elif pa.types.is_boolean(pa_type):
             return bool
@@ -144,6 +148,18 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # pa.timestamp(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow timestamp units.
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
+        if pa.types.is_duration(self.pyarrow_dtype):
+            # pa.duration(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow duration units
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_string(self.pyarrow_dtype):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)
@@ -197,11 +213,12 @@ class ArrowDtype(StorageExtensionDtype):
         if string == "string[pyarrow]":
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        base_type = string.split("[pyarrow]")[0]
+
+        base_type = string[:-9]  # get rid of "[pyarrow]"
         try:
             pa_dtype = pa.type_for_alias(base_type)
         except ValueError as err:
-            has_parameters = re.search(r"\[.*\]", base_type)
+            has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
             if has_parameters:
                 # Fallback to try common temporal types
                 try:

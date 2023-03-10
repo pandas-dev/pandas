@@ -63,12 +63,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+    roperator,
+)
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -467,6 +469,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
+                if freq.n == 0:
+                    # GH#51575 Better to have no freq than an incorrect one
+                    freq = None
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
@@ -526,17 +531,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # Note: freq gets division, not floor-division, even if op
                 #  is floordiv.
                 freq = self.freq / other
-
-                # TODO: 2022-12-24 test_ufunc_coercions, test_tdi_ops_attributes
-                #  get here for truediv, no tests for floordiv
-
-                if op is operator.floordiv:
-                    if freq.nanos == 0 and self.freq.nanos != 0:
-                        # e.g. if self.freq is Nano(1) then dividing by 2
-                        #  rounds down to zero
-                        # TODO: 2022-12-24 should implement the same check
-                        #  for truediv case
-                        freq = None
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
 
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 

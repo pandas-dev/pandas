@@ -25,11 +25,6 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas._typing import (
-    Dtype,
-    Frequency,
-    NpDtype,
-)
 from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
@@ -118,6 +113,12 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        Frequency,
+        NpDtype,
+    )
+
     from pandas import (
         PeriodIndex,
         TimedeltaIndex,
@@ -215,6 +216,7 @@ if not pa_version_under7p0:
     FLOAT_PYARROW_DTYPES_STR_REPR = [
         str(ArrowDtype(typ)) for typ in FLOAT_PYARROW_DTYPES
     ]
+    DECIMAL_PYARROW_DTYPES = [pa.decimal128(7, 3)]
     STRING_PYARROW_DTYPES = [pa.string()]
     BINARY_PYARROW_DTYPES = [pa.binary()]
 
@@ -239,6 +241,7 @@ if not pa_version_under7p0:
     ALL_PYARROW_DTYPES = (
         ALL_INT_PYARROW_DTYPES
         + FLOAT_PYARROW_DTYPES
+        + DECIMAL_PYARROW_DTYPES
         + STRING_PYARROW_DTYPES
         + BINARY_PYARROW_DTYPES
         + TIME_PYARROW_DTYPES
@@ -250,6 +253,7 @@ if not pa_version_under7p0:
 else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
+    ALL_PYARROW_DTYPES = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -1024,8 +1028,8 @@ def shares_memory(left, right) -> bool:
         left = cast("ArrowExtensionArray", left)
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
             right = cast("ArrowExtensionArray", right)
-            left_pa_data = left._data
-            right_pa_data = right._data
+            left_pa_data = left._pa_array
+            right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1

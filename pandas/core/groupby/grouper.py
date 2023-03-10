@@ -16,12 +16,7 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
+from pandas._libs import lib
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -51,6 +46,13 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        npt,
+    )
+
     from pandas.core.generic import NDFrame
 
 
@@ -258,10 +260,25 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
+        if type(self) is Grouper:
+            # i.e. not TimeGrouper
+            if axis is not lib.no_default:
+                warnings.warn(
+                    "Grouper axis keyword is deprecated and will be removed in a "
+                    "future version. To group on axis=1, use obj.T.groupby(...) "
+                    "instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                axis = 0
+        if axis is lib.no_default:
+            axis = 0
+
         self.key = key
         self.level = level
         self.freq = freq
@@ -944,12 +961,17 @@ def get_grouper(
         if not hasattr(gpr, "name"):
             return False
         if using_copy_on_write():
-            # For the CoW case, we need an equality check as the identity check
-            # no longer works (each Series from column access is a new object)
+            # For the CoW case, we check the references to determine if the
+            # series is part of the object
             try:
-                return gpr.equals(obj[gpr.name])
-            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                obj_gpr_column = obj[gpr.name]
+            except (KeyError, IndexError, InvalidIndexError):
                 return False
+            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
+                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                )
+            return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):

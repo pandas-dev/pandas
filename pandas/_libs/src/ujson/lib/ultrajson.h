@@ -187,7 +187,7 @@ typedef struct __JSONObjectEncoder {
                                 size_t *_outLen);
 
   /*
-  Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT)
+  Begin iteration of an iterable object (JS_ARRAY or JS_OBJECT)
   Implementor should setup iteration state in ti->prv
   */
   JSPFN_ITERBEGIN iterBegin;
@@ -199,7 +199,7 @@ typedef struct __JSONObjectEncoder {
   JSPFN_ITERNEXT iterNext;
 
   /*
-  Ends the iteration of an iteratable object.
+  Ends the iteration of an iterable object.
   Any iteration state stored in ti->prv can be freed here
   */
   JSPFN_ITEREND iterEnd;
