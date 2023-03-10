@@ -112,3 +112,11 @@ class TestCombineFirst:
         s2 = Series(index=time_index)
         result = s1.combine_first(s2)
         tm.assert_series_equal(result, s1)
+
+    def test_combine_first_preserves_dtype(self):
+        # GH51764
+        s1 = Series([1666880195890293744, 1666880195890293837])
+        s2 = Series([1, 2, 3])
+        result = s1.combine_first(s2)
+        expected = Series([1666880195890293744, 1666880195890293837, 3])
+        tm.assert_series_equal(result, expected)
