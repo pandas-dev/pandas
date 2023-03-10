@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -394,7 +395,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -419,7 +420,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -444,7 +445,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -469,7 +470,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -497,7 +498,7 @@ def read_json(
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
-    convert_axes=None,
+    convert_axes: bool | None = None,
     convert_dates: bool | list[str] = True,
     keep_default_dates: bool = True,
     precise_float: bool = False,
@@ -813,7 +814,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         orient,
         typ: FrameSeriesStrT,
         dtype,
-        convert_axes,
+        convert_axes: bool | None,
         convert_dates,
         keep_default_dates: bool,
         precise_float: bool,
@@ -963,16 +964,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 pa_table = pyarrow_json.read_json(self.data)
                 if self.use_nullable_dtypes:
                     if get_option("mode.dtype_backend") == "pyarrow":
-                        from pandas.arrays import ArrowExtensionArray
+                        return pa_table.to_pandas(types_mapper=ArrowDtype)
 
-                        return DataFrame(
-                            {
-                                col_name: ArrowExtensionArray(pa_col)
-                                for col_name, pa_col in zip(
-                                    pa_table.column_names, pa_table.itercolumns()
-                                )
-                            }
-                        )
                     elif get_option("mode.dtype_backend") == "pandas":
                         from pandas.io._util import _arrow_dtype_mapping
 
