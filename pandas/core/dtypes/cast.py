@@ -648,7 +648,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype = _dtype_obj
         if fill_value is None:
             # but we retain e.g. pd.NA
-            fill_value = np.nan
+            fill_value = None
         return dtype, fill_value
 
     # returns tuple of (dtype, fill_value)
