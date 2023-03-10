@@ -137,6 +137,10 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "pandas.core.generic.py",
+            "NDFrame.bool is deprecated and will removed in a future version",
+        ),
     ]
 
     for item in items:

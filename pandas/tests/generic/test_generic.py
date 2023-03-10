@@ -444,7 +444,7 @@ class TestNDFrame:
 
     def test_bool_dep(self) -> None:
         msg = (
-            "NDFRame.bool is now deprecated and will be removed in future releases "
+            "NDFrame.bool is now deprecated and will be removed in future releases "
             "and cases that relied on it will raise in a future version"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
