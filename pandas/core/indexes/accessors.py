@@ -209,13 +209,16 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
         return result
 
+    def to_pydatetime(self):
+        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
+
     def isocalendar(self):
         from pandas import DataFrame
 
         result = (
             cast(ArrowExtensionArray, self._parent.array)
             ._dt_isocalendar()
-            ._data.combine_chunks()
+            ._pa_array.combine_chunks()
         )
         iso_calendar_df = DataFrame(
             {
