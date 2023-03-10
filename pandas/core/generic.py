@@ -21,7 +21,6 @@ from typing import (
     NoReturn,
     Sequence,
     Type,
-    TypeVar,
     cast,
     final,
     overload,
@@ -68,6 +67,7 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
+    NDFrameTb,
     RandomState,
     Renamer,
     Scalar,
@@ -198,12 +198,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
-
-    # Needed when having two different pairs of variables that should be
-    # allowed to have different NDFrame sub-classes (see _align_as_utc
-    # and align).
-    _NDFrameT = TypeVar("_NDFrameT", bound="NDFrame")
-
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -9303,7 +9297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(**_shared_doc_kwargs)
     def align(
         self: NDFrameT,
-        other: _NDFrameT,
+        other: NDFrameTb,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -9313,7 +9307,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[NDFrameT, _NDFrameT]:
+    ) -> tuple[NDFrameT, NDFrameTb]:
         """
         Align two objects on their axes with the specified join method.
 
@@ -9435,7 +9429,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     {c: self for c in other.columns}, **other._construct_axes_dict()
                 )
                 # error: Incompatible return value type (got "Tuple[DataFrame,
-                # DataFrame]", expected "Tuple[NDFrameT, _NDFrameT]")
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
                 return df._align_frame(  # type: ignore[return-value]
                     other,  # type: ignore[arg-type]
                     join=join,
@@ -9455,7 +9449,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     {c: other for c in self.columns}, **self._construct_axes_dict()
                 )
                 # error: Incompatible return value type (got "Tuple[NDFrameT,
-                # DataFrame]", expected "Tuple[NDFrameT, _NDFrameT]")
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
                 return self._align_frame(  # type: ignore[return-value]
                     df,
                     join=join,
@@ -9472,7 +9466,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
         if isinstance(other, ABCDataFrame):
             # error: Incompatible return value type (got "Tuple[NDFrameT, DataFrame]",
-            # expected "Tuple[NDFrameT, _NDFrameT]")
+            # expected "Tuple[NDFrameT, NDFrameTb]")
             return self._align_frame(  # type: ignore[return-value]
                 other,
                 join=join,
@@ -9486,7 +9480,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         elif isinstance(other, ABCSeries):
             # error: Incompatible return value type (got "Tuple[NDFrameT, Series]",
-            # expected "Tuple[NDFrameT, _NDFrameT]")
+            # expected "Tuple[NDFrameT, NDFrameTb]")
             return self._align_series(  # type: ignore[return-value]
                 other,
                 join=join,
@@ -12812,8 +12806,8 @@ min_count : int, default 0
 
 
 def _align_as_utc(
-    left: NDFrameT, right: _NDFrameT, join_index: Index | None
-) -> tuple[NDFrameT, _NDFrameT]:
+    left: NDFrameT, right: NDFrameTb, join_index: Index | None
+) -> tuple[NDFrameT, NDFrameTb]:
     """
     If we are aligning timezone-aware DatetimeIndexes and the timezones
     do not match, convert both to UTC.
