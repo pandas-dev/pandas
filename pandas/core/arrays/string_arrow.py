@@ -14,7 +14,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-
 from pandas.compat import pa_version_under7p0
 from pandas.util._exceptions import find_stack_level
 
