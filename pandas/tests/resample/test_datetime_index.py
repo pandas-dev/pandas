@@ -912,7 +912,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
 
     result_1 = ts_1.resample("D", origin="epoch").mean()
     result_2 = ts_1.resample("24H", origin="epoch").mean()
-    tm.assert_series_equal(result_1, result_2)
+    tm.assert_series_equal(result_1, result_2, check_freq=False)
 
     # check that we have the same behavior with epoch even if we are not timezone aware
     ts_no_tz = ts_1.tz_localize(None)
@@ -1809,7 +1809,9 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
 
     result1 = ser.resample(str(n1_) + freq1).mean()
     result2 = ser.resample(str(n2_) + freq2).mean()
-    tm.assert_series_equal(result1, result2)
+    assert result1.index.freq == str(n1_) + freq1
+    assert result2.index.freq == str(n2_) + freq2
+    tm.assert_series_equal(result1, result2, check_freq=False)
 
 
 @pytest.mark.parametrize(

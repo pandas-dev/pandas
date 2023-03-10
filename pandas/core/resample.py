@@ -1278,8 +1278,6 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             freq = self.freq
-            if isinstance(freq, Day) and obj.index.dtype.kind == "m":
-                freq = freq.n * 24 * to_offset("H")
             if not isinstance(freq, Tick) and obj.index.dtype.kind == "m":
                 # FIXME: wrong in the status quo!
                 freq = None
@@ -1530,6 +1528,19 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
+    freq = kwds.get("freq", None)
+    if freq is not None:
+        # TODO: same thing in get_resampler_for_grouping?
+        freq = to_offset(freq)
+        axis = kwds.get("axis", 0)
+        axis = obj._get_axis_number(axis)
+        ax = obj.axes[axis]
+        if isinstance(ax, TimedeltaIndex):
+            # TODO: could disallow/deprecate Day _object_ while still
+            #  allowing "D" string?
+            freq = freq._maybe_to_hours()
+            kwds["freq"] = freq
+
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
 
@@ -2288,8 +2299,7 @@ def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
     elif isinstance(index, TimedeltaIndex):
         if freq is not None:
             freq = to_offset(freq)  # TODO: do this earlier?
-        if isinstance(freq, Day):
-            freq = freq.n * 24 * to_offset("H")
+            freq = freq._maybe_to_hours()
         if not isinstance(freq, Tick):
             # FIXME: wrong in main
             freq = None

@@ -10,11 +10,6 @@ import numpy as np
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
-from pandas._libs.tslibs import (
-    Day,
-    Tick,
-    Timedelta,
-)
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -551,7 +546,7 @@ def assert_datetime_array_equal(
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
-        assert_freq_equal(left.freq, right.freq)
+        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
@@ -899,7 +894,7 @@ def assert_series_equal(
     if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
         lidx = left.index
         ridx = right.index
-        assert_freq_equal(lidx.freq, ridx.freq)
+        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
@@ -1019,21 +1014,6 @@ def assert_series_equal(
                 obj=f"{obj} category",
                 check_category_order=check_category_order,
             )
-
-
-def assert_freq_equal(left, right):
-    # TODO: sure we want to do this???
-    if isinstance(left, Day):
-        if isinstance(right, Day):
-            assert left == right
-        elif isinstance(right, Tick):
-            assert right == Timedelta(days=left.n)
-        else:
-            assert left == right, (left, right)
-    elif isinstance(right, Day):
-        assert_freq_equal(right, left)
-    else:
-        assert left == right
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1254,7 +1234,7 @@ def assert_equal(left, right, **kwargs) -> None:
     if isinstance(left, Index):
         assert_index_equal(left, right, **kwargs)
         if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
-            assert_freq_equal(left.freq, right.freq)
+            assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, DataFrame):
