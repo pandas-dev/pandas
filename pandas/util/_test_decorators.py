@@ -27,8 +27,8 @@ from __future__ import annotations
 
 import locale
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    TYPE_CHECKING
 )
 
 import numpy as np
@@ -38,6 +38,7 @@ from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas._typing import F
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
