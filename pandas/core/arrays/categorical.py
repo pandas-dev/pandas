@@ -2225,7 +2225,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         try:
             if not hasattr(other, "categories"):
-                other = other.dtype
+                other = other.dtype  # type: ignore[assignment]
             if set(self.categories) != set(other.categories):
                 return False
             if self.ordered != other.ordered:
