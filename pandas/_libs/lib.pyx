@@ -1379,7 +1379,7 @@ cdef class Seen:
         """
         Gets the current seen val and casts it to ret_val's type.
 
-        While this function does check types to make sure unsafe casting
+        While this function does check types to make sure downcasting
         doesn't happen for the most part, caller is responsible for making
         sure all int64 <-> uint64 casts are safe
         """
@@ -1387,7 +1387,8 @@ cdef class Seen:
             if curr_seen_t is float64_t or curr_seen_t is complex128_t:
                 ret_val[0] = <curr_seen_t>NaN
         if self.curr_seen is CurrSeen.bool_:
-            # There's nothing to downcast a bool to, it is 1 byte
+            # There's nothing to a bool can be downcast to, it is 1 byte
+            # so no checking
             ret_val[0] = <curr_seen_t>self.curr_seen_val.bool_
         elif self.curr_seen is CurrSeen.uint_:
             if sizeof(ret_val[0]) < sizeof(uint64_t):
