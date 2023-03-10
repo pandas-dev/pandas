@@ -5,17 +5,22 @@ from __future__ import annotations
 
 from functools import wraps
 import sys
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
-from pandas._typing import F
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
     ABCSeries,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import F
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
