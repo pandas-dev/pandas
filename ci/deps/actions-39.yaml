@@ -55,4 +55,4 @@ dependencies:
   - zstandard>=0.15.2
 
   - pip:
-    - tzdata>=2022.1
+    - tzdata>=2022.1; platform_system=="Windows"

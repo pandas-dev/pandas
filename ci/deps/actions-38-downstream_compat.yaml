@@ -68,5 +68,6 @@ dependencies:
   - pandas-gbq>=0.15.0
   - pyyaml
   - py
+
   - pip:
-    - tzdata>=2022.1
+    - tzdata>=2022.1; platform_system=="Windows"
