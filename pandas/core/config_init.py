@@ -873,7 +873,7 @@ with cf.config_prefix("styler"):
         "format.escape",
         None,
         styler_escape,
-        validator=is_one_of_factory([None, "html", "latex"]),
+        validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
     cf.register_option(

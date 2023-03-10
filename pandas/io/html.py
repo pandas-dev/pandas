@@ -21,11 +21,6 @@ from typing import (
 from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
-from pandas._typing import (
-    BaseBuffer,
-    FilePath,
-    ReadBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -51,6 +46,12 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        BaseBuffer,
+        FilePath,
+        ReadBuffer,
+    )
+
     from pandas import DataFrame
 
 #############

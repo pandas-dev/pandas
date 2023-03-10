@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import AxisInt
-
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
@@ -26,6 +24,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import AxisInt
+
     from pandas.core.arrays import Categorical
 
 

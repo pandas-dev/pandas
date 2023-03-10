@@ -350,7 +350,7 @@ some very expressive and fast data manipulations.
    df.stack().mean(1).unstack()
 
    # same result, another way
-   df.groupby(level=1, axis=1).mean()
+   df.T.groupby(level=1).mean()
 
    df.stack().groupby(level=1).mean()
 

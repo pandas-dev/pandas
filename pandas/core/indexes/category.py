@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
 )
@@ -8,11 +9,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -45,6 +41,12 @@ from pandas.core.indexes.extension import (
 
 from pandas.io.formats.printing import pprint_thing
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+    )
 _index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
