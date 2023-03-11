@@ -187,7 +187,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["first", "last"])
     def test_first_last(self, df, method):
-
         expected_columns = Index(
             [
                 "int",
@@ -206,7 +205,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-
         expected_columns_numeric = Index(["int", "float", "category_int"])
         expected_columns = Index(
             ["int", "float", "string", "category_int", "timedelta"]
@@ -219,7 +217,6 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
-
         expected_columns = Index(["int", "float", "category_int"])
         expected_columns_numeric = expected_columns
 
@@ -333,7 +330,6 @@ class TestGroupByNonCythonPaths:
 
 
 def test_cython_api2():
-
     # this takes the fast apply path
 
     # cumsum (GH5614)
@@ -356,8 +352,9 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    df = DataFrame(np.random.randn(1000))
-    df.values[::2] = np.nan
+    arr = np.random.randn(1000)
+    arr[::2] = np.nan
+    df = DataFrame(arr)
 
     labels = np.random.randint(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
@@ -927,7 +924,7 @@ def test_cummax(dtypes_for_minmax):
 def test_cummax_i8_at_implementation_bound():
     # the minimum value used to be treated as NPY_NAT+1 instead of NPY_NAT
     #  for int64 dtype GH#46382
-    ser = Series([pd.NaT.value + n for n in range(5)])
+    ser = Series([pd.NaT._value + n for n in range(5)])
     df = DataFrame({"A": 1, "B": ser, "C": ser.view("M8[ns]")})
     gb = df.groupby("A")
 
@@ -1138,7 +1135,9 @@ def test_frame_describe_multikey(tsframe):
     expected = pd.concat(desc_groups, axis=1)
     tm.assert_frame_equal(result, expected)
 
-    groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
     # reverting the change from https://github.com/pandas-dev/pandas/pull/35441/
@@ -1150,7 +1149,6 @@ def test_frame_describe_multikey(tsframe):
 
 
 def test_frame_describe_tupleindex():
-
     # GH 14848 - regression from 0.19.0 to 0.19.1
     df1 = DataFrame(
         {
@@ -1469,9 +1467,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func in ("backfill", "pad"):
-        pytest.skip("method is deprecated")
-    elif groupby_func == "corrwith":
+    if groupby_func == "corrwith":
         msg = "corrwith is not implemented on SeriesGroupBy"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
@@ -1509,6 +1505,12 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "sum",
         "diff",
         "pct_change",
+        "var",
+        "mean",
+        "median",
+        "min",
+        "max",
+        "prod",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -1555,11 +1557,10 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     elif dtype is object:
         msg = "|".join(
             [
-                "Cannot use numeric_only=True",
-                "called with numeric_only=True and dtype object",
+                "SeriesGroupBy.sem called with numeric_only=True and dtype object",
                 "Series.skew does not allow numeric_only=True with non-numeric",
-                "got an unexpected keyword argument 'numeric_only'",
-                "is not supported for object dtype",
+                "cum(sum|prod|min|max) is not supported for object dtype",
+                r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )
         with pytest.raises(TypeError, match=msg):

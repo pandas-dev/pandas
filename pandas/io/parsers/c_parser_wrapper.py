@@ -11,13 +11,10 @@ import warnings
 
 import numpy as np
 
+from pandas._config.config import get_option
+
 from pandas._libs import parsers
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    ReadCsvBuffer,
-)
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -41,6 +38,13 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        ReadCsvBuffer,
+    )
+
     from pandas import (
         Index,
         MultiIndex,
@@ -79,6 +83,11 @@ class CParserWrapper(ParserBase):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
+        dtype_backend = get_option("mode.dtype_backend")
+        kwds["dtype_backend"] = dtype_backend
+        if dtype_backend == "pyarrow":
+            # Fail here loudly instead of in cython after reading
+            import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
 
         self.unnamed_cols = self._reader.unnamed_cols
@@ -158,7 +167,6 @@ class CParserWrapper(ParserBase):
             if self._reader.leading_cols == 0 and is_index_col(
                 self.index_col  # type: ignore[has-type]
             ):
-
                 self._name_processed = True
                 (
                     index_names,
@@ -348,7 +356,10 @@ class CParserWrapper(ParserBase):
 
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
-            values = self._date_conv(values)
+            values = self._date_conv(
+                values,
+                col=self.index_names[index] if self.index_names is not None else None,
+            )
         return values
 
 
@@ -384,26 +395,23 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         dtype = dtypes.pop()
         if is_categorical_dtype(dtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
+        elif isinstance(dtype, ExtensionDtype):
+            # TODO: concat_compat?
+            array_type = dtype.construct_array_type()
+            # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
+            # has incompatible type "List[Union[ExtensionArray, ndarray]]";
+            # expected "Sequence[ExtensionArray]"
+            result[name] = array_type._concat_same_type(arrs)  # type: ignore[arg-type]
         else:
-            if isinstance(dtype, ExtensionDtype):
-                # TODO: concat_compat?
-                array_type = dtype.construct_array_type()
-                # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
-                # has incompatible type "List[Union[ExtensionArray, ndarray]]";
-                # expected "Sequence[ExtensionArray]"
-                result[name] = array_type._concat_same_type(
-                    arrs  # type: ignore[arg-type]
-                )
-            else:
-                # error: Argument 1 to "concatenate" has incompatible
-                # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
-                # ; expected "Union[_SupportsArray[dtype[Any]],
-                # Sequence[_SupportsArray[dtype[Any]]],
-                # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-                # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
-                # , Sequence[Sequence[Sequence[Sequence[
-                # _SupportsArray[dtype[Any]]]]]]]"
-                result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
+            # error: Argument 1 to "concatenate" has incompatible
+            # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
+            # ; expected "Union[_SupportsArray[dtype[Any]],
+            # Sequence[_SupportsArray[dtype[Any]]],
+            # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
+            # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
+            # , Sequence[Sequence[Sequence[Sequence[
+            # _SupportsArray[dtype[Any]]]]]]]"
+            result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
 
     if warning_columns:
         warning_names = ",".join(warning_columns)

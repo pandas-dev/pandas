@@ -87,7 +87,6 @@ class TestStata:
 
     @pytest.mark.parametrize("file", ["stata1_114", "stata1_117"])
     def test_read_dta1(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -105,7 +104,6 @@ class TestStata:
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self, datapath):
-
         expected = DataFrame.from_records(
             [
                 (
@@ -176,7 +174,6 @@ class TestStata:
         "file", ["stata3_113", "stata3_114", "stata3_115", "stata3_117"]
     )
     def test_read_dta3(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -192,7 +189,6 @@ class TestStata:
         "file", ["stata4_113", "stata4_114", "stata4_115", "stata4_117"]
     )
     def test_read_dta4(self, file, datapath):
-
         file = datapath("io", "data", "stata", f"{file}.dta")
         parsed = self.read_dta(file)
 
@@ -358,7 +354,6 @@ class TestStata:
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_encoding(self, version, datapath):
-
         # GH 4626, proper encoding handling
         raw = read_stata(datapath("io", "data", "stata", "stata1_encoding.dta"))
         encoded = read_stata(datapath("io", "data", "stata", "stata1_encoding.dta"))
@@ -481,7 +476,6 @@ class TestStata:
         "file", ["stata6_113", "stata6_114", "stata6_115", "stata6_117"]
     )
     def test_read_write_reread_dta15(self, file, datapath):
-
         expected = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
         expected["byte_"] = expected["byte_"].astype(np.int8)
         expected["int_"] = expected["int_"].astype(np.int16)
@@ -742,10 +736,8 @@ class TestStata:
             original.to_stata(path, write_index=False)
 
             with StataReader(path) as sr:
-                typlist = sr.typlist
-                variables = sr.varlist
-                formats = sr.fmtlist
-                for variable, fmt, typ in zip(variables, formats, typlist):
+                sr._ensure_open()  # The `_*list` variables are initialized here
+                for variable, fmt, typ in zip(sr._varlist, sr._fmtlist, sr._typlist):
                     assert int(variable[1:]) == int(fmt[1:-1])
                     assert int(variable[1:]) == typ
 
@@ -1897,6 +1889,44 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+def test_direct_read(datapath, monkeypatch):
+    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
+
+    # Test that opening a file path doesn't buffer the file.
+    with StataReader(file_path) as reader:
+        # Must not have been buffered to memory
+        assert not reader.read().empty
+        assert not isinstance(reader._path_or_buf, io.BytesIO)
+
+    # Test that we use a given fp exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with StataReader(fp) as reader:
+            assert not reader.read().empty
+            assert reader._path_or_buf is fp
+
+    # Test that we use a given BytesIO exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with io.BytesIO(fp.read()) as bio:
+            with StataReader(bio) as reader:
+                assert not reader.read().empty
+                assert reader._path_or_buf is bio
+
+
+def test_statareader_warns_when_used_without_context(datapath):
+    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
+    with tm.assert_produces_warning(
+        ResourceWarning,
+        match="without using a context manager",
+    ):
+        sr = StataReader(file_path)
+        sr.read()
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="is not part of the public API",
+    ):
+        sr.close()
+
+
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
@@ -2057,7 +2087,6 @@ def test_compression_roundtrip(compression):
     df.index.name = "index"
 
     with tm.ensure_clean() as path:
-
         df.to_stata(path, compression=compression)
         reread = read_stata(path, compression=compression, index_col="index")
         tm.assert_frame_equal(df, reread)

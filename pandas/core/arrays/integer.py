@@ -16,7 +16,7 @@ class IntegerDtype(NumericDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
+    IntegerDtype. For example, we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -63,10 +63,7 @@ class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
 
-    .. versionchanged:: 1.0.0
-
-       Now uses :attr:`pandas.NA` as the missing value rather
-       than :attr:`numpy.nan`.
+    Uses :attr:`pandas.NA` as the missing value.
 
     .. warning::
 
@@ -132,17 +129,16 @@ class IntegerArray(NumericArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
     # Fill values used for any/all
-    _truthy_value = 1
-    _falsey_value = 0
+    # Incompatible types in assignment (expression has type "int", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = 1  # type: ignore[assignment]
+    _falsey_value = 0  # type: ignore[assignment]
 
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
 
-.. versionchanged:: 1.0.0
-
-   Now uses :attr:`pandas.NA` as its missing value,
-   rather than :attr:`numpy.nan`.
+Uses :attr:`pandas.NA` as its missing value, rather than :attr:`numpy.nan`.
 
 Attributes
 ----------

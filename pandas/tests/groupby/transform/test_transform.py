@@ -82,7 +82,6 @@ def test_transform():
 
 
 def test_transform_fast():
-
     df = DataFrame({"id": np.arange(100000) / 3, "val": np.random.randn(100000)})
 
     grp = df.groupby("id")["val"]
@@ -150,7 +149,9 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res[col], agged[col])
 
     # group columns
-    grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
@@ -166,7 +167,10 @@ def test_transform_axis_1(request, transformation_func):
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+    result = gb.transform(transformation_func, *args)
     expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
@@ -188,13 +192,16 @@ def test_transform_axis_1_reducer(request, reduction_func):
         request.node.add_marker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+
+    result = gb.transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
 
 def test_transform_axis_ts(tsframe):
-
     # make sure that we are setting the axes
     # correctly when on axis=0 or 1
     # in the presence of a non-monotonic indexer
@@ -214,7 +221,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -227,7 +236,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -464,7 +475,6 @@ def test_transform_length():
 
 
 def test_transform_coercion():
-
     # 14457
     # when we are transforming be sure to not coerce
     # via assignment
@@ -478,7 +488,6 @@ def test_transform_coercion():
 
 
 def test_groupby_transform_with_int():
-
     # GH 3740, make sure that we might upcast on item-by-item transform
 
     # floats
@@ -708,6 +717,7 @@ def test_cython_transform_frame(op, args, targop):
             {"by": "string"},
         ]:  # {"by": 'string_missing'}]:
             # {"by": ['int','string']}]:
+            # TODO: remove or enable commented-out code
 
             gb = df.groupby(group_keys=False, **gb_target)
 
@@ -773,9 +783,12 @@ def test_transform_with_non_scalar_group():
         np.random.randint(1, 10, (4, 12)), columns=cols, index=["A", "C", "G", "T"]
     )
 
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(axis=1, level=1)
     msg = "transform must return a scalar value for each group.*"
     with pytest.raises(ValueError, match=msg):
-        df.groupby(axis=1, level=1).transform(lambda z: z.div(z.sum(axis=1), axis=0))
+        gb.transform(lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize(
@@ -895,7 +908,6 @@ def test_pad_stable_sorting(fill_method):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize(
     "freq",
     [
@@ -911,8 +923,8 @@ def test_pad_stable_sorting(fill_method):
 @pytest.mark.parametrize("periods", [1, -1])
 @pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
 @pytest.mark.parametrize("limit", [None, 1])
-def test_pct_change(test_series, freq, periods, fill_method, limit):
-    # GH  21200, 21621, 30463
+def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
+    # GH 21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
@@ -925,16 +937,17 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
 
-    if test_series:
-        result = df.groupby("key")["vals"].pct_change(
-            periods=periods, fill_method=fill_method, limit=limit, freq=freq
-        )
-        tm.assert_series_equal(result, expected)
+    gb = df.groupby("key")
+
+    if frame_or_series is Series:
+        gb = gb["vals"]
     else:
-        result = df.groupby("key").pct_change(
-            periods=periods, fill_method=fill_method, limit=limit, freq=freq
-        )
-        tm.assert_frame_equal(result, expected.to_frame("vals"))
+        expected = expected.to_frame("vals")
+
+    result = gb.pct_change(
+        periods=periods, fill_method=fill_method, limit=limit, freq=freq
+    )
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1099,18 +1112,15 @@ def test_transform_invalid_name_raises():
         g.transform("some_arbitrary_name")
 
 
-@pytest.mark.parametrize(
-    "obj",
-    [
-        DataFrame(
-            {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
-            index=["A", "B", "C", "D", "E", "F"],
-        ),
-        Series([0, 0, 0, 1, 1, 1], index=["A", "B", "C", "D", "E", "F"]),
-    ],
-)
-def test_transform_agg_by_name(request, reduction_func, obj):
+def test_transform_agg_by_name(request, reduction_func, frame_or_series):
     func = reduction_func
+
+    obj = DataFrame(
+        {"a": [0, 0, 0, 1, 1, 1], "b": range(6)},
+        index=["A", "B", "C", "D", "E", "F"],
+    )
+    if frame_or_series is Series:
+        obj = obj["a"]
 
     g = obj.groupby(np.repeat([0, 1], 3))
 
@@ -1447,18 +1457,15 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
 
 
 @pytest.mark.parametrize(
-    "func, series, expected_values",
+    "func, expected_values",
     [
-        (Series.sort_values, False, [5, 4, 3, 2, 1]),
-        (lambda x: x.head(1), False, [5.0, np.nan, 3, 2, np.nan]),
-        # SeriesGroupBy already has correct behavior
-        (Series.sort_values, True, [5, 4, 3, 2, 1]),
-        (lambda x: x.head(1), True, [5.0, np.nan, 3.0, 2.0, np.nan]),
+        (Series.sort_values, [5, 4, 3, 2, 1]),
+        (lambda x: x.head(1), [5.0, np.nan, 3, 2, np.nan]),
     ],
 )
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 @pytest.mark.parametrize("keys_in_index", [True, False])
-def test_transform_aligns(func, series, expected_values, keys, keys_in_index):
+def test_transform_aligns(func, frame_or_series, expected_values, keys, keys_in_index):
     # GH#45648 - transform should align with the input's index
     df = DataFrame({"a1": [1, 1, 3, 2, 2], "b": [5, 4, 3, 2, 1]})
     if "a2" in keys:
@@ -1467,12 +1474,12 @@ def test_transform_aligns(func, series, expected_values, keys, keys_in_index):
         df = df.set_index(keys, append=True)
 
     gb = df.groupby(keys)
-    if series:
+    if frame_or_series is Series:
         gb = gb["b"]
 
     result = gb.transform(func)
     expected = DataFrame({"b": expected_values}, index=df.index)
-    if series:
+    if frame_or_series is Series:
         expected = expected["b"]
     tm.assert_equal(result, expected)
 

@@ -143,7 +143,6 @@ class TestTableOrient:
         )
 
     def test_build_date_series(self, da):
-
         s = Series(da, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -169,7 +168,6 @@ class TestTableOrient:
         assert result == expected
 
     def test_build_decimal_series(self, dc):
-
         s = Series(dc, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -245,7 +243,6 @@ class TestTableOrient:
         assert result == expected
 
     def test_to_json(self, df):
-
         df = df.copy()
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")

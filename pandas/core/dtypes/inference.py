@@ -119,6 +119,7 @@ def is_file_like(obj) -> bool:
     Examples
     --------
     >>> import io
+    >>> from pandas.api.types import is_file_like
     >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
@@ -146,6 +147,8 @@ def is_re(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re
+    >>> import re
     >>> is_re(re.compile(".*"))
     True
     >>> is_re("foo")
@@ -169,6 +172,7 @@ def is_re_compilable(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re_compilable
     >>> is_re_compilable(".*")
     True
     >>> is_re_compilable(1)
@@ -275,6 +279,7 @@ def is_dict_like(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_dict_like
     >>> is_dict_like({1: 2})
     True
     >>> is_dict_like([1, 2, 3])
@@ -308,6 +313,7 @@ def is_named_tuple(obj) -> bool:
     Examples
     --------
     >>> from collections import namedtuple
+    >>> from pandas.api.types import is_named_tuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -336,6 +342,7 @@ def is_hashable(obj) -> bool:
     Examples
     --------
     >>> import collections
+    >>> from pandas.api.types import is_hashable
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True

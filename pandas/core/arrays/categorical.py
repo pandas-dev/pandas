@@ -47,7 +47,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_any_numeric_dtype,
+    is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -73,7 +73,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
-    notna,
 )
 
 from pandas.core import (
@@ -88,7 +87,6 @@ from pandas.core.accessor import (
 from pandas.core.algorithms import (
     factorize,
     take_nd,
-    unique1d,
 )
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
@@ -367,7 +365,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         fastpath: bool = False,
         copy: bool = True,
     ) -> None:
-
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
         )
@@ -596,7 +593,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if is_any_numeric_dtype(dtype.categories):
+            if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif is_datetime64_dtype(dtype.categories):
                 cats = to_datetime(inferred_categories, errors="coerce")
@@ -1135,14 +1132,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [NaN, 'c', 'b', 'c', NaN]
         Categories (2, object): ['b', 'c']
         """
+        from pandas import Index
+
         if not is_list_like(removals):
             removals = [removals]
 
-        removals = {x for x in set(removals) if notna(x)}
+        removals = Index(removals).unique().dropna()
         new_categories = self.dtype.categories.difference(removals)
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
+            not_included = set(not_included)
             raise ValueError(f"removals must all be in old categories: {not_included}")
 
         return self.set_categories(new_categories, ordered=self.ordered, rename=False)
@@ -1349,7 +1349,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -1752,7 +1752,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif is_any_numeric_dtype(self.categories):
+        elif is_any_real_numeric_dtype(self.categories):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
@@ -1761,6 +1761,49 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hash a Categorical by hashing its categories, and then mapping the codes
+        to the hashes.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+            Ignored for Categorical.
+
+        Returns
+        -------
+        np.ndarray[uint64]
+        """
+        # Note we ignore categorize, as we are already Categorical.
+        from pandas.core.util.hashing import hash_array
+
+        # Convert ExtensionArrays to ndarrays
+        values = np.asarray(self.categories._values)
+        hashed = hash_array(values, encoding, hash_key, categorize=False)
+
+        # we have uint64, as we don't directly support missing values
+        # we don't want to use take_nd which will coerce to float
+        # instead, directly construct the result with a
+        # max(np.uint64) as the missing value indicator
+        #
+        # TODO: GH#15362
+
+        mask = self.isna()
+        if len(hashed):
+            result = hashed.take(self._codes)
+        else:
+            result = np.zeros(len(mask), dtype="uint64")
+
+        if mask.any():
+            result[mask] = lib.u8max
+
+        return result
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
@@ -1987,10 +2030,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Only ordered `Categoricals` have a minimum!
 
-        .. versionchanged:: 1.0.0
-
-           Returns an NA value on empty arrays
-
         Raises
         ------
         TypeError
@@ -1998,7 +2037,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        min : the minimum of this `Categorical`
+        min : the minimum of this `Categorical`, NA value if empty
         """
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_min((), kwargs)
@@ -2023,10 +2062,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Only ordered `Categoricals` have a maximum!
 
-        .. versionchanged:: 1.0.0
-
-           Returns an NA value on empty arrays
-
         Raises
         ------
         TypeError
@@ -2034,7 +2069,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        max : the maximum of this `Categorical`
+        max : the maximum of this `Categorical`, NA if array is empty
         """
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_max((), kwargs)
@@ -2096,8 +2131,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        unique_codes = unique1d(self.codes)
-        return self._from_backing_data(unique_codes)
+        # pylint: disable=useless-parent-delegation
+        return super().unique()
 
     def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
         # make sure we have correct itemsize for resulting codes

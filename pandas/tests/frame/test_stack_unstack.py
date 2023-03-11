@@ -76,7 +76,6 @@ class TestDataFrameReshape:
         tm.assert_series_equal(res, expected)
 
     def test_unstack_fill(self):
-
         # GH #9746: fill_value keyword argument for Series
         # and DataFrame unstack
 
@@ -123,7 +122,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame(self):
-
         # From a dataframe
         rows = [[1, 2], [3, 4], [5, 6], [7, 8]]
         df = DataFrame(rows, columns=list("AB"), dtype=np.int32)
@@ -160,7 +158,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_datetime(self):
-
         # Test unstacking with date times
         dv = date_range("2012-01-01", periods=4).values
         data = Series(dv)
@@ -183,7 +180,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_timedelta(self):
-
         # Test unstacking with time deltas
         td = [Timedelta(days=i) for i in range(4)]
         data = Series(td)
@@ -206,7 +202,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_period(self):
-
         # Test unstacking with period
         periods = [
             Period("2012-01"),
@@ -237,7 +232,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_fill_frame_categorical(self):
-
         # Test unstacking with categorical
         data = Series(["a", "b", "c", "a"], dtype="category")
         data.index = MultiIndex.from_tuples(
@@ -557,7 +551,6 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(old_data, data)
 
     def test_unstack_dtypes(self):
-
         # GH 2929
         rows = [[1, 1, 3, 4], [1, 2, 3, 4], [2, 1, 3, 4], [2, 2, 3, 4]]
 
@@ -1152,6 +1145,27 @@ class TestDataFrameReshape:
         stacked_codes = np.asarray(stacked.index.codes)
         expected_codes = np.asarray(new_index.codes)
         tm.assert_numpy_array_equal(stacked_codes, expected_codes)
+
+    @pytest.mark.parametrize(
+        "vals1, vals2, dtype1, dtype2, expected_dtype",
+        [
+            ([1, 2], [3.0, 4.0], "Int64", "Float64", "Float64"),
+            ([1, 2], ["foo", "bar"], "Int64", "string", "object"),
+        ],
+    )
+    def test_stack_multi_columns_mixed_extension_types(
+        self, vals1, vals2, dtype1, dtype2, expected_dtype
+    ):
+        # GH45740
+        df = DataFrame(
+            {
+                ("A", 1): Series(vals1, dtype=dtype1),
+                ("A", 2): Series(vals2, dtype=dtype2),
+            }
+        )
+        result = df.stack()
+        expected = df.astype(object).stack().astype(expected_dtype)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("level", [0, 1])
     def test_unstack_mixed_extension_types(self, level):
@@ -2188,9 +2202,18 @@ Thu,Lunch,Yes,51.51,17"""
         df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
         result = df.stack("station")
 
-        # TODO(EA2D): we get object dtype because DataFrame.values can't
-        #  be an EA
-        expected = df.astype(object).stack("station")
+        expected = DataFrame(
+            {
+                "r": pd.array(
+                    [50.0, 10.0, 10.0, 9.0, 305.0, 111.0], dtype=pd.Float64Dtype()
+                ),
+                "t_mean": pd.array(
+                    [226, 215, 215, 220, 232, 220], dtype=pd.Int64Dtype()
+                ),
+            },
+            index=MultiIndex.from_product([index, columns.levels[0]]),
+        )
+        expected.columns.name = "element"
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_mixed_level_names(self):

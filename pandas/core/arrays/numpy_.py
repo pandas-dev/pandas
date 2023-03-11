@@ -16,7 +16,12 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
@@ -137,7 +142,7 @@ class PandasArray(
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
 
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -184,6 +189,17 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
+
+    def astype(self, dtype, copy: bool = True):
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        result = astype_array(self._ndarray, dtype=dtype, copy=copy)
+        return result
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)

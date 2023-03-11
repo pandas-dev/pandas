@@ -116,8 +116,10 @@ class FloatingArray(NumericArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = np.nan
     # Fill values used for any/all
-    _truthy_value = 1.0
-    _falsey_value = 0.0
+    # Incompatible types in assignment (expression has type "float", base class
+    # "BaseMaskedArray" defined the type as "<typing special form>")
+    _truthy_value = 1.0  # type: ignore[assignment]
+    _falsey_value = 0.0  # type: ignore[assignment]
 
 
 _dtype_docstring = """

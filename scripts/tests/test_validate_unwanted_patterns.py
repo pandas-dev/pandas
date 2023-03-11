@@ -2,7 +2,7 @@ import io
 
 import pytest
 
-from .. import validate_unwanted_patterns
+from scripts import validate_unwanted_patterns
 
 
 class TestBarePytestRaises:
@@ -151,48 +151,6 @@ class TestBarePytestRaises:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
         assert result == expected
-
-
-@pytest.mark.parametrize(
-    "data, expected",
-    [
-        (
-            'msg = ("bar " "baz")',
-            [
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                )
-            ],
-        ),
-        (
-            'msg = ("foo " "bar " "baz")',
-            [
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                ),
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                ),
-            ],
-        ),
-    ],
-)
-def test_strings_to_concatenate(data, expected):
-    fd = io.StringIO(data.strip())
-    result = list(validate_unwanted_patterns.strings_to_concatenate(fd))
-    assert result == expected
 
 
 class TestStringsWithWrongPlacedWhitespace:

@@ -8,18 +8,12 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.compat import IS64
+from pandas.errors import InvalidIndexError
 from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import (
-    is_any_numeric_dtype,
+    is_any_real_numeric_dtype,
     is_numeric_dtype,
     is_object_dtype,
 )
@@ -67,22 +61,6 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
             index[None, :]
-
-    def test_argsort(self, index):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_argsort(index)
-
-    def test_numpy_argsort(self, index):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_numpy_argsort(index)
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -402,7 +380,6 @@ class TestIndex(Base):
         assert not Index(["a", "b", "c"]).equals(comp)
 
     def test_identical(self):
-
         # index
         i1 = Index(["a", "b", "c"])
         i2 = Index(["a", "b", "c"])
@@ -659,7 +636,7 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_numeric(self, index, expected):
-        assert is_any_numeric_dtype(index) is expected
+        assert is_any_real_numeric_dtype(index) is expected
 
     @pytest.mark.parametrize(
         "index, expected",
@@ -1284,6 +1261,13 @@ class TestIndex(Base):
         expected = Index([5, 4, 3, 2, 1])
         result = index.sortlevel(ascending=False)
         tm.assert_index_equal(result[0], expected)
+
+    def test_sortlevel_na_position(self):
+        # GH#51612
+        idx = Index([1, np.nan])
+        result = idx.sortlevel(na_position="first")[0]
+        expected = Index([np.nan, 1])
+        tm.assert_index_equal(result, expected)
 
 
 class TestMixedIntIndex(Base):
