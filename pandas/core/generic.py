@@ -8912,6 +8912,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
+
         if axis is not lib.no_default:
             axis = self._get_axis_number(axis)
             if axis == 1:
