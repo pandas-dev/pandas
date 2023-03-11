@@ -11,7 +11,7 @@ def generate_env(template_file, outfile, python_version, pyarrow_version, bad_de
                 if bad_dep in line:
                     append = False
                     break
-            if pyarrow_version not in [None, ""] and "pyarrow" in line:
+            if pyarrow_version not in [None, "latest"] and "pyarrow" in line:
                 line = line.split("pyarrow")[
                     0
                 ]  # Keep the stuff before we specify the version

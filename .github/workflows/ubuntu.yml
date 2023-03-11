@@ -29,7 +29,7 @@ jobs:
       matrix:
         python_version: ["3.8", "3.9", "3.10", "3.11"]
         pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["8", ""] # Empty string means to test latest
+        pyarrow_version: ["8", "latest"] # Empty string means to test latest
         pandas_ci: [1]
         include:
           - name: "Downstream Compat"
