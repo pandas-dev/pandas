@@ -978,7 +978,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO 8610.
+        Return the time formatted according to ISO 8601.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
