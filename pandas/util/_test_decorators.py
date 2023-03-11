@@ -26,14 +26,18 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 from __future__ import annotations
 
 import locale
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
 import pytest
 
 from pandas._config import get_option
 
-from pandas._typing import F
+if TYPE_CHECKING:
+    from pandas._typing import F
 from pandas.compat import (
     IS64,
     is_platform_windows,

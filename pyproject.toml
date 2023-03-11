@@ -295,7 +295,6 @@ exclude = [
 # TCH to be enabled gradually
 "pandas/core/arrays/*" = ["TCH"]
 "pandas/core/nanops.py" = ["TCH"]
-"pandas/util/*" = ["TCH"]
 "pandas/_libs/*" = ["TCH"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
