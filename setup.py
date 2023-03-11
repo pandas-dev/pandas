@@ -494,6 +494,10 @@ ext_data = {
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
             "pandas/_libs/src/pd_parser.h",
+        ]
+        + tseries_depends,
+        "sources": [
+            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
         ],
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
