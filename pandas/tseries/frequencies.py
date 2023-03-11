@@ -45,6 +45,13 @@ from pandas.core.algorithms import unique
 
 if TYPE_CHECKING:
     from pandas._typing import npt
+
+    from pandas import (
+        DatetimeIndex,
+        Series,
+        TimedeltaIndex,
+    )
+    from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
@@ -105,7 +112,9 @@ def get_period_alias(offset_str: str) -> str | None:
 # Period codes
 
 
-def infer_freq(index) -> str | None:
+def infer_freq(
+    index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
+) -> str | None:
     """
     Infer the most likely frequency given the input index.
 
@@ -169,7 +178,10 @@ def infer_freq(index) -> str | None:
             raise TypeError(
                 f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
-        index = index._values
+        # error: Incompatible types in assignment (expression has type
+        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
+        # "Union[DatetimeIndex, TimedeltaIndex, Series, DatetimeLikeArrayMixin]")
+        index = index._values  # type: ignore[assignment]
 
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
