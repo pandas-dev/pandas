@@ -2091,7 +2091,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             #  is a Tick offset.
             if self.dtype.kind == "m" and not isinstance(freq, Tick):
                 raise ValueError("TimedeltaIndex/Array freq must be a Tick")
-            pass
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
