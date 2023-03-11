@@ -225,7 +225,7 @@ Styler
 
 Other
 ^^^^^
-- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`??`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`51896`)
 -
 
 .. ***DO NOT USE THIS SECTION***

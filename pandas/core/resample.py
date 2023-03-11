@@ -1827,6 +1827,7 @@ class TimeGrouper(Grouper):
             )
 
         if not isinstance(self.freq, Tick):
+            # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
                 f"e.g. '24H' or '3D', not {self.freq}"
