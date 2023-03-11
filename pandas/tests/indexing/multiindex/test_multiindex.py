@@ -209,10 +209,8 @@ class TestMultiIndexBasic:
 
     def test_multiindex_dtype_preservation(self):
         # GH51261
-        df = DataFrame(
-            ["value"],
-            columns=MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"]),
-        ).astype("category")
+        columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
+        df = DataFrame(["value"], columns=columns).astype("category")
         assert (df["A"].dtypes == "category").all()
 
         # geopandas 1763 analogue
