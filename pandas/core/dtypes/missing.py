@@ -290,7 +290,10 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
-    elif is_string_or_object_np_dtype(values.dtype) or isinstance(values, np.recarray):
+    elif isinstance(values, np.recarray):
+        # GH 48526
+        result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
+    elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
@@ -317,6 +320,14 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
             result = result.reshape(values.shape)
+
+    return result
+
+
+def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
+    result = np.zeros(values.shape, dtype=bool)
+    for i, record in enumerate(values):
+        result[i] = libmissing.isnaobj(np.array(record), inf_as_na=inf_as_na)
 
     return result
 
