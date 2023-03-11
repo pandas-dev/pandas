@@ -58,8 +58,8 @@ with the dtype.
 .. warning::
 
    Currently :meth:`pandas.array` and :meth:`pandas.Series` use different
-   rules for dtype inference. :meth:`pandas.array` will infer a nullable-
-   integer dtype
+   rules for dtype inference. :meth:`pandas.array` will infer a
+   nullable-integer dtype
 
    .. ipython:: python
 

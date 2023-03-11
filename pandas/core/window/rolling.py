@@ -26,13 +26,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    QuantileInterpolation,
-    WindowingRankType,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
@@ -99,6 +92,14 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -1204,7 +1205,11 @@ class Window(BaseWindow):
             def calc(x):
                 additional_nans = np.array([np.nan] * offset)
                 x = np.concatenate((x, additional_nans))
-                return func(x, window, self.min_periods or len(window))
+                return func(
+                    x,
+                    window,
+                    self.min_periods if self.min_periods is not None else len(window),
+                )
 
             with np.errstate(all="ignore"):
                 # Our weighted aggregations return memoryviews

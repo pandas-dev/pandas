@@ -1893,7 +1893,11 @@ class Index(IndexOpsMixin, PandasObject):
         return 0
 
     def sortlevel(
-        self, level=None, ascending: bool | list[bool] = True, sort_remaining=None
+        self,
+        level=None,
+        ascending: bool | list[bool] = True,
+        sort_remaining=None,
+        na_position: str_t = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -1904,6 +1908,11 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         ascending : bool, default True
             False to sort in descending order
+        na_position : {'first' or 'last'}, default 'first'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 2.1.0
 
         level, sort_remaining are compat parameters
 
@@ -1925,7 +1934,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(ascending, bool):
             raise TypeError("ascending must be a bool value")
 
-        return self.sort_values(return_indexer=True, ascending=ascending)
+        return self.sort_values(
+            return_indexer=True, ascending=ascending, na_position=na_position
+        )
 
     def _get_level_values(self, level) -> Index:
         """
@@ -5153,9 +5164,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
             # pessimization com.is_bool_indexer and ndim checks.
-            result = getitem(key)
-            # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self._name)
+            return self._getitem_slice(key)
 
         if com.is_bool_indexer(key):
             # if we have list[bools, length=1e5] then doing this check+convert
@@ -5181,7 +5190,12 @@ class Index(IndexOpsMixin, PandasObject):
         Fastpath for __getitem__ when we know we have a slice.
         """
         res = self._data[slobj]
-        return type(self)._simple_new(res, name=self._name)
+        result = type(self)._simple_new(res, name=self._name)
+        if "_engine" in self._cache:
+            reverse = slobj.step is not None and slobj.step < 0
+            result._engine._update_from_sliced(self._engine, reverse=reverse)  # type: ignore[union-attr]  # noqa: E501
+
+        return result
 
     @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
@@ -5586,7 +5600,7 @@ class Index(IndexOpsMixin, PandasObject):
                 items=idx, ascending=ascending, na_position=na_position, key=key
             )
         else:
-            _as = idx.argsort()
+            _as = idx.argsort(na_position=na_position)
             if not ascending:
                 _as = _as[::-1]
 

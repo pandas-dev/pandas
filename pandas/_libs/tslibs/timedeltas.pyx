@@ -54,11 +54,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
@@ -1106,7 +1109,7 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self) -> float:
         """Total seconds in the duration."""
-        # We need to override bc we overrided days/seconds/microseconds
+        # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
