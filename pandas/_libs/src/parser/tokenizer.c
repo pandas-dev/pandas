@@ -664,9 +664,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
 
 // applied when in a field
-#define IS_DELIMITER(c)                                   \
-    ((!self->delim_whitespace && c == self->delimiter) || \
-     (self->delim_whitespace && isblank(c)))
+#define IS_DELIMITER(c) (c == self->delimiter)
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
