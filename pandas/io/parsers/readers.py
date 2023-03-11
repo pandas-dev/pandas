@@ -402,9 +402,13 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
     Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable extension dtypes or pyarrow dtypes.
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
+
+    The dtype_backends are still experimential.
 
     .. versionadded:: 2.0
 
@@ -1279,9 +1283,13 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 

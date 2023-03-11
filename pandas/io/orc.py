@@ -63,7 +63,11 @@ def read_orc(
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
     dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 

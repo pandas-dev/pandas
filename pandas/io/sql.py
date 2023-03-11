@@ -297,9 +297,13 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -429,9 +433,13 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -556,9 +564,13 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -1585,9 +1597,13 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy
+        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
             Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable extension dtypes or pyarrow dtypes.
+            arrays, nullable dtypes are used for all dtypes that have a nullable
+            implementation when "numpy_nullable" is set, pyarrow is used for all
+            dtypes if "pyarrow" is set.
+
+            The dtype_backends are still experimential.
 
             .. versionadded:: 2.0
 
