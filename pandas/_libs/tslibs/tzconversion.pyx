@@ -34,10 +34,14 @@ from pandas._libs.tslibs.dtypes cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dt64,
 )
+
+import_pandas_datetime()
+
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     is_fixed_offset,

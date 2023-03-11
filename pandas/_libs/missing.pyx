@@ -34,7 +34,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_timedelta64_value,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 

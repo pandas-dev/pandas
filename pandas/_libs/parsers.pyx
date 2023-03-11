@@ -229,9 +229,9 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        float64_t (*double_converter)(const char *, char **,
-                                      char, char, char,
-                                      int, int *, int *) nogil
+        double (*double_converter)(const char *, char **,
+                                   char, char, char,
+                                   int, int *, int *) nogil
 
         #  error handling
         char *warn_msg
@@ -248,6 +248,16 @@ cdef extern from "parser/tokenizer.h":
         int seen_sint
         int seen_uint
         int seen_null
+
+    void COLITER_NEXT(coliter_t, const char *) nogil
+
+cdef extern from "pd_parser.h":
+    void *new_rd_source(object obj) except NULL
+
+    int del_rd_source(void *src)
+
+    void* buffer_rd_bytes(void *source, size_t nbytes,
+                          size_t *bytes_read, int *status, const char *encoding_errors)
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -279,26 +289,49 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal,
+    double xstrtod(const char *p, char **q, char decimal,
+                   char sci, char tsep, int skip_trailing,
+                   int *error, int *maybe_int) nogil
+    double precise_xstrtod(const char *p, char **q, char decimal,
+                           char sci, char tsep, int skip_trailing,
+                           int *error, int *maybe_int) nogil
+    double round_trip(const char *p, char **q, char decimal,
                       char sci, char tsep, int skip_trailing,
                       int *error, int *maybe_int) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal,
-                              char sci, char tsep, int skip_trailing,
-                              int *error, int *maybe_int) nogil
-    float64_t round_trip(const char *p, char **q, char decimal,
-                         char sci, char tsep, int skip_trailing,
-                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
+    void PandasParser_IMPORT()
 
-cdef extern from "parser/io.h":
-    void *new_rd_source(object obj) except NULL
+PandasParser_IMPORT
 
-    int del_rd_source(void *src)
+# When not invoked directly but rather assigned as a function,
+# cdef extern'ed declarations seem to leave behind an undefined symbol
+cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
+                            char sci, char tsep, int skip_trailing,
+                            int *error, int *maybe_int) nogil:
+    return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
-    void* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+
+cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
+                                    char sci, char tsep, int skip_trailing,
+                                    int *error, int *maybe_int) nogil:
+    return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef double round_trip_wrapper(const char *p, char **q, char decimal,
+                               char sci, char tsep, int skip_trailing,
+                               int *error, int *maybe_int) nogil:
+    return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
+                                   size_t *bytes_read, int *status,
+                                   const char *encoding_errors) noexcept:
+    return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
+
+cdef int del_rd_source_wrapper(void *src) noexcept:
+    return del_rd_source(src)
 
 
 cdef class TextReader:
@@ -487,11 +520,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            self.parser.double_converter = round_trip
+            self.parser.double_converter = round_trip_wrapper
         elif float_precision == "legacy":
-            self.parser.double_converter = xstrtod
+            self.parser.double_converter = xstrtod_wrapper
         elif float_precision == "high" or float_precision is None:
-            self.parser.double_converter = precise_xstrtod
+            self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "
                              f"{float_precision}")
@@ -610,8 +643,8 @@ cdef class TextReader:
 
         ptr = new_rd_source(source)
         self.parser.source = ptr
-        self.parser.cb_io = &buffer_rd_bytes
-        self.parser.cb_cleanup = &del_rd_source
+        self.parser.cb_io = buffer_rd_bytes_wrapper
+        self.parser.cb_cleanup = del_rd_source_wrapper
 
     cdef _get_header(self, list prelim_header):
         # header is now a list of lists, so field_count should use header[0]

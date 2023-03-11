@@ -9,8 +9,8 @@ The full license is in the LICENSE file, distributed with this software.
 // but which don't interact with JSON objects directly
 
 #include "date_conversions.h"
-#include <../../../tslibs/src/datetime/np_datetime.h>
-#include <../../../tslibs/src/datetime/np_datetime_strings.h>
+#include "np_datetime.h"
+#include "np_datetime_strings.h"
 
 /*
  * Function: scaleNanosecToUnit

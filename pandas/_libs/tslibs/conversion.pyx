@@ -41,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
+    import_pandas_datetime,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -49,6 +50,8 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dtstruct,
     string_to_dts,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 

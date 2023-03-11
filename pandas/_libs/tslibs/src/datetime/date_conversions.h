@@ -5,8 +5,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
-#define PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
+#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_DATE_CONVERSIONS_H_
+#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_DATE_CONVERSIONS_H_
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -36,4 +36,4 @@ npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base);
 
 char *int64ToIsoDuration(int64_t value, size_t *len);
 
-#endif  // PANDAS__LIBS_SRC_UJSON_PYTHON_DATE_CONVERSIONS_H_
+#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_DATE_CONVERSIONS_H_
