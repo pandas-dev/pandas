@@ -424,6 +424,24 @@ class TestGetIndexer:
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
+    def test_get_indexer_with_backfill(self):
+        # GH#51503
+        dt = Timestamp.now()
+        h = Timedelta("1h")
+
+        # 3 simple interval ranges, with a big gap between 2nd and 3rd
+        intervals = IntervalIndex.from_arrays(
+            [dt, dt + h, dt + 10 * h], [dt + h, dt + 2 * h, dt + 11 * h], closed="left"
+        )
+
+        result = intervals.get_indexer([dt + 5 * h], method="bfill")
+        # result = intervals.get_indexer([dt + 5 * h])
+        # result = intervals.get_indexer([dt + 10 * h], method="nearest")
+
+        expected = np.array([2], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):

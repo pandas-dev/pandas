@@ -693,12 +693,34 @@ class IntervalIndex(ExtensionIndex):
             # we should always have self._should_partial_index(target) here
             target = self._maybe_convert_i8(target)
             indexer = self._engine.get_indexer(target.values)
+
+            if indexer == -1 and method is not None:
+                # GH#51503
+                indexer = self._get_indexer_ffill(target, method)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # we should always have self._should_partial_index(target) here
             return self._get_indexer_pointwise(target)[0]
 
         return ensure_platform_int(indexer)
+
+    def _get_indexer_ffill(self, target, method):
+        # GH#51503
+        if method == "bfill" or method == "backfill":
+            temp = []
+            for i in range(len(self)):
+                # not sure to call this method for every value
+                t = self._maybe_cast_listlike_indexer([self[i]])
+                temp.append(self._maybe_convert_i8(t))
+
+            for i in range(len(temp)):
+                # TODO: Comparing is not written professionally. Needs more review
+                if target[0] < temp[i].values[0].left:
+                    return [i]
+
+            return -1
+        else:
+            return -1
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(
