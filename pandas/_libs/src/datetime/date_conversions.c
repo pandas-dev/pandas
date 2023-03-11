@@ -9,8 +9,8 @@ The full license is in the LICENSE file, distributed with this software.
 // but which don't interact with JSON objects directly
 
 #include "pandas/datetime/date_conversions.h"
-#include "pandas/vendored/np_datetime/np_datetime.h"
-#include "pandas/vendored/np_datetime/np_datetime_strings.h"
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
 
 /*
  * Function: scaleNanosecToUnit

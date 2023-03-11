@@ -122,8 +122,8 @@ class CleanCommand(Command):
         ujson_python = pjoin(ujson, "python")
         ujson_lib = pjoin(ujson, "lib")
         self._clean_exclude = [
-            pjoin(vendored, "np_datetime", "np_datetime.c"),
-            pjoin(vendored, "np_datetime", "np_datetime_strings.c"),
+            pjoin(vendored, "numpy", "datetime", "np_datetime.c"),
+            pjoin(vendored, "numpy", "datetime", "np_datetime_strings.c"),
             pjoin(dt, "date_conversions.c"),
             pjoin(parser, "tokenizer.c"),
             pjoin(parser, "io.c"),
@@ -634,8 +634,8 @@ pd_dt_ext = Extension(
     depends=["pandas/_libs/tslibs/datetime/pd_datetime.h"],
     sources=(
         [
-            "pandas/_libs/src/vendored/np_datetime/np_datetime.c",
-            "pandas/_libs/src/vendored/np_datetime/np_datetime_strings.c",
+            "pandas/_libs/src/vendored/numpy/datetime/np_datetime.c",
+            "pandas/_libs/src/vendored/numpy/datetime/np_datetime_strings.c",
             "pandas/_libs/src/datetime/date_conversions.c",
             "pandas/_libs/src/datetime/pd_datetime.c",
         ]
