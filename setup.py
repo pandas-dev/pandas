@@ -465,6 +465,7 @@ ext_data = {
         "pyxfile": "_libs/interval",
         "depends": _pxi_dep["interval"],
     },
+    "_libs.join": {"pyxfile": "_libs/join"},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
