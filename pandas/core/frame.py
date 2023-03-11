@@ -3827,12 +3827,8 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
-            if self._is_mixed_type:
-                result = self.reindex(columns=new_columns)
-                result.columns = result_columns
-            else:
-                result = self.iloc[:, loc]
-                result.columns = result_columns
+            result = self.reindex(columns=new_columns)
+            result.columns = result_columns
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
@@ -3848,7 +3844,6 @@ class DataFrame(NDFrame, OpsMixin):
                     top = top[0]
                 if top == "":
                     result = result[""]
-                    # result = result.squeeze("columns") # TODO iloc?
                     if isinstance(result, Series):
                         result = self._constructor_sliced(
                             result, index=self.index, name=key
