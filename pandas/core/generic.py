@@ -11911,22 +11911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        if axis is not lib.no_default:
-            axis = self._get_axis_number(axis)
-            if axis == 1:
-                warnings.warn(
-                    "DataFrame.rolling with axis=1 is deprecated. Do "
-                    "`frame.T.rolling(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "The 'axis' keyword in DataFrame.rolling is deprecated and "
-                    "will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+        axis = self._get_axis_number(axis)
 
         if win_type is not None:
             return Window(

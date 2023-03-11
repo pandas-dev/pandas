@@ -5571,7 +5571,6 @@ Keep all original rows and also all original values
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
-        print(f'dummy axis={axis}')
         if axis is not lib.no_default:
             warnings.warn(
                 "resample axis keyword is deprecated and will be removed in a "
@@ -5582,8 +5581,6 @@ Keep all original rows and also all original values
             )
         else:
             axis = 0
-        print(f'axis={axis}')
-        print(f'super()={super()}')
         return super().resample(
             rule=rule,
             axis=axis,

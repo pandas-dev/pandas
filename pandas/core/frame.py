@@ -11419,8 +11419,6 @@ Parrot 2  Parrot       24.0
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
-        print(f'axis={axis}')
-        print(f'super()={super().resample}')
         return super().resample(
             rule=rule,
             axis=axis,

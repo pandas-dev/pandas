@@ -20,9 +20,6 @@ from typing import (
 )
 
 import numpy as np
-import warnings
-from pandas.util._exceptions import find_stack_level
-from pandas._libs import lib
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -125,7 +122,7 @@ class BaseWindow(SelectionMixin):
         min_periods: int | None = None,
         center: bool | None = False,
         win_type: str | None = None,
-        axis: Axis | lib.NoDefault = lib.no_default,
+        axis: Axis = 0,
         on: str | Index | None = None,
         closed: str | None = None,
         step: int | None = None,
@@ -141,26 +138,7 @@ class BaseWindow(SelectionMixin):
         self.min_periods = min_periods
         self.center = center
         self.win_type = win_type
-        print(f'axis={axis}')
-        if axis is not lib.no_default:
-            self.axis = self.obj._get_axis_number(axis)
-            if self.axis == 1:
-                warnings.warn(
-                    "DataFrame.window with axis=1 is deprecated. Do "
-                    "`frame.T.window(...)` without axis instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            else:
-                warnings.warn(
-                    "The 'axis' keyword in DataFrame.window is deprecated and "
-                    "will be removed in a future version.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        else:
-            self.axis = 0
-            
+        self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self._win_freq_i8: int | None = None
         if self.on is None:
@@ -707,7 +685,6 @@ class BaseWindowGroupby(BaseWindow):
         **kwargs,
     ) -> None:
         from pandas.core.groupby.ops import BaseGrouper
-        print(f'BaseWindowGroupby')
         if not isinstance(_grouper, BaseGrouper):
             raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
