@@ -60,7 +60,7 @@ def cartesian_product(X) -> list[np.ndarray]:
     return [
         tile_compat(
             np.repeat(x, b[i]),
-            np.product(a[i]),  # pyright: ignore[reportGeneralTypeIssues]
+            np.prod(a[i]),  # pyright: ignore[reportGeneralTypeIssues]
         )
         for i, x in enumerate(X)
     ]
