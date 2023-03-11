@@ -88,6 +88,25 @@ def _get_path_or_handle(
 ]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
+    if fs is not None:
+        pa_fs = import_optional_dependency("pyarrow.fs", errors="ignore")
+        fsspec = import_optional_dependency("fsspec", errors="ignore")
+        if pa_fs is None and fsspec is None:
+            raise ValueError(
+                f"filesystem must be a pyarrow or fsspec FileSystem, "
+                f"not a {type(fs).__name__}"
+            )
+        elif (pa_fs is not None and not isinstance(fs, pa_fs.FileSystem)) and (
+            fsspec is not None and not isinstance(fs, fsspec.spec.AbstractFileSystem)
+        ):
+            raise ValueError(
+                f"filesystem must be a pyarrow or fsspec FileSystem, "
+                f"not a {type(fs).__name__}"
+            )
+        elif pa_fs is not None and isinstance(fs, pa_fs.FileSystem) and storage_options:
+            raise NotImplementedError(
+                "storage_options not supported with a pyarrow Filesystem."
+            )
     if is_fsspec_url(path_or_handle) and fs is None:
         fsspec = import_optional_dependency("fsspec")
         if storage_options is None:
@@ -456,7 +475,7 @@ def to_parquet(
 
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
-        for ``engine-"pyarrow"``.
+        for ``engine="pyarrow"``.
 
         .. versionadded:: 2.1.0
 
@@ -557,7 +576,7 @@ def read_parquet(
 
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
-        for ``engine-"pyarrow"``.
+        for ``engine="pyarrow"``.
 
         .. versionadded:: 2.1.0
 
