@@ -8531,7 +8531,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -8910,8 +8910,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Freq: 17T, dtype: int64
         """
         from pandas.core.resample import get_resampler
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            if axis == 1:
+                warnings.warn(
+                    "DataFrame.resample with axis=1 is deprecated. Do "
+                    "`frame.T.resample(...)` without axis instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "The 'axis' keyword in DataFrame.resample is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
-        axis = self._get_axis_number(axis)
         return get_resampler(
             cast("Series | DataFrame", self),
             freq=rule,
@@ -11891,12 +11906,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            if axis == 1:
+                warnings.warn(
+                    "DataFrame.rolling with axis=1 is deprecated. Do "
+                    "`frame.T.rolling(...)` without axis instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "The 'axis' keyword in DataFrame.rolling is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         if win_type is not None:
             return Window(

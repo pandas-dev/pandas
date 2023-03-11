@@ -11408,7 +11408,7 @@ Parrot 2  Parrot       24.0
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -11419,6 +11419,8 @@ Parrot 2  Parrot       24.0
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
+        print(f'axis={axis}')
+        print(f'super()={super().resample}')
         return super().resample(
             rule=rule,
             axis=axis,

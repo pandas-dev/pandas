@@ -5560,7 +5560,7 @@ Keep all original rows and also all original values
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -5571,6 +5571,19 @@ Keep all original rows and also all original values
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool | lib.NoDefault = no_default,
     ) -> Resampler:
+        print(f'dummy axis={axis}')
+        if axis is not lib.no_default:
+            warnings.warn(
+                "resample axis keyword is deprecated and will be removed in a "
+                "future version. To group on axis=1, use obj.T.resample(...) "
+                "instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            axis = 0
+        print(f'axis={axis}')
+        print(f'super()={super()}')
         return super().resample(
             rule=rule,
             axis=axis,
