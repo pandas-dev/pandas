@@ -192,13 +192,22 @@ def test_format_escape_html(escape, exp):
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
 
 
-def test_format_escape_latex_math():
-    chars = r"$\frac{1}{2} \$ x^2$ ~%#^"
-    df = DataFrame([[chars]])
+@pytest.mark.parametrize(
+    "chars, expected",
+    [
+        (r"$\frac{1}{2} \$ x^2$ ", r"$\frac{1}{2} \$ x^2$ "),
+        (r"\(\frac{1}{2} \$ x^2\) ", r"\(\frac{1}{2} \$ x^2\) "),
+        (r"\)", r"\) "),
+    ],
+)
+def test_format_escape_latex_math(chars, expected):
+    df = DataFrame([["".join([chars, "~%#^"])]])
 
-    expected = r"$\frac{1}{2} \$ x^2$ \textasciitilde \%\#\textasciicircum "
     s = df.style.format("{0}", escape="latex-math")
-    assert expected == s._translate(True, True)["body"][0][1]["display_value"]
+    assert (
+        "".join([expected, r"\textasciitilde \%\#\textasciicircum "])
+        == s._translate(True, True)["body"][0][1]["display_value"]
+    )
 
 
 def test_format_escape_na_rep():

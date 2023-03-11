@@ -1117,7 +1117,8 @@ class StylerRenderer:
         2 & \textbf{\$\%\#} \\
         \end{tabular}
 
-        Using ``escape`` in 'latex-math' mode.
+        Applying ``escape`` in 'latex-math' mode. In the example below
+        we enter math mode using the charackter ``$``.
 
         >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
         ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
@@ -1127,6 +1128,20 @@ class StylerRenderer:
          & 0 \\
         0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
         1 & \%\#\textasciicircum \space $ \$x^2 $ \\
+        \end{tabular}
+
+        We can use the charackter ``\(`` to enter math mode and the charackter ``\)``
+        to close math mode.
+
+        >>> df = pd.DataFrame([[r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha \
+        ...     = \frac{\beta}{\zeta^2}\)"], ["%#^ \( \$x^2 \)"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & \(\sum_{i=1}^{10} a_i\) a\textasciitilde b \(\alpha
+        = \frac{\beta}{\zeta^2}\) \\
+        1 & \%\#\textasciicircum \space \( \$x^2 \) \\
         \end{tabular}
 
         Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
@@ -2357,17 +2372,20 @@ def _escape_latex(s):
         .replace("~", "\\textasciitilde ")
         .replace("^ ", "^\\space ")  # since \textasciicircum gobbles spaces
         .replace("^", "\\textasciicircum ")
+        .replace("ab2§=§8yz(", "\\( ")
+        .replace("ab2§=§8yz)", "\\) ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
 
 
 def _escape_latex_math(s):
     r"""
-    All characters between two characters ``$`` are preserved.
+    All characters in LaTeX math mode are preserved.
 
-    The substrings in LaTeX math mode, which start with the character ``$``
-    and end with ``$``, are preserved without escaping. Otherwise
-    regular LaTeX escaping applies. See ``_escape_latex()``.
+    The substrings in LaTeX math mode, which either are surrounded
+    by two characters ``$`` or start with the character ``\(`` and end with ``\)``,
+    are preserved without escaping. Otherwise regular LaTeX escaping applies.
+    See ``_escape_latex()``.
 
     Parameters
     ----------
@@ -2379,16 +2397,37 @@ def _escape_latex_math(s):
     str :
         Escaped string
     """
-    s = s.replace(r"\$", r"rt8§=§7wz")
-    pattern = re.compile(r"\$.*?\$")
-    pos = 0
-    ps = pattern.search(s, pos)
-    res = []
-    while ps:
-        res.append(_escape_latex(s[pos : ps.span()[0]]))
-        res.append(ps.group())
-        pos = ps.span()[1]
-        ps = pattern.search(s, pos)
 
-    res.append(_escape_latex(s[pos : len(s)]))
-    return "".join(res).replace(r"rt8§=§7wz", r"\$")
+    def _math_mode_with_dollar(s):
+        s = s.replace(r"\$", r"rt8§=§7wz")
+        pattern = re.compile(r"\$.*?\$")
+        pos = 0
+        ps = pattern.search(s, pos)
+        res = []
+        while ps:
+            res.append(_escape_latex(s[pos : ps.span()[0]]))
+            res.append(ps.group())
+            pos = ps.span()[1]
+            ps = pattern.search(s, pos)
+
+        res.append(_escape_latex(s[pos : len(s)]))
+        return "".join(res).replace(r"rt8§=§7wz", r"\$")
+
+    def _math_mode_with_parentheses(s):
+        s = s.replace(r"\(", r"LEFT§=§6yzLEFT").replace(r"\)", r"RIGHTab5§=§RIGHT")
+        res = []
+        for item in re.split(r"LEFT§=§6yz|ab5§=§RIGHT", s):
+            if item.startswith("LEFT") and item.endswith("RIGHT"):
+                res.append(item.replace("LEFT", r"\(").replace("RIGHT", r"\)"))
+            else:
+                res.append(
+                    _escape_latex(item).replace("LEFT", r"\(").replace("RIGHT", r"\)")
+                )
+        return "".join(res)
+
+    if s.replace(r"\$", "ab").find(r"$") > -1:
+        return _math_mode_with_dollar(s)
+    elif s.find(r"\(") > -1:
+        return _math_mode_with_parentheses(s)
+    else:
+        return _escape_latex(s)
