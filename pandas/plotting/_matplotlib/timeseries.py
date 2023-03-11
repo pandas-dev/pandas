@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -37,6 +36,8 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from matplotlib.axes import Axes
 
     from pandas import (
