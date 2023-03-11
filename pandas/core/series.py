@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+import operator
 import sys
 from textwrap import dedent
 from typing import (
@@ -91,6 +92,7 @@ from pandas.core import (
     missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
@@ -357,8 +359,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
-    div: Callable[[Series, Any], Series]
-    rdiv: Callable[[Series, Any], Series]
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -2967,79 +2967,6 @@ Name: Max Speed, dtype: float64
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
-    def _binop(self, other: Series, func, level=None, fill_value=None):
-        """
-        Perform generic binary operation with optional fill value.
-
-        Parameters
-        ----------
-        other : Series
-        func : binary operator
-        fill_value : float or object
-            Value to substitute for NA/null values. If both Series are NA in a
-            location, the result will be NA regardless of the passed fill value.
-        level : int or level name, default None
-            Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
-
-        Returns
-        -------
-        Series
-        """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
-        this = self
-
-        if not self.index.equals(other.index):
-            this, other = self.align(other, level=level, join="outer", copy=False)
-
-        this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
-
-        with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
-
-        name = ops.get_op_result_name(self, other)
-        return this._construct_result(result, name)
-
-    def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
-    ) -> Series | tuple[Series, Series]:
-        """
-        Construct an appropriately-labelled Series from the result of an op.
-
-        Parameters
-        ----------
-        result : ndarray or ExtensionArray
-        name : Label
-
-        Returns
-        -------
-        Series
-            In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
-        """
-        if isinstance(result, tuple):
-            # produced by divmod or rdivmod
-
-            res1 = self._construct_result(result[0], name=name)
-            res2 = self._construct_result(result[1], name=name)
-
-            # GH#33427 assertions to keep mypy happy
-            assert isinstance(res1, Series)
-            assert isinstance(res2, Series)
-            return (res1, res2)
-
-        # TODO: result should always be ArrayLike, but this fails for some
-        #  JSONArray tests
-        dtype = getattr(result, "dtype", None)
-        out = self._constructor(result, index=self.index, dtype=dtype)
-        out = out.__finalize__(self)
-
-        # Set the result's name after __finalize__ is called because __finalize__
-        #  would set it back to self.name
-        out.name = name
-        return out
-
     @doc(
         _shared_docs["compare"],
         """
@@ -3264,13 +3191,23 @@ Keep all original rows and also all original values
         falcon      NaN
         dtype: float64
         """
+        from pandas.core.reshape.concat import concat
+
         new_index = self.index.union(other.index)
-        this = self.reindex(new_index, copy=False)
-        other = other.reindex(new_index, copy=False)
+
+        this = self
+        # identify the index subset to keep for each series
+        keep_other = other.index.difference(this.index[notna(this)])
+        keep_this = this.index.difference(keep_other)
+
+        this = this.reindex(keep_this, copy=False)
+        other = other.reindex(keep_other, copy=False)
+
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
-
-        return this.where(notna(this), other)
+        combined = concat([this, other])
+        combined = combined.reindex(new_index, copy=False)
+        return combined.__finalize__(self, method="combine_first")
 
     def update(self, other: Series | Sequence | Mapping) -> None:
         """
@@ -4099,7 +4036,7 @@ Keep all original rows and also all original values
         {examples}
         """
         assert isinstance(self.index, MultiIndex)
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result.index = self.index.swaplevel(i, j)
         return result
 
@@ -5713,7 +5650,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
         new_index = self.index.to_timestamp(freq=freq, how=how)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -5753,7 +5690,7 @@ Keep all original rows and also all original values
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
-        new_obj = self.copy(deep=copy)
+        new_obj = self.copy(deep=copy and not using_copy_on_write())
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
@@ -6027,7 +5964,7 @@ Keep all original rows and also all original values
 
     def _logical_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
-        self, other = ops.align_method_SERIES(self, other, align_asobject=True)
+        self, other = self._align_for_op(other, align_asobject=True)
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
@@ -6036,11 +5973,263 @@ Keep all original rows and also all original values
         return self._construct_result(res_values, name=res_name)
 
     def _arith_method(self, other, op):
-        self, other = ops.align_method_SERIES(self, other)
+        self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
+
+    def _align_for_op(self, right, align_asobject: bool = False):
+        """align lhs and rhs Series"""
+        # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
+        # are not coerced here
+        # because Series has inconsistencies described in GH#13637
+        left = self
+
+        if isinstance(right, Series):
+            # avoid repeated alignment
+            if not left.index.equals(right.index):
+                if align_asobject:
+                    # to keep original value's dtype for bool ops
+                    left = left.astype(object)
+                    right = right.astype(object)
+
+                left, right = left.align(right, copy=False)
+
+        return left, right
+
+    def _binop(self, other: Series, func, level=None, fill_value=None) -> Series:
+        """
+        Perform generic binary operation with optional fill value.
+
+        Parameters
+        ----------
+        other : Series
+        func : binary operator
+        fill_value : float or object
+            Value to substitute for NA/null values. If both Series are NA in a
+            location, the result will be NA regardless of the passed fill value.
+        level : int or level name, default None
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+
+        Returns
+        -------
+        Series
+        """
+        if not isinstance(other, Series):
+            raise AssertionError("Other operand must be Series")
+
+        this = self
+
+        if not self.index.equals(other.index):
+            this, other = self.align(other, level=level, join="outer", copy=False)
+
+        this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
+
+        with np.errstate(all="ignore"):
+            result = func(this_vals, other_vals)
+
+        name = ops.get_op_result_name(self, other)
+        out = this._construct_result(result, name)
+        return cast(Series, out)
+
+    def _construct_result(
+        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+    ) -> Series | tuple[Series, Series]:
+        """
+        Construct an appropriately-labelled Series from the result of an op.
+
+        Parameters
+        ----------
+        result : ndarray or ExtensionArray
+        name : Label
+
+        Returns
+        -------
+        Series
+            In the case of __divmod__ or __rdivmod__, a 2-tuple of Series.
+        """
+        if isinstance(result, tuple):
+            # produced by divmod or rdivmod
+
+            res1 = self._construct_result(result[0], name=name)
+            res2 = self._construct_result(result[1], name=name)
+
+            # GH#33427 assertions to keep mypy happy
+            assert isinstance(res1, Series)
+            assert isinstance(res2, Series)
+            return (res1, res2)
+
+        # TODO: result should always be ArrayLike, but this fails for some
+        #  JSONArray tests
+        dtype = getattr(result, "dtype", None)
+        out = self._constructor(result, index=self.index, dtype=dtype)
+        out = out.__finalize__(self)
+
+        # Set the result's name after __finalize__ is called because __finalize__
+        #  would set it back to self.name
+        out.name = name
+        return out
+
+    def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
+        if axis is not None:
+            self._get_axis_number(axis)
+
+        res_name = ops.get_op_result_name(self, other)
+
+        if isinstance(other, Series):
+            return self._binop(other, op, level=level, fill_value=fill_value)
+        elif isinstance(other, (np.ndarray, list, tuple)):
+            if len(other) != len(self):
+                raise ValueError("Lengths must be equal")
+            other = self._constructor(other, self.index)
+            result = self._binop(other, op, level=level, fill_value=fill_value)
+            result.name = res_name
+            return result
+        else:
+            if fill_value is not None:
+                self = self.fillna(fill_value)
+
+            return op(self, other)
+
+    @Appender(ops.make_flex_doc("eq", "series"))
+    def eq(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.eq, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("ne", "series"))
+    def ne(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.ne, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("le", "series"))
+    def le(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.le, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("lt", "series"))
+    def lt(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.lt, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("ge", "series"))
+    def ge(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.ge, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("gt", "series"))
+    def gt(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.gt, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("add", "series"))
+    def add(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.add, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("radd", "series"))
+    def radd(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.radd, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("sub", "series"))
+    def sub(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.sub, level=level, fill_value=fill_value, axis=axis
+        )
+
+    subtract = sub
+
+    @Appender(ops.make_flex_doc("rsub", "series"))
+    def rsub(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("mul", "series"))
+    def mul(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.mul, level=level, fill_value=fill_value, axis=axis
+        )
+
+    multiply = mul
+
+    @Appender(ops.make_flex_doc("rmul", "series"))
+    def rmul(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("truediv", "series"))
+    def truediv(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.truediv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    div = truediv
+    divide = truediv
+
+    @Appender(ops.make_flex_doc("rtruediv", "series"))
+    def rtruediv(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    rdiv = rtruediv
+
+    @Appender(ops.make_flex_doc("floordiv", "series"))
+    def floordiv(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rfloordiv", "series"))
+    def rfloordiv(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("mod", "series"))
+    def mod(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.mod, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rmod", "series"))
+    def rmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("pow", "series"))
+    def pow(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, operator.pow, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rpow", "series"))
+    def rpow(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("divmod", "series"))
+    def divmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, divmod, level=level, fill_value=fill_value, axis=axis
+        )
+
+    @Appender(ops.make_flex_doc("rdivmod", "series"))
+    def rdivmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+        return self._flex_method(
+            other, roperator.rdivmod, level=level, fill_value=fill_value, axis=axis
+        )
 
 
 Series._add_numeric_operations()
-
-# Add arithmetic!
-ops.add_flex_arithmetic_methods(Series)

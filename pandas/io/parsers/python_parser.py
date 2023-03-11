@@ -24,11 +24,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    ReadCsvBuffer,
-    Scalar,
-)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -47,6 +42,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        ReadCsvBuffer,
+        Scalar,
+    )
+
     from pandas import (
         Index,
         MultiIndex,
@@ -555,20 +556,19 @@ class PythonParser(ParserBase):
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
                 )
+            elif self.usecols is None or len(names) >= num_original_columns:
+                columns = self._handle_usecols([names], names, num_original_columns)
+                num_original_columns = len(names)
+            elif not callable(self.usecols) and len(names) != len(self.usecols):
+                raise ValueError(
+                    "Number of passed names did not match number of "
+                    "header fields in the file"
+                )
             else:
-                if self.usecols is None or len(names) >= num_original_columns:
-                    columns = self._handle_usecols([names], names, num_original_columns)
-                    num_original_columns = len(names)
-                else:
-                    if not callable(self.usecols) and len(names) != len(self.usecols):
-                        raise ValueError(
-                            "Number of passed names did not match number of "
-                            "header fields in the file"
-                        )
-                    # Ignore output but set used columns.
-                    self._handle_usecols([names], names, ncols)
-                    columns = [names]
-                    num_original_columns = ncols
+                # Ignore output but set used columns.
+                self._handle_usecols([names], names, ncols)
+                columns = [names]
+                num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 

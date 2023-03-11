@@ -34,12 +34,6 @@ from pandas._libs import (
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    Scalar,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -91,6 +85,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        Scalar,
+    )
+
     from pandas import DataFrame
 
 

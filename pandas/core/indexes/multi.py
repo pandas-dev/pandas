@@ -94,7 +94,6 @@ from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
-    indexer_from_factorized,
     lexsort_indexer,
 )
 
@@ -2133,11 +2132,15 @@ class MultiIndex(Index):
         except (TypeError, IndexError):
             return Index(new_tuples)
 
-    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
+    def argsort(
+        self, *args, na_position: str = "last", **kwargs
+    ) -> npt.NDArray[np.intp]:
         if len(args) == 0 and len(kwargs) == 0:
             # lexsort is significantly faster than self._values.argsort()
             target = self._sort_levels_monotonic(raise_if_incomparable=True)
-            return lexsort_indexer(target._get_codes_for_sorting())
+            return lexsort_indexer(
+                target._get_codes_for_sorting(), na_position=na_position
+            )
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -2367,6 +2370,7 @@ class MultiIndex(Index):
         level: IndexLabel = 0,
         ascending: bool | list[bool] = True,
         sort_remaining: bool = True,
+        na_position: str = "first",
     ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
         Sort MultiIndex at the requested level.
@@ -2383,6 +2387,11 @@ class MultiIndex(Index):
             False to sort in descending order.
             Can also be a list to specify a directed ordering.
         sort_remaining : sort by the remaining levels after level
+        na_position : {'first' or 'last'}, default 'first'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 2.1.0
 
         Returns
         -------
@@ -2428,40 +2437,21 @@ class MultiIndex(Index):
         ]
         sortorder = None
 
+        codes = [self.codes[lev] for lev in level]
         # we have a directed ordering via ascending
         if isinstance(ascending, list):
             if not len(level) == len(ascending):
                 raise ValueError("level must have same length as ascending")
-
-            indexer = lexsort_indexer(
-                [self.codes[lev] for lev in level], orders=ascending
+        elif sort_remaining:
+            codes.extend(
+                [self.codes[lev] for lev in range(len(self.levels)) if lev not in level]
             )
-
-        # level ordering
         else:
-            codes = list(self.codes)
-            shape = list(self.levshape)
+            sortorder = level[0]
 
-            # partition codes and shape
-            primary = tuple(codes[lev] for lev in level)
-            primshp = tuple(shape[lev] for lev in level)
-
-            # Reverse sorted to retain the order of
-            # smaller indices that needs to be removed
-            for lev in sorted(level, reverse=True):
-                codes.pop(lev)
-                shape.pop(lev)
-
-            if sort_remaining:
-                primary += primary + tuple(codes)
-                primshp += primshp + tuple(shape)
-            else:
-                sortorder = level[0]
-
-            indexer = indexer_from_factorized(primary, primshp, compress=False)
-
-            if not ascending:
-                indexer = indexer[::-1]
+        indexer = lexsort_indexer(
+            codes, orders=ascending, na_position=na_position, codes_given=True
+        )
 
         indexer = ensure_platform_int(indexer)
         new_codes = [level_codes.take(indexer) for level_codes in self.codes]
