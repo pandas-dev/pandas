@@ -10,6 +10,7 @@ jobs:
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
       PYTEST_TARGET: "pandas"
+      PYTHON_VERSION: 3.8
       PANDAS_CI: "1"
     steps:
       - checkout

@@ -9,19 +9,19 @@ inputs:
   extra-specs:
     description: Extra packages to install
     required: false
+  python-version:
+    description: Python version to generate an environment file for
+    required: false
   pyarrow-version:
     description: If set, overrides the PyArrow version in the Conda environment to the given string.
     required: false
 runs:
   using: composite
   steps:
-    - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
+    - name: Generate ${{ inputs.environment-file }}
       run: |
-        grep -q '  - pyarrow' ${{ inputs.environment-file }}
-        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
-        cat ${{ inputs.environment-file }}
-      shell: bash
-      if: ${{ inputs.pyarrow-version }}
+        python ci/generate_ci_env.py ci/env-templates/base.yaml ${{ inputs.environment-file }} --python_version ${{ inputs.python-version }} --pyarrow_version ${{ inputs.pyarrow-version }}
+      if: !${{ inputs.environment-file }}
 
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/provision-with-micromamba@v12

@@ -27,9 +27,9 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        python_version: ["3.8", "3.9", "3.10", "3.11"]
         pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["8", "9", "10"]
+        pyarrow_version: ["8", ""] # Empty string means to test latest
         pandas_ci: [1]
         include:
           - name: "Downstream Compat"
@@ -40,7 +40,7 @@ jobs:
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
           - name: "Locale: it_IT"
-            env_file: actions-38.yaml
+            python_version: 3.8
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -50,7 +50,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "it_IT"
           - name: "Locale: zh_CN"
-            env_file: actions-38.yaml
+            python_version: 3.8
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -60,11 +60,11 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
           - name: "Copy-on-Write"
-            env_file: actions-310.yaml
+            python_version: 3.10
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
           - name: "Data Manager"
-            env_file: actions-38.yaml
+            python_version: 3.8
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
           - name: "Pypy"
@@ -94,7 +94,7 @@ jobs:
       fail-fast: false
     name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
     env:
-      ENV_FILE: ci/deps/${{ matrix.env_file }}
+      ENV_FILE: ci/deps/${{ matrix.env_file || format('actions-{0}.yaml', matrix.python_version)}}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
       LANG: ${{ matrix.lang || '' }}
@@ -169,6 +169,7 @@ jobs:
       uses: ./.github/actions/setup-conda
       with:
         environment-file: ${{ env.ENV_FILE }}
+        python-version: ${{ matrix.python_version }}
         pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas

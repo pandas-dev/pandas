@@ -29,6 +29,11 @@ echo "conda list (root environment)"
 conda list
 
 echo
+
+# Generate the environment file
+BASE_DIR="$(dirname $0)/.."
+python $BASE_DIR/ci/generate_ci_env.py ci/deps/base.yaml $ENV_FILE --python_version $PYTHON_VERSION
+
 # Clean up any left-over from a previous build
 mamba env remove -n pandas-dev
 echo "mamba env update --file=${ENV_FILE}"
