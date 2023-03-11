@@ -685,6 +685,7 @@ class BaseWindowGroupby(BaseWindow):
         **kwargs,
     ) -> None:
         from pandas.core.groupby.ops import BaseGrouper
+
         if not isinstance(_grouper, BaseGrouper):
             raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper

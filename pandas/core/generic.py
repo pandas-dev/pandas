@@ -11906,7 +11906,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis | lib.NoDefault = lib.no_default,
+        axis: Axis = 0,
         closed: str | None = None,
         step: int | None = None,
         method: str = "single",
