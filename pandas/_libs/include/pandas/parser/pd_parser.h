@@ -6,8 +6,8 @@ All rights reserved.
 Distributed under the terms of the BSD Simplified License.
 
 */
-#ifndef PANDAS__LIBS_PD_PARSER_H_
-#define PANDAS__LIBS_PD_PARSER_H_
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_PARSER_PD_PARSER_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_PARSER_PD_PARSER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +15,7 @@ extern "C" {
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "src/parser/tokenizer.h"
+#include "pandas/parser/tokenizer.h"
 
 typedef struct {
   int (*to_double)(char *, double *, char, char, int *);
@@ -110,4 +110,4 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
 #ifdef __cplusplus
 }
 #endif
-#endif  // PANDAS__LIBS_PD_PARSER_H_
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_PARSER_PD_PARSER_H_

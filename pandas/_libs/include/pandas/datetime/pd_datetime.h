@@ -15,17 +15,17 @@ All rights reserved.
 See NUMPY_LICENSE.txt for the license.
 */
 
-#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
-#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_DATETIME_PD_DATETIME_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_DATETIME_PD_DATETIME_H_
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
-#include "np_datetime.h"
-#include "np_datetime_strings.h"
-#include "date_conversions.h"
+#include "pandas/vendored/np_datetime/np_datetime.h"
+#include "pandas/vendored/np_datetime/np_datetime_strings.h"
+#include "pandas/datetime/date_conversions.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,4 +112,4 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
 #ifdef __cplusplus
 }
 #endif
-#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_DATETIME_PD_DATETIME_H_

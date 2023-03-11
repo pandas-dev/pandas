@@ -1,10 +1,19 @@
-#ifndef _PANDAS_PORTABLE_H_
-#define _PANDAS_PORTABLE_H_
+/*
+Copyright (c) 2016, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+*/
+
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_PORTABLE_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_PORTABLE_H_
 
 #include <string.h>
 
 #if defined(_MSC_VER)
-#define strcasecmp( s1, s2 ) _stricmp( s1, s2 )
+#define strcasecmp(s1, s2) _stricmp(s1, s2)
 #endif
 
 // GH-23516 - works around locale perf issues
@@ -15,4 +24,4 @@
 #define toupper_ascii(c) ((((unsigned)(c) - 'a') < 26) ? ((c) & 0x5f) : (c))
 #define tolower_ascii(c) ((((unsigned)(c) - 'A') < 26) ? ((c) | 0x20) : (c))
 
-#endif
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_PORTABLE_H_

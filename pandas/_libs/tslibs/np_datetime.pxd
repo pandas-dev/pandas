@@ -55,7 +55,7 @@ cdef extern from "numpy/ndarraytypes.h":
     int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
 
 
-cdef extern from "src/datetime/pd_datetime.h":
+cdef extern from "pandas/datetime/pd_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds

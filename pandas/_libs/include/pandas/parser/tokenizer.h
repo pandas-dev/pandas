@@ -9,8 +9,8 @@ See LICENSE for the license
 
 */
 
-#ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
-#define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_PARSER_TOKENIZER_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_PARSER_TOKENIZER_H_
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -20,10 +20,10 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include <stdint.h>
-#include "../inline_helper.h"
-#include "../headers/portable.h"
+#include "pandas/inline_helper.h"
+#include "pandas/portable.h"
 
-#include "khash.h"
+#include "pandas/vendored/klib/khash.h"
 
 #define STREAM_INIT_SIZE 32
 
@@ -233,4 +233,4 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);
 
-#endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_PARSER_TOKENIZER_H_

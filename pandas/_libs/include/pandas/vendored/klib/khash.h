@@ -98,8 +98,8 @@ int main() {
 */
 
 
-#ifndef __AC_KHASH_H
-#define __AC_KHASH_H
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_VENDORED_KLIB_KHASH_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_VENDORED_KLIB_KHASH_H_
 
 /*!
   @header
@@ -112,7 +112,7 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include "../inline_helper.h"
+#include "pandas/inline_helper.h"
 
 
 // hooks for memory allocator, C-runtime allocator used per default
@@ -716,4 +716,4 @@ KHASH_MAP_INIT_INT8(int8, size_t)
 KHASH_MAP_INIT_UINT8(uint8, size_t)
 
 
-#endif /* __AC_KHASH_H */
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_VENDORED_KLIB_KHASH_H_

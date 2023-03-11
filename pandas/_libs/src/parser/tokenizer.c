@@ -17,13 +17,13 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 
-#include "tokenizer.h"
+#include "pandas/parser/tokenizer.h"
 
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
 
-#include "../headers/portable.h"
+#include "pandas/portable.h"
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {

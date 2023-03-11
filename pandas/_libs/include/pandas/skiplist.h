@@ -13,14 +13,14 @@ Port of Wes McKinney's Cython version of Raymond Hettinger's original pure
 Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 */
 
-#ifndef PANDAS__LIBS_SRC_SKIPLIST_H_
-#define PANDAS__LIBS_SRC_SKIPLIST_H_
+#ifndef PANDAS__LIBS_INCLUDE_PANDAS_SKIPLIST_H_
+#define PANDAS__LIBS_INCLUDE_PANDAS_SKIPLIST_H_
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "inline_helper.h"
+#include "pandas/inline_helper.h"
 
 PANDAS_INLINE float __skiplist_nanf(void) {
     const union {
@@ -297,4 +297,4 @@ PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {
     return 1;
 }
 
-#endif  // PANDAS__LIBS_SRC_SKIPLIST_H_
+#endif  // PANDAS__LIBS_INCLUDE_PANDAS_SKIPLIST_H_
