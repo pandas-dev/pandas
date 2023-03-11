@@ -3792,11 +3792,8 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
-                result = self._constructor(
-                    new_values, index=self.index, columns=result_columns
-                )
-                result = result.__finalize__(self)
+                result = self.iloc[:, loc]
+                result.columns = result_columns
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
@@ -3810,6 +3807,7 @@ class DataFrame(NDFrame, OpsMixin):
                     top = top[0]
                 if top == "":
                     result = result[""]
+                    # result = result.squeeze("columns") # TODO iloc?
                     if isinstance(result, Series):
                         result = self._constructor_sliced(
                             result, index=self.index, name=key

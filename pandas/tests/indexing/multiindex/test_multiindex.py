@@ -206,3 +206,22 @@ class TestMultiIndexBasic:
         )
         with pytest.raises(KeyError, match="missing_key"):
             df[[("missing_key",)]]
+
+    def test_multiindex_dtype_preservation(self):
+        # GH51261
+        df = pd.DataFrame([('value')], columns=pd.MultiIndex.from_tuples([('A', 'B')], names=['lvl1', 'lvl2'])).astype(
+            'category')
+        assert (df['A'].dtypes == 'category').all()
+
+        # geopandas 1763 analogue
+        df = pd.DataFrame(
+            [[1, 0], [0, 1]],
+            columns=[
+                ["foo", "foo"],
+                ["location", "location"],
+                ["x", "y"],
+            ],
+        ).assign(bools=pd.Series([True, False], dtype="boolean"))
+        assert df['bools'].dtype == "boolean"
+
+
