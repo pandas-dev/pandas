@@ -570,9 +570,13 @@ def test_multi_agg_axis_1_raises(func):
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
-    res = df.resample("M", axis=1)
-    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
-        res.agg(func)
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        res = df.resample("M", axis=1)
+        with pytest.raises(
+            NotImplementedError, match="axis other than 0 is not supported"
+        ):
+            res.agg(func)
 
 
 def test_agg_nested_dicts():
