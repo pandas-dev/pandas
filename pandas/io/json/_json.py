@@ -647,7 +647,7 @@ def read_json(
 
         .. versionadded:: 1.2.0
 
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
         arrays, nullable dtypes are used for all dtypes that have a nullable
         implementation when "numpy_nullable" is set, pyarrow is used for all
