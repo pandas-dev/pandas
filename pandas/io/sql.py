@@ -1364,7 +1364,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self):
+    def __enter__(self) -> PandasSQL:
         return self
 
     def __exit__(self, *args) -> None:
