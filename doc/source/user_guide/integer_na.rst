@@ -1,17 +1,12 @@
 .. currentmodule:: pandas
 
-{{ header }}
-
 .. _integer_na:
 
 **************************
 Nullable integer data type
 **************************
 
-.. note::
-
-   IntegerArray is currently experimental. Its API or implementation may
-   change without warning. Uses :attr:`pandas.NA` as the missing value.
+Note: IntegerArray is currently experimental. Its API or implementation may change without warning. Uses :attr:`pandas.NA` as the missing value.
 
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with
@@ -32,7 +27,7 @@ implemented within pandas.
    arr = pd.array([1, 2, None], dtype=pd.Int64Dtype())
    arr
 
-Or the string alias ``"Int64"`` (note the capital ``"I"``, to differentiate from
+Or the string alias ``"Int64"`` (note the capital ``"I"``) to differentiate from
 NumPy's ``'int64'`` dtype:
 
 .. ipython:: python
@@ -55,11 +50,7 @@ NumPy array.
 You can also pass the list-like object to the :class:`Series` constructor
 with the dtype.
 
-.. warning::
-
-   Currently :meth:`pandas.array` and :meth:`pandas.Series` use different
-   rules for dtype inference. :meth:`pandas.array` will infer a
-   nullable-integer dtype
+Warning: Currently :meth:`pandas.array` and :meth:`pandas.Series` use different rules for dtype inference. :meth:`pandas.array` will infer a nullable-integer dtype.
 
    .. ipython:: python
 
@@ -67,7 +58,7 @@ with the dtype.
       pd.array([1, 2])
 
    For backwards-compatibility, :class:`Series` infers these as either
-   integer or float dtype
+   integer or float dtype.
 
    .. ipython:: python
 
@@ -101,7 +92,7 @@ dtype if needed.
    # comparison
    s == 1
 
-   # indexing
+   # slicing operation
    s.iloc[1:3]
 
    # operate with other dtypes
@@ -110,7 +101,7 @@ dtype if needed.
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of ``DataFrame``.
+These dtypes can operate as part of a ``DataFrame``.
 
 .. ipython:: python
 
@@ -119,7 +110,7 @@ These dtypes can operate as part of ``DataFrame``.
    df.dtypes
 
 
-These dtypes can be merged & reshaped & casted.
+These dtypes can be merged, reshaped & casted.
 
 .. ipython:: python
 
