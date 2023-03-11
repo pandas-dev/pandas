@@ -11,8 +11,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Day
-
 import pandas as pd
 from pandas import (
     Index,
@@ -266,7 +264,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        if isinstance(three_days, Day):
+        if isinstance(three_days, pd.offsets.Day):
             # GH#41943 Day is no longer timedelta-like
             msg = "unsupported operand type"
             with pytest.raises(TypeError, match=msg):

@@ -24,7 +24,6 @@ from cpython.datetime cimport (
     PyDateTime_Check,
     datetime,
     import_datetime,
-    timedelta,
 )
 from libc.stdlib cimport (
     free,
@@ -1749,7 +1748,8 @@ cdef class _Period(PeriodMixin):
             return NaT
 
         if isinstance(other, Day):
-            other = timedelta(days=other.n)
+            # Periods are timezone-naive, so we treat Day as Tick-like
+            other = np.timedelta64(other.n, "D")
 
         try:
             inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)

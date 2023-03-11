@@ -8,7 +8,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import Day
 from pandas.errors import (
     OutOfBoundsDatetime,
     PerformanceWarning,
@@ -1822,7 +1821,7 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = TimedeltaIndex(["1 Day", "2 Days", "0 Days"] * 3)
         expected = tm.box_expected(expected, box_with_array)
 
-        if isinstance(three_days, Day):
+        if isinstance(three_days, offsets.Day):
             msg = "unsupported operand type"
             with pytest.raises(TypeError, match=msg):
                 tdarr % three_days
@@ -1875,7 +1874,7 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = TimedeltaIndex(expected)
         expected = tm.box_expected(expected, box_with_array)
 
-        if isinstance(three_days, Day):
+        if isinstance(three_days, offsets.Day):
             msg = "Cannot divide Day by TimedeltaArray"
             with pytest.raises(TypeError, match=msg):
                 three_days % tdarr

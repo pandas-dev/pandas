@@ -268,8 +268,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif freq_infer:
             # Set _freq directly to bypass duplicative _validate_frequency
             # check.
-            res_freq = to_offset(result.inferred_freq)
-            result._freq = res_freq
+            result._freq = to_offset(result.inferred_freq)
 
         return result
 

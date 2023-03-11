@@ -411,6 +411,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     """
 
     _data: DatetimeArray | TimedeltaArray
+    _freq: BaseOffset | None
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
 

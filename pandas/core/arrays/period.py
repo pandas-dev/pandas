@@ -700,8 +700,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         assert not isinstance(other, Tick)
 
         if isinstance(other, Day):
-            other = Timedelta(days=other.n)
-            return self + other
+            return self + np.timedelta64(other.n, "D")
 
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)

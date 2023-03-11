@@ -376,8 +376,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # At this point we know the result is an array.
             result = cast(DatetimeLikeArrayT, result)
         result._freq = self._get_getitem_freq(key)
-        if self.dtype.kind == "m" and result._freq is not None:
-            assert isinstance(result._freq, Tick)
         return result
 
     def _get_getitem_freq(self, key) -> BaseOffset | None:
@@ -893,6 +891,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         except ValueError:
             return None
         if self.dtype.kind == "m" and res is not None and res.endswith("D"):
+            # TimedeltaArray freq must be a Tick, so we convert the inferred
+            #  daily freq to hourly.
             if res == "D":
                 return "24H"
             res = str(int(res[:-1]) * 24) + "H"
@@ -1471,7 +1471,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self.freq = result.freq
+            self._freq = result.freq
         return self
 
     def __isub__(self: DatetimeLikeArrayT, other) -> DatetimeLikeArrayT:
@@ -1480,7 +1480,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self.freq = result.freq
+            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -1869,7 +1869,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 freq = freq._maybe_to_hours()
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
-        self.freq = freq
+        self._freq = freq
 
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
@@ -1890,16 +1890,16 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
+            if self.dtype.kind == "m" and not isinstance(value, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick or None")
 
             if self.ndim > 1:
                 raise ValueError("Cannot set freq with ndim > 1")
 
-        if self.dtype.kind == "m":
-            assert value is None or isinstance(value, Tick)
         self._freq = value
 
     @classmethod
-    def _validate_frequency(cls, index, freq, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
