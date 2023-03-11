@@ -706,7 +706,7 @@ class IntervalIndex(ExtensionIndex):
 
     def _get_indexer_ffill(self, target, method):
         # GH#51503
-        if method == "bfill" or method == "backfill":
+        if method in ("bfill", "backfill"):
             temp = []
             for i in range(len(self)):
                 # not sure to call this method for every value
