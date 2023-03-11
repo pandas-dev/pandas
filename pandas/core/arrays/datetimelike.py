@@ -2096,9 +2096,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
             freq = to_offset(self.inferred_freq)
-            if freq is not None and self.dtype.kind == "m":
-                # TODO: handle this in self.inferred_freq?
-                freq = freq._maybe_to_hours()
 
         if self.dtype.kind == "m" and freq is not None:
             assert isinstance(freq, Tick)
