@@ -5579,8 +5579,7 @@ Keep all original rows and also all original values
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        else:
-            axis = 0
+
         return super().resample(
             rule=rule,
             axis=axis,

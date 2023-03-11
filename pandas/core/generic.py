@@ -8926,6 +8926,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
+        else:
+            axis = 0
 
         return get_resampler(
             cast("Series | DataFrame", self),
