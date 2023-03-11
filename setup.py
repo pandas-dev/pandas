@@ -124,7 +124,7 @@ class CleanCommand(Command):
         self._clean_exclude = [
             pjoin(vendored, "np_datetime", "np_datetime.c"),
             pjoin(vendored, "np_datetime", "np_datetime_strings.c"),
-            pjoin(dt, "datetime", "date_conversions.c"),
+            pjoin(dt, "date_conversions.c"),
             pjoin(parser, "tokenizer.c"),
             pjoin(parser, "io.c"),
             pjoin(ujson_python, "ujson.c"),
