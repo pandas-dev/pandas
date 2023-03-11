@@ -2,7 +2,7 @@
 
 - Created: 16 February 2023
 - Status: Under discussion
-- Discussion: [PR xxx](https://github.com/pandas-dev/pandas/pull/xxx)
+- Discussion: [PR 51466](https://github.com/pandas-dev/pandas/pull/51466)
 - Authors: [Thomas Li](https://github.com/lithomas1),
            [Patrick Hoefler](https://github.com/phofl),
            [Joris Van den Bossche](https://github.com/jorisvandenbossche)
@@ -30,7 +30,7 @@ This PDEP proposes that:
   (These questions are deferred to a later revision, and will not affect the acceptance process of this PDEP.)
     - Should ``inplace=True`` return the original pandas object that was operated inplace on?
     - What should happen when ``inplace=True`` but the original pandas object cannot be operated inplace on because it
-      shares its values with another object?
+      shares its values with another pandas object?
 
 ## Motivation and Scope
 
@@ -121,7 +121,7 @@ inplace (it will remove the values of the column being set, and insert new value
 | ``bfill``       |
 | ``clip``        |
 
-These methods don't operate inplace by default, but can be done inplace with `inplace=True`. All those methods leave
+These methods don't operate inplace by default, but can be done inplace with `inplace=True` if the dtypes are compatible (e.g. the values replacing the old values can be stored in the original array without an astype). All those methods leave
 the structure of the DataFrame or Series intact (shape, row/column labels), but can mutate some elements of the data of
 the DataFrame or Series.
 
