@@ -15,7 +15,7 @@ def generate_env(template_file, outfile, python_version, pyarrow_version, bad_de
                 line = line.split("pyarrow")[
                     0
                 ]  # Keep the stuff before we specify the version
-                line += f"pyarrow={pyarrow_version}]\n"
+                line += f"pyarrow={pyarrow_version}\n"
             if append:
                 str_env_file += line
 
