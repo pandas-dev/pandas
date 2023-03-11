@@ -21,7 +21,7 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform. If you choose to user ``Docker``
+How to do this will depend on your platform. If you choose to use ``Docker``
 in the next step, then you can skip this step.
 
 **Windows**
