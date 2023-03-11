@@ -5573,9 +5573,8 @@ Keep all original rows and also all original values
     ) -> Resampler:
         if axis is not lib.no_default:
             warnings.warn(
-                "resample axis keyword is deprecated and will be removed in a "
-                "future version. To group on axis=1, use obj.T.resample(...) "
-                "instead",
+                "Series resample axis keyword is deprecated and will be removed in a "
+                "future version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
