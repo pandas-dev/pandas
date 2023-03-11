@@ -22,7 +22,7 @@ runs:
       shell: bash -el {0}
       run: |
         if [ ! -f "${{ inputs.environment-file }}" ]; then
-          python ci/generate_ci_env.py ci/env-templates/base.yaml ${{ inputs.environment-file }} --python_version ${{ inputs.python-version }} --pyarrow_version ${{ inputs.pyarrow-version }}
+          python ci/generate_ci_env.py ci/deps/base.yaml ${{ inputs.environment-file }} --python_version ${{ inputs.python-version }} --pyarrow_version ${{ inputs.pyarrow-version }}
         fi
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/provision-with-micromamba@v12
