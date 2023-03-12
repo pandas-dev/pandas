@@ -31,6 +31,7 @@ repos:
     rev: v0.0.253
     hooks:
     -   id: ruff
+        args: [--exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
