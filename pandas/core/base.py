@@ -894,9 +894,6 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(arr, ExtensionArray):
             return arr.map(mapper, na_action=na_action)
 
-        # Argument 1 to "map_array" has incompatible type
-        # "Union[IndexOpsMixin, ExtensionArray, ndarray[Any, Any]]";
-        # expected "Union[ExtensionArray, ndarray[Any, Any]]"
         return algorithms.map_array(
             arr, mapper, na_action=na_action, convert=convert  # type: ignore[arg-type]
         )
