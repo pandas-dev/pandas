@@ -377,8 +377,8 @@ aggregations for step functions defined over real numbers, datetime and timedelt
 
 xarray brings the labeled data power of pandas to the physical sciences by
 providing N-dimensional variants of the core pandas data structures. It aims to
-provide a pandas-like and pandas-compatible toolkit for analytics on multi-
-dimensional arrays, rather than the tabular data for which pandas excels.
+provide a pandas-like and pandas-compatible toolkit for analytics on
+multi-dimensional arrays, rather than the tabular data for which pandas excels.
 
 
 .. _ecosystem.io:

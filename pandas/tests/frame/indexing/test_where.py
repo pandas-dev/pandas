@@ -1024,3 +1024,12 @@ def test_where_int_overflow(replacement):
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_inplace_no_other():
+    # GH#51685
+    df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    cond = DataFrame({"a": [True, False], "b": [False, True]})
+    df.where(cond, inplace=True)
+    expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
+    tm.assert_frame_equal(df, expected)
