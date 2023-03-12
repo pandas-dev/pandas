@@ -1320,7 +1320,7 @@ class StringMethods(NoNewAttributesMixin):
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
-        pat_dict = dict()
+        pat_dict = dict(),
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1461,16 +1461,22 @@ class StringMethods(NoNewAttributesMixin):
             case = True
 
         if not pat and not pat_dict:
-            raise ValueError('Cannot perform string replacement without specifying a string to be modified.')
+            raise ValueError(
+                "Cannot perform string replacement without specifying a string to be modified."
+            )
 
         if pat_dict:
             res_output = self._data
             for key, value in pat_dict.items():
-                result = res_output.array._str_replace(key, str(value), n=n, case=case, flags=flags, regex=regex)
+                result = res_output.array._str_replace(
+                    key, str(value), n=n, case=case, flags=flags, regex=regex
+                )
                 res_output = self._wrap_result(result)
 
         else:
-            result = self._data.array._str_replace(pat, repl, n=n, case=case, flags=flags, regex=regex)
+            result = self._data.array._str_replace(
+                pat, repl, n=n, case=case, flags=flags, regex=regex
+            )
             res_output = self._wrap_result(result)
 
         return res_output
