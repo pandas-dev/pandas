@@ -14,7 +14,6 @@ import itertools
 import os
 import re
 from textwrap import dedent
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -41,15 +40,6 @@ from pandas._libs import (
     writers as libwriters,
 )
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    AxisInt,
-    DtypeArg,
-    FilePath,
-    Shape,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -115,14 +105,25 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from tables import (
         Col,
         File,
         Node,
     )
 
-    from pandas.core.internals import Block
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        AxisInt,
+        DtypeArg,
+        FilePath,
+        Shape,
+        npt,
+    )
 
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
@@ -2196,9 +2197,8 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-            else:
-                if value is not None or existing_value is not None:
-                    idx[key] = value
+            elif value is not None or existing_value is not None:
+                idx[key] = value
 
     def set_info(self, info) -> None:
         """set my state from the passed info"""
