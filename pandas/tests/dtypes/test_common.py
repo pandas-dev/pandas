@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -754,3 +756,12 @@ def test_validate_allhashable():
 
     with pytest.raises(TypeError, match="list must be a hashable type"):
         com.validate_all_hashable([], error_name="list")
+
+
+def test_pandas_dtype_numpy_warning():
+    # GH#51523
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        pandas_dtype(np.integer)
+        assert len(w) == 1  # should have raised one warning
+        assert "DeprecationWarning" in str(w[-1])  # we get the default message
