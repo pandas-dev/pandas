@@ -1356,7 +1356,7 @@ class StringMethods(NoNewAttributesMixin):
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
         pat_dict : dict, default empty dictionary
-            Contains <key:value> pairs of strings being replaced, and their updated values
+            <key:value> pairs of strings being replaced, and their updated values
 
         Returns
         -------
