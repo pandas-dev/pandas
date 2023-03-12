@@ -1356,7 +1356,7 @@ class StringMethods(NoNewAttributesMixin):
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
         pat_dict : dict, default empty dictionary
-            Contains <key:value> pairs of strings to be replaced, and their updated values
+            Contains <key:value> pairs of strings being replaced, and their updated values
 
         Returns
         -------
@@ -1464,7 +1464,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if not pat and not pat_dict:
             raise ValueError(
-                "Cannot perform string replacement without specifying a string to be modified."
+                "Cannot repalce a string without specifying a string to be modified."
             )
 
         if pat_dict:
