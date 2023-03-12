@@ -1314,12 +1314,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern = '',
+        repl: str | Callable = '',
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
+        pat_dict = dict()
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1459,10 +1460,20 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        result = self._data.array._str_replace(
-            pat, repl, n=n, case=case, flags=flags, regex=regex
-        )
-        return self._wrap_result(result)
+        if not pat and not pat_dict:
+            raise ValueError('Cannot perform string replacement without specifying a string to be modified.')
+
+        if pat_dict:
+            res_output = self._data
+            for key, value in pat_dict.items():
+                result = res_output.array._str_replace(key, str(value), n=n, case=case, flags=flags, regex=regex)
+                res_output = self._wrap_result(result)
+
+        else:
+            result = self._data.array._str_replace(pat, repl, n=n, case=case, flags=flags, regex=regex)
+            res_output = self._wrap_result(result)
+
+        return res_output
 
     @forbid_nonstring_types(["bytes"])
     def repeat(self, repeats):
