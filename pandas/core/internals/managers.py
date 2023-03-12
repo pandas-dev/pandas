@@ -1689,6 +1689,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         -------
         arr : ndarray
         """
+        passed_nan = lib.is_float(na_value) and np.isnan(na_value)
+
         # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
@@ -1696,12 +1698,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if self.is_single_block:
             blk = self.blocks[0]
-            if blk.is_extension:
-                # Avoid implicit conversion of extension blocks to object
 
+            if na_value is not lib.no_default:
                 # We want to copy when na_value is provided to avoid
                 # mutating the original object
-                copy = copy or na_value is not lib.no_default
+                if (
+                    isinstance(blk.dtype, np.dtype)
+                    and blk.dtype.kind == "f"
+                    and passed_nan
+                ):
+                    # We are already numpy-float and na_value=np.nan
+                    pass
+                else:
+                    copy = True
+
+            if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
 
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
@@ -1724,7 +1736,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if na_value is lib.no_default:
             pass
-        elif arr.dtype.kind == "f" and lib.is_float(na_value) and np.isnan(na_value):
+        elif arr.dtype.kind == "f" and passed_nan:
             pass
         else:
             arr[isna(arr)] = na_value
