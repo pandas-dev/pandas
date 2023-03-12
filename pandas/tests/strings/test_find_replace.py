@@ -638,6 +638,7 @@ def test_replace_regex_single_character(regex, any_string_dtype):
         expected = Series(["aab", "a", "b", np.nan, ""], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
+
 def test_replace_dict(any_string_dtype):
     # New replace behavior introduced in #51914
     series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
@@ -645,12 +646,14 @@ def test_replace_dict(any_string_dtype):
     expected1 = Series(data=["A", "B_junk", "C_junk"], name="my_messy_col")
     tm.assert_series_equal(new_series1, expected1)
 
+
 def test_replace_multi_dict(any_string_dtype):
     # New replace behavior introduced in #51914
     series = Series(data=["A", "B", "C"], name="my_messy_col")
     new_series = series.str.replace(pat_dict={"A": "", "B": 1})
     expected = Series(data=["", "1", "C"], name="my_messy_col")
     tm.assert_series_equal(new_series, expected)
+
 
 def test_replace_dict_invalid(any_string_dtype):
     # New replace behavior introduced in #51914
