@@ -197,6 +197,8 @@ exclude = '''
 line-length = 88
 update-check = false
 target-version = "py38"
+fix = true
+unfixable = ["E711"]
 
 select = [
   # pyflakes
