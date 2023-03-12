@@ -60,9 +60,8 @@ ways" to achieve the same result:
   subtle bugs and is harder to debug.
 
 Finally, there are also methods that have a `copy` keyword instead of an `inplace` keyword (which also avoids copying
-the data in the case of `copy=False`, but still returns a new object referencing the same data instead of updating the
-calling object), adding to the inconsistencies. This `copy=False` option also has become redundant with the introduction
-of Copy-on-Write.
+the data when `copy=False`, but returns a new object referencing the same data instead of updating the calling object),
+adding to the inconsistencies. This keyword is also redundant now with the introduction of Copy-on-Write.
 
 Given the above reasons, we are convinced that there is no need for neither the `inplace` nor the `copy` keyword (except
 for a small subset of methods that can actually update data inplace). Removing those keywords will give a more
@@ -94,7 +93,7 @@ the ``copy`` and ``inplace`` keywords, with the value of ``inplace`` overwriting
 To summarize the status quo of inplace behavior of methods, we have divided methods that can operate inplace or have
 an ``inplace``/``copy`` keyword into 4 groups:
 
-**Group 1: Methods that always operate inplace**
+**Group 1: Methods that always operate inplace (no user-control with ``inplace``/``copy`` keyword) **
 
 | Method Name   |
 |:--------------|
@@ -102,8 +101,6 @@ an ``inplace``/``copy`` keyword into 4 groups:
 | ``pop``       |
 | ``update``    |
 | ``isetitem``* |
-
-These methods always operate inplace and don't have the ``inplace`` or ``copy`` keyword.
 
 \* Although ``isetitem`` operates on the original pandas object inplace, it will not change any existing values
 inplace (it will remove the values of the column being set, and insert new values).
@@ -121,7 +118,8 @@ inplace (it will remove the values of the column being set, and insert new value
 | ``bfill``       |
 | ``clip``        |
 
-These methods don't operate inplace by default, but can be done inplace with `inplace=True` if the dtypes are compatible (e.g. the values replacing the old values can be stored in the original array without an astype). All those methods leave
+These methods don't operate inplace by default, but can be done inplace with `inplace=True` if the dtypes are compatible
+(e.g. the values replacing the old values can be stored in the original array without an astype). All those methods leave
 the structure of the DataFrame or Series intact (shape, row/column labels), but can mutate some elements of the data of
 the DataFrame or Series.
 
@@ -162,8 +160,8 @@ Two methods also have both keywords: `rename`, `rename_axis`, with the `inplace`
 
 **Group 4: Methods that can never operate inplace**
 
-| Method Name              | Keyword     |
-|:-------------------------|-------------|
+| Method Name            | Keyword   |
+|:-----------------------|-----------|
 | `drop` (dropping rows) | `inplace` |
 | `dropna`               | `inplace` |
 | `drop_duplicates`      | `inplace` |
@@ -178,9 +176,9 @@ Two methods also have both keywords: `rename`, `rename_axis`, with the `inplace`
 | `reindex_like`         | `copy`    |
 | `truncate`             | `copy`    |
 
-Although all of these methods either `inplace` or `copy`, they can never operate inplace because the nature of the
+Although these methods the `inplace`/`copy` keywords, they can never operate inplace because the nature of the
 operation requires copying (such as reordering or dropping rows). For those methods, `inplace=True` is essentially just
-syntactic sugar for reassigning the new result to `self` (the calling DataFrame).
+syntactic sugar for reassigning the new result to the calling DataFrame/Series.
 
 Note: in the case of a "no-op" (for example when sorting an already sorted DataFrame), some of those methods might not
 need to perform a copy. This currently happens with Copy-on-Write (regardless of `inplace`), but this is considered an
@@ -193,14 +191,11 @@ The methods from group 1 won't change behavior, and will remain always inplace.
 Methods in groups 3 and 4 will lose their `copy` and `inplace` keywords. Under Copy-on-Write, every operation will
 potentially return a shallow copy of the input object, if the performed operation does not require a copy. This is
 equivalent to behavior with `copy=False` and/or `inplace=True` for those methods. If users want to make a hard
-copy(`copy=True`), they can do:
-
-    :::python
-    df = df.func().copy()
+copy(`copy=True`), they can call the `copy()` method on the result of the operation.
 
 Therefore, there is no benefit of keeping the keywords around for these methods.
 
-User can emulate behavior of the `inplace` keyword by assigning the result of an operation to the same variable:
+To emulate behavior of the `inplace` keyword, we can reassig the result of an operation to the same variable:
 
     :::python
     df = pd.DataFrame({"foo": [1, 2, 3]})
@@ -210,8 +205,7 @@ User can emulate behavior of the `inplace` keyword by assigning the result of an
 All references to the original object will go out of scope when the result of the `reset_index` operation is assigned
 to `df`. As a consequence, `iloc` will continue to operate inplace, and the underlying data will not be copied.
 
-The methods in group 2 behave different compared to the first three groups. These methods are actually able to operate
-inplace because they only modify the underlying data.
+Group 2 methods differ, though, since they only modify the underlying data, and therefore can be inplace.
 
     :::python
     df = pd.DataFrame({"foo": [1, 2, 3]})
@@ -336,19 +330,19 @@ There are some behaviour changes (for example the current `copy=False` returning
 actual" shallow copy, but protected under Copy-on-Write), but those behaviour changes are covered by the Copy-on-Write
 proposal[^1].
 
-## Alternatives
+## Rejected ideas
 
 ### Remove the `inplace` keyword altogether
 
-In the past, it was considered to remove the `inplace` keyword entirely. This was because many operations that had
+In the past, it was considered to remove the `inplace` keyword entirely. This was because many methods with
 the `inplace` keyword did not actually operate inplace, but made a copy and re-assigned the underlying values under
 the hood, causing confusion and providing no real benefit to users.
 
 Because a majority of the methods supporting `inplace` did not operate inplace, it was considered at the time to
 deprecate and remove inplace from all methods, and add back the keyword as necessary.[^3]
 
-For the subset of methods where the operation actually _can_ be done inplace (group 2), however, removing the `inplace`
-keyword for those as well could give a significant performance regression when currently using this keyword with large
+For methods where the operation actually _can_ be done inplace (group 2), however, removing the `inplace`
+keyword could give a significant performance regression when currently using this keyword with large
 DataFrames. Therefore, we decided to keep the `inplace` keyword for this small subset of methods.
 
 ### Standardize on the `copy` keyword instead of `inplace`
@@ -382,7 +376,7 @@ It may be helpful to review those discussions (see links) [^2] [^3] [^4] to bett
 Copy-on-Write is a relatively new feature (added in version 1.5) and some methods are missing the "lazy copy"
 optimization (equivalent to `copy=False`).
 
-Therefore, we will start showing deprecation warnings for the `copy` and `inplace` parameters in pandas 2.1, to
+Therefore, we propose deprecating the `copy` and `inplace` parameters in pandas 2.1, to
 allow for bugs with Copy-on-Write to be addressed and for more optimizations to be added.
 
 Hopefully, users will be able to switch to Copy-on-Write to keep the no-copy behavior and to silence the warnings.
