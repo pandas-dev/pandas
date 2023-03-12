@@ -3827,7 +3827,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
-            result = self.reindex(columns=new_columns)
+            result = self.iloc[:, loc]
             result.columns = result_columns
 
             # If there is only one column being returned, and its name is
