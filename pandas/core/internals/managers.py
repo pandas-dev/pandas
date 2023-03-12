@@ -1694,14 +1694,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
 
-        # We want to copy when na_value is provided to avoid
-        # mutating the original object
-        copy = copy or na_value is not lib.no_default
-
         if self.is_single_block:
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
+
+                # We want to copy when na_value is provided to avoid
+                # mutating the original object
+                copy = copy or na_value is not lib.no_default
 
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
@@ -1712,7 +1712,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                    arr = arr.astype(dtype, copy=copy)
+                    copy = False
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -1721,7 +1722,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if copy:
             arr = arr.copy()
 
-        if na_value is not lib.no_default:
+        if na_value is lib.no_default:
+            pass
+        elif arr.dtype.kind == "f" and lib.is_float(na_value) and np.isnan(na_value):
+            pass
+        else:
             arr[isna(arr)] = na_value
 
         return arr.transpose()
