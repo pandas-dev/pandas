@@ -184,7 +184,7 @@ cdef duplicated_{{name}}(const {{dtype}}_t[:] values, object keep='first', const
                 else:
                     {{if name == 'string'}}
                     val = values[i]
-                    if checknull(val):
+                    if not isinstance(val, str):
                         if val in na_set:
                             out[i] = True
                         else:
