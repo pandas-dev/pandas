@@ -445,8 +445,7 @@ ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
         "include": klib_include,
-        "depends": _pxi_dep["algos"] + tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "depends": _pxi_dep["algos"],
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
@@ -457,30 +456,21 @@ ext_data = {
         "depends": (
             ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
             + _pxi_dep["hashtable"]
-            + tseries_depends
         ),
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
         "include": klib_include,
-        "depends": _pxi_dep["index"] + tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "depends": _pxi_dep["index"],
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
     "_libs.interval": {
         "pyxfile": "_libs/interval",
         "include": klib_include,
-        "depends": _pxi_dep["interval"] + tseries_depends,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+        "depends": _pxi_dep["interval"],
     },
-    "_libs.join": {
-        "pyxfile": "_libs/join",
-        "depends": tseries_depends,
-        "include": klib_include,
-        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
-    },
+    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
@@ -494,10 +484,6 @@ ext_data = {
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
             "pandas/_libs/src/pd_parser.h",
-        ]
-        + tseries_depends,
-        "sources": [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
         ],
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},

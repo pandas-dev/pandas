@@ -55,6 +55,7 @@ typedef struct {
   int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, int, int,
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
+  Py_hash_t (*hash_datetime_from_struct)(npy_datetimestruct* dts);
 } PandasDateTime_CAPI;
 
 // The capsule name appears limited to module.attributename; see bpo-32414
