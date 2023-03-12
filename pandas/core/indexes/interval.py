@@ -7,6 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Literal,
@@ -25,12 +26,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     to_offset,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    IntervalClosedType,
-    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
@@ -92,6 +87,13 @@ from pandas.core.indexes.timedeltas import (
     timedelta_range,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        IntervalClosedType,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -371,6 +373,13 @@ class IntervalIndex(ExtensionIndex):
             return True
         except KeyError:
             return False
+
+    def _getitem_slice(self, slobj: slice) -> IntervalIndex:
+        """
+        Fastpath for __getitem__ when we know we have a slice.
+        """
+        res = self._data[slobj]
+        return type(self)._simple_new(res, name=self._name)
 
     @cache_readonly
     def _multiindex(self) -> MultiIndex:

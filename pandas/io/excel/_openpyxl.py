@@ -10,13 +10,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -34,6 +27,14 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
     from openpyxl.workbook import Workbook
+
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 
 
 class OpenpyxlWriter(ExcelWriter):
@@ -70,11 +71,19 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self._mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            try:
+                self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
             self._handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
-            self._book = Workbook(**engine_kwargs)
+            try:
+                self._book = Workbook(**engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])

@@ -60,11 +60,14 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
+
+import_pandas_datetime()
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport (
@@ -4096,7 +4099,7 @@ cpdef to_offset(freq):
 
     Returns
     -------
-    DateOffset or None
+    BaseOffset subclass or None
 
     Raises
     ------
@@ -4109,6 +4112,7 @@ cpdef to_offset(freq):
 
     Examples
     --------
+    >>> from pandas.tseries.frequencies import to_offset
     >>> to_offset("5min")
     <5 * Minutes>
 
@@ -4124,7 +4128,7 @@ cpdef to_offset(freq):
     >>> to_offset(pd.Timedelta(days=1))
     <Day>
 
-    >>> to_offset(Hour())
+    >>> to_offset(pd.offsets.Hour())
     <Hour>
     """
     if freq is None:
@@ -4563,7 +4567,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
 cdef int _roll_qtrday(npy_datetimestruct* dts,
                       int n,
                       int months_since,
-                      str day_opt) nogil except? -1:
+                      str day_opt) except? -1 nogil:
     """
     See roll_qtrday.__doc__
     """

@@ -272,7 +272,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     _combine_le_expected_dtype = "Sparse[bool]"
 
-    def test_fillna_copy_frame(self, data_missing):
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr}, copy=False)
 
@@ -280,17 +280,24 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = df.fillna(filled_val)
 
         if hasattr(df._mgr, "blocks"):
-            assert df.values.base is not result.values.base
+            if using_copy_on_write:
+                assert df.values.base is result.values.base
+            else:
+                assert df.values.base is not result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
-    def test_fillna_copy_series(self, data_missing):
+    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        assert ser._values is not result._values
+        if using_copy_on_write:
+            assert ser._values is result._values
+
+        else:
+            assert ser._values is not result._values
         assert ser._values.to_dense() is arr.to_dense()
 
     @pytest.mark.xfail(reason="Not Applicable")
@@ -320,13 +327,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         self.assert_series_equal(result, expected)
 
     def test_combine_first(self, data, request):
-        if data.dtype.subtype == "int":
-            # Right now this is upcasted to float, just like combine_first
-            # for Series[int]
-            mark = pytest.mark.xfail(
-                reason="TODO(SparseArray.__setitem__) will preserve dtype."
-            )
-            request.node.add_marker(mark)
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
