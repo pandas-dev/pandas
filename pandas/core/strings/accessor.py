@@ -1320,7 +1320,7 @@ class StringMethods(NoNewAttributesMixin):
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
-        pat_dict=dict(),
+        pat_dict: dict = dict(),
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
