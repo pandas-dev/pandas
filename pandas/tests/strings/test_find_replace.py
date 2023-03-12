@@ -665,6 +665,7 @@ def test_replace_dict_invalid(any_string_dtype):
     with pytest.raises(ValueError, match=msg):
         series.str.replace()
 
+
 # --------------------------------------------------------------------------------------
 # str.match
 # --------------------------------------------------------------------------------------
