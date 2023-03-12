@@ -1320,7 +1320,7 @@ class StringMethods(NoNewAttributesMixin):
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
-        pat_dict = dict(),
+        pat_dict=dict(),
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1355,6 +1355,8 @@ class StringMethods(NoNewAttributesMixin):
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
+        pat_dict : dict, default empty dictionary
+            Contains <key:value> pairs of strings to be replaced, and their updated values
 
         Returns
         -------
