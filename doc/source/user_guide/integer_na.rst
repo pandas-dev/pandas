@@ -1,12 +1,17 @@
 .. currentmodule:: pandas
 
+{{ header }}
+
 .. _integer_na:
 
 **************************
 Nullable integer data type
 **************************
 
-Note: IntegerArray is currently experimental. Its API or implementation may change without warning. Uses :attr:`pandas.NA` as the missing value.
+.. note::
+
+   IntegerArray is currently experimental. Its API or implementation may
+   change without warning. Uses :attr:`pandas.NA` as the missing value.
 
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with
@@ -50,7 +55,11 @@ NumPy array.
 You can also pass the list-like object to the :class:`Series` constructor
 with the dtype.
 
-Warning: Currently :meth:`pandas.array` and :meth:`pandas.Series` use different rules for dtype inference. :meth:`pandas.array` will infer a nullable-integer dtype.
+.. warning::
+
+   Currently :meth:`pandas.array` and :meth:`pandas.Series` use different
+   rules for dtype inference. :meth:`pandas.array` will infer a
+   nullable-integer dtype
 
    .. ipython:: python
 
