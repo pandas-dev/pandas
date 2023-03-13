@@ -957,7 +957,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 elif self.dtype_backend == "numpy_nullable":
                     from pandas.io._util import _arrow_dtype_mapping
 
-                    mapping = _arrow_dtype_mapping()
+                    mapping = _arrow_dtype_mapping().get
                 else:
                     mapping = None
 
