@@ -456,9 +456,7 @@ def test_array_ufuncs_for_many_arguments():
 
 
 # TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-td.skip_copy_on_write_not_yet_implemented
-
-
+@td.skip_copy_on_write_not_yet_implemented
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords
