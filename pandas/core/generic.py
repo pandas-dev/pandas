@@ -750,7 +750,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mapping = {i: j, j: i}
 
         new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
-        new_values = self.values.swapaxes(i, j)
+        new_values = self._values.swapaxes(i, j)
         if (
             using_copy_on_write()
             and self._mgr.is_single_block
