@@ -108,6 +108,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
                                             (base))
 #define make_iso_8601_timedelta(tds, outstr, outlen)                           \
   PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
+#define hash_datetime_from_struct(dts)                                         \
+  PandasDateTimeAPI->hash_datetime_from_struct((dts))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus
