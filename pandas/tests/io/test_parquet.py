@@ -1249,7 +1249,7 @@ class TestParquetFastParquet(Base):
         with tm.ensure_clean() as path:
             with pytest.raises(
                 NotImplementedError,
-                match="storage_options not supported with a pyarrow Filesystem.",
+                match="storage_options not supported with a pyarrow FileSystem.",
             ):
                 df.to_parquet(
                     path,
@@ -1262,7 +1262,7 @@ class TestParquetFastParquet(Base):
             pathlib.Path(path).write_bytes(b"foo")
             with pytest.raises(
                 NotImplementedError,
-                match="storage_options not supported with a pyarrow Filesystem.",
+                match="storage_options not supported with a pyarrow FileSystem.",
             ):
                 read_parquet(
                     path,
