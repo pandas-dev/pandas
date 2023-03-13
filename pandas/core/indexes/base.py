@@ -464,7 +464,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls,
         data=None,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
         tupleize_cols: bool = True,
     ) -> Index:
@@ -476,6 +476,12 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = pandas_dtype(dtype)
 
         data_dtype = getattr(data, "dtype", None)
+
+        if copy is None:
+            if isinstance(data, Index):
+                copy = False
+            else:
+                copy = True
 
         # range
         if isinstance(data, (range, RangeIndex)):
@@ -7051,7 +7057,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: Axes, copy: bool = False) -> Index:
+def ensure_index(index_like: Axes, copy: bool | None = None) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
@@ -7059,7 +7065,8 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     ----------
     index_like : sequence
         An Index or other sequence
-    copy : bool, default False
+    copy : bool, optional
+        By default copy if the passed object is not yet an Index object.
 
     Returns
     -------
@@ -7083,9 +7090,12 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
            )
     """
     if isinstance(index_like, Index):
-        if copy:
+        if copy is True:
             index_like = index_like.copy()
         return index_like
+
+    if copy is None:
+        copy = True
 
     if isinstance(index_like, ABCSeries):
         name = index_like.name
