@@ -32,6 +32,7 @@ Other enhancements
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
+- :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -117,6 +118,7 @@ Performance improvements
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
+- Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
