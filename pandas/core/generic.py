@@ -52,6 +52,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeArg,
+    DtypeBackend,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -6567,6 +6568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
         convert_floating: bool_t = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> NDFrameT:
         """
         Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6587,6 +6589,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
+        dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
+            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+            arrays, nullable dtypes are used for all dtypes that have a nullable
+            implementation when "numpy_nullable" is set, pyarrow is used for all
+            dtypes if "pyarrow" is set.
+
+            The dtype_backends are still experimential.
+
+            .. versionadded:: 2.0
 
         Returns
         -------
@@ -6706,6 +6717,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                dtype_backend=dtype_backend,
             )
         else:
             results = [
@@ -6715,6 +6727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     convert_integer,
                     convert_boolean,
                     convert_floating,
+                    dtype_backend=dtype_backend,
                 )
                 for col_name, col in self.items()
             ]
