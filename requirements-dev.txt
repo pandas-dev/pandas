@@ -86,5 +86,6 @@ pyyaml
 requests
 pygments
 sphinx-toggleprompt
+typing_extensions; python_version<"3.11"
 tzdata>=2022.1
 setuptools>=61.0.0
