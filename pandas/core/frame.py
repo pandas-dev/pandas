@@ -3606,7 +3606,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            if copy:
+            if copy and not using_copy_on_write():
                 new_arr = new_arr.copy()
             result = self._constructor(
                 new_arr,
