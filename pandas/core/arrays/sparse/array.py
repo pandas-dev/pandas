@@ -28,19 +28,6 @@ from pandas._libs.sparse import (
     SparseIndex,
 )
 from pandas._libs.tslibs import NaT
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Axis,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -78,10 +65,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import (
-    arraylike,
-    ops,
-)
+from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -119,6 +103,20 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
+
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        Axis,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        SequenceIndexer,
+        npt,
+    )
 
     from pandas import Series
 
@@ -1273,7 +1271,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self: SparseArrayT, mapper) -> SparseArrayT:
+    def map(self: SparseArrayT, mapper, na_action=None) -> SparseArrayT:
         """
         Map categories using an input mapping or function.
 
@@ -1281,6 +1279,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         mapper : dict, Series, callable
             The correspondence from old values to new.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence.
 
         Returns
         -------
@@ -1310,6 +1311,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
+        if na_action is not None:
+            raise NotImplementedError
+
         # this is used in apply.
         # We get hit since we're an "is_extension_array_dtype" but regular extension
         # types are not hit. This may be worth adding to the interface.
@@ -1643,7 +1647,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:

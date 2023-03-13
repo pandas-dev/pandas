@@ -46,7 +46,6 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_matplotlib",
     "_arrow_utils",
     "_registry",
-    "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
     "_testing",
     "_test_decorators",
@@ -139,15 +138,14 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                 "Bare pytests raise have been found. "
                 "Please pass in the argument 'match' as well the exception.",
             )
-        else:
-            # Means that there are arguments that are being passed in,
-            # now we validate that `match` is one of the passed in arguments
-            if not any(keyword.arg == "match" for keyword in node.keywords):
-                yield (
-                    node.lineno,
-                    "Bare pytests raise have been found. "
-                    "Please pass in the argument 'match' as well the exception.",
-                )
+        # Means that there are arguments that are being passed in,
+        # now we validate that `match` is one of the passed in arguments
+        elif not any(keyword.arg == "match" for keyword in node.keywords):
+            yield (
+                node.lineno,
+                "Bare pytests raise have been found. "
+                "Please pass in the argument 'match' as well the exception.",
+            )
 
 
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative

@@ -88,9 +88,11 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
 
-
-cdef extern from "src/parse_helper.h":
+cdef extern from "pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
+    void PandasParser_IMPORT()
+
+PandasParser_IMPORT
 
 from pandas._libs cimport util
 from pandas._libs.util cimport (
@@ -2650,7 +2652,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
 
     if not convert_numeric:
-        # Note: we count "bool" as numeric here. This is becase
+        # Note: we count "bool" as numeric here. This is because
         #  np.array(list_of_items) will convert bools just like it will numeric
         #  entries.
         return objects
