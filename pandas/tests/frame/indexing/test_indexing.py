@@ -345,7 +345,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_boolean(self, float_frame):
         df = float_frame.copy()
-        values = float_frame.values
+        values = float_frame.values.copy()
 
         df[df["A"] > 0] = 4
         values[values[:, 0] > 0] = 4
@@ -381,16 +381,18 @@ class TestDataFrameIndexing:
             df[df * 0] = 2
 
         # index with DataFrame
+        df_orig = df.copy()
         mask = df > np.abs(df)
-        expected = df.copy()
         df[df > np.abs(df)] = np.nan
-        expected.values[mask.values] = np.nan
+        values = df_orig.values.copy()
+        values[mask.values] = np.nan
+        expected = DataFrame(values, index=df_orig.index, columns=df_orig.columns)
         tm.assert_frame_equal(df, expected)
 
         # set from DataFrame
-        expected = df.copy()
         df[df > np.abs(df)] = df * 2
-        np.putmask(expected.values, mask.values, df.values * 2)
+        np.putmask(values, mask.values, df.values * 2)
+        expected = DataFrame(values, index=df_orig.index, columns=df_orig.columns)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_cast(self, float_frame):
@@ -664,16 +666,20 @@ class TestDataFrameIndexing:
         # from 2d, set with booleans
         frame = float_frame.copy()
         expected = float_frame.copy()
+        values = expected.values.copy()
 
         mask = frame["A"] > 0
         frame.loc[mask] = 0.0
-        expected.values[mask.values] = 0.0
+        values[mask.values] = 0.0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(frame, expected)
 
         frame = float_frame.copy()
         expected = float_frame.copy()
+        values = expected.values.copy()
         frame.loc[mask, ["A", "B"]] = 0.0
-        expected.values[mask.values, :2] = 0.0
+        values[mask.values, :2] = 0.0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(frame, expected)
 
     def test_getitem_fancy_ints(self, float_frame):

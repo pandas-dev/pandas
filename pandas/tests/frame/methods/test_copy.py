@@ -18,6 +18,7 @@ class TestCopy:
         getattr(cp, attr).name = "foo"
         assert getattr(float_frame, attr).name is None
 
+    @td.skip_copy_on_write_invalid_test
     def test_copy_cache(self):
         # GH#31784 _item_cache not cleared on copy causes incorrect reads after updates
         df = DataFrame({"a": [1]})

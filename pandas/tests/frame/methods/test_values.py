@@ -16,9 +16,14 @@ import pandas._testing as tm
 
 class TestDataFrameValues:
     @td.skip_array_manager_invalid_test
-    def test_values(self, float_frame):
-        float_frame.values[:, 0] = 5.0
-        assert (float_frame.values[:, 0] == 5).all()
+    def test_values(self, float_frame, using_copy_on_write):
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                float_frame.values[:, 0] = 5.0
+            assert (float_frame.values[:, 0] != 5).all()
+        else:
+            float_frame.values[:, 0] = 5.0
+            assert (float_frame.values[:, 0] == 5).all()
 
     def test_more_values(self, float_string_frame):
         values = float_string_frame.values
