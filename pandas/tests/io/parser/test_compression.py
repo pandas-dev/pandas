@@ -85,7 +85,7 @@ def test_zip_error_invalid_zip(parser_and_data):
 
     with tm.ensure_clean() as path:
         with open(path, "rb") as f:
-            with pytest.raises(zipfile.BadZipfile, match="File is not a zip file"):
+            with pytest.raises(zipfile.BadZipFile, match="File is not a zip file"):
                 parser.read_csv(f, compression="zip")
 
 
