@@ -88,9 +88,9 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
-        Which dtype_backend to use, e.g. whether a DataFrame should have nullable
-        dtypes that are used for all dtypes that have a nullable
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
         implementation when "numpy_nullable" is set, pyarrow is used for all
         dtypes if "pyarrow" is set.
 
