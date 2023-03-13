@@ -1167,8 +1167,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(ids, ngroups)
-        sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
+        sorted_index = self.grouper._sort_idx
+        sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         if len(self.grouper.groupings) > 1:

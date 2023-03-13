@@ -149,7 +149,10 @@ class TestDataFrameSelectReindex:
 
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+        if using_copy_on_write:
+            assert np.shares_memory(result2[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):

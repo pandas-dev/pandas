@@ -41,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
+    import_pandas_datetime,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -49,6 +50,8 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dtstruct,
     string_to_dts,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
@@ -176,6 +179,9 @@ cpdef inline (int64_t, int) precision_from_unit(
         multiplier = periods_per_second(out_reso)
         m = multiplier * 2629746
     else:
+        # Careful: if get_conversion_factor raises, the exception does
+        #  not propagate, instead we get a warning about an ignored exception.
+        #  https://github.com/pandas-dev/pandas/pull/51483#discussion_r1115198951
         m = get_conversion_factor(reso, out_reso)
 
     p = <int>log10(m)  # number of digits in 'm' minus 1
