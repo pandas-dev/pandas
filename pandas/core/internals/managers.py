@@ -1689,7 +1689,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         -------
         arr : ndarray
         """
-        passed_nan = lib.is_float(na_value) and np.isnan(na_value)
+        passed_nan = lib.is_float(na_value) and isna(na_value)
 
         # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
