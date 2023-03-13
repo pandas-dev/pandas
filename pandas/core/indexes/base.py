@@ -6720,7 +6720,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if copy and res_values is values:
             return self.copy()
-        return Index(res_values, name=self.name)
+        return Index(res_values, name=self.name, copy=False)
 
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
