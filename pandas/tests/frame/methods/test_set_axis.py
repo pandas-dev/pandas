@@ -33,13 +33,14 @@ class SharedSetAxisTests:
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we DID make a copy
-        if obj.ndim == 1:
-            assert not tm.shares_memory(result, obj)
-        else:
-            assert not any(
-                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
-                for i in range(obj.shape[1])
-            )
+        if not using_copy_on_write:
+            if obj.ndim == 1:
+                assert not tm.shares_memory(result, obj)
+            else:
+                assert not any(
+                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                    for i in range(obj.shape[1])
+                )
 
         result = obj.set_axis(new_index, axis=0, copy=False)
         tm.assert_equal(expected, result)
@@ -66,15 +67,14 @@ class SharedSetAxisTests:
                     tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
                     for i in range(obj.shape[1])
                 )
+        # check we DID make a copy
+        elif obj.ndim == 1:
+            assert not tm.shares_memory(result, obj)
         else:
-            # check we DID make a copy
-            if obj.ndim == 1:
-                assert not tm.shares_memory(result, obj)
-            else:
-                assert not any(
-                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
-                    for i in range(obj.shape[1])
-                )
+            assert not any(
+                tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
+                for i in range(obj.shape[1])
+            )
 
         res = obj.set_axis(new_index, copy=False)
         tm.assert_equal(expected, res)

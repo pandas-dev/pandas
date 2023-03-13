@@ -25,20 +25,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    PositionalIndexer,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    SortKind,
-    TakeIndexer,
-    npt,
-)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -90,8 +76,20 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        SortKind,
+        TakeIndexer,
+        npt,
     )
 
 _extension_array_shared_docs: dict[str, str] = {}
