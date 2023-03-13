@@ -24,14 +24,13 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_nullable_dtypes
-
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     CompressionOptions,
     CSVEngine,
     DtypeArg,
+    DtypeBackend,
     FilePath,
     IndexLabel,
     ReadCsvBuffer,
@@ -400,18 +399,13 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
-use_nullable_dtypes : bool = False
-    Whether or not to use nullable dtypes as default when reading data. If
-    set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present.
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
 
-    .. note::
-
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    The dtype_backends are still experimential.
 
     .. versionadded:: 2.0
 
@@ -641,7 +635,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -698,7 +692,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -755,7 +749,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -812,7 +806,7 @@ def read_csv(
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -885,7 +879,7 @@ def read_csv(
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
@@ -911,7 +905,7 @@ def read_csv(
         on_bad_lines,
         names,
         defaults={"delimiter": ","},
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
     )
     kwds.update(kwds_defaults)
 
@@ -970,7 +964,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -1027,7 +1021,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> TextFileReader:
     ...
 
@@ -1084,7 +1078,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -1141,7 +1135,7 @@ def read_table(
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -1214,7 +1208,7 @@ def read_table(
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
@@ -1241,7 +1235,7 @@ def read_table(
         on_bad_lines,
         names,
         defaults={"delimiter": "\t"},
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
     )
     kwds.update(kwds_defaults)
 
@@ -1254,7 +1248,7 @@ def read_fwf(
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1286,20 +1280,13 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-            This is only implemented for the ``pyarrow`` or ``python``
-            engines.
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -1326,12 +1313,6 @@ def read_fwf(
         raise ValueError("Must specify either colspecs or widths")
     if colspecs not in (None, "infer") and widths is not None:
         raise ValueError("You must specify only one of 'widths' and 'colspecs'")
-
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
 
     # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
@@ -1365,7 +1346,7 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
-    kwds["use_nullable_dtypes"] = use_nullable_dtypes
+    kwds["dtype_backend"] = dtype_backend
     return _read(filepath_or_buffer, kwds)
 
 
@@ -1904,7 +1885,7 @@ def _refine_defaults_read(
     on_bad_lines: str | Callable,
     names: Sequence[Hashable] | None | lib.NoDefault,
     defaults: dict[str, Any],
-    use_nullable_dtypes: bool | lib.NoDefault,
+    dtype_backend: DtypeBackend | lib.NoDefault,
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
 
@@ -2018,12 +1999,7 @@ def _refine_defaults_read(
     else:
         raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
-    kwds["use_nullable_dtypes"] = use_nullable_dtypes
+    kwds["dtype_backend"] = dtype_backend
 
     return kwds
 
