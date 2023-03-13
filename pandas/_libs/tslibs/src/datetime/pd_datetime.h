@@ -23,6 +23,7 @@ See NUMPY_LICENSE.txt for the license.
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
+#include <numpy/arrayscalars.h>
 #include "np_datetime.h"
 #include "np_datetime_strings.h"
 #include "date_conversions.h"
@@ -56,6 +57,7 @@ typedef struct {
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
   Py_hash_t (*hash_datetime_from_struct)(npy_datetimestruct* dts);
+  Py_hash_t (*np_datetime64_object_hash)(PyDatetimeScalarObject* key);
 } PandasDateTime_CAPI;
 
 // The capsule name appears limited to module.attributename; see bpo-32414
@@ -110,6 +112,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
   PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
 #define hash_datetime_from_struct(dts)                                         \
   PandasDateTimeAPI->hash_datetime_from_struct((dts))
+#define np_datetime64_object_hash(dts)                                         \
+  PandasDateTimeAPI->np_datetime64_object_hash((key))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus

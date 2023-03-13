@@ -25,8 +25,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
-#include "np_datetime.h"
 
+#include "np_datetime.h"
+#include "datetime.h"
 
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
@@ -1085,4 +1086,49 @@ hash_datetime_from_struct(npy_datetimestruct* dts) {
         acc = (Py_uhash_t)-2;
     }
     return acc;
+}
+
+
+// TODO(jbrockmendel): same thing for timedelta64 objects
+Py_hash_t np_datetime64_object_hash(PyDatetimeScalarObject* key) {
+    // GH#50690 numpy's hash implementation does not preserve comparabity
+    // either across resolutions or with standard library objects.
+    // See also Timestamp.__hash__
+
+    NPY_DATETIMEUNIT unit = (NPY_DATETIMEUNIT)key->obmeta.base;
+    npy_datetime value = key->obval;
+    npy_datetimestruct dts;
+
+    if (value == NPY_DATETIME_NAT) {
+        // np.datetime64("NaT") in any reso
+        return NPY_DATETIME_NAT;
+    }
+
+    pandas_datetime_to_datetimestruct(value, unit, &dts);
+
+    if ((dts.year > 0) && (dts.year <= 9999) && (dts.ps == 0) && (dts.as == 0)) {
+        // we CAN cast to pydatetime, so use that hash to ensure we compare
+        // as matching standard library datetimes (and pd.Timestamps)
+        if (PyDateTimeAPI == NULL) {
+            /* delayed import, may be nice to move to import time */
+            PyDateTime_IMPORT;
+            if (PyDateTimeAPI == NULL) {
+                return -1;
+            }
+        }
+
+        PyObject* dt;
+        Py_hash_t hash;
+
+        dt = PyDateTime_FromDateAndTime(
+            dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us);
+        if (dt == NULL) {
+            return -1;
+        }
+        hash = PyObject_Hash(dt);
+        Py_DECREF(dt);
+        return hash;
+    }
+
+    return hash_datetime_from_struct(&dts);
 }
