@@ -28,19 +28,6 @@ from pandas._libs.sparse import (
     SparseIndex,
 )
 from pandas._libs.tslibs import NaT
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Axis,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -78,10 +65,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import (
-    arraylike,
-    ops,
-)
+from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -119,6 +103,20 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
+
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        Axis,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        SequenceIndexer,
+        npt,
+    )
 
     from pandas import Series
 
@@ -361,7 +359,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
-    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
     _sparse_index: SparseIndex
     _sparse_values: np.ndarray
     _dtype: SparseDtype
@@ -375,7 +373,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
     ) -> None:
-
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
 
@@ -611,6 +608,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 0, 2], fill_value=0)
         >>> s.sp_values
         array([1, 2])
@@ -674,6 +672,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.density
         0.6
@@ -687,6 +686,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Examples
         --------
+        >>> from pandas.arrays import SparseArray
         >>> s = SparseArray([0, 0, 1, 1, 1], fill_value=0)
         >>> s.npoints
         3
@@ -770,7 +770,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
     def shift(self: SparseArrayT, periods: int = 1, fill_value=None) -> SparseArrayT:
-
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -909,14 +908,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self: SparseArrayT,
         key: PositionalIndexer | tuple[int | ellipsis, ...],
     ) -> SparseArrayT | Any:
-
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
-            # Non-overlapping identity check (left operand type:
-            # "Union[Union[Union[int, integer[Any]], Union[slice, List[int],
-            # ndarray[Any, Any]]], Tuple[Union[int, ellipsis], ...]]",
-            # right operand type: "ellipsis")
-            if key is Ellipsis:  # type: ignore[comparison-overlap]
+            if key is Ellipsis:
                 raise ValueError("Cannot slice with Ellipsis")
 
         if is_integer(key):
@@ -933,7 +927,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # _NestedSequence[Union[bool, int]]], ...]]"
             data_slice = self.to_dense()[key]  # type: ignore[index]
         elif isinstance(key, slice):
-
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
                 start = 0 if key.start is None else key.start
@@ -1130,7 +1123,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         if not is_scalar(v):
@@ -1279,7 +1271,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self: SparseArrayT, mapper) -> SparseArrayT:
+    def map(self: SparseArrayT, mapper, na_action=None) -> SparseArrayT:
         """
         Map categories using an input mapping or function.
 
@@ -1287,6 +1279,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         ----------
         mapper : dict, Series, callable
             The correspondence from old values to new.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence.
 
         Returns
         -------
@@ -1316,6 +1311,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
+        if na_action is not None:
+            raise NotImplementedError
+
         # this is used in apply.
         # We get hit since we're an "is_extension_array_dtype" but regular extension
         # types are not hit. This may be worth adding to the interface.
@@ -1598,7 +1596,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
-
         values = self._sparse_values
         index = self._sparse_index.indices
         mask = np.asarray(isna(values))
@@ -1650,7 +1647,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return NotImplemented
 
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:

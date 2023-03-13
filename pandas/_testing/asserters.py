@@ -170,7 +170,6 @@ def _check_isinstance(left, right, cls):
 
 
 def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
-
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -280,8 +279,7 @@ def assert_index_equal(
         right = safe_sort_index(right)
 
     # MultiIndex special comparison for little-friendly error messages
-    if left.nlevels > 1:
-        left = cast(MultiIndex, left)
+    if isinstance(left, MultiIndex):
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
@@ -304,7 +302,7 @@ def assert_index_equal(
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
     # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    elif check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
 
@@ -315,7 +313,6 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
-
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(
@@ -1182,8 +1179,8 @@ def assert_frame_equal(
 
     # compare by blocks
     if by_blocks:
-        rblocks = right._to_dict_of_blocks()
-        lblocks = left._to_dict_of_blocks()
+        rblocks = right._to_dict_of_blocks(copy=False)
+        lblocks = left._to_dict_of_blocks(copy=False)
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks

@@ -21,7 +21,7 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform. If you choose to user ``Docker``
+How to do this will depend on your platform. If you choose to use ``Docker``
 in the next step, then you can skip this step.
 
 **Windows**
@@ -94,6 +94,8 @@ Option 1: using mamba (recommended)
    # Create and activate the build environment
    mamba env create --file environment.yml
    mamba activate pandas-dev
+
+.. _contributing.pip:
 
 Option 2: using pip
 ~~~~~~~~~~~~~~~~~~~

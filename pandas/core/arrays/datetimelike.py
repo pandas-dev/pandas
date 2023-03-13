@@ -148,7 +148,6 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -176,7 +175,7 @@ def _period_dispatch(meth: F) -> F:
         if result is NaT:
             return NaT
         elif isinstance(result, Timestamp):
-            return self._box_func(result.value)
+            return self._box_func(result._value)
 
         res_i8 = result.view("i8")
         return self._from_backing_data(res_i8)
@@ -259,8 +258,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         Examples
         --------
-        >>> self._unbox_scalar(Timedelta("10s"))  # doctest: +SKIP
-        10000000000
+        >>> arr = pd.arrays.DatetimeArray(np.array(['1970-01-01'], 'datetime64[ns]'))
+        >>> arr._unbox_scalar(arr[0])
+        numpy.datetime64('1970-01-01T00:00:00.000000000')
         """
         raise AbstractMethodError(self)
 
@@ -750,7 +750,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
+        if na_action is not None:
+            raise NotImplementedError
+
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
         # If so, then we can refactor IndexOpsMixin._map_values to
@@ -1003,7 +1006,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             i8values = other.ordinal
             mask = None
         elif isinstance(other, (Timestamp, Timedelta)):
-            i8values = other.value
+            i8values = other._value
             mask = None
         else:
             # PeriodArray, DatetimeArray, TimedeltaArray
@@ -1363,7 +1366,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @unpack_zerodim_and_defer("__sub__")
     def __sub__(self, other):
-
         other_dtype = getattr(other, "dtype", None)
         other = ensure_wrapped_if_datetimelike(other)
 
@@ -1904,6 +1906,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             values = values.copy()
         if freq:
             freq = to_offset(freq)
+            if values.dtype.kind == "m" and not isinstance(freq, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
@@ -1927,6 +1931,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
+            if self.dtype.kind == "m" and not isinstance(value, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
             if self.ndim > 1:
                 raise ValueError("Cannot set freq with ndim > 1")
@@ -2120,9 +2126,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # Always valid
             pass
         elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we assume this
-            #  is a Tick offset.
-            pass
+            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+            if self.dtype.kind == "m" and not isinstance(freq, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"

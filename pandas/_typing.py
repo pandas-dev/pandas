@@ -6,6 +6,7 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -83,8 +84,13 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self  # pyright: reportUnusedImport = false
 else:
     npt: Any = None
+    Self: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 
@@ -93,6 +99,13 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
+
+# list-like
+
+# Cannot use `Sequence` because a string is a sequence, and we don't want to
+# accept that.  Could refine if https://github.com/python/typing/issues/256 is
+# resolved to differentiate between Sequence[str] and str
+ListLike = Union[AnyArrayLike, List, range]
 
 # scalars
 
@@ -118,6 +131,9 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
+# same as NDFrameT, needed when binding two pairs of parameters to potentially
+# separate NDFrame-subclasses (see NDFrame.align)
+NDFrameTb = TypeVar("NDFrameTb", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
@@ -130,7 +146,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "BaseOffset"]
-Axes = Union[AnyArrayLike, List, range]
+Axes = ListLike
 
 RandomState = Union[
     int,
@@ -324,6 +340,9 @@ WindowingRankType = Literal["average", "min", "max"]
 # read_csv engines
 CSVEngine = Literal["c", "python", "pyarrow", "python-fwf"]
 
+# read_json engines
+JSONEngine = Literal["ujson", "pyarrow"]
+
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
@@ -367,3 +386,4 @@ CorrelationMethod = Union[
     Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
+DtypeBackend = Literal["pyarrow", "numpy_nullable"]

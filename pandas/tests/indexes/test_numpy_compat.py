@@ -92,14 +92,13 @@ def test_numpy_ufuncs_basic(index, func):
         else:
             # e.g. np.exp with Int64 -> Float64
             assert type(result) is Index
+    # raise AttributeError or TypeError
+    elif len(index) == 0:
+        pass
     else:
-        # raise AttributeError or TypeError
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised((TypeError, AttributeError)):
-                with np.errstate(all="ignore"):
-                    func(index)
+        with tm.external_error_raised((TypeError, AttributeError)):
+            with np.errstate(all="ignore"):
+                func(index)
 
 
 @pytest.mark.parametrize(
@@ -109,7 +108,6 @@ def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
@@ -145,12 +143,11 @@ def test_numpy_ufuncs_other(index, func):
         else:
             tm.assert_numpy_array_equal(out, result)
 
+    elif len(index) == 0:
+        pass
     else:
-        if len(index) == 0:
-            pass
-        else:
-            with tm.external_error_raised(TypeError):
-                func(index)
+        with tm.external_error_raised(TypeError):
+            func(index)
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])
@@ -158,10 +155,6 @@ def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         return
-
-    if repr(index.dtype) == "string[pyarrow]":
-        mark = pytest.mark.xfail(reason="ArrowStringArray has no min/max")
-        request.node.add_marker(mark)
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):

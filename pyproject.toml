@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=61.0.0",
     "wheel",
-    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
@@ -63,8 +63,8 @@ fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
 gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
-parquet = ['pyarrow>=6.0.0']
-feather = ['pyarrow>=6.0.0']
+parquet = ['pyarrow>=7.0.0']
+feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
         #'blosc>=1.20.1',
         'tables>=3.6.1']
@@ -97,7 +97,7 @@ all = ['beautifulsoup4>=4.9.3',
        'openpyxl>=3.0.7',
        'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
-       'pyarrow>=6.0.0',
+       'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
        'PyQt5>=5.15.1',
        'pyreadstat>=1.1.2',
@@ -143,6 +143,7 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
+environment = { LDFLAGS="-Wl,--strip-debug" }
 test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python {project}/ci/test_wheels.py"
 
@@ -161,11 +162,19 @@ select = "*-win*"
 test-command = ""
 
 [[tool.cibuildwheel.overrides]]
+# Don't strip wheels on macOS.
+# macOS doesn't support stripping wheels with linker
+# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
+select = "*-macosx*"
+environment = ""
+
+[[tool.cibuildwheel.overrides]]
 select = "*-win32"
 environment = { IS_32_BIT="true" }
 
 [tool.black]
 target-version = ['py38', 'py39']
+required-version = '23.1.0'
 exclude = '''
 (
     asv_bench/env
@@ -188,6 +197,8 @@ exclude = '''
 line-length = 88
 update-check = false
 target-version = "py38"
+fix = true
+unfixable = ["E711"]
 
 select = [
   # pyflakes
@@ -203,6 +214,14 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
+  # misc lints
+  "PIE",
+  # tidy imports
+  "TID",
+  # implicit string concatenation
+  "ISC",
+  # type-checking imports
+  "TCH",
 ]
 
 ignore = [
@@ -238,10 +257,26 @@ ignore = [
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
+  # Too many arguments to function call
+  "PLR0913",
+  # Too many returns
+  "PLR0911",
+  # Too many branches
+  "PLR0912",
+  # Too many statements
+  "PLR0915",
+  # Global statements are discouraged
+  "PLW0603",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
+  # Magic number
+  "PLR2004",
+  # Outer loop variable overwritten by inner assignment
+  "PLW2901",
+  # Consider `elif` instead of `else` then `if` to remove indentation level
+  "PLR5501",
 ]
 
 exclude = [
@@ -254,13 +289,26 @@ exclude = [
   "env",
 ]
 
+[tool.ruff.per-file-ignores]
+# relative imports allowed for asv_bench
+"asv_bench/*" = ["TID"]
+# to be enabled gradually
+"pandas/core/*" = ["PLR5501"]
+# TCH to be enabled gradually
+"pandas/core/nanops.py" = ["TCH"]
+"pandas/_libs/*" = ["TCH"]
+# Keep this one enabled
+"pandas/_typing.py" = ["TCH"]
+
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [
  # intentionally turned off
+  "bad-mcs-classmethod-argument",
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
+  "consider-using-enumerate",
   "import-error",
   "import-outside-toplevel",
   "invalid-name",
@@ -293,6 +341,7 @@ disable = [
   "unsupported-assignment-operation",
   "unsupported-membership-test",
   "unused-import",
+  "use-dict-literal",
   "use-implicit-booleaness-not-comparison",
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
@@ -303,11 +352,13 @@ disable = [
   "no-value-for-parameter",
   "undefined-variable",
   "unpacking-non-sequence",
+  "used-before-assignment",
 
  # pylint type "C": convention, for programming standard violation
   "missing-class-docstring",
   "missing-function-docstring",
   "missing-module-docstring",
+  "superfluous-parens",
   "too-many-lines",
   "unidiomatic-typecheck",
   "unnecessary-dunder-call",
@@ -327,6 +378,7 @@ disable = [
   "arguments-out-of-order",
   "arguments-renamed",
   "attribute-defined-outside-init",
+  "broad-exception-raised",
   "comparison-with-callable",
   "dangerous-default-value",
   "deprecated-module",
@@ -365,6 +417,14 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
+  "error:::pandas",
+  "error::ResourceWarning",
+  "error::pytest.PytestUnraisableExceptionWarning",
+  "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
+  "ignore:.*ssl.SSLSocket:ResourceWarning",
+  "ignore::ResourceWarning:asyncio",
+  # From plotting doctests
+  "ignore:More than 20 figures have been opened:RuntimeWarning",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
@@ -533,5 +593,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
 ignore-regex = 'https://([\w/\.])+'

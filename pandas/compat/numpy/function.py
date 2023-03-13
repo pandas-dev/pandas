@@ -18,8 +18,10 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
     overload,
 )
 
@@ -29,10 +31,6 @@ from pandas._libs.lib import (
     is_bool,
     is_integer,
 )
-from pandas._typing import (
-    Axis,
-    AxisInt,
-)
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
     validate_args,
@@ -40,7 +38,13 @@ from pandas.util._validators import (
     validate_kwargs,
 )
 
-AxisNoneT = TypeVar("AxisNoneT", Axis, None)
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+    )
+
+    AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 
 
 class CompatValidator:
@@ -159,8 +163,8 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    # error: Incompatible return value type (got "int", expected "bool")
-    return ascending  # type: ignore[return-value]
+    ascending = cast(bool, ascending)
+    return ascending
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}

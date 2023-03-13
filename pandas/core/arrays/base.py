@@ -25,20 +25,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    PositionalIndexer,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    SortKind,
-    TakeIndexer,
-    npt,
-)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -78,6 +64,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     rank,
     unique,
@@ -89,10 +76,21 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        SortKind,
+        TakeIndexer,
+        npt,
     )
 
 _extension_array_shared_docs: dict[str, str] = {}
@@ -141,6 +139,7 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
+    _hash_pandas_object
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -180,6 +179,7 @@ class ExtensionArray:
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * map
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -462,8 +462,6 @@ class ExtensionArray:
     ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
-
-        .. versionadded:: 1.0.0
 
         This is similar to :meth:`numpy.asarray`, but may provide additional control
         over how the conversion is done.
@@ -1005,11 +1003,6 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -1455,6 +1448,31 @@ class ExtensionArray:
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        Default is likely non-performant.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+
+        Returns
+        -------
+        np.ndarray[uint64]
+        """
+        from pandas.core.util.hashing import hash_array
+
+        values = self.to_numpy(copy=False)
+        return hash_array(
+            values, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+
     def tolist(self) -> list:
         """
         Return a list of the values.
@@ -1687,6 +1705,28 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+    def map(self, mapper, na_action=None):
+        """
+        Map values using an input mapping or function.
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence. If 'ignore' is not supported, a
+            ``NotImplementedError`` should be raised.
+
+        Returns
+        -------
+        Union[ndarray, Index, ExtensionArray]
+            The output of the mapping function applied to the array.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+        """
+        return map_array(self, mapper, na_action=na_action)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

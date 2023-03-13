@@ -158,7 +158,6 @@ class TestGroupBy:
         assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
-
         # GH 3794
         # allow combination of timegrouper/reg groups
 
@@ -234,7 +233,6 @@ class TestGroupBy:
 
         df_sorted = df_original.sort_values(by="Quantity", ascending=False)
         for df in [df_original, df_sorted]:
-
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark Carl Joe".split(),
@@ -601,7 +599,6 @@ class TestGroupBy:
         assert result["date"][3] == Timestamp("2012-07-03")
 
     def test_groupby_multi_timezone(self):
-
         # combining multiple / different timezones yields UTC
 
         data = """0,2000-01-28 16:47:00,America/Chicago

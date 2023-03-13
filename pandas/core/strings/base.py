@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import re
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -10,9 +9,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
-
 if TYPE_CHECKING:
+    import re
+
+    from pandas._typing import Scalar
+
     from pandas import Series
 
 
@@ -246,7 +247,9 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_split(self, pat=None, n=-1, expand: bool = False):
+    def _str_split(
+        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+    ):
         pass
 
     @abc.abstractmethod

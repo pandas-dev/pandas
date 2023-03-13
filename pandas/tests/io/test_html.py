@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -26,6 +25,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
@@ -36,7 +36,6 @@ from pandas.core.arrays import (
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -138,7 +137,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    def test_use_nullable_dtypes(self, string_storage, dtype_backend):
+    def test_dtype_backend(self, string_storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -164,8 +163,7 @@ class TestReadHtml:
 
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = self.read_html(out, use_nullable_dtypes=True)[0]
+            result = self.read_html(out, dtype_backend=dtype_backend)[0]
 
         expected = DataFrame(
             {
@@ -192,17 +190,6 @@ class TestReadHtml:
                 }
             )
 
-        tm.assert_frame_equal(result, expected)
-
-    def test_use_nullable_dtypes_option(self):
-        # GH#50748
-        df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
-
-        out = df.to_html(index=False)
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = self.read_html(out)[0]
-
-        expected = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
@@ -344,7 +331,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)
@@ -1350,9 +1336,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))

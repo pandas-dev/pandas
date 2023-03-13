@@ -46,7 +46,6 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_matplotlib",
     "_arrow_utils",
     "_registry",
-    "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
     "_testing",
     "_test_decorators",
@@ -139,15 +138,14 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                 "Bare pytests raise have been found. "
                 "Please pass in the argument 'match' as well the exception.",
             )
-        else:
-            # Means that there are arguments that are being passed in,
-            # now we validate that `match` is one of the passed in arguments
-            if not any(keyword.arg == "match" for keyword in node.keywords):
-                yield (
-                    node.lineno,
-                    "Bare pytests raise have been found. "
-                    "Please pass in the argument 'match' as well the exception.",
-                )
+        # Means that there are arguments that are being passed in,
+        # now we validate that `match` is one of the passed in arguments
+        elif not any(keyword.arg == "match" for keyword in node.keywords):
+            yield (
+                node.lineno,
+                "Bare pytests raise have been found. "
+                "Please pass in the argument 'match' as well the exception.",
+            )
 
 
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
@@ -230,55 +228,6 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
 
             if module_name.startswith("_"):
                 yield (node.lineno, f"Import of internal function {repr(module_name)}")
-
-
-def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
-    """
-    This test case is necessary after 'Black' (https://github.com/psf/black),
-    is formatting strings over multiple lines.
-
-    For example, when this:
-
-    >>> foo = (
-    ...     "bar "
-    ...     "baz"
-    ... )
-
-    Is becoming this:
-
-    >>> foo = ("bar " "baz")
-
-    'Black' is not considering this as an
-    issue (see https://github.com/psf/black/issues/1051),
-    so we are checking it here instead.
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #30454
-    """
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
-
-    for current_token, next_token in zip(tokens, tokens[1:]):
-        if current_token.type == next_token.type == token.STRING:
-            yield (
-                current_token.start[0],
-                (
-                    "String unnecessarily split in two by black. "
-                    "Please merge them manually."
-                ),
-            )
 
 
 def strings_with_wrong_placed_whitespace(
@@ -457,7 +406,6 @@ if __name__ == "__main__":
         "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",
-        "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
 

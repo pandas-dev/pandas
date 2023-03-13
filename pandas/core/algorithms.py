@@ -8,11 +8,8 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Literal,
-    Sequence,
     cast,
-    final,
 )
 import warnings
 
@@ -29,7 +26,6 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     DtypeObj,
-    IndexLabel,
     TakeIndexer,
     npt,
 )
@@ -50,6 +46,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
+    is_dict_like,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -90,7 +87,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -98,7 +94,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
-        DataFrame,
         Index,
         Series,
     )
@@ -295,11 +290,10 @@ def _check_object_for_strings(values: np.ndarray) -> str:
     """
     ndtype = values.dtype.name
     if ndtype == "object":
-
         # it's cheaper to use a String Hash Table than Object; we infer
         # including nulls because that is the only difference between
         # StringHashTable and ObjectHashtable
-        if lib.infer_dtype(values, skipna=False) in ["string"]:
+        if lib.is_string_array(values, skipna=False):
             ndtype = "string"
     return ndtype
 
@@ -688,7 +682,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> codes
-    array([0, 0, 1, 2, 0]...)
+    array([0, 0, 1, 2, 0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -697,7 +691,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> codes
-    array([1, 1, 0, 2, 1]...)
+    array([1, 1, 0, 2, 1])
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -707,7 +701,7 @@ def factorize(
 
     >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> codes
-    array([ 0, -1,  1,  2,  0]...)
+    array([ 0, -1,  1,  2,  0])
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -718,7 +712,7 @@ def factorize(
     >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     ['a', 'c']
     Categories (3, object): ['a', 'b', 'c']
@@ -732,7 +726,7 @@ def factorize(
     >>> cat = pd.Series(['a', 'a', 'c'])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
-    array([0, 0, 1]...)
+    array([0, 0, 1])
     >>> uniques
     Index(['a', 'c'], dtype='object')
 
@@ -874,14 +868,15 @@ def value_counts(
         counts = np.array([len(ii)])
 
     else:
-
         if is_extension_array_dtype(values):
-
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
+            if not isinstance(counts, np.ndarray):
+                # e.g. ArrowExtensionArray
+                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -1169,228 +1164,6 @@ def checked_add_with_arr(
         np.putmask(result, ~not_nan, iNaT)
 
     return result
-
-
-# --------------- #
-# select n        #
-# --------------- #
-
-
-class SelectN:
-    def __init__(self, obj, n: int, keep: str) -> None:
-        self.obj = obj
-        self.n = n
-        self.keep = keep
-
-        if self.keep not in ("first", "last", "all"):
-            raise ValueError('keep must be either "first", "last" or "all"')
-
-    def compute(self, method: str) -> DataFrame | Series:
-        raise NotImplementedError
-
-    @final
-    def nlargest(self):
-        return self.compute("nlargest")
-
-    @final
-    def nsmallest(self):
-        return self.compute("nsmallest")
-
-    @final
-    @staticmethod
-    def is_valid_dtype_n_method(dtype: DtypeObj) -> bool:
-        """
-        Helper function to determine if dtype is valid for
-        nsmallest/nlargest methods
-        """
-        return (
-            not is_complex_dtype(dtype)
-            if is_numeric_dtype(dtype)
-            else needs_i8_conversion(dtype)
-        )
-
-
-class SelectNSeries(SelectN):
-    """
-    Implement n largest/smallest for Series
-
-    Parameters
-    ----------
-    obj : Series
-    n : int
-    keep : {'first', 'last'}, default 'first'
-
-    Returns
-    -------
-    nordered : Series
-    """
-
-    def compute(self, method: str) -> Series:
-
-        from pandas.core.reshape.concat import concat
-
-        n = self.n
-        dtype = self.obj.dtype
-        if not self.is_valid_dtype_n_method(dtype):
-            raise TypeError(f"Cannot use method '{method}' with dtype {dtype}")
-
-        if n <= 0:
-            return self.obj[[]]
-
-        dropped = self.obj.dropna()
-        nan_index = self.obj.drop(dropped.index)
-
-        # slow method
-        if n >= len(self.obj):
-            ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
-
-        # fast method
-        new_dtype = dropped.dtype
-        arr = _ensure_data(dropped.values)
-        if method == "nlargest":
-            arr = -arr
-            if is_integer_dtype(new_dtype):
-                # GH 21426: ensure reverse ordering at boundaries
-                arr -= 1
-
-            elif is_bool_dtype(new_dtype):
-                # GH 26154: ensure False is smaller than True
-                arr = 1 - (-arr)
-
-        if self.keep == "last":
-            arr = arr[::-1]
-
-        nbase = n
-        narr = len(arr)
-        n = min(n, narr)
-
-        # arr passed into kth_smallest must be contiguous. We copy
-        # here because kth_smallest will modify its input
-        kth_val = algos.kth_smallest(arr.copy(order="C"), n - 1)
-        (ns,) = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind="mergesort")]
-
-        if self.keep != "all":
-            inds = inds[:n]
-            findex = nbase
-        else:
-            if len(inds) < nbase <= len(nan_index) + len(inds):
-                findex = len(nan_index) + len(inds)
-            else:
-                findex = len(inds)
-
-        if self.keep == "last":
-            # reverse indices
-            inds = narr - 1 - inds
-
-        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
-
-
-class SelectNFrame(SelectN):
-    """
-    Implement n largest/smallest for DataFrame
-
-    Parameters
-    ----------
-    obj : DataFrame
-    n : int
-    keep : {'first', 'last'}, default 'first'
-    columns : list or str
-
-    Returns
-    -------
-    nordered : DataFrame
-    """
-
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
-        super().__init__(obj, n, keep)
-        if not is_list_like(columns) or isinstance(columns, tuple):
-            columns = [columns]
-
-        columns = cast(Sequence[Hashable], columns)
-        columns = list(columns)
-        self.columns = columns
-
-    def compute(self, method: str) -> DataFrame:
-        from pandas.core.api import Index
-
-        n = self.n
-        frame = self.obj
-        columns = self.columns
-
-        for column in columns:
-            dtype = frame[column].dtype
-            if not self.is_valid_dtype_n_method(dtype):
-                raise TypeError(
-                    f"Column {repr(column)} has dtype {dtype}, "
-                    f"cannot use method {repr(method)} with this dtype"
-                )
-
-        def get_indexer(current_indexer, other_indexer):
-            """
-            Helper function to concat `current_indexer` and `other_indexer`
-            depending on `method`
-            """
-            if method == "nsmallest":
-                return current_indexer.append(other_indexer)
-            else:
-                return other_indexer.append(current_indexer)
-
-        # Below we save and reset the index in case index contains duplicates
-        original_index = frame.index
-        cur_frame = frame = frame.reset_index(drop=True)
-        cur_n = n
-        indexer = Index([], dtype=np.int64)
-
-        for i, column in enumerate(columns):
-            # For each column we apply method to cur_frame[column].
-            # If it's the last column or if we have the number of
-            # results desired we are done.
-            # Otherwise there are duplicates of the largest/smallest
-            # value and we need to look at the rest of the columns
-            # to determine which of the rows with the largest/smallest
-            # value in the column to keep.
-            series = cur_frame[column]
-            is_last_column = len(columns) - 1 == i
-            values = getattr(series, method)(
-                cur_n, keep=self.keep if is_last_column else "all"
-            )
-
-            if is_last_column or len(values) <= cur_n:
-                indexer = get_indexer(indexer, values.index)
-                break
-
-            # Now find all values which are equal to
-            # the (nsmallest: largest)/(nlargest: smallest)
-            # from our series.
-            border_value = values == values[values.index[-1]]
-
-            # Some of these values are among the top-n
-            # some aren't.
-            unsafe_values = values[border_value]
-
-            # These values are definitely among the top-n
-            safe_values = values[~border_value]
-            indexer = get_indexer(indexer, safe_values.index)
-
-            # Go on and separate the unsafe_values on the remaining
-            # columns.
-            cur_frame = cur_frame.loc[unsafe_values.index]
-            cur_n = n - len(indexer)
-
-        frame = frame.take(indexer)
-
-        # Restore the index on frame
-        frame.index = original_index.take(indexer)
-
-        # If there is only one column, the frame is already sorted.
-        if len(columns) == 1:
-            return frame
-
-        ascending = method == "nsmallest"
-
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
 
 
 # ---- #
@@ -1700,6 +1473,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
 # --------------------------------------------------------------------
 # Helper functions
 
+
 # Note: safe_sort is in algorithms.py instead of sorting.py because it is
 #  low-dependency, is used in this module, and used private methods from
 #  this module.
@@ -1905,3 +1679,75 @@ def union_with_duplicates(
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
+
+
+def map_array(
+    arr: ArrayLike, mapper, na_action: Literal["ignore"] | None = None
+) -> np.ndarray | ExtensionArray | Index:
+    """
+    Map values using an input mapping or function.
+
+    Parameters
+    ----------
+    mapper : function, dict, or Series
+        Mapping correspondence.
+    na_action : {None, 'ignore'}, default None
+        If 'ignore', propagate NA values, without passing them to the
+        mapping correspondence.
+
+    Returns
+    -------
+    Union[ndarray, Index, ExtensionArray]
+        The output of the mapping function applied to the array.
+        If the function returns a tuple with more than one element
+        a MultiIndex will be returned.
+    """
+    if na_action not in (None, "ignore"):
+        msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
+        raise ValueError(msg)
+
+    # we can fastpath dict/Series to an efficient map
+    # as we know that we are not going to have to yield
+    # python types
+    if is_dict_like(mapper):
+        if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
+            # If a dictionary subclass defines a default value method,
+            # convert mapper to a lookup function (GH #15999).
+            dict_with_default = mapper
+            mapper = lambda x: dict_with_default[
+                np.nan if isinstance(x, float) and np.isnan(x) else x
+            ]
+        else:
+            # Dictionary does not have a default. Thus it's safe to
+            # convert to an Series for efficiency.
+            # we specify the keys here to handle the
+            # possibility that they are tuples
+
+            # The return value of mapping with an empty mapper is
+            # expected to be pd.Series(np.nan, ...). As np.nan is
+            # of dtype float64 the return value of this method should
+            # be float64 as well
+            from pandas import Series
+
+            if len(mapper) == 0:
+                mapper = Series(mapper, dtype=np.float64)
+            else:
+                mapper = Series(mapper)
+
+    if isinstance(mapper, ABCSeries):
+        if na_action == "ignore":
+            mapper = mapper[mapper.index.notna()]
+
+        # Since values were input this means we came from either
+        # a dict or a series and mapper should be an index
+        indexer = mapper.index.get_indexer(arr)
+        new_values = take_nd(mapper._values, indexer)
+
+        return new_values
+
+    # we must convert to python types
+    values = arr.astype(object, copy=False)
+    if na_action is None:
+        return lib.map_infer(values, mapper)
+    else:
+        return lib.map_infer_mask(values, mapper, isna(values).view(np.uint8))

@@ -35,7 +35,6 @@ def df():
 
 
 def test_dask(df):
-
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
     olduse = pd.get_option("compute.use_numexpr")
@@ -101,7 +100,6 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
 
 
 def test_xarray(df):
-
     xarray = import_module("xarray")  # noqa:F841
 
     assert df.to_xarray() is not None
@@ -144,7 +142,6 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.network
 @tm.network
 def test_statsmodels():
-
     statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
@@ -154,7 +151,6 @@ def test_statsmodels():
 
 
 def test_scikit_learn():
-
     sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
         datasets,
@@ -170,7 +166,6 @@ def test_scikit_learn():
 @pytest.mark.network
 @tm.network
 def test_seaborn():
-
     seaborn = import_module("seaborn")
     tips = seaborn.load_dataset("tips")
     seaborn.stripplot(x="day", y="total_bill", data=tips)
@@ -190,13 +185,11 @@ def test_pandas_gbq():
     "variable or through the environmental variable QUANDL_API_KEY",
 )
 def test_pandas_datareader():
-
     pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
 def test_pyarrow(df):
-
     pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()

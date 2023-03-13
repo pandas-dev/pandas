@@ -48,12 +48,7 @@ def series():
 )
 def test_grouper_index_level_as_string(frame, key_strs, groupers):
     if "B" not in key_strs or "outer" in frame.columns:
-        with pytest.raises(TypeError, match="Could not convert"):
-            frame.groupby(key_strs).mean()
         result = frame.groupby(key_strs).mean(numeric_only=True)
-
-        with pytest.raises(TypeError, match="Could not convert"):
-            frame.groupby(groupers).mean()
         expected = frame.groupby(groupers).mean(numeric_only=True)
     else:
         result = frame.groupby(key_strs).mean()
@@ -77,7 +72,6 @@ def test_grouper_index_level_as_string(frame, key_strs, groupers):
     ],
 )
 def test_grouper_index_level_as_string_series(series, levels):
-
     # Compute expected result
     if isinstance(levels, list):
         groupers = [pd.Grouper(level=lv) for lv in levels]

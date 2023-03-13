@@ -4,7 +4,10 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import Hashable
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 
 import numpy as np
 
@@ -15,11 +18,6 @@ from pandas._libs.tslibs import (
     Period,
     Resolution,
     Tick,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -46,6 +44,12 @@ from pandas.core.indexes.datetimes import (
 )
 from pandas.core.indexes.extension import inherit_names
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 _shared_doc_kwargs = {
@@ -207,7 +211,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name: Hashable = None,
         **fields,
     ) -> PeriodIndex:
-
         valid_field_set = {
             "year",
             "month",
@@ -401,7 +404,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             key = NaT
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:
