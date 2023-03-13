@@ -842,37 +842,42 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
         object sign_part, integer_part, fractional_part
         list groups = [], units = []
 
+    if ts[0] == "-":
+        sign = -1
+
     iso_regex = re.compile(
-        r"^(-?)P(?!$)(?:"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=Y$))?Y)?"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=W$))?W)?"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=D$))?D)?"
+        # Allow starting with 'P' or '-P', disallow ending on 'P'.
+        r"^-?P(?!$)(?:"
+        # Capture the sign, integer part, and fractional part (but only if it
+        # is the final component).
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=Y$))?Y)?"  # Years
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"  # Months
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=W$))?W)?"  # Weeks
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=D$))?D)?"  # Days
+        # Disallow ending on 'T'.
         r"(?:T(?!$)"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=H$))?H)?"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=S$))?S)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=H$))?H)?"  # Hours
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"  # Minutes
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=S$))?S)?"  # Seconds
         r")?)$"
     )
-
-    # Pandas units corresponding to the order of the groups in the regex
-    units = ["Y", "M", "W", "D", "h", "m", "s"]
 
     match = iso_regex.fullmatch(ts)
     if match is None:
         raise ValueError(f"Invalid ISO 8601 Duration format - {ts}")
-    sign_part, *groups = list(match.groups())
+    groups = list(match.groups())
 
-    if sign_part == "-":
-        sign = -1
+    # Numpy time units corresponding to the capture groups of the regex.
+    units = ["Y", "M", "W", "D", "h", "m", "s"]
 
-    for i in range(len(units)):
+    # Convert each component to nanoseconds and sum.
+    for i, unit in enumerate(units):
         j = i * 3
         sign_part, integer_part, fractional_part = groups[j:j+3]
         if integer_part is not None:
             if fractional_part is None:
                 fractional_part = "0"
-            r = timedelta_from_spec(integer_part, fractional_part, units[i])
+            r = timedelta_from_spec(integer_part, fractional_part, unit)
             result += timedelta_as_neg(r, sign_part == "-")
 
     return sign * result
