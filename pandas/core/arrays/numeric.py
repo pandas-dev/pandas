@@ -15,11 +15,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -39,6 +34,12 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+    )
 
 
 T = TypeVar("T", bound="NumericArray")

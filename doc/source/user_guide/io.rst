@@ -170,11 +170,15 @@ dtype : Type name or dict of column -> type, default ``None``
      the default determines the dtype of the columns which are not explicitly
      listed.
 
-dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames.
-    Which dtype backend to use. If
-    set to True, nullable dtypes or pyarrow dtypes are used for all dtypes.
+dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+  Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+  arrays, nullable dtypes are used for all dtypes that have a nullable
+  implementation when "numpy_nullable" is set, pyarrow is used for all
+  dtypes if "pyarrow" is set.
 
-    .. versionadded:: 2.0
+  The dtype_backends are still experimential.
+
+  .. versionadded:: 2.0
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine

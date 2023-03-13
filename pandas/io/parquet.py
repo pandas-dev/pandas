@@ -500,7 +500,11 @@ def read_parquet(
 
     dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -512,6 +516,7 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
     if use_nullable_dtypes is not lib.no_default:
         msg = (
             "The argument 'use_nullable_dtypes' is deprecated and will be removed "
@@ -524,7 +529,6 @@ def read_parquet(
         warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
     else:
         use_nullable_dtypes = False
-
     check_dtype_backend(dtype_backend)
 
     return impl.read(

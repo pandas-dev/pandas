@@ -42,7 +42,7 @@ jobs:
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
           python -m pip install versioneer[toml] && \
           python -m pip install cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.34.2 && \
-          python setup.py build_ext -q -j1 && \
+          python setup.py build_ext -q -j$(nproc) && \
           python -m pip install --no-build-isolation --no-use-pep517 -e . && \
           python -m pip list && \
           export PANDAS_CI=1 && \

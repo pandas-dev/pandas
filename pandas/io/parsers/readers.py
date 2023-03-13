@@ -16,8 +16,10 @@ from typing import (
     Callable,
     Hashable,
     Literal,
+    Mapping,
     NamedTuple,
     Sequence,
+    TypedDict,
     overload,
 )
 import warnings
@@ -72,6 +74,7 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         FilePath,
+        HashableT,
         IndexLabel,
         ReadCsvBuffer,
         StorageOptions,
@@ -405,7 +408,11 @@ float_precision : str, optional
 
 dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
     Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable extension dtypes or pyarrow dtypes.
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
+
+    The dtype_backends are still experimential.
 
     .. versionadded:: 2.0
 
@@ -428,7 +435,15 @@ Examples
 )
 
 
-_c_parser_defaults = {
+class _C_Parser_Defaults(TypedDict):
+    delim_whitespace: Literal[False]
+    na_filter: Literal[True]
+    low_memory: Literal[True]
+    memory_map: Literal[False]
+    float_precision: None
+
+
+_c_parser_defaults: _C_Parser_Defaults = {
     "delim_whitespace": False,
     "na_filter": True,
     "low_memory": True,
@@ -436,8 +451,14 @@ _c_parser_defaults = {
     "float_precision": None,
 }
 
-_fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
+class _Fwf_Defaults(TypedDict):
+    colspecs: Literal["infer"]
+    infer_nrows: Literal[100]
+    widths: None
+
+
+_fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 _pyarrow_unsupported = {
@@ -593,17 +614,17 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -611,7 +632,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -631,7 +652,7 @@ def read_csv(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
@@ -650,17 +671,17 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -668,7 +689,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -688,7 +709,7 @@ def read_csv(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
@@ -707,17 +728,17 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -725,7 +746,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -745,7 +766,7 @@ def read_csv(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
@@ -764,17 +785,17 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -782,7 +803,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -802,7 +823,7 @@ def read_csv(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
@@ -830,19 +851,19 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols=None,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters=None,
-    true_values=None,
-    false_values=None,
+    converters: Mapping[Hashable, Callable] | None = None,
+    true_values: list | None = None,
+    false_values: list | None = None,
     skipinitialspace: bool = False,
-    skiprows=None,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = None,
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values=None,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -851,7 +872,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
-    date_parser=lib.no_default,
+    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -875,7 +896,7 @@ def read_csv(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory=_c_parser_defaults["low_memory"],
+    low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions = None,
@@ -922,17 +943,17 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -940,7 +961,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -960,7 +981,7 @@ def read_table(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
@@ -979,17 +1000,17 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -997,7 +1018,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -1017,7 +1038,7 @@ def read_table(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
@@ -1036,17 +1057,17 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1054,7 +1075,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -1074,7 +1095,7 @@ def read_table(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
@@ -1093,17 +1114,17 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols=...,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
-    converters=...,
-    true_values=...,
-    false_values=...,
+    converters: Mapping[Hashable, Callable] | None = ...,
+    true_values: list | None = ...,
+    false_values: list | None = ...,
     skipinitialspace: bool = ...,
-    skiprows=...,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values=...,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1111,7 +1132,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
-    date_parser=...,
+    date_parser: Callable | lib.NoDefault = ...,
     date_format: str | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
@@ -1131,7 +1152,7 @@ def read_table(
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
     delim_whitespace: bool = ...,
-    low_memory=...,
+    low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
@@ -1159,19 +1180,19 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols=None,
+    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters=None,
-    true_values=None,
-    false_values=None,
+    converters: Mapping[Hashable, Callable] | None = None,
+    true_values: list | None = None,
+    false_values: list | None = None,
     skipinitialspace: bool = False,
-    skiprows=None,
+    skiprows: list[int] | int | Callable[[Hashable], bool] | None = None,
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values=None,
+    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -1180,7 +1201,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
-    date_parser=lib.no_default,
+    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -1204,7 +1225,7 @@ def read_table(
     on_bad_lines: str = "error",
     # Internal
     delim_whitespace: bool = False,
-    low_memory=_c_parser_defaults["low_memory"],
+    low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions = None,
@@ -1280,9 +1301,13 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable extension dtypes or pyarrow dtypes.
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -1539,7 +1564,7 @@ class TextFileReader(abc.Iterator):
 
         if "python" in engine:
             for arg in _python_unsupported:
-                if fallback_reason and result[arg] != _c_parser_defaults[arg]:
+                if fallback_reason and result[arg] != _c_parser_defaults.get(arg):
                     raise ValueError(
                         "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {repr(arg)} to be "

@@ -125,6 +125,9 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
+# same as NDFrameT, needed when binding two pairs of parameters to potentially
+# separate NDFrame-subclasses (see NDFrame.align)
+NDFrameTb = TypeVar("NDFrameTb", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
