@@ -200,8 +200,8 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
-- Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument. :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
+- Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 -
 
