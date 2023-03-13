@@ -644,13 +644,12 @@ def test_resample_dup_index():
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         result = df.resample("Q", axis=1).mean()
-        msg = "DataFrame.groupby with axis=1 is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
-        expected.columns = [
-            Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)
-        ]
-        tm.assert_frame_equal(result, expected)
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
+    expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_reresample(unit):
@@ -736,8 +735,8 @@ def test_resample_axis1(unit):
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         result = df.resample("M", axis=1).mean()
-        expected = df.T.resample("M").mean().T
-        tm.assert_frame_equal(result, expected)
+    expected = df.T.resample("M").mean().T
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq", ["t", "5t", "15t", "30t", "4h", "12h"])
