@@ -56,8 +56,7 @@ class TestConvertDtypes:
                 "f": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = df.convert_dtypes()
+        result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -93,8 +92,7 @@ class TestConvertDtypes:
     def test_pyarrow_dtype_backend_already_pyarrow(self):
         pytest.importorskip("pyarrow")
         expected = pd.DataFrame([1, 2, 3], dtype="int64[pyarrow]")
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = expected.convert_dtypes()
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_frame_equal(result, expected)
 
     def test_pyarrow_dtype_backend_from_pandas_nullable(self):
@@ -107,8 +105,7 @@ class TestConvertDtypes:
                 "d": pd.Series([None, 100.5, 200], dtype="Float64"),
             }
         )
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = df.convert_dtypes()
+        result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -125,6 +122,5 @@ class TestConvertDtypes:
         # GH 50970
         pytest.importorskip("pyarrow")
         expected = pd.DataFrame(columns=[0])
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = expected.convert_dtypes()
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_frame_equal(result, expected)

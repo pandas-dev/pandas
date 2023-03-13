@@ -751,7 +751,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
+        if na_action is not None:
+            raise NotImplementedError
+
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
         # If so, then we can refactor IndexOpsMixin._map_values to
@@ -1867,6 +1870,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             freq = to_offset(freq)
             if values.dtype.kind == "m":
                 freq = freq._maybe_to_hours()
+                if not isinstance(freq, Tick):
+                    raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
@@ -1891,7 +1896,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             value = to_offset(value)
             self._validate_frequency(self, value)
             if self.dtype.kind == "m" and not isinstance(value, Tick):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick or None")
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
             if self.ndim > 1:
                 raise ValueError("Cannot set freq with ndim > 1")
@@ -2087,10 +2092,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # Always valid
             pass
         elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we assume this
-            #  is a Tick offset.
+            # Always valid.  In the TimedeltaArray case, we require a Tick offset
             if self.dtype.kind == "m" and not isinstance(freq, Tick):
-                raise ValueError("TimedeltaIndex/Array freq must be a Tick")
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"

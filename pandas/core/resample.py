@@ -1278,9 +1278,6 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             freq = self.freq
-            if not isinstance(freq, Tick) and obj.index.dtype.kind == "m":
-                # FIXME: wrong in the status quo!
-                freq = None
             obj = obj.copy()
             obj.index = obj.index._with_freq(freq)
             assert obj.index.freq == freq, (obj.index.freq, freq)
@@ -1843,14 +1840,15 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
-        freq = self.freq
-        # TODO: are we super-duper sure this is safe?  maybe we can unify
-        #  conversion earlier?
-        freq = freq._maybe_to_hours()
+        freq = self.freq._maybe_to_hours()
+        if not isinstance(freq, Tick):
+            # GH#51896
+            raise ValueError(
+                "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+                f"e.g. '24H' or '3D', not {freq}"
+            )
+
         if not len(ax):
-            if not isinstance(freq, Tick):
-                # FIXME: this seems to be happening in the status quo
-                freq = None
             binner = labels = TimedeltaIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
@@ -2297,12 +2295,6 @@ def _asfreq_compat(index: DatetimeIndex | PeriodIndex | TimedeltaIndex, freq):
     elif isinstance(index, DatetimeIndex):
         new_index = DatetimeIndex([], dtype=index.dtype, freq=freq, name=index.name)
     elif isinstance(index, TimedeltaIndex):
-        if freq is not None:
-            freq = to_offset(freq)  # TODO: do this earlier?
-            freq = freq._maybe_to_hours()
-        if not isinstance(freq, Tick):
-            # FIXME: wrong in main
-            freq = None
         new_index = TimedeltaIndex([], dtype=index.dtype, freq=freq, name=index.name)
     else:  # pragma: no cover
         raise TypeError(type(index))
