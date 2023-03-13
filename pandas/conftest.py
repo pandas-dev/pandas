@@ -128,6 +128,10 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
 
 
 def pytest_collection_modifyitems(items, config) -> None:
+    is_doctest = config.getoption("--doctest-modules") or config.getoption(
+        "--doctest-cython", default=False
+    )
+
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
@@ -136,9 +140,7 @@ def pytest_collection_modifyitems(items, config) -> None:
     ]
 
     for item in items:
-        if config.getoption("--doctest-modules") or config.getoption(
-            "--doctest-cython", default=False
-        ):
+        if is_doctest:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
