@@ -68,6 +68,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -813,14 +814,18 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         keys = self.keys
         level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
-        if (
-            isinstance(keys, list)
-            and len(keys) == 1
-            or isinstance(level, list)
-            and len(level) == 1
-        ):
+        if isinstance(level, list) and len(level) == 1:
+            # GH 51583
+            warnings.warn(
+                "Initializing a Groupby object with a length-1 list "
+                "level parameter will yield indexes as tuples in a future version. "
+                "To keep indexes as scalars, initialize Groupby objects with "
+                "a scalar level parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if isinstance(keys, list) and len(keys) == 1:
             # GH#42795 - when keys is a list, return tuples even when length is 1
-            # GH#51583 - when level is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
         return result
 

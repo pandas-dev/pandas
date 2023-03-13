@@ -2709,20 +2709,30 @@ def test_single_element_list_grouping():
     assert result == expected
 
 
-def test_single_element_list_level_grouping():
+def test_single_element_list_level_grouping_deprecation():
     # GH 51583
-    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = [key for key, _ in df.groupby(level=[0])]
-    expected = [("x",), ("y",)]
-    assert result == expected
+    depr_msg = (
+        "Initializing a Groupby object with a length-1 list "
+        "level parameter will yield indexes as tuples in a future version. "
+        "To keep indexes as scalars, initialize Groupby objects with "
+        "a scalar level parameter instead."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+        [key for key, _ in df.groupby(level=[0])]
 
 
-def test_single_element_list_multiindex_level_grouping():
+def test_multiindex_single_element_list_level_grouping_deprecation():
     # GH 51583
-    df = MultiIndex.from_product([[1, 2], [3, 4]], names=["x", "y"]).to_frame()
-    result = [key for key, _ in df.groupby(level=[0])]
-    expected = [(1,), (2,)]
-    assert result == expected
+    depr_msg = (
+        "Initializing a Groupby object with a length-1 list "
+        "level parameter will yield indexes as tuples in a future version. "
+        "To keep indexes as scalars, initialize Groupby objects with "
+        "a scalar level parameter instead."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        df = MultiIndex.from_product([[1, 2], [3, 4]], names=["x", "y"]).to_frame()
+        [key for key, _ in df.groupby(level=[0])]
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])
