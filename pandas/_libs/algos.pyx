@@ -51,9 +51,12 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
+from pandas._libs.tslibs.np_datetime cimport import_pandas_datetime
 from pandas._libs.util cimport get_nat
 
 import pandas._libs.missing as missing
+
+import_pandas_datetime()
 
 cdef:
     float64_t FP_ERR = 1e-13
