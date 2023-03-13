@@ -750,7 +750,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
+        if na_action is not None:
+            raise NotImplementedError
+
         # TODO(GH-23179): Add ExtensionArray.map
         # Need to figure out if we want ExtensionArray.map first.
         # If so, then we can refactor IndexOpsMixin._map_values to

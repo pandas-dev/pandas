@@ -64,6 +64,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     rank,
     unique,
@@ -178,6 +179,7 @@ class ExtensionArray:
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * map
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -1703,6 +1705,28 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+    def map(self, mapper, na_action=None):
+        """
+        Map values using an input mapping or function.
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence. If 'ignore' is not supported, a
+            ``NotImplementedError`` should be raised.
+
+        Returns
+        -------
+        Union[ndarray, Index, ExtensionArray]
+            The output of the mapping function applied to the array.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+        """
+        return map_array(self, mapper, na_action=na_action)
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):

@@ -1068,8 +1068,7 @@ class SeriesApply(NDFrameApply):
                 return f(obj)
 
             # row-wise access
-            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
-                # GH#23179 some EAs do not have `map`
+            if is_extension_array_dtype(obj.dtype):
                 mapped = obj._values.map(f)
             else:
                 values = obj.astype(object)._values
