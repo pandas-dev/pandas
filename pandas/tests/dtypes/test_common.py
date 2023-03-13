@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
 import numpy as np
 import pytest
 
@@ -760,8 +758,9 @@ def test_validate_allhashable():
 
 def test_pandas_dtype_numpy_warning():
     # GH#51523
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    with tm.assert_produces_warning(
+        DeprecationWarning,
+        check_stacklevel=False,
+        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
+    ):
         pandas_dtype(np.integer)
-        assert len(w) == 1  # should have raised one warning
-        assert "DeprecationWarning" in str(w[-1])  # we get the default message
