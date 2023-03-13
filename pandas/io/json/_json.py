@@ -950,14 +950,18 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 pa_table = pyarrow_json.read_json(self.data)
+
+                mapping: dict | type[ArrowDtype] | None
                 if self.dtype_backend == "pyarrow":
-                    return pa_table.to_pandas(types_mapper=ArrowDtype)
+                    mapping = ArrowDtype
                 elif self.dtype_backend == "numpy_nullable":
                     from pandas.io._util import _arrow_dtype_mapping
 
                     mapping = _arrow_dtype_mapping()
-                    return pa_table.to_pandas(types_mapper=mapping.get)
-                return pa_table.to_pandas()
+                else:
+                    mapping = None
+
+                return pa_table.to_pandas(types_mapper=mapping)
             elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:
