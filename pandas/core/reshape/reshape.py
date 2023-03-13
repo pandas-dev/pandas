@@ -750,7 +750,7 @@ def _stack_multi_columns(
             # Override fill value to prevent upcasting to float64
             # if we have lower precision floats
             common_type = find_common_type(chunk.dtypes.tolist())
-            if common_type.kind == "f" and not is_extension_array_dtype(common_type):
+            if np.issubdtype(common_type, np.floating):
                 fill_value = common_type.type(np.nan)
             else:
                 fill_value = np.nan
