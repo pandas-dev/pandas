@@ -36,14 +36,6 @@ from pandas._libs.tslibs import (
     is_supported_unit,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._typing import (
-    ArrayLike,
-    Dtype,
-    DtypeObj,
-    NumpyIndexT,
-    Scalar,
-    npt,
-)
 from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
@@ -100,6 +92,15 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Dtype,
+        DtypeObj,
+        NumpyIndexT,
+        Scalar,
+        npt,
+    )
+
     from pandas import Index
     from pandas.core.arrays import (
         Categorical,
@@ -1006,7 +1007,7 @@ def convert_dtypes(
     convert_boolean: bool = True,
     convert_floating: bool = True,
     infer_objects: bool = False,
-    dtype_backend: Literal["pandas", "pyarrow"] = "pandas",
+    dtype_backend: Literal["numpy_nullable", "pyarrow"] = "numpy_nullable",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1028,10 +1029,10 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "pandas"
+    dtype_backend : str, default "numpy_nullable"
         Nullable dtype implementation to use.
 
-        * "pandas" returns numpy-backed nullable types
+        * "numpy_nullable" returns numpy-backed nullable types
         * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
 
     Returns

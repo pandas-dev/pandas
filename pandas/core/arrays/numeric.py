@@ -15,11 +15,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -39,6 +34,12 @@ from pandas.core.arrays.masked import (
 
 if TYPE_CHECKING:
     import pyarrow
+
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+    )
 
 
 T = TypeVar("T", bound="NumericArray")
@@ -285,7 +286,7 @@ class NumericArray(BaseMaskedArray):
     ) -> T:
         from pandas.core.tools.numeric import to_numeric
 
-        scalars = to_numeric(strings, errors="raise", use_nullable_dtypes=True)
+        scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

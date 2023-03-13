@@ -39,6 +39,7 @@ from pandas.compat import (
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
 import pandas._testing as tm
@@ -274,14 +275,14 @@ class TestConstructors(base.BaseConstructorsTests):
 
     def test_from_sequence_pa_array(self, data):
         # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
-        # data._data = pa.ChunkedArray
-        result = type(data)._from_sequence(data._data)
+        # data._pa_array = pa.ChunkedArray
+        result = type(data)._from_sequence(data._pa_array)
         tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._data, pa.ChunkedArray)
+        assert isinstance(result._pa_array, pa.ChunkedArray)
 
-        result = type(data)._from_sequence(data._data.combine_chunks())
+        result = type(data)._from_sequence(data._pa_array.combine_chunks())
         tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._data, pa.ChunkedArray)
+        assert isinstance(result._pa_array, pa.ChunkedArray)
 
     def test_from_sequence_pa_array_notimplemented(self, request):
         with pytest.raises(NotImplementedError, match="Converting strings to"):
@@ -317,7 +318,7 @@ class TestConstructors(base.BaseConstructorsTests):
                         ),
                     )
                 )
-        pa_array = data._data.cast(pa.string())
+        pa_array = data._pa_array.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
 
@@ -389,7 +390,15 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
             # xfailing takes a long time to run because pytest
             # renders the exception messages even when not showing them
-            pytest.skip(f"{all_numeric_accumulations} not implemented for pyarrow < 9")
+            opt = request.config.option
+            if opt.markexpr and "not slow" in opt.markexpr:
+                pytest.skip(
+                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+                )
+            mark = pytest.mark.xfail(
+                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
+            )
+            request.node.add_marker(mark)
 
         elif all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
@@ -640,11 +649,7 @@ class TestBaseDtype(base.BaseDtypeTests):
         if (
             pa.types.is_date(pa_dtype)
             or pa.types.is_time(pa_dtype)
-            or (
-                pa.types.is_timestamp(pa_dtype)
-                and (pa_dtype.unit != "ns" or pa_dtype.tz is not None)
-            )
-            or (pa.types.is_duration(pa_dtype) and pa_dtype.unit != "ns")
+            or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
             or pa.types.is_binary(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
@@ -1211,14 +1216,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def assert_series_equal(self, left, right, *args, **kwargs):
-        # Series.combine for "expected" retains bool[pyarrow] dtype
-        # While "result" return "boolean" dtype
-        right = pd.Series(right._values.to_numpy(), dtype="boolean")
-        super().assert_series_equal(left, right, *args, **kwargs)
-
     def test_compare_array(self, data, comparison_op, na_value, request):
-        pa_dtype = data.dtype.pyarrow_dtype
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
@@ -1244,13 +1242,6 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
             if exc is None:
                 # Didn't error, then should match point-wise behavior
-                if pa.types.is_temporal(pa_dtype):
-                    # point-wise comparison with pd.NA raises TypeError
-                    assert result[8] is na_value
-                    assert result[97] is na_value
-                    result = result.drop([8, 97]).reset_index(drop=True)
-                    ser = ser.drop([8, 97])
-                    other = other.drop([8, 97])
                 expected = ser.combine(other, comparison_op)
                 self.assert_series_equal(result, expected)
             else:
@@ -1265,17 +1256,163 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             comparison_op(data, object())
 
 
+class TestLogicalOps:
+    """Various Series and DataFrame logical ops methods."""
+
+    def test_kleene_or(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a | b
+        expected = pd.Series(
+            [True, True, True, True, False, None, True, None, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b | a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [True, None, None]),
+            (pd.NA, [True, None, None]),
+            (True, [True, True, True]),
+            (np.bool_(True), [True, True, True]),
+            (False, [True, False, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_or_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a | other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other | a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
+
+    def test_kleene_and(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a & b
+        expected = pd.Series(
+            [True, False, None, False, False, False, None, False, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b & a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [None, False, None]),
+            (pd.NA, [None, False, None]),
+            (True, [True, False, None]),
+            (False, [False, False, False]),
+            (np.bool_(True), [True, False, None]),
+            (np.bool_(False), [False, False, False]),
+        ],
+    )
+    def test_kleene_and_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a & other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other & a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
+
+    def test_kleene_xor(self):
+        a = pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]")
+        b = pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        result = a ^ b
+        expected = pd.Series(
+            [False, True, None, True, False, None, None, None, None],
+            dtype="boolean[pyarrow]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = b ^ a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a,
+            pd.Series([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean[pyarrow]"),
+        )
+        tm.assert_series_equal(
+            b, pd.Series([True, False, None] * 3, dtype="boolean[pyarrow]")
+        )
+
+    @pytest.mark.parametrize(
+        "other, expected",
+        [
+            (None, [None, None, None]),
+            (pd.NA, [None, None, None]),
+            (True, [False, True, None]),
+            (np.bool_(True), [False, True, None]),
+            (np.bool_(False), [True, False, None]),
+        ],
+    )
+    def test_kleene_xor_scalar(self, other, expected):
+        a = pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        result = a ^ other
+        expected = pd.Series(expected, dtype="boolean[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = other ^ a
+        tm.assert_series_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        tm.assert_series_equal(
+            a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
+        )
+
+
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
 
-    # but as of GH#50689, timestamptz is supported
+    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
+
+
+def test_arrowdtype_construct_from_string_supports_dt64tz():
+    # as of GH#50689, timestamptz is supported
     dtype = ArrowDtype.construct_from_string("timestamp[s, tz=UTC][pyarrow]")
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
-
-    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
-        ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
 
 
 def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
@@ -1320,7 +1457,7 @@ def test_quantile(data, interpolation, quantile, request):
         or (pa.types.is_decimal(pa_dtype) and not pa_version_under7p0)
     ):
         pass
-    elif pa.types.is_temporal(data._data.type):
+    elif pa.types.is_temporal(data._pa_array.type):
         pass
     else:
         request.node.add_marker(
@@ -1394,9 +1531,23 @@ def test_mode_dropna_false_mode_na(data):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("arrow_dtype", [pa.binary(), pa.binary(16), pa.large_binary()])
-def test_arrow_dtype_type(arrow_dtype):
-    assert ArrowDtype(arrow_dtype).type == bytes
+@pytest.mark.parametrize(
+    "arrow_dtype, expected_type",
+    [
+        [pa.binary(), bytes],
+        [pa.binary(16), bytes],
+        [pa.large_binary(), bytes],
+        [pa.large_string(), str],
+        [pa.list_(pa.int64()), list],
+        [pa.large_list(pa.int64()), list],
+        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
+    ],
+)
+def test_arrow_dtype_type(arrow_dtype, expected_type):
+    # GH 51845
+    # TODO: Redundant with test_getitem_scalar once arrow_dtype exists in data fixture
+    assert ArrowDtype(arrow_dtype).type == expected_type
 
 
 def test_is_bool_dtype():
@@ -1483,7 +1634,7 @@ def test_pickle_roundtrip(data):
 
 def test_astype_from_non_pyarrow(data):
     # GH49795
-    pd_array = data._data.to_pandas().array
+    pd_array = data._pa_array.to_pandas().array
     result = pd_array.astype(data.dtype)
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)
@@ -1502,11 +1653,11 @@ def test_to_numpy_with_defaults(data):
     # GH49973
     result = data.to_numpy()
 
-    pa_type = data._data.type
+    pa_type = data._pa_array.type
     if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
         expected = np.array(list(data))
     else:
-        expected = np.array(data._data)
+        expected = np.array(data._pa_array)
 
     if data._hasna:
         expected = expected.astype(object)
@@ -1532,7 +1683,7 @@ def test_setitem_null_slice(data):
     result = orig.copy()
     result[:] = data[0]
     expected = ArrowExtensionArray(
-        pa.array([data[0]] * len(data), type=data._data.type)
+        pa.array([data[0]] * len(data), type=data._pa_array.type)
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -1549,7 +1700,7 @@ def test_setitem_null_slice(data):
 
 def test_setitem_invalid_dtype(data):
     # GH50248
-    pa_type = data._data.type
+    pa_type = data._pa_array.type
     if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
         fill_value = 123
         err = TypeError
@@ -1789,7 +1940,7 @@ def test_str_get(i, exp):
 
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
-    raises=NotImplementedError,
+    raises=AttributeError,
 )
 def test_str_join():
     ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
@@ -2112,6 +2263,19 @@ def test_dt_ceil_year_floor(freq, method):
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_to_pydatetime():
+    # GH 51859
+    data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
+
+    result = ser.dt.to_pydatetime()
+    expected = np.array(data, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2161,3 +2325,29 @@ def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     else:
         expected = pd.NA
     assert result is expected
+
+
+def test_from_sequence_of_strings_boolean():
+    true_strings = ["true", "TRUE", "True", "1", "1.0"]
+    false_strings = ["false", "FALSE", "False", "0", "0.0"]
+    nulls = [None]
+    strings = true_strings + false_strings + nulls
+    bools = (
+        [True] * len(true_strings) + [False] * len(false_strings) + [None] * len(nulls)
+    )
+
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+    expected = pd.array(bools, dtype="boolean[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)
+
+    strings = ["True", "foo"]
+    with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=pa.bool_())
+
+
+def test_concat_empty_arrow_backed_series(dtype):
+    # GH#51734
+    ser = pd.Series([], dtype=dtype)
+    expected = ser.copy()
+    result = pd.concat([ser[np.array([], dtype=np.bool_)]])
+    tm.assert_series_equal(result, expected)
