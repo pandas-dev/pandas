@@ -11,7 +11,6 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
-from pandas._typing import MatplotlibColor
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -36,6 +35,8 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
+
+    from pandas._typing import MatplotlibColor
 
 
 class BoxPlot(LinePlot):
