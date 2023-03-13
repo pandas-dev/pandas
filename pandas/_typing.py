@@ -6,6 +6,7 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -83,8 +84,13 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self  # pyright: reportUnusedImport = false
 else:
     npt: Any = None
+    Self: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 
