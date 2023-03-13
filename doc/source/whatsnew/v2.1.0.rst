@@ -117,6 +117,7 @@ Performance improvements
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
+- Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
