@@ -1464,7 +1464,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if not pat and not pat_dict:
             raise ValueError(
-                "Cannot repalce a string without specifying a string to be modified."
+                "Cannot replace a string without specifying a string to be modified."
             )
 
         if pat_dict:

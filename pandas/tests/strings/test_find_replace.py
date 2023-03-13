@@ -658,7 +658,7 @@ def test_replace_multi_dict(any_string_dtype):
 def test_replace_dict_invalid(any_string_dtype):
     # New replace behavior introduced in #51914
     msg = (
-        "Cannot perform string replacement without specifying a string to be modified."
+        "Cannot replace a string without specifying a string to be modified."
     )
     series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
 
