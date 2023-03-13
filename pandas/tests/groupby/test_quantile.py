@@ -396,7 +396,10 @@ def test_columns_groupby_quantile():
         index=list("XYZ"),
         columns=pd.Series(list("ABAB"), name="col"),
     )
-    result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("col", axis=1)
+    result = gb.quantile(q=[0.8, 0.2])
     expected = DataFrame(
         [
             [1.6, 0.4, 2.6, 1.4],
@@ -464,7 +467,7 @@ def test_groupby_quantile_dt64tz_period():
 
     # Check that we match the group-by-group result
     exp = {i: df.iloc[i::5].quantile(0.5) for i in range(5)}
-    expected = DataFrame(exp).T
+    expected = DataFrame(exp).T.infer_objects()
     expected.index = expected.index.astype(np.int_)
 
     tm.assert_frame_equal(result, expected)

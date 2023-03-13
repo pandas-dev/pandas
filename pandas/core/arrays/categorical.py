@@ -25,18 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
@@ -109,6 +97,19 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -1349,7 +1350,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -1761,6 +1762,49 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 self.rename_categories(Series(self.categories).rank().values)
             )
         return values
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hash a Categorical by hashing its categories, and then mapping the codes
+        to the hashes.
+
+        Parameters
+        ----------
+        encoding : str
+        hash_key : str
+        categorize : bool
+            Ignored for Categorical.
+
+        Returns
+        -------
+        np.ndarray[uint64]
+        """
+        # Note we ignore categorize, as we are already Categorical.
+        from pandas.core.util.hashing import hash_array
+
+        # Convert ExtensionArrays to ndarrays
+        values = np.asarray(self.categories._values)
+        hashed = hash_array(values, encoding, hash_key, categorize=False)
+
+        # we have uint64, as we don't directly support missing values
+        # we don't want to use take_nd which will coerce to float
+        # instead, directly construct the result with a
+        # max(np.uint64) as the missing value indicator
+        #
+        # TODO: GH#15362
+
+        mask = self.isna()
+        if len(hashed):
+            result = hashed.take(self._codes)
+        else:
+            result = np.zeros(len(mask), dtype="uint64")
+
+        if mask.any():
+            result[mask] = lib.u8max
+
+        return result
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
