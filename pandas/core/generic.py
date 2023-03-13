@@ -3639,7 +3639,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'a', open for writing, appending to the end of file if it exists.
 
             Including 'b' or 't' in the mode parameter will inform Pandas whether
-            'path_or_buf' requires string or binary data. However, in most cases,
+            `path_or_buf` requires string or binary data. However, in most cases,
             this should not be necessary.
         encoding : str, optional
             A string representing the encoding to use in the output file,
