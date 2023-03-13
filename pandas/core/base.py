@@ -881,10 +881,8 @@ class IndexOpsMixin(OpsMixin):
         """
         arr = extract_array(self, extract_numpy=True, extract_range=True)
 
-        if is_extension_array_dtype(arr.dtype):
-            # Item "IndexOpsMixin" of "Union[IndexOpsMixin, ExtensionArray,
-            # ndarray[Any, Any]]" has no attribute "map"
-            return arr.map(mapper, na_action=na_action)  # type: ignore[union-attr]
+        if isinstance(arr, ExtensionArray):
+            return arr.map(mapper, na_action=na_action)
 
         # Argument 1 to "map_array" has incompatible type
         # "Union[IndexOpsMixin, ExtensionArray, ndarray[Any, Any]]";
