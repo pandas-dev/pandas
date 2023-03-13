@@ -1002,8 +1002,9 @@ class TestDataFrameSetItemBooleanMask:
         result = df.copy()
         result[mask] = np.nan
 
-        expected = df.copy()
-        expected.values[np.array(mask)] = np.nan
+        expected = df.values.copy()
+        expected[np.array(mask)] = np.nan
+        expected = DataFrame(expected, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
