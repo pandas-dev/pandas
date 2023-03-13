@@ -383,7 +383,7 @@ class MultiIndex(Index):
         self,
         codes: list | None = None,
         levels: list | None = None,
-        levels_to_verify: list | None = None,
+        levels_to_verify: list[int] | range | None = None,
     ):
         """
         Parameters
@@ -411,7 +411,7 @@ class MultiIndex(Index):
         codes = codes or self.codes
         levels = levels or self.levels
         if levels_to_verify is None:
-            levels_to_verify = list(range(len(levels)))
+            levels_to_verify = range(len(levels))
 
         if len(levels) != len(codes):
             raise ValueError(
@@ -1009,12 +1009,13 @@ class MultiIndex(Index):
             if level is not None and len(codes) != len(level):
                 raise ValueError("Length of codes must match length of levels.")
 
+        level_numbers: list[int] | range
         if level is None:
             new_codes = FrozenList(
                 _coerce_indexer_frozen(level_codes, lev, copy=copy).view()
                 for lev, level_codes in zip(self._levels, codes)
             )
-            level_numbers = list(range(len(new_codes)))
+            level_numbers = range(len(new_codes))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_codes_list = list(self._codes)
