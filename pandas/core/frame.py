@@ -3832,10 +3832,13 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
+                new_values = self._values[:, loc]
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns
                 )
+                if using_copy_on_write() and isinstance(loc, slice):
+                    result._mgr.add_references(self._mgr)
+
                 result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
