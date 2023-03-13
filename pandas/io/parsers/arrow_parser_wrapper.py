@@ -7,10 +7,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.inference import is_integer
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    get_option,
-)
+from pandas import DataFrame
 
 from pandas.io.parsers.base_parser import ParserBase
 
@@ -152,10 +149,7 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
-        if (
-            self.kwds["use_nullable_dtypes"]
-            and get_option("mode.dtype_backend") == "pyarrow"
-        ):
+        if self.kwds["dtype_backend"] == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
             frame = table.to_pandas()

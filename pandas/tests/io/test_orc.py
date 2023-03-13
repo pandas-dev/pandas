@@ -307,7 +307,7 @@ def test_orc_writer_dtypes_not_supported(df_not_supported):
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_pyarrow_backend():
+def test_orc_dtype_backend_pyarrow():
     df = pd.DataFrame(
         {
             "string": list("abc"),
@@ -329,8 +329,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
     )
 
     bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+    result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
 
     expected = pd.DataFrame(
         {
@@ -343,7 +342,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_pandas_backend():
+def test_orc_dtype_backend_numpy_nullable():
     # GH#50503
     df = pd.DataFrame(
         {
@@ -361,8 +360,7 @@ def test_orc_use_nullable_dtypes_pandas_backend():
     )
 
     bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.dtype_backend", "pandas"):
-        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+    result = read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
 
     expected = pd.DataFrame(
         {
@@ -383,19 +381,6 @@ def test_orc_use_nullable_dtypes_pandas_backend():
         }
     )
 
-    tm.assert_frame_equal(result, expected)
-
-
-@td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_option():
-    # GH#50748
-    df = pd.DataFrame({"int": list(range(1, 4))})
-
-    bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_orc(BytesIO(bytes_data))
-
-    expected = pd.DataFrame({"int": pd.Series([1, 2, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)
 
 

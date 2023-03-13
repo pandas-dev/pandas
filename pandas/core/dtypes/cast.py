@@ -1007,7 +1007,7 @@ def convert_dtypes(
     convert_boolean: bool = True,
     convert_floating: bool = True,
     infer_objects: bool = False,
-    dtype_backend: Literal["pandas", "pyarrow"] = "pandas",
+    dtype_backend: Literal["numpy_nullable", "pyarrow"] = "numpy_nullable",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1029,10 +1029,10 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "pandas"
+    dtype_backend : str, default "numpy_nullable"
         Nullable dtype implementation to use.
 
-        * "pandas" returns numpy-backed nullable types
+        * "numpy_nullable" returns numpy-backed nullable types
         * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
 
     Returns

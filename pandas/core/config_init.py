@@ -487,40 +487,12 @@ string_storage_doc = """
     The default storage for StringDtype.
 """
 
-dtype_backend_doc = """
-: string
-    The nullable dtype implementation to return. Only applicable to certain
-    operations where documented. Available options: 'pandas', 'pyarrow',
-    the default is 'pandas'.
-"""
-
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
         "python",
         string_storage_doc,
         validator=is_one_of_factory(["python", "pyarrow"]),
-    )
-    cf.register_option(
-        "dtype_backend",
-        "pandas",
-        dtype_backend_doc,
-        validator=is_one_of_factory(["pandas", "pyarrow"]),
-    )
-
-
-nullable_dtypes_doc = """
-: bool
-    If nullable dtypes should be returned. This is only applicable to functions
-    where the ``use_nullable_dtypes`` keyword is implemented.
-"""
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "nullable_dtypes",
-        False,
-        nullable_dtypes_doc,
-        validator=is_bool,
     )
 
 

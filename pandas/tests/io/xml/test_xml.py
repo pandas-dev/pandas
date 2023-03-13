@@ -1860,8 +1860,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
     with pd.option_context("mode.string_storage", string_storage):
-        with pd.option_context("mode.dtype_backend", dtype_backend):
-            result = read_xml(data, parser=parser, use_nullable_dtypes=True)
+        result = read_xml(data, parser=parser, dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {
@@ -1889,22 +1888,4 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         )
         expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
-    tm.assert_frame_equal(result, expected)
-
-
-def test_use_nullable_dtypes_option(parser):
-    # GH#50748
-
-    data = """<?xml version='1.0' encoding='utf-8'?>
-    <data xmlns="http://example.com">
-    <row>
-      <a>1</a>
-    </row>
-    <row>
-      <a>3</a>
-    </row>
-    </data>"""
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_xml(data, parser=parser)
-    expected = DataFrame({"a": Series([1, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)

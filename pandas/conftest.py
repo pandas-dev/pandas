@@ -1274,7 +1274,7 @@ def string_storage(request):
 
 @pytest.fixture(
     params=[
-        "pandas",
+        "numpy_nullable",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )

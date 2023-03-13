@@ -145,8 +145,8 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
    df
 
 By default, these functions and all other IO reader functions return NumPy-backed data. These readers can return
-PyArrow-backed data by specifying the parameter ``use_nullable_dtypes=True`` **and** the global configuration option ``"mode.dtype_backend"``
-set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to necessarily return PyArrow-backed data.
+PyArrow-backed data by specifying the parameter ``dtype_backend="pyarrow"``. A reader does not need to set
+``engine="pyarrow"`` to necessarily return PyArrow-backed data.
 
 .. ipython:: python
 
@@ -155,20 +155,10 @@ set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to nece
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True)
+    df_pyarrow = pd.read_csv(data, dtype_backend="pyarrow")
     df_pyarrow.dtypes
 
-To simplify specifying ``use_nullable_dtypes=True`` in several functions, you can set a global option ``nullable_dtypes``
-to ``True``. You will still need to set the global configuration option ``"mode.dtype_backend"`` to ``pyarrow``.
-
-.. code-block:: ipython
-
-    In [1]: pd.set_option("mode.dtype_backend", "pyarrow")
-
-    In [2]: pd.options.mode.nullable_dtypes = True
-
-Several non-IO reader functions can also use the ``"mode.dtype_backend"`` option to return PyArrow-backed data including:
+Several non-IO reader functions can also use the ``dtype_backend`` argument to return PyArrow-backed data including:
 
 * :func:`to_numeric`
 * :meth:`DataFrame.convert_dtypes`
