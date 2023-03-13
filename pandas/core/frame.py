@@ -3613,6 +3613,7 @@ class DataFrame(NDFrame, OpsMixin):
                 index=self.columns,
                 columns=self.index,
                 dtype=new_arr.dtype,
+                # We already made a copy (more than one block)
                 copy=False,
             )
 

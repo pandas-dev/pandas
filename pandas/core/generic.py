@@ -777,6 +777,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor(
             new_values,
             *new_axes,
+            # The no-copy case for CoW is handled above
             copy=False,
         ).__finalize__(self, method="swapaxes")
 
