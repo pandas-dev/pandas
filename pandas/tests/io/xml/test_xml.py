@@ -1893,7 +1893,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
 
 def test_invalid_dtype_backend():
     msg = (
-        "dtype_backend numpy invalid, only 'numpy_nullable' and "
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
         "'pyarrow' are allowed."
     )
     with pytest.raises(ValueError, match=msg):

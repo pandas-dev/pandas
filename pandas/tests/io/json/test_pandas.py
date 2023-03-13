@@ -1946,7 +1946,7 @@ class TestPandasContainer:
 
     def test_invalid_dtype_backend(self):
         msg = (
-            "dtype_backend numpy invalid, only 'numpy_nullable' and "
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
             "'pyarrow' are allowed."
         )
         with pytest.raises(ValueError, match=msg):

@@ -129,7 +129,7 @@ class TestConvertDtypes:
         # GH 48893
         df = pd.DataFrame({"a": [1, 2, 3]})
         msg = (
-            "dtype_backend numpy invalid, only 'numpy_nullable' and "
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
             "'pyarrow' are allowed."
         )
         with pytest.raises(ValueError, match=msg):
