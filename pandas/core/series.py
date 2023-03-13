@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -4571,7 +4572,7 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -4581,7 +4582,7 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
+    ) -> tuple[Series, NDFrameT]:
         return super().align(
             other,
             join=join,
