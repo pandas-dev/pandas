@@ -20,6 +20,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 from pandas._typing import (
     Axis,
@@ -545,10 +547,16 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if copy and na_value is lib.no_default:
+        if (copy and na_value is lib.no_default) or (
+            not copy and using_copy_on_write()
+        ):
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                result = result.copy()
+                if using_copy_on_write() and not copy:
+                    result = result.view()
+                    result.flags.writeable = False
+                else:
+                    result = result.copy()
 
         return result
 
