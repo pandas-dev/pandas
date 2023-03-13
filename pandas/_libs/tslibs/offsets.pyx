@@ -4156,7 +4156,7 @@ cpdef to_offset(freq):
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
-    <24Hour>
+    <24 * Hours>
 
     >>> to_offset(pd.offsets.Hour())
     <Hour>
