@@ -58,6 +58,7 @@ typedef struct {
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
   Py_hash_t (*hash_datetime_from_struct)(npy_datetimestruct* dts);
   Py_hash_t (*np_datetime64_object_hash)(PyDatetimeScalarObject* key);
+  Py_uhash_t tuple_update_uhash(Py_uhash_t acc, Py_uhash_t lane);
 } PandasDateTime_CAPI;
 
 // The capsule name appears limited to module.attributename; see bpo-32414
@@ -114,6 +115,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
   PandasDateTimeAPI->hash_datetime_from_struct((dts))
 #define np_datetime64_object_hash(dts)                                         \
   PandasDateTimeAPI->np_datetime64_object_hash((key))
+#define tuple_update_uhash(acc, lane)                                          \
+  PandasDateTimeAPI->tuple_update_uhash((acc), (lane))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus

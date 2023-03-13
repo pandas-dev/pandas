@@ -55,6 +55,7 @@ static int pandas_datetime_exec(PyObject *module) {
   capi->make_iso_8601_timedelta = make_iso_8601_timedelta;
   capi->hash_datetime_from_struct = hash_datetime_from_struct;
   capi->np_datetime64_object_hash = np_datetime64_object_hash;
+  capi->tuple_update_uhash = tuple_update_uhash;
 
   PyObject *capsule = PyCapsule_New(capi, PandasDateTime_CAPSULE_NAME,
                                     pandas_datetime_destructor);
