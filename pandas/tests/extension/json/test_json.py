@@ -240,6 +240,10 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
+    @pytest.mark.xfail(reason="ValueError: setting an array element with a sequence")
+    def test_hash_pandas_object(self, data):
+        super().test_hash_pandas_object(data)
+
     @unhashable
     def test_value_counts(self, all_data, dropna):
         super().test_value_counts(all_data, dropna)
@@ -300,6 +304,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_equals(self, data, na_value, as_series):
         super().test_equals(data, na_value, as_series)
+
+    @pytest.mark.skip("fill-value is interpreted as a dict of values")
+    def test_fillna_copy_frame(self, data_missing):
+        super().test_fillna_copy_frame(data_missing)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

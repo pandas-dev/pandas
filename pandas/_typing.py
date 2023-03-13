@@ -100,6 +100,13 @@ ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
+# list-like
+
+# Cannot use `Sequence` because a string is a sequence, and we don't want to
+# accept that.  Could refine if https://github.com/python/typing/issues/256 is
+# resolved to differentiate between Sequence[str] and str
+ListLike = Union[AnyArrayLike, List, range]
+
 # scalars
 
 PythonScalar = Union[str, float, bool]
@@ -124,6 +131,9 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
+# same as NDFrameT, needed when binding two pairs of parameters to potentially
+# separate NDFrame-subclasses (see NDFrame.align)
+NDFrameTb = TypeVar("NDFrameTb", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
@@ -136,7 +146,7 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "BaseOffset"]
-Axes = Union[AnyArrayLike, List, range]
+Axes = ListLike
 
 RandomState = Union[
     int,

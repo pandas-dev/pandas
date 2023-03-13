@@ -46,7 +46,7 @@ def mi_styler(mi_df):
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
-    mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
+    mi_styler.css = {**mi_styler.css, "row": "ROW", "col": "COL"}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")

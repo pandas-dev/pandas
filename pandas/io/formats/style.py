@@ -21,17 +21,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    FilePath,
-    IndexLabel,
-    Level,
-    QuantileInterpolation,
-    Scalar,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import (
     Substitution,
@@ -70,6 +59,21 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
+
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        FilePath,
+        IndexLabel,
+        Level,
+        QuantileInterpolation,
+        Scalar,
+        StorageOptions,
+        WriteBuffer,
+        WriteExcelBuffer,
+    )
+
+    from pandas import ExcelWriter
 
 try:
     import matplotlib as mpl
@@ -147,8 +151,6 @@ class Styler(StylerRenderer):
         Representation for missing values.
         If ``na_rep`` is None, no special formatting is applied, and falls back to
         ``pandas.options.styler.format.na_rep``.
-
-        .. versionadded:: 1.0.0
 
     uuid_len : int, default 5
         If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
@@ -332,9 +334,9 @@ class Styler(StylerRenderer):
         A common use case is adding totals rows, or otherwise, via methods calculated
         in ``DataFrame.agg``.
 
-        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
-        ...                columns=["Mike", "Jim"],
-        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> df = pd.DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9, 6]],
+        ...                   columns=["Mike", "Jim"],
+        ...                   index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
         >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_simple.png
@@ -359,7 +361,8 @@ class Styler(StylerRenderer):
         When ``other`` has fewer index levels than the original Styler it is possible
         to extend the index in ``other``, with placeholder levels.
 
-        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> df = pd.DataFrame([[1], [2]],
+        ...                   index=pd.MultiIndex.from_product([[0], [1, 2]]))
         >>> descriptors = df.agg(["sum"])
         >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
         >>> df.style.concat(descriptors.style)  # doctest: +SKIP
@@ -494,7 +497,7 @@ class Styler(StylerRenderer):
     )
     def to_excel(
         self,
-        excel_writer,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -1327,7 +1330,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1341,7 +1344,7 @@ class Styler(StylerRenderer):
         self,
         buf: None = ...,
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1355,7 +1358,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        encoding=None,
+        encoding: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_rows: int | None = None,
@@ -1463,6 +1466,7 @@ class Styler(StylerRenderer):
 
         Form of the output with new additional css classes,
 
+        >>> from pandas.io.formats.style import Styler
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
@@ -2067,8 +2071,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler = DataFrame([[1, 2], [3, 4]]).style
-        >>> styler2 = DataFrame([[9, 9, 9]]).style
+        >>> styler = pd.DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = pd.DataFrame([[9, 9, 9]]).style
         >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
@@ -2119,8 +2123,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler = DataFrame([[1, 2], [3, 4]]).style
-        >>> styler2 = DataFrame([[9, 9, 9]]).style
+        >>> styler = pd.DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = pd.DataFrame([[9, 9, 9]]).style
         >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
@@ -2731,15 +2735,9 @@ class Styler(StylerRenderer):
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
             If not specified the maximum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         gmap : array-like, optional
             Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
@@ -3390,8 +3388,11 @@ class Styler(StylerRenderer):
 
     @classmethod
     def from_custom_template(
-        cls, searchpath, html_table: str | None = None, html_style: str | None = None
-    ):
+        cls,
+        searchpath: Sequence[str],
+        html_table: str | None = None,
+        html_style: str | None = None,
+    ) -> type[Styler]:
         """
         Factory function for creating a subclass of ``Styler``.
 
@@ -3664,7 +3665,7 @@ def _background_gradient(
                 text_color = "#f1f1f1" if dark else "#000000"
                 return (
                     f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
-                    + f"color: {text_color};"
+                    f"color: {text_color};"
                 )
             else:
                 return f"color: {_matplotlib.colors.rgb2hex(rgba)};"

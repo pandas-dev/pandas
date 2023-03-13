@@ -14,13 +14,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    Scalar,
-    npt,
-    type_t,
-)
 from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -58,8 +51,13 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        AxisInt,
+        Dtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Scalar,
+        npt,
+        type_t,
     )
 
     from pandas import Series
@@ -69,8 +67,6 @@ if TYPE_CHECKING:
 class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -205,16 +201,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
-            results = []
-            for arr in chunks:
-                # using _from_sequence to ensure None is converted to NA
-                str_arr = StringArray._from_sequence(np.array(arr))
-                results.append(str_arr)
-
-        if results:
-            return StringArray._concat_same_type(results)
+        if len(chunks) == 0:
+            arr = np.array([], dtype=object)
         else:
-            return StringArray(np.array([], dtype="object"))
+            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
+            arr = lib.convert_nans_to_NA(arr)
+        # Bypass validation inside StringArray constructor, see GH#47781
+        new_string_array = StringArray.__new__(StringArray)
+        NDArrayBacked.__init__(
+            new_string_array,
+            arr,
+            StringDtype(storage="python"),
+        )
+        return new_string_array
 
 
 class BaseStringArray(ExtensionArray):
@@ -232,8 +231,6 @@ class BaseStringArray(ExtensionArray):
 class StringArray(BaseStringArray, PandasArray):
     """
     Extension array for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 

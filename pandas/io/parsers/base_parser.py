@@ -34,12 +34,6 @@ from pandas._libs import (
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    Scalar,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -91,6 +85,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        Scalar,
+    )
+
     from pandas import DataFrame
 
 
@@ -1244,7 +1245,11 @@ def _process_date_conversion(
                 raise ValueError(f"Date column {new_name} already in dict")
 
             _, col, old_names = _try_convert_dates(
-                converter, colspec, data_dict, orig_names
+                converter,
+                colspec,
+                data_dict,
+                orig_names,
+                target_name=new_name,
             )
 
             new_data[new_name] = col
@@ -1268,7 +1273,9 @@ def _process_date_conversion(
     return data_dict, new_cols
 
 
-def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
+def _try_convert_dates(
+    parser: Callable, colspec, data_dict, columns, target_name: str | None = None
+):
     colset = set(columns)
     colnames = []
 
@@ -1287,7 +1294,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
-    new_col = parser(*to_parse, col=new_name)
+    new_col = parser(*to_parse, col=new_name if target_name is None else target_name)
     return new_name, new_col, colnames
 
 
