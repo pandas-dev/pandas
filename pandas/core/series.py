@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -888,7 +889,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self._values, dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -4571,7 +4578,7 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -4581,7 +4588,7 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
+    ) -> tuple[Series, NDFrameT]:
         return super().align(
             other,
             join=join,

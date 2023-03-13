@@ -1126,7 +1126,7 @@ def _make_date_converter(
                 dayfirst=dayfirst,
                 errors="ignore",
                 cache=cache_dates,
-            ).to_numpy()
+            )._values
         else:
             try:
                 result = tools.to_datetime(
