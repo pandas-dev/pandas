@@ -1,4 +1,5 @@
 import collections
+import re
 import warnings
 
 cimport cython
@@ -836,93 +837,45 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
     """
 
     cdef:
-        unicode c
         int64_t result = 0, r
-        int p = 0, sign = 1
-        object dec_unit = "ms", err_msg
-        bint have_dot = 0, have_value = 0, neg = 0
-        list number = [], unit = []
+        int sign = 1
+        object sign_part, integer_part, fractional_part
+        list groups = [], units = []
 
-    err_msg = f"Invalid ISO 8601 Duration format - {ts}"
+    iso_regex = re.compile(
+        r"^(-?)P(?!$)(?:"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=Y$))?Y)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=W$))?W)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=D$))?D)?"
+        r"(?:T(?!$)"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=H$))?H)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"
+        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=S$))?S)?"
+        r")?)$"
+    )
 
-    if ts[0] == "-":
+    # Pandas units corresponding to the order of the groups in the regex
+    units = ["Y", "M", "W", "D", "h", "m", "s"]
+
+    match = iso_regex.fullmatch(ts)
+    if match is None:
+        raise ValueError(f"Invalid ISO 8601 Duration format - {ts}")
+    sign_part, *groups = list(match.groups())
+
+    if sign_part == "-":
         sign = -1
-        ts = ts[1:]
 
-    for c in ts:
-        # number (ascii codes)
-        if 48 <= ord(c) <= 57:
+    for i in range(len(units)):
+        j = i * 3
+        sign_part, integer_part, fractional_part = groups[j:j+3]
+        if integer_part is not None:
+            if fractional_part is None:
+                fractional_part = "0"
+            r = timedelta_from_spec(integer_part, fractional_part, units[i])
+            result += timedelta_as_neg(r, sign_part == "-")
 
-            have_value = 1
-            if have_dot:
-                if p == 3 and dec_unit != "ns":
-                    unit.append(dec_unit)
-                    if dec_unit == "ms":
-                        dec_unit = "us"
-                    elif dec_unit == "us":
-                        dec_unit = "ns"
-                    p = 0
-                p += 1
-
-            if not len(unit):
-                number.append(c)
-            else:
-                r = timedelta_from_spec(number, "0", unit)
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], [c]
-        else:
-            if c == "P" or c == "T":
-                pass  # ignore marking characters P and T
-            elif c == "-":
-                if neg or have_value:
-                    raise ValueError(err_msg)
-                else:
-                    neg = 1
-            elif c == "+":
-                pass
-            elif c in ["W", "D", "H", "M"]:
-                if c in ["H", "M"] and len(number) > 2:
-                    raise ValueError(err_msg)
-                if c == "M":
-                    c = "min"
-                unit.append(c)
-                r = timedelta_from_spec(number, "0", unit)
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], []
-            elif c == ".":
-                # append any seconds
-                if len(number):
-                    r = timedelta_from_spec(number, "0", "S")
-                    result += timedelta_as_neg(r, neg)
-                    unit, number = [], []
-                have_dot = 1
-            elif c == "S":
-                if have_dot:  # ms, us, or ns
-                    if not len(number) or p > 3:
-                        raise ValueError(err_msg)
-                    # pad to 3 digits as required
-                    pad = 3 - p
-                    while pad > 0:
-                        number.append("0")
-                        pad -= 1
-
-                    r = timedelta_from_spec(number, "0", dec_unit)
-                    result += timedelta_as_neg(r, neg)
-                else:  # seconds
-                    r = timedelta_from_spec(number, "0", "S")
-                    result += timedelta_as_neg(r, neg)
-            else:
-                raise ValueError(err_msg)
-
-    if not have_value:
-        # Received string only - never parsed any values
-        raise ValueError(err_msg)
-
-    return sign*result
+    return sign * result
 
 
 cdef _to_py_int_float(v):

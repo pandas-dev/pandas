@@ -374,6 +374,7 @@ def test_construction_out_of_bounds_td64s(val, unit):
                 nanoseconds=12,
             ),
         ),
+        ("PT3,5H", Timedelta(hours=3.5)),
         ("P4DT12H30M5S", Timedelta(days=4, hours=12, minutes=30, seconds=5)),
         ("P0DT0H0M0.000000123S", Timedelta(nanoseconds=123)),
         ("P0DT0H0M0.00001S", Timedelta(microseconds=10)),
@@ -390,7 +391,7 @@ def test_construction_out_of_bounds_td64s(val, unit):
         ("P1DT0H0M00000000000S", Timedelta(days=1)),
         ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
         ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
-        ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
+        ("-PT-6H3M", Timedelta(hours=6, minutes=-3)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -400,16 +401,54 @@ def test_iso_constructor(fmt, exp):
 @pytest.mark.parametrize(
     "fmt",
     [
-        "PPPPPPPPPPPP",
-        "PDTHMS",
-        "P0DT999H999M999S",
-        "P1DT0H0M0.0000000000000S",
-        "P1DT0H0M0.S",
-        "P",
-        "-P",
+        "P1Y",
+        "P1M",
     ],
 )
-def test_iso_constructor_raises(fmt):
+def test_iso_constructor_raises_ambiguous_units(fmt):
+    msg = (
+        "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta values "
+        "and are not supported."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(fmt)
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        # Multiple prefix characters
+        "PPPPPPPPPPPP",
+        # Missing any component
+        "P",
+        "-P",
+        "PT",
+        "-PT",
+        # Empty component
+        "P1DT",
+        "P1DTHMS",
+        # Hours or second components before the time separator
+        "P1H",
+        "P1S",
+        # Duplicate time separator
+        "P1DTT1H",
+        # Precision too high
+        "P1DT0H0M0.0000000001S",
+        # Only lowest order component may have be frational
+        "P1DT2.5H3M",
+        # Number start with in dot
+        "P1DT.0H",
+        # Number ends in dot
+        "P1DT0H0M0.S",
+        # Time designator in date half
+        "P1S",
+        # Wrong designator order
+        "PT1S2M",
+        # Unknown designator
+        "P1R",
+    ],
+)
+def test_iso_constructor_raises_invalid_format(fmt):
     msg = f"Invalid ISO 8601 Duration format - {fmt}"
     with pytest.raises(ValueError, match=msg):
         Timedelta(fmt)
