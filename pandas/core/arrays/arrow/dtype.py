@@ -8,17 +8,13 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
-)
-from pandas._typing import (
-    TYPE_CHECKING,
-    DtypeObj,
-    type_t,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
@@ -27,11 +23,17 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        type_t,
+    )
+
     from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
@@ -106,7 +108,7 @@ class ArrowDtype(StorageExtensionDtype):
             return int
         elif pa.types.is_floating(pa_type):
             return float
-        elif pa.types.is_string(pa_type):
+        elif pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
             return str
         elif (
             pa.types.is_binary(pa_type)
@@ -132,6 +134,14 @@ class ArrowDtype(StorageExtensionDtype):
             return time
         elif pa.types.is_decimal(pa_type):
             return Decimal
+        elif pa.types.is_dictionary(pa_type):
+            # TODO: Potentially change this & CategoricalDtype.type to
+            #  something more representative of the scalar
+            return CategoricalDtypeType
+        elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_map(pa_type):
+            return dict
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
@@ -148,6 +158,18 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # pa.timestamp(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow timestamp units.
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
+        if pa.types.is_duration(self.pyarrow_dtype):
+            # pa.duration(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow duration units
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
         if pa.types.is_string(self.pyarrow_dtype):
             # pa.string().to_pandas_dtype() = object which we don't want
             return np.dtype(str)

@@ -20,7 +20,12 @@ from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -229,6 +234,16 @@ cdef class IndexEngine:
 
     def __sizeof__(self) -> int:
         return self.sizeof()
+
+    cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
 
     @property
     def is_unique(self) -> bool:
@@ -891,6 +906,16 @@ cdef class SharedEngine:
     def clear_mapping(self):
         # for compat with IndexEngine
         pass
+
+    cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
 
     @property
     def is_unique(self) -> bool:
