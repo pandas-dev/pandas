@@ -156,7 +156,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Enhancement to allow dictionaries to be passed to func: Series.str.replace that contain <key:value> pairs of strings to be replaced, along with their replacement.
 -
 
 Interval
