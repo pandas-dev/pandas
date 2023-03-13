@@ -119,6 +119,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        Self,
         Shape,
         npt,
     )
@@ -631,7 +632,7 @@ class HDFStore:
         pstr = pprint_thing(self._path)
         return f"{type(self)}\nFile path: {pstr}\n"
 
-    def __enter__(self) -> HDFStore:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

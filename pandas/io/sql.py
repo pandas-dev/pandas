@@ -25,7 +25,6 @@ from typing import (
     Any,
     Iterator,
     Literal,
-    TypeVar,
     cast,
     overload,
 )
@@ -73,9 +72,8 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         IndexLabel,
+        Self,
     )
-
-_PandasSQLT = TypeVar("_PandasSQLT", bound="PandasSQL")
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -1343,7 +1341,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self: _PandasSQLT) -> _PandasSQLT:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:
