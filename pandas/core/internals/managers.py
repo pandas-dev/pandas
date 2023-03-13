@@ -1004,7 +1004,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
 
     @classmethod
-    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> BlockManager:
+    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> Self:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
@@ -1851,7 +1851,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         cls,
         blocks: list[Block],
         axes: list[Index],
-    ) -> SingleBlockManager:
+    ) -> Self:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
