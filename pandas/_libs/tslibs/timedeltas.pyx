@@ -845,22 +845,43 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
     if ts[0] == "-":
         sign = -1
 
-    iso_regex = re.compile(
-        # Allow starting with 'P' or '-P', disallow ending on 'P'.
-        r"^-?P(?!$)(?:"
-        # Capture the sign, integer part, and fractional part (but only if it
-        # is the final component).
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=Y$))?Y)?"  # Years
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"  # Months
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=W$))?W)?"  # Weeks
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=D$))?D)?"  # Days
-        # Disallow ending on 'T'.
-        r"(?:T(?!$)"
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=H$))?H)?"  # Hours
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=M$))?M)?"  # Minutes
-        r"(?:(-?)(\d+)(?:[.,](\d{1,9})(?=S$))?S)?"  # Seconds
-        r")?)$"
-    )
+    year_component = r"""
+        (?:
+            (-?)        # Capture sign
+            (\d+)       # Capture integer part
+            (?:
+                [.,]    # Decimal separator
+                (\d+)   # Capture fractional part
+                (?=Y$)  # But only if it is the final component
+            )?
+            Y
+        )
+    """
+    month_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=M$))?M)"
+    week_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=W$))?W)"
+    day_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=D$))?D)"
+    hour_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=H$))?H)"
+    minute_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=M$))?M)"
+    second_component = r"(?:(-?)(\d+)(?:[.,](\d+)(?=S$))?S)"
+
+    iso_regex = re.compile(fr"""
+        ^          # Start of string
+        -?         # Optional negative sign prefix
+        P          # P symbol
+        (?!$)      # Ensure at least 1 component follows P by disallowing ending on P
+        {year_component}?
+        {month_component}?
+        {week_component}?
+        {day_component}?
+        (?:
+            T      # T symbol
+            (?!$)  # Ensure at least 1 component follows T by disallowing ending on T
+            {hour_component}?
+            {minute_component}?
+            {second_component}?
+        )?
+        $          # End of string
+    """, re.VERBOSE)
 
     match = iso_regex.fullmatch(ts)
     if match is None:
