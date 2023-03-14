@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -11,8 +14,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
 )
 
-from pandas import DataFrame
 from pandas.core import common as com
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def to_dict(

@@ -184,6 +184,15 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        if na_action is not None:
+            with pytest.raises(NotImplementedError, match=""):
+                data.map(lambda x: x, na_action=na_action)
+        else:
+            result = data.map(lambda x: x, na_action=na_action)
+            self.assert_extension_array_equal(result, data)
+
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])

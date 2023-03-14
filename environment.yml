@@ -120,3 +120,4 @@ dependencies:
   - pip:
       - sphinx-toggleprompt
       - "git+https://github.com/mesonbuild/meson-python.git@main"
+      - typing_extensions; python_version<"3.11"

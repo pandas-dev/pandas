@@ -4,9 +4,11 @@ Common type operations.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
+import warnings
 
 import numpy as np
 
@@ -17,10 +19,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-)
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -53,6 +51,12 @@ from pandas.core.dtypes.inference import (
     is_scalar,
     is_sequence,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+    )
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
@@ -1691,7 +1695,12 @@ def pandas_dtype(dtype) -> DtypeObj:
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:
-        npdtype = np.dtype(dtype)
+        with warnings.catch_warnings():
+            # GH#51523 - Series.astype(np.integer) doesn't show
+            # numpy deprication warning of np.integer
+            # Hence enabling DeprecationWarning
+            warnings.simplefilter("always", DeprecationWarning)
+            npdtype = np.dtype(dtype)
     except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError(f"data type '{dtype}' not understood") from err
