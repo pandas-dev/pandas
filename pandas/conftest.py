@@ -139,8 +139,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
             "pandas.core.generic.NDFrame.bool",
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning",
+            "{type(self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning",
         ),
     ]
 
