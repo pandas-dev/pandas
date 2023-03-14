@@ -409,3 +409,15 @@ def test_to_orc_non_default_index(index):
     )
     with pytest.raises(ValueError, match=msg):
         df.to_orc()
+
+
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    df = pd.DataFrame({"int": list(range(1, 4))})
+    with tm.ensure_clean("tmp.orc") as path:
+        df.to_orc(path)
+        with pytest.raises(ValueError, match=msg):
+            read_orc(path, dtype_backend="numpy")
