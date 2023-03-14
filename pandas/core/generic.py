@@ -9326,7 +9326,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-        fill_axis: Axis = 0,
+        fill_axis: Axis | None = None,
         broadcast_axis: Axis | None = None,
     ) -> tuple[NDFrameT, NDFrameTb]:
         """
@@ -9355,6 +9355,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - pad / ffill: propagate last valid observation forward to next valid.
             - backfill / bfill: use NEXT valid observation to fill gap.
 
+            .. deprecated:: 2.1
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -9362,8 +9364,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+
+            .. deprecated:: 2.1
+
         fill_axis : {axes_single_arg}, default 0
             Filling axis, method and limit.
+
+            .. deprecated:: 2.1
+
         broadcast_axis : {axes_single_arg}, default None
             Broadcast values along this axis, if aligning two objects of
             different dimensions.
@@ -9440,6 +9448,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
 
         method = clean_fill_method(method)
+        if method is not None or limit is not None or fill_axis is not None:
+            # GH#51856
+            warnings.warn(
+                "The 'method', 'limit', and 'fill_axis' keywords in "
+                f"{type(self).__name__}.align are deprecated and will be removed "
+                "in a future version. Call fillna directly on the returned objects "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if fill_axis is None:
+            fill_axis = 0
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
@@ -9567,9 +9587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
         if method is not None:
-            _left = left.fillna(method=method, axis=fill_axis, limit=limit)
-            assert _left is not None  # needed for mypy
-            left = _left
+            left = left.fillna(method=method, axis=fill_axis, limit=limit)
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC

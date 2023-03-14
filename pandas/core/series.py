@@ -4591,7 +4591,7 @@ Keep all original rows and also all original values
         fill_value: Hashable = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-        fill_axis: Axis = 0,
+        fill_axis: Axis | None = None,
         broadcast_axis: Axis | None = None,
     ) -> tuple[Series, NDFrameT]:
         return super().align(

@@ -83,7 +83,12 @@ class TestDataFrameAlign:
         af, bf = float_frame.align(other, join="inner", axis=1)
         tm.assert_index_equal(bf.columns, other.columns)
 
-        af, bf = float_frame.align(other, join="inner", axis=1, method="pad")
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = float_frame.align(other, join="inner", axis=1, method="pad")
         tm.assert_index_equal(bf.columns, other.columns)
 
         af, bf = float_frame.align(
@@ -132,13 +137,23 @@ class TestDataFrameAlign:
         # test other non-float types
         other = DataFrame(index=range(5), columns=["A", "B", "C"])
 
-        af, bf = int_frame.align(other, join="inner", axis=1, method="pad")
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = int_frame.align(other, join="inner", axis=1, method="pad")
         tm.assert_index_equal(bf.columns, other.columns)
 
     def test_align_mixed_type(self, float_string_frame):
-        af, bf = float_string_frame.align(
-            float_string_frame, join="inner", axis=1, method="pad"
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = float_string_frame.align(
+                float_string_frame, join="inner", axis=1, method="pad"
+            )
         tm.assert_index_equal(bf.columns, float_string_frame.columns)
 
     def test_align_mixed_float(self, mixed_float_frame):
@@ -346,9 +361,15 @@ class TestDataFrameAlign:
             df.align(series)
 
     def _check_align(self, a, b, axis, fill_axis, how, method, limit=None):
-        aa, ab = a.align(
-            b, axis=axis, join=how, method=method, limit=limit, fill_axis=fill_axis
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            aa, ab = a.align(
+                b, axis=axis, join=how, method=method, limit=limit, fill_axis=fill_axis
+            )
 
         join_index, join_columns = None, None
 
