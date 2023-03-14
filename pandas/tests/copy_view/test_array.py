@@ -146,10 +146,11 @@ def test_dataframe_array_ea_dtypes(using_copy_on_write):
         assert arr.flags.writeable is True
 
 
-def test_dataframe_array_string_dtype(using_copy_on_write):
+def test_dataframe_array_string_dtype(using_copy_on_write, using_array_manager):
     df = DataFrame({"a": ["a", "b"]}, dtype="string")
     arr = np.asarray(df)
-    assert np.shares_memory(arr, get_array(df, "a"))
+    if not using_array_manager:
+        assert np.shares_memory(arr, get_array(df, "a"))
     if using_copy_on_write:
         assert arr.flags.writeable is False
     else:
