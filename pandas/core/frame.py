@@ -634,6 +634,10 @@ class DataFrame(NDFrame, OpsMixin):
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
     _mgr: BlockManager | ArrayManager
 
+    # similar to __array_priority__, positions DataFrame before Series, Index,
+    #  and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 4000
+
     @property
     def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame
@@ -3842,10 +3846,13 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
+                new_values = self._values[:, loc]
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns, copy=False
                 )
+                if using_copy_on_write() and isinstance(loc, slice):
+                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+
                 result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
@@ -10884,7 +10891,7 @@ Parrot 2  Parrot       24.0
             else:
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts.values
+                counts = series_counts._values
                 result = self._constructor_sliced(
                     counts, index=frame._get_agg_axis(axis), copy=False
                 )
