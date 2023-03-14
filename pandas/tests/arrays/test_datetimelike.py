@@ -755,7 +755,7 @@ class TestDatetimeArray(SharedTests):
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)
 
-        tm.assert_equal(result, expected)
+        tm.assert_equal(result, expected._data)
 
     def test_to_period_2d(self, arr1d):
         arr2d = arr1d.reshape(1, -1)
