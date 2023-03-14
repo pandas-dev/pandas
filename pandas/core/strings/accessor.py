@@ -2611,7 +2611,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
-    def extractall(self, pat, flags: int = 0):
+    def extractall(self, pat, flags: int = 0) -> DataFrame:
         r"""
         Extract capture groups in the regex `pat` as columns in DataFrame.
 
@@ -3295,7 +3295,7 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
-def str_extractall(arr, pat, flags: int = 0):
+def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:

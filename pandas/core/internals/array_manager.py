@@ -9,7 +9,6 @@ from typing import (
     Callable,
     Hashable,
     Literal,
-    TypeVar,
 )
 
 import numpy as np
@@ -93,9 +92,9 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
+        Self,
         npt,
     )
-T = TypeVar("T", bound="BaseArrayManager")
 
 
 class BaseArrayManager(DataManager):
@@ -131,7 +130,7 @@ class BaseArrayManager(DataManager):
     ) -> None:
         raise NotImplementedError
 
-    def make_empty(self: T, axes=None) -> T:
+    def make_empty(self, axes=None) -> Self:
         """Return an empty ArrayManager with the items axis of len 0 (no columns)"""
         if axes is None:
             axes = [self.axes[1:], Index([])]
@@ -195,11 +194,11 @@ class BaseArrayManager(DataManager):
         return output
 
     def apply(
-        self: T,
+        self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
-    ) -> T:
+    ) -> Self:
         """
         Iterate over the arrays, collect and create a new ArrayManager.
 
@@ -257,8 +256,8 @@ class BaseArrayManager(DataManager):
         return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
 
     def apply_with_block(
-        self: T, f, align_keys=None, swap_axis: bool = True, **kwargs
-    ) -> T:
+        self, f, align_keys=None, swap_axis: bool = True, **kwargs
+    ) -> Self:
         # switch axis to follow BlockManager logic
         if swap_axis and "axis" in kwargs and self.ndim == 2:
             kwargs["axis"] = 1 if kwargs["axis"] == 0 else 0
@@ -311,7 +310,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def where(self: T, other, cond, align: bool) -> T:
+    def where(self, other, cond, align: bool) -> Self:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -325,13 +324,13 @@ class BaseArrayManager(DataManager):
             cond=cond,
         )
 
-    def round(self: T, decimals: int, using_cow: bool = False) -> T:
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
         return self.apply_with_block("round", decimals=decimals, using_cow=using_cow)
 
-    def setitem(self: T, indexer, value) -> T:
+    def setitem(self, indexer, value) -> Self:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
-    def putmask(self: T, mask, new, align: bool = True) -> T:
+    def putmask(self, mask, new, align: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -345,14 +344,14 @@ class BaseArrayManager(DataManager):
             new=new,
         )
 
-    def diff(self: T, n: int, axis: AxisInt) -> T:
+    def diff(self, n: int, axis: AxisInt) -> Self:
         assert self.ndim == 2 and axis == 0  # caller ensures
         return self.apply(algos.diff, n=n, axis=axis)
 
-    def interpolate(self: T, **kwargs) -> T:
+    def interpolate(self, **kwargs) -> Self:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
-    def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
+    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
         if fill_value is lib.no_default:
             fill_value = None
 
@@ -364,7 +363,7 @@ class BaseArrayManager(DataManager):
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
 
-    def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -373,13 +372,13 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+    def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
             copy = True
 
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self: T, copy: bool | None) -> T:
+    def convert(self, copy: bool | None) -> Self:
         if copy is None:
             copy = True
 
@@ -402,10 +401,10 @@ class BaseArrayManager(DataManager):
 
         return self.apply(_convert)
 
-    def replace_regex(self: T, **kwargs) -> T:
+    def replace_regex(self, **kwargs) -> Self:
         return self.apply_with_block("_replace_regex", **kwargs)
 
-    def replace(self: T, to_replace, value, inplace: bool) -> T:
+    def replace(self, to_replace, value, inplace: bool) -> Self:
         inplace = validate_bool_kwarg(inplace, "inplace")
         assert np.ndim(value) == 0, value
         # TODO "replace" is right now implemented on the blocks, we should move
@@ -415,12 +414,12 @@ class BaseArrayManager(DataManager):
         )
 
     def replace_list(
-        self: T,
+        self,
         src_list: list[Any],
         dest_list: list[Any],
         inplace: bool = False,
         regex: bool = False,
-    ) -> T:
+    ) -> Self:
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -432,7 +431,7 @@ class BaseArrayManager(DataManager):
             regex=regex,
         )
 
-    def to_native_types(self: T, **kwargs) -> T:
+    def to_native_types(self, **kwargs) -> Self:
         return self.apply(to_native_types, **kwargs)
 
     @property
@@ -458,7 +457,7 @@ class BaseArrayManager(DataManager):
     def is_single_block(self) -> bool:
         return len(self.arrays) == 1
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self, predicate: Callable) -> Self:
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
@@ -469,7 +468,7 @@ class BaseArrayManager(DataManager):
         new_axes = [self._axes[0], new_cols]
         return type(self)(arrays, new_axes, verify_integrity=False)
 
-    def get_bool_data(self: T, copy: bool = False) -> T:
+    def get_bool_data(self, copy: bool = False) -> Self:
         """
         Select columns that are bool-dtype and object-dtype columns that are all-bool.
 
@@ -480,7 +479,7 @@ class BaseArrayManager(DataManager):
         """
         return self._get_data_subset(lambda x: x.dtype == np.dtype(bool))
 
-    def get_numeric_data(self: T, copy: bool = False) -> T:
+    def get_numeric_data(self, copy: bool = False) -> Self:
         """
         Select columns that have a numeric dtype.
 
@@ -494,7 +493,7 @@ class BaseArrayManager(DataManager):
             or getattr(arr.dtype, "_is_numeric", False)
         )
 
-    def copy(self: T, deep: bool | Literal["all"] | None = True) -> T:
+    def copy(self, deep: bool | Literal["all"] | None = True) -> Self:
         """
         Make deep or shallow copy of ArrayManager
 
@@ -531,7 +530,7 @@ class BaseArrayManager(DataManager):
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def reindex_indexer(
-        self: T,
+        self,
         new_axis,
         indexer,
         axis: AxisInt,
@@ -542,7 +541,7 @@ class BaseArrayManager(DataManager):
         only_slice: bool = False,
         # ArrayManager specific keywords
         use_na_proxy: bool = False,
-    ) -> T:
+    ) -> Self:
         axis = self._normalize_axis(axis)
         return self._reindex_indexer(
             new_axis,
@@ -555,7 +554,7 @@ class BaseArrayManager(DataManager):
         )
 
     def _reindex_indexer(
-        self: T,
+        self,
         new_axis,
         indexer: npt.NDArray[np.intp] | None,
         axis: AxisInt,
@@ -563,7 +562,7 @@ class BaseArrayManager(DataManager):
         allow_dups: bool = False,
         copy: bool | None = True,
         use_na_proxy: bool = False,
-    ) -> T:
+    ) -> Self:
         """
         Parameters
         ----------
@@ -634,11 +633,11 @@ class BaseArrayManager(DataManager):
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def take(
-        self: T,
+        self,
         indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-    ) -> T:
+    ) -> Self:
         """
         Take items along any axis.
         """
@@ -926,7 +925,7 @@ class ArrayManager(BaseArrayManager):
     # --------------------------------------------------------------------
     # Array-wise Operation
 
-    def grouped_reduce(self: T, func: Callable) -> T:
+    def grouped_reduce(self, func: Callable) -> Self:
         """
         Apply grouped reduction function columnwise, returning a new ArrayManager.
 
@@ -965,7 +964,7 @@ class ArrayManager(BaseArrayManager):
         # expected "List[Union[ndarray, ExtensionArray]]"
         return type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
 
-    def reduce(self: T, func: Callable) -> T:
+    def reduce(self, func: Callable) -> Self:
         """
         Apply reduction function column-wise, returning a single-row ArrayManager.
 
@@ -1199,8 +1198,9 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def from_array(cls, array, index) -> SingleArrayManager:
         return cls([array], [index])
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def axes(self):
+    def axes(self) -> list[Index]:  # type: ignore[override]
         return self._axes
 
     @property
@@ -1254,7 +1254,8 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
 
-    def apply(self, func, **kwargs):
+    # error: Signature of "apply" incompatible with supertype "BaseArrayManager"
+    def apply(self, func, **kwargs) -> Self:  # type: ignore[override]
         if callable(func):
             new_array = func(self.array, **kwargs)
         else:

@@ -119,6 +119,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        Self,
         Shape,
         npt,
     )
@@ -631,7 +632,7 @@ class HDFStore:
         pstr = pprint_thing(self._path)
         return f"{type(self)}\nFile path: {pstr}\n"
 
-    def __enter__(self) -> HDFStore:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -3399,7 +3400,7 @@ class Table(Fixed):
         return self.table.description
 
     @property
-    def axes(self):
+    def axes(self) -> itertools.chain[IndexCol]:
         return itertools.chain(self.index_axes, self.values_axes)
 
     @property
@@ -3694,7 +3695,7 @@ class Table(Fixed):
 
     def _read_axes(
         self, where, start: int | None = None, stop: int | None = None
-    ) -> list[tuple[ArrayLike, ArrayLike]]:
+    ) -> list[tuple[np.ndarray, np.ndarray] | tuple[Index, Index]]:
         """
         Create the axes sniffed from the table.
 
