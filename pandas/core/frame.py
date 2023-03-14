@@ -3837,7 +3837,7 @@ class DataFrame(NDFrame, OpsMixin):
                     new_values, index=self.index, columns=result_columns
                 )
                 if using_copy_on_write() and isinstance(loc, slice):
-                    result._mgr.add_references(self._mgr)
+                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
                 result = result.__finalize__(self)
 
