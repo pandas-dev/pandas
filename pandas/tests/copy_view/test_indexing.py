@@ -1034,3 +1034,18 @@ def test_set_value_copy_only_necessary_column(
             assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
         else:
             assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+
+
+def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
+    df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
+    df_orig = df.copy()
+    new_df = df[("a",)]
+
+    if using_copy_on_write:
+        assert not new_df._mgr._has_no_reference(0)
+
+    if not using_array_manager:
+        assert np.shares_memory(get_array(df, ("a", "x")), get_array(new_df, "x"))
+    if using_copy_on_write:
+        new_df.iloc[0, 0] = 100
+        tm.assert_frame_equal(df_orig, df)
