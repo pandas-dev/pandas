@@ -16,6 +16,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
 from pandas import (
@@ -515,6 +516,7 @@ def read_parquet(
     DataFrame
     """
     impl = get_engine(engine)
+
     if use_nullable_dtypes is not lib.no_default:
         msg = (
             "The argument 'use_nullable_dtypes' is deprecated and will be removed "
@@ -527,6 +529,7 @@ def read_parquet(
         warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
     else:
         use_nullable_dtypes = False
+    check_dtype_backend(dtype_backend)
 
     return impl.read(
         path,

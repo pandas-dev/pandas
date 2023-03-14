@@ -1001,3 +1001,12 @@ def test_dtype_backend(string_storage, dtype_backend):
         expected["i"] = ArrowExtensionArray(pa.array([None, None]))
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        read_fwf("test", dtype_backend="numpy")

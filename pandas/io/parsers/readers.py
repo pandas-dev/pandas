@@ -34,6 +34,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_file_like,
@@ -1366,6 +1367,8 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+
+    check_dtype_backend(dtype_backend)
     kwds["dtype_backend"] = dtype_backend
     return _read(filepath_or_buffer, kwds)
 
@@ -2018,6 +2021,8 @@ def _refine_defaults_read(
         kwds["on_bad_lines"] = on_bad_lines
     else:
         raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+
+    check_dtype_backend(dtype_backend)
 
     kwds["dtype_backend"] = dtype_backend
 
