@@ -119,6 +119,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     checked_add_with_arr,
     isin,
+    map_array,
     unique1d,
 )
 from pandas.core.array_algos import datetimelike_accumulations
@@ -750,15 +751,30 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper):
-        # TODO(GH-23179): Add ExtensionArray.map
-        # Need to figure out if we want ExtensionArray.map first.
-        # If so, then we can refactor IndexOpsMixin._map_values to
-        # a standalone function and call from here..
-        # Else, just rewrite _map_infer_values to do the right thing.
+    def map(self, mapper, na_action=None):
+        if na_action is not None:
+            raise NotImplementedError
+
         from pandas import Index
 
-        return Index(self).map(mapper).array
+        idx = Index(self)
+        try:
+            result = mapper(idx)
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                result = Index(result)
+
+            if not isinstance(result, Index):
+                raise TypeError("The map function must return an Index object")
+        except Exception:
+            result = map_array(self, mapper)
+            result = Index(result)
+
+        if isinstance(result, ABCMultiIndex):
+            return result.to_numpy()
+        else:
+            return result.array
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         """
@@ -1848,6 +1864,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             values = values.copy()
         if freq:
             freq = to_offset(freq)
+            if values.dtype.kind == "m" and not isinstance(freq, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
@@ -1871,6 +1889,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
+            if self.dtype.kind == "m" and not isinstance(value, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
             if self.ndim > 1:
                 raise ValueError("Cannot set freq with ndim > 1")
@@ -2064,9 +2084,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # Always valid
             pass
         elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we assume this
-            #  is a Tick offset.
-            pass
+            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+            if self.dtype.kind == "m" and not isinstance(freq, Tick):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"

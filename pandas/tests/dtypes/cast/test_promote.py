@@ -374,10 +374,10 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
 @pytest.mark.parametrize(
     "fill_value",
     [
-        pd.Timestamp("now"),
-        np.datetime64("now"),
-        datetime.datetime.now(),
-        datetime.date.today(),
+        pd.Timestamp(2023, 1, 1),
+        np.datetime64("2023-01-01"),
+        datetime.datetime(2023, 1, 1),
+        datetime.date(2023, 1, 1),
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )

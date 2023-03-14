@@ -25,20 +25,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    PositionalIndexer,
-    ScalarIndexer,
-    SequenceIndexer,
-    Shape,
-    SortKind,
-    TakeIndexer,
-    npt,
-)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -78,6 +64,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     rank,
     unique,
@@ -90,8 +77,20 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        SortKind,
+        TakeIndexer,
+        npt,
     )
 
 _extension_array_shared_docs: dict[str, str] = {}
@@ -180,6 +179,7 @@ class ExtensionArray:
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * map
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -234,6 +234,12 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
+
+    # similar to __array_priority__, positions ExtensionArray after Index,
+    #  Series, and DataFrame.  EA subclasses may override to choose which EA
+    #  subclass takes priority. If overriding, the value should always be
+    #  strictly less than 2000 to be below Index.__pandas_priority__.
+    __pandas_priority__ = 1000
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -1705,6 +1711,28 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+    def map(self, mapper, na_action=None):
+        """
+        Map values using an input mapping or function.
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence. If 'ignore' is not supported, a
+            ``NotImplementedError`` should be raised.
+
+        Returns
+        -------
+        Union[ndarray, Index, ExtensionArray]
+            The output of the mapping function applied to the array.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+        """
+        return map_array(self, mapper, na_action=na_action)
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
