@@ -12,7 +12,6 @@ from typing import (
     Hashable,
     Iterator,
     Literal,
-    TypeVar,
     cast,
     final,
     overload,
@@ -29,6 +28,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
+    Self,
     Shape,
     npt,
 )
@@ -90,8 +90,6 @@ _indexops_doc_kwargs = {
     "unique": "IndexOpsMixin",
     "duplicated": "IndexOpsMixin",
 }
-
-_T = TypeVar("_T", bound="IndexOpsMixin")
 
 
 class PandasObject(DirNamesMixin):
@@ -285,7 +283,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @final
-    def transpose(self: _T, *args, **kwargs) -> _T:
+    def transpose(self, *args, **kwargs) -> Self:
         """
         Return the transpose, which is by definition self.
 

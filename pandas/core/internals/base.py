@@ -7,7 +7,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Literal,
-    TypeVar,
     final,
 )
 
@@ -31,9 +30,9 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         DtypeObj,
+        Self,
         Shape,
     )
-T = TypeVar("T", bound="DataManager")
 
 
 class DataManager(PandasObject):
@@ -75,7 +74,7 @@ class DataManager(PandasObject):
             )
 
     def reindex_indexer(
-        self: T,
+        self,
         new_axis,
         indexer,
         axis: AxisInt,
@@ -83,17 +82,17 @@ class DataManager(PandasObject):
         allow_dups: bool = False,
         copy: bool = True,
         only_slice: bool = False,
-    ) -> T:
+    ) -> Self:
         raise AbstractMethodError(self)
 
     @final
     def reindex_axis(
-        self: T,
+        self,
         new_index: Index,
         axis: AxisInt,
         fill_value=None,
         only_slice: bool = False,
-    ) -> T:
+    ) -> Self:
         """
         Conform data manager to new index.
         """
@@ -108,7 +107,7 @@ class DataManager(PandasObject):
             only_slice=only_slice,
         )
 
-    def _equal_values(self: T, other: T) -> bool:
+    def _equal_values(self, other: Self) -> bool:
         """
         To be implemented by the subclasses. Only check the column values
         assuming shape and indexes have already been checked.
@@ -132,15 +131,15 @@ class DataManager(PandasObject):
         return self._equal_values(other)
 
     def apply(
-        self: T,
+        self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
-    ) -> T:
+    ) -> Self:
         raise AbstractMethodError(self)
 
     @final
-    def isna(self: T, func) -> T:
+    def isna(self, func) -> Self:
         return self.apply("apply", func=func)
 
     # --------------------------------------------------------------------
@@ -149,7 +148,7 @@ class DataManager(PandasObject):
     def is_consolidated(self) -> bool:
         return True
 
-    def consolidate(self: T) -> T:
+    def consolidate(self) -> Self:
         return self
 
     def _consolidate_inplace(self) -> None:
