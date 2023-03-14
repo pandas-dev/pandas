@@ -351,6 +351,15 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        if na_action is not None:
+            with pytest.raises(NotImplementedError, match=""):
+                data.map(lambda x: x, na_action=na_action)
+        else:
+            result = data.map(lambda x: x, na_action=na_action)
+            self.assert_extension_array_equal(result, data)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_str(self, data):

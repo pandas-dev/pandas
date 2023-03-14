@@ -11,9 +11,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
-from pandas._libs import parsers
+from pandas._libs import (
+    lib,
+    parsers,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -83,9 +84,9 @@ class CParserWrapper(ParserBase):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
-        dtype_backend = get_option("mode.dtype_backend")
-        kwds["dtype_backend"] = dtype_backend
-        if dtype_backend == "pyarrow":
+        if "dtype_backend" not in kwds or kwds["dtype_backend"] is lib.no_default:
+            kwds["dtype_backend"] = "numpy"
+        if kwds["dtype_backend"] == "pyarrow":
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
