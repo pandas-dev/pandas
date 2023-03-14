@@ -10408,7 +10408,7 @@ Parrot 2  Parrot       24.0
             else:
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts.values
+                counts = series_counts._values
                 result = self._constructor_sliced(
                     counts, index=frame._get_agg_axis(axis)
                 )
