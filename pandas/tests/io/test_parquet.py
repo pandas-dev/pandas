@@ -1210,3 +1210,14 @@ class TestParquetFastParquet(Base):
 
             result = read_parquet(path, engine=engine)
         tm.assert_frame_equal(result, df)
+
+    def test_invalid_dtype_backend(self, engine):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        df = pd.DataFrame({"int": list(range(1, 4))})
+        with tm.ensure_clean("tmp.parquet") as path:
+            df.to_parquet(path)
+            with pytest.raises(ValueError, match=msg):
+                read_parquet(path, dtype_backend="numpy")

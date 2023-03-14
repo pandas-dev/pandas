@@ -7,6 +7,7 @@ import warnings
 
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -57,6 +58,8 @@ def read_clipboard(
     # supports
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
+
+    check_dtype_backend(dtype_backend)
 
     from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv

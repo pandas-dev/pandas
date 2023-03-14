@@ -10,6 +10,7 @@ from typing import (
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
 from pandas.core.api import DataFrame
@@ -104,6 +105,8 @@ def read_feather(
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
+
+    check_dtype_backend(dtype_backend)
 
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False

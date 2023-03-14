@@ -96,6 +96,7 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
+    check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -6590,8 +6591,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.2.0
         dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
-            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable dtypes are used for all dtypes that have a nullable
+            Which dtype_backend to use, e.g. whether a DataFrame should use nullable
+            dtypes for all dtypes that have a nullable
             implementation when "numpy_nullable" is set, pyarrow is used for all
             dtypes if "pyarrow" is set.
 
@@ -6710,6 +6711,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    <NA>
         dtype: string
         """
+        check_dtype_backend(dtype_backend)
         if self.ndim == 1:
             return self._convert_dtypes(
                 infer_objects,

@@ -467,3 +467,11 @@ y,2,5.0,,,,,False,"""
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
         tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_clipboard(dtype_backend="numpy")
