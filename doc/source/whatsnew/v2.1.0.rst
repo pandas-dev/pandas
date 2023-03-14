@@ -184,7 +184,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 -
 
 Period
