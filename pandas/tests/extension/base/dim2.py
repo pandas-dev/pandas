@@ -37,6 +37,7 @@ class Dim2CompatTests(BaseExtensionTests):
 
     def test_swapaxes(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
+
         result = arr2d.swapaxes(0, 1)
         expected = arr2d.T
         self.assert_extension_array_equal(result, expected)
