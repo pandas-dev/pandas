@@ -118,6 +118,7 @@ Performance improvements
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
+- Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
 
 .. ---------------------------------------------------------------------------
@@ -184,7 +185,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 -
 
 Period
