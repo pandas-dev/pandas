@@ -2,7 +2,6 @@ from copy import (
     copy,
     deepcopy,
 )
-from typing import Self
 
 import numpy as np
 import pytest
@@ -445,7 +444,7 @@ class TestNDFrame:
 
     def test_bool_dep(self) -> None:
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "DataFrame.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )

@@ -1,5 +1,4 @@
 from operator import methodcaller
-from typing import Self
 
 import numpy as np
 import pytest
@@ -43,7 +42,7 @@ class TestSeries:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "Series.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )
@@ -66,7 +65,7 @@ class TestSeries:
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "Series.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )
@@ -80,15 +79,14 @@ class TestSeries:
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "Series.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )
         msg1 = "The truth value of a Series is ambiguous"
         series = Series([data])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pytest.raises(ValueError, match=msg1):
-                bool(series)
+        with pytest.raises(ValueError, match=msg1):
+            bool(series)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with pytest.raises(ValueError, match=msg1):
                 series.bool()
@@ -97,7 +95,7 @@ class TestSeries:
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "Series.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )

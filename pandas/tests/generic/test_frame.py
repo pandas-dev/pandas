@@ -1,6 +1,5 @@
 from copy import deepcopy
 from operator import methodcaller
-from typing import Self
 
 import numpy as np
 import pytest
@@ -49,7 +48,7 @@ class TestDataFrame:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "DataFrame.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning"
         )
