@@ -225,6 +225,7 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         NaPosition,
+        NDFrameT,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
@@ -4997,7 +4998,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
-        other: DataFrame,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -5007,7 +5008,7 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> DataFrame:
+    ) -> tuple[DataFrame, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -7771,9 +7772,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
             left, right = left.align(
-                # error: Argument 1 to "align" of "DataFrame" has incompatible
-                # type "Series"; expected "DataFrame"
-                right,  # type: ignore[arg-type]
+                right,
                 join="outer",
                 axis=axis,
                 level=level,
