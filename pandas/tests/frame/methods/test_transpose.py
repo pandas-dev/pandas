@@ -133,7 +133,7 @@ class TestTranspose:
 
         rtrip = result._mgr.blocks[0].values
         if using_copy_on_write:
-            assert not np.shares_memory(arr._ndarray, rtrip._ndarray)
+            assert np.shares_memory(df._mgr.blocks[0].values._ndarray, rtrip._ndarray)
         else:
             assert np.shares_memory(arr._ndarray, rtrip._ndarray)
 
