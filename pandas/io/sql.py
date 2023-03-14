@@ -45,6 +45,7 @@ from pandas.errors import (
     DatabaseError,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -326,6 +327,7 @@ def read_sql_table(
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
 
@@ -457,6 +459,7 @@ def read_sql_query(
     parameter will be converted to UTC.
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
 
@@ -621,6 +624,7 @@ def read_sql(
     1           1  2010-11-12
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
 

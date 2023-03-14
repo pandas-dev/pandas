@@ -991,7 +991,7 @@ def convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
-    dtype_backend: Controls if nullable dtypes are returned.
+    dtype_backend: Controls if nullable/pyarrow dtypes are returned.
     coerce_float: Cast floats that are integers to int.
 
     Returns

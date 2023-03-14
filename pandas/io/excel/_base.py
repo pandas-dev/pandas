@@ -45,6 +45,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -469,6 +470,8 @@ def read_excel(
     storage_options: StorageOptions = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
+    check_dtype_backend(dtype_backend)
+
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
