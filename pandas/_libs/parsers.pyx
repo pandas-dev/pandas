@@ -372,7 +372,6 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
-        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
         str dtype_backend
@@ -412,8 +411,7 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  use_nullable_dtypes=False,
-                  dtype_backend="pandas"):
+                  dtype_backend="numpy"):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -534,7 +532,6 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
-        self.use_nullable_dtypes = use_nullable_dtypes
         self.dtype_backend = dtype_backend
 
         self.noconvert = set()
@@ -961,7 +958,6 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict results
-            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -1082,12 +1078,12 @@ cdef class TextReader:
             # don't try to upcast EAs
             if (
                 na_count > 0 and not is_extension_array_dtype(col_dtype)
-                or self.use_nullable_dtypes
+                or self.dtype_backend != "numpy"
             ):
-                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
                 col_res = _maybe_upcast(
                     col_res,
-                    use_nullable_dtypes=use_nullable_dtypes,
+                    use_dtype_backend=use_dtype_backend,
                     dtype_backend=self.dtype_backend,
                 )
 
@@ -1422,11 +1418,11 @@ _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
 def _maybe_upcast(
-    arr, use_nullable_dtypes: bool = False, dtype_backend: str = "pandas"
+    arr, use_dtype_backend: bool = False, dtype_backend: str = "numpy"
 ):
     """Sets nullable dtypes or upcasts if nans are present.
 
-    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    Upcast, if use_dtype_backend is false and nans are present so that the
     current dtype can not hold the na value. We use nullable dtypes if the
     flag is true for every array.
 
@@ -1435,7 +1431,7 @@ def _maybe_upcast(
     arr: ndarray
         Numpy array that is potentially being upcast.
 
-    use_nullable_dtypes: bool, default False
+    use_dtype_backend: bool, default False
         If true, we cast to the associated nullable dtypes.
 
     Returns
@@ -1452,7 +1448,7 @@ def _maybe_upcast(
     if issubclass(arr.dtype.type, np.integer):
         mask = arr == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = IntegerArray(arr, mask)
         else:
             arr = arr.astype(float)
@@ -1461,22 +1457,22 @@ def _maybe_upcast(
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = BooleanArray(arr, mask)
         else:
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
 
     elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             mask = np.isnan(arr)
             arr = FloatingArray(arr, mask)
 
     elif arr.dtype == np.object_:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = StringDtype().construct_array_type()._from_sequence(arr)
 
-    if use_nullable_dtypes and dtype_backend == "pyarrow":
+    if use_dtype_backend and dtype_backend == "pyarrow":
         import pyarrow as pa
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow

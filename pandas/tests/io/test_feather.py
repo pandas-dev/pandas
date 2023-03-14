@@ -155,8 +155,7 @@ class TestFeather:
         res = read_feather(url)
         tm.assert_frame_equal(expected, res)
 
-    @pytest.mark.parametrize("option", [True, False])
-    def test_read_json_nullable(self, string_storage, dtype_backend, option):
+    def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
@@ -183,12 +182,7 @@ class TestFeather:
         with tm.ensure_clean() as path:
             to_feather(df, path)
             with pd.option_context("mode.string_storage", string_storage):
-                with pd.option_context("mode.dtype_backend", dtype_backend):
-                    if option:
-                        with pd.option_context("mode.nullable_dtypes", option):
-                            result = read_feather(path)
-                    else:
-                        result = read_feather(path, use_nullable_dtypes=True)
+                result = read_feather(path, dtype_backend=dtype_backend)
 
         expected = pd.DataFrame(
             {
@@ -218,3 +212,14 @@ class TestFeather:
     def test_int_columns_and_index(self):
         df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([3, 4, 5], name="test"))
         self.check_round_trip(df)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        df = pd.DataFrame({"int": list(range(1, 4))})
+        with tm.ensure_clean("tmp.feather") as path:
+            df.to_feather(path)
+            with pytest.raises(ValueError, match=msg):
+                read_feather(path, dtype_backend="numpy")
