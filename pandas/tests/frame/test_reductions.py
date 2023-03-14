@@ -1464,7 +1464,7 @@ class TestDataFrameReductions:
         result = getattr(df, method)(axis=1)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH#?? - avoid perf regression in axis=1 ops")
+    @pytest.mark.xfail(reason="GH#51955 - avoid perf regression in axis=1 ops")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_minmax_tzaware_skipna_axis_1(self, method, skipna):
         # GH#51242
