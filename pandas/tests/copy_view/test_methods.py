@@ -1,3 +1,5 @@
+import inspect
+
 import numpy as np
 import pytest
 
@@ -72,7 +74,7 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
         lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
-        # lambda df, copy: df.swapaxes(0, 0, copy=copy),
+        lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
         lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
@@ -91,6 +93,7 @@ def test_copy_shallow(using_copy_on_write):
         "rename_axis1",
         "astype",
         # "swaplevel",  # only series
+        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -114,7 +117,13 @@ def test_methods_copy_keyword(
         index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
-    df2 = method(df, copy=copy)
+
+    if "swapaxes" in inspect.getsource(method):
+        msg = "'DataFrame.swapaxes' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
+    else:
+        df2 = method(df, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -141,7 +150,7 @@ def test_methods_copy_keyword(
         lambda ser, copy: ser.rename_axis(index="test", copy=copy),
         lambda ser, copy: ser.astype("int64", copy=copy),
         lambda ser, copy: ser.swaplevel(0, 1, copy=copy),
-        # lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
+        lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
         lambda ser, copy: ser.truncate(0, 5, copy=copy),
         lambda ser, copy: ser.infer_objects(copy=copy),
         lambda ser, copy: ser.to_timestamp(copy=copy),
@@ -159,6 +168,7 @@ def test_methods_copy_keyword(
         "rename_axis0",
         "astype",
         "swaplevel",
+        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -182,7 +192,13 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
         index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
     ser = Series([1, 2, 3], index=index)
-    ser2 = method(ser, copy=copy)
+
+    if "swapaxes" in inspect.getsource(method):
+        msg = "'Series.swapaxes' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    else:
+        ser2 = method(ser, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
