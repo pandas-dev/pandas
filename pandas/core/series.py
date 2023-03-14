@@ -58,6 +58,7 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     convert_dtypes,
@@ -896,8 +897,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if arr is values and using_copy_on_write():
-            # TODO(CoW) also properly handle extension dtypes
+        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
