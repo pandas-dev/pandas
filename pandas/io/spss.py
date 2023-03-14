@@ -8,6 +8,7 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.inference import is_list_like
 
@@ -51,6 +52,7 @@ def read_spss(
     DataFrame
     """
     pyreadstat = import_optional_dependency("pyreadstat")
+    check_dtype_backend(dtype_backend)
 
     if usecols is not None:
         if not is_list_like(usecols):

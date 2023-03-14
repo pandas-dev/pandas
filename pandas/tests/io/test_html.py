@@ -1469,3 +1469,11 @@ class TestReadHtml:
         result = self.read_html(data, extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
         tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html("test", dtype_backend="numpy")

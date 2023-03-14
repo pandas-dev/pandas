@@ -16,6 +16,7 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -77,6 +78,8 @@ def read_orc(
     # we require a newer version of pyarrow than we support for parquet
 
     orc = import_optional_dependency("pyarrow.orc")
+
+    check_dtype_backend(dtype_backend)
 
     with get_handle(path, "rb", is_text=False) as handles:
         orc_file = orc.ORCFile(handles.handle)

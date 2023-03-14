@@ -30,6 +30,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -1112,6 +1113,7 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
     """
+    check_dtype_backend(dtype_backend)
 
     return _parse(
         path_or_buffer=path_or_buffer,
