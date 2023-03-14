@@ -1031,8 +1031,8 @@ class Index(IndexOpsMixin, PandasObject):
         result = Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
         if (
             not copy
-            and astype_is_view(self.dtype, dtype)
             and self._references is not None
+            and astype_is_view(self.dtype, dtype)
         ):
             result._references = self._references
             result._references.add_index_reference(result)
