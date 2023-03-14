@@ -1118,7 +1118,7 @@ class StylerRenderer:
         \end{tabular}
 
         Applying ``escape`` in 'latex-math' mode. In the example below
-        we enter math mode using the charackter ``$``.
+        we enter math mode using the character ``$``.
 
         >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
         ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
@@ -1130,7 +1130,7 @@ class StylerRenderer:
         1 & \%\#\textasciicircum \space $ \$x^2 $ \\
         \end{tabular}
 
-        We can use the charackter ``\(`` to enter math mode and the charackter ``\)``
+        We can use the character ``\(`` to enter math mode and the character ``\)``
         to close math mode.
 
         >>> df = pd.DataFrame([[r"\(\sum_{i=1}^{10} a_i\) a~b \(\alpha \
@@ -2359,7 +2359,8 @@ def _escape_latex(s):
         Escaped string
     """
     return (
-        s.replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
+        s.replace("\\ ", "ab2§=§8yz")
+        .replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
         .replace("ab2§=§8yz ", "ab2§=§8yz\\space ")  # since \backslash gobbles spaces
         .replace("&", "\\&")
         .replace("%", "\\%")
@@ -2372,8 +2373,6 @@ def _escape_latex(s):
         .replace("~", "\\textasciitilde ")
         .replace("^ ", "^\\space ")  # since \textasciicircum gobbles spaces
         .replace("^", "\\textasciicircum ")
-        .replace("ab2§=§8yz(", "\\( ")
-        .replace("ab2§=§8yz)", "\\) ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
 
@@ -2385,7 +2384,6 @@ def _escape_latex_math(s):
     The substrings in LaTeX math mode, which either are surrounded
     by two characters ``$`` or start with the character ``\(`` and end with ``\)``,
     are preserved without escaping. Otherwise regular LaTeX escaping applies.
-    See ``_escape_latex()``.
 
     Parameters
     ----------
@@ -2419,15 +2417,33 @@ def _escape_latex_math(s):
         for item in re.split(r"LEFT§=§6yz|ab5§=§RIGHT", s):
             if item.startswith("LEFT") and item.endswith("RIGHT"):
                 res.append(item.replace("LEFT", r"\(").replace("RIGHT", r"\)"))
-            else:
+            elif "LEFT" in item and "RIGHT" in item:
                 res.append(
                     _escape_latex(item).replace("LEFT", r"\(").replace("RIGHT", r"\)")
                 )
+            else:
+                res.append(
+                    _escape_latex(item)
+                    .replace("LEFT", r"\textbackslash (")
+                    .replace("RIGHT", r"\textbackslash )")
+                )
         return "".join(res)
 
-    if s.replace(r"\$", "ab").find(r"$") > -1:
-        return _math_mode_with_dollar(s)
-    elif s.find(r"\(") > -1:
-        return _math_mode_with_parentheses(s)
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    pattern_d = re.compile(r"\$.*?\$")
+    pattern_p = re.compile(r"\\(.*?\\)")
+    pos_d = 0
+    pos_p = 0
+    ps_d = pattern_d.search(s, pos_d)
+    ps_p = pattern_p.search(s, pos_p)
+    mode = []
+    if ps_d:
+        mode.append(ps_d.span()[0])
+    if ps_p:
+        mode.append(ps_p.span()[0])
+    if len(mode) == 0:
+        return _escape_latex(s.replace(r"\$", r"rt8§=§7wz"))
+    if s[min(mode)] == r"$":
+        return _math_mode_with_dollar(s.replace(r"\$", r"rt8§=§7wz"))
     else:
-        return _escape_latex(s)
+        return _math_mode_with_parentheses(s.replace(r"\$", r"rt8§=§7wz"))

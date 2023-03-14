@@ -167,7 +167,7 @@ def test_format_clear(styler, func, attr, kwargs):
             "latex",
             '<>\\&"\\%\\$\\#\\_\\{\\}\\textasciitilde \\textasciicircum '
             "\\textbackslash \\textasciitilde \\space \\textasciicircum \\space "
-            "\\textbackslash \\space ",
+            "\\textbackslash ",
         ),
     ],
 )
@@ -195,19 +195,44 @@ def test_format_escape_html(escape, exp):
 @pytest.mark.parametrize(
     "chars, expected",
     [
-        (r"$\frac{1}{2} \$ x^2$ ", r"$\frac{1}{2} \$ x^2$ "),
-        (r"\(\frac{1}{2} \$ x^2\) ", r"\(\frac{1}{2} \$ x^2\) "),
-        (r"\)", r"\) "),
+        (
+            r"$ \$&%#_{}~^\ $ &%#_{}~^\ $",
+            "".join(
+                [
+                    r"$ \$&%#_{}~^\ $ ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum \textbackslash \$",
+                ]
+            ),
+        ),
+        (
+            r"\( &%#_{}~^\ \) &%#_{}~^\ \(",
+            "".join(
+                [
+                    r"\( &%#_{}~^\ \) ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \textbackslash (",
+                ]
+            ),
+        ),
+        (
+            r"$ \frac{1}{2} $ \( \frac{1}{2} \)",
+            "".join(
+                [
+                    r"$ \frac{1}{2} $",
+                    r" \textbackslash ( \textbackslash frac\{1\}\{2\} \textbackslash )",
+                ]
+            ),
+        ),
     ],
 )
 def test_format_escape_latex_math(chars, expected):
-    df = DataFrame([["".join([chars, "~%#^"])]])
-
+    # GH 51903
+    # latex-math escape works for each DataFrame cell separately.
+    # If we have a combination of dollar signs and brackets,
+    # the sign which occurs first would apply.
+    df = DataFrame([[chars]])
     s = df.style.format("{0}", escape="latex-math")
-    assert (
-        "".join([expected, r"\textasciitilde \%\#\textasciicircum "])
-        == s._translate(True, True)["body"][0][1]["display_value"]
-    )
+    assert s._translate(True, True)["body"][0][1]["display_value"] == expected
 
 
 def test_format_escape_na_rep():
