@@ -1004,7 +1004,10 @@ class DataFrame(NDFrame, OpsMixin):
         arr = blocks[0].values
         if arr.ndim == 1:
             # non-2D ExtensionArray
-            return self.values
+            values = self.values
+            # Handle read_only flag only in public methods
+            values.flags.writeable = True
+            return values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
         arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)

@@ -139,11 +139,7 @@ def test_dataframe_array_ea_dtypes(using_copy_on_write):
     assert arr.flags.writeable is True
 
     arr = np.asarray(df)
-    if using_copy_on_write:
-        # TODO This really should be True
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
+    assert arr.flags.writeable is True
 
 
 def test_dataframe_multiple_numpy_dtypes(using_copy_on_write):
