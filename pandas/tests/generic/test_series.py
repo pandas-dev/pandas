@@ -42,15 +42,15 @@ class TestSeries:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future releases "
-            "and cases that relied on it will raise in a future version"
+            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
+            "and cases that relied on it will raise a future warning"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser = Series([True])
+        ser = Series([True])
+        ser1 = Series([False])
+        while tm.assert_produces_warning(FutureWarning, match=msg):
             assert ser.bool()
 
-            ser = Series([False])
-            assert not ser.bool()
+            assert not ser1.bool()
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
     def test_nonzero_single_element_raise_1(self, data):
@@ -64,12 +64,11 @@ class TestSeries:
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future releases "
-            "and cases that relied on it will raise in a future version"
+            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
+            "and cases that relied on it will raise a future warning"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            series = Series([data])
-
+        series = Series([data])
+        while tm.assert_produces_warning(FutureWarning, match=msg):
             msg = "bool cannot act on a non-boolean single element Series"
             with pytest.raises(ValueError, match=msg):
                 series.bool()
@@ -78,12 +77,11 @@ class TestSeries:
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future releases "
-            "and cases that relied on it will raise in a future version"
+            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
+            "and cases that relied on it will raise a future warning"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            series = Series([data])
-
+        series = Series([data])
+        while tm.assert_produces_warning(FutureWarning, match=msg):
             msg = "The truth value of a Series is ambiguous"
             with pytest.raises(ValueError, match=msg):
                 bool(series)
@@ -94,8 +92,8 @@ class TestSeries:
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future releases "
-            "and cases that relied on it will raise in a future version"
+            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
+            "and cases that relied on it will raise a future warning"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             series = Series([data])

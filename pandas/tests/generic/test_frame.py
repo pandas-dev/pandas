@@ -48,15 +48,15 @@ class TestDataFrame:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future releases "
-            "and cases that relied on it will raise in a future version"
+            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
+            "and cases that relied on it will raise a future warning"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df = DataFrame([[True]])
+        df = DataFrame([[True]])
+        df1 = DataFrame([[False]])
+        while tm.assert_produces_warning(FutureWarning, match=msg):
             assert df.bool()
 
-            df = DataFrame([[False]])
-            assert not df.bool()
+            assert not df1.bool()
 
             df = DataFrame([[False, False]])
             msg = "The truth value of a DataFrame is ambiguous"
