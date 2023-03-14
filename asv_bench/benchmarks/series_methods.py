@@ -200,7 +200,8 @@ class ValueCounts:
     def setup(self, N, dtype):
         ser = Series(np.random.randint(0, N, size=10 * N))
         if dtype == "string":
-            self.s = ser.astype(object).apply(str)
+            # self.s = ser.astype(object).apply(str)
+            self.s = tm.makeStringIndex(N)
         else:
             self.s = ser.astype(dtype)
 
