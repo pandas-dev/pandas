@@ -1498,6 +1498,13 @@ class TestDataFrameReplace:
         result = df.replace({val: None})
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_with_nil_na(self):
+        # GH 32075
+        ser = DataFrame({"a": ["nil", pd.NA]})
+        expected = DataFrame({"a": ["anything else", pd.NA]}, index=[0, 1])
+        result = ser.replace("nil", "anything else")
+        tm.assert_frame_equal(expected, result)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
