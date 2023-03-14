@@ -12,11 +12,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -35,7 +30,12 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+        type_t,
+    )
 
 
 @register_extension_dtype

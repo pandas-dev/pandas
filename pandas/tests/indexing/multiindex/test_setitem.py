@@ -281,7 +281,7 @@ class TestMultiIndexSetItem:
     def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         df = frame.T.copy()
-        values = df.values
+        values = df.values.copy()
 
         result = df[df > 0]
         expected = df.where(df > 0)
@@ -488,9 +488,10 @@ def test_frame_setitem_view_direct(
     # this works because we are modifying the underlying array
     # really a no-no
     df = multiindex_dataframe_random_data.T
-    df["foo"].values[:] = 0
     if using_copy_on_write:
-        assert not (df["foo"].values == 0).all()
+        with pytest.raises(ValueError, match="read-only"):
+            df["foo"].values[:] = 0
+        assert (df["foo"].values != 0).all()
     else:
         assert (df["foo"].values == 0).all()
 

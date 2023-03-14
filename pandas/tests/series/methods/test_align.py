@@ -118,14 +118,18 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
         assert (b[:2] == 5).all()
 
 
-def test_align_same_index(datetime_series):
+def test_align_same_index(datetime_series, using_copy_on_write):
     a, b = datetime_series.align(datetime_series, copy=False)
     assert a.index is datetime_series.index
     assert b.index is datetime_series.index
 
     a, b = datetime_series.align(datetime_series, copy=True)
-    assert a.index is not datetime_series.index
-    assert b.index is not datetime_series.index
+    if not using_copy_on_write:
+        assert a.index is not datetime_series.index
+        assert b.index is not datetime_series.index
+    else:
+        assert a.index is datetime_series.index
+        assert b.index is datetime_series.index
 
 
 def test_align_multiindex():

@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
-    TypeVar,
     cast,
     final,
 )
@@ -78,14 +77,13 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
+        Self,
     )
 
     from pandas import (
         DataFrame,
         Series,
     )
-
-_LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 
 # "null slice"
 _NS = slice(None, None)
@@ -669,9 +667,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _takeable: bool
 
     @final
-    def __call__(
-        self: _LocationIndexerT, axis: Axis | None = None
-    ) -> _LocationIndexerT:
+    def __call__(self, axis: Axis | None = None) -> Self:
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
 
@@ -1615,7 +1611,7 @@ class _iLocIndexer(_LocationIndexer):
         try:
             return self.obj._take_with_is_copy(key, axis=axis)
         except IndexError as err:
-            # re-raise with different error message
+            # re-raise with different error message, e.g. test_getitem_ndarray_3d
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: AxisInt):

@@ -253,6 +253,7 @@ if not pa_version_under7p0:
 else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
+    ALL_PYARROW_DTYPES = []
 
 
 EMPTY_STRING_PATTERN = re.compile("^$")
@@ -1027,8 +1028,8 @@ def shares_memory(left, right) -> bool:
         left = cast("ArrowExtensionArray", left)
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
             right = cast("ArrowExtensionArray", right)
-            left_pa_data = left._data
-            right_pa_data = right._data
+            left_pa_data = left._pa_array
+            right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1

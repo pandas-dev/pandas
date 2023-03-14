@@ -25,18 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
@@ -109,6 +97,19 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -1198,7 +1199,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
         """
         Map categories using an input mapping or function.
 
@@ -1267,6 +1268,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
+        if na_action is not None:
+            raise NotImplementedError
+
         new_categories = self.categories.map(mapper)
         try:
             return self.from_codes(
@@ -1349,7 +1353,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
