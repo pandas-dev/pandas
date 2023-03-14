@@ -72,7 +72,7 @@ def test_copy_shallow(using_copy_on_write):
         lambda df, copy: df.rename_axis(columns="test", copy=copy),
         lambda df, copy: df.astype({"b": "int64"}, copy=copy),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
-        lambda df, copy: df.swapaxes(0, 0, copy=copy),
+        # lambda df, copy: df.swapaxes(0, 0, copy=copy),
         lambda df, copy: df.truncate(0, 5, copy=copy),
         lambda df, copy: df.infer_objects(copy=copy),
         lambda df, copy: df.to_timestamp(copy=copy),
@@ -91,7 +91,6 @@ def test_copy_shallow(using_copy_on_write):
         "rename_axis1",
         "astype",
         # "swaplevel",  # only series
-        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -142,7 +141,7 @@ def test_methods_copy_keyword(
         lambda ser, copy: ser.rename_axis(index="test", copy=copy),
         lambda ser, copy: ser.astype("int64", copy=copy),
         lambda ser, copy: ser.swaplevel(0, 1, copy=copy),
-        lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
+        # lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
         lambda ser, copy: ser.truncate(0, 5, copy=copy),
         lambda ser, copy: ser.infer_objects(copy=copy),
         lambda ser, copy: ser.to_timestamp(copy=copy),
@@ -160,7 +159,6 @@ def test_methods_copy_keyword(
         "rename_axis0",
         "astype",
         "swaplevel",
-        "swapaxes",
         "truncate",
         "infer_objects",
         "to_timestamp",
@@ -610,7 +608,9 @@ def test_to_frame(using_copy_on_write):
 def test_swapaxes_noop(using_copy_on_write, ax):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
-    df2 = df.swapaxes(ax, ax)
+    msg = "'DataFrame.swapaxes' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.swapaxes(ax, ax)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -627,7 +627,9 @@ def test_swapaxes_noop(using_copy_on_write, ax):
 def test_swapaxes_single_block(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=["x", "y", "z"])
     df_orig = df.copy()
-    df2 = df.swapaxes("index", "columns")
+    msg = "'DataFrame.swapaxes' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.swapaxes("index", "columns")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
