@@ -73,8 +73,8 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         IndexLabel,
+        Self,
     )
-
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -331,6 +331,7 @@ def read_sql_table(
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
@@ -463,6 +464,7 @@ def read_sql_query(
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
@@ -628,6 +630,7 @@ def read_sql(
     check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         if isinstance(pandas_sql, SQLiteDatabase):
@@ -638,7 +641,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
-                dtype_backend=dtype_backend,  # type: ignore[arg-type]
+                dtype_backend=dtype_backend,
                 dtype=dtype,
             )
 
@@ -1345,7 +1348,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:
