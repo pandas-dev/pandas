@@ -4,6 +4,8 @@ import pytest
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_categorical_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,6 +14,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
@@ -211,7 +214,8 @@ class TestMultiIndexBasic:
         # GH51261
         columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
         df = DataFrame(["value"], columns=columns).astype("category")
-        assert (df["A"].dtypes == "category").all()
+        df_no_multiindex = df["A"]
+        assert is_categorical_dtype(df_no_multiindex["B"])
 
         # geopandas 1763 analogue
         df = DataFrame(
@@ -222,4 +226,4 @@ class TestMultiIndexBasic:
                 ["x", "y"],
             ],
         ).assign(bools=Series([True, False], dtype="boolean"))
-        assert df["bools"].dtype == "boolean"
+        assert isinstance(df["bools"].dtype, BooleanDtype)
