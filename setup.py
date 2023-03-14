@@ -444,6 +444,7 @@ ext_data = {
         "pyxfile": "_libs/algos",
         "include": klib_include,
         "depends": _pxi_dep["algos"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
     "_libs.groupby": {"pyxfile": "_libs/groupby"},
@@ -456,11 +457,13 @@ ext_data = {
             + _pxi_dep["hashtable"]
             + tseries_depends
         ),
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
         "include": klib_include,
         "depends": _pxi_dep["index"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
@@ -468,8 +471,13 @@ ext_data = {
         "pyxfile": "_libs/interval",
         "include": klib_include,
         "depends": _pxi_dep["interval"] + tseries_depends,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
+    "_libs.join": {
+        "pyxfile": "_libs/join",
+        "include": klib_include,
+        "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
+    },
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,

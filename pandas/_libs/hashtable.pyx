@@ -34,9 +34,6 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 from pandas._libs.missing cimport checknull
-from pandas._libs.tslibs.np_datetime cimport import_pandas_datetime
-
-import_pandas_datetime()
 
 
 def get_hashtable_trace_domain():

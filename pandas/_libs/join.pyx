@@ -18,9 +18,6 @@ from pandas._libs.dtypes cimport (
     numeric_object_t,
     numeric_t,
 )
-from pandas._libs.tslibs.np_datetime cimport import_pandas_datetime
-
-import_pandas_datetime()
 
 
 @cython.wraparound(False)
