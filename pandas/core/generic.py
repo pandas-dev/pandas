@@ -103,11 +103,11 @@ from pandas.util._validators import (
     validate_inclusive,
 )
 
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
     ensure_str,
+    is_1d_only_ea_dtype,
     is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
@@ -1996,9 +1996,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
-            arr = arr.view()
-            arr.flags.writeable = False
+        if arr is values and using_copy_on_write() and self._mgr.is_single_block:
+            # Check if self._values coerced data
+            if not is_1d_only_ea_dtype(self.dtypes.iloc[0]):
+                arr = arr.view()
+                arr.flags.writeable = False
         return arr
 
     @final

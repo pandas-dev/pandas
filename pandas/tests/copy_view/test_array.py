@@ -110,3 +110,44 @@ def test_series_to_numpy(using_copy_on_write):
     arr = ser.to_numpy(dtype="float64")
     assert not np.shares_memory(arr, get_array(ser, "name"))
     assert arr.flags.writeable is True
+
+
+def test_series_array_ea_dtypes(using_copy_on_write):
+    ser = Series([1, 2, 3], dtype="Int64")
+    arr = np.asarray(ser, dtype="int64")
+    assert np.shares_memory(arr, get_array(ser))
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+    arr = np.asarray(ser)
+    assert not np.shares_memory(arr, get_array(ser))
+    if using_copy_on_write:
+        # TODO(CoW): This should be True
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_dataframe_array_ea_dtypes(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    arr = np.asarray(df, dtype="int64")
+    # TODO: This should be able to share memory, but we are roundtripping
+    # through object
+    assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
+
+    arr = np.asarray(df)
+    if using_copy_on_write:
+        # TODO This really should be True
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_dataframe_multiple_numpy_dtypes(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    arr = np.asarray(df)
+    assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
