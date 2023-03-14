@@ -105,7 +105,7 @@ class TestSeries:
         msg2 = "bool cannot act on a non-boolean single element Series"
         series = Series([data])
         with pytest.raises(ValueError, match=msg1):
-                bool(series)
+            bool(series)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with pytest.raises(ValueError, match=msg2):
                 series.bool()
