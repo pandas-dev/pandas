@@ -1,4 +1,5 @@
 from operator import methodcaller
+from typing import Self
 
 import numpy as np
 import pytest
@@ -42,14 +43,15 @@ class TestSeries:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning"
+            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning"
         )
         ser = Series([True])
         ser1 = Series([False])
-        while tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert ser.bool()
-
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert not ser1.bool()
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
@@ -64,46 +66,48 @@ class TestSeries:
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning"
+            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning"
         )
+        msg1 = "bool cannot act on a non-boolean single element Series"
         series = Series([data])
-        while tm.assert_produces_warning(FutureWarning, match=msg):
-            msg = "bool cannot act on a non-boolean single element Series"
-            with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg1):
                 series.bool()
 
     @pytest.mark.parametrize("data", [(True, True), (False, False)])
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning"
+            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning"
         )
+        msg1 = "The truth value of a Series is ambiguous"
         series = Series([data])
-        while tm.assert_produces_warning(FutureWarning, match=msg):
-            msg = "The truth value of a Series is ambiguous"
-            with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg1):
                 bool(series)
-            with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg1):
                 series.bool()
 
     @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning"
+            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            series = Series([data])
-
-            msg = "The truth value of a Series is ambiguous"
-            with pytest.raises(ValueError, match=msg):
+        msg1 = "The truth value of a Series is ambiguous"
+        msg2 = "bool cannot act on a non-boolean single element Series"
+        series = Series([data])
+        with pytest.raises(ValueError, match=msg1):
                 bool(series)
-
-            msg = "bool cannot act on a non-boolean single element Series"
-            with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg2):
                 series.bool()
 
     def test_metadata_propagation_indiv_resample(self):

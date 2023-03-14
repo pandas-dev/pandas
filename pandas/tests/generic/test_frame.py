@@ -1,5 +1,6 @@
 from copy import deepcopy
 from operator import methodcaller
+from typing import Self
 
 import numpy as np
 import pytest
@@ -48,22 +49,26 @@ class TestDataFrame:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version "
-            "of pandas and cases that relied on it will raise a future warning"
+            f"{type(Self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas and cases that relied on it will raise "
+            "a future warning"
         )
         df = DataFrame([[True]])
         df1 = DataFrame([[False]])
         while tm.assert_produces_warning(FutureWarning, match=msg):
             assert df.bool()
 
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert not df1.bool()
 
-            df = DataFrame([[False, False]])
-            msg = "The truth value of a DataFrame is ambiguous"
+        df = DataFrame([[False, False]])
+        msg = "The truth value of a DataFrame is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(df)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             with pytest.raises(ValueError, match=msg):
                 df.bool()
-            with pytest.raises(ValueError, match=msg):
-                bool(df)
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby
