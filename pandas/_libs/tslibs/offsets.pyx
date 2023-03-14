@@ -3718,6 +3718,8 @@ cdef class CustomBusinessDay(BusinessDay):
         passed to ``numpy.busdaycalendar``.
     calendar : np.busdaycalendar
         Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
@@ -3749,6 +3751,16 @@ cdef class CustomBusinessDay(BusinessDay):
     DatetimeIndex(['2022-12-13', '2022-12-15', '2022-12-16', '2022-12-19',
                    '2022-12-20', '2022-12-21', '2022-12-22', '2022-12-23'],
                    dtype='datetime64[ns]', freq='C')
+
+    If you want to shift the result on n day you can use the parameter ``offset``.
+
+    >>> pd.Timestamp(2022, 8, 5, 16) + pd.offsets.CustomBusinessDay(1)
+    Timestamp('2022-08-08 16:00:00')
+
+    >>> import datetime as dt
+    >>> ts = pd.Timestamp(2022, 8, 5, 16)
+    >>> ts + pd.offsets.CustomBusinessDay(1, offset=dt.timedelta(days=1))
+    Timestamp('2022-08-09 16:00:00')
     """
 
     _prefix = "C"
