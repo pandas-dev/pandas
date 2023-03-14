@@ -1676,6 +1676,14 @@ def test_transpose_ea_single_column(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_count_read_only_array():
+    df = DataFrame({"a": [1, 2], "b": 3})
+    result = df.count()
+    result.iloc[0] = 100
+    expected = Series([100, 2], index=["a", "b"])
+    tm.assert_series_equal(result, expected)
+
+
 def test_series_view(using_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
