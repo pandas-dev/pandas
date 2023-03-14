@@ -82,7 +82,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
             @staticmethod
             def from_uri(path):
                 print("Using pyarrow filesystem")
-                to_local = pathlib.Path(path.replace("gs://", "")).resolve().as_uri()
+                to_local = pathlib.Path(path.replace("gs://", "")).absolute().as_uri()
                 return pa_fs.LocalFileSystem(to_local)
 
         with monkeypatch.context() as m:
