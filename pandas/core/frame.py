@@ -8012,116 +8012,118 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(
         _shared_docs["compare"],
+        dedent(
+            """
+        Returns
+        -------
+        DataFrame
+            DataFrame that shows the differences stacked side by side.
+
+            The resulting index will be a MultiIndex with 'self' and 'other'
+            stacked alternately at the inner level.
+
+        Raises
+        ------
+        ValueError
+            When the two DataFrames don't have identical labels or shape.
+
+        See Also
+        --------
+        Series.compare : Compare with another Series and show differences.
+        DataFrame.equals : Test whether two objects contain the same elements.
+
+        Notes
+        -----
+        Matching NaNs will not appear as a difference.
+
+        Can only compare identically-labeled
+        (i.e. same shape, identical row and column labels) DataFrames
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {{
+        ...         "col1": ["a", "a", "b", "b", "a"],
+        ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+        ...     }},
+        ...     columns=["col1", "col2", "col3"],
+        ... )
+        >>> df
+          col1  col2  col3
+        0    a   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   3.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        >>> df2 = df.copy()
+        >>> df2.loc[0, 'col1'] = 'c'
+        >>> df2.loc[2, 'col3'] = 4.0
+        >>> df2
+          col1  col2  col3
+        0    c   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   4.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        Align the differences on columns
+
+        >>> df.compare(df2)
+          col1       col3
+          self other self other
+        0    a     c  NaN   NaN
+        2  NaN   NaN  3.0   4.0
+
+        Assign result_names
+
+        >>> df.compare(df2, result_names=("left", "right"))
+          col1       col3
+          left right left right
+        0    a     c  NaN   NaN
+        2  NaN   NaN  3.0   4.0
+
+        Stack the differences on rows
+
+        >>> df.compare(df2, align_axis=0)
+                col1  col3
+        0 self     a   NaN
+          other    c   NaN
+        2 self   NaN   3.0
+          other  NaN   4.0
+
+        Keep the equal values
+
+        >>> df.compare(df2, keep_equal=True)
+          col1       col3
+          self other self other
+        0    a     c  1.0   1.0
+        2    b     b  3.0   4.0
+
+        Keep all original rows and columns
+
+        >>> df.compare(df2, keep_shape=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  NaN   NaN  NaN   NaN
+        1  NaN   NaN  NaN   NaN  NaN   NaN
+        2  NaN   NaN  NaN   NaN  3.0   4.0
+        3  NaN   NaN  NaN   NaN  NaN   NaN
+        4  NaN   NaN  NaN   NaN  NaN   NaN
+
+        Keep all original rows and columns and also all original values
+
+        >>> df.compare(df2, keep_shape=True, keep_equal=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  1.0   1.0  1.0   1.0
+        1    a     a  2.0   2.0  2.0   2.0
+        2    b     b  3.0   3.0  3.0   4.0
+        3    b     b  NaN   NaN  4.0   4.0
+        4    a     a  5.0   5.0  5.0   5.0
         """
-Returns
--------
-DataFrame
-    DataFrame that shows the differences stacked side by side.
-
-    The resulting index will be a MultiIndex with 'self' and 'other'
-    stacked alternately at the inner level.
-
-Raises
-------
-ValueError
-    When the two DataFrames don't have identical labels or shape.
-
-See Also
---------
-Series.compare : Compare with another Series and show differences.
-DataFrame.equals : Test whether two objects contain the same elements.
-
-Notes
------
-Matching NaNs will not appear as a difference.
-
-Can only compare identically-labeled
-(i.e. same shape, identical row and column labels) DataFrames
-
-Examples
---------
->>> df = pd.DataFrame(
-...     {{
-...         "col1": ["a", "a", "b", "b", "a"],
-...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
-...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     }},
-...     columns=["col1", "col2", "col3"],
-... )
->>> df
-  col1  col2  col3
-0    a   1.0   1.0
-1    a   2.0   2.0
-2    b   3.0   3.0
-3    b   NaN   4.0
-4    a   5.0   5.0
-
->>> df2 = df.copy()
->>> df2.loc[0, 'col1'] = 'c'
->>> df2.loc[2, 'col3'] = 4.0
->>> df2
-  col1  col2  col3
-0    c   1.0   1.0
-1    a   2.0   2.0
-2    b   3.0   4.0
-3    b   NaN   4.0
-4    a   5.0   5.0
-
-Align the differences on columns
-
->>> df.compare(df2)
-  col1       col3
-  self other self other
-0    a     c  NaN   NaN
-2  NaN   NaN  3.0   4.0
-
-Assign result_names
-
->>> df.compare(df2, result_names=("left", "right"))
-  col1       col3
-  left right left right
-0    a     c  NaN   NaN
-2  NaN   NaN  3.0   4.0
-
-Stack the differences on rows
-
->>> df.compare(df2, align_axis=0)
-        col1  col3
-0 self     a   NaN
-  other    c   NaN
-2 self   NaN   3.0
-  other  NaN   4.0
-
-Keep the equal values
-
->>> df.compare(df2, keep_equal=True)
-  col1       col3
-  self other self other
-0    a     c  1.0   1.0
-2    b     b  3.0   4.0
-
-Keep all original rows and columns
-
->>> df.compare(df2, keep_shape=True)
-  col1       col2       col3
-  self other self other self other
-0    a     c  NaN   NaN  NaN   NaN
-1  NaN   NaN  NaN   NaN  NaN   NaN
-2  NaN   NaN  NaN   NaN  3.0   4.0
-3  NaN   NaN  NaN   NaN  NaN   NaN
-4  NaN   NaN  NaN   NaN  NaN   NaN
-
-Keep all original rows and columns and also all original values
-
->>> df.compare(df2, keep_shape=True, keep_equal=True)
-  col1       col2       col3
-  self other self other self other
-0    a     c  1.0   1.0  1.0   1.0
-1    a     a  2.0   2.0  2.0   2.0
-2    b     b  3.0   3.0  3.0   4.0
-3    b     b  NaN   NaN  4.0   4.0
-4    a     a  5.0   5.0  5.0   5.0
-""",
+        ),
         klass=_shared_doc_kwargs["klass"],
     )
     def compare(
@@ -8550,108 +8552,110 @@ Keep all original rows and columns and also all original values
     # ----------------------------------------------------------------------
     # Data reshaping
     @Appender(
-        """
-Examples
---------
->>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-...                               'Parrot', 'Parrot'],
-...                    'Max Speed': [380., 370., 24., 26.]})
->>> df
-   Animal  Max Speed
-0  Falcon      380.0
-1  Falcon      370.0
-2  Parrot       24.0
-3  Parrot       26.0
->>> df.groupby(['Animal']).mean()
-        Max Speed
-Animal
-Falcon      375.0
-Parrot       25.0
-
-**Hierarchical Indexes**
-
-We can groupby different levels of a hierarchical index
-using the `level` parameter:
-
->>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-...           ['Captive', 'Wild', 'Captive', 'Wild']]
->>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
->>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-...                   index=index)
->>> df
+        dedent(
+            """
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+        ...                               'Parrot', 'Parrot'],
+        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        >>> df.groupby(['Animal']).mean()
                 Max Speed
-Animal Type
-Falcon Captive      390.0
-       Wild         350.0
-Parrot Captive       30.0
-       Wild          20.0
->>> df.groupby(level=0).mean()
-        Max Speed
-Animal
-Falcon      370.0
-Parrot       25.0
->>> df.groupby(level="Type").mean()
-         Max Speed
-Type
-Captive      210.0
-Wild         185.0
+        Animal
+        Falcon      375.0
+        Parrot       25.0
 
-We can also choose to include NA in group keys or not by setting
-`dropna` parameter, the default setting is `True`.
+        **Hierarchical Indexes**
 
->>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
->>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        We can groupby different levels of a hierarchical index
+        using the `level` parameter:
 
->>> df.groupby(by=["b"]).sum()
-    a   c
-b
-1.0 2   3
-2.0 2   5
+        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+        ...                   index=index)
+        >>> df
+                        Max Speed
+        Animal Type
+        Falcon Captive      390.0
+               Wild         350.0
+        Parrot Captive       30.0
+               Wild          20.0
+        >>> df.groupby(level=0).mean()
+                Max Speed
+        Animal
+        Falcon      370.0
+        Parrot       25.0
+        >>> df.groupby(level="Type").mean()
+                 Max Speed
+        Type
+        Captive      210.0
+        Wild         185.0
 
->>> df.groupby(by=["b"], dropna=False).sum()
-    a   c
-b
-1.0 2   3
-2.0 2   5
-NaN 1   4
+        We can also choose to include NA in group keys or not by setting
+        `dropna` parameter, the default setting is `True`.
 
->>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
->>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
 
->>> df.groupby(by="a").sum()
-    b     c
-a
-a   13.0   13.0
-b   12.3  123.0
+        >>> df.groupby(by=["b"]).sum()
+            a   c
+        b
+        1.0 2   3
+        2.0 2   5
 
->>> df.groupby(by="a", dropna=False).sum()
-    b     c
-a
-a   13.0   13.0
-b   12.3  123.0
-NaN 12.3   33.0
+        >>> df.groupby(by=["b"], dropna=False).sum()
+            a   c
+        b
+        1.0 2   3
+        2.0 2   5
+        NaN 1   4
 
-When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
-The ``group_keys`` argument defaults to ``True`` (include).
+        >>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
 
->>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-...                               'Parrot', 'Parrot'],
-...                    'Max Speed': [380., 370., 24., 26.]})
->>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-          Animal  Max Speed
-Animal
-Falcon 0  Falcon      380.0
-       1  Falcon      370.0
-Parrot 2  Parrot       24.0
-       3  Parrot       26.0
+        >>> df.groupby(by="a").sum()
+            b     c
+        a
+        a   13.0   13.0
+        b   12.3  123.0
 
->>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-   Animal  Max Speed
-0  Falcon      380.0
-1  Falcon      370.0
-2  Parrot       24.0
-3  Parrot       26.0
-"""
+        >>> df.groupby(by="a", dropna=False).sum()
+            b     c
+        a
+        a   13.0   13.0
+        b   12.3  123.0
+        NaN 12.3   33.0
+
+        When using ``.apply()``, use ``group_keys`` to include or exclude the
+        group keys. The ``group_keys`` argument defaults to ``True`` (include).
+
+        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+        ...                               'Parrot', 'Parrot'],
+        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
+                  Animal  Max Speed
+        Animal
+        Falcon 0  Falcon      380.0
+               1  Falcon      370.0
+        Parrot 2  Parrot       24.0
+               3  Parrot       26.0
+
+        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        """
+        )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
@@ -10162,26 +10166,6 @@ Parrot 2  Parrot       24.0
         4  K0  A4   B0
         5  K1  A5   B1
         """
-        return self._join_compat(
-            other,
-            on=on,
-            how=how,
-            lsuffix=lsuffix,
-            rsuffix=rsuffix,
-            sort=sort,
-            validate=validate,
-        )
-
-    def _join_compat(
-        self,
-        other: DataFrame | Series | Iterable[DataFrame | Series],
-        on: IndexLabel | None = None,
-        how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
-        sort: bool = False,
-        validate: str | None = None,
-    ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
 
