@@ -124,3 +124,13 @@ class TestConvertDtypes:
         expected = pd.DataFrame(columns=[0])
         result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_frame_equal(result, expected)
+
+    def test_pyarrow_engine_lines_false(self):
+        # GH 48893
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.convert_dtypes(dtype_backend="numpy")
