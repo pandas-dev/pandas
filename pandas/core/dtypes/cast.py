@@ -19,8 +19,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 from pandas._libs.missing import (
     NA,
@@ -1616,19 +1614,11 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                     "NumPy will stop allowing conversion of out-of-bound Python int",
                     DeprecationWarning,
                 )
-                if using_copy_on_write():
-                    # switch to same memory layout as with blk.copy()
-                    casted = np.array(arr, dtype=dtype, copy=False, order="F")
-                else:
-                    casted = np.array(arr, dtype=dtype, copy=False)
+                casted = np.array(arr, dtype=dtype, copy=False)
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
-                if using_copy_on_write():
-                    # switch to same memory layout as with blk.copy()
-                    casted = arr.astype(dtype, copy=False, order="F")
-                else:
-                    casted = arr.astype(dtype, copy=False)
+                casted = arr.astype(dtype, copy=False)
     except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "

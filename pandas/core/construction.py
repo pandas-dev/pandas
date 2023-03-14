@@ -18,8 +18,6 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
@@ -764,10 +762,6 @@ def _try_cast(
 
         subarr = maybe_cast_to_integer_array(arr, dtype)
     else:
-        if using_copy_on_write():
-            # switch to same memory layout as with blk.copy()
-            subarr = np.array(arr, dtype=dtype, copy=copy, order="F")
-        else:
-            subarr = np.array(arr, dtype=dtype, copy=copy)
+        subarr = np.array(arr, dtype=dtype, copy=copy)
 
     return subarr

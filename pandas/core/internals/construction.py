@@ -299,8 +299,7 @@ def ndarray_to_mgr(
         and (dtype is None or is_dtype_equal(values.dtype, dtype))
         and copy_on_sanitize
     ):
-        # switch to same memory layout as with blk.copy()
-        values = np.array(values, order="F", copy=copy_on_sanitize)
+        values = np.array(values, copy=copy_on_sanitize)
         values = _ensure_2d(values)
 
     elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
