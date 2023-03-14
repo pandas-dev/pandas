@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
+from pandas.core.indexes.api import default_index
 
 from pandas.io.common import (
     get_handle,
@@ -189,6 +190,21 @@ def to_orc(
         index = df.index.names[0] is not None
     if engine_kwargs is None:
         engine_kwargs = {}
+
+    # validate index
+    # --------------
+
+    # validate that we have only a default index
+    # raise on anything else as we don't serialize the index
+
+    if not df.index.equals(default_index(len(df))):
+        raise ValueError(
+            "orc does not support serializing a non-default index for the index; "
+            "you can .reset_index() to make the index into column(s)"
+        )
+
+    if df.index.name is not None:
+        raise ValueError("orc does not serialize index meta-data on a default index")
 
     # If unsupported dtypes are found raise NotImplementedError
     # In Pyarrow 8.0.0 this check will no longer be needed
