@@ -202,6 +202,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
+        assert freq is None or isinstance(freq, Tick)
 
         result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
