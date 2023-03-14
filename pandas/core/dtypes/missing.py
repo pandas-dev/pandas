@@ -327,7 +327,29 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
 def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
-        result[i] = libmissing.isnaobj(np.array(record), inf_as_na=inf_as_na)
+        does_record_contain_nan = np.zeros(len(record), dtype=bool)
+        if inf_as_na:
+            does_record_contain_inf = np.zeros(len(record), dtype=bool)
+        for j, element in enumerate(record):
+            if element != element:
+                does_record_contain_nan[j] = True
+            else:
+                does_record_contain_nan[j] = False
+            if inf_as_na:
+                try:
+                    if np.isinf(element):
+                        does_record_contain_inf[j] = True
+                    else:
+                        does_record_contain_inf[j] = False
+                except TypeError:
+                    does_record_contain_inf[j] = False
+
+        if inf_as_na:
+            result[i] = np.any(
+                np.logical_or(does_record_contain_nan, does_record_contain_inf)
+            )
+        else:
+            result[i] = np.any(does_record_contain_nan)
 
     return result
 
