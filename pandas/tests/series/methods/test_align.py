@@ -182,7 +182,8 @@ def test_align_with_dataframe_method(method):
         "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
         "are deprecated"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    warn = None if method is None else FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
         result_ser, result_df = ser.align(df, method=method)
     tm.assert_series_equal(result_ser, ser)
     tm.assert_frame_equal(result_df, df)
