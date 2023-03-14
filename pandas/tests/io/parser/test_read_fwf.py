@@ -959,7 +959,7 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes(string_storage, dtype_backend):
+def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
@@ -973,8 +973,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
-        with pd.option_context("mode.dtype_backend", dtype_backend):
-            result = read_fwf(StringIO(data), use_nullable_dtypes=True)
+        result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {
@@ -1001,17 +1000,4 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
         )
         expected["i"] = ArrowExtensionArray(pa.array([None, None]))
 
-    tm.assert_frame_equal(result, expected)
-
-
-def test_use_nullable_dtypes_option():
-    # GH#50748
-
-    data = """a
-1
-3"""
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_fwf(StringIO(data))
-
-    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)

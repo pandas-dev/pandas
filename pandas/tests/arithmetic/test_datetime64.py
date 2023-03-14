@@ -34,7 +34,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.ops import roperator
+from pandas.core import roperator
 from pandas.tests.arithmetic.common import (
     assert_cannot_add,
     assert_invalid_addsub_type,
@@ -1550,9 +1550,8 @@ class TestDatetime64DateOffsetArithmetic:
         ],
     )
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
-    @pytest.mark.parametrize("box_other", [True, False])
     def test_dt64arr_add_sub_offset_array(
-        self, tz_naive_fixture, box_with_array, box_other, op, other
+        self, tz_naive_fixture, box_with_array, op, other
     ):
         # GH#18849
         # GH#10699 array of offsets
@@ -1561,19 +1560,20 @@ class TestDatetime64DateOffsetArithmetic:
         dti = date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
 
-        other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
-        if box_other:
-            other = tm.box_expected(other, box_with_array)
-            if box_with_array is pd.array and op is roperator.radd:
-                # We expect a PandasArray, not ndarray[object] here
-                expected = pd.array(expected, dtype=object)
-
         with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)
+        tm.assert_equal(res, expected)
 
+        # Same thing but boxing other
+        other = tm.box_expected(other, box_with_array)
+        if box_with_array is pd.array and op is roperator.radd:
+            # We expect a PandasArray, not ndarray[object] here
+            expected = pd.array(expected, dtype=object)
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = op(dtarr, other)
         tm.assert_equal(res, expected)
 
     @pytest.mark.parametrize(

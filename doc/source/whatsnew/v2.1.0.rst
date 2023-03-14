@@ -28,8 +28,11 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
+- :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
+- :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -84,7 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- :class:`~arrays.ArrowExtensionArray` comparison methods now return data with :class:`ArrowDtype` with ``pyarrow.bool_`` type instead of ``"boolean"`` dtype (:issue:`51643`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -92,6 +95,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
@@ -108,8 +112,13 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` for extension array dtypes (:issue:`51549`)
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)
 - Performance improvement in :meth:`read_orc` when reading a remote URI file path. (:issue:`51609`)
+- Performance improvement in :meth:`MultiIndex.sortlevel` when ``ascending`` is a list (:issue:`51612`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
+- Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
+- Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
+- Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
+- Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -175,7 +184,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 -
 
 Period
@@ -193,12 +202,15 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
 - Bug in weighted rolling aggregations when specifying ``min_periods=0`` (:issue:`51449`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`51896`)
 -
 
 Reshaping
 ^^^^^^^^^
+- Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
 - Bug in :func:`concat` sorting :class:`Index` when all passed objects have :class:`DatetimeIndex` indexes (:issue:`51210`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
+- Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
 -
 
 Sparse
@@ -218,6 +230,7 @@ Styler
 
 Other
 ^^^^^
+-
 
 .. ***DO NOT USE THIS SECTION***
 

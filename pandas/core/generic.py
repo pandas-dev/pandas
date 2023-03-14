@@ -52,6 +52,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeArg,
+    DtypeBackend,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -67,6 +68,7 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
+    NDFrameTb,
     RandomState,
     Renamer,
     Scalar,
@@ -80,6 +82,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     WriteBuffer,
+    WriteExcelBuffer,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -169,7 +172,6 @@ from pandas.core.missing import (
     clean_reindex_fill_method,
     find_valid_index,
 )
-from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
@@ -189,13 +191,14 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
-    from pandas.core.frame import DataFrame
+    from pandas import (
+        DataFrame,
+        ExcelWriter,
+        HDFStore,
+        Series,
+    )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
-    from pandas.core.series import Series
-
-    from pandas.io.pytables import HDFStore
-
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -442,7 +445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.flags.allows_duplicate_labels
         False
         """
-        df = self.copy(deep=copy)
+        df = self.copy(deep=copy and not using_copy_on_write())
         if allows_duplicate_labels is not None:
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
         return df
@@ -713,7 +716,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # With copy=False, we create a new object but don't copy the
             #  underlying data.
-            obj = self.copy(deep=copy)
+            obj = self.copy(deep=copy and not using_copy_on_write())
             setattr(obj, obj._get_axis_name(axis), labels)
             return obj
 
@@ -742,7 +745,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         j = self._get_axis_number(axis2)
 
         if i == j:
-            return self.copy(deep=copy)
+            return self.copy(deep=copy and not using_copy_on_write())
 
         mapping = {i: j, j: i}
 
@@ -999,7 +1002,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 index = mapper
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
-        result = self if inplace else self.copy(deep=copy)
+        result = self if inplace else self.copy(deep=copy and not using_copy_on_write())
 
         for axis_no, replacements in enumerate((index, columns)):
             if replacements is None:
@@ -1214,6 +1217,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if copy and using_copy_on_write():
+            copy = False
 
         if mapper is not lib.no_default:
             # Use v0.23 behavior if a scalar or list
@@ -1986,7 +1992,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     __array_priority__: int = 1000
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
-        return np.asarray(self._values, dtype=dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     @final
     def __array_ufunc__(
@@ -2089,7 +2101,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_excel(
         self,
-        excel_writer,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -5331,6 +5343,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
+        if copy and using_copy_on_write():
+            copy = False
         if all(
             self._get_axis(axis_name).identical(ax)
             for axis_name, ax in axes.items()
@@ -5425,10 +5439,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # If we've made a copy once, no need to make another one
             copy = False
 
-        if (copy or copy is None) and new_data is self._mgr:
+        if (
+            (copy or copy is None)
+            and new_data is self._mgr
+            and not using_copy_on_write()
+        ):
             new_data = new_data.copy(deep=copy)
         elif using_copy_on_write() and new_data is self._mgr:
-            new_data = new_data.copy(deep=copy)
+            new_data = new_data.copy(deep=False)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -6123,8 +6141,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _check_inplace_setting(self, value) -> bool_t:
         """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
-            # allow an actual np.nan thru
-            if is_float(value) and np.isnan(value):
+            # allow an actual np.nan through
+            if is_float(value) and np.isnan(value) or value is lib.no_default:
                 return True
 
             raise TypeError(
@@ -6293,6 +6311,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   2020-01-03
         dtype: datetime64[ns]
         """
+        if copy and using_copy_on_write():
+            copy = False
+
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
@@ -6547,6 +6568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
         convert_floating: bool_t = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> NDFrameT:
         """
         Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6567,6 +6589,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
+        dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
+            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+            arrays, nullable dtypes are used for all dtypes that have a nullable
+            implementation when "numpy_nullable" is set, pyarrow is used for all
+            dtypes if "pyarrow" is set.
+
+            The dtype_backends are still experimential.
+
+            .. versionadded:: 2.0
 
         Returns
         -------
@@ -6686,6 +6717,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                dtype_backend=dtype_backend,
             )
         else:
             results = [
@@ -6695,6 +6727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     convert_integer,
                     convert_boolean,
                     convert_floating,
+                    dtype_backend=dtype_backend,
                 )
                 for col_name, col in self.items()
             ]
@@ -8069,7 +8102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if isinstance(self, ABCSeries):
                 threshold = self._constructor(threshold, index=self.index)
             else:
-                threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
+                threshold = self._align_for_op(threshold, axis, flex=None)[1]
 
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
@@ -9283,7 +9316,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(**_shared_doc_kwargs)
     def align(
         self: NDFrameT,
-        other: NDFrameT,
+        other: NDFrameTb,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -9293,7 +9326,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> NDFrameT:
+    ) -> tuple[NDFrameT, NDFrameTb]:
         """
         Align two objects on their axes with the specified join method.
 
@@ -9414,8 +9447,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 df = cons(
                     {c: self for c in other.columns}, **other._construct_axes_dict()
                 )
-                return df._align_frame(
-                    other,
+                # error: Incompatible return value type (got "Tuple[DataFrame,
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                return df._align_frame(  # type: ignore[return-value]
+                    other,  # type: ignore[arg-type]
                     join=join,
                     axis=axis,
                     level=level,
@@ -9432,7 +9467,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 df = cons(
                     {c: other for c in self.columns}, **self._construct_axes_dict()
                 )
-                return self._align_frame(
+                # error: Incompatible return value type (got "Tuple[NDFrameT,
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                return self._align_frame(  # type: ignore[return-value]
                     df,
                     join=join,
                     axis=axis,
@@ -9447,7 +9484,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
         if isinstance(other, ABCDataFrame):
-            return self._align_frame(
+            # error: Incompatible return value type (got "Tuple[NDFrameT, DataFrame]",
+            # expected "Tuple[NDFrameT, NDFrameTb]")
+            return self._align_frame(  # type: ignore[return-value]
                 other,
                 join=join,
                 axis=axis,
@@ -9459,7 +9498,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 fill_axis=fill_axis,
             )
         elif isinstance(other, ABCSeries):
-            return self._align_series(
+            # error: Incompatible return value type (got "Tuple[NDFrameT, Series]",
+            # expected "Tuple[NDFrameT, NDFrameTb]")
+            return self._align_series(  # type: ignore[return-value]
                 other,
                 join=join,
                 axis=axis,
@@ -9475,8 +9516,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_frame(
-        self,
-        other,
+        self: NDFrameT,
+        other: DataFrame,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
@@ -9485,7 +9526,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, DataFrame]:
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -9539,8 +9580,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_series(
-        self,
-        other,
+        self: NDFrameT,
+        other: Series,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
@@ -9549,8 +9590,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, Series]:
         is_series = isinstance(self, ABCSeries)
+        if copy and using_copy_on_write():
+            copy = False
 
         if (not is_series and axis is None) or axis not in [None, 0, 1]:
             raise ValueError("Must specify axis=0 or 1")
@@ -10319,8 +10362,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(ax, MultiIndex):
             setattr(result, self._get_axis_name(axis), ax.truncate(before, after))
 
-        if copy or (copy is None and not using_copy_on_write()):
-            result = result.copy(deep=copy)
+        result = result.copy(deep=copy and not using_copy_on_write())
 
         return result
 
@@ -10401,7 +10443,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_convert(ax, tz)
 
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_convert")
 
@@ -10583,7 +10625,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(f"The level {level} is not valid")
             ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
-        result = self.copy(deep=copy)
+        result = self.copy(deep=copy and not using_copy_on_write())
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(self, method="tz_localize")
 
@@ -12783,8 +12825,8 @@ min_count : int, default 0
 
 
 def _align_as_utc(
-    left: NDFrameT, right: NDFrameT, join_index: Index | None
-) -> tuple[NDFrameT, NDFrameT]:
+    left: NDFrameT, right: NDFrameTb, join_index: Index | None
+) -> tuple[NDFrameT, NDFrameTb]:
     """
     If we are aligning timezone-aware DatetimeIndexes and the timezones
     do not match, convert both to UTC.
