@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import pathlib
 import tarfile
 import zipfile
 
@@ -20,7 +21,7 @@ from pandas.util import _test_decorators as td
 
 
 @pytest.fixture
-def gcs_buffer(monkeypatch):
+def gcs_buffer():
     """Emulate GCS using a binary buffer."""
     import fsspec
 
@@ -45,7 +46,7 @@ def gcs_buffer(monkeypatch):
 
 @td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
-def test_to_read_gcs(gcs_buffer, format):
+def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
     """
     Test that many to/read functions support GCS.
 
@@ -75,8 +76,21 @@ def test_to_read_gcs(gcs_buffer, format):
         df2 = read_json(path, convert_dates=["dt"])
     elif format == "parquet":
         pytest.importorskip("pyarrow")
-        df1.to_parquet(path)
-        df2 = read_parquet(path)
+        pa_fs = pytest.importorskip("pyarrow.fs")
+
+        class MockFileSystem(pa_fs.FileSystem):
+            @staticmethod
+            def from_uri(path):
+                print("Using pyarrow filesystem")
+                to_local = pathlib.Path(path.replace("gs://", "")).absolute().as_uri()
+                return pa_fs.LocalFileSystem(to_local)
+
+        with monkeypatch.context() as m:
+            m.setattr(pa_fs, "FileSystem", MockFileSystem)
+            df1.to_parquet(path)
+            df2 = read_parquet(path)
+        captured = capsys.readouterr()
+        assert captured.out == "Using pyarrow filesystem\nUsing pyarrow filesystem\n"
     elif format == "markdown":
         pytest.importorskip("tabulate")
         df1.to_markdown(path)
