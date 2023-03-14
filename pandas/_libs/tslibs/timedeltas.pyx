@@ -687,19 +687,25 @@ cdef timedelta_from_spec(object number, object frac, object unit):
     unit : a list of unit characters
     """
     cdef:
-        str n
+        object ts
+        int64_t result
 
     unit = "".join(unit)
     if unit in ["M", "Y", "y"]:
         raise ValueError(
-            "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta "
-            "values and are not supported."
+            "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta values and "
+            "are not supported."
         )
-
     unit = parse_timedelta_unit(unit)
 
-    n = "".join(number) + "." + "".join(frac)
-    return cast_from_unit(float(n), unit)
+    ts = float("".join(number) + "." + "".join(frac))
+    result = cast_from_unit(ts, unit)
+
+    # Check that ts can be represented by an integer number of nanoseconds
+    if result == 0 and ts > 0:
+        raise ValueError("Resolution too high, maximum resolution is 1ns")
+
+    return result
 
 
 cpdef inline str parse_timedelta_unit(str unit):

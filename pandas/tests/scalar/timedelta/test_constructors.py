@@ -407,9 +407,22 @@ def test_iso_constructor(fmt, exp):
 )
 def test_iso_constructor_raises_ambiguous_units(fmt):
     msg = (
-        "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta values "
-        "and are not supported."
+        "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta values and are "
+        "not supported."
     )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(fmt)
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "P1DT0H0M0.0000000001S",
+        "PT0.00000000001M",
+    ],
+)
+def test_iso_constructor_raises_resolution(fmt):
+    msg = "Resolution too high, maximum resolution is 1ns"
     with pytest.raises(ValueError, match=msg):
         Timedelta(fmt)
 
@@ -432,8 +445,6 @@ def test_iso_constructor_raises_ambiguous_units(fmt):
         "P1S",
         # Duplicate time separator
         "P1DTT1H",
-        # Precision too high
-        "P1DT0H0M0.0000000001S",
         # Only lowest order component may have be frational
         "P1DT2.5H3M",
         # Number start with in dot
