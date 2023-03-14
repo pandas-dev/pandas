@@ -83,7 +83,8 @@ class Grouper:
     sort : bool, default to False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
-        Closed end of interval. Only when `freq` parameter is passed.
+        Closed end of interval. Only when `freq` parameter is passed. When `freq`
+        parameter is passed, defaults to 'right'.
     label : {'left' or 'right'}
         Interval boundary to use for labeling.
         Only when `freq` parameter is passed.
