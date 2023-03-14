@@ -8,14 +8,15 @@ from typing import (
     Any,
     Literal,
 )
+import warnings
 from warnings import catch_warnings
-
-from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
 from pandas import (
@@ -36,6 +37,7 @@ from pandas.io.common import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        DtypeBackend,
         FilePath,
         ReadBuffer,
         StorageOptions,
@@ -221,19 +223,20 @@ class PyArrowImpl(BaseImpl):
         path,
         columns=None,
         use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions = None,
         **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
-        dtype_backend = get_option("mode.dtype_backend")
         to_pandas_kwargs = {}
-        if use_nullable_dtypes:
-            if dtype_backend == "pandas":
-                from pandas.io._util import _arrow_dtype_mapping
+        if dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
 
-                mapping = _arrow_dtype_mapping()
-                to_pandas_kwargs["types_mapper"] = mapping.get
+            mapping = _arrow_dtype_mapping()
+            to_pandas_kwargs["types_mapper"] = mapping.get
+        elif dtype_backend == "pyarrow":
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -249,13 +252,7 @@ class PyArrowImpl(BaseImpl):
             pa_table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, **kwargs
             )
-            if dtype_backend == "pandas":
-                result = pa_table.to_pandas(**to_pandas_kwargs)
-            elif dtype_backend == "pyarrow":
-                # Incompatible types in assignment (expression has type
-                # "Type[ArrowDtype]", target has type overloaded function
-                to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
-                result = pa_table.to_pandas(**to_pandas_kwargs)
+            result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)
@@ -326,12 +323,18 @@ class FastParquetImpl(BaseImpl):
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         if Version(self.api.__version__) >= Version("0.7.1"):
             # We are disabling nullable dtypes for fastparquet pending discussion
             parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
+                "fastparquet engine"
+            )
+        if dtype_backend is not lib.no_default:
+            raise ValueError(
+                "The 'dtype_backend' argument is not supported for the "
                 "fastparquet engine"
             )
         path = stringify_path(path)
@@ -454,6 +457,7 @@ def read_parquet(
     columns: list[str] | None = None,
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -492,17 +496,17 @@ def read_parquet(
         Note: this is an experimental option, and behaviour (e.g. additional
         support dtypes) may change without notice.
 
-        .. versionadded:: 1.2.0
+        .. deprecated:: 2.0
 
-        .. note::
+    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
-        .. versionadded:: 2.0.0
+        .. versionadded:: 2.0
 
     **kwargs
         Any additional kwargs are passed to the engine.
@@ -513,16 +517,25 @@ def read_parquet(
     """
     impl = get_engine(engine)
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    if use_nullable_dtypes is not lib.no_default:
+        msg = (
+            "The argument 'use_nullable_dtypes' is deprecated and will be removed "
+            "in a future version."
+        )
+        if use_nullable_dtypes is True:
+            msg += (
+                "Use dtype_backend='numpy_nullable' instead of use_nullable_dtype=True."
+            )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+    else:
+        use_nullable_dtypes = False
+    check_dtype_backend(dtype_backend)
 
     return impl.read(
         path,
         columns=columns,
         storage_options=storage_options,
         use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
         **kwargs,
     )

@@ -592,7 +592,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
     @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
-    def test_use_nullable_dtypes(self, engine, request):
+    def test_dtype_backend(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
@@ -620,7 +620,7 @@ class TestBasic(Base):
             # write manually with pyarrow to write integers
             pq.write_table(table, path)
             result1 = read_parquet(path, engine=engine)
-            result2 = read_parquet(path, engine=engine, use_nullable_dtypes=True)
+            result2 = read_parquet(path, engine=engine, dtype_backend="numpy_nullable")
 
         assert result1["a"].dtype == np.dtype("float64")
         expected = pd.DataFrame(
@@ -639,29 +639,6 @@ class TestBasic(Base):
             # Only int and boolean
             result2 = result2.drop("c", axis=1)
             expected = expected.drop("c", axis=1)
-        tm.assert_frame_equal(result2, expected)
-
-    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
-    def test_use_nullable_dtypes_option(self, engine, request):
-        # GH#50748
-        import pyarrow.parquet as pq
-
-        if engine == "fastparquet":
-            # We are manually disabling fastparquet's
-            # nullable dtype support pending discussion
-            mark = pytest.mark.xfail(
-                reason="Fastparquet nullable dtype support is disabled"
-            )
-            request.node.add_marker(mark)
-
-        table = pyarrow.table({"a": pyarrow.array([1, 2, 3, None], "int64")})
-        with tm.ensure_clean() as path:
-            # write manually with pyarrow to write integers
-            pq.write_table(table, path)
-            with pd.option_context("mode.nullable_dtypes", True):
-                result2 = read_parquet(path, engine=engine)
-
-        expected = pd.DataFrame({"a": pd.array([1, 2, 3, None], dtype="Int64")})
         tm.assert_frame_equal(result2, expected)
 
     @pytest.mark.parametrize(
@@ -694,7 +671,7 @@ class TestBasic(Base):
                 }
             )
         check_round_trip(
-            df, pa, read_kwargs={"use_nullable_dtypes": True}, expected=expected
+            df, pa, read_kwargs={"dtype_backend": "numpy_nullable"}, expected=expected
         )
 
 
@@ -1022,7 +999,7 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
-    def test_read_use_nullable_types_pyarrow_config(self, pa, df_full):
+    def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
 
         df = df_full
@@ -1044,27 +1021,25 @@ class TestParquetPyArrow(Base):
             pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
         )
 
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            check_round_trip(
-                df,
-                engine=pa,
-                read_kwargs={"use_nullable_dtypes": True},
-                expected=expected,
-            )
+        check_round_trip(
+            df,
+            engine=pa,
+            read_kwargs={"dtype_backend": "pyarrow"},
+            expected=expected,
+        )
 
-    def test_read_use_nullable_types_pyarrow_config_index(self, pa):
+    def test_read_dtype_backend_pyarrow_config_index(self, pa):
         df = pd.DataFrame(
             {"a": [1, 2]}, index=pd.Index([3, 4], name="test"), dtype="int64[pyarrow]"
         )
         expected = df.copy()
 
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            check_round_trip(
-                df,
-                engine=pa,
-                read_kwargs={"use_nullable_dtypes": True},
-                expected=expected,
-            )
+        check_round_trip(
+            df,
+            engine=pa,
+            read_kwargs={"dtype_backend": "pyarrow"},
+            expected=expected,
+        )
 
 
 class TestParquetFastParquet(Base):
@@ -1213,7 +1188,10 @@ class TestParquetFastParquet(Base):
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
-                read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+                with tm.assert_produces_warning(FutureWarning):
+                    read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+            with pytest.raises(ValueError, match="not supported for the fastparquet"):
+                read_parquet(path, engine="fastparquet", dtype_backend="pyarrow")
 
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:
@@ -1232,3 +1210,14 @@ class TestParquetFastParquet(Base):
 
             result = read_parquet(path, engine=engine)
         tm.assert_frame_equal(result, df)
+
+    def test_invalid_dtype_backend(self, engine):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        df = pd.DataFrame({"int": list(range(1, 4))})
+        with tm.ensure_clean("tmp.parquet") as path:
+            df.to_parquet(path)
+            with pytest.raises(ValueError, match=msg):
+                read_parquet(path, dtype_backend="numpy")
