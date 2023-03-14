@@ -1211,7 +1211,7 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, engine=engine)
         tm.assert_frame_equal(result, df)
 
-    def test_invalid_dtype_backend(self):
+    def test_invalid_dtype_backend(self, engine):
         msg = (
             "dtype_backend numpy is invalid, only 'numpy_nullable' and "
             "'pyarrow' are allowed."

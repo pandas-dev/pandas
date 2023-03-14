@@ -951,7 +951,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 pa_table = pyarrow_json.read_json(self.data)
 
-                mapping: dict | type[ArrowDtype] | None
+                mapping: type[ArrowDtype] | None | Callable
                 if self.dtype_backend == "pyarrow":
                     mapping = ArrowDtype
                 elif self.dtype_backend == "numpy_nullable":
