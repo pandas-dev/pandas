@@ -42,8 +42,8 @@ class TestSeries:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         ser = Series([True])
         ser1 = Series([False])
@@ -64,8 +64,8 @@ class TestSeries:
     @pytest.mark.parametrize("data", [np.nan, pd.NaT])
     def test_nonzero_single_element_raise_2(self, data):
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         series = Series([data])
         while tm.assert_produces_warning(FutureWarning, match=msg):
@@ -77,8 +77,8 @@ class TestSeries:
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         series = Series([data])
         while tm.assert_produces_warning(FutureWarning, match=msg):
@@ -92,8 +92,8 @@ class TestSeries:
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             series = Series([data])

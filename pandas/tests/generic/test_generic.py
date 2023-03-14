@@ -444,8 +444,8 @@ class TestNDFrame:
 
     def test_bool_dep(self) -> None:
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             DataFrame({"col": [False]}).bool()

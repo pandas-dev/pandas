@@ -48,8 +48,8 @@ class TestDataFrame:
     def test_nonzero_single_element(self):
         # allow single item via bool method
         msg = (
-            "NDFrame.bool is now deprecated and will be removed in future version of pandas "
-            "and cases that relied on it will raise a future warning"
+            "NDFrame.bool is now deprecated and will be removed in future version "
+            "of pandas and cases that relied on it will raise a future warning"
         )
         df = DataFrame([[True]])
         df1 = DataFrame([[False]])

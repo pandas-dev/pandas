@@ -509,11 +509,11 @@ class TestRollingTS:
 
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling("2s").min()
-        assert ((result - expected) < 0.01).all() == True
+        assert ((result - expected) < 0.01).all() is True
 
         expected = dfp.rolling(200, min_periods=1).min()
         result = dfp.rolling("200s").min()
-        assert ((result - expected) < 0.01).all() == True
+        assert ((result - expected) < 0.01).all() is True
 
     def test_ragged_max(self, ragged):
         df = ragged
