@@ -660,9 +660,7 @@ If installed, we now require:
 +-------------------+-----------------+----------+---------+
 | python-dateutil   | 2.8.2           |    X     |    X    |
 +-------------------+-----------------+----------+---------+
-|                   |                 |on Windows|         |
-| tzdata            | 2022.1          |for       |    X    |
-|                   |                 |timezones |         |
+| tzdata            | 2022.1          |    X     |    X    |
 +-------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
