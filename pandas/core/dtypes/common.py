@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
 )
+import warnings
 
 import numpy as np
 
@@ -1694,7 +1695,12 @@ def pandas_dtype(dtype) -> DtypeObj:
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:
-        npdtype = np.dtype(dtype)
+        with warnings.catch_warnings():
+            # GH#51523 - Series.astype(np.integer) doesn't show
+            # numpy deprication warning of np.integer
+            # Hence enabling DeprecationWarning
+            warnings.simplefilter("always", DeprecationWarning)
+            npdtype = np.dtype(dtype)
     except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError(f"data type '{dtype}' not understood") from err
