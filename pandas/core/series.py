@@ -157,6 +157,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeBackend,
         DtypeObj,
         FilePath,
         FillnaOptions,
@@ -166,6 +167,7 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -837,6 +839,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index)
+        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+            blk = res_ser._mgr._block
+            blk.refs = cast("BlockValuesRefs", self._references)
+            blk.refs.add_reference(blk)  # type: ignore[arg-type]
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -888,7 +894,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self._values, dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -4571,7 +4583,7 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -4581,7 +4593,7 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
+    ) -> tuple[Series, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -5376,6 +5388,7 @@ Keep all original rows and also all original values
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Series:
         input_series = self
         if infer_objects:
@@ -5384,7 +5397,6 @@ Keep all original rows and also all original values
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
-            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,

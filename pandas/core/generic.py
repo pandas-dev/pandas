@@ -52,6 +52,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeArg,
+    DtypeBackend,
     DtypeObj,
     FilePath,
     FillnaOptions,
@@ -67,6 +68,7 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
+    NDFrameTb,
     RandomState,
     Renamer,
     Scalar,
@@ -197,7 +199,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
-
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -1991,7 +1992,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     __array_priority__: int = 1000
 
     def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
-        return np.asarray(self._values, dtype=dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     @final
     def __array_ufunc__(
@@ -6561,6 +6568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_integer: bool_t = True,
         convert_boolean: bool_t = True,
         convert_floating: bool_t = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> NDFrameT:
         """
         Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``.
@@ -6581,6 +6589,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
+        dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
+            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+            arrays, nullable dtypes are used for all dtypes that have a nullable
+            implementation when "numpy_nullable" is set, pyarrow is used for all
+            dtypes if "pyarrow" is set.
+
+            The dtype_backends are still experimential.
+
+            .. versionadded:: 2.0
 
         Returns
         -------
@@ -6700,6 +6717,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 convert_integer,
                 convert_boolean,
                 convert_floating,
+                dtype_backend=dtype_backend,
             )
         else:
             results = [
@@ -6709,6 +6727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     convert_integer,
                     convert_boolean,
                     convert_floating,
+                    dtype_backend=dtype_backend,
                 )
                 for col_name, col in self.items()
             ]
@@ -9297,7 +9316,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(**_shared_doc_kwargs)
     def align(
         self: NDFrameT,
-        other: NDFrameT,
+        other: NDFrameTb,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
@@ -9307,7 +9326,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> NDFrameT:
+    ) -> tuple[NDFrameT, NDFrameTb]:
         """
         Align two objects on their axes with the specified join method.
 
@@ -9428,8 +9447,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 df = cons(
                     {c: self for c in other.columns}, **other._construct_axes_dict()
                 )
-                return df._align_frame(
-                    other,
+                # error: Incompatible return value type (got "Tuple[DataFrame,
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                return df._align_frame(  # type: ignore[return-value]
+                    other,  # type: ignore[arg-type]
                     join=join,
                     axis=axis,
                     level=level,
@@ -9446,7 +9467,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 df = cons(
                     {c: other for c in self.columns}, **self._construct_axes_dict()
                 )
-                return self._align_frame(
+                # error: Incompatible return value type (got "Tuple[NDFrameT,
+                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                return self._align_frame(  # type: ignore[return-value]
                     df,
                     join=join,
                     axis=axis,
@@ -9461,7 +9484,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
         if isinstance(other, ABCDataFrame):
-            return self._align_frame(
+            # error: Incompatible return value type (got "Tuple[NDFrameT, DataFrame]",
+            # expected "Tuple[NDFrameT, NDFrameTb]")
+            return self._align_frame(  # type: ignore[return-value]
                 other,
                 join=join,
                 axis=axis,
@@ -9473,7 +9498,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 fill_axis=fill_axis,
             )
         elif isinstance(other, ABCSeries):
-            return self._align_series(
+            # error: Incompatible return value type (got "Tuple[NDFrameT, Series]",
+            # expected "Tuple[NDFrameT, NDFrameTb]")
+            return self._align_series(  # type: ignore[return-value]
                 other,
                 join=join,
                 axis=axis,
@@ -9489,8 +9516,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_frame(
-        self,
-        other,
+        self: NDFrameT,
+        other: DataFrame,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
@@ -9499,7 +9526,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, DataFrame]:
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -9553,8 +9580,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _align_series(
-        self,
-        other,
+        self: NDFrameT,
+        other: Series,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level=None,
@@ -9563,7 +9590,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ):
+    ) -> tuple[NDFrameT, Series]:
         is_series = isinstance(self, ABCSeries)
         if copy and using_copy_on_write():
             copy = False
@@ -12798,8 +12825,8 @@ min_count : int, default 0
 
 
 def _align_as_utc(
-    left: NDFrameT, right: NDFrameT, join_index: Index | None
-) -> tuple[NDFrameT, NDFrameT]:
+    left: NDFrameT, right: NDFrameTb, join_index: Index | None
+) -> tuple[NDFrameT, NDFrameTb]:
     """
     If we are aligning timezone-aware DatetimeIndexes and the timezones
     do not match, convert both to UTC.
