@@ -3842,7 +3842,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 new_values = self._values[:, loc]
                 result = self._constructor(
-                    new_values, index=self.index, columns=result_columns
+                    new_values, index=self.index, columns=result_columns, copy=False
                 )
                 if using_copy_on_write() and isinstance(loc, slice):
                     result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
