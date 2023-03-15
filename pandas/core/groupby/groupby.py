@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
@@ -814,12 +815,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         keys = self.keys
         level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
-        if isinstance(level, list) and len(level) == 1:
+        if is_list_like(level) and len(level) == 1:
             # GH 51583
             warnings.warn(
-                "Initializing a Groupby object with a length-1 list "
+                "Creating a Groupby object with a length-1 list "
                 "level parameter will yield indexes as tuples in a future version. "
-                "To keep indexes as scalars, initialize Groupby objects with "
+                "To keep indexes as scalars, create Groupby objects with "
                 "a scalar level parameter instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
