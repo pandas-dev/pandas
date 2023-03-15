@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=61.0.0",
     "wheel",
-    "Cython>=0.29.32,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
@@ -27,7 +27,8 @@ dependencies = [
   "numpy>=1.21.0; python_version>='3.10'",
   "numpy>=1.23.2; python_version>='3.11'",
   "python-dateutil>=2.8.2",
-  "pytz>=2020.1"
+  "pytz>=2020.1",
+  "tzdata>=2022.1"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -57,7 +58,6 @@ matplotlib = "pandas:plotting._matplotlib"
 [project.optional-dependencies]
 test = ['hypothesis>=6.34.2', 'pytest>=7.0.0', 'pytest-xdist>=2.2.0', 'pytest-asyncio>=0.17.0']
 performance = ['bottleneck>=1.3.2', 'numba>=0.53.1', 'numexpr>=2.7.1']
-timezone = ['tzdata>=2022.1']
 computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
 fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
@@ -112,7 +112,6 @@ all = ['beautifulsoup4>=4.9.3',
        'SQLAlchemy>=1.4.16',
        'tables>=3.6.1',
        'tabulate>=0.8.9',
-       'tzdata>=2022.1',
        'xarray>=0.21.0',
        'xlrd>=2.0.1',
        'xlsxwriter>=1.4.3',
@@ -143,7 +142,7 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
-environment = { LDFLAGS="-Wl,--strip-debug" }
+environment = {LDFLAGS="-Wl,--strip-all" }
 test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python {project}/ci/test_wheels.py"
 
@@ -166,7 +165,7 @@ test-command = ""
 # macOS doesn't support stripping wheels with linker
 # https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
-environment = ""
+environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win32"
@@ -197,6 +196,8 @@ exclude = '''
 line-length = 88
 update-check = false
 target-version = "py38"
+fix = true
+unfixable = ["E711"]
 
 select = [
   # pyflakes
@@ -212,8 +213,14 @@ select = [
   "Q",
   # pylint
   "PLE", "PLR", "PLW",
+  # misc lints
+  "PIE",
   # tidy imports
   "TID",
+  # implicit string concatenation
+  "ISC",
+  # type-checking imports
+  "TCH",
 ]
 
 ignore = [
@@ -257,12 +264,18 @@ ignore = [
   "PLR0912",
   # Too many statements
   "PLR0915",
+  # Global statements are discouraged
+  "PLW0603",
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
+  # Outer loop variable overwritten by inner assignment
+  "PLW2901",
+  # Consider `elif` instead of `else` then `if` to remove indentation level
+  "PLR5501",
 ]
 
 exclude = [
@@ -278,6 +291,13 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
+# to be enabled gradually
+"pandas/core/*" = ["PLR5501"]
+# TCH to be enabled gradually
+"pandas/core/nanops.py" = ["TCH"]
+"pandas/_libs/*" = ["TCH"]
+# Keep this one enabled
+"pandas/_typing.py" = ["TCH"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -287,6 +307,7 @@ disable = [
   "broad-except",
   "c-extension-no-member",
   "comparison-with-itself",
+  "consider-using-enumerate",
   "import-error",
   "import-outside-toplevel",
   "invalid-name",
@@ -395,11 +416,14 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
+  "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:unclosed <ssl.SSLSocket:ResourceWarning",
+  "ignore:.*ssl.SSLSocket:ResourceWarning",
   "ignore::ResourceWarning:asyncio",
+  # From plotting doctests
+  "ignore:More than 20 figures have been opened:RuntimeWarning",
   # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
   "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
   "ignore:.*urllib3:DeprecationWarning:botocore",
@@ -568,5 +592,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
 ignore-regex = 'https://([\w/\.])+'

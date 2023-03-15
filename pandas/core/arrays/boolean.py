@@ -12,11 +12,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -35,15 +30,18 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+        type_t,
+    )
 
 
 @register_extension_dtype
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -245,8 +243,6 @@ class BooleanArray(BaseMaskedArray):
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 

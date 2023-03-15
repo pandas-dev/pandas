@@ -52,7 +52,7 @@ cdef:
 cpdef bint check_na_tuples_nonequal(object left, object right):
     """
     When we have NA in one of the tuples but not the other we have to check here,
-    because our regular checks fail before with ambigous boolean value.
+    because our regular checks fail before with ambiguous boolean value.
 
     Parameters
     ----------
@@ -371,8 +371,6 @@ class NAType(C_NAType):
     .. warning::
 
        Experimental: the behaviour of NA can still change without warning.
-
-    .. versionadded:: 1.0.0
 
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).

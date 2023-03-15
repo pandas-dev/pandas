@@ -116,10 +116,14 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
         # Timestamp.__add__(Timestamp) not defined
         pass
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        super().test_fillna_copy_series(
-            data_missing, no_op_with_cow=using_copy_on_write
-        )
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        if na_action is not None:
+            with pytest.raises(NotImplementedError, match=""):
+                data.map(lambda x: x, na_action=na_action)
+        else:
+            result = data.map(lambda x: x, na_action=na_action)
+            self.assert_extension_array_equal(result, data)
 
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):

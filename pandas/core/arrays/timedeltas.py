@@ -39,13 +39,6 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
     truediv_object_array,
 )
-from pandas._typing import (
-    AxisInt,
-    DateTimeErrorChoices,
-    DtypeObj,
-    NpDtype,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
@@ -63,15 +56,25 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops
+from pandas.core import (
+    nanops,
+    roperator,
+)
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        DateTimeErrorChoices,
+        DtypeObj,
+        NpDtype,
+        npt,
+    )
+
     from pandas import DataFrame
 
 
@@ -199,6 +202,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
+        assert freq is None or isinstance(freq, Tick)
 
         result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
@@ -467,6 +471,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
+                if freq.n == 0:
+                    # GH#51575 Better to have no freq than an incorrect one
+                    freq = None
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 
         if not hasattr(other, "dtype"):
@@ -526,17 +533,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # Note: freq gets division, not floor-division, even if op
                 #  is floordiv.
                 freq = self.freq / other
-
-                # TODO: 2022-12-24 test_ufunc_coercions, test_tdi_ops_attributes
-                #  get here for truediv, no tests for floordiv
-
-                if op is operator.floordiv:
-                    if freq.nanos == 0 and self.freq.nanos != 0:
-                        # e.g. if self.freq is Nano(1) then dividing by 2
-                        #  rounds down to zero
-                        # TODO: 2022-12-24 should implement the same check
-                        #  for truediv case
-                        freq = None
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
 
             return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
 

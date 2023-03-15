@@ -1297,8 +1297,8 @@ class _MergeOperation:
                 continue
 
             msg = (
-                f"You are trying to merge on {lk.dtype} and "
-                f"{rk.dtype} columns. If you wish to proceed you should use pd.concat"
+                f"You are trying to merge on {lk.dtype} and {rk.dtype} columns "
+                f"for key '{name}'. If you wish to proceed you should use pd.concat"
             )
 
             # if we are numeric, then allow differing
@@ -2160,7 +2160,13 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            return func(
+            # TODO(cython3):
+            # Bug in beta1 preventing Cython from choosing
+            # right specialization when one fused memview is None
+            # Doesn't matter what type we choose
+            # (nothing happens anyways since it is None)
+            # GH 51640
+            return func[f"{left_values.dtype}_t", object](
                 left_values,
                 right_values,
                 None,

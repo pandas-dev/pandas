@@ -18,10 +18,13 @@ main:
   - tables
   - fenced_code
   - meta
+  - footnotes
+  - codehilite
 static:
   logo: static/img/pandas_white.svg
   css:
   - static/css/pandas.css
+  - static/css/codehilite.css
 navbar:
   - name: "About us"
     target:

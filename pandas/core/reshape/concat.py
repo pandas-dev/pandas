@@ -19,11 +19,6 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    HashableT,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
@@ -51,6 +46,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        HashableT,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -198,10 +199,6 @@ def concat(
         be very expensive relative to the actual data concatenation.
     sort : bool, default False
         Sort non-concatenation axis if it is not already aligned.
-
-        .. versionchanged:: 1.0.0
-
-           Changed to not sort by default.
 
     copy : bool, default True
         If False, do not copy data unnecessarily.
@@ -370,6 +367,8 @@ def concat(
             copy = False
         else:
             copy = True
+    elif copy and using_copy_on_write():
+        copy = False
 
     op = _Concatenator(
         objs,

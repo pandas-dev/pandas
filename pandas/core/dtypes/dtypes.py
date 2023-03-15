@@ -31,13 +31,6 @@ from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Ordered,
-    npt,
-    type_t,
-)
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -56,6 +49,14 @@ if TYPE_CHECKING:
     from datetime import tzinfo
 
     import pyarrow
+
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Ordered,
+        npt,
+        type_t,
+    )
 
     from pandas import (
         Categorical,
@@ -856,21 +857,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, freq=None):
+    def __new__(cls, freq):
         """
         Parameters
         ----------
-        freq : frequency
+        freq : PeriodDtype, BaseOffset, or string
         """
         if isinstance(freq, PeriodDtype):
             return freq
-
-        elif freq is None:
-            # empty constructor for pickle compat
-            # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = PeriodDtypeBase.__new__(cls, -10_000)
-            u._freq = None
-            return u
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
@@ -897,7 +891,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     @classmethod
     def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
         if isinstance(freq, str):  # note: freq is already of type str!
-            if freq.startswith("period[") or freq.startswith("Period["):
+            if freq.startswith(("Period[", "period[")):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
@@ -906,7 +900,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             if freq_offset is not None:
                 return freq_offset
 
-        raise ValueError("could not construct PeriodDtype")
+        raise TypeError(
+            "PeriodDtype argument should be string or BaseOffet, "
+            f"got {type(freq).__name__}"
+        )
 
     @classmethod
     def construct_from_string(cls, string: str_type) -> PeriodDtype:
@@ -916,7 +913,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         """
         if (
             isinstance(string, str)
-            and (string.startswith("period[") or string.startswith("Period["))
+            and (string.startswith(("period[", "Period[")))
             or isinstance(string, BaseOffset)
         ):
             # do not parse string like U as period[U]
@@ -980,7 +977,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(dtype, str):
             # PeriodDtype can be instantiated from freq string like "U",
             # but doesn't regard freq str like "U" as dtype.
-            if dtype.startswith("period[") or dtype.startswith("Period["):
+            if dtype.startswith(("period[", "Period[")):
                 try:
                     return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:

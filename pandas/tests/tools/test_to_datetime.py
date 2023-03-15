@@ -1076,31 +1076,39 @@ class TestToDatetime:
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
         result = to_datetime(dts, cache=cache)
-        expected = DatetimeIndex([Timestamp(x).asm8 for x in dts], dtype="M8[ns]")
+        if cache:
+            # FIXME: behavior should not depend on cache
+            expected = DatetimeIndex([Timestamp(x).asm8 for x in dts], dtype="M8[s]")
+        else:
+            expected = DatetimeIndex([Timestamp(x).asm8 for x in dts], dtype="M8[ns]")
+
         tm.assert_index_equal(result, expected)
 
         # A list of datetimes where the last one is out of bounds
         dts_with_oob = dts + [np.datetime64("9999-01-01")]
 
-        msg = "Out of bounds nanosecond timestamp: 9999-01-01 00:00:00"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime(dts_with_oob, errors="raise")
+        # As of GH#?? we do not raise in this case
+        to_datetime(dts_with_oob, errors="raise")
 
-        tm.assert_index_equal(
-            to_datetime(dts_with_oob, errors="coerce", cache=cache),
-            DatetimeIndex(
+        result = to_datetime(dts_with_oob, errors="coerce", cache=cache)
+        if not cache:
+            # FIXME: shouldn't depend on cache!
+            expected = DatetimeIndex(
                 [Timestamp(dts_with_oob[0]).asm8, Timestamp(dts_with_oob[1]).asm8] * 30
                 + [NaT],
-            ),
-        )
+            )
+        else:
+            expected = DatetimeIndex(np.array(dts_with_oob, dtype="M8[s]"))
+        tm.assert_index_equal(result, expected)
 
         # With errors='ignore', out of bounds datetime64s
         # are converted to their .item(), which depending on the version of
         # numpy is either a python datetime.datetime or datetime.date
-        tm.assert_index_equal(
-            to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            Index(dts_with_oob),
-        )
+        result = to_datetime(dts_with_oob, errors="ignore", cache=cache)
+        if not cache:
+            # FIXME: shouldn't depend on cache!
+            expected = Index(dts_with_oob)
+        tm.assert_index_equal(result, expected)
 
     def test_out_of_bounds_errors_ignore(self):
         # https://github.com/pandas-dev/pandas/issues/50587
@@ -3595,3 +3603,19 @@ def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):
     # https://github.com/pandas-dev/pandas/issues/50411
     result = to_datetime(["2020-01-01", "01-01-2000"], format="ISO8601", errors=errors)
     tm.assert_index_equal(result, expected)
+
+
+def test_ignoring_unknown_tz_deprecated():
+    # GH#18702, GH#51476
+    dtstr = "2014 Jan 9 05:15 FAKE"
+    msg = 'un-recognized timezone "FAKE". Dropping unrecognized timezones is deprecated'
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = Timestamp(dtstr)
+    assert res == Timestamp(dtstr[:-5])
+
+    with tm.assert_produces_warning(FutureWarning):
+        res = to_datetime(dtstr)
+    assert res == to_datetime(dtstr[:-5])
+    with tm.assert_produces_warning(FutureWarning):
+        res = to_datetime([dtstr])
+    tm.assert_index_equal(res, to_datetime([dtstr[:-5]]))

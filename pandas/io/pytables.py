@@ -14,7 +14,6 @@ import itertools
 import os
 import re
 from textwrap import dedent
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -41,15 +40,6 @@ from pandas._libs import (
     writers as libwriters,
 )
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    AxisInt,
-    DtypeArg,
-    FilePath,
-    Shape,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -115,14 +105,26 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from tables import (
         Col,
         File,
         Node,
     )
 
-    from pandas.core.internals import Block
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        AxisInt,
+        DtypeArg,
+        FilePath,
+        Self,
+        Shape,
+        npt,
+    )
 
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
@@ -630,7 +632,7 @@ class HDFStore:
         pstr = pprint_thing(self._path)
         return f"{type(self)}\nFile path: {pstr}\n"
 
-    def __enter__(self) -> HDFStore:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -2196,9 +2198,8 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-            else:
-                if value is not None or existing_value is not None:
-                    idx[key] = value
+            elif value is not None or existing_value is not None:
+                idx[key] = value
 
     def set_info(self, info) -> None:
         """set my state from the passed info"""
@@ -3399,7 +3400,7 @@ class Table(Fixed):
         return self.table.description
 
     @property
-    def axes(self):
+    def axes(self) -> itertools.chain[IndexCol]:
         return itertools.chain(self.index_axes, self.values_axes)
 
     @property
@@ -3694,7 +3695,7 @@ class Table(Fixed):
 
     def _read_axes(
         self, where, start: int | None = None, stop: int | None = None
-    ) -> list[tuple[ArrayLike, ArrayLike]]:
+    ) -> list[tuple[np.ndarray, np.ndarray] | tuple[Index, Index]]:
         """
         Create the axes sniffed from the table.
 
@@ -5123,13 +5124,13 @@ def _dtype_to_kind(dtype_str: str) -> str:
     """
     dtype_str = _ensure_decoded(dtype_str)
 
-    if dtype_str.startswith("string") or dtype_str.startswith("bytes"):
+    if dtype_str.startswith(("string", "bytes")):
         kind = "string"
     elif dtype_str.startswith("float"):
         kind = "float"
     elif dtype_str.startswith("complex"):
         kind = "complex"
-    elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
+    elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
         kind = "datetime64"

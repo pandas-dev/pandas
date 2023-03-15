@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from io import StringIO
+from typing import TYPE_CHECKING
 import warnings
-
-from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -16,10 +16,13 @@ from pandas import (
     option_context,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import DtypeBackend
+
 
 def read_clipboard(
     sep: str = r"\s+",
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwargs,
 ):  # pragma: no cover
     r"""
@@ -31,18 +34,13 @@ def read_clipboard(
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
 
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -61,11 +59,7 @@ def read_clipboard(
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    check_dtype_backend(dtype_backend)
 
     from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv
@@ -113,9 +107,7 @@ def read_clipboard(
             stacklevel=find_stack_level(),
         )
 
-    return read_csv(
-        StringIO(text), sep=sep, use_nullable_dtypes=use_nullable_dtypes, **kwargs
-    )
+    return read_csv(StringIO(text), sep=sep, dtype_backend=dtype_backend, **kwargs)
 
 
 def to_clipboard(

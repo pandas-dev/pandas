@@ -848,3 +848,10 @@ class TestSeriesPlots(TestPlotBase):
         xlims = (3, 1)
         ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
+
+    def test_series_none_color(self):
+        # GH51953
+        series = Series([1, 2, 3])
+        ax = series.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:1]
+        self._check_colors(ax.get_lines(), linecolors=expected)
