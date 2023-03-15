@@ -5175,7 +5175,9 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization com.is_bool_indexer and ndim checks.
             result = getitem(key)
             # Going through simple_new for performance.
-            return type(self)._simple_new(result, name=self._name)
+            return type(self)._simple_new(
+                result, name=self._name, refs=self._references
+            )
 
         if com.is_bool_indexer(key):
             # if we have list[bools, length=1e5] then doing this check+convert
