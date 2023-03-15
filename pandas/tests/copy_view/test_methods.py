@@ -641,6 +641,14 @@ def test_swapaxes_single_block(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_swapaxes_read_only_array():
+    df = DataFrame({"a": [1, 2], "b": 3})
+    df = df.swapaxes(axis1="index", axis2="columns")
+    df.iloc[0, 0] = 100
+    expected = DataFrame({0: [100, 3], 1: [2, 3]}, index=["a", "b"])
+    tm.assert_frame_equal(df, expected)
+
+
 @pytest.mark.parametrize(
     "method, idx",
     [
@@ -1672,6 +1680,14 @@ def test_transpose_ea_single_column(using_copy_on_write):
     result = df.T
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+
+
+def test_count_read_only_array():
+    df = DataFrame({"a": [1, 2], "b": 3})
+    result = df.count()
+    result.iloc[0] = 100
+    expected = Series([100, 2], index=["a", "b"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_view(using_copy_on_write):

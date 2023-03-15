@@ -234,3 +234,10 @@ def test_to_integer_array(values, to_dtype, result_dtype):
     assert result.dtype == result_dtype()
     expected = pd.array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_integer_array_from_boolean():
+    # GH31104
+    expected = pd.array(np.array([True, False]), dtype="Int64")
+    result = pd.array(np.array([True, False], dtype=object), dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)

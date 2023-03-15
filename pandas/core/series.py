@@ -173,6 +173,7 @@ if TYPE_CHECKING:
         QuantileInterpolation,
         Renamer,
         Scalar,
+        Self,
         SingleManager,
         SortKind,
         StorageOptions,
@@ -351,6 +352,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
+
+    # similar to __array_priority__, positions Series after DataFrame
+    #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 3000
 
     # Override cache_readonly bc Series is mutable
     # error: Incompatible types in assignment (expression has type "property",
@@ -1089,7 +1094,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -4278,7 +4285,7 @@ Keep all original rows and also all original values
             self, method="map"
         )
 
-    def _gotitem(self, key, ndim, subset=None) -> Series:
+    def _gotitem(self, key, ndim, subset=None) -> Self:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -4595,7 +4602,7 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[Series, NDFrameT]:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
