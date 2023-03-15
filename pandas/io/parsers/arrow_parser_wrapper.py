@@ -9,6 +9,7 @@ from pandas.core.dtypes.inference import is_integer
 import pandas as pd
 from pandas import DataFrame
 
+from pandas.io._util import _arrow_dtype_mapping
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
@@ -151,6 +152,8 @@ class ArrowParserWrapper(ParserBase):
         )
         if self.kwds["dtype_backend"] == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+        elif self.kwds["dtype_backend"] == "numpy_nullable":
+            frame = table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

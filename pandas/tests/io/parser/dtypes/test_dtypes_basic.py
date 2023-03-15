@@ -402,7 +402,6 @@ def test_dtypes_defaultdict_invalid(all_parsers):
         parser.read_csv(StringIO(data), dtype=dtype)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_backend(all_parsers):
     # GH#36712
 
@@ -424,9 +423,13 @@ def test_dtype_backend(all_parsers):
             "e": pd.Series([pd.NA, 6], dtype="Int64"),
             "f": pd.Series([pd.NA, 7.5], dtype="Float64"),
             "g": pd.Series([pd.NA, True], dtype="boolean"),
-            "h": pd.Series([pd.NA, "a"], dtype="string"),
+            "h": pd.Series(
+                [pd.NA if parser.engine != "pyarrow" else "", "a"], dtype="string"
+            ),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),
-            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
+            "j": pd.Series(
+                [pd.NA, pd.NA], dtype="Int64" if parser.engine != "pyarrow" else object
+            ),
         }
     )
     tm.assert_frame_equal(result, expected)
