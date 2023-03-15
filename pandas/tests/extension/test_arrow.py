@@ -2314,9 +2314,13 @@ def test_dt_tz_localize(unit):
     tm.assert_series_equal(result, expected)
 
 
-def test_concat_empty_arrow_backed_series(dtype):
-    # GH#51734
-    ser = pd.Series([], dtype=dtype)
-    expected = ser.copy()
-    result = pd.concat([ser[np.array([], dtype=np.bool_)]])
-    tm.assert_series_equal(result, expected)
+@pytest.mark.parametrize("skipna", [True, False])
+def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
+    # GH51624
+    ser = pd.Series([None], dtype="float64[pyarrow]")
+    result = getattr(ser, all_boolean_reductions)(skipna=skipna)
+    if skipna:
+        expected = all_boolean_reductions == "all"
+    else:
+        expected = pd.NA
+    assert result is expected

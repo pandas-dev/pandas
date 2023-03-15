@@ -1257,6 +1257,10 @@ class ArrowExtensionArray(
                 # Let ExtensionArray._reduce raise the TypeError
                 return super()._reduce(name, skipna=skipna, **kwargs)
 
+        # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
+        if name in ["any", "all"] and "min_count" not in kwargs:
+            kwargs["min_count"] = 0
+
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
         except (AttributeError, NotImplementedError, TypeError) as err:
