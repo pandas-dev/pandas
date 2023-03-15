@@ -5879,7 +5879,7 @@ class DataFrame(NDFrame, OpsMixin):
                 names.append(None)
             # from here, col can only be a column label
             else:
-                arrays.append(frame[col]._values)
+                arrays.append(frame[col])
                 names.append(col)
                 if drop:
                     to_remove.append(col)

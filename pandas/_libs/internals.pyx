@@ -890,6 +890,16 @@ cdef class BlockValuesRefs:
         """
         self.referenced_blocks.append(weakref.ref(blk))
 
+    def add_index_reference(self, index: object) -> None:
+        """Adds a new reference to our reference collection when creating an index.
+
+        Parameters
+        ----------
+        index: object
+            The index that the new reference should point to.
+        """
+        self.referenced_blocks.append(weakref.ref(index))
+
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
 
