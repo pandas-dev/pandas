@@ -28,19 +28,6 @@ from pandas._libs.sparse import (
     SparseIndex,
 )
 from pandas._libs.tslibs import NaT
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    Axis,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    SequenceIndexer,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -116,6 +103,20 @@ if TYPE_CHECKING:
     )
 
     SparseIndexKind = Literal["integer", "block"]
+
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        Axis,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        SequenceIndexer,
+        npt,
+    )
 
     from pandas import Series
 
