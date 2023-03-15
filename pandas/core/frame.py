@@ -5007,9 +5007,9 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = None,
         copy: bool | None = None,
         fill_value=None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis | None = None,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
     ) -> tuple[DataFrame, NDFrameT]:
         return super().align(

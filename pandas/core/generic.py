@@ -9324,9 +9324,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level = None,
         copy: bool_t | None = None,
         fill_value: Hashable = None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis | None = None,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
     ) -> tuple[NDFrameT, NDFrameTb]:
         """
@@ -9446,9 +9446,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60.0   70.0   80.0   90.0 NaN
         4  600.0  700.0  800.0  900.0 NaN
         """
-
-        method = clean_fill_method(method)
-        if method is not None or limit is not None or fill_axis is not None:
+        if (
+            method is not lib.no_default
+            or limit is not lib.no_default
+            or fill_axis is not lib.no_default
+        ):
             # GH#51856
             warnings.warn(
                 "The 'method', 'limit', and 'fill_axis' keywords in "
@@ -9458,8 +9460,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        if fill_axis is None:
+        if fill_axis is lib.no_default:
             fill_axis = 0
+        if method is lib.no_default:
+            method = None
+        if limit is lib.no_default:
+            limit = None
+        method = clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
