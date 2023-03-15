@@ -49,8 +49,10 @@ dependencies:
   - scipy
   - sqlalchemy
   - tabulate
-  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
   - zstandard
+
+  - pip:
+    - tzdata>=2022.1

@@ -308,25 +308,6 @@ Dependency                                            Minimum Version    pip ext
 `numba <https://github.com/numba/numba>`__            0.53.1             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================
 
-Timezones
-^^^^^^^^^
-
-Installable with ``pip install "pandas[timezone]"``
-
-========================= ========================= =============== =============================================================
-Dependency                Minimum Version           pip extra       Notes
-========================= ========================= =============== =============================================================
-tzdata                    2022.1(pypi)/             timezone        Allows the use of ``zoneinfo`` timezones with pandas.
-                          2022a(for system tzdata)                  **Note**: You only need to install the pypi package if your
-                                                                    system does not already provide the IANA tz database.
-                                                                    However, the minimum tzdata version still applies, even if it
-                                                                    is not enforced through an error.
-
-                                                                    If you would like to keep your system tzdata version updated,
-                                                                    it is recommended to use the ``tzdata`` package from
-                                                                    conda-forge.
-========================= ========================= =============== =============================================================
-
 Visualization
 ^^^^^^^^^^^^^
 
