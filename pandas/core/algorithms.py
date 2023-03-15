@@ -293,7 +293,7 @@ def _check_object_for_strings(values: np.ndarray) -> str:
         # it's cheaper to use a String Hash Table than Object; we infer
         # including nulls because that is the only difference between
         # StringHashTable and ObjectHashtable
-        if lib.infer_dtype(values, skipna=False) in ["string"]:
+        if lib.is_string_array(values, skipna=False):
             ndtype = "string"
     return ndtype
 
