@@ -91,14 +91,24 @@ class TestDataFrameAlign:
             af, bf = float_frame.align(other, join="inner", axis=1, method="pad")
         tm.assert_index_equal(bf.columns, other.columns)
 
-        af, bf = float_frame.align(
-            other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=None
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = float_frame.align(
+                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=None
+            )
         tm.assert_index_equal(bf.index, Index([]))
 
-        af, bf = float_frame.align(
-            other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = float_frame.align(
+                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+            )
         tm.assert_index_equal(bf.index, Index([]))
 
         # Try to align DataFrame to Series along bad axis
@@ -162,17 +172,27 @@ class TestDataFrameAlign:
         # mixed floats/ints
         other = DataFrame(index=range(5), columns=["A", "B", "C"])
 
-        af, bf = mixed_float_frame.align(
-            other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = mixed_float_frame.align(
+                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+            )
         tm.assert_index_equal(bf.index, Index([]))
 
     def test_align_mixed_int(self, mixed_int_frame):
         other = DataFrame(index=range(5), columns=["A", "B", "C"])
 
-        af, bf = mixed_int_frame.align(
-            other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+        msg = (
+            "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
+            "are deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            af, bf = mixed_int_frame.align(
+                other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
+            )
         tm.assert_index_equal(bf.index, Index([]))
 
     @pytest.mark.parametrize(
