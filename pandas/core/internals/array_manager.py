@@ -798,7 +798,11 @@ class ArrayManager(BaseArrayManager):
         return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
-        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+        self,
+        loc: int | slice | np.ndarray,
+        value: ArrayLike,
+        inplace: bool = False,
+        refs=None,
     ) -> None:
         """
         Set new column(s).
