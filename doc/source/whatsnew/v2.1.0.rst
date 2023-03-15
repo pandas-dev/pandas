@@ -207,6 +207,10 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmax` return wrong dtype when used on empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
 - Bug in weighted rolling aggregations when specifying ``min_periods=0`` (:issue:`51449`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`51896`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby`, where, when the index of the
+  grouped :class:`Series` or :class:`DataFrame` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex`
+  or :class:`PeriodIndex`, and the `groupby` method was given a function as its first argument,
+  the function operated on the whole index rather than each element of the index. (:issue:`51979`)
 -
 
 Reshaping
