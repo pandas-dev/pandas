@@ -381,14 +381,14 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
-        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        non_cat_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
 
         dtype = dtypes.pop()
         if is_categorical_dtype(dtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
         else:
             result[name] = concat_compat(arrs)
-            if len(numpy_dtypes) > 1 and result[name].dtype == np.dtype(object):
+            if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
                 warning_columns.append(str(name))
 
     if warning_columns:
