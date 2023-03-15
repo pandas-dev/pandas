@@ -1044,9 +1044,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
-        )
+        result = self._constructor(self._values[indexer], index=new_index)
+        if using_copy_on_write() and isinstance(indexer, slice):
+            result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+        return result.__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
