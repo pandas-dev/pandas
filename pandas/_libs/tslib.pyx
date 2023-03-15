@@ -695,7 +695,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
             if ts is NaT:
                 ival = NPY_NAT
             else:
-                if ts.tz is not None:
+                if ts.tzinfo is not None:
                     ts = ts.tz_convert(tz)
                 else:
                     # datetime64, tznaive pydatetime, int, float

@@ -72,3 +72,4 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .codehilite .vi { color: #bb60d5 } /* Name.Variable.Instance */
 .codehilite .vm { color: #bb60d5 } /* Name.Variable.Magic */
 .codehilite .il { color: #40a070 } /* Literal.Number.Integer.Long */
+.codehilite > pre { padding: 1em; border: 0.1em solid darkgrey; border-radius: 0.4em; }
