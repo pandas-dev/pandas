@@ -1997,7 +1997,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         values = self._values
         arr = np.asarray(values, dtype=dtype)
         if arr is values and using_copy_on_write() and self._mgr.is_single_block:
-            # Check if self._values coerced data
+            # self._values coerces to object for non-numpy dtypes, so we have to
+            # check for all cases where coercion to object creates a copy
             if not is_1d_only_ea_dtype(self.dtypes.iloc[0]) or not is_numeric_dtype(
                 self.dtypes.iloc[0]
             ):
