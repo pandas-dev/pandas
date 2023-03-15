@@ -143,7 +143,7 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
-environment = { LDFLAGS="-Wl,--strip-debug" }
+environment = { LDFLAGS="-Wl,--strip-all" }
 test-requires = "hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python {project}/ci/test_wheels.py"
 
@@ -197,6 +197,8 @@ exclude = '''
 line-length = 88
 update-check = false
 target-version = "py38"
+fix = true
+unfixable = ["E711"]
 
 select = [
   # pyflakes
