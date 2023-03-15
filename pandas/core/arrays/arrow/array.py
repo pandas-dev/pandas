@@ -8,7 +8,6 @@ from typing import (
     Callable,
     Literal,
     Sequence,
-    TypeVar,
     cast,
 )
 
@@ -24,6 +23,7 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     Scalar,
+    Self,
     SortKind,
     TakeIndexer,
     TimeAmbiguous,
@@ -139,8 +139,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
-
-ArrowExtensionArrayT = TypeVar("ArrowExtensionArrayT", bound="ArrowExtensionArray")
 
 
 def get_unit_from_pa_dtype(pa_dtype):
@@ -419,16 +417,16 @@ class ArrowExtensionArray(
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.to_numpy(dtype=dtype)
 
-    def __invert__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def __invert__(self) -> Self:
         return type(self)(pc.invert(self._pa_array))
 
-    def __neg__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def __neg__(self) -> Self:
         return type(self)(pc.negate_checked(self._pa_array))
 
-    def __pos__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def __pos__(self) -> Self:
         return type(self)(self._pa_array)
 
-    def __abs__(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def __abs__(self) -> Self:
         return type(self)(pc.abs_checked(self._pa_array))
 
     # GH 42600: __getstate__/__setstate__ not necessary once
@@ -733,7 +731,7 @@ class ArrowExtensionArray(
     def argmax(self, skipna: bool = True) -> int:
         return self._argmin_max(skipna, "max")
 
-    def copy(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def copy(self) -> Self:
         """
         Return a shallow copy of the array.
 
@@ -745,7 +743,7 @@ class ArrowExtensionArray(
         """
         return type(self)(self._pa_array)
 
-    def dropna(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def dropna(self) -> Self:
         """
         Return ArrowExtensionArray without NA values.
 
@@ -757,11 +755,11 @@ class ArrowExtensionArray(
 
     @doc(ExtensionArray.fillna)
     def fillna(
-        self: ArrowExtensionArrayT,
+        self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-    ) -> ArrowExtensionArrayT:
+    ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
         if limit is not None:
@@ -877,9 +875,7 @@ class ArrowExtensionArray(
             f"as backed by a 1D pyarrow.ChunkedArray."
         )
 
-    def round(
-        self: ArrowExtensionArrayT, decimals: int = 0, *args, **kwargs
-    ) -> ArrowExtensionArrayT:
+    def round(self, decimals: int = 0, *args, **kwargs) -> Self:
         """
         Round each value in the array a to the given number of decimals.
 
@@ -1052,7 +1048,7 @@ class ArrowExtensionArray(
             result[self.isna()] = na_value
         return result
 
-    def unique(self: ArrowExtensionArrayT) -> ArrowExtensionArrayT:
+    def unique(self) -> Self:
         """
         Compute the ArrowExtensionArray of unique values.
 
@@ -1123,9 +1119,7 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count")
 
     @classmethod
-    def _concat_same_type(
-        cls: type[ArrowExtensionArrayT], to_concat
-    ) -> ArrowExtensionArrayT:
+    def _concat_same_type(cls, to_concat) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
@@ -1456,9 +1450,7 @@ class ArrowExtensionArray(
 
         return type(self)(result)
 
-    def _quantile(
-        self: ArrowExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> ArrowExtensionArrayT:
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str) -> Self:
         """
         Compute the quantiles of self for each quantile in `qs`.
 
@@ -1495,7 +1487,7 @@ class ArrowExtensionArray(
 
         return type(self)(result)
 
-    def _mode(self: ArrowExtensionArrayT, dropna: bool = True) -> ArrowExtensionArrayT:
+    def _mode(self, dropna: bool = True) -> Self:
         """
         Returns the mode(s) of the ExtensionArray.
 
