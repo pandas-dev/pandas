@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -172,7 +173,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr, name=name)
+        refs = None
+        if not copy and isinstance(data, (ABCSeries, Index)):
+            refs = data._references
+
+        return cls._simple_new(tdarr, name=name, refs=refs)
 
     # -------------------------------------------------------------------
 
