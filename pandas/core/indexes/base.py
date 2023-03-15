@@ -354,7 +354,7 @@ class Index(IndexOpsMixin, PandasObject):
     #  given the dtypes of the passed arguments
 
     @final
-    def _left_indexer_unique(self, other: Index) -> npt.NDArray[np.intp]:
+    def _left_indexer_unique(self, other: Self) -> npt.NDArray[np.intp]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
@@ -366,7 +366,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _left_indexer(
-        self, other: Index
+        self, other: Self
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
@@ -380,7 +380,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _inner_indexer(
-        self, other: Index
+        self, other: Self
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
@@ -394,7 +394,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _outer_indexer(
-        self, other: Index
+        self, other: Self
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
