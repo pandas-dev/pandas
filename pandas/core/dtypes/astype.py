@@ -263,6 +263,9 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     -------
     True if new data is a view or not guaranteed to be a copy, False otherwise
     """
+    if isinstance(dtype, np.dtype) and not isinstance(new_dtype, np.dtype):
+        new_dtype, dtype = dtype, new_dtype
+
     if dtype == new_dtype:
         return True
 
@@ -290,7 +293,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         numpy_dtype = dtype
 
     if new_numpy_dtype is None and isinstance(new_dtype, np.dtype):
-        numpy_dtype = new_dtype
+        new_numpy_dtype = new_dtype
 
     if numpy_dtype is not None and new_numpy_dtype is not None:
         # if both have NumPy dtype or one of them is a numpy dtype
