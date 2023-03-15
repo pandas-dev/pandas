@@ -25,7 +25,7 @@ When installing pandas using pip, sets of optional dependencies can also be inst
   pip install "pandas[performance, aws]>=2.0.0"
 
 The available extras, found in the :ref:`installation guide<install.dependencies>`, are
-``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
+``[all, performance, computation, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
 .. _whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes:
@@ -191,12 +191,12 @@ Copy-on-Write improvements
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
-  will now always raise an exception when Copy-on-Write is enabled. In this mode,
+  will now always raise an warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
   object that is the result of an indexing operation (getitem), which under
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
   can never update the original Series or DataFrame. Therefore, an informative
-  error is raised to the user instead of silently doing nothing (:issue:`49467`)
+  warning is raised to the user to avoid silently doing nothing (:issue:`49467`)
 
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
@@ -649,6 +649,8 @@ If installed, we now require:
 | hypothesis (dev)  | 6.34.2          |          |    X    |
 +-------------------+-----------------+----------+---------+
 | python-dateutil   | 2.8.2           |    X     |    X    |
++-------------------+-----------------+----------+---------+
+| tzdata            | 2022.1          |    X     |    X    |
 +-------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
