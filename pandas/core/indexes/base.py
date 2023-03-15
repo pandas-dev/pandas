@@ -501,9 +501,9 @@ class Index(IndexOpsMixin, PandasObject):
                 # they are actually ints, e.g. '0' and 0.0
                 # should not be coerced
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
-                # # GH#50127 we must update the `dtype` when we have the numpy
-                # # type `S` to `_dtype_to_subclass`, because it would raise a
-                # # `NotImplementedError``.
+                # GH#50127 we must update the `dtype` when we have the numpy
+                # type `S` to `_dtype_to_subclass`, because it would raise a
+                # `NotImplementedError`.
                 if dtype and dtype.kind == "S":
                     dtype = _dtype_obj
 
@@ -542,8 +542,8 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             elif dtype and dtype.kind == "S":
                 # GH#50127 we update data to a np.array with the correct dtype.
-                data = astype_array(np.array(data, copy=copy), dtype=dtype, copy=copy)
-                return Index(data, dtype=dtype, copy=copy, name=name)
+                # data = astype_array(np.array(data, copy=copy), dtype=dtype, copy=copy)
+                dtype = _dtype_obj
 
         try:
             arr = sanitize_array(data, None, dtype=dtype, copy=copy)
