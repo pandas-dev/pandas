@@ -103,12 +103,12 @@ Below is a possibly non-exhaustive list of changes:
        pd.Index([1, 2, 3], dtype=np.float16)
 
 
-.. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_dtype_backend:
+.. _whatsnew_200.enhancements.io_dtype_backend:
 
-Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Argument ``dtype_backend``, to return pyarrow-backed or numpy-backed nullable dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
+The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 
 * :func:`read_csv`
 * :func:`read_clipboard`
@@ -124,19 +124,13 @@ The ``use_nullable_dtypes`` keyword argument has been expanded to the following 
 * :func:`read_feather`
 * :func:`read_spss`
 * :func:`to_numeric`
+* :meth:`DataFrame.convert_dtypes`
+* :meth:`Series.convert_dtypes`
 
-To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
-the keyword argument globally to ``True`` if not specified directly. The option can be enabled
-through:
+When this option is set to ``"numpy_nullable"`` it will return a :class:`DataFrame` that is
+backed by nullable dtypes.
 
-.. ipython:: python
-
-    pd.options.mode.nullable_dtypes = True
-
-The option will only work for functions with the keyword ``use_nullable_dtypes``.
-
-Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
-to select the nullable dtypes implementation.
+When this keyword is set to ``"pyarrow"``, then these functions will return pyarrow-backed nullable :class:`ArrowDtype` DataFrames (:issue:`48957`, :issue:`49997`):
 
 * :func:`read_csv`
 * :func:`read_clipboard`
@@ -153,15 +147,8 @@ to select the nullable dtypes implementation.
 * :func:`read_feather`
 * :func:`read_spss`
 * :func:`to_numeric`
-
-
-And the following methods will also utilize the ``mode.dtype_backend`` option.
-
 * :meth:`DataFrame.convert_dtypes`
 * :meth:`Series.convert_dtypes`
-
-By default, ``mode.dtype_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
-be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (:issue:`48957`, :issue:`49997`).
 
 .. ipython:: python
 
@@ -170,13 +157,11 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("mode.dtype_backend", "pandas"):
-        df = pd.read_csv(data, use_nullable_dtypes=True)
+    df = pd.read_csv(data, dtype_backend="pyarrow")
     df.dtypes
 
     data.seek(0)
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
+    df_pyarrow = pd.read_csv(data, dtype_backend="pyarrow", engine="pyarrow")
     df_pyarrow.dtypes
 
 Copy-on-Write improvements
@@ -220,6 +205,11 @@ Copy-on-Write improvements
 
 - Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
   Copy-on-Write mechanism.
+
+- :meth:`DataFrame.__getitem__` will now respect the Copy-on-Write mechanism when the
+  :class:`DataFrame` has :class:`MultiIndex` columns.
+
+- :meth:`Series.view` will now respect the Copy-on-Write mechanism.
 
 Copy-on-Write can be enabled through one of
 
@@ -810,6 +800,7 @@ Deprecations
 - Deprecated :meth:`Grouper.obj`, use :meth:`Groupby.obj` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.indexer`, use :meth:`Resampler.indexer` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.ax`, use :meth:`Resampler.ax` instead (:issue:`51206`)
+- Deprecated keyword ``use_nullable_dtypes`` in :func:`read_parquet`, use ``dtype_backend`` instead (:issue:`51853`)
 - Deprecated :meth:`Series.pad` in favor of :meth:`Series.ffill` (:issue:`33396`)
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)

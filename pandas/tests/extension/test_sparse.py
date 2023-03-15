@@ -327,13 +327,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         self.assert_series_equal(result, expected)
 
     def test_combine_first(self, data, request):
-        if data.dtype.subtype == "int":
-            # Right now this is upcasted to float, just like combine_first
-            # for Series[int]
-            mark = pytest.mark.xfail(
-                reason="TODO(SparseArray.__setitem__) will preserve dtype."
-            )
-            request.node.add_marker(mark)
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
@@ -357,6 +350,15 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        if na_action is not None:
+            with pytest.raises(NotImplementedError, match=""):
+                data.map(lambda x: x, na_action=na_action)
+        else:
+            result = data.map(lambda x: x, na_action=na_action)
+            self.assert_extension_array_equal(result, data)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):

@@ -981,7 +981,7 @@ def test_where_dt64_2d():
 
     df = DataFrame(dta, columns=["A", "B"])
 
-    mask = np.asarray(df.isna())
+    mask = np.asarray(df.isna()).copy()
     mask[:, 1] = True
 
     # setting all of one column, none of the other
