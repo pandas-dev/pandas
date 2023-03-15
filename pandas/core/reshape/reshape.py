@@ -752,6 +752,8 @@ def _stack_multi_columns(
             common_type = find_common_type(chunk.dtypes.tolist())
             if np.issubdtype(common_type, np.floating):
                 fill_value = common_type.type(np.nan)
+            elif is_extension_array_dtype(common_type):
+                fill_value = common_type.na_value
             else:
                 fill_value = np.nan
             value_slice = chunk.reindex(
