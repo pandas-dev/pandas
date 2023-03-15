@@ -200,3 +200,13 @@ def test_invalid_file_inputs(request, all_parsers):
 
     with pytest.raises(ValueError, match="Invalid"):
         parser.read_csv([])
+
+
+def test_invalid_dtype_backend(all_parsers):
+    parser = all_parsers
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv("test", dtype_backend="numpy")
