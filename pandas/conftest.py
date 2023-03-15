@@ -140,7 +140,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
             "pandas.core.generic.NDFrame.bool",
-            f"{Union[Series,DataFrame]}.bool is now deprecated and will be removed "
+            f"{Series | DataFrame}.bool is now deprecated and will be removed "
             "in future version of pandas and cases that relied on it will raise "
             "a future warning",
         ),
