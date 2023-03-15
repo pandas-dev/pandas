@@ -69,12 +69,8 @@ Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
 The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
-The initial status of a PDEP will be `Status: Draft`. Once it is ready for discussion, the author(s)
-change it to `Status: Under discussion`, and the following are notified: core and triage teams 
-(by tagging them on GitHub: `@pandas-core`, `@triage teams`) and the 
-[pandas-dev mailing list](mailto:pandas-dev@python.org). This will be changed to `Status: 
-Accepted` when the PDEP is ready and have the approval of the core team.
-
+The initial status of a PDEP will be `Status: Under discussion`. This will be changed to 
+`Status: Accepted` when the PDEP is ready and have the approval of the core team.
 
 #### Accepted PDEP
 
