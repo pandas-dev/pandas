@@ -123,11 +123,7 @@ def test_series_array_ea_dtypes(using_copy_on_write):
 
     arr = np.asarray(ser)
     assert not np.shares_memory(arr, get_array(ser))
-    if using_copy_on_write:
-        # TODO(CoW): This should be True
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
+    assert arr.flags.writeable is True
 
 
 def test_dataframe_array_ea_dtypes(using_copy_on_write):
@@ -161,4 +157,10 @@ def test_dataframe_multiple_numpy_dtypes():
     df = DataFrame({"a": [1, 2, 3], "b": 1.5})
     arr = np.asarray(df)
     assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
+
+
+def test_empty_dataframe():
+    df = DataFrame()
+    arr = np.asarray(df)
     assert arr.flags.writeable is True
