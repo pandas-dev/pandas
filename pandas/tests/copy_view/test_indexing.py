@@ -1036,6 +1036,18 @@ def test_set_value_copy_only_necessary_column(
             assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
 
 
+def test_series_midx_slice(using_copy_on_write):
+    ser = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
+    result = ser[1]
+    assert np.shares_memory(get_array(ser), get_array(result))
+    result.iloc[0] = 100
+    if using_copy_on_write:
+        expected = Series(
+            [1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]])
+        )
+        tm.assert_series_equal(ser, expected)
+
+
 def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
     df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
     df_orig = df.copy()
