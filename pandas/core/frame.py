@@ -4192,6 +4192,7 @@ class DataFrame(NDFrame, OpsMixin):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
                     value = np.tile(value, (len(existing_piece.columns), 1)).T
+                    refs = None
 
         self._set_item_mgr(key, value, refs)
 

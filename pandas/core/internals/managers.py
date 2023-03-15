@@ -1205,9 +1205,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    self._iset_split_block(
-                        blkno_l, blk_locs, value_getitem(val_locs), refs=refs
-                    )
+                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
@@ -1221,7 +1219,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     continue
                 else:
                     # Defer setting the new values to enable consolidation
-                    self._iset_split_block(blkno_l, blk_locs)
+                    self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
         if len(removed_blknos):
             # Remove blocks & update blknos accordingly
@@ -1284,7 +1282,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blkno_l: int,
         blk_locs: np.ndarray | list[int],
         value: ArrayLike | None = None,
-        refs=None,
+        refs: BlockValuesRefs | None = None,
     ) -> None:
         """Removes columns from a block by splitting the block.
 
@@ -1297,6 +1295,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blkno_l: The block number to operate on, relevant for updating the manager
         blk_locs: The locations of our block that should be deleted.
         value: The value to set as a replacement.
+        refs: The reference tracking object of the value to set.
         """
         blk = self.blocks[blkno_l]
 
