@@ -15,8 +15,6 @@ from typing import (
 import numpy as np
 from numpy import ma
 
-from pandas._config import using_copy_on_write
-
 from pandas._libs import lib
 
 from pandas.core.dtypes.cast import (
@@ -292,15 +290,6 @@ def ndarray_to_mgr(
             values = values.copy()
         if values.ndim == 1:
             values = values.reshape(-1, 1)
-
-    elif (
-        using_copy_on_write()
-        and isinstance(values, np.ndarray)
-        and (dtype is None or is_dtype_equal(values.dtype, dtype))
-        and copy_on_sanitize
-    ):
-        values = np.array(values, copy=copy_on_sanitize)
-        values = _ensure_2d(values)
 
     elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
         # drop subclass info
