@@ -18,9 +18,11 @@ dependencies:
   - python-dateutil
   - pytz
   - pip
+
   - pip:
     - "cython"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"
     - "scipy"
+    - "tzdata>=2022.1"

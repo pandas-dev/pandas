@@ -68,3 +68,6 @@ dependencies:
   - pandas-gbq>=0.15.0
   - pyyaml
   - py
+
+  - pip:
+    - tzdata>=2022.1
