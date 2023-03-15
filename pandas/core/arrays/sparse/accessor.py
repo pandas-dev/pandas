@@ -336,11 +336,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         >>> df.sparse.to_coo()
         <4x1 sparse matrix of type '<class 'numpy.int64'>'
                 with 2 stored elements in COOrdinate format>
-        >>> sparse_array = pd.arrays.SparseArray([0, 1.234, 0, 8.32], fill_value=0)
-        >>> df = pd.DataFrame({"A": sparse_array})
-        >>> df.sparse.to_coo()
-        <4x1 sparse matrix of type '<class 'numpy.float64'>'
-                with 2 stored elements in COOrdinate format>
         """
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
