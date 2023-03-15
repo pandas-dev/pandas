@@ -12,7 +12,6 @@ from typing import (
     Any,
     Callable,
     Sequence,
-    TypeVar,
     cast,
     final,
 )
@@ -70,15 +69,13 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        Self,
         npt,
     )
 
     from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
-_T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
-_TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
@@ -359,7 +356,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     # --------------------------------------------------------------------
     # Arithmetic Methods
 
-    def shift(self: _T, periods: int = 1, freq=None) -> _T:
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 
@@ -426,7 +423,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def unit(self) -> str:
         return self._data.unit
 
-    def as_unit(self: _TDT, unit: str) -> _TDT:
+    def as_unit(self, unit: str) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 
@@ -451,7 +448,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return self._data._ndarray
 
     @doc(DatetimeIndexOpsMixin.shift)
-    def shift(self: _TDT, periods: int = 1, freq=None) -> _TDT:
+    def shift(self, periods: int = 1, freq=None) -> Self:
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
                 freq = to_offset(freq)
@@ -573,7 +570,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         return result
 
-    def _can_fast_intersect(self: _T, other: _T) -> bool:
+    def _can_fast_intersect(self, other: Self) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
         if self.freq is None:
             return False
@@ -591,7 +588,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # GH#42104
         return self.freq.n == 1
 
-    def _can_fast_union(self: _T, other: _T) -> bool:
+    def _can_fast_union(self, other: Self) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
         # The ability to fast_union also implies that `freq` should be
         #  retained on union.
@@ -621,7 +618,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
+    def _fast_union(self, other: Self, sort=None) -> Self:
         # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
