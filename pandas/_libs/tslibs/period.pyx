@@ -1174,7 +1174,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return f"{dts.year}"
 
     elif freq_group == FR_QTR and (is_fmt_none or fmt == "%FQ%q"):
-        # get quarter and modify dts.year to be the fiscal year (?)
+        # get quarter and modify dts.year to be the 'Fiscal' year
         quarter = get_yq(value, freq, &dts)
         return f"{dts.year}Q{quarter}"
 
