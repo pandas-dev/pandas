@@ -280,7 +280,7 @@ Other enhancements
 - :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
-- Support ``decimal`` parameter when ``engine="pyarrow"`` in :func:`read_csv` (:issue:`51302`)
+- Added support for ``decimal`` parameter when ``engine="pyarrow"`` in :func:`read_csv` (:issue:`51302`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
 - Added new escape mode "latex-math" to avoid escaping "$" in formatter (:issue:`50040`)
 
@@ -1294,7 +1294,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
-- Fixed handling of ``encoding`` parameter when ``engine="pyarrow"`` in :func:`read_csv` (:issue:`51302`)
+- Bug in :func:`read_csv` when ``engine="pyarrow"`` where ``encoding`` parameter was not handled correctly (:issue:`51302`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 - Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
 
