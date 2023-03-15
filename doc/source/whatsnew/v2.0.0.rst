@@ -1360,6 +1360,7 @@ ExtensionArray
 - Bug in :class:`Series` constructor unnecessarily overflowing for nullable unsigned integer dtypes (:issue:`38798`, :issue:`25880`)
 - Bug in setting non-string value into ``StringArray`` raising ``ValueError`` instead of ``TypeError`` (:issue:`49632`)
 - Bug in :meth:`DataFrame.reindex` not honoring the default ``copy=True`` keyword in case of columns with ExtensionDtype (and as a result also selecting multiple columns with getitem (``[]``) didn't correctly result in a copy) (:issue:`51197`)
+- Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
 - Bug in :class:`~arrays.ArrowExtensionArray` logical operations ``&`` and ``|`` raising ``KeyError`` (:issue:`51688`)
 
 Styler
