@@ -7,6 +7,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.tests.copy_view.util import get_array
 
 # -----------------------------------------------------------------------------
 # Copy/view behaviour for the values that are set in a DataFrame
@@ -85,3 +86,34 @@ def test_set_columns_with_dataframe(using_copy_on_write):
     # and modifying the set DataFrame does not modify the original DataFrame
     df2.iloc[0, 0] = 0
     tm.assert_series_equal(df["c"], Series([7, 8, 9], name="c"))
+
+
+def test_setitem_series_no_copy(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    rhs = Series([4, 5, 6])
+    rhs_orig = rhs.copy()
+    df["b"] = rhs
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(rhs), get_array(df, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_series_equal(rhs, rhs_orig)
+
+    df["a"] = rhs
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(rhs), get_array(df, "a"))
+
+    df.iloc[0, 0] = 100
+    tm.assert_series_equal(rhs, rhs_orig)
+
+
+def test_setitem_series_no_copy_split_block(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    rhs = Series([4, 5, 6])
+    rhs_orig = rhs.copy()
+    df["b"] = rhs
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(rhs), get_array(df, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_series_equal(rhs, rhs_orig)

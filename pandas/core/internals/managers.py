@@ -1333,7 +1333,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         inplace: bool,
         blkno: int,
         blk: Block,
-        refs=None,
+        refs: BlockValuesRefs | None = None,
     ) -> None:
         """
         Fastpath for iset when we are only setting a single position and

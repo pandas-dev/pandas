@@ -1052,34 +1052,3 @@ def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
     if using_copy_on_write:
         new_df.iloc[0, 0] = 100
         tm.assert_frame_equal(df_orig, df)
-
-
-def test_setitem_series_no_copy(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    rhs = Series([4, 5, 6])
-    rhs_orig = rhs.copy()
-    df["b"] = rhs
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(rhs), get_array(df, "b"))
-
-    df.iloc[0, 1] = 100
-    tm.assert_series_equal(rhs, rhs_orig)
-
-    df["a"] = rhs
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(rhs), get_array(df, "a"))
-
-    df.iloc[0, 0] = 100
-    tm.assert_series_equal(rhs, rhs_orig)
-
-
-def test_setitem_series_no_copy_split_block(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
-    rhs = Series([4, 5, 6])
-    rhs_orig = rhs.copy()
-    df["b"] = rhs
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(rhs), get_array(df, "b"))
-
-    df.iloc[0, 1] = 100
-    tm.assert_series_equal(rhs, rhs_orig)
