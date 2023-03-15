@@ -419,7 +419,7 @@ class TestClipboard:
             subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes(
+    def test_read_clipboard_dtype_backend(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
     ):
         # GH#50502
@@ -440,10 +440,7 @@ y,2,5.0,,,,,False,"""
         mock_clipboard[request.node.name] = text
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_clipboard(
-                    sep=",", use_nullable_dtypes=True, engine=engine
-                )
+            result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
 
         expected = DataFrame(
             {
@@ -471,19 +468,10 @@ y,2,5.0,,,,,False,"""
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes_option(
-        self, request, mock_clipboard, engine
-    ):
-        # GH#50748
-
-        text = """a
-1
-2"""
-        mock_clipboard[request.node.name] = text
-
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = read_clipboard(sep=",", engine=engine)
-
-        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_clipboard(dtype_backend="numpy")

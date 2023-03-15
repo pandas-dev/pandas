@@ -69,12 +69,9 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
-    import_pandas_datetime,
     npy_datetimestruct,
     string_to_dts,
 )
-
-import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
