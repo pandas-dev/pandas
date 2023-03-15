@@ -71,7 +71,7 @@ class ApplyDictReturn:
 
 class Apply:
     param_names = ["factor"]
-    params = [4, 5]
+    params = [5, 6]
 
     def setup(self, factor):
         N = 10**factor
@@ -91,12 +91,31 @@ class Apply:
             }
         )
         self.df = df
+        self.df_sorted = df.sort_values(by="key")
 
     def time_scalar_function_multi_col(self, factor):
         self.df.groupby(["key", "key2"]).apply(lambda x: 1)
 
     def time_scalar_function_single_col(self, factor):
         self.df.groupby("key").apply(lambda x: 1)
+
+    def peakmem_scalar_function_multi_col(self, factor):
+        self.df.groupby(["key", "key2"]).apply(lambda x: 1)
+
+    def peakmem_scalar_function_single_col(self, factor):
+        self.df.groupby("key").apply(lambda x: 1)
+
+    def time_sorted_scalar_function_multi_col(self, factor):
+        self.df_sorted.groupby(["key", "key2"]).apply(lambda x: 1)
+
+    def time_sortedscalar_function_single_col(self, factor):
+        self.df_sorted.groupby("key").apply(lambda x: 1)
+
+    def peakmem_sorted_scalar_function_multi_col(self, factor):
+        self.df_sorted.groupby(["key", "key2"]).apply(lambda x: 1)
+
+    def peakmem_sorted_scalar_function_single_col(self, factor):
+        self.df_sorted.groupby("key").apply(lambda x: 1)
 
     @staticmethod
     def df_copy_function(g):

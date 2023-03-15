@@ -1260,10 +1260,17 @@ class DataSplitter(Generic[NDFrameT]):
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
 
         for start, end in zip(starts, ends):
-            yield self._chop(sdata, slice(start, end))
+            sliced = self._chop(sdata, slice(start, end))
+            if self._sorted_data is self.data:
+                yield sliced.copy()
+            else:
+                yield sliced
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
+        if lib.is_range_indexer(self._sort_idx, len(self.data)):
+            # Check if DF already in correct order
+            return self.data  # Need to take a copy later!
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
