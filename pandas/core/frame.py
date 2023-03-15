@@ -3904,7 +3904,9 @@ class DataFrame(NDFrame, OpsMixin):
     def __setitem__(self, key, value):
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
