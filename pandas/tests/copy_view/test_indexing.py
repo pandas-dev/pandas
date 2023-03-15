@@ -979,9 +979,7 @@ def test_column_as_series_no_item_cache(
 
 def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     # Case: adding a new column to a DataFrame from an existing column/series
-    # -> always already takes a copy on assignment
-    # (no change in behaviour here)
-    # TODO can we achieve the same behaviour with Copy-on-Write?
+    # -> delays copy under CoW
     _, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
 
@@ -996,11 +994,6 @@ def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     s[0] = 0
     expected = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "new": [10, 11, 12]})
     tm.assert_frame_equal(df, expected)
-
-    # editing column in frame -> doesn't modify series
-    df.loc[2, "new"] = 100
-    expected_s = Series([0, 11, 12])
-    tm.assert_series_equal(s, expected_s)
 
 
 @pytest.mark.parametrize("val", [100, "a"])
