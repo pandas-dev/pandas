@@ -1084,6 +1084,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
             new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            if using_copy_on_write() and isinstance(loc, slice):
+                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
         else:
