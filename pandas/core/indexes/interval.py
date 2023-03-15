@@ -694,9 +694,11 @@ class IntervalIndex(ExtensionIndex):
             target = self._maybe_convert_i8(target)
             indexer = self._engine.get_indexer(target.values)
 
-            if indexer == -1 and method is not None:
+            # if indexer is int:
+            if indexer == [-1] and method in ("bfill", "backfill"):
                 # GH#51503
                 indexer = self._get_indexer_ffill(target, method)
+
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # we should always have self._should_partial_index(target) here
