@@ -1902,14 +1902,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set_inplace(
-        self, locs, values: ArrayLike, copy: bool = False, refs=None
-    ) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         # When an ndarray, we should have locs.tolist() == [0]
         # When a BlockPlacement we should have list(locs) == [0]
-        if refs is not None:
-            self = self.make_block(values, refs=refs)
-            return
         if copy:
             self.values = self.values.copy()
         self.values[:] = values

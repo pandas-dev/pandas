@@ -4131,13 +4131,19 @@ class DataFrame(NDFrame, OpsMixin):
         self[key] = value[value.columns[0]]
 
     def _iset_item_mgr(
-        self, loc: int | slice | np.ndarray, value, inplace: bool = False, refs=None
+        self,
+        loc: int | slice | np.ndarray,
+        value,
+        inplace: bool = False,
+        refs: BlockValuesRefs | None = None,
     ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
         self._mgr.iset(loc, value, inplace=inplace, refs=refs)
         self._clear_item_cache()
 
-    def _set_item_mgr(self, key, value: ArrayLike, refs=None) -> None:
+    def _set_item_mgr(
+        self, key, value: ArrayLike, refs: BlockValuesRefs | None = None
+    ) -> None:
         try:
             loc = self._info_axis.get_loc(key)
         except KeyError:
