@@ -764,6 +764,7 @@ Other API changes
 - Division by zero with :class:`ArrowDtype` dtypes returns ``-inf``, ``nan``, or ``inf`` depending on the numerator, instead of raising (:issue:`51541`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 - :meth:`~arrays.ArrowExtensionArray.value_counts` now returns data with :class:`ArrowDtype` with ``pyarrow.int64`` type instead of ``"Int64"`` type (:issue:`51462`)
+- :class:`~arrays.ArrowExtensionArray` comparison methods now return data with :class:`ArrowDtype` with ``pyarrow.bool_`` type instead of ``"boolean"`` dtype (:issue:`51643`)
 
 .. note::
 
