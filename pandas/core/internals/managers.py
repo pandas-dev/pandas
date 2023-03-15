@@ -22,7 +22,10 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
-from pandas._libs.internals import BlockPlacement
+from pandas._libs.internals import (
+    BlockPlacement,
+    BlockValuesRefs,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -1129,7 +1132,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         loc: int | slice | np.ndarray,
         value: ArrayLike,
         inplace: bool = False,
-        refs=None,
+        refs: BlockValuesRefs | None = None,
     ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
