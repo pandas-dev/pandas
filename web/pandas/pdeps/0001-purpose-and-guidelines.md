@@ -4,7 +4,7 @@
 - Status: Accepted
 - Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
 - Author: [Marc Garcia](https://github.com/datapythonista)
-- Revision: 1
+- Revision: 2
 
 ## PDEP definition, purpose and scope
 
@@ -20,13 +20,13 @@ significant discussion within the community.
 
 PDEPs are appropriate for user facing changes, internal changes and significant discussions.
 Examples of topics worth a PDEP could include substantial API changes, breaking behavior changes,
-moving a module from pandas to a separate repository, a refactoring of the pandas block manager
-or a proposal of a new code of conduct. It is not always trivial to know which issue has enough
-scope to require the full PDEP process. Some simple API changes have sufficient consensus among
-the core team, and minimal impact on the community. On the other hand, if an issue becomes
-controversial, i.e. it generated a significant discussion, one could suggest opening a PDEP to
-formalize and document the discussion, making it easier for the wider community to participate.
-For context, see [the list of issues that could have been a PDEP](#List-of-issues).
+moving a module from pandas to a separate repository, or a refactoring of the pandas block manager. 
+It is not always trivial to know which issue has enough scope to require the full PDEP process. 
+Some simple API changes have sufficient consensus among the core team, and minimal impact on the 
+community. On the other hand, if an issue becomes controversial, i.e. it generated a significant 
+discussion, one could suggest opening a PDEP to formalize and document the discussion, making it 
+easier for the wider community to participate. For context, see 
+[the list of issues that could have been a PDEP](#List-of-issues).  
 
 ## PDEP guidelines
 
@@ -46,11 +46,11 @@ consider when writing a PDEP are:
 
 ### PDEP authors
 
-Anyone can propose a PDEP, but core members need to sponsor a proposal made by non-core
-contributors. To submit a PDEP as a community member, please propose the PDEP concept on
+Anyone can propose a PDEP, but a core member should be engaged to advise on a proposal made by 
+non-core contributors. To submit a PDEP as a community member, please propose the PDEP concept on
 [an issue](https://github.com/pandas-dev/pandas/issues/new/choose), and find a pandas team
-member to collaborate with. They can co-author the PDEP with you and submit it to the PDEPs
-repository.
+member to collaborate with. They can advise you on the PDEP process and should be listed as an
+advisor on the PDEP when it is submitted to the PDEP repository.
 
 ### Workflow
 
@@ -70,9 +70,10 @@ The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
 The initial status of a PDEP will be `Status: Draft`. Once it is ready for discussion, the author(s)
-change it to `Status: Under discussion`, and the following are notified: core and triage teams
-and the pandas-dev mailing list. This will be changed to `Status: Accepted` when the PDEP is ready
-and have the approval of the core team.
+change it to `Status: Under discussion`, and the following are notified: core and triage teams 
+(by tagging them on GitHub: `@pandas-core`, `@triage teams`) and the 
+[pandas-dev mailing list](mailto:pandas-dev@python.org). This will be changed to `Status: 
+Accepted` when the PDEP is ready and have the approval of the core team.
 
 
 #### Accepted PDEP
@@ -134,6 +135,7 @@ changed and avoid confusion.
 
 ## <a id="List-of-issues"></a> List of issues that could have been PDEPs for context
 ### Clear examples for potential PDEPs:
+
 - Adding a new parameter to many existing methods, or deprecating one in many places. For example:
   - The `numeric_only` deprecation affected many methods and could have been a PDEP.
 - Adding a new data type has impact on a variety of places that need to handle the data type.
@@ -144,15 +146,17 @@ changed and avoid confusion.
 - Support of new python features with a wide impact on the project. For example:
   - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
-- New required dependency
+- New required dependency. For example:
+  - Moving rarely used I/O connectors to a separate repository [GH-28409](28409)
 
 ### Borderline examples:
-- Small changes to core functionality, such as `DataFrame` and `Series`, should always be considered
-  as a PDEP candidate as it will likely have a big impact on users. But the same types of
-  changes in other methods would not be good PDEP candidates. That said, any discussion, no
-  matter how small the change, which becomes controversial is a PDEP candidate. Consider if more
-  attention and/or a formal decision-making process would help. Following are some examples we
-  hope can help clarify our meaning here:
+Small changes to core functionality, such as `DataFrame` and `Series`, should always be 
+considered as a PDEP candidate as it will likely have a big impact on users. But the same types 
+of changes in to functionalities would not be good PDEP candidates. That said, any discussion, 
+no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more 
+attention and/or a formal decision-making process would help. Following are some examples we 
+hope can help clarify our meaning here:
+
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
   - Value counts rename ([GH-49497][49497]). The scope doesn’t justify a PDEP at first, but later a
     discussion about whether it should be executed as breaking change or with deprecation
@@ -174,6 +178,7 @@ changed and avoid confusion.
     require a PDEP.
 
 ### A counter-example:
+
 - Significant changes to contributors' processes don't require a PDEP as they aren't going to
   have an impact on users. For example:
   - Changing the build system to meson ([GH-49115][49115])
@@ -182,7 +187,7 @@ changed and avoid confusion.
 ### PDEP-1 History
 
 - 3 August 2022: Initial version
-- 15 February 2023: Revision 1
+- 15 February 2023: Version 2
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
@@ -196,3 +201,4 @@ changed and avoid confusion.
 [6249]: https://github.com/pandas-dev/pandas/issues/6249
 [48577]: https://github.com/pandas-dev/pandas/issues/48577
 [49115]: https://github.com/pandas-dev/pandas/pull/49115
+[28409]: https://github.com/pandas-dev/pandas/issues/28409
