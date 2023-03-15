@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -21,8 +20,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
-
 
 # selection
 # --------------------------------
