@@ -493,6 +493,7 @@ def test_frame_setitem_view_direct(
             df["foo"].values[:] = 0
         assert (df["foo"].values != 0).all()
     else:
+        df["foo"].values[:] = 0
         assert (df["foo"].values == 0).all()
 
 
