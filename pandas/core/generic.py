@@ -11994,7 +11994,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Arithmetic Methods
 
     @final
-    def _inplace_method(self, other, op):
+    def _inplace_method(self, other, op) -> Self:
         """
         Wrap arithmetic method to operate inplace.
         """
