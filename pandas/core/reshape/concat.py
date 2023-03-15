@@ -367,6 +367,8 @@ def concat(
             copy = False
         else:
             copy = True
+    elif copy and using_copy_on_write():
+        copy = False
 
     op = _Concatenator(
         objs,

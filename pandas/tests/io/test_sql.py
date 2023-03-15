@@ -32,6 +32,7 @@ import sqlite3
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -2437,75 +2438,68 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
-    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_nullable_dtypes(
-        self, string_storage, func, option, dtype_backend
-    ):
+    def test_read_sql_dtype_backend(self, string_storage, func, dtype_backend):
         # GH#50048
         table = "test"
-        df = self.nullable_data()
+        df = self.dtype_backend_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", True):
-                        result = getattr(pd, func)(f"Select * from {table}", self.conn)
-                else:
-                    result = getattr(pd, func)(
-                        f"Select * from {table}", self.conn, use_nullable_dtypes=True
-                    )
-        expected = self.nullable_expected(string_storage, dtype_backend)
+            result = getattr(pd, func)(
+                f"Select * from {table}", self.conn, dtype_backend=dtype_backend
+            )
+        expected = self.dtype_backend_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                iterator = getattr(pd, func)(
-                    f"Select * from {table}",
-                    self.conn,
-                    use_nullable_dtypes=True,
-                    chunksize=3,
-                )
-                expected = self.nullable_expected(string_storage, dtype_backend)
-                for result in iterator:
-                    tm.assert_frame_equal(result, expected)
+            iterator = getattr(pd, func)(
+                f"Select * from {table}",
+                self.conn,
+                dtype_backend=dtype_backend,
+                chunksize=3,
+            )
+            expected = self.dtype_backend_expected(string_storage, dtype_backend)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(
-        self, string_storage, func, option, dtype_backend
-    ):
+    def test_read_sql_dtype_backend_table(self, string_storage, func, dtype_backend):
         # GH#50048
         table = "test"
-        df = self.nullable_data()
+        df = self.dtype_backend_data()
         df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", True):
-                        result = getattr(pd, func)(table, self.conn)
-                else:
-                    result = getattr(pd, func)(
-                        table, self.conn, use_nullable_dtypes=True
-                    )
-        expected = self.nullable_expected(string_storage, dtype_backend)
+            result = getattr(pd, func)(table, self.conn, dtype_backend=dtype_backend)
+        expected = self.dtype_backend_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                iterator = getattr(pd, func)(
-                    table,
-                    self.conn,
-                    use_nullable_dtypes=True,
-                    chunksize=3,
-                )
-                expected = self.nullable_expected(string_storage, dtype_backend)
-                for result in iterator:
-                    tm.assert_frame_equal(result, expected)
+            iterator = getattr(pd, func)(
+                table,
+                self.conn,
+                dtype_backend=dtype_backend,
+                chunksize=3,
+            )
+            expected = self.dtype_backend_expected(string_storage, dtype_backend)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
 
-    def nullable_data(self) -> DataFrame:
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
+    def test_read_sql_invalid_dtype_backend_table(self, func):
+        table = "test"
+        df = self.dtype_backend_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            getattr(pd, func)(table, self.conn, dtype_backend="numpy")
+
+    def dtype_backend_data(self) -> DataFrame:
         return DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -2519,7 +2513,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             }
         )
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
         string_array: StringArray | ArrowStringArray
         string_array_na: StringArray | ArrowStringArray
         if storage == "python":
@@ -2571,9 +2565,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         ):
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("use_nullable_dtypes", [True, False])
+    @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable"])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_dtype(self, func, use_nullable_dtypes):
+    def test_read_sql_dtype(self, func, dtype_backend):
         # GH#50797
         table = "test"
         df = DataFrame({"a": [1, 2, 3], "b": 5})
@@ -2583,13 +2577,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             f"Select * from {table}",
             self.conn,
             dtype={"a": np.float64},
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
         expected = DataFrame(
             {
                 "a": Series([1, 2, 3], dtype=np.float64),
                 "b": Series(
-                    [5, 5, 5], dtype="int64" if not use_nullable_dtypes else "Int64"
+                    [5, 5, 5],
+                    dtype="int64" if not dtype_backend == "numpy_nullable" else "Int64",
                 ),
             }
         )
@@ -2679,9 +2674,9 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         assert list(df.columns) == ["id", "string_column"]
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().nullable_expected(storage, dtype_backend)
-        if dtype_backend == "pandas":
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().dtype_backend_expected(storage, dtype_backend)
+        if dtype_backend == "numpy_nullable":
             df = df.astype({"e": "Int64", "f": "Int64"})
         else:
             df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
@@ -2689,7 +2684,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         return df
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
+    def test_read_sql_dtype_backend_table(self, string_storage, func):
         # GH#50048 Not supported for sqlite
         pass
 
@@ -2720,9 +2715,9 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
     def test_default_type_conversion(self):
         pass
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().nullable_expected(storage, dtype_backend)
-        if dtype_backend == "pandas":
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().dtype_backend_expected(storage, dtype_backend)
+        if dtype_backend == "numpy_nullable":
             df = df.astype({"e": "Int64", "f": "Int64"})
         else:
             df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})

@@ -170,12 +170,15 @@ dtype : Type name or dict of column -> type, default ``None``
      the default determines the dtype of the columns which are not explicitly
      listed.
 
-use_nullable_dtypes : bool = False
-    Whether or not to use nullable dtypes as default when reading data. If
-    set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present.
+dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+  Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+  arrays, nullable dtypes are used for all dtypes that have a nullable
+  implementation when "numpy_nullable" is set, pyarrow is used for all
+  dtypes if "pyarrow" is set.
 
-    .. versionadded:: 2.0
+  The dtype_backends are still experimential.
+
+  .. versionadded:: 2.0
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
@@ -475,7 +478,7 @@ worth trying.
 
    os.remove("foo.csv")
 
-Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every column.
+Setting ``dtype_backend="numpy_nullable"`` will result in nullable dtypes for every column.
 
 .. ipython:: python
 
@@ -484,7 +487,7 @@ Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every co
    3,4.5,False,b,6,7.5,True,a,12-31-2019,
    """
 
-   df = pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df = pd.read_csv(StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"])
    df
    df.dtypes
 
