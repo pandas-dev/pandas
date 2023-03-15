@@ -320,9 +320,9 @@ class SettingWithCopyWarning(Warning):
     """
 
 
-class ChainedAssignmentError(ValueError):
+class ChainedAssignmentError(Warning):
     """
-    Exception raised when trying to set using chained assignment.
+    Warning raised when trying to set using chained assignment.
 
     When the ``mode.copy_on_write`` option is enabled, chained assignment can
     never work. In such a situation, we are always setting into a temporary

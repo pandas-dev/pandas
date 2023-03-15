@@ -114,10 +114,11 @@ two subsequent indexing operations, e.g.
 The column ``foo`` is updated where the column ``bar`` is greater than 5.
 This violates the CoW principles though, because it would have to modify the
 view ``df["foo"]`` and ``df`` in one step. Hence, chained assignment will
-consistently never work and raise a ``ChainedAssignmentError`` with CoW enabled:
+consistently never work and raise a ``ChainedAssignmentError`` warning
+with CoW enabled:
 
 .. ipython:: python
-    :okexcept:
+    :okwarning:
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     df["foo"][df["bar"] > 5] = 100

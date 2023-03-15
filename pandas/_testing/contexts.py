@@ -211,9 +211,9 @@ def raises_chained_assignment_error():
 
         return nullcontext()
     else:
-        import pytest
+        from pandas._testing import assert_produces_warning
 
-        return pytest.raises(
+        return assert_produces_warning(
             ChainedAssignmentError,
             match=(
                 "A value is trying to be set on a copy of a DataFrame or Series "
