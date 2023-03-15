@@ -101,6 +101,7 @@ class TestDataFrameAlign:
         with pytest.raises(ValueError, match=msg):
             float_frame.align(af.iloc[0, :3], join="inner", axis=2)
 
+    def test_align_frame_with_series(self, float_frame):
         # align dataframe to series with broadcast or not
         idx = float_frame.index
         s = Series(range(len(idx)), index=idx)
@@ -118,6 +119,7 @@ class TestDataFrameAlign:
         )
         tm.assert_frame_equal(right, expected)
 
+    def test_align_series_condition(self):
         # see gh-9558
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         result = df[df["a"] == 2]

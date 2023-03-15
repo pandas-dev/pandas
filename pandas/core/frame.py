@@ -231,6 +231,7 @@ if TYPE_CHECKING:
         ReadBuffer,
         Renamer,
         Scalar,
+        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -2495,7 +2496,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
-    ) -> DataFrame:
+    ) -> Self:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
 
@@ -3953,7 +3954,9 @@ class DataFrame(NDFrame, OpsMixin):
     def __setitem__(self, key, value):
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4597,7 +4600,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
+    def select_dtypes(self, include=None, exclude=None) -> Self:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -5015,7 +5018,7 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[DataFrame, NDFrameT]:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
