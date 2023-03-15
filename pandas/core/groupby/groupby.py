@@ -19,7 +19,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Hashable,
-    Iterable,
     Iterator,
     List,
     Literal,
@@ -991,12 +990,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     # -----------------------------------------------------------------
-    # Selection
-
-    def _iterate_slices(self) -> Iterable[Series]:
-        raise AbstractMethodError(self)
-
-    # -----------------------------------------------------------------
     # Dispatch/Wrapping
 
     @final
@@ -1106,11 +1099,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return result
 
-    def _indexed_output_to_ndframe(
-        self, result: Mapping[base.OutputKey, ArrayLike]
-    ) -> Series | DataFrame:
-        raise AbstractMethodError(self)
-
     @final
     def _maybe_transpose_result(self, result: NDFrameT) -> NDFrameT:
         if self.axis == 1:
@@ -1179,8 +1167,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(ids, ngroups)
-        sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
+        sorted_index = self.grouper._sort_idx
+        sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         if len(self.grouper.groupings) > 1:
@@ -1398,7 +1386,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self.grouper.apply(f, data, self.axis)
+        values, mutated = self.grouper.apply_groupwise(f, data, self.axis)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
@@ -1572,7 +1560,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#46209
             # Don't convert indices: negative indices need to give rise
             # to null values in the result
-            output = result._take(ids, axis=axis, convert_indices=False)
+            new_ax = result.axes[axis].take(ids)
+            output = result._reindex_with_indexers(
+                {axis: (new_ax, ids)}, allow_dups=True, copy=False
+            )
             output = output.set_axis(obj._get_axis(self.axis), axis=axis)
         return output
 
@@ -2459,7 +2450,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Open, high, low and close values within each group.
         """
         if self.obj.ndim == 1:
-            # self._iterate_slices() yields only self._selected_obj
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -2476,12 +2466,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
             return self._reindex_output(result)
 
-        result = self._apply_to_column_groupbys(
-            lambda x: x.ohlc(), self._obj_with_exclusions
-        )
-        if not self.as_index:
-            result = self._insert_inaxis_grouper(result)
-            result.index = default_index(len(result))
+        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
         return result
 
     @doc(DataFrame.describe)
@@ -3086,9 +3071,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 sort=self.sort,
             )
 
-        grb = dropped.groupby(
-            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
-        )
+        if self.axis == 1:
+            grb = dropped.T.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        else:
+            grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
 
     @final
@@ -3194,12 +3180,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
                         # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
                         # [union-attr]
-                        return type(orig_vals)(
-                            vals.astype(
-                                inference.numpy_dtype  # type: ignore[union-attr]
-                            ),
-                            result_mask,
-                        )
+                        with warnings.catch_warnings():
+                            # vals.astype with nan can warn with numpy >1.24
+                            warnings.filterwarnings("ignore", category=RuntimeWarning)
+                            return type(orig_vals)(
+                                vals.astype(
+                                    inference.numpy_dtype  # type: ignore[union-attr]
+                                ),
+                                result_mask,
+                            )
 
                 elif not (
                     is_integer_dtype(inference)
@@ -3894,10 +3883,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(
-            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
-        )
-        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
+        if self.axis == 0:
+            fill_grp = filled.groupby(self.grouper.codes, group_keys=self.group_keys)
+        else:
+            fill_grp = filled.T.groupby(self.grouper.codes, group_keys=self.group_keys)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        if self.axis == 1:
+            shifted = shifted.T
         return (filled / shifted) - 1
 
     @final

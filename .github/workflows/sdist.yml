@@ -4,14 +4,15 @@ on:
   push:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
   pull_request:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 permissions:
   contents: read

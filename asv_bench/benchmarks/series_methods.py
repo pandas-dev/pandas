@@ -386,4 +386,33 @@ class ToNumpy:
         self.ser.to_numpy(copy=True)
 
 
+class Replace:
+    param_names = ["num_to_replace"]
+    params = [100, 1000]
+
+    def setup(self, num_to_replace):
+        N = 1_000_000
+        self.arr = np.random.randn(N)
+        self.arr1 = self.arr.copy()
+        np.random.shuffle(self.arr1)
+        self.ser = Series(self.arr)
+
+        self.to_replace_list = np.random.choice(self.arr, num_to_replace)
+        self.values_list = np.random.choice(self.arr1, num_to_replace)
+
+        self.replace_dict = dict(zip(self.to_replace_list, self.values_list))
+
+    def time_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def peakmem_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def time_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
+
+    def peakmem_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

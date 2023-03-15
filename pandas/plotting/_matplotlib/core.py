@@ -14,14 +14,8 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
-from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import (
-    IndexLabel,
-    PlottingOrientation,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -54,6 +48,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
@@ -78,8 +73,15 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+    from pandas._typing import (
+        IndexLabel,
+        PlottingOrientation,
+        npt,
+    )
 
 
 def _color_in_style(style: str) -> bool:
@@ -163,17 +165,16 @@ class MPLPlot(ABC):
         if isinstance(data, DataFrame):
             if column:
                 self.columns = com.maybe_make_list(column)
+            elif self.by is None:
+                self.columns = [
+                    col for col in data.columns if is_numeric_dtype(data[col])
+                ]
             else:
-                if self.by is None:
-                    self.columns = [
-                        col for col in data.columns if is_numeric_dtype(data[col])
-                    ]
-                else:
-                    self.columns = [
-                        col
-                        for col in data.columns
-                        if col not in self.by and is_numeric_dtype(data[col])
-                    ]
+                self.columns = [
+                    col
+                    for col in data.columns
+                    if col not in self.by and is_numeric_dtype(data[col])
+                ]
 
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
@@ -376,6 +377,7 @@ class MPLPlot(ABC):
         if (
             "color" in self.kwds
             and self.nseries == 1
+            and self.kwds["color"] is not None
             and not is_list_like(self.kwds["color"])
         ):
             # support series.plot(color='green')
@@ -503,15 +505,14 @@ class MPLPlot(ABC):
                 layout=self.layout,
                 layout_type=self._layout_type,
             )
+        elif self.ax is None:
+            fig = self.plt.figure(figsize=self.figsize)
+            axes = fig.add_subplot(111)
         else:
-            if self.ax is None:
-                fig = self.plt.figure(figsize=self.figsize)
-                axes = fig.add_subplot(111)
-            else:
-                fig = self.ax.get_figure()
-                if self.figsize is not None:
-                    fig.set_size_inches(self.figsize)
-                axes = self.ax
+            fig = self.ax.get_figure()
+            if self.figsize is not None:
+                fig.set_size_inches(self.figsize)
+            axes = self.ax
 
         axes = flatten_axes(axes)
 
@@ -784,8 +785,11 @@ class MPLPlot(ABC):
         if not self.subplots:
             if leg is not None:
                 title = leg.get_title().get_text()
-                # Replace leg.LegendHandles because it misses marker info
-                handles = leg.legendHandles
+                # Replace leg.legend_handles because it misses marker info
+                if Version(mpl.__version__) < Version("3.7"):
+                    handles = leg.legendHandles
+                else:
+                    handles = leg.legend_handles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -1221,14 +1225,13 @@ class ScatterPlot(PlanePlot):
 
         if self.colormap is not None:
             cmap = mpl.colormaps.get_cmap(self.colormap)
+        # cmap is only used if c_values are integers, otherwise UserWarning
+        elif is_integer_dtype(c_values):
+            # pandas uses colormap, matplotlib uses cmap.
+            cmap = "Greys"
+            cmap = mpl.colormaps[cmap]
         else:
-            # cmap is only used if c_values are integers, otherwise UserWarning
-            if is_integer_dtype(c_values):
-                # pandas uses colormap, matplotlib uses cmap.
-                cmap = "Greys"
-                cmap = mpl.colormaps[cmap]
-            else:
-                cmap = None
+            cmap = None
 
         if color_by_categorical:
             from matplotlib import colors
@@ -1626,14 +1629,13 @@ class BarPlot(MPLPlot):
                 self.lim_offset = self.bar_width / 2
             else:
                 self.lim_offset = 0
+        elif kwargs["align"] == "edge":
+            w = self.bar_width / self.nseries
+            self.tickoffset = self.bar_width * (pos - 0.5) + w * 0.5
+            self.lim_offset = w * 0.5
         else:
-            if kwargs["align"] == "edge":
-                w = self.bar_width / self.nseries
-                self.tickoffset = self.bar_width * (pos - 0.5) + w * 0.5
-                self.lim_offset = w * 0.5
-            else:
-                self.tickoffset = self.bar_width * pos
-                self.lim_offset = 0
+            self.tickoffset = self.bar_width * pos
+            self.lim_offset = 0
 
         self.ax_pos = self.tick_pos - self.tickoffset
 

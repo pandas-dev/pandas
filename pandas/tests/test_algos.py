@@ -9,8 +9,6 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -55,13 +53,7 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            sort
-            and pa_version_under7p0
-            and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            result_codes, result_uniques = obj.factorize(sort=sort)
+        result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
         if isinstance(obj, MultiIndex):
@@ -78,11 +70,7 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            with tm.maybe_produces_warning(
-                PerformanceWarning,
-                pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-            ):
-                expected_uniques = expected_uniques.sort_values()
+            expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
@@ -339,7 +327,7 @@ class TestFactorize:
 
     def test_datetime64_factorize(self, writable):
         # GH35650 Verify whether read-only datetime64 array can be factorized
-        data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
+        data = np.array([np.datetime64("2020-01-01T00:00:00.000")], dtype="M8[ns]")
         data.setflags(write=writable)
         expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
@@ -632,13 +620,13 @@ class TestUnique:
     def test_datetime_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
         result = pd.unique(a)
-        expected = np.array(["2000", "2001"], dtype="datetime64[ns]")
+        expected = np.array(["2000", "2001"], dtype="datetime64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="timedelta64[s]")
         result = pd.unique(a)
-        expected = np.array([2000000000000, 2001000000000], dtype="timedelta64[ns]")
+        expected = np.array([2000, 2001], dtype="timedelta64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta64_dtype_array_returned(self):

@@ -4,7 +4,10 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import Hashable
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 
 import numpy as np
 
@@ -16,11 +19,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -28,6 +26,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
@@ -46,6 +45,12 @@ from pandas.core.indexes.datetimes import (
 )
 from pandas.core.indexes.extension import inherit_names
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+    )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 _shared_doc_kwargs = {
@@ -217,6 +222,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "second",
         }
 
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
+
         if not set(fields).issubset(valid_field_set):
             argument = list(set(fields) - valid_field_set)[0]
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
@@ -257,7 +266,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if copy:
             data = data.copy()
 
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=name, refs=refs)
 
     # ------------------------------------------------------------------------
     # Data

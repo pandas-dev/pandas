@@ -6,10 +6,10 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
-    TypeVar,
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -17,10 +17,6 @@ from pandas._config import using_copy_on_write
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas._typing import (
-    Axis,
-    AxisInt,
-)
 from pandas.compat import PYPY
 from pandas.errors import (
     AbstractMethodError,
@@ -69,7 +65,6 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
-    is_empty_indexer,
     is_list_like_indexer,
     is_scalar_indexer,
     length_of_indexer,
@@ -80,12 +75,16 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        Self,
+    )
+
     from pandas import (
         DataFrame,
         Series,
     )
-
-_LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 
 # "null slice"
 _NS = slice(None, None)
@@ -669,9 +668,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _takeable: bool
 
     @final
-    def __call__(
-        self: _LocationIndexerT, axis: Axis | None = None
-    ) -> _LocationIndexerT:
+    def __call__(self, axis: Axis | None = None) -> Self:
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
 
@@ -755,14 +752,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                     if ndim == 1:
                         # We implicitly broadcast, though numpy does not, see
                         # github.com/pandas-dev/pandas/pull/45501#discussion_r789071825
-                        if len(newkey) == 0:
-                            # FIXME: kludge for
-                            #  test_setitem_loc_only_false_indexer_dtype_changed
-                            #  TODO(GH#45333): may be fixed when deprecation is enforced
-                            value = value.iloc[:0]
-                        else:
-                            # test_loc_setitem_ndframe_values_alignment
-                            value = self.obj.iloc._align_series(indexer, value)
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_series(indexer, value)
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
@@ -838,7 +829,9 @@ class _LocationIndexer(NDFrameIndexerBase):
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
@@ -1621,7 +1614,7 @@ class _iLocIndexer(_LocationIndexer):
         try:
             return self.obj._take_with_is_copy(key, axis=axis)
         except IndexError as err:
-            # re-raise with different error message
+            # re-raise with different error message, e.g. test_getitem_ndarray_3d
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: AxisInt):
@@ -2239,9 +2232,6 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
-                # TODO: This is hacky, align Series and DataFrame behavior GH#45778
-                if obj.ndim == 2 and is_empty_indexer(indexer[0]):
-                    return ser._values.copy()
                 ser_values = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer

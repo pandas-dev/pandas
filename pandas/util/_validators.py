@@ -13,6 +13,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
@@ -328,9 +330,8 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg.format(q_arr / 100.0))
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q_arr / 100.0))
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
 
 
@@ -438,3 +439,12 @@ def validate_insert_loc(loc: int, length: int) -> int:
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
     return loc
+
+
+def check_dtype_backend(dtype_backend) -> None:
+    if dtype_backend is not lib.no_default:
+        if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+            raise ValueError(
+                f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+                f"'pyarrow' are allowed.",
+            )

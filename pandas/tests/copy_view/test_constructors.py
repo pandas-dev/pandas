@@ -82,6 +82,25 @@ def test_series_from_series_with_reindex(using_copy_on_write):
         assert not result._mgr.blocks[0].refs.has_reference()
 
 
+@pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
+@pytest.mark.parametrize("columns", [None, ["a"]])
+def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, func):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+
+    new_df = DataFrame(func(df))
+
+    assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
+    new_df.iloc[0] = 100
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
+        tm.assert_frame_equal(df, new_df)
+
+
 @pytest.mark.parametrize("dtype", [None, "int64", "Int64"])
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])
 @pytest.mark.parametrize("columns", [None, ["a", "b"], ["a", "b", "c"]])

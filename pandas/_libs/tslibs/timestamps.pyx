@@ -978,7 +978,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO 8610.
+        Return the time formatted according to ISO 8601.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -1692,7 +1692,13 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_nsint64(value, mode, nanos)[0]
+        try:
+            r = round_nsint64(value, mode, nanos)[0]
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"Cannot round {self} to freq={freq} without overflow"
+            ) from err
+
         result = Timestamp._from_value_and_reso(r, self._creso, None)
         if self.tz is not None:
             result = result.tz_localize(
@@ -2338,7 +2344,7 @@ default 'raise'
         Monday == 1 ... Sunday == 7.
         """
         # same as super().isoweekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return self.weekday() + 1
 
     def weekday(self):
@@ -2348,7 +2354,7 @@ default 'raise'
         Monday == 0 ... Sunday == 6.
         """
         # same as super().weekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return ccalendar.dayofweek(self.year, self.month, self.day)
 
 

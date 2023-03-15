@@ -9,12 +9,12 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.32
+  - cython>=0.29.33
 
   # test dependencies
   - pytest>=7.0.0
   - pytest-cov
-  - pytest-asyncio
+  - pytest-asyncio>=0.17.0
   - pytest-xdist>=2.2.0
   - hypothesis>=6.34.2
 
@@ -22,3 +22,6 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
+
+  - pip:
+    - tzdata>=2022.1

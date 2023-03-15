@@ -102,13 +102,6 @@ if compat.PY39:
 
 
 def pytest_addoption(parser) -> None:
-    parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
-    parser.addoption("--skip-network", action="store_true", help="skip network tests")
-    parser.addoption("--skip-db", action="store_true", help="skip db tests")
-    parser.addoption(
-        "--run-high-memory", action="store_true", help="run high memory tests"
-    )
-    parser.addoption("--only-slow", action="store_true", help="run only slow tests")
     parser.addoption(
         "--strict-data-files",
         action="store_true",
@@ -135,16 +128,9 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
 
 
 def pytest_collection_modifyitems(items, config) -> None:
-    skip_slow = config.getoption("--skip-slow")
-    only_slow = config.getoption("--only-slow")
-    skip_network = config.getoption("--skip-network")
-    skip_db = config.getoption("--skip-db")
-
-    marks = [
-        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
-        (pytest.mark.network, "network", skip_network, "--network"),
-        (pytest.mark.db, "db", skip_db, "--skip-db"),
-    ]
+    is_doctest = config.getoption("--doctest-modules") or config.getoption(
+        "--doctest-cython", default=False
+    )
 
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
@@ -154,9 +140,7 @@ def pytest_collection_modifyitems(items, config) -> None:
     ]
 
     for item in items:
-        if config.getoption("--doctest-modules") or config.getoption(
-            "--doctest-cython", default=False
-        ):
+        if is_doctest:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
@@ -167,19 +151,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-
-        for mark, kwd, skip_if_found, arg_name in marks:
-            if kwd in item.keywords:
-                # If we're skipping, no need to actually add the marker or look for
-                # other markers
-                if skip_if_found:
-                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
-                    break
-
-                item.add_marker(mark)
-
-        if only_slow and "slow" not in item.keywords:
-            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
 
 
 # Hypothesis
@@ -668,9 +639,7 @@ index_flat2 = index_flat
         key
         for key, value in indices_dict.items()
         if not (
-            key.startswith("int")
-            or key.startswith("uint")
-            or key.startswith("float")
+            key.startswith(("int", "uint", "float"))
             or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
@@ -1305,7 +1274,7 @@ def string_storage(request):
 
 @pytest.fixture(
     params=[
-        "pandas",
+        "numpy_nullable",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )

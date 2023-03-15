@@ -4,16 +4,14 @@ on:
   push:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
   pull_request:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
     paths-ignore:
       - "doc/**"
-
-env:
-  PANDAS_CI: 1
+      - "web/**"
 
 permissions:
   contents: read
@@ -30,6 +28,7 @@ jobs:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         pattern: ["not single_cpu", "single_cpu"]
         pyarrow_version: ["8", "9", "10"]
+        pandas_ci: [1]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -38,7 +37,6 @@ jobs:
           - name: "Minimum Versions"
             env_file: actions-38-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
-            error_on_warnings: "0"
           - name: "Locale: it_IT"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -63,12 +61,10 @@ jobs:
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
-            error_on_warnings: "0"
           - name: "Data Manager"
             env_file: actions-38.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_data_manager: "array"
-            error_on_warnings: "0"
           - name: "Pypy"
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -77,7 +73,9 @@ jobs:
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-            error_on_warnings: "0"
+            # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
+            # There are some warnings failing the build with -werror
+            pandas_ci: 0
         exclude:
           - env_file: actions-38.yaml
             pyarrow_version: "8"
@@ -97,11 +95,11 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      ERROR_ON_WARNINGS: ${{ matrix.error_on_warnings || '1' }}
       LANG: ${{ matrix.lang || '' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
+      PANDAS_CI: ${{ matrix.pandas_ci }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
@@ -142,7 +140,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto
+        image: motoserver/moto:4.1.4
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
