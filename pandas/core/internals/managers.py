@@ -1351,7 +1351,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # perform Copy-on-Write and clear the reference
                 copy = True
             iloc = self.blklocs[loc]
-            blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy, refs=refs)
+            blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
 
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)

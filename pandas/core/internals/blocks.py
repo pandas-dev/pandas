@@ -905,9 +905,7 @@ class Block(PandasObject):
 
         return self.values[slicer]
 
-    def set_inplace(
-        self, locs, values: ArrayLike, copy: bool = False, refs=None
-    ) -> None:
+    def set_inplace(self, locs, values: ArrayLike, copy: bool = False) -> None:
         """
         Modify block values in-place with new item value.
 
@@ -921,8 +919,6 @@ class Block(PandasObject):
 
         Caller is responsible for checking values.dtype == self.dtype.
         """
-        if refs is not None:
-            values = values.copy()
         if copy:
             self.values = self.values.copy()
         self.values[locs] = values

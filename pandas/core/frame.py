@@ -12043,7 +12043,7 @@ def _reindex_for_setitem(
 
     if value.index.equals(index) or not len(index):
         if using_cow and isinstance(value, Series):
-            return value._values, value._mgr.blocks[0].refs
+            return value._values, value._references
         return value._values.copy(), None
 
     # GH#4107
