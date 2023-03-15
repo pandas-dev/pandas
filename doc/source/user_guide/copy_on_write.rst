@@ -30,7 +30,7 @@ might accidentally mutate another:
     subset.iloc[0] = 100
     df
 
-Mutating subset, e.g. updating it's values, also updates df. The exact behavior is
+Mutating ``subset``, e.g. updating its values, also updates ``df``. The exact behavior is
 hard to predict. Copy-on-Write solves accidentally modifying more than one object,
 it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
 
