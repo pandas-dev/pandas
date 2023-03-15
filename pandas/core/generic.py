@@ -103,11 +103,11 @@ from pandas.util._validators import (
     validate_inclusive,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
     ensure_str,
-    is_1d_only_ea_dtype,
     is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
@@ -1997,10 +1997,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         values = self._values
         arr = np.asarray(values, dtype=dtype)
         if arr is values and using_copy_on_write() and self._mgr.is_single_block:
-            # self._values coerces to object for non-numpy dtypes, so we have to
-            # check for all cases where coercion to object creates a copy
-            if not is_1d_only_ea_dtype(self.dtypes.iloc[0]) or not is_numeric_dtype(
-                self.dtypes.iloc[0]
+            # Check if both conversions can be done without a copy
+            if astype_is_view(self.dtypes.iloc[0], values.dtype) and astype_is_view(
+                values.dtype, arr.dtype
             ):
                 arr = arr.view()
                 arr.flags.writeable = False
