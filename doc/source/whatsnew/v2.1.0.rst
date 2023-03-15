@@ -195,7 +195,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)
 -
 
 Groupby/resample/rolling
