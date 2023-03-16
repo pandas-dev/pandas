@@ -157,6 +157,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeBackend,
         DtypeObj,
         FilePath,
         FillnaOptions,
@@ -166,11 +167,13 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
         Renamer,
         Scalar,
+        Self,
         SingleManager,
         SortKind,
         StorageOptions,
@@ -349,6 +352,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
+
+    # similar to __array_priority__, positions Series after DataFrame
+    #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 3000
 
     # Override cache_readonly bc Series is mutable
     # error: Incompatible types in assignment (expression has type "property",
@@ -836,7 +843,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # self.array instead of self._values so we piggyback on PandasArray
         #  implementation
         res_values = self.array.view(dtype)
-        res_ser = self._constructor(res_values, index=self.index)
+        res_ser = self._constructor(res_values, index=self.index, copy=False)
+        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+            blk = res_ser._mgr._block
+            blk.refs = cast("BlockValuesRefs", self._references)
+            blk.refs.add_reference(blk)  # type: ignore[arg-type]
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -888,7 +899,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self._values, dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1027,9 +1044,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
-        )
+        new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
+        if using_copy_on_write() and isinstance(indexer, slice):
+            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+        return new_ser.__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
@@ -1066,7 +1084,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
-            new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            new_ser = self._constructor(
+                new_values, index=new_index, name=self.name, copy=False
+            )
+            if using_copy_on_write() and isinstance(loc, slice):
+                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
         else:
@@ -1075,7 +1097,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -1362,7 +1386,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nv.validate_repeat((), {"axis": axis})
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
-        return self._constructor(new_values, index=new_index).__finalize__(
+        return self._constructor(new_values, index=new_index, copy=False).__finalize__(
             self, method="repeat"
         )
 
@@ -1528,7 +1552,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self.index = new_index
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index
+                    self._values.copy(), index=new_index, copy=False
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -2050,7 +2074,7 @@ Name: Max Speed, dtype: float64
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name
+            res_values, index=range(len(res_values)), name=self.name, copy=False
         )
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -2314,7 +2338,7 @@ Name: Max Speed, dtype: float64
         dtype: bool
         """
         res = self._duplicated(keep=keep)
-        result = self._constructor(res, index=self.index)
+        result = self._constructor(res, index=self.index, copy=False)
         return result.__finalize__(self, method="duplicated")
 
     def idxmin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2492,7 +2516,7 @@ Name: Max Speed, dtype: float64
         """
         nv.validate_round(args, kwargs)
         result = self._values.round(decimals)
-        result = self._constructor(result, index=self.index).__finalize__(
+        result = self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="round"
         )
 
@@ -2798,7 +2822,7 @@ Name: Max Speed, dtype: float64
         {examples}
         """
         result = algorithms.diff(self._values, periods)
-        return self._constructor(result, index=self.index).__finalize__(
+        return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="diff"
         )
 
@@ -2916,7 +2940,7 @@ Name: Max Speed, dtype: float64
 
         if isinstance(other, ABCDataFrame):
             return self._constructor(
-                np.dot(lvals, rvals), index=other.columns
+                np.dot(lvals, rvals), index=other.columns, copy=False
             ).__finalize__(self, method="dot")
         elif isinstance(other, Series):
             return np.dot(lvals, rvals)
@@ -3145,7 +3169,7 @@ Keep all original rows and also all original values
         # try_float=False is to match agg_series
         npvalues = lib.maybe_convert_objects(new_values, try_float=False)
         res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
-        return self._constructor(res_values, index=new_index, name=new_name)
+        return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:
         """
@@ -3506,7 +3530,7 @@ Keep all original rows and also all original values
             return self.copy(deep=None)
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index]
+            self._values[sorted_index], index=self.index[sorted_index], copy=False
         )
 
         if ignore_index:
@@ -3754,7 +3778,9 @@ Keep all original rows and also all original values
         else:
             result = np.argsort(values, kind=kind)
 
-        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        res = self._constructor(
+            result, index=self.index, name=self.name, dtype=np.intp, copy=False
+        )
         return res.__finalize__(self, method="argsort")
 
     def nlargest(
@@ -4129,7 +4155,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        return self._constructor(values, index=index, name=self.name)
+        return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
         """
@@ -4260,11 +4286,11 @@ Keep all original rows and also all original values
         dtype: object
         """
         new_values = self._map_values(arg, na_action=na_action)
-        return self._constructor(new_values, index=self.index).__finalize__(
+        return self._constructor(new_values, index=self.index, copy=False).__finalize__(
             self, method="map"
         )
 
-    def _gotitem(self, key, ndim, subset=None) -> Series:
+    def _gotitem(self, key, ndim, subset=None) -> Self:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -4554,7 +4580,7 @@ Keep all original rows and also all original values
         new_values = algorithms.take_nd(
             self._values, indexer, allow_fill=True, fill_value=None
         )
-        return self._constructor(new_values, index=new_index)
+        return self._constructor(new_values, index=new_index, copy=False)
 
     def _needs_reindex_multi(self, axes, method, level) -> bool:
         """
@@ -4571,17 +4597,17 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool | None = None,
         fill_value: Hashable = None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -5269,7 +5295,7 @@ Keep all original rows and also all original values
         dtype: bool
         """
         result = algorithms.isin(self._values, values)
-        return self._constructor(result, index=self.index).__finalize__(
+        return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="isin"
         )
 
@@ -5376,6 +5402,7 @@ Keep all original rows and also all original values
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Series:
         input_series = self
         if infer_objects:
@@ -5384,7 +5411,6 @@ Keep all original rows and also all original values
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
-            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,
