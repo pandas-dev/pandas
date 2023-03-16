@@ -34,7 +34,6 @@ from typing import (
     Callable,
     Hashable,
     Iterator,
-    Union,
 )
 
 from dateutil.tz import (
