@@ -26,7 +26,7 @@ class BaseCastingTests(BaseExtensionTests):
 
         result = df.astype(object)
         if hasattr(result._mgr, "blocks"):
-            blk = result._data.blocks[0]
+            blk = result._mgr.blocks[0]
             assert isinstance(blk, ObjectBlock), type(blk)
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
