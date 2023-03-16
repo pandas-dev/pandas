@@ -140,9 +140,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
     # construct series on which we will apply `Series.mask`
     if is_list_like(default):
-        series = pd.Series(default).reset_index(drop=True)
+        series = pd.Series(default.values, index=obj.index)
     else:
-        series = pd.Series([default] * obj.shape[0])
+        series = pd.Series([default] * obj.shape[0], index=obj.index)
 
     for i in range(0, len_args, 2):
         # get conditions
@@ -153,13 +153,6 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
         # get replacements
         replacements = args[i + 1]
-
-        # if `conditions` or `replacements` are series, make sure to reset their index
-        if isinstance(conditions, pd.Series):
-            conditions = conditions.reset_index(drop=True)
-
-        if isinstance(replacements, pd.Series):
-            replacements = replacements.reset_index(drop=True)
 
         # `Series.mask` call
         series = series.mask(conditions, replacements)
