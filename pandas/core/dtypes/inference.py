@@ -5,11 +5,18 @@ from __future__ import annotations
 from collections import abc
 from numbers import Number
 import re
-from typing import Pattern
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    Pattern,
+)
 
 import numpy as np
 
 from pandas._libs import lib
+
+if TYPE_CHECKING:
+    from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 
@@ -30,7 +37,7 @@ is_list_like = lib.is_list_like
 is_iterator = lib.is_iterator
 
 
-def is_number(obj) -> bool:
+def is_number(obj) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
 
@@ -132,7 +139,7 @@ def is_file_like(obj) -> bool:
     return bool(hasattr(obj, "__iter__"))
 
 
-def is_re(obj) -> bool:
+def is_re(obj) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
@@ -325,7 +332,7 @@ def is_named_tuple(obj) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> bool:
+def is_hashable(obj) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
