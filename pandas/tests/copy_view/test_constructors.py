@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -80,6 +81,33 @@ def test_series_from_series_with_reindex(using_copy_on_write):
     assert not np.shares_memory(ser.values, result.values)
     if using_copy_on_write:
         assert not result._mgr.blocks[0].refs.has_reference()
+
+
+@pytest.mark.parametrize("fastpath", [False, True])
+@pytest.mark.parametrize("dtype", [None, "int64"])
+@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
+def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
+    ser = Series([1, 2, 3], dtype="int64")
+    ser_orig = ser.copy()
+    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath)
+    assert np.shares_memory(get_array(ser), get_array(ser2))
+    if using_copy_on_write:
+        assert not ser2._mgr._has_no_reference(0)
+
+    ser2.iloc[0] = 100
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        expected = Series([100, 2, 3])
+        tm.assert_series_equal(ser, expected)
+
+
+def test_series_from_block_manager_different_dtype(using_copy_on_write):
+    ser = Series([1, 2, 3], dtype="int64")
+    ser2 = Series(ser._mgr, dtype="int32")
+    assert not np.shares_memory(get_array(ser), get_array(ser2))
+    if using_copy_on_write:
+        assert ser2._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])

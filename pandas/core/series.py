@@ -379,6 +379,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
+        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
+            data = data.copy(deep=False)
+
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
