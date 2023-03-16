@@ -779,6 +779,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor(
             new_values,
             *new_axes,
+            # The no-copy case for CoW is handled above
+            copy=False,
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -9713,7 +9715,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
-            cond = self._constructor(cond, **self._construct_axes_dict())
+            cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
         fill_value = bool(inplace)
@@ -9794,7 +9796,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                other = self._constructor(other, **self._construct_axes_dict())
+                other = self._constructor(
+                    other, **self._construct_axes_dict(), copy=False
+                )
 
         if axis is None:
             axis = 0
