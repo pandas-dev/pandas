@@ -89,7 +89,6 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- :class:`~arrays.ArrowExtensionArray` comparison methods now return data with :class:`ArrowDtype` with ``pyarrow.bool_`` type instead of ``"boolean"`` dtype (:issue:`51643`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -102,7 +101,9 @@ Deprecations
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
+- Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
+- 
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -222,7 +223,6 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
 -
 
 Styler

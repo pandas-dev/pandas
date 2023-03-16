@@ -5014,9 +5014,9 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = None,
         copy: bool | None = None,
         fill_value=None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
     ) -> tuple[Self, NDFrameT]:
         return super().align(
@@ -5937,7 +5937,7 @@ class DataFrame(NDFrame, OpsMixin):
                 names.append(None)
             # from here, col can only be a column label
             else:
-                arrays.append(frame[col]._values)
+                arrays.append(frame[col])
                 names.append(col)
                 if drop:
                     to_remove.append(col)

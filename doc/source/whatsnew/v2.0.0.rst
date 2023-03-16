@@ -209,6 +209,9 @@ Copy-on-Write improvements
 - :meth:`DataFrame.__getitem__` will now respect the Copy-on-Write mechanism when the
   :class:`DataFrame` has :class:`MultiIndex` columns.
 
+- :meth:`Series.__getitem__` will now respect the Copy-on-Write mechanism when the
+   :class:`Series` has a :class:`MultiIndex`.
+
 - :meth:`Series.view` will now respect the Copy-on-Write mechanism.
 
 Copy-on-Write can be enabled through one of
@@ -270,6 +273,7 @@ Other enhancements
 - :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
+- Added support for ``decimal`` parameter when ``engine="pyarrow"`` in :func:`read_csv` (:issue:`51302`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
 - Added new escape mode "latex-math" to avoid escaping "$" in formatter (:issue:`50040`)
 
@@ -767,6 +771,7 @@ Other API changes
 - Division by zero with :class:`ArrowDtype` dtypes returns ``-inf``, ``nan``, or ``inf`` depending on the numerator, instead of raising (:issue:`51541`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 - :meth:`~arrays.ArrowExtensionArray.value_counts` now returns data with :class:`ArrowDtype` with ``pyarrow.int64`` type instead of ``"Int64"`` type (:issue:`51462`)
+- :func:`factorize` and :func:`unique` preserve the original dtype when passed numpy timedelta64 or datetime64 with non-nanosecond resolution (:issue:`48670`)
 
 .. note::
 
@@ -1287,6 +1292,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
+- Bug in :func:`read_csv` when ``engine="pyarrow"`` where ``encoding`` parameter was not handled correctly (:issue:`51302`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 - Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
 
