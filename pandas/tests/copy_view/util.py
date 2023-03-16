@@ -1,4 +1,5 @@
 from pandas import (
+    Categorical,
     Index,
     Series,
 )
@@ -24,4 +25,6 @@ def get_array(obj, col=None):
         arr = obj._get_column_array(icol)
     if isinstance(arr, BaseMaskedArray):
         return arr._data
+    elif isinstance(arr, Categorical):
+        return arr
     return getattr(arr, "_ndarray", arr)
