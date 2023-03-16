@@ -1044,9 +1044,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
-        )
+        new_ser = self._constructor(self._values[indexer], index=new_index)
+        if using_copy_on_write() and isinstance(indexer, slice):
+            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+        return new_ser.__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
@@ -1084,6 +1085,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
             new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            if using_copy_on_write() and isinstance(loc, slice):
+                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
         else:
@@ -4559,9 +4562,9 @@ Keep all original rows and also all original values
         level: Level = None,
         copy: bool | None = None,
         fill_value: Hashable = None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
     ) -> tuple[Self, NDFrameT]:
         return super().align(
