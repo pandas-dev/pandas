@@ -35,7 +35,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -45,7 +44,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
+    is_dict_like,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -55,7 +54,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -174,8 +172,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
-        if isinstance(values, np.ndarray):
-            values = sanitize_to_nanoseconds(values)
         npvalues = values.view("i8")
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
@@ -213,11 +209,6 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)
 
     else:
-        if is_datetime64_dtype(dtype):
-            dtype = np.dtype("datetime64[ns]")
-        elif is_timedelta64_dtype(dtype):
-            dtype = np.dtype("timedelta64[ns]")
-
         values = values.astype(dtype, copy=False)
 
     return values
@@ -292,7 +283,7 @@ def _check_object_for_strings(values: np.ndarray) -> str:
         # it's cheaper to use a String Hash Table than Object; we infer
         # including nulls because that is the only difference between
         # StringHashTable and ObjectHashtable
-        if lib.infer_dtype(values, skipna=False) in ["string"]:
+        if lib.is_string_array(values, skipna=False):
             ndtype = "string"
     return ndtype
 
@@ -768,7 +759,8 @@ def factorize(
         codes, uniques = values.factorize(sort=sort)
         return codes, uniques
 
-    elif not isinstance(values.dtype, np.dtype):
+    elif not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
     else:
@@ -1678,3 +1670,75 @@ def union_with_duplicates(
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
+
+
+def map_array(
+    arr: ArrayLike, mapper, na_action: Literal["ignore"] | None = None
+) -> np.ndarray | ExtensionArray | Index:
+    """
+    Map values using an input mapping or function.
+
+    Parameters
+    ----------
+    mapper : function, dict, or Series
+        Mapping correspondence.
+    na_action : {None, 'ignore'}, default None
+        If 'ignore', propagate NA values, without passing them to the
+        mapping correspondence.
+
+    Returns
+    -------
+    Union[ndarray, Index, ExtensionArray]
+        The output of the mapping function applied to the array.
+        If the function returns a tuple with more than one element
+        a MultiIndex will be returned.
+    """
+    if na_action not in (None, "ignore"):
+        msg = f"na_action must either be 'ignore' or None, {na_action} was passed"
+        raise ValueError(msg)
+
+    # we can fastpath dict/Series to an efficient map
+    # as we know that we are not going to have to yield
+    # python types
+    if is_dict_like(mapper):
+        if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
+            # If a dictionary subclass defines a default value method,
+            # convert mapper to a lookup function (GH #15999).
+            dict_with_default = mapper
+            mapper = lambda x: dict_with_default[
+                np.nan if isinstance(x, float) and np.isnan(x) else x
+            ]
+        else:
+            # Dictionary does not have a default. Thus it's safe to
+            # convert to an Series for efficiency.
+            # we specify the keys here to handle the
+            # possibility that they are tuples
+
+            # The return value of mapping with an empty mapper is
+            # expected to be pd.Series(np.nan, ...). As np.nan is
+            # of dtype float64 the return value of this method should
+            # be float64 as well
+            from pandas import Series
+
+            if len(mapper) == 0:
+                mapper = Series(mapper, dtype=np.float64)
+            else:
+                mapper = Series(mapper)
+
+    if isinstance(mapper, ABCSeries):
+        if na_action == "ignore":
+            mapper = mapper[mapper.index.notna()]
+
+        # Since values were input this means we came from either
+        # a dict or a series and mapper should be an index
+        indexer = mapper.index.get_indexer(arr)
+        new_values = take_nd(mapper._values, indexer)
+
+        return new_values
+
+    # we must convert to python types
+    values = arr.astype(object, copy=False)
+    if na_action is None:
+        return lib.map_infer(values, mapper)
+    else:
+        return lib.map_infer_mask(values, mapper, isna(values).view(np.uint8))
