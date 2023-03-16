@@ -233,6 +233,20 @@ def test_reset_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+def test_reset_index_series_drop(using_copy_on_write):
+    ser = Series([1, 2])
+    ser_orig = ser.copy()
+    ser2 = ser.reset_index(drop=True)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(ser2))
+        assert not ser._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(ser2))
+
+    ser2.iloc[0] = 100
+    tm.assert_series_equal(ser, ser_orig)
+
+
 def test_rename_columns(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
