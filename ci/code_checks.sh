@@ -547,8 +547,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
-        pandas.DataFrame.sparse.density \
-        pandas.DataFrame.sparse.to_coo \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__
