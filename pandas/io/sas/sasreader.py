@@ -7,18 +7,12 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Hashable,
     overload,
 )
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-)
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
@@ -26,6 +20,14 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+    )
+
     from pandas import DataFrame
 
 

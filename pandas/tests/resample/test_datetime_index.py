@@ -1798,14 +1798,11 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = Series(
-        0,
-        index=date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit),
-    )
-    s = s + range(len(s))
+    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    ser = Series(range(len(dti)), index=dti)
 
-    result1 = s.resample(str(n1_) + freq1).mean()
-    result2 = s.resample(str(n2_) + freq2).mean()
+    result1 = ser.resample(str(n1_) + freq1).mean()
+    result2 = ser.resample(str(n2_) + freq2).mean()
     tm.assert_series_equal(result1, result2)
 
 
@@ -1845,7 +1842,7 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.product)
+    result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(

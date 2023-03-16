@@ -11,7 +11,6 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
-from pandas._typing import MatplotlibColor
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -36,6 +35,8 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
+
+    from pandas._typing import MatplotlibColor
 
 
 class BoxPlot(LinePlot):
@@ -403,11 +404,10 @@ def boxplot(
     colors = _get_colors()
     if column is None:
         columns = None
+    elif isinstance(column, (list, tuple)):
+        columns = column
     else:
-        if isinstance(column, (list, tuple)):
-            columns = column
-        else:
-            columns = [column]
+        columns = [column]
 
     if by is not None:
         # Prefer array return type for 2-D plots to match the subplot layout
@@ -523,11 +523,10 @@ def boxplot_frame_groupby(
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
             df = pd.concat(frames, keys=keys, axis=1)
+        elif len(frames) > 1:
+            df = frames[0].join(frames[1::])
         else:
-            if len(frames) > 1:
-                df = frames[0].join(frames[1::])
-            else:
-                df = frames[0]
+            df = frames[0]
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,
