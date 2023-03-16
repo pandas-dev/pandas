@@ -28,7 +28,7 @@ dependencies = [
   "numpy>=1.23.2; python_version>='3.11'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
-  "tzdata>=2022.1"
+  # "tzdata>=2022.1"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
