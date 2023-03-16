@@ -31,7 +31,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    astype_overflowsafe,
     get_unit_from_dtype,
     is_supported_unit,
 )
@@ -42,8 +41,6 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
     ensure_int32,
@@ -1007,7 +1004,7 @@ def convert_dtypes(
     convert_boolean: bool = True,
     convert_floating: bool = True,
     infer_objects: bool = False,
-    dtype_backend: Literal["pandas", "pyarrow"] = "pandas",
+    dtype_backend: Literal["numpy_nullable", "pyarrow"] = "numpy_nullable",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1029,10 +1026,10 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "pandas"
+    dtype_backend : str, default "numpy_nullable"
         Nullable dtype implementation to use.
 
-        * "pandas" returns numpy-backed nullable types
+        * "numpy_nullable" returns numpy-backed nullable types
         * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
 
     Returns
@@ -1230,23 +1227,6 @@ def maybe_cast_to_datetime(
             raise
 
         return dta
-
-
-def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarray:
-    """
-    Safely convert non-nanosecond datetime64 or timedelta64 values to nanosecond.
-    """
-    dtype = values.dtype
-    if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
-
-    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
-
-    elif copy:
-        values = values.copy()
-
-    return values
 
 
 def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:

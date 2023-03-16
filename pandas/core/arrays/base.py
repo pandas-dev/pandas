@@ -17,7 +17,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -64,6 +63,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     rank,
     unique,
@@ -85,6 +85,7 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
+        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -93,8 +94,6 @@ if TYPE_CHECKING:
     )
 
 _extension_array_shared_docs: dict[str, str] = {}
-
-ExtensionArrayT = TypeVar("ExtensionArrayT", bound="ExtensionArray")
 
 
 class ExtensionArray:
@@ -178,6 +177,7 @@ class ExtensionArray:
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * map
 
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
@@ -232,6 +232,12 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
+
+    # similar to __array_priority__, positions ExtensionArray after Index,
+    #  Series, and DataFrame.  EA subclasses may override to choose which EA
+    #  subclass takes priority. If overriding, the value should always be
+    #  strictly less than 2000 to be below Index.__pandas_priority__.
+    __pandas_priority__ = 1000
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -310,12 +316,10 @@ class ExtensionArray:
         ...
 
     @overload
-    def __getitem__(self: ExtensionArrayT, item: SequenceIndexer) -> ExtensionArrayT:
+    def __getitem__(self, item: SequenceIndexer) -> Self:
         ...
 
-    def __getitem__(
-        self: ExtensionArrayT, item: PositionalIndexer
-    ) -> ExtensionArrayT | Any:
+    def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         """
         Select a subset of self.
 
@@ -753,11 +757,11 @@ class ExtensionArray:
         return nargminmax(self, "argmax")
 
     def fillna(
-        self: ExtensionArrayT,
+        self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
-    ) -> ExtensionArrayT:
+    ) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -809,7 +813,7 @@ class ExtensionArray:
             new_values = self.copy()
         return new_values
 
-    def dropna(self: ExtensionArrayT) -> ExtensionArrayT:
+    def dropna(self) -> Self:
         """
         Return ExtensionArray without NA values.
 
@@ -870,7 +874,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self: ExtensionArrayT) -> ExtensionArrayT:
+    def unique(self) -> Self:
         """
         Compute the ExtensionArray of unique values.
 
@@ -1105,9 +1109,7 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(
-        self: ExtensionArrayT, repeats: int | Sequence[int], axis: AxisInt | None = None
-    ) -> ExtensionArrayT:
+    def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1117,12 +1119,12 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def take(
-        self: ExtensionArrayT,
+        self,
         indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
-    ) -> ExtensionArrayT:
+    ) -> Self:
         """
         Take elements from an array.
 
@@ -1211,7 +1213,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self: ExtensionArrayT) -> ExtensionArrayT:
+    def copy(self) -> Self:
         """
         Return a copy of the array.
 
@@ -1343,9 +1345,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(
-        cls: type[ExtensionArrayT], to_concat: Sequence[ExtensionArrayT]
-    ) -> ExtensionArrayT:
+    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
         Concatenate multiple array of this dtype.
 
@@ -1487,11 +1487,11 @@ class ExtensionArray:
             return [x.tolist() for x in self]
         return list(self)
 
-    def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
+    def delete(self, loc: PositionalIndexer) -> Self:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
-    def insert(self: ExtensionArrayT, loc: int, item) -> ExtensionArrayT:
+    def insert(self, loc: int, item) -> Self:
         """
         Insert an item at the given position.
 
@@ -1546,9 +1546,7 @@ class ExtensionArray:
 
         self[mask] = val
 
-    def _where(
-        self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
-    ) -> ExtensionArrayT:
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
         """
         Analogue to np.where(mask, self, value)
 
@@ -1636,9 +1634,7 @@ class ExtensionArray:
             )
         return result
 
-    def _quantile(
-        self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
-    ) -> ExtensionArrayT:
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str) -> Self:
         """
         Compute the quantiles of self for each quantile in `qs`.
 
@@ -1658,7 +1654,7 @@ class ExtensionArray:
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
         return type(self)._from_sequence(res_values)
 
-    def _mode(self: ExtensionArrayT, dropna: bool = True) -> ExtensionArrayT:
+    def _mode(self, dropna: bool = True) -> Self:
         """
         Returns the mode(s) of the ExtensionArray.
 
@@ -1675,7 +1671,7 @@ class ExtensionArray:
             Sorted, if possible.
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
-        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        # ndarray[Any, Any]]", expected "Self")
         return mode(self, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -1703,6 +1699,28 @@ class ExtensionArray:
                 return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
+
+    def map(self, mapper, na_action=None):
+        """
+        Map values using an input mapping or function.
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            Mapping correspondence.
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NA values, without passing them to the
+            mapping correspondence. If 'ignore' is not supported, a
+            ``NotImplementedError`` should be raised.
+
+        Returns
+        -------
+        Union[ndarray, Index, ExtensionArray]
+            The output of the mapping function applied to the array.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+        """
+        return map_array(self, mapper, na_action=na_action)
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):

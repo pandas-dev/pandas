@@ -7,12 +7,8 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
-
 from pandas._libs import lib
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -38,6 +34,7 @@ from pandas.core.arrays import BaseMaskedArray
 if TYPE_CHECKING:
     from pandas._typing import (
         DateTimeErrorChoices,
+        DtypeBackend,
         npt,
     )
 
@@ -46,7 +43,7 @@ def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ):
     """
     Convert argument to a numeric type.
@@ -91,20 +88,15 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when converting data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
+        The dtype_backends are still experimential.
 
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-
-        .. versionadded:: 2.0.0
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -175,11 +167,7 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
-    _use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    check_dtype_backend(dtype_backend)
 
     is_series = False
     is_index = False
@@ -228,11 +216,11 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=_use_nullable_dtypes,
+                convert_to_masked_nullable=dtype_backend is not lib.no_default,
             )
         except (ValueError, TypeError):
             if errors == "raise":
@@ -242,7 +230,7 @@ def to_numeric(
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif _use_nullable_dtypes and new_mask is None:
+    elif dtype_backend is not lib.no_default and new_mask is None:
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
     # attempt downcast only if the data has been successfully converted
@@ -302,9 +290,7 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if get_option("mode.dtype_backend") == "pyarrow" or isinstance(
-            values_dtype, pd.ArrowDtype
-        ):
+        if dtype_backend == "pyarrow" or isinstance(values_dtype, pd.ArrowDtype):
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
