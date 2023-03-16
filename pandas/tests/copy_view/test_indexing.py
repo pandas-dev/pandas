@@ -1049,3 +1049,19 @@ def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
     if using_copy_on_write:
         new_df.iloc[0, 0] = 100
         tm.assert_frame_equal(df_orig, df)
+
+
+def test_series_midx_tuples_slice(using_copy_on_write):
+    ser = Series(
+        [1, 2, 3],
+        index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
+    )
+    result = ser[(1, 2)]
+    assert np.shares_memory(get_array(ser), get_array(result))
+    result.iloc[0] = 100
+    if using_copy_on_write:
+        expected = Series(
+            [1, 2, 3],
+            index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
+        )
+        tm.assert_series_equal(ser, expected)
