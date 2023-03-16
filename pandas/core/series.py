@@ -5298,6 +5298,9 @@ Keep all original rows and also all original values
         return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="isin"
         )
+        
+    def notin(self, values) -> Series:
+        return ~self.isin(values)
 
     def between(
         self,
