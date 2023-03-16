@@ -157,6 +157,7 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
+        DtypeBackend,
         DtypeObj,
         FilePath,
         FillnaOptions,
@@ -166,11 +167,13 @@ if TYPE_CHECKING:
         IndexLabel,
         Level,
         NaPosition,
+        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
         Renamer,
         Scalar,
+        Self,
         SingleManager,
         SortKind,
         StorageOptions,
@@ -349,6 +352,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
+
+    # similar to __array_priority__, positions Series after DataFrame
+    #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 3000
 
     # Override cache_readonly bc Series is mutable
     # error: Incompatible types in assignment (expression has type "property",
@@ -837,6 +844,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index)
+        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+            blk = res_ser._mgr._block
+            blk.refs = cast("BlockValuesRefs", self._references)
+            blk.refs.add_reference(blk)  # type: ignore[arg-type]
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -888,7 +899,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
-        return np.asarray(self._values, dtype)
+        values = self._values
+        arr = np.asarray(values, dtype=dtype)
+        if arr is values and using_copy_on_write():
+            # TODO(CoW) also properly handle extension dtypes
+            arr = arr.view()
+            arr.flags.writeable = False
+        return arr
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1027,9 +1044,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self
-        )
+        new_ser = self._constructor(self._values[indexer], index=new_index)
+        if using_copy_on_write() and isinstance(indexer, slice):
+            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+        return new_ser.__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
@@ -1067,6 +1085,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
             new_ser = self._constructor(new_values, index=new_index, name=self.name)
+            if using_copy_on_write() and isinstance(loc, slice):
+                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
         else:
@@ -1075,7 +1095,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -3191,13 +3213,23 @@ Keep all original rows and also all original values
         falcon      NaN
         dtype: float64
         """
+        from pandas.core.reshape.concat import concat
+
         new_index = self.index.union(other.index)
-        this = self.reindex(new_index, copy=False)
-        other = other.reindex(new_index, copy=False)
+
+        this = self
+        # identify the index subset to keep for each series
+        keep_other = other.index.difference(this.index[notna(this)])
+        keep_this = this.index.difference(keep_other)
+
+        this = this.reindex(keep_this, copy=False)
+        other = other.reindex(keep_other, copy=False)
+
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             other = to_datetime(other)
-
-        return this.where(notna(this), other)
+        combined = concat([this, other])
+        combined = combined.reindex(new_index, copy=False)
+        return combined.__finalize__(self, method="combine_first")
 
     def update(self, other: Series | Sequence | Mapping) -> None:
         """
@@ -4254,7 +4286,7 @@ Keep all original rows and also all original values
             self, method="map"
         )
 
-    def _gotitem(self, key, ndim, subset=None) -> Series:
+    def _gotitem(self, key, ndim, subset=None) -> Self:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -4561,17 +4593,17 @@ Keep all original rows and also all original values
     )
     def align(
         self,
-        other: Series,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool | None = None,
         fill_value: Hashable = None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
-    ) -> Series:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -5366,6 +5398,7 @@ Keep all original rows and also all original values
         convert_integer: bool = True,
         convert_boolean: bool = True,
         convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Series:
         input_series = self
         if infer_objects:
@@ -5374,7 +5407,6 @@ Keep all original rows and also all original values
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
-            dtype_backend = get_option("mode.dtype_backend")
             inferred_dtype = convert_dtypes(
                 input_series._values,
                 convert_string,

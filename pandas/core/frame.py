@@ -225,11 +225,13 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         NaPosition,
+        NDFrameT,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
         Renamer,
         Scalar,
+        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -632,6 +634,10 @@ class DataFrame(NDFrame, OpsMixin):
     _accessors: set[str] = {"sparse"}
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
     _mgr: BlockManager | ArrayManager
+
+    # similar to __array_priority__, positions DataFrame before Series, Index,
+    #  and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 4000
 
     @property
     def _constructor(self) -> Callable[..., DataFrame]:
@@ -2490,7 +2496,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
-    ) -> DataFrame:
+    ) -> Self:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
 
@@ -3831,10 +3837,13 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
+                new_values = self._values[:, loc]
                 result = self._constructor(
                     new_values, index=self.index, columns=result_columns
                 )
+                if using_copy_on_write() and isinstance(loc, slice):
+                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+
                 result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
@@ -3945,7 +3954,9 @@ class DataFrame(NDFrame, OpsMixin):
     def __setitem__(self, key, value):
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4589,7 +4600,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
+    def select_dtypes(self, include=None, exclude=None) -> Self:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -4997,17 +5008,17 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
-        other: DataFrame,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool | None = None,
         fill_value=None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
-    ) -> DataFrame:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -5926,7 +5937,7 @@ class DataFrame(NDFrame, OpsMixin):
                 names.append(None)
             # from here, col can only be a column label
             else:
-                arrays.append(frame[col]._values)
+                arrays.append(frame[col])
                 names.append(col)
                 if drop:
                     to_remove.append(col)
@@ -7771,9 +7782,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
             left, right = left.align(
-                # error: Argument 1 to "align" of "DataFrame" has incompatible
-                # type "Series"; expected "DataFrame"
-                right,  # type: ignore[arg-type]
+                right,
                 join="outer",
                 axis=axis,
                 level=level,
@@ -10871,7 +10880,7 @@ Parrot 2  Parrot       24.0
             else:
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts.values
+                counts = series_counts._values
                 result = self._constructor_sliced(
                     counts, index=frame._get_agg_axis(axis)
                 )
