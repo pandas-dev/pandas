@@ -18,7 +18,6 @@ dependencies:
   - python-dateutil
   - pytz
   - pip
-  - tzdata>=2022.1
 
   - pip:
     - "cython"
@@ -26,3 +25,4 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
+    - "tzdata>=2022.1"
