@@ -377,5 +377,8 @@ class TestDataFrameMisc:
     def test_inspect_getmembers(self):
         # GH38740
         df = DataFrame()
-        with tm.assert_produces_warning(None):
+        msg = "DataFrame._data is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             inspect.getmembers(df)
