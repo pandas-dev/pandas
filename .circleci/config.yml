@@ -1,6 +1,18 @@
 version: 2.1
 
 jobs:
+  build-docs:
+    steps:
+      - checkout
+      - run: .circleci/setup_env.sh
+      - run: python web/pandas_web.py web/pandas --target-path=web/build
+      - run: doc/make.py --warnings-are-errors
+      - run: doc/make.py zip_html
+      - run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
+      - run: mv doc/build/html web/build/docs
+      - store_artifacts:
+          path: web/build
+
   test-arm:
     machine:
       image: ubuntu-2004:202101-01
@@ -18,6 +30,7 @@ jobs:
           PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
           LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD
           ci/run_tests.sh
+
   build-aarch64:
     parameters:
       cibw-build:

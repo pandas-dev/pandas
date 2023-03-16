@@ -1,0 +1,17 @@
+name: Preview docs
+
+on: [status]
+
+jobs:
+  preview_docs:
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    if: "${{ github.event.context == 'ci/circleci: build-docs' }}"
+    steps:
+      - name: CircleCI artifact redirector
+        uses: larsoner/circleci-artifacts-redirector-action@master
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifact-path: 0/web/build/index.html
+          circleci-jobs: build-docs
