@@ -173,6 +173,7 @@ if TYPE_CHECKING:
         QuantileInterpolation,
         Renamer,
         Scalar,
+        Self,
         SingleManager,
         SortKind,
         StorageOptions,
@@ -1043,9 +1044,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
-        return self._constructor(
-            self._values[indexer], index=new_index, copy=False
-        ).__finalize__(self)
+        new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
+        if using_copy_on_write() and isinstance(indexer, slice):
+            new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+        return new_ser.__finalize__(self)
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
@@ -1085,6 +1087,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser = self._constructor(
                 new_values, index=new_index, name=self.name, copy=False
             )
+            if using_copy_on_write() and isinstance(loc, slice):
+                new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
         else:
@@ -1093,7 +1097,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -4284,7 +4290,7 @@ Keep all original rows and also all original values
             self, method="map"
         )
 
-    def _gotitem(self, key, ndim, subset=None) -> Series:
+    def _gotitem(self, key, ndim, subset=None) -> Self:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -4601,7 +4607,7 @@ Keep all original rows and also all original values
         limit: int | None = None,
         fill_axis: Axis = 0,
         broadcast_axis: Axis | None = None,
-    ) -> tuple[Series, NDFrameT]:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,

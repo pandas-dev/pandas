@@ -118,7 +118,6 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
 def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     # see gh-10153
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
