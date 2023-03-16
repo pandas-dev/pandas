@@ -233,8 +233,9 @@ def test_reset_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_reset_index_series_drop(using_copy_on_write):
-    ser = Series([1, 2])
+@pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), Index([1, 2])])
+def test_reset_index_series_drop(using_copy_on_write, index):
+    ser = Series([1, 2], index=index)
     ser_orig = ser.copy()
     ser2 = ser.reset_index(drop=True)
     if using_copy_on_write:
