@@ -5513,6 +5513,7 @@ Keep all original rows and also all original values
 
         See Also
         --------
+        Series.notin : Boolean inverse of Series.isin.
         DataFrame.isin : Equivalent method on DataFrame.
 
         Examples
@@ -5592,7 +5593,7 @@ Keep all original rows and also all original values
 
         See Also
         --------
-        Series.isin : Whether elements in Series are contained in `values`.
+        Series.isin : Boolean inverse of Series.notin.
         DataFrame.isin : Equivalent to Series.isin method on DataFrame.
 
         Examples
