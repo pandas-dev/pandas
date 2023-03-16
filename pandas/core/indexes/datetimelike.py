@@ -670,7 +670,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = super()._union(other, sort)._with_freq("infer")
             return self._maybe_restore_day(result)
 
-    def _maybe_restore_day(self, result: _TDT) -> _TDT:
+    def _maybe_restore_day(self, result: Self) -> Self:
         if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
             # If we infer a 24H-like freq but are D, restore "D"
             td = Timedelta(result.freq)
