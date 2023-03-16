@@ -31,7 +31,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    astype_overflowsafe,
     get_unit_from_dtype,
     is_supported_unit,
 )
@@ -42,8 +41,6 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
-    TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
     ensure_int32,
@@ -1232,23 +1229,6 @@ def maybe_cast_to_datetime(
         return dta
 
 
-def sanitize_to_nanoseconds(values: np.ndarray, copy: bool = False) -> np.ndarray:
-    """
-    Safely convert non-nanosecond datetime64 or timedelta64 values to nanosecond.
-    """
-    dtype = values.dtype
-    if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-        values = astype_overflowsafe(values, dtype=DT64NS_DTYPE)
-
-    elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
-        values = astype_overflowsafe(values, dtype=TD64NS_DTYPE)
-
-    elif copy:
-        values = values.copy()
-
-    return values
-
-
 def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     """
     Convert dtypes with granularity less than nanosecond to nanosecond
@@ -1631,6 +1611,9 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning)
+        warnings.filterwarnings(
+            "ignore", "elementwise comparison failed", FutureWarning
+        )
         if np.array_equal(arr, casted):
             return casted
 
