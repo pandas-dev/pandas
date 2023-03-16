@@ -1041,6 +1041,11 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
+    def test_empty_columns(self, pa):
+        # GH 52034
+        df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
+        check_round_trip(df, pa)
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
@@ -1281,3 +1286,12 @@ class TestParquetFastParquet(Base):
             df.to_parquet(path)
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
+
+    def test_empty_columns(self, fp):
+        # GH 52034
+        df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
+        expected = pd.DataFrame(
+            columns=pd.Index([], dtype=object),
+            index=pd.Index(["a", "b", "c"], name="custom name"),
+        )
+        check_round_trip(df, fp, expected=expected)

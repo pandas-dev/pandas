@@ -163,7 +163,11 @@ class BaseImpl:
                      each level of the MultiIndex
                     """
                 )
-        elif df.columns.inferred_type not in {"string", "empty"}:
+        elif not df.columns.empty and df.columns.inferred_type not in {
+            "string",
+            "empty",
+        }:
+            # GH 52034: RangeIndex.inferred_dtype is always "integer" if empty
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
