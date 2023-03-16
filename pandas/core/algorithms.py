@@ -1690,8 +1690,7 @@ def map_array(
         mapping correspondence.
     convert : bool, default True
         Try to find better dtype for elementwise function results. If
-        False, leave as dtype=object. Note that the dtype is always
-        preserved for some extension array dtypes, such as Categorical.
+        False, leave as dtype=object.
 
     Returns
     -------
