@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 from typing import Any
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
 import pandas.core.common as com
+
+
+def warn_and_override_index(series, series_type, index):
+    warnings.warn(
+        f"Series {series_type} will be reindexed to match obj index.",
+        UserWarning,
+        stacklevel=find_stack_level(),
+    )
+    return pd.Series(series.values, index=index)
 
 
 def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
@@ -15,7 +27,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     This is useful when you want to assign a column based on multiple conditions.
     Uses `Series.mask` to perform the assignment.
 
-    The returned Series will always have a new index (reset).
+    The returned Series have the same index as `obj`.
 
     Parameters
     ----------
@@ -105,7 +117,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     2   -1
     Name: a, dtype: int64
 
-    The index is not maintained. For example:
+    The index will always follow that of `obj`. For example:
     >>> df = pd.DataFrame(
     ...     dict(a=[1, 2, 3], b=[4, 5, 6]),
     ...     index=['index 1', 'index 2', 'index 3']
@@ -122,9 +134,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     ...     df.b,
     ...     default=0,
     ... )
-    0    4
-    1    0
-    2    0
+    index 1    4
+    index 2    0
+    index 3    0
     dtype: int64
     """
     len_args = len(args)
@@ -153,6 +165,18 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
         # get replacements
         replacements = args[i + 1]
+
+        if isinstance(replacements, pd.Series) and not replacements.index.equals(
+            obj.index
+        ):
+            replacements = warn_and_override_index(
+                replacements, f"(in args[{i+1}])", obj.index
+            )
+
+        if isinstance(conditions, pd.Series) and not conditions.index.equals(obj.index):
+            conditions = warn_and_override_index(
+                conditions, f"(in args[{i}])", obj.index
+            )
 
         # `Series.mask` call
         series = series.mask(conditions, replacements)
