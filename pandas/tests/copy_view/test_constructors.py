@@ -106,9 +106,10 @@ def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
         tm.assert_series_equal(ser, expected)
 
 
-def test_series_from_array_different_dtype(using_copy_on_write):
+@pytest.mark.parametrize("copy", [True, False, None])
+def test_series_from_array_different_dtype(using_copy_on_write, copy):
     arr = np.array([1, 2, 3], dtype="int64")
-    ser = Series(arr, dtype="int64")
+    ser = Series(arr, dtype="int32", copy=copy)
     assert not np.shares_memory(get_array(ser), arr)
 
 
