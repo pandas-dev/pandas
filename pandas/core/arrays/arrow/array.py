@@ -433,11 +433,15 @@ class ArrowExtensionArray(
     # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["_data"] = self._pa_array.combine_chunks()
+        state["_pa_array"] = self._pa_array.combine_chunks()
         return state
 
     def __setstate__(self, state) -> None:
-        state["_pa_array"] = pa.chunked_array(state["_data"])
+        if "_data" in state:
+            data = state["_data"]
+        else:
+            data = state["_pa_array"]
+        state["_pa_array"] = pa.chunked_array(data)
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
