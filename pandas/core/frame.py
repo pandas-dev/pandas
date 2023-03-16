@@ -4277,7 +4277,7 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True).__finalize__(self)
+        return klass(values, name=name, _fastpath=True).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -4924,7 +4924,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _series(self):
         return {
             item: Series(
-                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
+                self._mgr.iget(idx), index=self.index, name=item, _fastpath=True
             )
             for idx, item in enumerate(self.columns)
         }

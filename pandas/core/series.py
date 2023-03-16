@@ -377,7 +377,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool = False,
-        fastpath: bool = False,
+        _fastpath: bool = False,
     ) -> None:
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
@@ -387,7 +387,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            if fastpath:
+            if _fastpath:
                 # e.g. from _box_col_values, skip validation of name
                 object.__setattr__(self, "_name", name)
             else:
@@ -395,7 +395,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
 
         # we are called internally, so short-circuit
-        if fastpath:
+        if _fastpath:
             # data is a ndarray, index is defined
             if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
                 manager = get_option("mode.data_manager")

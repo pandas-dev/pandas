@@ -29,7 +29,7 @@ class SeriesConstructor:
         Series(data=None, index=self.idx)
 
     def time_constructor_fastpath(self):
-        Series(self.array, index=self.idx2, name="name", fastpath=True)
+        Series(self.array, index=self.idx2, name="name", _fastpath=True)
 
 
 class ToFrame:

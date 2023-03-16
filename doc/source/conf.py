@@ -14,6 +14,7 @@ import importlib
 import inspect
 import logging
 import os
+import re
 import sys
 import warnings
 
@@ -765,6 +766,19 @@ def process_business_alias_docstrings(app, what, name, obj, options, lines):
         lines[:] = []
 
 
+def process_signature(app, what, name, obj, options, signature, return_annotation):
+    """
+    Remove all the private (starting with underscore) parameters from the signature
+    of class constructors and other functions.
+    """
+    if signature:
+        # matches parameters starting with underscore `_`
+        pattern = r",[\s\t]*_[a-zA-Z0-9_:\s=]*"
+
+        signature_without_private_args = re.sub(pattern, "", signature)
+        return (signature_without_private_args, return_annotation)
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -795,6 +809,7 @@ def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("autodoc-process-signature", process_signature)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
