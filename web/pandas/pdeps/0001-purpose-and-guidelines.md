@@ -144,6 +144,9 @@ changed and avoid confusion.
     [GH-45253][45253])
 - New required dependency. For example:
   - Moving rarely used I/O connectors to a separate repository [GH-28409](28409)
+- Significant changes to contributors' processes aren't going to have an impact on users, but 
+  the do benefit from structured discussion among the contributors. For example:
+  - Changing the build system to meson ([GH-49115][49115])
 
 ### Borderline examples:
 Small changes to core functionality, such as `DataFrame` and `Series`, should always be 
@@ -173,17 +176,11 @@ hope can help clarify our meaning here:
   - Add `pandas.api.typing` ([GH-48577][48577]) is relatively small and wouldn’t necessarily
     require a PDEP.
 
-### A counter-example:
-
-- Significant changes to contributors' processes don't require a PDEP as they aren't going to
-  have an impact on users. For example:
-  - Changing the build system to meson ([GH-49115][49115])
-
 
 ### PDEP-1 History
 
-- 3 August 2022: Initial version
-- 15 February 2023: Version 2
+- 3 August 2022: Initial version ([GH-47938][47938]) 
+- 15 February 2023: Version 2 ([GH-51417][51417]) 
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
@@ -198,3 +195,6 @@ hope can help clarify our meaning here:
 [48577]: https://github.com/pandas-dev/pandas/issues/48577
 [49115]: https://github.com/pandas-dev/pandas/pull/49115
 [28409]: https://github.com/pandas-dev/pandas/issues/28409
+[47938]: https://github.com/pandas-dev/pandas/pull/47938
+[51417]: https://github.com/pandas-dev/pandas/pull/51417
+
