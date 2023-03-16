@@ -4,6 +4,7 @@ Common type operations.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
@@ -17,10 +18,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-)
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -53,6 +50,12 @@ from pandas.core.dtypes.inference import (
     is_scalar,
     is_sequence,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+    )
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE

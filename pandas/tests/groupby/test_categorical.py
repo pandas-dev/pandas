@@ -2018,6 +2018,7 @@ def test_many_categories(as_index, sort, index_kind, ordered):
 @pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
 @pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
 def test_groupby_default_depr(cat_columns, keys):
+    # GH#43999
     df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
     df[cat_columns] = df[cat_columns].astype("category")
     msg = "The default of observed=False is deprecated"

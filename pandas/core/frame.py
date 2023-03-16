@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import collections
 from collections import abc
-import datetime
 import functools
 from io import StringIO
 import itertools
@@ -51,46 +50,6 @@ from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
     no_default,
-)
-from pandas._typing import (
-    AggFuncType,
-    AlignJoin,
-    AnyAll,
-    AnyArrayLike,
-    ArrayLike,
-    Axes,
-    Axis,
-    AxisInt,
-    ColspaceArgType,
-    CompressionOptions,
-    CorrelationMethod,
-    DropKeep,
-    Dtype,
-    DtypeObj,
-    FilePath,
-    FillnaOptions,
-    FloatFormatType,
-    FormattersType,
-    Frequency,
-    IgnoreRaise,
-    IndexKeyFunc,
-    IndexLabel,
-    Level,
-    MergeHow,
-    NaPosition,
-    PythonFuncType,
-    QuantileInterpolation,
-    ReadBuffer,
-    Renamer,
-    Scalar,
-    SortKind,
-    StorageOptions,
-    Suffixes,
-    TimedeltaConvertibleTypes,
-    TimestampConvertibleTypes,
-    ValueKeyFunc,
-    WriteBuffer,
-    npt,
 )
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
@@ -235,6 +194,49 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    import datetime
+
+    from pandas._typing import (
+        AggFuncType,
+        AlignJoin,
+        AnyAll,
+        AnyArrayLike,
+        ArrayLike,
+        Axes,
+        Axis,
+        AxisInt,
+        ColspaceArgType,
+        CompressionOptions,
+        CorrelationMethod,
+        DropKeep,
+        Dtype,
+        DtypeObj,
+        FilePath,
+        FillnaOptions,
+        FloatFormatType,
+        FormattersType,
+        Frequency,
+        IgnoreRaise,
+        IndexKeyFunc,
+        IndexLabel,
+        Level,
+        MergeHow,
+        NaPosition,
+        PythonFuncType,
+        QuantileInterpolation,
+        ReadBuffer,
+        Renamer,
+        Scalar,
+        SortKind,
+        StorageOptions,
+        Suffixes,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
+        ValueKeyFunc,
+        WriteBuffer,
+        npt,
+    )
+
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager

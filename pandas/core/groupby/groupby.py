@@ -923,7 +923,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.observed = observed
         self.dropna = dropna
 
         if grouper is None:
@@ -933,9 +932,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=axis,
                 level=level,
                 sort=sort,
-                observed=observed,
+                observed=False if observed is lib.no_default else observed,
                 dropna=self.dropna,
             )
+
+        if observed is lib.no_default:
+            if any(ping._passed_categorical for ping in grouper.groupings):
+                warnings.warn(
+                    "The default of observed=False is deprecated and will be changed "
+                    "to True in a future version of pandas. Pass observed=False to "
+                    "retain current behavior or observed=True to adopt the future "
+                    "default and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            observed = False
+        self.observed = observed
 
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
