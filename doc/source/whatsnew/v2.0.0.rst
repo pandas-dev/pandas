@@ -190,6 +190,9 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
+- The :meth:`DataFrame.from_records` will now respect Copy-on-Write when called
+  with a :class:`DataFrame`.
+
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
   will now always raise an warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
