@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pandas.core.dtypes.common import is_array_like
+from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
 import pandas.core.common as com
@@ -139,7 +139,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         )
 
     # construct series on which we will apply `Series.mask`
-    if is_array_like(default):
+    if is_list_like(default):
         series = pd.Series(default).reset_index(drop=True)
     else:
         series = pd.Series([default] * obj.shape[0])
