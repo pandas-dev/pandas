@@ -2367,3 +2367,4 @@ def test_pickle_old_arrowextensionarray():
     result = pickle.loads(pickle.dumps(expected))
     tm.assert_extension_array_equal(result, expected)
     assert result._pa_array == pa.chunked_array(data)
+    assert not hasattr(result, "_data")
