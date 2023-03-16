@@ -1297,8 +1297,8 @@ class _MergeOperation:
                 continue
 
             msg = (
-                f"You are trying to merge on {lk.dtype} and "
-                f"{rk.dtype} columns. If you wish to proceed you should use pd.concat"
+                f"You are trying to merge on {lk.dtype} and {rk.dtype} columns "
+                f"for key '{name}'. If you wish to proceed you should use pd.concat"
             )
 
             # if we are numeric, then allow differing

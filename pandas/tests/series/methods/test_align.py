@@ -69,7 +69,12 @@ def test_align_fill_method(
     a = datetime_series[slice(*first_slice)]
     b = datetime_series[slice(*second_slice)]
 
-    aa, ab = a.align(b, join=join_type, method=method, limit=limit)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
     join_index = a.index.join(b.index, how=join_type)
     ea = a.reindex(join_index)
@@ -173,7 +178,12 @@ def test_align_with_dataframe_method(method):
     ser = Series(range(3), index=range(3))
     df = pd.DataFrame(0.0, index=range(3), columns=range(3))
 
-    result_ser, result_df = ser.align(df, method=method)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result_ser, result_df = ser.align(df, method=method)
     tm.assert_series_equal(result_ser, ser)
     tm.assert_frame_equal(result_df, df)
 
