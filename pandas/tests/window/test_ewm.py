@@ -198,7 +198,9 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     df = DataFrame(
         {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
     )
-    e = df.ewm(alpha=0.5, axis=1)
+    warning_msg = "DataFrame.ewm with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
 
     tm.assert_frame_equal(result, expected)
@@ -719,3 +721,18 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(ewm2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+def test_df_ewn_axis_param_depr():
+    df = DataFrame({"a": [1], "b": 2, "c": 3})
+
+    warning_msg = (
+        "The 'axis' keyword in DataFrame.ewm is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.ewm(span=2, axis=0)
+
+    warning_msg = "DataFrame.ewm with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.ewm(span=2, axis=1)

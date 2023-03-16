@@ -683,5 +683,14 @@ def test_nat_axis_error(msg, axis):
     idx = [Timestamp("2020"), NaT]
     kwargs = {"columns" if axis == 1 else "index": idx}
     df = DataFrame(np.eye(2), **kwargs)
+    if axis == 0:
+        warning_msg =  (
+            "The 'axis' keyword in DataFrame.rolling is deprecated and "
+            "will be removed in a future version."
+        )
+    else:
+        warning_msg = "DataFrame.rolling with axis=1 is deprecated."
+
     with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
-        df.rolling("D", axis=axis).mean()
+        with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+            df.rolling("D", axis=axis).mean()

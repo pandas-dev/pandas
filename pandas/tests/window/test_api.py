@@ -129,7 +129,10 @@ def test_agg(step):
 def test_multi_axis_1_raises(func):
     # GH#46904
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    r = df.rolling(window=3, axis=1)
+    warning_msg = "DataFrame.rolling with axis=1 is deprecated."
+
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        r = df.rolling(window=3, axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         r.agg(func)
 
@@ -344,7 +347,14 @@ def test_dont_modify_attributes_after_methods(
 
 def test_centered_axis_validation(step):
     # ok
-    Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
+    axis_0_warning_msg =  (
+        "The 'axis' keyword in DataFrame.rolling is deprecated and "
+        "will be removed in a future version."
+    )
+    axis_1_warning_msg = "DataFrame.rolling with axis=1 is deprecated."
+
+    with tm.assert_produces_warning(FutureWarning, match=axis_0_warning_msg):
+        Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
     # bad axis
     msg = "No axis named 1 for object type Series"
@@ -352,12 +362,14 @@ def test_centered_axis_validation(step):
         Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
 
     # ok ok
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=0, step=step
-    ).mean()
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=1, step=step
-    ).mean()
+    with tm.assert_produces_warning(FutureWarning, match=axis_0_warning_msg):
+        DataFrame(np.ones((10, 10))).rolling(
+            window=3, center=True, axis=0, step=step
+        ).mean()
+    with tm.assert_produces_warning(FutureWarning, match=axis_1_warning_msg):
+        DataFrame(np.ones((10, 10))).rolling(
+            window=3, center=True, axis=1, step=step
+        ).mean()
 
     # bad axis
     msg = "No axis named 2 for object type DataFrame"

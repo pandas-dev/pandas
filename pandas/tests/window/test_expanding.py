@@ -82,17 +82,22 @@ def test_missing_minp_zero():
 def test_expanding_axis(axis_frame):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)
-
+    axis = df._get_axis_number(axis_frame)         
     if axis == 0:
         expected = DataFrame(
             {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
         )
+        warning_msg = (
+            "The 'axis' keyword in DataFrame.expanding is deprecated and "
+            "will be removed in a future version."
+        )
     else:
         # axis == 1
         expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
+        warning_msg = "DataFrame.expanding with axis=1 is deprecated."
 
-    result = df.expanding(3, axis=axis_frame).sum()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = df.expanding(3, axis=axis_frame).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -323,7 +328,12 @@ def test_expanding_corr_pairwise(frame):
 )
 def test_expanding_func(func, static_comp, frame_or_series):
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
-    result = getattr(data.expanding(min_periods=1, axis=0), func)()
+    warning_msg = (
+        "The 'axis' keyword in DataFrame.expanding is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = getattr(data.expanding(min_periods=1, axis=0), func)()
     assert isinstance(result, frame_or_series)
 
     expected = static_comp(data[:11])
@@ -341,26 +351,36 @@ def test_expanding_func(func, static_comp, frame_or_series):
 def test_expanding_min_periods(func, static_comp):
     ser = Series(np.random.randn(50))
 
-    result = getattr(ser.expanding(min_periods=30, axis=0), func)()
+    warning_msg = (
+        "The 'axis' keyword in DataFrame.expanding is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = getattr(ser.expanding(min_periods=30, axis=0), func)()
     assert result[:29].isna().all()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
     # min_periods is working correctly
-    result = getattr(ser.expanding(min_periods=15, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = getattr(ser.expanding(min_periods=15, axis=0), func)()
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
     ser2 = Series(np.random.randn(20))
-    result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
     assert isna(result[3])
     assert notna(result[4])
 
     # min_periods=0
-    result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
-    result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result0, result1)
 
-    result = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
 
@@ -693,3 +713,17 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+def test_df_expanding_axis_param_depr():
+    df = DataFrame({"a": [1], "b": [2], "c": [3]})
+
+    warning_msg = (
+        "The 'axis' keyword in DataFrame.expanding is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.expanding(2, axis=0)
+
+    warning_msg = "DataFrame.expanding with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.expanding(2, axis=1)
