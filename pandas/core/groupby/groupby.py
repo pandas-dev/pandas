@@ -815,7 +815,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         keys = self.keys
         level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
-        if is_list_like(level) and len(level) == 1:
+        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
             # GH 51583
             warnings.warn(
                 "Creating a Groupby object with a length-1 list "
