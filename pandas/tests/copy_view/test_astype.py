@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from pandas.compat import pa_version_under7p0
+import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -82,6 +84,14 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     df2 = df.astype(dtype)
     df.iloc[0, 0] = 100
     tm.assert_frame_equal(df2, df_orig.astype(dtype))
+
+
+@td.skip_array_manager_invalid_test
+def test_astype_numpy_to_ea():
+    ser = Series([1, 2, 3])
+    with pd.option_context("mode.copy_on_write", True):
+        result = ser.astype("Int64")
+    assert np.shares_memory(get_array(ser), get_array(result))
 
 
 @pytest.mark.parametrize(
@@ -192,7 +202,9 @@ def test_astype_arrow_timestamp(using_copy_on_write):
     result = df.astype("timestamp[ns][pyarrow]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(get_array(df, "a").asi8, get_array(result, "a")._data)
+        assert np.shares_memory(
+            get_array(df, "a").asi8, get_array(result, "a")._pa_array
+        )
 
 
 def test_convert_dtypes_infer_objects(using_copy_on_write):

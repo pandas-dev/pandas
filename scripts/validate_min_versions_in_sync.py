@@ -39,7 +39,6 @@ ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
 EXCLUSION_LIST = {
     "python=3.8[build=*_pypy]": None,
-    "tzdata": None,
     "pyarrow": None,
 }
 # pandas package is not available
@@ -228,10 +227,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             continue
         elif seen_required and line.strip():
             if "==" in line:
-                package, version = line.strip().split("==")
-
+                package, version = line.strip().split("==", maxsplit=1)
             else:
-                package, version = line.strip().split("=")
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue

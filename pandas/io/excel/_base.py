@@ -23,10 +23,7 @@ from typing import (
 )
 import zipfile
 
-from pandas._config import (
-    config,
-    using_nullable_dtypes,
-)
+from pandas._config import config
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -39,6 +36,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -72,6 +70,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         DtypeArg,
+        DtypeBackend,
         FilePath,
         IntStrT,
         ReadBuffer,
@@ -280,18 +279,13 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-use_nullable_dtypes : bool, default False
-    Whether or not to use nullable dtypes as default when reading data. If
-    set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present. Dtype takes precedence if given.
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
 
-    .. note::
-
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    The dtype_backends are still experimential.
 
     .. versionadded:: 2.0
 
@@ -399,7 +393,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -438,7 +432,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -477,8 +471,10 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
+    check_dtype_backend(dtype_backend)
+
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
@@ -488,12 +484,6 @@ def read_excel(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
-
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
 
     try:
         data = io.parse(
@@ -519,7 +509,7 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
     finally:
         # make sure to close opened file handles
@@ -723,7 +713,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ):
         validate_header_arg(header)
@@ -882,7 +872,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
-                    use_nullable_dtypes=use_nullable_dtypes,
+                    dtype_backend=dtype_backend,
                     **kwds,
                 )
 
@@ -1547,7 +1537,7 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1579,7 +1569,7 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
             **kwds,
         )
 
