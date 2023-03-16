@@ -1611,6 +1611,9 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning)
+        warnings.filterwarnings(
+            "ignore", "elementwise comparison failed", FutureWarning
+        )
         if np.array_equal(arr, casted):
             return casted
 
