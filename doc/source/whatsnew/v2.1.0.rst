@@ -89,7 +89,6 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- :class:`~arrays.ArrowExtensionArray` comparison methods now return data with :class:`ArrowDtype` with ``pyarrow.bool_`` type instead of ``"boolean"`` dtype (:issue:`51643`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -222,7 +221,6 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Bug in :meth:`Series.any` and :meth:`Series.all` returning ``NA`` for empty or all null pyarrow-backed data when ``skipna=True`` (:issue:`51624`)
 -
 
 Styler
