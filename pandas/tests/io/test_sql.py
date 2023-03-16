@@ -775,7 +775,7 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
         "test_frame", conn, index=False, method=psql_insert_copy
     )
     # GH 46891
-    if not isinstance(expected_count, int):
+    if expected_count is None:
         assert result_count is None
     else:
         assert result_count == expected_count

@@ -4096,7 +4096,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             loc, new_index = index._get_loc_level(key, level=0)
             if not drop_level:
                 if lib.is_integer(loc):
-                    new_index = index[loc : loc + 1]
+                    # Slice index must be an integer or None
+                    new_index = index[loc : loc + 1]  # type: ignore[misc]
                 else:
                     new_index = index[loc]
         else:

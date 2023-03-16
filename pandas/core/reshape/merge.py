@@ -2026,7 +2026,8 @@ class _AsOfMerge(_OrderedMerge):
             elif is_float_dtype(lt):
                 if not is_number(self.tolerance):
                     raise MergeError(msg)
-                if self.tolerance < 0:
+                # error: Unsupported operand types for > ("int" and "Number")
+                if self.tolerance < 0:  # type: ignore[operator]
                     raise MergeError("tolerance must be positive")
 
             else:
