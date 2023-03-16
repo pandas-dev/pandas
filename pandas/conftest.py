@@ -708,7 +708,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
