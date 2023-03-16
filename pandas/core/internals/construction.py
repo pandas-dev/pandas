@@ -17,6 +17,7 @@ from numpy import ma
 
 from pandas._libs import lib
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     dict_compat,
@@ -260,6 +261,7 @@ def ndarray_to_mgr(
     copy_on_sanitize = False if typ == "array" else copy
 
     vdtype = getattr(values, "dtype", None)
+    refs = None
     if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
         # GH#19157
 
@@ -291,7 +293,20 @@ def ndarray_to_mgr(
         if values.ndim == 1:
             values = values.reshape(-1, 1)
 
-    elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
+    elif isinstance(values, ABCSeries):
+        if not copy_on_sanitize and (
+            dtype is None or astype_is_view(values.dtype, dtype)
+        ):
+            refs = values._references
+
+        if copy_on_sanitize:
+            values = values._values.copy()
+        else:
+            values = values._values
+
+        values = _ensure_2d(values)
+
+    elif isinstance(values, (np.ndarray, ExtensionArray, Index)):
         # drop subclass info
         values = np.array(values, copy=copy_on_sanitize)
         values = _ensure_2d(values)
@@ -356,11 +371,11 @@ def ndarray_to_mgr(
             ]
         else:
             bp = BlockPlacement(slice(len(columns)))
-            nb = new_block_2d(values, placement=bp)
+            nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
     else:
         bp = BlockPlacement(slice(len(columns)))
-        nb = new_block_2d(values, placement=bp)
+        nb = new_block_2d(values, placement=bp, refs=refs)
         block_values = [nb]
 
     if len(columns) == 0:
