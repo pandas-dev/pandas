@@ -814,7 +814,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = lib.no_default,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
         downcast: dict | None = None,
@@ -838,6 +838,11 @@ class SeriesGroupBy(GroupBy[Series]):
             ``'bfill'`` will use next valid observation to fill the gap.
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -941,6 +946,11 @@ class SeriesGroupBy(GroupBy[Series]):
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `SeriesGroupBy` this parameter is unused and defaults to 0.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -1015,6 +1025,10 @@ class SeriesGroupBy(GroupBy[Series]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
             This parameter is only for compatibility with DataFrame and is unused.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
@@ -1943,6 +1957,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             .. versionchanged:: 2.0.0
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
@@ -2033,6 +2051,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
@@ -2254,8 +2276,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
 
-            .. deprecated:: 2.0.0
-                Use frame.T.groupby(...) instead.
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         inplace : bool, default False
             Broken. Do not set to True.
@@ -2380,6 +2403,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -2472,6 +2500,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             Specifying ``axis=None`` will apply the aggregation across both axes.
 
             .. versionadded:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.

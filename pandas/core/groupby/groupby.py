@@ -3507,6 +3507,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis : int, default 0
             The axis of the object over which to compute the rank.
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         Returns
         -------
         DataFrame with ranking of values within each group
@@ -3857,6 +3861,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Frequency string.
         axis : axis to shift, default 0
             Shift direction.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         fill_value : optional
             The scalar value to use for newly introduced missing values.
 
@@ -3911,6 +3920,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Periods to shift for calculating difference, accepts negative values.
         axis : axis to shift, default 0
             Take difference over rows (0) or columns (1).
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         Returns
         -------
