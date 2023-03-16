@@ -175,6 +175,7 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
+        result._references = None
         return result
 
     @classmethod
