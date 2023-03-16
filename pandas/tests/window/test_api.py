@@ -347,7 +347,7 @@ def test_dont_modify_attributes_after_methods(
 
 def test_centered_axis_validation(step):
     # ok
-    axis_0_warning_msg =  (
+    axis_0_warning_msg = (
         "The 'axis' keyword in DataFrame.rolling is deprecated and "
         "will be removed in a future version."
     )

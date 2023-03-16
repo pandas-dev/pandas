@@ -322,7 +322,7 @@ def test_axis1(raw):
     # GH 45912
     df = DataFrame([1, 2])
     warning_msg = "DataFrame.rolling with axis=1 is deprecated."
-    
+
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         result = df.rolling(window=1, axis=1).apply(np.sum, raw=raw)
     expected = DataFrame([1.0, 2.0])

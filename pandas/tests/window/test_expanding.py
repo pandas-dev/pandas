@@ -82,7 +82,7 @@ def test_missing_minp_zero():
 def test_expanding_axis(axis_frame):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)         
+    axis = df._get_axis_number(axis_frame)
     if axis == 0:
         expected = DataFrame(
             {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
@@ -713,6 +713,7 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
 
 def test_df_expanding_axis_param_depr():
     df = DataFrame({"a": [1], "b": [2], "c": [3]})

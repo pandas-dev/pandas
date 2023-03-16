@@ -684,7 +684,7 @@ def test_nat_axis_error(msg, axis):
     kwargs = {"columns" if axis == 1 else "index": idx}
     df = DataFrame(np.eye(2), **kwargs)
     if axis == 0:
-        warning_msg =  (
+        warning_msg = (
             "The 'axis' keyword in DataFrame.rolling is deprecated and "
             "will be removed in a future version."
         )

@@ -102,8 +102,8 @@ Deprecations
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
-- Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.resample`, :meth:`DataFrame.rolling`, :meth:`DataFrame.ewm` and :meth:`DataFrame.expanding`, do ``frame.T.method(...)`` instead (:issue:`51778`)
+- Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 -
 
 .. ---------------------------------------------------------------------------
