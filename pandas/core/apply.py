@@ -480,6 +480,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
@@ -492,7 +497,21 @@ class Apply(metaclass=abc.ABCMeta):
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             if "axis" in arg_names:
-                self.kwargs["axis"] = self.axis
+                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
+                    # Try to avoid FutureWarning for deprecated axis keyword;
+                    # If self.axis matches the axis we would get by not passing
+                    #  axis, we safely exclude the keyword.
+
+                    default_axis = 0
+                    if f in ["idxmax", "idxmin"]:
+                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
+                        # whereas other axis keywords default to 0
+                        default_axis = self.obj.axis
+
+                    if default_axis != self.axis:
+                        self.kwargs["axis"] = self.axis
+                else:
+                    self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:

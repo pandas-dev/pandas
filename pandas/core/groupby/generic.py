@@ -814,7 +814,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
         downcast: dict | None = None,
@@ -919,7 +919,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> Series:
         """
@@ -1095,12 +1095,16 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmin(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmax(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
@@ -1922,7 +1926,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmax(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -1994,7 +1998,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmax")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2008,7 +2017,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmin(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -2080,7 +2089,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmin")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2211,7 +2225,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit=None,
         downcast=None,
@@ -2345,7 +2359,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis | None = 0,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2598,7 +2612,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def corrwith(
         self,
         other: DataFrame | Series,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,
