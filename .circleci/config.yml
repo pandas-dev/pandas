@@ -2,6 +2,8 @@ version: 2.1
 
 jobs:
   build-docs:
+    machine:
+      image: ubuntu-2004:202101-01
     steps:
       - checkout
       - run: .circleci/setup_env.sh
