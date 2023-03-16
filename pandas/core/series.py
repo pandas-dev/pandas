@@ -1551,7 +1551,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if inplace:
                 self.index = new_index
             elif using_copy_on_write():
-                new_ser = self._constructor(self, copy=False)
+                new_ser = self.copy(deep=False)
                 new_ser.index = new_index
                 return new_ser.__finalize__(self, method="reset_index")
             else:
