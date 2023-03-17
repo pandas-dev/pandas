@@ -2181,7 +2181,15 @@ class DataFrame(NDFrame, OpsMixin):
         3      0     d
         """
         if isinstance(data, DataFrame):
-            data = data.copy(deep=False)
+            if columns is not None:
+                if is_scalar(columns):
+                    columns = [columns]
+                data = data[columns]
+            if index is not None:
+                data = data.set_index(index)
+            if exclude is not None:
+                data = data.drop(columns=exclude)
+            return data.copy(deep=False)
 
         result_index = None
 
