@@ -1128,9 +1128,9 @@ def _make_date_converter(
                 cache=cache_dates,
             )
             if isinstance(result, DatetimeIndex):
-                # Item "ExtensionArray" of "Union[ExtensionArray, ndarray[Any, Any]]"
-                # has no attribute "_ndarray"
-                return result._values._ndarray  # type: ignore[union-attr]
+                arr = result.to_numpy()
+                arr.flags.writeable = True
+                return arr
             return result._values
         else:
             try:
