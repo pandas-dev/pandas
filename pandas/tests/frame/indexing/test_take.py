@@ -4,11 +4,20 @@ import pandas._testing as tm
 
 
 class TestDataFrameTake:
+    def test_take_slices_deprecated(self, float_frame):
+        # GH#51539
+        df = float_frame
+
+        slc = slice(0, 4, 1)
+        with tm.assert_produces_warning(FutureWarning):
+            df.take(slc, axis=0)
+        with tm.assert_produces_warning(FutureWarning):
+            df.take(slc, axis=1)
+
     def test_take(self, float_frame):
         # homogeneous
         order = [3, 1, 2, 0]
         for df in [float_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -21,7 +30,6 @@ class TestDataFrameTake:
         # negative indices
         order = [2, 1, -1]
         for df in [float_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -46,11 +54,9 @@ class TestDataFrameTake:
             df.take([3, 1, 2, -5], axis=1)
 
     def test_take_mixed_type(self, float_string_frame):
-
         # mixed-dtype
         order = [4, 1, 2, 0, 3]
         for df in [float_string_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -63,7 +69,6 @@ class TestDataFrameTake:
         # negative indices
         order = [4, 1, -2]
         for df in [float_string_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)
@@ -77,7 +82,6 @@ class TestDataFrameTake:
         # by dtype
         order = [1, 2, 0, 3]
         for df in [mixed_float_frame, mixed_int_frame]:
-
             result = df.take(order, axis=0)
             expected = df.reindex(df.index.take(order))
             tm.assert_frame_equal(result, expected)

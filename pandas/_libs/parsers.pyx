@@ -15,6 +15,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BooleanArray,
     FloatingArray,
     IntegerArray,
@@ -46,6 +47,7 @@ from libc.string cimport (
 
 
 cdef extern from "Python.h":
+    # TODO(cython3): get this from cpython.unicode
     object PyUnicode_FromString(char *v)
 
 
@@ -337,9 +339,9 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
-        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
+        str dtype_backend
 
     def __cinit__(self, source,
                   delimiter=b",",  # bytes | str
@@ -376,7 +378,7 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  use_nullable_dtypes=False):
+                  dtype_backend="numpy"):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -453,14 +455,12 @@ cdef class TextReader:
 
         self.skipfooter = skipfooter
 
-        # suboptimal
         if usecols is not None:
             self.has_usecols = 1
             # GH-20558, validate usecols at higher level and only pass clean
             # usecols into TextReader.
             self.usecols = usecols
 
-        # TODO: XXX?
         if skipfooter > 0:
             self.parser.on_bad_lines = SKIP
 
@@ -499,9 +499,8 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
-        self.use_nullable_dtypes = use_nullable_dtypes
+        self.dtype_backend = dtype_backend
 
-        # XXX
         self.noconvert = set()
 
         self.index_col = index_col
@@ -761,7 +760,7 @@ cdef class TextReader:
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
             field_count = len(header[0])
-        else:  # not self.has_usecols:
+        else:
 
             field_count = self.parser.line_fields[data_line]
 
@@ -846,6 +845,9 @@ cdef class TextReader:
         with nogil:
             status = tokenize_nrows(self.parser, nrows, self.encoding_errors)
 
+        self._check_tokenize_status(status)
+
+    cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
             print(PyUnicode_DecodeUTF8(
                 self.parser.warn_msg, strlen(self.parser.warn_msg),
@@ -877,15 +879,7 @@ cdef class TextReader:
             with nogil:
                 status = tokenize_all_rows(self.parser, self.encoding_errors)
 
-            if self.parser.warn_msg != NULL:
-                print(PyUnicode_DecodeUTF8(
-                    self.parser.warn_msg, strlen(self.parser.warn_msg),
-                    self.encoding_errors), file=sys.stderr)
-                free(self.parser.warn_msg)
-                self.parser.warn_msg = NULL
-
-            if status < 0:
-                raise_parser_error("Error tokenizing data", self.parser)
+            self._check_tokenize_status(status)
 
         if self.parser_start >= self.parser.lines:
             raise StopIteration
@@ -931,7 +925,6 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict results
-            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -1052,11 +1045,13 @@ cdef class TextReader:
             # don't try to upcast EAs
             if (
                 na_count > 0 and not is_extension_array_dtype(col_dtype)
-                or self.use_nullable_dtypes
+                or self.dtype_backend != "numpy"
             ):
-                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
                 col_res = _maybe_upcast(
-                    col_res, use_nullable_dtypes=use_nullable_dtypes
+                    col_res,
+                    use_dtype_backend=use_dtype_backend,
+                    dtype_backend=self.dtype_backend,
                 )
 
             if col_res is None:
@@ -1389,10 +1384,12 @@ STR_NA_VALUES = {
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
-def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
+def _maybe_upcast(
+    arr, use_dtype_backend: bool = False, dtype_backend: str = "numpy"
+):
     """Sets nullable dtypes or upcasts if nans are present.
 
-    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    Upcast, if use_dtype_backend is false and nans are present so that the
     current dtype can not hold the na value. We use nullable dtypes if the
     flag is true for every array.
 
@@ -1401,7 +1398,7 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     arr: ndarray
         Numpy array that is potentially being upcast.
 
-    use_nullable_dtypes: bool, default False
+    use_dtype_backend: bool, default False
         If true, we cast to the associated nullable dtypes.
 
     Returns
@@ -1409,6 +1406,8 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     The casted array.
     """
     if is_extension_array_dtype(arr.dtype):
+        # TODO: the docstring says arr is an ndarray, in which case this cannot
+        #  be reached. Is that incorrect?
         return arr
 
     na_value = na_values[arr.dtype]
@@ -1416,7 +1415,7 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     if issubclass(arr.dtype.type, np.integer):
         mask = arr == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = IntegerArray(arr, mask)
         else:
             arr = arr.astype(float)
@@ -1425,20 +1424,27 @@ def _maybe_upcast(arr, use_nullable_dtypes: bool = False):
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = BooleanArray(arr, mask)
         else:
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
 
     elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             mask = np.isnan(arr)
             arr = FloatingArray(arr, mask)
 
     elif arr.dtype == np.object_:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = StringDtype().construct_array_type()._from_sequence(arr)
+
+    if use_dtype_backend and dtype_backend == "pyarrow":
+        import pyarrow as pa
+        if isinstance(arr, IntegerArray) and arr.isna().all():
+            # use null instead of int64 in pyarrow
+            arr = arr.to_numpy()
+        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
 
     return arr
 
@@ -2042,7 +2048,7 @@ def _compute_na_values():
         np.uint16: uint16info.max,
         np.uint8: uint8info.max,
         np.bool_: uint8info.max,
-        np.object_: np.nan   # oof
+        np.object_: np.nan,
     }
     return na_values
 

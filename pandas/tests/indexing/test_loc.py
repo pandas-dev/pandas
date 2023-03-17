@@ -64,14 +64,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 class TestLoc:
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
-
         # int label
         obj = request.getfixturevalue(f"{kind}_labels")
         check_indexing_smoketest_or_raises(obj, "loc", 2, fails=KeyError)
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label(self, kind, request):
-
         # label
         obj = request.getfixturevalue(f"{kind}_empty")
         check_indexing_smoketest_or_raises(obj, "loc", "c", fails=KeyError)
@@ -167,7 +165,6 @@ class TestLoc:
     )
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_label_slice(self, slc, typs, axes, fails, kind, request):
-
         # label slices (with ints)
 
         # real label slices
@@ -312,7 +309,6 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_dups2(self):
-
         # GH4726
         # dup indexing with iloc/loc
         df = DataFrame(
@@ -333,7 +329,6 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_dups(self):
-
         # GH 6541
         df_orig = DataFrame(
             {
@@ -435,14 +430,13 @@ class TestLocBaseIndependent:
         pass
 
     def test_loc_to_fail(self):
-
         # GH3449
         df = DataFrame(
             np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
         )
 
         msg = (
-            rf"\"None of \[NumericIndex\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -460,7 +454,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            rf"\"None of \[NumericIndex\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -476,7 +470,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            rf"\"None of \[NumericIndex\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -493,7 +487,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            rf"\"None of \[NumericIndex\(\[3\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[3\], dtype='{np.int_().dtype}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -510,10 +504,7 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        msg = (
-            f"\"None of [NumericIndex([3], dtype='{np.int_().dtype}')] "
-            'are in the [index]"'
-        )
+        msg = f"\"None of [Index([3], dtype='{np.int_().dtype}')] are in the [index]"
         with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
@@ -543,7 +534,6 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_general(self):
-
         df = DataFrame(
             np.random.rand(4, 4),
             columns=["A", "B", "C", "D"],
@@ -941,7 +931,6 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     def test_loc_coercion(self):
-
         # GH#12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
         expected = df.dtypes
@@ -1025,7 +1014,6 @@ class TestLocBaseIndependent:
     @pytest.mark.arm_slow
     @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
     def test_loc_non_unique_memory_error(self, length, l2):
-
         # GH 4280
         # non_unique index with a large selection triggers a memory error
 
@@ -1070,7 +1058,6 @@ class TestLocBaseIndependent:
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-
         df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
@@ -1124,9 +1111,12 @@ class TestLocBaseIndependent:
         else:
             assert all(sliced_series[:3] == [7, 8, 9])
 
-    @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-    def test_loc_copy_vs_view(self):
+    def test_loc_copy_vs_view(self, request, using_copy_on_write):
         # GH 15631
+
+        if not using_copy_on_write:
+            mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
+            request.node.add_marker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()
@@ -1207,7 +1197,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            rf"None of \[NumericIndex\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
+            rf"None of \[Index\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
@@ -2581,9 +2571,9 @@ class TestLocBooleanMask:
         df_copy = df.copy()
         ser = Series([td1])
 
-        expected = df["col"].iloc[1].value
+        expected = df["col"].iloc[1]._value
         df.loc[[True, False]] = ser
-        result = df["col"].iloc[1].value
+        result = df["col"].iloc[1]._value
 
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
@@ -2594,8 +2584,10 @@ class TestLocBooleanMask:
         mask = float_frame["A"] > 0
 
         float_frame.loc[mask, "B"] = 0
-        expected.values[mask.values, 1] = 0
 
+        values = expected.values.copy()
+        values[mask.values, 1] = 0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
     def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
@@ -2626,6 +2618,20 @@ class TestLocBooleanMask:
             tm.assert_frame_equal(df, df_orig)
         else:
             tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_empty_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": [], "b": []}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_all_false_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:
@@ -2947,7 +2953,6 @@ def test_loc_setitem_uint8_upcast(value):
     ],
 )
 def test_loc_setitem_using_datetimelike_str_as_index(fill_val, exp_dtype):
-
     data = ["2022-01-02", "2022-01-03", "2022-01-04", fill_val.date()]
     index = DatetimeIndex(data, tz=fill_val.tz, dtype=exp_dtype)
     df = DataFrame([10, 11, 12, 14], columns=["a"], index=index)
@@ -3085,7 +3090,6 @@ class TestLocSeries:
         tm.assert_series_equal(cp, exp)
 
     def test_loc_setitem_listlike_of_ints(self):
-
         # integer indexes, be careful
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
         inds = [0, 4, 6]

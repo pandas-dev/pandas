@@ -207,7 +207,6 @@ def test_getitem_setitem_datetimeindex():
 
 
 def test_getitem_setitem_periodindex():
-
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
     ts = Series(np.random.randn(N), index=rng)
@@ -252,7 +251,6 @@ def test_getitem_setitem_periodindex():
 
 
 def test_datetime_indexing():
-
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
 
@@ -369,7 +367,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-
         expected = ts[t]
         result = ts2[t]
         assert expected == result
@@ -400,7 +397,6 @@ def test_indexing_unordered():
 
 
 def test_indexing_unordered2():
-
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
     ts = Series(np.arange(len(rng)), index=rng)

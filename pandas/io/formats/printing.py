@@ -272,10 +272,9 @@ def enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype] = TableSchemaFormatter()
         # enable it if it's been disabled:
         formatters[mimetype].enabled = True
-    else:
-        # unregister tableschema mime-type
-        if mimetype in formatters:
-            formatters[mimetype].enabled = False
+    # unregister tableschema mime-type
+    elif mimetype in formatters:
+        formatters[mimetype].enabled = False
 
 
 def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
@@ -355,7 +354,6 @@ def format_object_summary(
     def _extend_line(
         s: str, line: str, value: str, display_width: int, next_line_prefix: str
     ) -> tuple[str, str]:
-
         if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
             line = next_line_prefix
@@ -380,7 +378,6 @@ def format_object_summary(
         last = formatter(obj[-1])
         summary = f"[{first}, {last}]{close}"
     else:
-
         if max_seq_items == 1:
             # If max_seq_items=1 show only last element
             head = []

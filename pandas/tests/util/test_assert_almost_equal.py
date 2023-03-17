@@ -45,7 +45,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
     try:
         tm.assert_almost_equal(a, b, **kwargs)
         msg = f"{a} and {b} were approximately equal when they shouldn't have been"
-        pytest.fail(msg=msg)
+        pytest.fail(reason=msg)
     except AssertionError:
         pass
 
@@ -335,7 +335,6 @@ def test_assert_almost_equal_value_mismatch():
     [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
 )
 def test_assert_almost_equal_class_mismatch(a, b, klass1, klass2):
-
     msg = f"""numpy array are different
 
 numpy array classes are different

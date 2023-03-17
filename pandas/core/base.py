@@ -12,13 +12,14 @@ from typing import (
     Hashable,
     Iterator,
     Literal,
-    TypeVar,
     cast,
     final,
     overload,
 )
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -27,6 +28,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
+    Self,
     Shape,
     npt,
 )
@@ -40,8 +42,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dict_like,
     is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
@@ -70,7 +70,6 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -79,7 +78,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
-        Categorical,
         Index,
         Series,
     )
@@ -92,8 +90,6 @@ _indexops_doc_kwargs = {
     "unique": "IndexOpsMixin",
     "duplicated": "IndexOpsMixin",
 }
-
-_T = TypeVar("_T", bound="IndexOpsMixin")
 
 
 class PandasObject(DirNamesMixin):
@@ -213,11 +209,11 @@ class SelectionMixin(Generic[NDFrameT]):
     @final
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj[self._selection_list]
-
         if isinstance(self.obj, ABCSeries):
             return self.obj
+
+        if self._selection is not None:
+            return self.obj._getitem_nocopy(self._selection_list)
 
         if len(self.exclusions) > 0:
             # equivalent to `self.obj.drop(self.exclusions, axis=1)
@@ -287,7 +283,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @final
-    def transpose(self: _T, *args, **kwargs) -> _T:
+    def transpose(self, *args, **kwargs) -> Self:
         """
         Return the transpose, which is by definition self.
 
@@ -302,6 +298,20 @@ class IndexOpsMixin(OpsMixin):
         transpose,
         doc="""
         Return the transpose, which is by definition self.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.T
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
         """,
     )
 
@@ -309,6 +319,12 @@ class IndexOpsMixin(OpsMixin):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.shape
+        (3,)
         """
         return self._values.shape
 
@@ -320,6 +336,17 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> Literal[1]:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.ndim
+        1
         """
         return 1
 
@@ -331,7 +358,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         scalar
-            The first element of %(klass)s.
+            The first element of Series.
 
         Raises
         ------
@@ -346,6 +373,17 @@ class IndexOpsMixin(OpsMixin):
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.nbytes
+        24
         """
         return self._values.nbytes
 
@@ -353,6 +391,17 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
+        >>> s
+        0     Ant
+        1    Bear
+        2     Cow
+        dtype: object
+        >>> s.size
+        3
         """
         return len(self._values)
 
@@ -444,14 +493,9 @@ class IndexOpsMixin(OpsMixin):
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the type of the array.
-
-            .. versionadded:: 1.0.0
-
         **kwargs
             Additional keywords passed through to the ``to_numpy`` method
             of the underlying array (for extension arrays).
-
-            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -545,10 +589,16 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if copy and na_value is lib.no_default:
+        if (copy and na_value is lib.no_default) or (
+            not copy and using_copy_on_write()
+        ):
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                result = result.copy()
+                if using_copy_on_write() and not copy:
+                    result = result.view()
+                    result.flags.writeable = False
+                else:
+                    result = result.copy()
 
         return result
 
@@ -835,87 +885,17 @@ class IndexOpsMixin(OpsMixin):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        # we can fastpath dict/Series to an efficient map
-        # as we know that we are not going to have to yield
-        # python types
-        if is_dict_like(mapper):
-            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
-                # If a dictionary subclass defines a default value method,
-                # convert mapper to a lookup function (GH #15999).
-                dict_with_default = mapper
-                mapper = lambda x: dict_with_default[
-                    np.nan if isinstance(x, float) and np.isnan(x) else x
-                ]
-            else:
-                # Dictionary does not have a default. Thus it's safe to
-                # convert to an Series for efficiency.
-                # we specify the keys here to handle the
-                # possibility that they are tuples
+        arr = extract_array(self, extract_numpy=True, extract_range=True)
 
-                # The return value of mapping with an empty mapper is
-                # expected to be pd.Series(np.nan, ...). As np.nan is
-                # of dtype float64 the return value of this method should
-                # be float64 as well
-                from pandas import Series
+        if isinstance(arr, ExtensionArray):
+            return arr.map(mapper, na_action=na_action)
 
-                if len(mapper) == 0:
-                    mapper = Series(mapper, dtype=np.float64)
-                else:
-                    mapper = Series(mapper)
-
-        if isinstance(mapper, ABCSeries):
-            if na_action not in (None, "ignore"):
-                msg = (
-                    "na_action must either be 'ignore' or None, "
-                    f"{na_action} was passed"
-                )
-                raise ValueError(msg)
-
-            if na_action == "ignore":
-                mapper = mapper[mapper.index.notna()]
-
-            # Since values were input this means we came from either
-            # a dict or a series and mapper should be an index
-            if is_categorical_dtype(self.dtype):
-                # use the built in categorical series mapper which saves
-                # time by mapping the categories instead of all values
-
-                cat = cast("Categorical", self._values)
-                return cat.map(mapper)
-
-            values = self._values
-
-            indexer = mapper.index.get_indexer(values)
-            new_values = algorithms.take_nd(mapper._values, indexer)
-
-            return new_values
-
-        # we must convert to python types
-        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
-            # GH#23179 some EAs do not have `map`
-            values = self._values
-            if na_action is not None:
-                raise NotImplementedError
-            map_f = lambda values, f: values.map(f)
-        else:
-            values = self._values.astype(object)
-            if na_action == "ignore":
-                map_f = lambda values, f: lib.map_infer_mask(
-                    values, f, isna(values).view(np.uint8)
-                )
-            elif na_action is None:
-                map_f = lib.map_infer
-            else:
-                msg = (
-                    "na_action must either be 'ignore' or None, "
-                    f"{na_action} was passed"
-                )
-                raise ValueError(msg)
-
-        # mapper is a function
-        new_values = map_f(values, mapper)
-
-        return new_values
+        # Argument 1 to "map_array" has incompatible type
+        # "Union[IndexOpsMixin, ExtensionArray, ndarray[Any, Any]]";
+        # expected "Union[ExtensionArray, ndarray[Any, Any]]"
+        return algorithms.map_array(
+            arr, mapper, na_action=na_action  # type: ignore[arg-type]
+        )
 
     @final
     def value_counts(
@@ -966,7 +946,7 @@ class IndexOpsMixin(OpsMixin):
         1.0    1
         2.0    1
         4.0    1
-        dtype: int64
+        Name: count, dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
         dividing all values by the sum of values.
@@ -977,7 +957,7 @@ class IndexOpsMixin(OpsMixin):
         1.0    0.2
         2.0    0.2
         4.0    0.2
-        dtype: float64
+        Name: proportion, dtype: float64
 
         **bins**
 
@@ -990,7 +970,7 @@ class IndexOpsMixin(OpsMixin):
         (0.996, 2.0]    2
         (2.0, 3.0]      2
         (3.0, 4.0]      1
-        dtype: int64
+        Name: count, dtype: int64
 
         **dropna**
 
@@ -1002,7 +982,7 @@ class IndexOpsMixin(OpsMixin):
         2.0    1
         4.0    1
         NaN    1
-        dtype: int64
+        Name: count, dtype: int64
         """
         return algorithms.value_counts(
             self,
@@ -1153,7 +1133,6 @@ class IndexOpsMixin(OpsMixin):
         sort: bool = False,
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], Index]:
-
         codes, uniques = algorithms.factorize(
             self._values, sort=sort, use_na_sentinel=use_na_sentinel
         )
@@ -1161,7 +1140,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = uniques.astype(np.float32)
 
         if isinstance(self, ABCIndex):
-            # preserve e.g. NumericIndex, preserve MultiIndex
+            # preserve e.g. MultiIndex
             uniques = self._constructor(uniques)
         else:
             from pandas import Index
@@ -1301,7 +1280,6 @@ class IndexOpsMixin(OpsMixin):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-
         if isinstance(value, ABCDataFrame):
             msg = (
                 "Value must be 1-D array-like or scalar, "
@@ -1337,6 +1315,8 @@ class IndexOpsMixin(OpsMixin):
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
         rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
         rvalues = ensure_wrapped_if_datetimelike(rvalues)
+        if isinstance(rvalues, range):
+            rvalues = np.arange(rvalues.start, rvalues.stop, rvalues.step)
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)

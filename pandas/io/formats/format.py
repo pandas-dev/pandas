@@ -49,19 +49,6 @@ from pandas._libs.tslibs import (
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -109,6 +96,20 @@ from pandas.io.common import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axes,
+        ColspaceArgType,
+        ColspaceType,
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        FormattersType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -120,7 +121,7 @@ common_docstring: Final = """
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
-        columns : sequence, optional, default None
+        columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
@@ -564,9 +565,9 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -686,11 +687,9 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
-            # GH 47231 - columns doesn't have to be `Sequence[str]`
-            # Will fix in later PR
-            cols = ensure_index(cast(Axes, columns))
+            cols = ensure_index(columns)
             self.frame = self.frame[cols]
             return cols
         else:
@@ -1229,7 +1228,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -1916,7 +1917,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 
@@ -2104,11 +2104,10 @@ class EngFormatter:
 
         if self.use_eng_prefix:
             prefix = self.ENG_PREFIXES[int_pow10]
+        elif int_pow10 < 0:
+            prefix = f"E-{-int_pow10:02d}"
         else:
-            if int_pow10 < 0:
-                prefix = f"E-{-int_pow10:02d}"
-            else:
-                prefix = f"E+{int_pow10:02d}"
+            prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10**pow10)
 
@@ -2174,6 +2173,8 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     2   1.0
     3  1.0k
     4  1.0M
+
+    >>> pd.set_option("display.float_format", None)  # unset option
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 

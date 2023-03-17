@@ -609,7 +609,7 @@ are named.
 
 .. ipython:: python
 
-   s.index.set_names(["L1", "L2"], inplace=True)
+   s.index = s.index.set_names(["L1", "L2"])
    s.sort_index(level="L1")
    s.sort_index(level="L2")
 
@@ -848,125 +848,35 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. _advanced.rangeindex:
 
-Int64Index and RangeIndex
-~~~~~~~~~~~~~~~~~~~~~~~~~
+RangeIndex
+~~~~~~~~~~
 
-.. deprecated:: 1.4.0
-    In pandas 2.0, :class:`Index` will become the default index type for numeric types
-    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    are therefore deprecated and will be removed in a futire version.
-    ``RangeIndex`` will not be removed, as it represents an optimized version of an integer index.
-
-:class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
-implementing an ordered, sliceable set.
-
-:class:`RangeIndex` is a sub-class of ``Int64Index``  that provides the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
-
-.. _advanced.float64index:
-
-Float64Index
-~~~~~~~~~~~~
-
-.. deprecated:: 1.4.0
-    :class:`Index` will become the default index type for numeric types in the future
-    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    are therefore deprecated and will be removed in a future version of Pandas.
-    ``RangeIndex`` will not be removed as it represents an optimized version of an integer index.
-
-By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
-This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
-same.
+:class:`RangeIndex` is a sub-class of :class:`Index`  that provides the default index for all :class:`DataFrame` and :class:`Series` objects.
+``RangeIndex`` is an optimized version of ``Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+A ``RangeIndex`` will always have an ``int64`` dtype.
 
 .. ipython:: python
 
-   indexf = pd.Index([1.5, 2, 3, 4.5, 5])
-   indexf
-   sf = pd.Series(range(5), index=indexf)
-   sf
+   idx = pd.RangeIndex(5)
+   idx
 
-Scalar selection for ``[],.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``).
+``RangeIndex`` is the default index for all :class:`DataFrame` and :class:`Series` objects:
 
 .. ipython:: python
 
-   sf[3]
-   sf[3.0]
-   sf.loc[3]
-   sf.loc[3.0]
+   ser = pd.Series([1, 2, 3])
+   ser.index
+   df = pd.DataFrame([[1, 2], [3, 4]])
+   df.index
+   df.columns
 
-The only positional indexing is via ``iloc``.
-
-.. ipython:: python
-
-   sf.iloc[3]
-
-A scalar index that is not found will raise a ``KeyError``.
-Slicing is primarily on the values of the index when using ``[],ix,loc``, and
-**always** positional when using ``iloc``. The exception is when the slice is
-boolean, in which case it will always be positional.
+A ``RangeIndex`` will behave similarly to a :class:`Index` with an ``int64`` dtype and operations on a ``RangeIndex``,
+whose result cannot be represented by a ``RangeIndex``, but should have an integer dtype, will be converted to an ``Index`` with ``int64``.
+For example:
 
 .. ipython:: python
 
-   sf[2:4]
-   sf.loc[2:4]
-   sf.iloc[2:4]
-
-In float indexes, slicing using floats is allowed.
-
-.. ipython:: python
-
-   sf[2.1:4.6]
-   sf.loc[2.1:4.6]
-
-In non-float indexes, slicing using floats will raise a ``TypeError``.
-
-.. code-block:: ipython
-
-   In [1]: pd.Series(range(5))[3.5]
-   TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
-
-   In [1]: pd.Series(range(5))[3.5:4.5]
-   TypeError: the slice start [3.5] is not a proper indexer for this index type (Int64Index)
-
-Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
-irregular timedelta-like indexing scheme, but the data is recorded as floats. This could, for
-example, be millisecond offsets.
-
-.. ipython:: python
-
-   dfir = pd.concat(
-       [
-           pd.DataFrame(
-               np.random.randn(5, 2), index=np.arange(5) * 250.0, columns=list("AB")
-           ),
-           pd.DataFrame(
-               np.random.randn(6, 2),
-               index=np.arange(4, 10) * 250.1,
-               columns=list("AB"),
-           ),
-       ]
-   )
-   dfir
-
-Selection operations then will always work on a value basis, for all selection operators.
-
-.. ipython:: python
-
-   dfir[0:1000.4]
-   dfir.loc[0:1001, "A"]
-   dfir.loc[1000.4]
-
-You could retrieve the first 1 second (1000 ms) of data as such:
-
-.. ipython:: python
-
-   dfir[0:1000]
-
-If you need integer based selection, you should use ``iloc``:
-
-.. ipython:: python
-
-   dfir.iloc[0:5]
+   idx[[0, 2]]
 
 
 .. _advanced.intervalindex:

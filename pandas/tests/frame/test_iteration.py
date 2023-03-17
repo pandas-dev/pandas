@@ -138,7 +138,6 @@ class TestIteration:
         assert hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
-
         # GH#7839
         # make sure can iterate
         df = DataFrame(

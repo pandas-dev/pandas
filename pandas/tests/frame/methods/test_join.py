@@ -113,7 +113,6 @@ def right_w_dups(right_no_dup):
     ],
 )
 def test_join(left, right, how, sort, expected):
-
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
@@ -418,7 +417,7 @@ class TestDataFrameJoin:
         b = frame.loc[frame.index[2:], ["B", "C"]]
 
         joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy().values
+        expected = frame.copy().values.copy()
         expected[np.isnan(joined.values)] = np.nan
         expected = DataFrame(expected, index=frame.index, columns=frame.columns)
 

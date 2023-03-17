@@ -24,17 +24,29 @@ dtypes = [('Float64', 'float64'),
           ('Complex64', 'complex64'),
           ('Complex128', 'complex128'),
           ]
+
+engines = [('', 'IndexEngine'), ('Masked', 'MaskedIndexEngine')]
+
 }}
 
 {{for name, dtype in dtypes}}
 
+{{for prefix, engine in engines}}
 
-cdef class {{name}}Engine(IndexEngine):
+cdef class {{prefix}}{{name}}Engine({{engine}}):
 
     cdef _make_hash_table(self, Py_ssize_t n):
+    {{if engine == 'MaskedIndexEngine'}}
+        return _hash.{{name}}HashTable(n, uses_mask=True)
+    {{else}}
         return _hash.{{name}}HashTable(n)
+    {{endif}}
 
     cdef _check_type(self, object val):
+    {{if engine == 'MaskedIndexEngine'}}
+        if val is C_NA:
+            return val
+    {{endif}}
     {{if name not in {'Float64', 'Float32', 'Complex64', 'Complex128'} }}
         if not util.is_integer_object(val):
             if util.is_float_object(val):
@@ -61,5 +73,6 @@ cdef class {{name}}Engine(IndexEngine):
     {{endif}}
         return val
 
+{{endfor}}
 
 {{endfor}}

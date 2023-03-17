@@ -68,7 +68,6 @@ class TestCombineFirst:
         tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self):
-
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = to_datetime(Series([np.NaN, "2011"]))
         rs = s0.combine_first(s1)
@@ -113,3 +112,11 @@ class TestCombineFirst:
         s2 = Series(index=time_index)
         result = s1.combine_first(s2)
         tm.assert_series_equal(result, s1)
+
+    def test_combine_first_preserves_dtype(self):
+        # GH51764
+        s1 = Series([1666880195890293744, 1666880195890293837])
+        s2 = Series([1, 2, 3])
+        result = s1.combine_first(s2)
+        expected = Series([1666880195890293744, 1666880195890293837, 3])
+        tm.assert_series_equal(result, expected)

@@ -46,7 +46,6 @@ class TestDataFrameUpdate:
         tm.assert_frame_equal(df, expected)
 
     def test_update_dtypes(self):
-
         # gh 3016
         df = DataFrame(
             [[1.0, 2.0, False, True], [4.0, 5.0, True, False]],

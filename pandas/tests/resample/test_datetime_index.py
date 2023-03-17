@@ -9,7 +9,6 @@ import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
-from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
 from pandas import (
@@ -57,7 +56,6 @@ def unit(request):
 
 
 def test_custom_grouper(index, unit):
-
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
 
@@ -243,22 +241,6 @@ def test_resample_how_ohlc(series, unit):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max", "sum", "prod", "mean", "var", "std"])
-def test_numpy_compat(func, unit):
-    # see gh-12811
-    s = Series(
-        [1, 2, 3, 4, 5], index=date_range("20130101", periods=5, freq="s").as_unit(unit)
-    )
-    r = s.resample("2s")
-
-    msg = "numpy operations are not valid with resample"
-
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, func)(func, 1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(r, func)(axis=1)
-
-
 def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
@@ -411,7 +393,6 @@ def test_resample_basic_from_daily(unit):
 
 
 def test_resample_upsampling_picked_but_not_correct(unit):
-
     # Test for issue #3020
     dates = date_range("01-Jan-2014", "05-Jan-2014", freq="D").as_unit(unit)
     series = Series(1, index=dates)
@@ -573,7 +554,6 @@ def test_resample_ohlc(series, unit):
 
 
 def test_resample_ohlc_result(unit):
-
     # GH 12332
     index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
     index = index.union(date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit))
@@ -653,7 +633,6 @@ def test_resample_ohlc_dataframe(unit):
 
 
 def test_resample_dup_index():
-
     # GH 4812
     # dup columns with resample raising
     df = DataFrame(
@@ -663,7 +642,9 @@ def test_resample_dup_index():
     )
     df.iloc[3, :] = np.nan
     result = df.resample("Q", axis=1).mean()
-    expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
     expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
     tm.assert_frame_equal(result, expected)
 
@@ -1027,7 +1008,6 @@ def test_resample_to_period_monthly_buglet(unit):
 
 
 def test_period_with_agg():
-
     # aggregate a period resampler with a lambda
     s2 = Series(
         np.random.randint(0, 5, 50),
@@ -1060,7 +1040,6 @@ def test_resample_segfault(unit):
 
 
 def test_resample_dtype_preservation(unit):
-
     # GH 12202
     # validation tests for dtype preservation
 
@@ -1080,7 +1059,6 @@ def test_resample_dtype_preservation(unit):
 
 
 def test_resample_dtype_coercion(unit):
-
     pytest.importorskip("scipy.interpolate")
 
     # GH 16361
@@ -1291,7 +1269,6 @@ def test_resample_median_bug_1688(dtype):
 
 
 def test_how_lambda_functions(simple_date_range_series, unit):
-
     ts = simple_date_range_series("1/1/2000", "4/1/2000")
     ts.index = ts.index.as_unit(unit)
 
@@ -1331,7 +1308,6 @@ def test_resample_unequal_times(unit):
 
 
 def test_resample_consistency(unit):
-
     # GH 6418
     # resample with bfill / limit / reindex consistency
 
@@ -1403,7 +1379,6 @@ def test_resample_timegrouper(dates):
 
 
 def test_resample_nunique(unit):
-
     # GH 12352
     df = DataFrame(
         {
@@ -1823,14 +1798,11 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = Series(
-        0,
-        index=date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit),
-    )
-    s = s + range(len(s))
+    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    ser = Series(range(len(dti)), index=dti)
 
-    result1 = s.resample(str(n1_) + freq1).mean()
-    result2 = s.resample(str(n2_) + freq2).mean()
+    result1 = ser.resample(str(n1_) + freq1).mean()
+    result2 = ser.resample(str(n2_) + freq2).mean()
     tm.assert_series_equal(result1, result2)
 
 
@@ -1855,7 +1827,7 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last, unit)
     exp_last = Timestamp(exp_last)
 
     freq = pd.tseries.frequencies.to_offset(freq)
-    result = _get_timestamp_range_edges(first, last, freq)
+    result = _get_timestamp_range_edges(first, last, freq, unit="ns")
     expected = (exp_first, exp_last)
     assert result == expected
 
@@ -1870,7 +1842,7 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.product)
+    result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
@@ -1966,3 +1938,28 @@ def test_resample_unsigned_int(any_unsigned_int_numpy_dtype, unit):
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_long_rule_non_nano():
+    # https://github.com/pandas-dev/pandas/issues/51024
+    idx = date_range("0300-01-01", "2000-01-01", unit="s", freq="100Y")
+    ser = Series([1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5], index=idx)
+    result = ser.resample("200Y").mean()
+    expected_idx = DatetimeIndex(
+        np.array(
+            [
+                "0300-12-31",
+                "0500-12-31",
+                "0700-12-31",
+                "0900-12-31",
+                "1100-12-31",
+                "1300-12-31",
+                "1500-12-31",
+                "1700-12-31",
+                "1900-12-31",
+            ]
+        ).astype("datetime64[s]"),
+        freq="200A-DEC",
+    )
+    expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
+    tm.assert_series_equal(result, expected)

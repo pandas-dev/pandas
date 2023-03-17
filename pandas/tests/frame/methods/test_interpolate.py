@@ -5,6 +5,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    NaT,
     Series,
     date_range,
 )
@@ -12,6 +13,28 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_datetimelike_values(self, frame_or_series):
+        # GH#11312, GH#51005
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = NaT
+
+        res = frame_or_series(ser).interpolate()
+        expected = frame_or_series(orig)
+        tm.assert_equal(res, expected)
+
+        # datetime64tz cast
+        ser_tz = ser.dt.tz_localize("US/Pacific")
+        res_tz = frame_or_series(ser_tz).interpolate()
+        expected_tz = frame_or_series(orig.dt.tz_localize("US/Pacific"))
+        tm.assert_equal(res_tz, expected_tz)
+
+        # timedelta64 cast
+        ser_td = ser - ser[0]
+        res_td = frame_or_series(ser_td).interpolate()
+        expected_td = frame_or_series(orig - orig[0])
+        tm.assert_equal(res_td, expected_td)
+
     def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
         # GH#44749
         if using_array_manager and frame_or_series is DataFrame:
@@ -29,7 +52,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self):
+    def test_interp_basic(self, using_copy_on_write):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -52,8 +75,12 @@ class TestDataFrameInterpolate:
         # check we didn't operate inplace GH#45791
         cvalues = df["C"]._values
         dvalues = df["D"].values
-        assert not np.shares_memory(cvalues, result["C"]._values)
-        assert not np.shares_memory(dvalues, result["D"]._values)
+        if using_copy_on_write:
+            assert np.shares_memory(cvalues, result["C"]._values)
+            assert np.shares_memory(dvalues, result["D"]._values)
+        else:
+            assert not np.shares_memory(cvalues, result["C"]._values)
+            assert not np.shares_memory(dvalues, result["D"]._values)
 
         res = df.interpolate(inplace=True)
         assert res is None
@@ -68,14 +95,6 @@ class TestDataFrameInterpolate:
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
-                "C": [1, 2, 3, 5],
-                "D": list("abcd"),
-            }
-        )
-        expected = DataFrame(
-            {
-                "A": [1.0, 2.0, 3.0, 4.0],
-                "B": [1.0, 4.0, 9.0, 9.0],
                 "C": [1, 2, 3, 5],
                 "D": list("abcd"),
             }
@@ -304,20 +323,24 @@ class TestDataFrameInterpolate:
             df.interpolate()
 
     def test_interp_inplace(self, using_copy_on_write):
-        # TODO(CoW) inplace keyword (it is still mutating the parent)
-        if using_copy_on_write:
-            pytest.skip("CoW: inplace keyword not yet handled")
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
+        expected_cow = df.copy()
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
-        tm.assert_frame_equal(result, expected.astype("int64"))
+        if using_copy_on_write:
+            tm.assert_frame_equal(result, expected_cow)
+        else:
+            tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
         # GH 10395

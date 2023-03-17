@@ -230,7 +230,7 @@ installed), make sure you have `pytest
 ::
 
     >>> pd.test()
-    running: pytest --skip-slow --skip-network --skip-db /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
@@ -307,25 +307,6 @@ Dependency                                            Minimum Version    pip ext
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.2              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
 `numba <https://github.com/numba/numba>`__            0.53.1             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================
-
-Timezones
-^^^^^^^^^
-
-Installable with ``pip install "pandas[timezone]"``
-
-========================= ========================= =============== =============================================================
-Dependency                Minimum Version           pip extra       Notes
-========================= ========================= =============== =============================================================
-tzdata                    2022.1(pypi)/             timezone        Allows the use of ``zoneinfo`` timezones with pandas.
-                          2022a(for system tzdata)                  **Note**: You only need to install the pypi package if your
-                                                                    system does not already provide the IANA tz database.
-                                                                    However, the minimum tzdata version still applies, even if it
-                                                                    is not enforced through an error.
-
-                                                                    If you would like to keep your system tzdata version updated,
-                                                                    it is recommended to use the ``tzdata`` package from
-                                                                    conda-forge.
-========================= ========================= =============== =============================================================
 
 Visualization
 ^^^^^^^^^^^^^
@@ -441,7 +422,7 @@ PyTables                  3.6.1              hdf5             HDF5-based reading
 blosc                     1.21.0             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
 fastparquet               0.6.3              -                Parquet reading / writing (pyarrow is default)
-pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
+pyarrow                   7.0.0              parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ========================= ================== ================ =============================================================

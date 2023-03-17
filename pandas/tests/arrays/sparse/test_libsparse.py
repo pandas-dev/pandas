@@ -212,6 +212,8 @@ class TestSparseIndexIntersect:
     @pytest.mark.parametrize(
         "case",
         [
+            # Argument 2 to "IntIndex" has incompatible type "ndarray[Any,
+            # dtype[signedinteger[_32Bit]]]"; expected "Sequence[int]"
             IntIndex(5, np.array([1, 2], dtype=np.int32)),  # type: ignore[arg-type]
             IntIndex(5, np.array([0, 2, 4], dtype=np.int32)),  # type: ignore[arg-type]
             IntIndex(0, np.array([], dtype=np.int32)),  # type: ignore[arg-type]
@@ -432,7 +434,6 @@ class TestBlockIndex:
 
 class TestIntIndex:
     def test_check_integrity(self):
-
         # Too many indices than specified in self.length
         msg = "Too many indices"
 
