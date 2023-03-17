@@ -3,7 +3,14 @@ import pytest
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
+    Index,
+    Period,
+    PeriodIndex,
     Series,
+    Timedelta,
+    TimedeltaIndex,
+    Timestamp,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -80,6 +87,35 @@ def test_series_from_series_with_reindex(using_copy_on_write):
     assert not np.shares_memory(ser.values, result.values)
     if using_copy_on_write:
         assert not result._mgr.blocks[0].refs.has_reference()
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        Index([1, 2]),
+        DatetimeIndex([Timestamp("2019-12-31"), Timestamp("2020-12-31")]),
+        PeriodIndex([Period("2019-12-31"), Period("2020-12-31")]),
+        TimedeltaIndex([Timedelta("1 days"), Timedelta("2 days")]),
+    ],
+)
+def test_series_from_index(using_copy_on_write, idx):
+    ser = Series(idx)
+    expected = idx.copy(deep=True)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(idx))
+        assert not ser._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(idx))
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_index_equal(idx, expected)
+
+
+def test_series_from_index_different_dtypes(using_copy_on_write):
+    idx = Index([1, 2, 3], dtype="int64")
+    ser = Series(idx, dtype="int32")
+    assert not np.shares_memory(get_array(ser), get_array(idx))
+    if using_copy_on_write:
+        assert ser._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
@@ -179,3 +215,34 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
     df.iloc[0, 0] = 100
     arr_after = get_array(df, "a")
     assert np.shares_memory(arr_before, arr_after)
+
+
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_frame_from_numpy_array(using_copy_on_write, copy, using_array_manager):
+    arr = np.array([[1, 2], [3, 4]])
+    df = DataFrame(arr, copy=copy)
+
+    if (
+        using_copy_on_write
+        and copy is not False
+        or copy is True
+        or (using_array_manager and copy is None)
+    ):
+        assert not np.shares_memory(get_array(df, 0), arr)
+    else:
+        assert np.shares_memory(get_array(df, 0), arr)
+
+
+def test_dataframe_from_records_with_dataframe(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    with tm.assert_produces_warning(FutureWarning):
+        df2 = DataFrame.from_records(df)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    df2.iloc[0, 0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        tm.assert_frame_equal(df, df2)
