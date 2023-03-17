@@ -122,7 +122,7 @@ class WrappedCythonOp:
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS = {
+    _CYTHON_FUNCTIONS: dict[str, dict] = {
         "aggregate": {
             "sum": "group_sum",
             "prod": "group_prod",
@@ -422,6 +422,8 @@ class WrappedCythonOp:
             # In to_cython_values we took a view as M8[ns]
             assert res_values.dtype == "M8[ns]"
             if self.how in ["std", "sem"]:
+                if isinstance(values, PeriodArray):
+                    raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
                 new_dtype = f"m8[{values.unit}]"
                 res_values = res_values.view(new_dtype)
                 return TimedeltaArray(res_values)
