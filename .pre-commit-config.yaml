@@ -28,7 +28,7 @@ repos:
         types_or: [python, pyi]
         additional_dependencies: [black==23.1.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.253
+    rev: v0.0.255
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
