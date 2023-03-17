@@ -3180,10 +3180,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             splitter = self.grouper._get_splitter(obj, axis=self.axis)
             sdata = splitter._sorted_data
 
-        if self.ngroups == 0:
-            starts = ends = np.array([], dtype=np.int64)
-        else:
-            starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
+        starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals):
