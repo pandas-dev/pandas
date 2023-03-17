@@ -1401,7 +1401,7 @@ can be used as group keys. If so, the order of the levels will be preserved:
 
    factor = pd.qcut(data, [0, 0.25, 0.5, 0.75, 1.0])
 
-   data.groupby(factor).mean()
+   data.groupby(factor, observed=False).mean()
 
 .. _groupby.specify:
 

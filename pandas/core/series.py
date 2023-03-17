@@ -2008,7 +2008,7 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
@@ -4365,43 +4365,6 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
-    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
-    @overload  # type: ignore[override]
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        **kwargs,
-    ) -> bool:
-        ...
-
-    @overload
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: Level,
-        **kwargs,
-    ) -> Series | bool:
-        ...
-
-    # error: Missing return statement
-    @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(  # type: ignore[empty-body]
-        self,
-        axis: Axis = 0,
-        bool_only: bool | None = None,
-        skipna: bool = True,
-        level: Level | None = None,
-        **kwargs,
-    ) -> Series | bool:
-        ...
-
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
@@ -4827,14 +4790,14 @@ Keep all original rows and also all original values
 
     @doc(NDFrame.rename_axis)
     def rename_axis(  # type: ignore[override]
-        self: Series,
+        self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
         index=lib.no_default,
         axis: Axis = 0,
         copy: bool = True,
         inplace: bool = False,
-    ) -> Series | None:
+    ) -> Self | None:
         return super().rename_axis(
             mapper=mapper,
             index=index,
@@ -5729,232 +5692,6 @@ Keep all original rows and also all original values
         new_index = self.index.to_period(freq=freq)
         setattr(new_obj, "index", new_index)
         return new_obj
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> Series | None:
-        ...
-
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast: dict | None = None,
-    ) -> Series | None:
-        return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> Series | None:
-        ...
-
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast: dict | None = None,
-    ) -> Series | None:
-        return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
-
-    def clip(
-        self: Series,
-        lower=None,
-        upper=None,
-        *,
-        axis: Axis | None = None,
-        inplace: bool = False,
-        **kwargs,
-    ) -> Series | None:
-        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
-
-    def interpolate(
-        self: Series,
-        method: str = "linear",
-        *,
-        axis: Axis = 0,
-        limit: int | None = None,
-        inplace: bool = False,
-        limit_direction: str | None = None,
-        limit_area: str | None = None,
-        downcast: str | None = None,
-        **kwargs,
-    ) -> Series | None:
-        return super().interpolate(
-            method=method,
-            axis=axis,
-            limit=limit,
-            inplace=inplace,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            downcast=downcast,
-            **kwargs,
-        )
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Series | None:
-        ...
-
-    def where(
-        self,
-        cond,
-        other=lib.no_default,
-        *,
-        inplace: bool = False,
-        axis: Axis | None = None,
-        level: Level = None,
-    ) -> Series | None:
-        return super().where(
-            cond,
-            other,
-            inplace=inplace,
-            axis=axis,
-            level=level,
-        )
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> Series | None:
-        ...
-
-    def mask(
-        self,
-        cond,
-        other=lib.no_default,
-        *,
-        inplace: bool = False,
-        axis: Axis | None = None,
-        level: Level = None,
-    ) -> Series | None:
-        return super().mask(
-            cond,
-            other,
-            inplace=inplace,
-            axis=axis,
-            level=level,
-        )
 
     # ----------------------------------------------------------------------
     # Add index

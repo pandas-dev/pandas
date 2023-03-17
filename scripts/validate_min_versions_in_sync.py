@@ -37,10 +37,7 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
-EXCLUSION_LIST = {
-    "python=3.8[build=*_pypy]": None,
-    "pyarrow": None,
-}
+EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]", "pyarrow"])
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -166,9 +163,7 @@ def pin_min_versions_to_yaml_file(
             continue
         old_dep = yaml_package
         if yaml_versions is not None:
-            for yaml_version in yaml_versions:
-                old_dep += yaml_version + ", "
-            old_dep = old_dep[:-2]
+            old_dep = old_dep + ", ".join(yaml_versions)
         if RENAME.get(yaml_package, yaml_package) in toml_map:
             min_dep = toml_map[RENAME.get(yaml_package, yaml_package)]
         elif yaml_package in toml_map:
