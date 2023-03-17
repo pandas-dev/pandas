@@ -1702,10 +1702,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def result_to_bool(
             result: np.ndarray,
             inference: type,
-            nullable: bool = False,
+            result_mask,
         ) -> ArrayLike:
-            if nullable:
-                return BooleanArray(result.astype(bool, copy=False), result == -1)
+            if result_mask is not None:
+                return BooleanArray(result.astype(bool, copy=False), result_mask)
             else:
                 return result.astype(inference, copy=False)
 
@@ -3769,8 +3769,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = mask.reshape(-1, 1)
             func = partial(func, mask=mask)
 
-            is_nullable = isinstance(values, BaseMaskedArray)
-            func = partial(func, nullable=is_nullable)
+            result_mask = None
+            if isinstance(values, BaseMaskedArray):
+                result_mask = np.zeros(result.shape, dtype=np.bool_)
+
+            func = partial(func, result_mask=result_mask)
 
             # Call func to modify result in place
             func(**kwargs)
@@ -3778,9 +3781,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
                 result = result[:, 0]
+                if result_mask is not None:
+                    assert result_mask.shape[1] == 1, result_mask.shape
+                    result_mask = result_mask[:, 0]
 
             if post_processing:
-                result = post_processing(result, inferences, nullable=is_nullable)
+                result = post_processing(result, inferences, result_mask=result_mask)
 
             return result.T
 
