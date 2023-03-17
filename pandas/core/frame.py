@@ -2209,7 +2209,7 @@ class DataFrame(NDFrame, OpsMixin):
                 data = data.set_index(index)
             if exclude is not None:
                 data = data.drop(columns=exclude)
-            return data
+            return data.copy(deep=False)
 
         result_index = None
 
