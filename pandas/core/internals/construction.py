@@ -299,7 +299,7 @@ def ndarray_to_mgr(
             if (dtype is None or astype_is_view(values.dtype, dtype))
             else False
         )
-        values = np.array(values, copy=copy_on_sanitize)
+        values = np.array(values, copy=_copy)
         values = _ensure_2d(values)
 
     else:
