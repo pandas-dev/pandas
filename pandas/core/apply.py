@@ -24,7 +24,6 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -1063,20 +1062,12 @@ class SeriesApply(NDFrameApply):
         f = cast(Callable, self.f)
         obj = self.obj
 
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
+        if isinstance(f, np.ufunc):
+            with np.errstate(all="ignore"):
                 return f(obj)
 
-            # row-wise access
-            if is_extension_array_dtype(obj.dtype):
-                mapped = obj._values.map(f)
-            else:
-                values = obj.astype(object)._values
-                mapped = lib.map_infer(
-                    values,
-                    f,
-                    convert=self.convert_dtype,
-                )
+        # row-wise access
+        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
