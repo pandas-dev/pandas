@@ -552,7 +552,7 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
-def test_dataframe_to_sql_arrow_dtypes(conn, test_frame1, request):
+def test_dataframe_to_sql_arrow_dtypes(conn, request):
     # GH 52046
     pytest.importorskip("pyarrow")
     df = DataFrame(
