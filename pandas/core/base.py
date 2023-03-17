@@ -12,13 +12,14 @@ from typing import (
     Hashable,
     Iterator,
     Literal,
-    TypeVar,
     cast,
     final,
     overload,
 )
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -27,6 +28,7 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
+    Self,
     Shape,
     npt,
 )
@@ -88,8 +90,6 @@ _indexops_doc_kwargs = {
     "unique": "IndexOpsMixin",
     "duplicated": "IndexOpsMixin",
 }
-
-_T = TypeVar("_T", bound="IndexOpsMixin")
 
 
 class PandasObject(DirNamesMixin):
@@ -283,7 +283,7 @@ class IndexOpsMixin(OpsMixin):
         raise AbstractMethodError(self)
 
     @final
-    def transpose(self: _T, *args, **kwargs) -> _T:
+    def transpose(self, *args, **kwargs) -> Self:
         """
         Return the transpose, which is by definition self.
 
@@ -589,10 +589,16 @@ class IndexOpsMixin(OpsMixin):
 
         result = np.asarray(values, dtype=dtype)
 
-        if copy and na_value is lib.no_default:
+        if (copy and na_value is lib.no_default) or (
+            not copy and using_copy_on_write()
+        ):
             if np.shares_memory(self._values[:2], result[:2]):
                 # Take slices to improve performance of check
-                result = result.copy()
+                if using_copy_on_write() and not copy:
+                    result = result.view()
+                    result.flags.writeable = False
+                else:
+                    result = result.copy()
 
         return result
 
@@ -881,10 +887,8 @@ class IndexOpsMixin(OpsMixin):
         """
         arr = extract_array(self, extract_numpy=True, extract_range=True)
 
-        if is_extension_array_dtype(arr.dtype):
-            # Item "IndexOpsMixin" of "Union[IndexOpsMixin, ExtensionArray,
-            # ndarray[Any, Any]]" has no attribute "map"
-            return arr.map(mapper, na_action=na_action)  # type: ignore[union-attr]
+        if isinstance(arr, ExtensionArray):
+            return arr.map(mapper, na_action=na_action)
 
         # Argument 1 to "map_array" has incompatible type
         # "Union[IndexOpsMixin, ExtensionArray, ndarray[Any, Any]]";
