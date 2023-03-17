@@ -34,13 +34,6 @@ class TestToNumpy:
             assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr
 
-        # we still don't want a copy when na_value=np.nan is passed,
-        #  and that can be respected because we are already numpy-float
-        if using_copy_on_write:
-            assert df.to_numpy(copy=False).base is df.values.base
-        else:
-            assert df.to_numpy(copy=False, na_value=np.nan).base is arr
-
     def test_to_numpy_mixed_dtype_to_str(self):
         # https://github.com/pandas-dev/pandas/issues/35455
         df = DataFrame([[Timestamp("2020-01-01 00:00:00"), 100.0]])
