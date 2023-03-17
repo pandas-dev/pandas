@@ -2180,6 +2180,9 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if isinstance(data, DataFrame):
+            data = data.copy(deep=False)
+
         result_index = None
 
         # Make a copy of the input columns so we can modify it
