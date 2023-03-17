@@ -352,6 +352,7 @@ class MultiIndex(Index):
             result._codes = new_codes
 
         result._reset_identity()
+        result._references = None
 
         return result
 
@@ -2699,6 +2700,7 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
+            loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
                 try:
@@ -2930,7 +2932,8 @@ class MultiIndex(Index):
         loc, mi = self._get_loc_level(key, level=level)
         if not drop_level:
             if lib.is_integer(loc):
-                mi = self[loc : loc + 1]
+                # Slice index must be an integer or None
+                mi = self[loc : loc + 1]  # type: ignore[misc]
             else:
                 mi = self[loc]
         return loc, mi
