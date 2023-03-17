@@ -405,7 +405,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
-            elif using_copy_on_write():
+            elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
             if copy:
                 data = data.copy()
