@@ -404,7 +404,7 @@ class TestSetitemBooleanMask:
 
 
 class TestSetitemViewCopySemantics:
-    def test_setitem_invalidates_datetime_index_freq(self):
+    def test_setitem_invalidates_datetime_index_freq(self, using_copy_on_write):
         # GH#24096 altering a datetime64tz Series inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex
 
@@ -412,7 +412,10 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
@@ -423,15 +426,20 @@ class TestSetitemViewCopySemantics:
         assert dti[1] == ts
         assert dti.freq == "D"
 
-    def test_dt64tz_setitem_does_not_mutate_dti(self):
+    def test_dt64tz_setitem_does_not_mutate_dti(self, using_copy_on_write):
         # GH#21907, GH#24096
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
+
         assert ser._mgr.arrays[0] is not dti
-        assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
 
         ser[::3] = NaT
         assert ser[0] is NaT

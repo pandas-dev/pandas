@@ -2056,6 +2056,14 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_series_from_index_dtype_equal_does_not_copy(self):
+        # GH#52008
+        idx = Index([1, 2, 3])
+        expected = idx.copy(deep=True)
+        ser = Series(idx, dtype="int64")
+        ser.iloc[0] = 100
+        tm.assert_index_equal(idx, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):

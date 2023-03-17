@@ -1255,7 +1255,8 @@ class MultiIndex(Index):
 
         return any(f(level) for level in self._inferred_type_levels)
 
-    @doc(Index.memory_usage)
+    # Cannot determine type of "memory_usage"
+    @doc(Index.memory_usage)  # type: ignore[has-type]
     def memory_usage(self, deep: bool = False) -> int:
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
