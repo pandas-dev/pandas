@@ -47,8 +47,9 @@ class TestFillNA:
     def test_fillna_on_column_view(self, using_copy_on_write):
         # GH#46149 avoid unnecessary copies
         arr = np.full((40, 50), np.nan)
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
 
+        # TODO(CoW): This should raise a chained assignment error
         df[0].fillna(-1, inplace=True)
         if using_copy_on_write:
             assert np.isnan(arr[:, 0]).all()
