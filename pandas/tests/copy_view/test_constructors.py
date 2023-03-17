@@ -90,7 +90,9 @@ def test_series_from_series_with_reindex(using_copy_on_write):
     "arr", [np.array([1, 2, 3], dtype="int64"), pd.array([1, 2, 3], dtype="Int64")]
 )
 def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
-    ser = Series(arr, dtype=dtype)
+    if idx is None or dtype is not None:
+        fastpath = False
+    ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
     if using_copy_on_write:

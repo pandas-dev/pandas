@@ -381,10 +381,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fastpath: bool = False,
     ) -> None:
         if copy is None:
-            default_cow_copy = True
-            copy = False
-        else:
-            default_cow_copy = copy
+            if using_copy_on_write():
+                copy = True
+            else:
+                copy = False
 
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
@@ -402,7 +402,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
-            if default_cow_copy and not copy and using_copy_on_write():
+            if copy and using_copy_on_write():
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
 
