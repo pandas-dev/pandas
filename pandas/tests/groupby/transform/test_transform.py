@@ -1078,7 +1078,7 @@ def test_transform_absent_categories(func):
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), func)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 

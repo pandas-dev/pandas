@@ -1250,7 +1250,7 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
@@ -1289,7 +1289,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(

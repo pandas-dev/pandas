@@ -21,11 +21,11 @@ def test_rank_unordered_categorical_typeerror():
 
     msg = "Cannot perform rank with non-ordered Categorical"
 
-    gb = ser.groupby(cat)
+    gb = ser.groupby(cat, observed=False)
     with pytest.raises(TypeError, match=msg):
         gb.rank()
 
-    gb2 = df.groupby(cat)
+    gb2 = df.groupby(cat, observed=False)
     with pytest.raises(TypeError, match=msg):
         gb2.rank()
 

@@ -236,7 +236,7 @@ def test_min_max_nullable_uint64_empty_group():
     # don't raise NotImplementedError from libgroupby
     cat = pd.Categorical([0] * 10, categories=[0, 1])
     df = DataFrame({"A": cat, "B": pd.array(np.arange(10, dtype=np.uint64))})
-    gb = df.groupby("A")
+    gb = df.groupby("A", observed=False)
 
     res = gb.min()
 

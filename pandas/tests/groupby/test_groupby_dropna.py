@@ -448,7 +448,7 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
             "a": [0, 1, 2, 3],
         }
     )
-    gb = df.groupby("key", dropna=False, sort=False, as_index=as_index)
+    gb = df.groupby("key", dropna=False, sort=False, as_index=as_index, observed=False)
     if test_series:
         gb = gb["a"]
     result = gb.sum()
@@ -665,7 +665,7 @@ def test_categorical_agg():
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
-    gb = df.groupby("x", dropna=False)
+    gb = df.groupby("x", dropna=False, observed=False)
     result = gb.agg(lambda x: x.sum())
     expected = gb.sum()
     tm.assert_frame_equal(result, expected)
@@ -677,7 +677,7 @@ def test_categorical_transform():
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
-    gb = df.groupby("x", dropna=False)
+    gb = df.groupby("x", dropna=False, observed=False)
     result = gb.transform(lambda x: x.sum())
     expected = gb.transform("sum")
     tm.assert_frame_equal(result, expected)

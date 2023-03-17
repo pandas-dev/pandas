@@ -289,7 +289,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 
 .. code-block:: ipython
 
-   In [3]: df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+   In [3]: df[df.chromosomes != '1'].groupby('chromosomes', observed=False, sort=False).sum()
    ---------------------------------------------------------------------------
    ValueError: items in new_categories are not the same as in old categories
 
@@ -297,7 +297,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 
 .. ipython:: python
 
-   df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+   df[df.chromosomes != '1'].groupby('chromosomes', observed=False, sort=False).sum()
 
 .. _whatsnew_0200.enhancements.table_schema:
 

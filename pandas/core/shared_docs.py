@@ -154,6 +154,11 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.1.0
+
+        The default value will change to True in a future version of pandas.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
