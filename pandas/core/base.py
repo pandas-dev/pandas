@@ -865,7 +865,7 @@ class IndexOpsMixin(OpsMixin):
         return func(skipna=skipna, **kwds)
 
     @final
-    def _map_values(self, mapper, na_action=None):
+    def _map_values(self, mapper, na_action=None, convert: bool = True):
         """
         An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
@@ -877,6 +877,10 @@ class IndexOpsMixin(OpsMixin):
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
+        convert : bool, default True
+            Try to find better dtype for elementwise function results. If
+            False, leave as dtype=object. Note that the dtype is always
+            preserved for some extension array dtypes, such as Categorical.
 
         Returns
         -------
@@ -894,7 +898,7 @@ class IndexOpsMixin(OpsMixin):
         # "Union[IndexOpsMixin, ExtensionArray, ndarray[Any, Any]]";
         # expected "Union[ExtensionArray, ndarray[Any, Any]]"
         return algorithms.map_array(
-            arr, mapper, na_action=na_action  # type: ignore[arg-type]
+            arr, mapper, na_action=na_action, convert=convert  # type: ignore[arg-type]
         )
 
     @final
