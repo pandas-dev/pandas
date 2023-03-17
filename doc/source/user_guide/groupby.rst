@@ -6,7 +6,7 @@
 Group by: split-apply-combine
 *****************************
 
-By "group by" we are referring to a process involving one or several of the following
+By "group by" we are referring to a process involving one or more of the following
 steps:
 
 * **Splitting** the data into groups based on some criteria.
@@ -14,7 +14,7 @@ steps:
 * **Combining** the results into a data structure.
 
 Out of these, the split step is the most straightforward. In fact, in many
-cases we may wish to split the data set into groups and do something with
+situations we may wish to split the data set into groups and do something with
 those groups. In the apply step, we might wish to do one of the
 following:
 
@@ -31,7 +31,7 @@ following:
     * Filling NAs within groups with a value derived from each group.
 
 * **Filtration**: discard some groups, according to a group-wise computation
-  that evaluates as True or False. Some examples:
+  that evaluates to True or False. Some examples:
 
     * Discard data that belong to groups with only a few members.
     * Filter out data based on the group sum or mean.
@@ -43,13 +43,13 @@ to those of the :ref:`aggregating API <basics.aggregate>`,
 It is possible that a given operation does not fall into one of these categories or
 is some combination of them. In such a case, it may be possible to compute the
 operation using GroupBy's ``apply`` method. This method will examine the results of the
-splitting step and try to return a sensibly combined result if it doesn't fit into either
+apply step and try to sensibly combine them into a single result if it doesn't fit into either
 of the above three categories.
 
 .. note::
 
-   An operation that is split into multiple steps using built-in GroupBy operations,
-   will be more efficient than one using the ``apply`` method with a user-defined Python
+   An operation that is split into multiple steps using built-in GroupBy operations
+   will be more efficient than using the ``apply`` method with a user-defined Python
    function.
 
 
@@ -65,7 +65,7 @@ a SQL-based tool (or ``itertools``), in which you can write code like:
    GROUP BY Column1, Column2
 
 We aim to make operations like this natural and easy to express using
-pandas. We'll go over each area of GroupBy functionalities, then provide some
+pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
 
 See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies.
@@ -148,7 +148,7 @@ the columns except the one we specify:
    grouped = df2.groupby(level=df2.index.names.difference(["B"]))
    grouped.sum()
 
-GroupBy will split the DataFrame on its index (rows). To split by columns, first do
+The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
 a tranpose:
 
 .. ipython::
@@ -187,7 +187,7 @@ only verifies that you've passed a valid mapping.
 .. note::
 
    Many kinds of complicated data manipulations can be expressed in terms of
-   GroupBy operations (it can't be guaranteed to be the most efficient implementation).
+   GroupBy operations (though it can't be guaranteed to be the most efficient implementation).
    You can get quite creative with the label mapping functions.
 
 .. _groupby.sorting:
@@ -362,8 +362,7 @@ More on the ``sum`` function and aggregation later.
 Grouping DataFrame with Index levels and columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A DataFrame may be grouped by a combination of columns and index levels. You
-need to specify the column names as strings, and the index levels as ``pd.Grouper``
-objects.
+can specify both column and index names, or use a :class:`Grouper`.
 
 Let's first create a DataFrame with a MultiIndex:
 
@@ -437,7 +436,7 @@ Iterating through groups
 ------------------------
 
 With the GroupBy object in hand, iterating through the grouped data is very
-natural and works similarly to :py:func:`itertools.groupby`:
+natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython::
 
@@ -1199,8 +1198,8 @@ function.
 
 .. note::
 
-   All of the examples in this section can be more reliably, and more efficiently
-   computed using other pandas functionalities.
+   All of the examples in this section can be more reliably, and more efficiently,
+   computed using other pandas functionality.
 
 .. ipython:: python
 
@@ -1249,7 +1248,7 @@ Control grouped column(s) placement with ``group_keys``
    group keys added to the result index. Previous versions of pandas would add
    the group keys only when the result from the applied function had a different
    index than the input. If ``group_keys`` is not specified, the group keys will
-   not be added for like-indexed outputs. In the future, this behavior
+   not be added for like-indexed outputs. In the future this behavior
    will change to always respect ``group_keys``, which defaults to ``True``.
 
 To control whether the grouped column(s) are included in the indices, you can use
@@ -1297,7 +1296,7 @@ Again consider the example DataFrame we've been looking at:
 
    df
 
-Suppose we need to compute the standard deviation grouped by the ``A``
+Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
 column ``B`` because it is not numeric. We refer to these non-numeric columns as
 "nuisance" columns. You can avoid nuisance columns by specifying ``numeric_only=True``:
@@ -1310,14 +1309,6 @@ Note that ``df.groupby('A').colname.std().`` is more efficient than
 ``df.groupby('A').std().colname``. So if the result of an aggregation function
 is only needed over one column (here ``colname``), it may be filtered
 *before* applying the aggregation function.
-
-.. note::
-   If an object column includes numerical values such as ``Decimal``
-   objects, it is considered a "nuisance" column. They are automatically
-   excluded from aggregate functions in groupby.
-
-   If you do want to include decimal or object columns in an aggregation with
-   other non-nuisance data types, you must do so explicitly.
 
 .. ipython:: python
 
@@ -1439,7 +1430,7 @@ use the ``pd.Grouper`` to provide this local control.
 
    df
 
-Groupby a specific column with the wanted frequency. This is like resampling.
+Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
@@ -1577,9 +1568,9 @@ order they are first observed.
 Plotting
 ~~~~~~~~
 
-Groupby also works with some plotting methods.  For example, suppose we
-suspect that some features in a DataFrame may differ by group. In this case,
-in group "B", the values in column 1 are 3 times higher on average.
+Groupby also works with some plotting methods.  In this case, suppose we
+suspect that the values in column 1 are 3 times higher on average in group "B".
+
 
 .. ipython:: python
 
@@ -1661,7 +1652,7 @@ arbitrary function, for example:
 
    df.groupby(["Store", "Product"]).pipe(mean)
 
-Where ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
+Here ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity
 columns respectively for each Store-Product combination. The ``mean`` function can
 be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy
 object as a parameter into the function you specify.
@@ -1722,7 +1713,7 @@ In the following examples, **df.index // 5** returns a binary array which is use
    The example below shows how we can downsample by consolidation of samples into fewer ones.
    Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()**
    function, we aggregate the information contained in many samples into a small subset of values
-   which is their standard deviation. Thereby reducing the number of samples.
+   which is their standard deviation thereby reducing the number of samples.
 
 .. ipython:: python
 
