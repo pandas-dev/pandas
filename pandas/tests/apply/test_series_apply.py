@@ -204,7 +204,7 @@ def test_apply_datetimetz():
     tm.assert_series_equal(result, exp)
 
     result = s.apply(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
+    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -779,7 +779,7 @@ def test_map_datetimetz():
     tm.assert_series_equal(result, exp)
 
     result = s.map(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
+    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
     tm.assert_series_equal(result, exp)
 
     # not vectorized

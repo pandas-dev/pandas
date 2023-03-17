@@ -261,7 +261,6 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
-    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
