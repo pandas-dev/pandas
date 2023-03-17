@@ -84,6 +84,11 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
+    if sys.version_info >= (3, 10):
+        from typing import TypeGuard
+    else:
+        from typing_extensions import TypeGuard  # pyright: reportUnusedImport = false
+
     if sys.version_info >= (3, 11):
         from typing import Self
     else:
@@ -91,6 +96,7 @@ if TYPE_CHECKING:
 else:
     npt: Any = None
     Self: Any = None
+    TypeGuard: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 
@@ -131,9 +137,6 @@ Timezone = Union[str, tzinfo]
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
 NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
-# same as NDFrameT, needed when binding two pairs of parameters to potentially
-# separate NDFrame-subclasses (see NDFrame.align)
-NDFrameTb = TypeVar("NDFrameTb", bound="NDFrame")
 
 NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 

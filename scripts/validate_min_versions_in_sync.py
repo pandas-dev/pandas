@@ -37,7 +37,7 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
-EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]", "tzdata", "pyarrow"])
+EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]", "pyarrow"])
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -222,10 +222,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             continue
         elif seen_required and line.strip():
             if "==" in line:
-                package, version = line.strip().split("==")
-
+                package, version = line.strip().split("==", maxsplit=1)
             else:
-                package, version = line.strip().split("=")
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue
