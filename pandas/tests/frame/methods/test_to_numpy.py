@@ -23,11 +23,15 @@ class TestToNumpy:
         tm.assert_numpy_array_equal(result, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_to_numpy_copy(self):
+    def test_to_numpy_copy(self, using_copy_on_write):
         arr = np.random.randn(4, 3)
         df = DataFrame(arr)
-        assert df.values.base is arr
-        assert df.to_numpy(copy=False).base is arr
+        if using_copy_on_write:
+            assert df.values.base is not arr
+            assert df.to_numpy(copy=False).base is df.values.base
+        else:
+            assert df.values.base is arr
+            assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr
 
     def test_to_numpy_mixed_dtype_to_str(self):
