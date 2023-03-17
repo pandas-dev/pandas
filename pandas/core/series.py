@@ -429,10 +429,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise NotImplementedError(
                 "initializing a Series from a MultiIndex is not supported"
             )
+
+        refs = None
         if isinstance(data, Index):
             if dtype is not None:
-                # astype copies
-                data = data.astype(dtype)
+                data = data.astype(dtype, copy=False)
+
+            if using_copy_on_write():
+                refs = data._references
+                data = data._values
             else:
                 # GH#24096 we need to ensure the index remains immutable
                 data = data._values.copy()
@@ -496,7 +501,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             manager = get_option("mode.data_manager")
             if manager == "block":
-                data = SingleBlockManager.from_array(data, index)
+                data = SingleBlockManager.from_array(data, index, refs=refs)
             elif manager == "array":
                 data = SingleArrayManager.from_array(data, index)
 
@@ -1550,6 +1555,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             if inplace:
                 self.index = new_index
+            elif using_copy_on_write():
+                new_ser = self.copy(deep=False)
+                new_ser.index = new_index
+                return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
                     self._values.copy(), index=new_index, copy=False

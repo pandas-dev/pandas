@@ -272,9 +272,7 @@ ignore = [
   "B904",
   # Magic number
   "PLR2004",
-  # Outer loop variable overwritten by inner assignment
-  "PLW2901",
-  # Consider `elif` instead of `else` then `if` to remove indentation level
+  # Consider `elif` instead of `else` then `if` to remove indendation level
   "PLR5501",
 ]
 
@@ -292,10 +290,12 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
+"pandas/core/*" = ["PLR5501", "PLW2901"]
+"pandas/io/*" = ["PLW2901"]
+"pandas/tests/*" = ["PLW2901"]
+"pandas/plotting/*" = ["PLW2901"]
 # TCH to be enabled gradually
 "pandas/core/nanops.py" = ["TCH"]
-"pandas/_libs/*" = ["TCH"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 
