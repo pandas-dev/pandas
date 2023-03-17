@@ -367,6 +367,8 @@ def concat(
             copy = False
         else:
             copy = True
+    elif copy and using_copy_on_write():
+        copy = False
 
     op = _Concatenator(
         objs,
@@ -388,6 +390,8 @@ class _Concatenator:
     """
     Orchestrates a concatenation operation for BlockManagers
     """
+
+    sort: bool
 
     def __init__(
         self,
@@ -553,7 +557,9 @@ class _Concatenator:
             raise ValueError(
                 f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
-        self.sort = sort
+        # Incompatible types in assignment (expression has type "Union[bool, bool_]",
+        # variable has type "bool")
+        self.sort = sort  # type: ignore[assignment]
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity

@@ -14,14 +14,8 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
-from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import (
-    IndexLabel,
-    PlottingOrientation,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -79,8 +73,15 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+    from pandas._typing import (
+        IndexLabel,
+        PlottingOrientation,
+        npt,
+    )
 
 
 def _color_in_style(style: str) -> bool:
@@ -376,6 +377,7 @@ class MPLPlot(ABC):
         if (
             "color" in self.kwds
             and self.nseries == 1
+            and self.kwds["color"] is not None
             and not is_list_like(self.kwds["color"])
         ):
             # support series.plot(color='green')
