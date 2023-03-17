@@ -1,7 +1,7 @@
 # PDEP-6: Ban upcasting in setitem-like operations
 
 - Created: 23 December 2022
-- Status: Draft
+- Status: Under discussion
 - Discussion: [#50402](https://github.com/pandas-dev/pandas/pull/50402)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli) ([original issue](https://github.com/pandas-dev/pandas/issues/39584) by [Joris Van den Bossche](https://github.com/jorisvandenbossche))
 - Revision: 1
@@ -47,9 +47,7 @@ In[9]: ser = pd.Series(pd.date_range("2000", periods=3))
 
 In[10]: ser[2] = "2000-01-04"  # works, is converted to datetime64
 
-In[11]: ser[
-    2
-] = "2000-01-04x"  # almost certainly a typo - but pandas doesn't error, it upcasts to object
+In[11]: ser[2] = "2000-01-04x"  # typo - but pandas doesn't error, it upcasts to object
 ```
 
 The scope of this PDEP is limited to setitem-like operations on Series.
@@ -66,11 +64,8 @@ then the following would all raise:
 - ``ser.where(ser.isna(), 'foo', inplace=False)``
 - ``ser.iloc[0] = 'foo'``
 - ``ser.loc[0] = 'foo'``
-- ``df.loc[0, 'a'] = 'foo'``
-- ``df.loc[:, 'a'] = 'foo'``
-- ``ser[:] = 'foo'``;
-- ``df.loc[[True, False, True], 'a'] = 'foo'``
-- ``ser[[True, False, True]] = 'foo'``.
+- ``df.loc[indexer, 'a'] = 'foo'``
+- ``ser[indexer] = 'foo'``;
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
@@ -160,6 +155,16 @@ Unfortunately, it would also risk annoy users who might have been intentionally 
 
 Given that users can get around this as simply as with a ``.astype({'my_column': float})`` call,
 I think it would be more beneficial to the community at large to err on the side of strictness.
+
+## Out of scope
+
+Enlargement. For example:
+```python
+ser = pd.Series([1, 2, 3])
+ser[len(ser)] = 4.5
+```
+There is arguably a larger conversation to be had about whether that should be allowed
+at all. To keep this proposal focused, it is intentionally excluded from the scope.
 
 ## Timeline
 
