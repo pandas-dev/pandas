@@ -121,7 +121,7 @@ class Grouper:
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper
-        A TimeGrouper is returned if ``freq`` is not ``None`. Otherwise, a Grouper
+        A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
         is returned.
 
     Examples
