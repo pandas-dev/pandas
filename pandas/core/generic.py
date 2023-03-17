@@ -3639,9 +3639,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
-            - 'w', open for writing, truncating the file first.
-            - 'x', open for exclusive creation, failing if the file already exists.
-            - 'a', open for writing, appending to the end of file if it exists.
+            - 'w', truncate the file first.
+            - 'x', exclusive creation, failing if the file already exists.
+            - 'a', append to the end of file if it exists.
 
         encoding : str, optional
             A string representing the encoding to use in the output file,
