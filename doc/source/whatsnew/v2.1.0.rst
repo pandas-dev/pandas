@@ -120,6 +120,7 @@ Performance improvements
 - Performance improvement in :func:`read_parquet` and :meth:`DataFrame.to_parquet` when reading a remote file with ``engine="pyarrow"`` (:issue:`51609`)
 - Performance improvement in :meth:`MultiIndex.sortlevel` when ``ascending`` is a list (:issue:`51612`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.fillna` when array does not contain nulls (:issue:`51635`)
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
