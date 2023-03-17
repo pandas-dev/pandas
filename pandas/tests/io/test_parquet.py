@@ -528,7 +528,11 @@ class TestBasic(Base):
         df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
-            self.check_error_on_write(df, engine, ValueError, "Column names must")
+            if Version(fastparquet.__version__) < Version("0.7.0"):
+                err = TypeError
+            else:
+                err = ValueError
+            self.check_error_on_write(df, engine, err, "Column name")
         elif engine == "pyarrow":
             check_round_trip(df, engine)
 
