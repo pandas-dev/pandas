@@ -87,8 +87,6 @@ def test_series_from_series_with_reindex(using_copy_on_write):
 @pytest.mark.parametrize("dtype", [None, "int64"])
 @pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
 def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
-    if idx is None:
-        fastpath = False
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
     ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
