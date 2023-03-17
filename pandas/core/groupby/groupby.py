@@ -819,7 +819,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
             # GH 51583
             warnings.warn(
-                "Creating a Groupby object with a length-1 list "
+                "Creating a Groupby object with a length-1 list-like "
                 "level parameter will yield indexes as tuples in a future version. "
                 "To keep indexes as scalars, create Groupby objects with "
                 "a scalar level parameter instead.",
