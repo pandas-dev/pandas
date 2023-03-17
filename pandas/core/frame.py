@@ -8681,7 +8681,7 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         if axis is not lib.no_default:
