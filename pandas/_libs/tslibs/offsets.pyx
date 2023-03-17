@@ -1092,7 +1092,6 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(SingleConstructorOffset):
     _adjust_dst = True
     _attributes = tuple(["n", "normalize"])
-    rule_code = "D"  # used by parse_time_string
     _prefix = "D"
     _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
