@@ -248,3 +248,33 @@ class TestAtErrors:
             match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at["a"] = new_row
+
+
+class TestAtSetWithMissingIndexers:
+    def test_at_set_value_missing_label(self):
+        df = DataFrame({"a": [0]})
+        df.at[0, "b"] = ["a"]
+        expected = DataFrame({"a": [0], "b": ["a"]})
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_set_value_missing_row(self):
+        df = DataFrame({"a": [0]})
+        df.at[1, "a"] = ["a"]
+        expected = DataFrame({"a": [0, "a"]})
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_set_value_missing_labelandrow(self):
+        df = DataFrame({"a": [0]})
+        df.at[1, "b"] = ["b"]
+        expected = DataFrame({"a": [0, np.NaN], "b": [np.NaN, "b"]})
+
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_set_value_missing_index(self):
+        ser = Series(["a"], index=[1])
+        ser.at[2] = "b"
+        expected = Series(["a", "b"], index=[1, 2])
+
+        tm.assert_series_equal(ser, expected)
