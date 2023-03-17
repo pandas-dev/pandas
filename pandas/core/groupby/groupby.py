@@ -1939,10 +1939,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     return values._data, None
                 return values, None
 
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                if nullable:
+            def _postprocessing(vals, inference, result_mask=None) -> ArrayLike:
+                if result_mask is not None:
                     if result_mask.ndim == 2:
                         result_mask = result_mask[:, 0]
                     return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))

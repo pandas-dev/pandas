@@ -642,6 +642,8 @@ def group_any_all(
                 # already determined
                 if val == flag_val:
                     out[lab, j] = flag_val
+                    if uses_mask:
+                        result_mask[lab, j] = 0
 
 
 # ----------------------------------------------------------------------
