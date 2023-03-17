@@ -95,10 +95,8 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     BooleanArray,
     Categorical,
-    DatetimeArray,
     ExtensionArray,
     FloatingArray,
-    TimedeltaArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -1933,32 +1931,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-
-            def _preprocessing(values):
-                if isinstance(values, BaseMaskedArray):
-                    return values._data, None
-                return values, None
-
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                if nullable:
-                    if result_mask.ndim == 2:
-                        result_mask = result_mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
-                return np.sqrt(vals)
-
-            result = self._get_cythonized_result(
-                libgroupby.group_var,
-                cython_dtype=np.dtype(np.float64),
+            return self._cython_agg_general(
+                "std",
+                alt=lambda x: Series(x).std(ddof=ddof),
                 numeric_only=numeric_only,
-                needs_counts=True,
-                pre_processing=_preprocessing,
-                post_processing=_postprocessing,
                 ddof=ddof,
-                how="std",
             )
-            return result
 
     @final
     @Substitution(name="groupby")
@@ -2185,18 +2163,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only)
-
-        if result.ndim == 1:
-            result /= np.sqrt(self.count())
-        else:
-            cols = result.columns.difference(self.exclusions).unique()
-            counts = self.count()
-            result_ilocs = result.columns.get_indexer_for(cols)
-            count_ilocs = counts.columns.get_indexer_for(cols)
-
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
-        return result
+        return self._cython_agg_general(
+            "sem",
+            alt=lambda x: Series(x).sem(ddof=ddof),
+            numeric_only=numeric_only,
+            ddof=ddof,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -3630,7 +3602,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         base_func: Callable,
         cython_dtype: np.dtype,
         numeric_only: bool = False,
-        needs_counts: bool = False,
         pre_processing=None,
         post_processing=None,
         how: str = "any_all",
@@ -3646,8 +3617,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Type of the array that will be modified by the Cython call.
         numeric_only : bool, default False
             Whether only numeric datatypes should be computed
-        needs_counts : bool, default False
-            Whether the counts should be a part of the Cython call
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -3694,14 +3663,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             inferences = None
 
-            if needs_counts:
-                counts = np.zeros(ngroups, dtype=np.int64)
-                func = partial(func, counts=counts)
-
-            is_datetimelike = values.dtype.kind in ["m", "M"]
             vals = values
-            if is_datetimelike and how == "std":
-                vals = vals.view("i8")
             if pre_processing:
                 vals, inferences = pre_processing(vals)
 
@@ -3710,46 +3672,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 vals = vals.reshape((-1, 1))
             func = partial(func, values=vals)
 
-            if how != "std" or isinstance(values, BaseMaskedArray):
-                mask = isna(values).view(np.uint8)
-                if mask.ndim == 1:
-                    mask = mask.reshape(-1, 1)
-                func = partial(func, mask=mask)
+            mask = isna(values).view(np.uint8)
+            if mask.ndim == 1:
+                mask = mask.reshape(-1, 1)
+            func = partial(func, mask=mask)
 
-            if how != "std":
-                is_nullable = isinstance(values, BaseMaskedArray)
-                func = partial(func, nullable=is_nullable)
-
-            elif isinstance(values, BaseMaskedArray):
-                result_mask = np.zeros(result.shape, dtype=np.bool_)
-                func = partial(func, result_mask=result_mask)
+            is_nullable = isinstance(values, BaseMaskedArray)
+            func = partial(func, nullable=is_nullable)
 
             # Call func to modify result in place
-            if how == "std":
-                func(**kwargs, is_datetimelike=is_datetimelike)
-            else:
-                func(**kwargs)
+            func(**kwargs)
 
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
                 result = result[:, 0]
 
             if post_processing:
-                pp_kwargs: dict[str, bool | np.ndarray] = {}
-                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std" and pp_kwargs["nullable"]:
-                    pp_kwargs["result_mask"] = result_mask
-
-                result = post_processing(result, inferences, **pp_kwargs)
-
-            if how == "std" and is_datetimelike:
-                values = cast("DatetimeArray | TimedeltaArray", values)
-                unit = values.unit
-                with warnings.catch_warnings():
-                    # suppress "RuntimeWarning: invalid value encountered in cast"
-                    warnings.filterwarnings("ignore")
-                    result = result.astype(np.int64, copy=False)
-                result = result.view(f"m8[{unit}]")
+                result = post_processing(result, inferences, nullable=is_nullable)
 
             return result.T
 
