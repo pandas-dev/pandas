@@ -9,9 +9,10 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,thousands,decimal",
     [

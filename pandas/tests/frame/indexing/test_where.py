@@ -105,11 +105,10 @@ class TestDataFrameIndexingWhere:
 
                 if is_scalar(other):
                     o = other
+                elif isinstance(other, np.ndarray):
+                    o = Series(other[:, i], index=result.index).values
                 else:
-                    if isinstance(other, np.ndarray):
-                        o = Series(other[:, i], index=result.index).values
-                    else:
-                        o = other[k].values
+                    o = other[k].values
 
                 new_values = d if c.all() else np.where(c, d, o)
                 expected = Series(new_values, index=result.index, name=k)
@@ -982,7 +981,7 @@ def test_where_dt64_2d():
 
     df = DataFrame(dta, columns=["A", "B"])
 
-    mask = np.asarray(df.isna())
+    mask = np.asarray(df.isna()).copy()
     mask[:, 1] = True
 
     # setting all of one column, none of the other
@@ -1025,3 +1024,12 @@ def test_where_int_overflow(replacement):
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_inplace_no_other():
+    # GH#51685
+    df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    cond = DataFrame({"a": [True, False], "b": [False, True]})
+    df.where(cond, inplace=True)
+    expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
+    tm.assert_frame_equal(df, expected)

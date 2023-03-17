@@ -26,13 +26,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    QuantileInterpolation,
-    WindowingRankType,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
@@ -99,6 +92,14 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -1401,7 +1402,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        raw: bool,
+        raw: bool | np.bool_,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
         from pandas import Series

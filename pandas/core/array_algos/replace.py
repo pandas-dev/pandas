@@ -6,17 +6,12 @@ from __future__ import annotations
 import operator
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Pattern,
 )
 
 import numpy as np
-
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     is_re,
@@ -24,6 +19,13 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        npt,
+    )
 
 
 def should_use_regex(regex: bool, to_replace: Any) -> bool:

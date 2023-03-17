@@ -261,7 +261,6 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
-    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -1926,7 +1925,7 @@ def test_empty_groupby(
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna, observed=False)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -2638,7 +2637,7 @@ def test_datetime_categorical_multikey_groupby_indices():
             "c": Categorical.from_codes([-1, 0, 1], categories=[0, 1]),
         }
     )
-    result = df.groupby(["a", "b"]).indices
+    result = df.groupby(["a", "b"], observed=False).indices
     expected = {
         ("a", Timestamp("2018-01-01 00:00:00")): np.array([0]),
         ("b", Timestamp("2018-02-01 00:00:00")): np.array([1]),
@@ -2873,3 +2872,21 @@ def test_obj_with_exclusions_duplicate_columns():
     result = gb._obj_with_exclusions
     expected = df.take([0, 2, 3], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_groupby_numeric_only_std_no_result(numeric_only):
+    # GH 51080
+    dicts_non_numeric = [{"a": "foo", "b": "bar"}, {"a": "car", "b": "dar"}]
+    df = DataFrame(dicts_non_numeric)
+    dfgb = df.groupby("a", as_index=False, sort=False)
+
+    if numeric_only:
+        result = dfgb.std(numeric_only=True)
+        expected_df = DataFrame(["foo", "car"], columns=["a"])
+        tm.assert_frame_equal(result, expected_df)
+    else:
+        with pytest.raises(
+            ValueError, match="could not convert string to float: 'bar'"
+        ):
+            dfgb.std(numeric_only=numeric_only)
