@@ -11,9 +11,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
-from pandas._libs import parsers
+from pandas._libs import (
+    lib,
+    parsers,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -22,8 +23,10 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.concat import union_categoricals
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.concat import (
+    concat_compat,
+    union_categoricals,
+)
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
@@ -83,9 +86,9 @@ class CParserWrapper(ParserBase):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
-        dtype_backend = get_option("mode.dtype_backend")
-        kwds["dtype_backend"] = dtype_backend
-        if dtype_backend == "pyarrow":
+        if "dtype_backend" not in kwds or kwds["dtype_backend"] is lib.no_default:
+            kwds["dtype_backend"] = "numpy"
+        if kwds["dtype_backend"] == "pyarrow":
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
@@ -378,40 +381,15 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
-        # TODO: shouldn't we exclude all EA dtypes here?
-        numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
-        if len(numpy_dtypes) > 1:
-            # error: Argument 1 to "find_common_type" has incompatible type
-            # "Set[Any]"; expected "Sequence[Union[dtype[Any], None, type,
-            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]"
-            common_type = np.find_common_type(
-                numpy_dtypes,  # type: ignore[arg-type]
-                [],
-            )
-            if common_type == np.dtype(object):
-                warning_columns.append(str(name))
+        non_cat_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
 
         dtype = dtypes.pop()
         if is_categorical_dtype(dtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
-        elif isinstance(dtype, ExtensionDtype):
-            # TODO: concat_compat?
-            array_type = dtype.construct_array_type()
-            # error: Argument 1 to "_concat_same_type" of "ExtensionArray"
-            # has incompatible type "List[Union[ExtensionArray, ndarray]]";
-            # expected "Sequence[ExtensionArray]"
-            result[name] = array_type._concat_same_type(arrs)  # type: ignore[arg-type]
         else:
-            # error: Argument 1 to "concatenate" has incompatible
-            # type "List[Union[ExtensionArray, ndarray[Any, Any]]]"
-            # ; expected "Union[_SupportsArray[dtype[Any]],
-            # Sequence[_SupportsArray[dtype[Any]]],
-            # Sequence[Sequence[_SupportsArray[dtype[Any]]]],
-            # Sequence[Sequence[Sequence[_SupportsArray[dtype[Any]]]]]
-            # , Sequence[Sequence[Sequence[Sequence[
-            # _SupportsArray[dtype[Any]]]]]]]"
-            result[name] = np.concatenate(arrs)  # type: ignore[arg-type]
+            result[name] = concat_compat(arrs)
+            if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
+                warning_columns.append(str(name))
 
     if warning_columns:
         warning_names = ",".join(warning_columns)

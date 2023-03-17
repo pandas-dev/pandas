@@ -225,11 +225,13 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         NaPosition,
+        NDFrameT,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
         Renamer,
         Scalar,
+        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -632,6 +634,10 @@ class DataFrame(NDFrame, OpsMixin):
     _accessors: set[str] = {"sparse"}
     _hidden_attrs: frozenset[str] = NDFrame._hidden_attrs | frozenset([])
     _mgr: BlockManager | ArrayManager
+
+    # similar to __array_priority__, positions DataFrame before Series, Index,
+    #  and ExtensionArray.  Should NOT be overridden by subclasses.
+    __pandas_priority__ = 4000
 
     @property
     def _constructor(self) -> Callable[..., DataFrame]:
@@ -1597,16 +1603,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(other, DataFrame):
             return self._constructor(
-                np.dot(lvals, rvals), index=left.index, columns=other.columns
+                np.dot(lvals, rvals),
+                index=left.index,
+                columns=other.columns,
+                copy=False,
             )
         elif isinstance(other, Series):
-            return self._constructor_sliced(np.dot(lvals, rvals), index=left.index)
+            return self._constructor_sliced(
+                np.dot(lvals, rvals), index=left.index, copy=False
+            )
         elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
             if result.ndim == 2:
-                return self._constructor(result, index=left.index)
+                return self._constructor(result, index=left.index, copy=False)
             else:
-                return self._constructor_sliced(result, index=left.index)
+                return self._constructor_sliced(result, index=left.index, copy=False)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
@@ -2490,7 +2501,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
-    ) -> DataFrame:
+    ) -> Self:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
 
@@ -3604,10 +3615,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            if copy:
+            if copy and not using_copy_on_write():
                 new_arr = new_arr.copy()
             result = self._constructor(
-                new_arr, index=self.columns, columns=self.index, dtype=new_arr.dtype
+                new_arr,
+                index=self.columns,
+                columns=self.index,
+                dtype=new_arr.dtype,
+                # We already made a copy (more than one block)
+                copy=False,
             )
 
         return result.__finalize__(self, method="transpose")
@@ -3831,10 +3847,13 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.reindex(columns=new_columns)
                 result.columns = result_columns
             else:
-                new_values = self.values[:, loc]
+                new_values = self._values[:, loc]
                 result = self._constructor(
-                    new_values, index=self.index, columns=result_columns
+                    new_values, index=self.index, columns=result_columns, copy=False
                 )
+                if using_copy_on_write() and isinstance(loc, slice):
+                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+
                 result = result.__finalize__(self)
 
             # If there is only one column being returned, and its name is
@@ -3945,7 +3964,9 @@ class DataFrame(NDFrame, OpsMixin):
     def __setitem__(self, key, value):
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4068,7 +4089,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(key, np.ndarray):
             if key.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
-            key = self._constructor(key, **self._construct_axes_dict())
+            key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
         if key.size and not all(is_bool_dtype(dtype) for dtype in key.dtypes):
             raise TypeError(
@@ -4589,7 +4610,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return _eval(expr, inplace=inplace, **kwargs)
 
-    def select_dtypes(self, include=None, exclude=None) -> DataFrame:
+    def select_dtypes(self, include=None, exclude=None) -> Self:
         """
         Return a subset of the DataFrame's columns based on the column dtypes.
 
@@ -4986,7 +5007,9 @@ class DataFrame(NDFrame, OpsMixin):
             #  condition more specific.
             indexer = row_indexer, col_indexer
             new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
-            return self._constructor(new_values, index=new_index, columns=new_columns)
+            return self._constructor(
+                new_values, index=new_index, columns=new_columns, copy=False
+            )
         else:
             return self._reindex_with_indexers(
                 {0: [new_index, row_indexer], 1: [new_columns, col_indexer]},
@@ -4997,17 +5020,17 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.align, **_shared_doc_kwargs)
     def align(
         self,
-        other: DataFrame,
+        other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
         level: Level = None,
         copy: bool | None = None,
         fill_value=None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
-    ) -> DataFrame:
+    ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
             join=join,
@@ -5926,7 +5949,7 @@ class DataFrame(NDFrame, OpsMixin):
                 names.append(None)
             # from here, col can only be a column label
             else:
-                arrays.append(frame[col]._values)
+                arrays.append(frame[col])
                 names.append(col)
                 if drop:
                     to_remove.append(col)
@@ -7771,9 +7794,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
             left, right = left.align(
-                # error: Argument 1 to "align" of "DataFrame" has incompatible
-                # type "Series"; expected "DataFrame"
-                right,  # type: ignore[arg-type]
+                right,
                 join="outer",
                 axis=axis,
                 level=level,
@@ -9495,11 +9516,7 @@ Parrot 2  Parrot       24.0
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
         if not lib.is_integer(periods):
-            if not (
-                is_float(periods)
-                # error: "int" has no attribute "is_integer"
-                and periods.is_integer()  # type: ignore[attr-defined]
-            ):
+            if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
@@ -10391,8 +10408,13 @@ Parrot 2  Parrot       24.0
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
             # Dispatch to Block.round
+            # Argument "decimals" to "round" of "BaseBlockManager" has incompatible
+            # type "Union[int, integer[Any]]"; expected "int"
             return self._constructor(
-                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+                self._mgr.round(
+                    decimals=decimals,  # type: ignore[arg-type]
+                    using_cow=using_copy_on_write(),
+                ),
             ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
@@ -10518,7 +10540,7 @@ Parrot 2  Parrot       24.0
                 f"'{method}' was supplied"
             )
 
-        result = self._constructor(correl, index=idx, columns=cols)
+        result = self._constructor(correl, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="corr")
 
     def cov(
@@ -10649,7 +10671,7 @@ Parrot 2  Parrot       24.0
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
 
-        result = self._constructor(base_cov, index=idx, columns=cols)
+        result = self._constructor(base_cov, index=idx, columns=cols, copy=False)
         return result.__finalize__(self, method="cov")
 
     def corrwith(
@@ -10762,7 +10784,9 @@ Parrot 2  Parrot       24.0
                 return nanops.nancorr(x[0], x[1], method=method)
 
             correl = self._constructor_sliced(
-                map(c, zip(left.values.T, right.values.T)), index=left.columns
+                map(c, zip(left.values.T, right.values.T)),
+                index=left.columns,
+                copy=False,
             )
 
         else:
@@ -10871,9 +10895,9 @@ Parrot 2  Parrot       24.0
             else:
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts.values
+                counts = series_counts._values
                 result = self._constructor_sliced(
-                    counts, index=frame._get_agg_axis(axis)
+                    counts, index=frame._get_agg_axis(axis), copy=False
                 )
 
         return result.astype("int64").__finalize__(self, method="count")
@@ -10982,7 +11006,7 @@ Parrot 2  Parrot       24.0
             middle = func(arr, axis=0, skipna=skipna)
             result = ufunc(result, middle)
 
-        res_ser = self._constructor_sliced(result, index=self.index)
+        res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
@@ -11664,6 +11688,7 @@ Parrot 2  Parrot       24.0
                 ).reshape(self.shape),
                 self.index,
                 self.columns,
+                copy=False,
             )
         return result.__finalize__(self, method="isin")
 

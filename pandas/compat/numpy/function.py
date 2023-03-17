@@ -25,6 +25,7 @@ from typing import (
     overload,
 )
 
+import numpy as np
 from numpy import ndarray
 
 from pandas._libs.lib import (
@@ -215,7 +216,7 @@ validate_cumsum = CompatValidator(
 )
 
 
-def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
+def validate_cum_func_with_skipna(skipna: bool, args, kwargs, name) -> bool:
     """
     If this function is called via the 'numpy' library, the third parameter in
     its signature is 'dtype', which takes either a 'numpy' dtype or 'None', so
@@ -224,6 +225,8 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
     if not is_bool(skipna):
         args = (skipna,) + args
         skipna = True
+    elif isinstance(skipna, np.bool_):
+        skipna = bool(skipna)
 
     validate_cum_func(args, kwargs, fname=name)
     return skipna
