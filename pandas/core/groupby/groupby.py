@@ -954,18 +954,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.grouper = grouper
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
-        if observed is lib.no_default:
-            if any(ping._passed_categorical for ping in grouper.groupings):
-                warnings.warn(
-                    "The default of observed=False is deprecated and will be changed "
-                    "to True in a future version of pandas. Pass observed=False to "
-                    "retain current behavior or observed=True to adopt the future "
-                    "default and silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            self.observed = False
-
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
