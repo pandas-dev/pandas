@@ -190,12 +190,13 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
-- The :class:`DataFrame` constructor, when constructing from a NumPy array,
-  will now copy the array by default to avoid mutating the :class:`DataFrame`
+- The :class:`DataFrame` and :class:`Series` constructors, when constructing from
+  a NumPy array, will now copy the array by default to avoid mutating
+  the :class:`DataFrame` / :class:`Series`
   when mutating the array. Specify ``copy=False`` to get the old behavior.
   When setting ``copy=False`` pandas does not guarantee correct Copy-on-Write
   behavior when the NumPy array is modified after creation of the
-  :class:`DataFrame`.
+  :class:`DataFrame` / :class:`Series`.
 
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
   will now always raise an warning when Copy-on-Write is enabled. In this mode,
