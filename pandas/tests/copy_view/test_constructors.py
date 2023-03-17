@@ -236,8 +236,7 @@ def test_frame_from_numpy_array(using_copy_on_write, copy, using_array_manager):
 def test_dataframe_from_records_with_dataframe(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        df2 = DataFrame.from_records(df)
+    df2 = DataFrame.from_records(df)
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
