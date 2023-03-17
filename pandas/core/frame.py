@@ -696,6 +696,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # INFO(ArrayManager) by default copy the 2D input array to get
                 # contiguous 1D arrays
                 copy = True
+            elif using_copy_on_write() and not isinstance(
+                data, (Index, DataFrame, Series)
+            ):
+                copy = True
             else:
                 copy = False
 
@@ -9516,11 +9520,7 @@ Parrot 2  Parrot       24.0
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
         if not lib.is_integer(periods):
-            if not (
-                is_float(periods)
-                # error: "int" has no attribute "is_integer"
-                and periods.is_integer()  # type: ignore[attr-defined]
-            ):
+            if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
@@ -10412,8 +10412,13 @@ Parrot 2  Parrot       24.0
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
             # Dispatch to Block.round
+            # Argument "decimals" to "round" of "BaseBlockManager" has incompatible
+            # type "Union[int, integer[Any]]"; expected "int"
             return self._constructor(
-                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+                self._mgr.round(
+                    decimals=decimals,  # type: ignore[arg-type]
+                    using_cow=using_copy_on_write(),
+                ),
             ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")

@@ -190,6 +190,13 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
+- The :class:`DataFrame` constructor, when constructing from a NumPy array,
+  will now copy the array by default to avoid mutating the :class:`DataFrame`
+  when mutating the array. Specify ``copy=False`` to get the old behavior.
+  When setting ``copy=False`` pandas does not guarantee correct Copy-on-Write
+  behavior when the NumPy array is modified after creation of the
+  :class:`DataFrame`.
+
 - The :meth:`DataFrame.from_records` will now respect Copy-on-Write when called
   with a :class:`DataFrame`.
 
@@ -1215,6 +1222,7 @@ Conversion
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising for extension array dtypes (:issue:`29618`, :issue:`50261`, :issue:`31913`)
+- Bug in :meth:`Series` not copying data when created from :class:`Index` and ``dtype`` is equal to ``dtype`` from :class:`Index` (:issue:`52008`)
 
 Strings
 ^^^^^^^
@@ -1298,6 +1306,7 @@ I/O
 - Bug in :func:`read_csv` when ``engine="pyarrow"`` where ``encoding`` parameter was not handled correctly (:issue:`51302`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 - Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
+- Bug in :meth:`DataFrame.to_parquet` where non-string index or columns were raising a ``ValueError`` when ``engine="pyarrow"`` (:issue:`52036`)
 
 Period
 ^^^^^^
