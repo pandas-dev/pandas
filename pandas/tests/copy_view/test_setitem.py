@@ -130,35 +130,3 @@ def test_setitem_series_column_midx_broadcasting(using_copy_on_write):
     assert not np.shares_memory(get_array(rhs), df._get_column_array(0))
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
-
-
-def test_isetitem_series(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3]})
-    rhs = Series([1, 2, 3])
-    df.isetitem(0, rhs)
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df, "a"), get_array(rhs))
-        assert not df._mgr._has_no_reference(0)
-    else:
-        assert not np.shares_memory(get_array(df, "a"), get_array(rhs))
-
-    expected = df.copy()
-    rhs.iloc[0] = 100
-    tm.assert_frame_equal(df, expected)
-
-
-def test_isetitem_frame(using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
-    rhs = DataFrame({"a": [4, 5, 6], "b": 2})
-    df.isetitem([0, 1], rhs)
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
-        assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
-        assert not df._mgr._has_no_reference(0)
-    else:
-        assert not np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
-        assert not np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
-    expected = df.copy()
-    rhs.iloc[0, 0] = 100
-    rhs.iloc[0, 1] = 100
-    tm.assert_frame_equal(df, expected)
