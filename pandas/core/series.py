@@ -380,17 +380,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | None = None,
         fastpath: bool = False,
     ) -> None:
-        if copy is None:
-            if using_copy_on_write():
-                copy = True
-            else:
-                copy = False
-
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
-            and copy is False
+            and (copy is False or copy is None)
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
@@ -400,6 +394,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 self.name = name
             return
+
+        if copy is None:
+            if using_copy_on_write():
+                copy = True
+            else:
+                copy = False
 
         if isinstance(data, (ExtensionArray, np.ndarray)):
             if copy and using_copy_on_write():
