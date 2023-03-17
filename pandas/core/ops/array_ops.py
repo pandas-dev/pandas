@@ -106,6 +106,7 @@ def fill_binop(left, right, fill_value):
 
 def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
+        # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):

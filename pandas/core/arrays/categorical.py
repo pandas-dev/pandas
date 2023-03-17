@@ -1901,7 +1901,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
-        width, height = get_terminal_size()
+        width, _ = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
             # 0 = no breaks

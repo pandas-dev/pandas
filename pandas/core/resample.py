@@ -413,11 +413,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
+
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -1269,11 +1267,9 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq
