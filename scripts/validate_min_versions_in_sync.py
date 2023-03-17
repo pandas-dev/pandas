@@ -39,7 +39,6 @@ ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
 EXCLUSION_LIST = {
     "python=3.8[build=*_pypy]": None,
-    "tzdata": None,
     "pyarrow": None,
 }
 # pandas package is not available
@@ -181,11 +180,11 @@ def pin_min_versions_to_yaml_file(
             data = data.replace(old_dep, new_dep, 1)
             continue
         toml_version = version.parse(min_dep)
-        yaml_versions = clean_version_list(yaml_versions, toml_version)
-        cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
+        yaml_versions_list = clean_version_list(yaml_versions, toml_version)
+        cleaned_yaml_versions = [x for x in yaml_versions_list if "-" not in x]
         new_dep = yaml_package
-        for yaml_version in cleaned_yaml_versions:
-            new_dep += yaml_version + ", "
+        for clean_yaml_version in cleaned_yaml_versions:
+            new_dep += clean_yaml_version + ", "
         operator = get_operator_from(new_dep)
         if operator != "=":
             new_dep += ">=" + min_dep
@@ -228,10 +227,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             continue
         elif seen_required and line.strip():
             if "==" in line:
-                package, version = line.strip().split("==")
-
+                package, version = line.strip().split("==", maxsplit=1)
             else:
-                package, version = line.strip().split("=")
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue

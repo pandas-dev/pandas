@@ -2351,3 +2351,20 @@ def test_concat_empty_arrow_backed_series(dtype):
     expected = ser.copy()
     result = pd.concat([ser[np.array([], dtype=np.bool_)]])
     tm.assert_series_equal(result, expected)
+
+
+# _data was renamed to _pa_data
+class OldArrowExtensionArray(ArrowExtensionArray):
+    def __getstate__(self):
+        state = super().__getstate__()
+        state["_data"] = state.pop("_pa_array")
+        return state
+
+
+def test_pickle_old_arrowextensionarray():
+    data = pa.array([1])
+    expected = OldArrowExtensionArray(data)
+    result = pickle.loads(pickle.dumps(expected))
+    tm.assert_extension_array_equal(result, expected)
+    assert result._pa_array == pa.chunked_array(data)
+    assert not hasattr(result, "_data")
