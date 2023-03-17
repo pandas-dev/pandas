@@ -173,7 +173,7 @@ def test_astype_different_timezones(using_copy_on_write):
     result = df.astype("datetime64[ns, Europe/Berlin]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(get_array(df, "a").asi8, get_array(result, "a").asi8)
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
 def test_astype_different_timezones_different_reso(using_copy_on_write):
@@ -183,9 +183,7 @@ def test_astype_different_timezones_different_reso(using_copy_on_write):
     result = df.astype("datetime64[ms, Europe/Berlin]")
     if using_copy_on_write:
         assert result._mgr._has_no_reference(0)
-        assert not np.shares_memory(
-            get_array(df, "a").asi8, get_array(result, "a").asi8
-        )
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
 @pytest.mark.skipif(pa_version_under7p0, reason="pyarrow not installed")
@@ -202,9 +200,7 @@ def test_astype_arrow_timestamp(using_copy_on_write):
     result = df.astype("timestamp[ns][pyarrow]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(
-            get_array(df, "a").asi8, get_array(result, "a")._pa_array
-        )
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
 def test_convert_dtypes_infer_objects(using_copy_on_write):
