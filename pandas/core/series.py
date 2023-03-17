@@ -379,15 +379,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool = False,
         fastpath: bool = False,
     ) -> None:
-        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
-            data = data.copy(deep=False)
-
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
             and copy is False
         ):
+            if using_copy_on_write():
+                data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
             if fastpath:
@@ -406,12 +405,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+            elif using_copy_on_write():
+                data = data.copy(deep=False)
             if copy:
                 data = data.copy()
             # skips validation of the name
             object.__setattr__(self, "_name", name)
             NDFrame.__init__(self, data)
             return
+
+        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
+            data = data.copy(deep=False)
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
