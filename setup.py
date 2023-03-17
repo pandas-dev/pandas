@@ -158,8 +158,8 @@ class CleanCommand(Command):
 
         # clean the generated pxi files
         for pxifile in _pxifiles:
-            pxifile = pxifile.replace(".pxi.in", ".pxi")
-            self._clean_me.append(pxifile)
+            pxifile_replaced = pxifile.replace(".pxi.in", ".pxi")
+            self._clean_me.append(pxifile_replaced)
 
         for d in ("build", "dist"):
             if os.path.exists(d):

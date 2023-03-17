@@ -253,16 +253,16 @@ _legacy_version_replacement_map = {
 
 def _parse_version_parts(s: str) -> Iterator[str]:
     for part in _legacy_version_component_re.split(s):
-        part = _legacy_version_replacement_map.get(part, part)
+        mapped_part = _legacy_version_replacement_map.get(part, part)
 
-        if not part or part == ".":
+        if not mapped_part or mapped_part == ".":
             continue
 
-        if part[:1] in "0123456789":
+        if mapped_part[:1] in "0123456789":
             # pad for numeric comparison
-            yield part.zfill(8)
+            yield mapped_part.zfill(8)
         else:
-            yield "*" + part
+            yield "*" + mapped_part
 
     # ensure that alpha/beta/candidate are before final
     yield "*final"
