@@ -1489,6 +1489,7 @@ def test_isetitem_series(using_copy_on_write, dtype):
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "a"), get_array(ser))
+        assert not df._mgr._has_no_reference(0)
 
     # mutating dataframe doesn't update series
     df.loc[0, "a"] = 0
