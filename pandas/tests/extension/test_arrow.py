@@ -691,8 +691,8 @@ class TestBaseMissing(base.BaseMissingTests):
         result = data.fillna(valid)
         assert result is not data
         self.assert_extension_array_equal(result, data)
-        with tm.assert_produces_warning(PerformanceWarning):
-            result = data.fillna(method="backfill")
+
+        result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
