@@ -74,10 +74,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             continue
         elif seen_required and line.strip():
             if "==" in line:
-                package, version = line.strip().split("==")
-
+                package, version = line.strip().split("==", maxsplit=1)
             else:
-                package, version = line.strip().split("=")
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue

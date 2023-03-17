@@ -52,7 +52,6 @@ dependencies:
   - scipy
   - sqlalchemy
   - tabulate
-  - tzdata>=2022a
   - xarray
   - xlrd
   - xlsxwriter
@@ -116,3 +115,4 @@ dependencies:
 
   - pip:
       - sphinx-toggleprompt
+      - tzdata>=2022.1
