@@ -695,7 +695,7 @@ class IntervalIndex(ExtensionIndex):
             indexer = self._engine.get_indexer(target.values)
 
             # if indexer is int:
-            if indexer == [-1] and method in ("bfill", "backfill"):
+            if (indexer == [-1]).all() and method in ("bfill", "backfill"):
                 # GH#51503
                 indexer = self._get_indexer_ffill(target, method)
 
