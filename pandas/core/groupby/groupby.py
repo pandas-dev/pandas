@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
@@ -627,6 +628,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
+    level: IndexLabel | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -811,7 +813,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
+            # GH 51583
+            warnings.warn(
+                "Creating a Groupby object with a length-1 list-like "
+                "level parameter will yield indexes as tuples in a future version. "
+                "To keep indexes as scalars, create Groupby objects with "
+                "a scalar level parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if isinstance(keys, list) and len(keys) == 1:
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
