@@ -44,6 +44,10 @@ from pandas.core.arrays.integer import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import array
 from pandas.core.flags import Flags
+from pandas.core.groupby import (
+    Grouper,
+    NamedAgg,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     DatetimeIndex,
@@ -76,18 +80,7 @@ from pandas.tseries.offsets import DateOffset
 # DataFrame needs to be imported after NamedAgg to avoid a circular import
 from pandas.core.frame import DataFrame  # isort:skip
 
-
-def __getattr__(name: str):
-    # Lazify these so that we can avoid importing groupby at import-time
-    if name in ("Grouper", "NamedAgg"):
-        import pandas.core.groupby
-
-        return getattr(pandas.core.groupby, name)
-    else:
-        raise AttributeError(name)
-
-
-__all__ = [  # noqa: F822 linter doesn't recognize lazy imports
+__all__ = [
     "array",
     "ArrowDtype",
     "bdate_range",
@@ -104,7 +97,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
-    "Grouper",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
+    "Grouper",
     "Index",
     "IndexSlice",
     "Int16Dtype",
@@ -119,7 +112,7 @@ __all__ = [  # noqa: F822 linter doesn't recognize lazy imports
     "isnull",
     "MultiIndex",
     "NA",
-    "NamedAgg",  # pyright: ignore[reportUnsupportedDunderAll]  # pylint: disable=undefined-all-variable  # noqa:E501
+    "NamedAgg",
     "NaT",
     "notna",
     "notnull",
