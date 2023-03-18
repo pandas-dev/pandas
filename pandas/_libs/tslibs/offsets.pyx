@@ -2567,7 +2567,7 @@ cdef class MonthEnd(MonthOffset):
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
-    _prefix = "M"
+    _prefix = "ME"
     _day_opt = "end"
 
 
@@ -4067,7 +4067,7 @@ prefix_mapping = {
         CustomBusinessMonthEnd,  # 'CBM'
         CustomBusinessMonthBegin,  # 'CBMS'
         CustomBusinessHour,  # 'CBH'
-        MonthEnd,  # 'M'
+        MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'N'
         SemiMonthEnd,  # 'SM'
@@ -4221,11 +4221,13 @@ cpdef to_offset(freq):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if name == 'M':
+                if name == "M":
                     warnings.warn(
-                        f"'M' will be deprecated, please use 'ME' for 'month end'",
+                        r"\'M\' will be deprecated, please use \'ME\' "
+                        "for \'month end\'",
                         UserWarning,
                     )
+                    name = "ME"
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
