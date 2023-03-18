@@ -6,11 +6,6 @@
 Copy-on-Write (CoW)
 *******************
 
-.. ipython:: python
-    :suppress:
-
-    pd.options.mode.copy_on_write = True
-
 Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 most of the
 optimizations that become possible through CoW are implemented and supported. A complete list
 can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
@@ -20,6 +15,36 @@ We expect that CoW will be enabled by default in version 3.0.
 CoW will lead to more predictable behavior since it is not possible to update more than
 one object with one statement, e.g. indexing operations or methods won't have side-effects. Additionally, through
 delaying copies as long as possible, the average performance and memory usage will improve.
+
+Previous behavior
+-----------------
+
+pandas indexing behavior is tricky to understand. Some operations return views while
+other return copies. Depending on the result of the operation, mutation one object
+might accidentally mutate another:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    subset = df["foo"]
+    subset.iloc[0] = 100
+    df
+
+Mutating ``subset``, e.g. updating its values, also updates ``df``. The exact behavior is
+hard to predict. Copy-on-Write solves accidentally modifying more than one object,
+it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
+
+.. ipython:: python
+
+    pd.options.mode.copy_on_write = True
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    subset = df["foo"]
+    subset.iloc[0] = 100
+    df
+
+The following sections will explain what this means and how it impacts existing
+applications.
 
 Description
 -----------
@@ -114,10 +139,11 @@ two subsequent indexing operations, e.g.
 The column ``foo`` is updated where the column ``bar`` is greater than 5.
 This violates the CoW principles though, because it would have to modify the
 view ``df["foo"]`` and ``df`` in one step. Hence, chained assignment will
-consistently never work and raise a ``ChainedAssignmentError`` with CoW enabled:
+consistently never work and raise a ``ChainedAssignmentError`` warning
+with CoW enabled:
 
 .. ipython:: python
-    :okexcept:
+    :okwarning:
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     df["foo"][df["bar"] > 5] = 100

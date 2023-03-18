@@ -19,6 +19,7 @@ dependencies:
   - python-dateutil
   - pytz
   - pip
+
   - pip:
     - "cython"
     - "git+https://github.com/mesonbuild/meson-python.git@main"
@@ -27,3 +28,4 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
+    - "tzdata>=2022.1"

@@ -70,4 +70,5 @@ dependencies:
   - pyyaml
   - py
   - pip:
-      - "git+https://github.com/mesonbuild/meson-python.git@main"
+    - "git+https://github.com/mesonbuild/meson-python.git@main"
+    - tzdata>=2022.1

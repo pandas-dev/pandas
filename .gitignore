@@ -54,6 +54,9 @@ dist
 # type checkers
 pandas/py.typed
 
+# pyenv
+.python-version
+
 # tox testing tool
 .tox
 # rope

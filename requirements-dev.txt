@@ -42,7 +42,6 @@ s3fs>=2021.08.0
 scipy>=1.7.1
 SQLAlchemy>=1.4.16
 tabulate>=0.8.9
-tzdata>=2022.1
 xarray>=0.21.0
 xlrd>=2.0.1
 xlsxwriter>=1.4.3
@@ -89,3 +88,6 @@ requests
 pygments
 sphinx-toggleprompt
 git+https://github.com/mesonbuild/meson-python.git@main
+typing_extensions; python_version<"3.11"
+tzdata>=2022.1
+setuptools>=61.0.0

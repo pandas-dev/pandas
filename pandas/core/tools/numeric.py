@@ -8,6 +8,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
@@ -27,8 +28,8 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-import pandas as pd
 from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays.arrow import ArrowDtype
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -166,6 +167,8 @@ def to_numeric(
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
+    check_dtype_backend(dtype_backend)
+
     is_series = False
     is_index = False
     is_scalars = False
@@ -201,7 +204,7 @@ def to_numeric(
         values = values._data[~mask]
 
     values_dtype = getattr(values, "dtype", None)
-    if isinstance(values_dtype, pd.ArrowDtype):
+    if isinstance(values_dtype, ArrowDtype):
         mask = values.isna()
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
@@ -287,7 +290,7 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if dtype_backend == "pyarrow" or isinstance(values_dtype, pd.ArrowDtype):
+        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
@@ -295,7 +298,9 @@ def to_numeric(
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
-        return pd.Index(values, name=arg.name)
+        from pandas import Index
+
+        return Index(values, name=arg.name)
     elif is_scalars:
         return values[0]
     else:
