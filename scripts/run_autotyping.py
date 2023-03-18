@@ -14,10 +14,8 @@ from typing import Sequence
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("paths", nargs="*")
+    parser.add_argument("paths", nargs="*", default=[])
     args = parser.parse_args(argv)
-    if not args.paths:
-        sys.exit(0)
     output = subprocess.run(
         [
             "python",
@@ -29,10 +27,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             "--aggressive",
             "--no-format",
         ],
-        check=True,
+        capture_output=True,
     )
     sys.exit(output.returncode)
 
 
 if __name__ == "__main__":
     main()
+
