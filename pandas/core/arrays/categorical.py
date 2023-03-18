@@ -1293,6 +1293,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if np.any(self._codes == -1):
             new_categories = new_categories.insert(len(new_categories), np.nan)
+
         return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op(operator.eq)
