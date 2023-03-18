@@ -970,7 +970,7 @@ def _validate_or_indexify_columns(
 def convert_object_array(
     content: list[npt.NDArray[np.object_]],
     dtype: DtypeObj | None,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: str = "numpy",
     coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
@@ -980,7 +980,7 @@ def convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
-    use_nullable_dtypes: Controls if nullable dtypes are returned.
+    dtype_backend: Controls if nullable/pyarrow dtypes are returned.
     coerce_float: Cast floats that are integers to int.
 
     Returns
@@ -994,7 +994,7 @@ def convert_object_array(
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
-                convert_to_nullable_dtype=use_nullable_dtypes,
+                convert_to_nullable_dtype=dtype_backend != "numpy",
             )
             # Notes on cases that get here 2023-02-15
             # 1) we DO get here when arr is all Timestamps and dtype=None
@@ -1007,9 +1007,9 @@ def convert_object_array(
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
-                    if use_nullable_dtypes and arr.dtype == np.dtype("O"):
+                    if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
                         arr = StringDtype().construct_array_type()._from_sequence(arr)
-                elif use_nullable_dtypes and isinstance(arr, np.ndarray):
+                elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if is_integer_dtype(arr.dtype):
                         arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
                     elif is_bool_dtype(arr.dtype):

@@ -399,7 +399,8 @@ class IntervalIndex(ExtensionIndex):
         """Return a string of the type inferred from the values"""
         return "interval"
 
-    @Appender(Index.memory_usage.__doc__)
+    # Cannot determine type of "memory_usage"
+    @Appender(Index.memory_usage.__doc__)  # type: ignore[has-type]
     def memory_usage(self, deep: bool = False) -> int:
         # we don't use an explicit engine
         # so return the bytes here

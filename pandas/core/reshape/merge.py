@@ -1297,8 +1297,8 @@ class _MergeOperation:
                 continue
 
             msg = (
-                f"You are trying to merge on {lk.dtype} and "
-                f"{rk.dtype} columns. If you wish to proceed you should use pd.concat"
+                f"You are trying to merge on {lk.dtype} and {rk.dtype} columns "
+                f"for key '{name}'. If you wish to proceed you should use pd.concat"
             )
 
             # if we are numeric, then allow differing
@@ -2026,7 +2026,8 @@ class _AsOfMerge(_OrderedMerge):
             elif is_float_dtype(lt):
                 if not is_number(self.tolerance):
                     raise MergeError(msg)
-                if self.tolerance < 0:
+                # error: Unsupported operand types for > ("int" and "Number")
+                if self.tolerance < 0:  # type: ignore[operator]
                     raise MergeError("tolerance must be positive")
 
             else:
