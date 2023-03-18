@@ -27,6 +27,7 @@ def test_map_str(data, categories, ordered):
     )
     tm.assert_index_equal(result, expected)
 
+
 def test_map():
     ci = CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
     result = ci.map(lambda x: x.lower())
@@ -54,9 +55,7 @@ def test_map():
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
     result = ci.map(f)
-    exp = CategoricalIndex(
-        [10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False
-    )
+    exp = CategoricalIndex([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
     tm.assert_index_equal(result, exp)
 
     result = ci.map(Series([10, 20, 30], index=["A", "B", "C"]))
@@ -101,6 +100,7 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     values = CategoricalIndex(data)
     result = values.map(f, na_action="ignore")
     tm.assert_index_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     ("data", "f", "expected"),

@@ -32,6 +32,7 @@ def test_map_str(data, categories, ordered, na_action):
     )
     tm.assert_categorical_equal(result, expected)
 
+
 def test_map(na_action):
     cat = Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
     result = cat.map(lambda x: x.lower(), na_action=na_action)
@@ -65,6 +66,7 @@ def test_map(na_action):
     result = cat.map({"A": 10, "B": 20, "C": 30}, na_action=na_action)
     tm.assert_categorical_equal(result, exp)
 
+
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
@@ -92,6 +94,7 @@ def test_map_with_nan_none(data, f, expected):  # GH 24241
     else:
         tm.assert_index_equal(result, expected)
 
+
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
@@ -118,6 +121,7 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
         tm.assert_categorical_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
+
 
 def test_map_with_dict_or_series(na_action):
     orig_values = ["a", "B", 1, "a"]
