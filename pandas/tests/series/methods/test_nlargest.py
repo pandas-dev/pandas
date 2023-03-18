@@ -217,7 +217,7 @@ class TestSeriesNLargestNSmallest:
     def test_nlargest_nullable(self, any_numeric_ea_dtype):
         # GH#42816
         dtype = any_numeric_ea_dtype
-        if dtype.startswith("Uint"):
+        if dtype.startswith("UInt"):
             # Can't cast from negative float to uint on some platforms
             arr = np.random.randint(1, 10, 10)
         else:
