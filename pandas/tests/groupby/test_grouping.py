@@ -441,6 +441,7 @@ class TestGrouping:
         msg = "'Timestamp' object is not subscriptable"
         with pytest.raises(TypeError, match=msg):
             ts.groupby(lambda key: key[0:6])
+
         result = ts.groupby(lambda x: x).sum()
         expected = ts.groupby(ts.index).sum()
         expected.index.freq = None
