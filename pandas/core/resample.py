@@ -25,20 +25,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._typing import (
-    AnyArrayLike,
-    Axis,
-    AxisInt,
-    Frequency,
-    IndexLabel,
-    NDFrameT,
-    QuantileInterpolation,
-    T,
-    TimedeltaConvertibleTypes,
-    TimeGrouperOrigin,
-    TimestampConvertibleTypes,
-    npt,
-)
+from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
@@ -93,6 +80,20 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyArrayLike,
+        Axis,
+        AxisInt,
+        Frequency,
+        IndexLabel,
+        QuantileInterpolation,
+        T,
+        TimedeltaConvertibleTypes,
+        TimeGrouperOrigin,
+        TimestampConvertibleTypes,
+        npt,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -412,11 +413,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
+
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -1268,11 +1267,9 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq
@@ -1294,7 +1291,11 @@ class DatetimeIndexResampler(Resampler):
 
         # we are downsampling
         # we want to call the actual grouper method here
-        result = obj.groupby(self.grouper, axis=self.axis).aggregate(how, **kwargs)
+        if self.axis == 0:
+            result = obj.groupby(self.grouper).aggregate(how, **kwargs)
+        else:
+            # test_resample_axis1
+            result = obj.T.groupby(self.grouper).aggregate(how, **kwargs).T
 
         return self._wrap_result(result)
 
@@ -1819,6 +1820,13 @@ class TimeGrouper(Grouper):
             raise TypeError(
                 "axis must be a TimedeltaIndex, but got "
                 f"an instance of {type(ax).__name__}"
+            )
+
+        if not isinstance(self.freq, Tick):
+            # GH#51896
+            raise ValueError(
+                "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+                f"e.g. '24H' or '3D', not {self.freq}"
             )
 
         if not len(ax):

@@ -25,15 +25,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Frequency,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -44,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import (
@@ -60,6 +52,16 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Frequency,
+        IntervalClosedType,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
+    )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -266,7 +268,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
@@ -345,8 +347,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name)
+        subarr = cls._simple_new(dtarr, name=name, refs=refs)
         return subarr
 
     # --------------------------------------------------------------------

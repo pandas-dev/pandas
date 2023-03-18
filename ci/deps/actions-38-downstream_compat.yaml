@@ -7,7 +7,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.32
+  - cython>=0.29.33
 
   # test dependencies
   - pytest>=7.0.0
@@ -68,3 +68,6 @@ dependencies:
   - pandas-gbq>=0.15.0
   - pyyaml
   - py
+
+  - pip:
+    - tzdata>=2022.1

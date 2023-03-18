@@ -13,7 +13,6 @@ from typing import (
     Hashable,
     Iterable,
     List,
-    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -25,8 +24,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
 from pandas._libs import (
     lib,
     parsers,
@@ -34,12 +31,6 @@ from pandas._libs import (
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    Scalar,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -91,6 +82,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        Scalar,
+    )
+
     from pandas import DataFrame
 
 
@@ -126,7 +124,7 @@ class ParserBase:
 
         self.dtype = copy(kwds.get("dtype", None))
         self.converters = kwds.get("converters")
-        self.use_nullable_dtypes = kwds.get("use_nullable_dtypes", False)
+        self.dtype_backend = kwds.get("dtype_backend")
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -690,10 +688,10 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        use_nullable_dtypes: Literal[True] | Literal[False] = (
-            self.use_nullable_dtypes and no_dtype_specified
+        dtype_backend = self.dtype_backend
+        non_default_dtype_backend = (
+            no_dtype_specified and dtype_backend is not lib.no_default
         )
-        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -703,7 +701,7 @@ class ParserBase:
                     values,
                     na_values,
                     False,
-                    convert_to_masked_nullable=use_nullable_dtypes,
+                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
                 )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
@@ -711,7 +709,7 @@ class ParserBase:
                 na_count = parsers.sanitize_objects(values, na_values)
                 result = values
             else:
-                if use_nullable_dtypes:
+                if non_default_dtype_backend:
                     if result_mask is None:
                         result_mask = np.zeros(result.shape, dtype=np.bool_)
 
@@ -739,19 +737,19 @@ class ParserBase:
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
-                convert_to_masked_nullable=use_nullable_dtypes,
+                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
             )
-            if result.dtype == np.bool_ and use_nullable_dtypes:
+            if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
                 result = BooleanArray(result, bool_mask)
-            elif result.dtype == np.object_ and use_nullable_dtypes:
+            elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
                 inferred_type = lib.infer_dtype(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and dtype_backend == "pyarrow":
+        if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
@@ -1125,7 +1123,7 @@ def _make_date_converter(
                 dayfirst=dayfirst,
                 errors="ignore",
                 cache=cache_dates,
-            ).to_numpy()
+            )._values
         else:
             try:
                 result = tools.to_datetime(
@@ -1185,7 +1183,7 @@ parser_defaults = {
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
-    "use_nullable_dtypes": False,
+    "dtype_backend": lib.no_default,
 }
 
 

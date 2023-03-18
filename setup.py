@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.32"
+min_cython_ver = "0.29.33"
 
 try:
     from Cython import (
@@ -158,8 +158,8 @@ class CleanCommand(Command):
 
         # clean the generated pxi files
         for pxifile in _pxifiles:
-            pxifile = pxifile.replace(".pxi.in", ".pxi")
-            self._clean_me.append(pxifile)
+            pxifile_replaced = pxifile.replace(".pxi.in", ".pxi")
+            self._clean_me.append(pxifile_replaced)
 
         for d in ("build", "dist"):
             if os.path.exists(d):

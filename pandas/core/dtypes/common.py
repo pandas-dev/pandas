@@ -4,9 +4,11 @@ Common type operations.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
+import warnings
 
 import numpy as np
 
@@ -17,10 +19,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-)
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -53,6 +51,12 @@ from pandas.core.dtypes.inference import (
     is_scalar,
     is_sequence,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+    )
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
@@ -322,6 +326,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64tz_dtype
     >>> is_datetime64tz_dtype(object)
     False
     >>> is_datetime64tz_dtype([1, 2, 3])
@@ -331,6 +336,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
 
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     >>> s = pd.Series([], dtype=dtype)
     >>> is_datetime64tz_dtype(dtype)
@@ -523,6 +529,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_string_dtype
     >>> is_string_dtype(str)
     True
     >>> is_string_dtype(object)
@@ -674,6 +681,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_integer_dtype
     >>> is_integer_dtype(str)
     False
     >>> is_integer_dtype(int)
@@ -884,6 +892,8 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_any_dtype
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_datetime64_any_dtype(str)
     False
     >>> is_datetime64_any_dtype(int)
@@ -926,6 +936,8 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_datetime64_ns_dtype
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_datetime64_ns_dtype(str)
     False
     >>> is_datetime64_ns_dtype(int)
@@ -1683,7 +1695,12 @@ def pandas_dtype(dtype) -> DtypeObj:
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:
-        npdtype = np.dtype(dtype)
+        with warnings.catch_warnings():
+            # GH#51523 - Series.astype(np.integer) doesn't show
+            # numpy deprication warning of np.integer
+            # Hence enabling DeprecationWarning
+            warnings.simplefilter("always", DeprecationWarning)
+            npdtype = np.dtype(dtype)
     except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
         raise TypeError(f"data type '{dtype}' not understood") from err

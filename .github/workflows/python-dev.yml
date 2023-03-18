@@ -23,16 +23,17 @@ name: Python Dev
 on:
   push:
     branches:
-#      - main
-#      - 1.5.x
+      - main
+      - 2.0.x
       - None
   pull_request:
     branches:
-#      - main
-#      - 1.5.x
+      - main
+      - 2.0.x
       - None
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 env:
   PYTEST_WORKERS: "auto"
@@ -46,7 +47,7 @@ permissions:
 
 jobs:
   build:
-    # if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

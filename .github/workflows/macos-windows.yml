@@ -5,14 +5,13 @@ on:
     branches:
       - main
       - 2.0.x
-      - 1.5.x
   pull_request:
     branches:
       - main
       - 2.0.x
-      - 1.5.x
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 env:
   PANDAS_CI: 1
