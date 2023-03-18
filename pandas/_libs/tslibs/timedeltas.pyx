@@ -54,11 +54,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,

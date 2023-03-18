@@ -5,7 +5,10 @@ from enum import Enum
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_conversion_factor,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
 
 
 cdef class PeriodDtypeBase:

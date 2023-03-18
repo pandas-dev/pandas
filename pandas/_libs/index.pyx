@@ -20,7 +20,12 @@ from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
