@@ -9,14 +9,10 @@ from typing import (
     Literal,
 )
 
-from pandas._config import (
-    get_option,
-    using_nullable_dtypes,
-)
-
 from pandas._libs import lib
 from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -26,6 +22,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
+from pandas.core.indexes.api import default_index
 
 from pandas.io.common import (
     get_handle,
@@ -34,6 +31,7 @@ from pandas.io.common import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        DtypeBackend,
         FilePath,
         ReadBuffer,
         WriteBuffer,
@@ -45,7 +43,7 @@ if TYPE_CHECKING:
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem=None,
     **kwargs,
 ) -> DataFrame:
@@ -65,18 +63,13 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    use_nullable_dtypes : bool, default False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -106,11 +99,7 @@ def read_orc(
 
     orc = import_optional_dependency("pyarrow.orc")
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    check_dtype_backend(dtype_backend)
 
     with get_handle(path, "rb", is_text=False) as handles:
         source = handles.handle
@@ -125,8 +114,7 @@ def read_orc(
         pa_table = orc.read_table(
             source=source, columns=columns, filesystem=filesystem, **kwargs
         )
-    if use_nullable_dtypes:
-        dtype_backend = get_option("mode.dtype_backend")
+    if dtype_backend is not lib.no_default:
         if dtype_backend == "pyarrow":
             df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         else:
@@ -205,6 +193,21 @@ def to_orc(
         index = df.index.names[0] is not None
     if engine_kwargs is None:
         engine_kwargs = {}
+
+    # validate index
+    # --------------
+
+    # validate that we have only a default index
+    # raise on anything else as we don't serialize the index
+
+    if not df.index.equals(default_index(len(df))):
+        raise ValueError(
+            "orc does not support serializing a non-default index for the index; "
+            "you can .reset_index() to make the index into column(s)"
+        )
+
+    if df.index.name is not None:
+        raise ValueError("orc does not serialize index meta-data on a default index")
 
     # If unsupported dtypes are found raise NotImplementedError
     # In Pyarrow 8.0.0 this check will no longer be needed
