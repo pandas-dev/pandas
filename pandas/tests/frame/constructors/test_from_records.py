@@ -193,12 +193,12 @@ class TestFromRecords:
         # should fail
         msg = "|".join(
             [
-                r"Length of values \(10\) does not match length of index \(1\)",
+                r"'None of \[2\] are in the columns'",
             ]
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=r"^2$"):
+        with pytest.raises(KeyError, match=msg):
             DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):

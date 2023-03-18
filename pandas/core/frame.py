@@ -2180,6 +2180,17 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        if isinstance(data, DataFrame):
+            if columns is not None:
+                if is_scalar(columns):
+                    columns = [columns]
+                data = data[columns]
+            if index is not None:
+                data = data.set_index(index)
+            if exclude is not None:
+                data = data.drop(columns=exclude)
+            return data.copy(deep=False)
+
         result_index = None
 
         # Make a copy of the input columns so we can modify it
