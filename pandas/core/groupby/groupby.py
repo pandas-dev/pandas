@@ -68,6 +68,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
 from pandas.core.dtypes.common import (
@@ -76,6 +77,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
@@ -626,6 +628,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
+    level: IndexLabel | None = None
     group_keys: bool | lib.NoDefault
 
     @final
@@ -810,7 +813,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
+            # GH 51583
+            warnings.warn(
+                "Creating a Groupby object with a length-1 list-like "
+                "level parameter will yield indexes as tuples in a future version. "
+                "To keep indexes as scalars, create Groupby objects with "
+                "a scalar level parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if isinstance(keys, list) and len(keys) == 1:
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
@@ -905,7 +920,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool | lib.NoDefault = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -922,7 +937,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.observed = observed
         self.dropna = dropna
 
         if grouper is None:
@@ -932,9 +946,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=axis,
                 level=level,
                 sort=sort,
-                observed=observed,
+                observed=False if observed is lib.no_default else observed,
                 dropna=self.dropna,
             )
+
+        if observed is lib.no_default:
+            if any(ping._passed_categorical for ping in grouper.groupings):
+                warnings.warn(
+                    "The default of observed=False is deprecated and will be changed "
+                    "to True in a future version of pandas. Pass observed=False to "
+                    "retain current behavior or observed=True to adopt the future "
+                    "default and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            observed = False
+        self.observed = observed
 
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
@@ -952,10 +979,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
+    def _deprecate_axis(self, axis: int, name: str) -> None:
+        if axis == 1:
+            warnings.warn(
+                f"{type(self).__name__}.{name} with axis=1 is deprecated and "
+                "will be removed in a future version. Operate on the un-grouped "
+                "DataFrame instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            warnings.warn(
+                f"The 'axis' keyword in {type(self).__name__}.{name} is deprecated "
+                "and will be removed in a future version. "
+                "Call without passing 'axis' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+    @final
     def _op_via_apply(self, name: str, *args, **kwargs):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
+
+        if "axis" in kwargs and kwargs["axis"] is not lib.no_default:
+            axis = self.obj._get_axis_number(kwargs["axis"])
+            self._deprecate_axis(axis, name)
+        elif "axis" in kwargs:
+            # exclude skew here because that was already defaulting to lib.no_default
+            #  before this deprecation was instituted
+            if name == "skew":
+                pass
+            elif name == "fillna":
+                # maintain the behavior from before the deprecation
+                kwargs["axis"] = None
+            else:
+                kwargs["axis"] = 0
 
         # a little trickery for aggregation functions that need an axis
         # argument
@@ -1658,10 +1718,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def result_to_bool(
             result: np.ndarray,
             inference: type,
-            nullable: bool = False,
+            result_mask,
         ) -> ArrayLike:
-            if nullable:
-                return BooleanArray(result.astype(bool, copy=False), result == -1)
+            if result_mask is not None:
+                return BooleanArray(result.astype(bool, copy=False), result_mask)
             else:
                 return result.astype(inference, copy=False)
 
@@ -1939,10 +1999,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     return values._data, None
                 return values, None
 
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                if nullable:
+            def _postprocessing(vals, inference, result_mask=None) -> ArrayLike:
+                if result_mask is not None:
                     if result_mask.ndim == 2:
                         result_mask = result_mask[:, 0]
                     return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
@@ -2125,6 +2183,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_series.index.droplevel(levels),
                 sort=self.sort,
                 dropna=self.dropna,
+                # GH#43999 - deprecation of observed=False
+                observed=False,
             ).transform("sum")
             result_series /= indexed_group_size
 
@@ -3449,7 +3509,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: str = "keep",
         pct: bool = False,
-        axis: AxisInt = 0,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -3472,6 +3532,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Compute percentage rank of data within each group.
         axis : int, default 0
             The axis of the object over which to compute the rank.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         Returns
         -------
@@ -3516,6 +3580,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "rank")
+        else:
+            axis = 0
+
         kwargs = {
             "ties_method": method,
             "ascending": ascending,
@@ -3541,7 +3611,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
+    def cumprod(
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative product for each group.
 
@@ -3550,6 +3622,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cumprod")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: x.cumprod(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
@@ -3559,7 +3637,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
+    def cumsum(
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative sum for each group.
 
@@ -3568,6 +3648,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cumsum")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: x.cumsum(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
@@ -3578,7 +3664,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def cummin(
-        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+        self,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative min for each group.
@@ -3588,6 +3677,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
         """
         skipna = kwargs.get("skipna", True)
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cummin")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
             obj = self._selected_obj
@@ -3603,7 +3698,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def cummax(
-        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+        self,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative max for each group.
@@ -3613,6 +3711,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
         """
         skipna = kwargs.get("skipna", True)
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cummax")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
             obj = self._selected_obj
@@ -3716,13 +3820,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
-            if how != "std":
-                is_nullable = isinstance(values, BaseMaskedArray)
-                func = partial(func, nullable=is_nullable)
-
-            elif isinstance(values, BaseMaskedArray):
+            result_mask = None
+            if isinstance(values, BaseMaskedArray):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
-                func = partial(func, result_mask=result_mask)
+
+            func = partial(func, result_mask=result_mask)
 
             # Call func to modify result in place
             if how == "std":
@@ -3733,14 +3835,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
                 result = result[:, 0]
+                if result_mask is not None:
+                    assert result_mask.shape[1] == 1, result_mask.shape
+                    result_mask = result_mask[:, 0]
 
             if post_processing:
-                pp_kwargs: dict[str, bool | np.ndarray] = {}
-                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std" and pp_kwargs["nullable"]:
-                    pp_kwargs["result_mask"] = result_mask
-
-                result = post_processing(result, inferences, **pp_kwargs)
+                result = post_processing(result, inferences, result_mask=result_mask)
 
             if how == "std" and is_datetimelike:
                 values = cast("DatetimeArray | TimedeltaArray", values)
@@ -3763,7 +3863,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def shift(self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=None):
+    def shift(
+        self,
+        periods: int = 1,
+        freq=None,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        fill_value=None,
+    ):
         """
         Shift each group by periods observations.
 
@@ -3777,6 +3883,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Frequency string.
         axis : axis to shift, default 0
             Shift direction.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         fill_value : optional
             The scalar value to use for newly introduced missing values.
 
@@ -3789,6 +3900,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         Index.shift : Shift values of Index.
         """
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "shift")
+        else:
+            axis = 0
+
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
@@ -3810,7 +3927,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: AxisInt = 0) -> NDFrameT:
+    def diff(
+        self, periods: int = 1, axis: AxisInt | lib.NoDefault = lib.no_default
+    ) -> NDFrameT:
         """
         First discrete difference of element.
 
@@ -3824,16 +3943,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis : axis to shift, default 0
             Take difference over rows (0) or columns (1).
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         Returns
         -------
         Series or DataFrame
             First differences.
         """
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "diff")
+        else:
+            axis = 0
+
         if axis != 0:
             return self.apply(lambda x: x.diff(periods=periods, axis=axis))
 
         obj = self._obj_with_exclusions
-        shifted = self.shift(periods=periods, axis=axis)
+        shifted = self.shift(periods=periods)
 
         # GH45562 - to retain existing behavior and match behavior of Series.diff(),
         # int8 and int16 are coerced to float32 rather than float64.
@@ -3857,7 +3986,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fill_method: FillnaOptions = "ffill",
         limit=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
@@ -3867,6 +3996,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Percentage changes within each group.
         """
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "pct_change")
+        else:
+            axis = 0
+
         # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
         #  GH#23918 is fixed
         if freq is not None or axis != 0:

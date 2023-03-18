@@ -39,13 +39,6 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
     truediv_object_array,
 )
-from pandas._typing import (
-    AxisInt,
-    DateTimeErrorChoices,
-    DtypeObj,
-    NpDtype,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_endpoints
 
@@ -74,6 +67,14 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        DateTimeErrorChoices,
+        DtypeObj,
+        NpDtype,
+        npt,
+    )
+
     from pandas import DataFrame
 
 
@@ -201,6 +202,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
+        assert freq is None or isinstance(freq, Tick)
 
         result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
