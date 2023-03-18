@@ -441,6 +441,10 @@ class TestGrouping:
         msg = "'Timestamp' object is not subscriptable"
         with pytest.raises(TypeError, match=msg):
             ts.groupby(lambda key: key[0:6])
+        result = ts.groupby(lambda x: x).sum()
+        expected = ts.groupby(ts.index).sum()
+        expected.index.freq = None
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_with_datetime_key(self):
         # GH 51158
@@ -464,12 +468,6 @@ class TestGrouping:
 
         # test number of group keys
         assert len(gb.groups.keys()) == 4
-
-        result = ts.groupby(lambda x: x).sum()
-        expected = ts.groupby(ts.index).sum()
-        expected.index.freq = None
-        tm.assert_series_equal(result, expected)
-        
 
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
