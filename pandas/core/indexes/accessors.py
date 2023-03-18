@@ -102,7 +102,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
+        result = Series(result, index=index, name=self.name, copy=False).__finalize__(
+            self._parent
+        )
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -130,9 +132,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
-            self._parent
-        )
+        result = Series(
+            result, index=self._parent.index, name=self.name, copy=False
+        ).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (

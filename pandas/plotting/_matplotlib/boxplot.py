@@ -289,7 +289,7 @@ def _grouped_plot_by_column(
         ax_values.append(re_plotf)
         ax.grid(grid)
 
-    result = pd.Series(ax_values, index=columns)
+    result = pd.Series(ax_values, index=columns, copy=False)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:

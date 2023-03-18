@@ -239,7 +239,7 @@ def _get_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
-    codes, levels = factorize_from_iterable(Series(data))
+    codes, levels = factorize_from_iterable(Series(data, copy=False))
 
     if dtype is None:
         dtype = np.dtype(bool)
@@ -313,7 +313,7 @@ def _get_dummies_1d(
                 fill_value=fill_value,
                 dtype=dtype,
             )
-            sparse_series.append(Series(data=sarr, index=index, name=col))
+            sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
         return concat(sparse_series, axis=1, copy=False)
 
