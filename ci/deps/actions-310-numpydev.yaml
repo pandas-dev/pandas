@@ -22,7 +22,7 @@ dependencies:
 
   - pip:
     - "cython"
-    - "git+https://github.com/mesonbuild/meson-python.git@main"
+    - "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
     - "git+https://github.com/pytest-dev/pytest-cov.git@master"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"

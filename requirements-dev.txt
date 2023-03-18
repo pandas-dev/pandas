@@ -87,7 +87,6 @@ pyyaml
 requests
 pygments
 sphinx-toggleprompt
-git+https://github.com/mesonbuild/meson-python.git@main
+git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1
-setuptools>=61.0.0
