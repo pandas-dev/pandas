@@ -659,3 +659,10 @@ class TestDataFrameColor(TestPlotBase):
         msg = "(is not a valid value)|(is not a known colormap)"
         with pytest.raises((ValueError, KeyError), match=msg):
             df.plot(colormap="invalid_colormap")
+
+    def test_dataframe_none_color(self):
+        # GH51953
+        df = DataFrame([[1, 2, 3]])
+        ax = df.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:3]
+        self._check_colors(ax.get_lines(), linecolors=expected)

@@ -1402,7 +1402,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        raw: bool,
+        raw: bool | np.bool_,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
         from pandas import Series

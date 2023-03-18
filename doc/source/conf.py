@@ -101,20 +101,20 @@ if pattern:
         reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
-                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
 
-                if fname == "index.rst" and os.path.abspath(dirname) == source_path:
+                if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
                 if pattern == "-api" and reldir.startswith("reference"):
-                    exclude_patterns.append(fname)
+                    exclude_patterns.append(rel_fname)
                 elif (
                     pattern == "whatsnew"
                     and not reldir.startswith("reference")
                     and reldir != "whatsnew"
                 ):
-                    exclude_patterns.append(fname)
-                elif single_doc and fname != pattern:
-                    exclude_patterns.append(fname)
+                    exclude_patterns.append(rel_fname)
+                elif single_doc and rel_fname != pattern:
+                    exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template")) as f:
     t = jinja2.Template(f.read())

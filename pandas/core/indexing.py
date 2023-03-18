@@ -6,10 +6,10 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Sequence,
-    TypeVar,
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -78,14 +78,13 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
+        Self,
     )
 
     from pandas import (
         DataFrame,
         Series,
     )
-
-_LocationIndexerT = TypeVar("_LocationIndexerT", bound="_LocationIndexer")
 
 # "null slice"
 _NS = slice(None, None)
@@ -669,9 +668,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     _takeable: bool
 
     @final
-    def __call__(
-        self: _LocationIndexerT, axis: Axis | None = None
-    ) -> _LocationIndexerT:
+    def __call__(self, axis: Axis | None = None) -> Self:
         # we need to return a copy of ourselves
         new_self = type(self)(self.name, self.obj)
 
@@ -832,7 +829,9 @@ class _LocationIndexer(NDFrameIndexerBase):
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
-                raise ChainedAssignmentError(_chained_assignment_msg)
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
@@ -1566,7 +1565,7 @@ class _iLocIndexer(_LocationIndexer):
 
         return all(is_integer(k) for k in key)
 
-    def _validate_integer(self, key: int, axis: AxisInt) -> None:
+    def _validate_integer(self, key: int | np.integer, axis: AxisInt) -> None:
         """
         Check that 'key' is a valid position in the desired axis.
 
@@ -2175,7 +2174,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int] | np.ndarray
+        ilocs: Sequence[int | np.integer] | np.ndarray
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):

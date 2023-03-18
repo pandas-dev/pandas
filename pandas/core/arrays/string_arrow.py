@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Union,
 )
@@ -12,11 +13,6 @@ import numpy as np
 from pandas._libs import (
     lib,
     missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    Scalar,
-    npt,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.util._exceptions import find_stack_level
@@ -47,6 +43,15 @@ if not pa_version_under7p0:
     import pyarrow.compute as pc
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        Scalar,
+        npt,
+    )
+
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
