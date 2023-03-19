@@ -166,18 +166,6 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         # get replacements
         replacements = args[i + 1]
 
-        if isinstance(replacements, pd.Series) and not replacements.index.equals(
-            obj.index
-        ):
-            replacements = warn_and_override_index(
-                replacements, f"(in args[{i+1}])", obj.index
-            )
-
-        if isinstance(conditions, pd.Series) and not conditions.index.equals(obj.index):
-            conditions = warn_and_override_index(
-                conditions, f"(in args[{i}])", obj.index
-            )
-
         # `Series.mask` call
         series = series.mask(conditions, replacements)
 
