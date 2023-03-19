@@ -6,7 +6,7 @@ project(
     # since we
     version: '2.1.0.dev0',
     license: 'BSD-3',
-    meson_version: '>=1.0.1',
+    meson_version: '>=1.0.0',
     default_options: [
         # TODO: investigate, does meson try to compile against debug Python
         # when buildtype = debug, this seems to be causing problems on CI
