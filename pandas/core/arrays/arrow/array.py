@@ -1634,6 +1634,9 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
+        if isinstance(values, pa.ChunkedArray):
+            # 52059 replace_with_mask segfaults for chunked array
+            values = values.combine_chunks()
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
