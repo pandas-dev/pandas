@@ -743,9 +743,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warnings.warn(
             # GH#51946
-            f"'{type(self).__name__}.swapaxes' is deprecated and \
-                will be removed in a future version. \
-                Please use '{type(self).__name__}.transpose' instead.",
+            f"'{type(self).__name__}.swapaxes' is deprecated and "
+            "will be removed in a future version. "
+            "Please use '{type(self).__name__}.transpose' instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
