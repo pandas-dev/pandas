@@ -8564,7 +8564,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool_t | lib.NoDefault = lib.no_default,
+        group_keys: bool_t = False,
     ) -> Resampler:
         """
         Resample time-series data.
@@ -8625,16 +8625,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.1.0
 
-        group_keys : bool, optional
+        group_keys : bool, default False
             Whether to include the group keys in the result index when using
-            ``.apply()`` on the resampled object. Not specifying ``group_keys``
-            will retain values-dependent behavior from pandas 1.4
-            and earlier (see :ref:`pandas 1.5.0 Release notes
-            <whatsnew_150.enhancements.resample_group_keys>`
-            for examples). In a future version of pandas, the behavior will
-            default to the same as specifying ``group_keys=False``.
+            ``.apply()`` on the resampled object.
 
             .. versionadded:: 1.5.0
+
+                Not specifying ``group_keys`` will retain values-dependent behavior
+                from pandas 1.4 and earlier (see :ref:`pandas 1.5.0 Release notes
+                <whatsnew_150.enhancements.resample_group_keys>` for examples).
+
+            .. versionchanged:: 2.0.0
+
+                ``group_keys`` now defaults to ``False``.
 
         Returns
         -------

@@ -280,7 +280,7 @@ def test_apply_with_mutated_index():
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
 

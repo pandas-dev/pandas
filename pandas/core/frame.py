@@ -11427,7 +11427,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = False,
     ) -> Resampler:
         return super().resample(
             rule=rule,
