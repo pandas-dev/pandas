@@ -1257,10 +1257,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> cat.map(lambda x: x.upper())
+        >>> cat.map(lambda x: x.upper(), na_action=None)
         ['A', 'B', 'C']
         Categories (3, object): ['A', 'B', 'C']
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'}, na_action=None)
         ['first', 'second', 'third']
         Categories (3, object): ['first', 'second', 'third']
 
@@ -1271,19 +1271,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
-        >>> cat.map({'a': 3, 'b': 2, 'c': 1})
+        >>> cat.map({'a': 3, 'b': 2, 'c': 1}, na_action=None)
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'}, na_action=None)
         Index(['first', 'second', 'first'], dtype='object')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
-        >>> cat.map({'a': 'first', 'b': 'second'})
+        >>> cat.map({'a': 'first', 'b': 'second'}, na_action=None)
         Index(['first', 'second', nan], dtype='object')
         """
         if na_action is lib.no_default:
