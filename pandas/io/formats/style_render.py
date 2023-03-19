@@ -988,8 +988,9 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Use 'latex-math' to replace the characters the same way as in 'latex' mode,
-            except for math substrings, which start and end with ``$``.
-            Escaping is done before ``formatter``.
+            except for math substrings, which either are surrounded
+            by two characters ``$`` or start with the character ``\(`` and
+            end with ``\)``. Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -2359,8 +2360,7 @@ def _escape_latex(s):
         Escaped string
     """
     return (
-        s.replace("\\ ", "ab2§=§8yz")
-        .replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
+        s.replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
         .replace("ab2§=§8yz ", "ab2§=§8yz\\space ")  # since \backslash gobbles spaces
         .replace("&", "\\&")
         .replace("%", "\\%")
@@ -2375,6 +2375,75 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
+
+
+def _math_mode_with_dollar(s):
+    r"""
+    All characters in LaTeX math mode are preserved.
+
+    The substrings in LaTeX math mode, which start with
+    the character ``$`` and end with ``$``, are preserved
+    without escaping. Otherwise regular LaTeX escaping applies.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    pattern = re.compile(r"\$.*?\$")
+    pos = 0
+    ps = pattern.search(s, pos)
+    res = []
+    while ps:
+        res.append(_escape_latex(s[pos : ps.span()[0]]))
+        res.append(ps.group())
+        pos = ps.span()[1]
+        ps = pattern.search(s, pos)
+
+    res.append(_escape_latex(s[pos : len(s)]))
+    return "".join(res).replace(r"rt8§=§7wz", r"\$")
+
+
+def _math_mode_with_parentheses(s):
+    r"""
+    All characters in LaTeX math mode are preserved.
+
+    The substrings in LaTeX math mode, which start with
+    the character ``\(`` and end with ``\)``, are preserved
+    without escaping. Otherwise regular LaTeX escaping applies.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\(", r"LEFT§=§6yzLEFT").replace(r"\)", r"RIGHTab5§=§RIGHT")
+    res = []
+    for item in re.split(r"LEFT§=§6yz|ab5§=§RIGHT", s):
+        if item.startswith("LEFT") and item.endswith("RIGHT"):
+            res.append(item.replace("LEFT", r"\(").replace("RIGHT", r"\)"))
+        elif "LEFT" in item and "RIGHT" in item:
+            res.append(
+                _escape_latex(item).replace("LEFT", r"\(").replace("RIGHT", r"\)")
+            )
+        else:
+            res.append(
+                _escape_latex(item)
+                .replace("LEFT", r"\textbackslash (")
+                .replace("RIGHT", r"\textbackslash )")
+            )
+    return "".join(res)
 
 
 def _escape_latex_math(s):
@@ -2395,43 +2464,9 @@ def _escape_latex_math(s):
     str :
         Escaped string
     """
-
-    def _math_mode_with_dollar(s):
-        s = s.replace(r"\$", r"rt8§=§7wz")
-        pattern = re.compile(r"\$.*?\$")
-        pos = 0
-        ps = pattern.search(s, pos)
-        res = []
-        while ps:
-            res.append(_escape_latex(s[pos : ps.span()[0]]))
-            res.append(ps.group())
-            pos = ps.span()[1]
-            ps = pattern.search(s, pos)
-
-        res.append(_escape_latex(s[pos : len(s)]))
-        return "".join(res).replace(r"rt8§=§7wz", r"\$")
-
-    def _math_mode_with_parentheses(s):
-        s = s.replace(r"\(", r"LEFT§=§6yzLEFT").replace(r"\)", r"RIGHTab5§=§RIGHT")
-        res = []
-        for item in re.split(r"LEFT§=§6yz|ab5§=§RIGHT", s):
-            if item.startswith("LEFT") and item.endswith("RIGHT"):
-                res.append(item.replace("LEFT", r"\(").replace("RIGHT", r"\)"))
-            elif "LEFT" in item and "RIGHT" in item:
-                res.append(
-                    _escape_latex(item).replace("LEFT", r"\(").replace("RIGHT", r"\)")
-                )
-            else:
-                res.append(
-                    _escape_latex(item)
-                    .replace("LEFT", r"\textbackslash (")
-                    .replace("RIGHT", r"\textbackslash )")
-                )
-        return "".join(res)
-
     s = s.replace(r"\$", r"rt8§=§7wz")
     pattern_d = re.compile(r"\$.*?\$")
-    pattern_p = re.compile(r"\\(.*?\\)")
+    pattern_p = re.compile(r"\(.*?\)")
     pos_d = 0
     pos_p = 0
     ps_d = pattern_d.search(s, pos_d)
@@ -2443,7 +2478,9 @@ def _escape_latex_math(s):
         mode.append(ps_p.span()[0])
     if len(mode) == 0:
         return _escape_latex(s.replace(r"\$", r"rt8§=§7wz"))
-    if s[min(mode)] == r"$":
+    if s[mode[0]] == r"$":
         return _math_mode_with_dollar(s.replace(r"\$", r"rt8§=§7wz"))
-    else:
+    if s[mode[0] - 1 : mode[0] + 1] == r"\(":
         return _math_mode_with_parentheses(s.replace(r"\$", r"rt8§=§7wz"))
+    else:
+        return _escape_latex(s.replace(r"\$", r"rt8§=§7wz"))

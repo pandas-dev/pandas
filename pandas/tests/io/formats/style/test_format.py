@@ -167,7 +167,7 @@ def test_format_clear(styler, func, attr, kwargs):
             "latex",
             '<>\\&"\\%\\$\\#\\_\\{\\}\\textasciitilde \\textasciicircum '
             "\\textbackslash \\textasciitilde \\space \\textasciicircum \\space "
-            "\\textbackslash ",
+            "\\textbackslash \\space ",
         ),
     ],
 )
@@ -200,7 +200,8 @@ def test_format_escape_html(escape, exp):
             "".join(
                 [
                     r"$ \$&%#_{}~^\ $ ",
-                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum \textbackslash \$",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \$",
                 ]
             ),
         ),
@@ -210,7 +211,7 @@ def test_format_escape_html(escape, exp):
                 [
                     r"\( &%#_{}~^\ \) ",
                     r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
-                    r"\textbackslash \textbackslash (",
+                    r"\textbackslash \space \textbackslash (",
                 ]
             ),
         ),
