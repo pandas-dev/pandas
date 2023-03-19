@@ -19,7 +19,7 @@ runs:
     - name: Build Pandas (Windows)
       if: ${{ runner.os == 'Windows' }}
       run: |
-        call micromamba activate test
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        python -m pip install -e . --no-build-isolation -v
+        #call micromamba activate test
+        #call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        python -m pip install -e . --no-build-isolation -v --config-settings=setup-args=--vsenv
       shell: cmd /C call {0}
