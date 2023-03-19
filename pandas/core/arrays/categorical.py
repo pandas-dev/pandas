@@ -1205,7 +1205,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = "ignore"):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+    ):
         """
         Map categories using an input mapping or function.
 
@@ -1225,6 +1229,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         na_action : {None, 'ignore'}, default 'ignore'
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+
+            .. deprecated:: 2.1.0
+
+               The dault value of 'ignore' has been deprecated and will be changed to
+               None in the future.
 
         Returns
         -------
@@ -1277,6 +1286,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
+        if na_action is lib.no_default:
+            warn(
+                "The default value of 'ignore' for the `na_action` parameter in "
+                "pandas.Categorical.map is deprecated and will be "
+                "changed to 'None' in a future version. Please set na_action to the "
+                "desired value to avoid seeing this warning",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            na_action = "ignore"
+
         assert callable(mapper) or is_dict_like(mapper)
 
         new_categories = self.categories.map(mapper)
