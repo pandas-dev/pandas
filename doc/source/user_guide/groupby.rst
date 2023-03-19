@@ -1241,18 +1241,8 @@ a common dtype will be determined in the same way as ``DataFrame`` construction.
 Control grouped column(s) placement with ``group_keys``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionchanged:: 1.5.0
-
-   If ``group_keys=True`` is specified when calling :meth:`~DataFrame.groupby`,
-   functions passed to ``apply`` that return like-indexed outputs will have the
-   group keys added to the result index. Previous versions of pandas would add
-   the group keys only when the result from the applied function had a different
-   index than the input. If ``group_keys`` is not specified, the group keys will
-   not be added for like-indexed outputs. In the future this behavior
-   will change to always respect ``group_keys``, which defaults to ``True``.
-
 To control whether the grouped column(s) are included in the indices, you can use
-the argument ``group_keys``. Compare
+the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
