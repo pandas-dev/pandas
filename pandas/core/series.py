@@ -35,10 +35,7 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.internals import BlockValuesRefs
-from pandas._libs.lib import (
-    is_range_indexer,
-    no_default,
-)
+from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
     AggFuncType,
     AlignJoin,
@@ -5701,7 +5698,7 @@ Keep all original rows and also all original values
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = False,
     ) -> Resampler:
         return super().resample(
             rule=rule,

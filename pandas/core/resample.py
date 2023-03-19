@@ -152,7 +152,7 @@ class Resampler(BaseGroupBy, PandasObject):
         kind=None,
         *,
         gpr_index: Index,
-        group_keys: bool | lib.NoDefault = lib.no_default,
+        group_keys: bool = False,
         selection=None,
     ) -> None:
         self._timegrouper = timegrouper
@@ -1584,7 +1584,7 @@ class TimeGrouper(Grouper):
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = False,
         **kwargs,
     ) -> None:
         # Check for correctness of the keyword arguments which would
