@@ -5,8 +5,6 @@ import warnings
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_list_like
-
 import pandas as pd
 import pandas.core.common as com
 
@@ -151,10 +149,7 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         )
 
     # construct series on which we will apply `Series.mask`
-    if is_list_like(default):
-        series = pd.Series(default.values, index=obj.index)
-    else:
-        series = pd.Series([default] * obj.shape[0], index=obj.index)
+    series = pd.Series(default, index=obj.index)
 
     for i in range(0, len_args, 2):
         # get conditions
