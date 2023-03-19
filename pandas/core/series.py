@@ -395,16 +395,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 self.name = name
             return
 
-        if copy is None:
-            if using_copy_on_write():
-                copy = True
-            else:
-                copy = False
-
         if isinstance(data, (ExtensionArray, np.ndarray)):
-            if copy and using_copy_on_write():
+            if copy is not False and using_copy_on_write():
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
+        copy = False
 
         # we are called internally, so short-circuit
         if fastpath:

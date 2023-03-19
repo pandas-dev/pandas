@@ -30,7 +30,7 @@ def test_series_from_series(dtype, using_copy_on_write):
     result = Series(ser, dtype=dtype)
 
     # the shallow copy still shares memory
-    assert np.shares_memory(ser.values, result.values)
+    assert np.shares_memory(get_array(ser), get_array(result))
 
     if using_copy_on_write:
         assert result._mgr.blocks[0].refs.has_reference()
@@ -40,13 +40,13 @@ def test_series_from_series(dtype, using_copy_on_write):
         result.iloc[0] = 0
         assert ser.iloc[0] == 1
         # mutating triggered a copy-on-write -> no longer shares memory
-        assert not np.shares_memory(ser.values, result.values)
+        assert not np.shares_memory(get_array(ser), get_array(result))
     else:
         # mutating shallow copy does mutate original
         result.iloc[0] = 0
         assert ser.iloc[0] == 0
         # and still shares memory
-        assert np.shares_memory(ser.values, result.values)
+        assert np.shares_memory(get_array(ser), get_array(result))
 
     # the same when modifying the parent
     result = Series(ser, dtype=dtype)
