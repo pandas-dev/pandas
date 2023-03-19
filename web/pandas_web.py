@@ -307,7 +307,10 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
             json.dump(pdeps, f)
 
-        for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
+        regex = "(?<=PDEP-)\\d+"
+        compiled_pattern = re.compile(regex)
+        get_num = lambda pdep: int(re.findall(compiled_pattern, pdep["title"])[0])
+        for pdep in sorted(pdeps["items"], key=get_num):
             context["pdeps"]["Under discussion"].append(
                 {"title": pdep["title"], "url": pdep["html_url"]}
             )
