@@ -26,6 +26,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
@@ -221,6 +222,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "second",
         }
 
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
+
         if not set(fields).issubset(valid_field_set):
             argument = list(set(fields) - valid_field_set)[0]
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
@@ -261,7 +266,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if copy:
             data = data.copy()
 
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=name, refs=refs)
 
     # ------------------------------------------------------------------------
     # Data
@@ -298,9 +303,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             raise raise_on_incompatible(self, other)
         elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
+            assert isinstance(other, int)
             return other
 
         # raise when input doesn't have freq

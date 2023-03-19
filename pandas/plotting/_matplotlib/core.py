@@ -377,6 +377,7 @@ class MPLPlot(ABC):
         if (
             "color" in self.kwds
             and self.nseries == 1
+            and self.kwds["color"] is not None
             and not is_list_like(self.kwds["color"])
         ):
             # support series.plot(color='green')
