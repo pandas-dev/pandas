@@ -339,7 +339,7 @@ def deprecate_nonkeyword_arguments(
 
 def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
-    A decorator take docstring templates, concatenate them and perform string
+    A decorator to take docstring templates, concatenate them and perform string
     substitution on it.
 
     This decorator will add a variable "_docstring_components" to the wrapped
