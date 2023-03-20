@@ -382,7 +382,7 @@ def _check_values_indices_shape_match(
     if values.shape[1] != len(columns) or values.shape[0] != len(index):
         # Could let this raise in Block constructor, but we get a more
         #  helpful exception message this way.
-        if values.shape[0] == 0:
+        if values.shape[0] == 0 < len(index):
             raise ValueError("Empty data passed with indices specified.")
 
         passed = values.shape
