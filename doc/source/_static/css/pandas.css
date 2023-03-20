@@ -48,5 +48,5 @@ table {
 }
 
 .card, .card img {
-  background-color: transparent !important;
+  background-color: var(--pst-color-background);
 }
