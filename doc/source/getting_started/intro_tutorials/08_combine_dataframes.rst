@@ -49,7 +49,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
         </li>
-        <li class="list-group-item">
+        <li class="list-group-item gs-data-list">
             <div data-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
                 <span class="badge badge-dark">Air quality Particulate matter data</span>
             </div>
