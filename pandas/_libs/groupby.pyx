@@ -3,6 +3,7 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.math cimport sqrt
 from libc.stdlib cimport (
     free,
     malloc,
@@ -822,6 +823,7 @@ def group_var(
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    str name="var",
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -830,6 +832,8 @@ def group_var(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
+        bint is_std = name == "std"
+        bint is_sem = name == "sem"
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -879,7 +883,13 @@ def group_var(
                     else:
                         out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - ddof)
+                    if is_std:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof))
+                    elif is_sem:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof) / ct)
+                    else:
+                        # just "var"
+                        out[i, j] /= (ct - ddof)
 
 
 @cython.wraparound(False)
