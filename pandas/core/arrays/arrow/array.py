@@ -217,7 +217,7 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
-    _data: pa.ChunkedArray
+    _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
@@ -765,6 +765,10 @@ class ArrowExtensionArray(
         limit: int | None = None,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
+
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
 
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)

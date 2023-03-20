@@ -874,7 +874,7 @@ class TestDatetimelikeCoercion:
         tz = tz_naive_fixture
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -902,7 +902,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -922,7 +922,7 @@ class TestDatetimelikeCoercion:
     def test_setitem_td64_scalar(self, indexer_sli, scalar):
         # dispatching _can_hold_element to underling TimedeltaArray
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
         values._validate_setitem_value(scalar)
@@ -940,7 +940,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
 
