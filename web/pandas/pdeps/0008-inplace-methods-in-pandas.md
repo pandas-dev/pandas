@@ -83,7 +83,32 @@ Many methods in pandas currently have the ability to perform an operation inplac
 as ``DataFrame.insert`` only support inplace operations, while other methods use the `inplace` keyword to control
 whether an operation is done inplace or not.
 
-Unfortunately, many methods supporting the ``inplace`` keyword either cannot be done inplace, or make a copy as a
+While we generally speak about "inplace" operations, this term is used in various context. Broadly speaking,
+for this PDEP, we can distinguish two kinds of "inplace" operations:
+
+* **"values-inplace"**: an operation that updates the underlying values of a Series or DataFrame columns inplace
+  (without making a copy of the array).
+
+  As illustration, an example of such a values-inplace operation without using a method:
+
+    :::python
+    # if the dtype is compatible, this setitem operation updates the underlying array inplace
+    df.loc[0, "col"] = val
+
+* **"object-inplace"**: an operation that updates a pandas DataFrame or Series _object_ inplace, but without
+  updating existing column values inplace.
+
+  As illustration, an example of such an object-inplace operation without using a method:
+
+    :::python
+    # we replace the Index on `df` inplace, but without actually updating any existing array
+    df.index = pd.Index(...)
+
+  Object-inplace operations, while not actually modifying existing column values, keep
+  (a subset of) those columns and thus can avoid copying the data of those existing columns.
+
+In addition, several methods supporting the ``inplace`` keyword cannot actually be done inplace (in neither meaning)
+because they make a copy as a
 consequence of the operations they perform, regardless of whether ``inplace`` is ``True`` or not. This, coupled with the
 fact that the ``inplace=True`` changes the return type of a method from a pandas object to ``None``, makes usage of
 the ``inplace`` keyword confusing and non-intuitive.
@@ -98,12 +123,13 @@ an ``inplace`` keyword into 4 groups:
 | ``insert``    |
 | ``pop``       |
 | ``update``    |
-| ``isetitem``* |
+| ``isetitem``  |
 
-\* Although ``isetitem`` operates on the original pandas object inplace, it will not change any existing values
-inplace (it will remove the values of the column being set, and insert new values).
+This group encompasses both kinds of inplace: `update` can be values-inplace, while the others are object-inplace
+(for example, although ``isetitem`` operates on the original pandas object inplace,
+it will not change any existing values inplace; rather it will remove the values of the column being set, and insert new values).
 
-**Group 2: Methods that modify the underlying data of the DataFrame/Series object and can be done inplace**
+**Group 2: Methods that modify the underlying data of the DataFrame/Series object ("values-inplace")**
 
 | Method Name     |
 |:----------------|
@@ -121,7 +147,7 @@ These methods don't operate inplace by default, but can be done inplace with `in
 the structure of the DataFrame or Series intact (shape, row/column labels), but can mutate some elements of the data of
 the DataFrame or Series.
 
-**Group 3: Methods that modify the DataFrame/Series object, but not the pre-existing values**
+**Group 3: Methods that modify the DataFrame/Series object, but not the pre-existing values ("object-inplace")**
 
 | Method Name                 |
 |:----------------------------|
@@ -135,7 +161,7 @@ These methods can change the structure of the DataFrame or Series, such as chang
 columns, or changing the row/column labels (changing the index/columns attributes), but don't modify the existing
 underlying column data of the object.
 
-All those methods make a copy of the full data by default, but can be performed inplace with
+All those methods make a copy of the full data by default, but can be performed object-inplace with
 avoiding copying all data (currently enabled with specifying `inplace=True`).
 
 Note: there are also methods that have a `copy` keyword instead of an `inplace` keyword (e.g. `set_axis`). This serves
@@ -159,7 +185,8 @@ operation requires copying (such as reordering or dropping rows). For those meth
 syntactic sugar for reassigning the new result to the calling DataFrame/Series.
 
 Note: in the case of a "no-op" (for example when sorting an already sorted DataFrame), some of those methods might not
-need to perform a copy. This currently happens with Copy-on-Write (regardless of `inplace`), but this is considered an
+need to perform a copy and could be considered as "object-inplace" in that case.
+This currently happens with Copy-on-Write (regardless of `inplace`), but this is considered an
 implementation detail for the purpose of this PDEP.
 
 ### Proposed changes and reasoning
@@ -171,7 +198,7 @@ potentially return a shallow copy of the input object, if the performed operatio
 equivalent to the behavior with `inplace=True` for those methods. If users want to make a hard
 copy, they can call the `copy()` method on the result of the operation.
 
-Therefore, there is no benefit of keeping the keywords around for these methods.
+Therefore, there is no benefit of keeping the keyword around for these methods.
 
 To emulate behavior of the `inplace` keyword, we can reassign the result of an operation to the same variable:
 
@@ -320,7 +347,7 @@ DataFrames. Therefore, we decided to keep the `inplace` keyword for this small s
 ### Standardize on the `copy` keyword instead of `inplace`
 
 It may seem more natural to standardize on the `copy` keyword instead of the `inplace` keyword, since the `copy`
-keyword already returns a new object instead of None (enabling method chaining) and avoids a coopy when it is set to `False`.
+keyword already returns a new object instead of None (enabling method chaining) and avoids a copy when it is set to `False`.
 
 However, the `copy` keyword is not supported in any of the values-mutating methods listed in Group 2 above
 unlike `inplace`, so semantics of future inplace mutation of values align better with the current behavior of
