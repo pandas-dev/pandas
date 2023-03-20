@@ -499,6 +499,8 @@ def test_empty_na_values_no_default_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Missing support for na_filter kewyord
+@skip_pyarrow
 @pytest.mark.parametrize(
     "na_filter,index_data", [(False, ["", "5"]), (True, [np.nan, 5.0])]
 )
