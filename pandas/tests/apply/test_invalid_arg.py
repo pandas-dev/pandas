@@ -83,13 +83,6 @@ def test_map_categorical_na_action():
         s.map(lambda x: x, na_action="ignore")
 
 
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
