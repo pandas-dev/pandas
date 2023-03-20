@@ -104,6 +104,7 @@ def arrays_to_mgr(
     verify_integrity: bool = True,
     typ: str | None = None,
     consolidate: bool = True,
+    is_1d_ea_only: bool = False,
 ) -> Manager:
     """
     Segregate Series based on type and coerce into matrices.
@@ -127,7 +128,8 @@ def arrays_to_mgr(
 
     else:
         index = ensure_index(index)
-        arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+        if not is_1d_ea_only:
+            arrays = [extract_array(x, extract_numpy=True) for x in arrays]
         # with _from_arrays, the passed arrays should never be Series objects
         refs = [None] * len(arrays)
 
@@ -152,7 +154,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays, axes, consolidate=consolidate, refs=refs
+            arrays, axes, consolidate, refs=refs, is_1d_ea_only=is_1d_ea_only
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])

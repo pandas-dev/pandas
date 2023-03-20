@@ -142,6 +142,9 @@ class BooleanDtype(BaseMaskedDtype):
             return BooleanArray._concat_same_type(results)
 
 
+_boolean_dtype = BooleanDtype()
+
+
 def coerce_to_array(
     values, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -299,7 +302,7 @@ class BooleanArray(BaseMaskedArray):
                 "values should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        self._dtype = BooleanDtype()
+        self._dtype = _boolean_dtype
         super().__init__(values, mask, copy=copy)
 
     @property

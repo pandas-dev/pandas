@@ -107,7 +107,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -2505,6 +2508,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
+        is_1d_ea_only: bool = False,
     ) -> Self:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -2544,6 +2548,7 @@ class DataFrame(NDFrame, OpsMixin):
             dtype=dtype,
             verify_integrity=verify_integrity,
             typ=manager,
+            is_1d_ea_only=is_1d_ea_only,
         )
         return cls(mgr)
 
@@ -3610,11 +3615,21 @@ class DataFrame(NDFrame, OpsMixin):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
-            values = self.values
+            if isinstance(dtype, BaseMaskedDtype):
+                data, mask = self._mgr.as_array_masked()
+                new_values = [arr_type(data[i], mask[i]) for i in range(self.shape[0])]
+            else:
+                values = self.values
+                new_values = [
+                    arr_type._from_sequence(row, dtype=dtype) for row in values
+                ]
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values,
+                index=self.columns,
+                columns=self.index,
+                verify_integrity=False,
+                is_1d_ea_only=True,
             )
 
         else:
@@ -10935,7 +10950,23 @@ class DataFrame(NDFrame, OpsMixin):
             df = _get_data()
         if axis is None:
             return func(df.values)
-        elif axis == 1:
+
+        # if len(df._mgr) > 0:
+        #     common_dtype = find_common_type(list(df._mgr.get_dtypes()))
+        #     is_masked_ea = isinstance(common_dtype, BaseMaskedDtype)
+        #     is_np = isinstance(common_dtype, np.dtype)
+        # else:
+        #     common_dtype = None
+
+        # if axis == 1 and common_dtype and is_masked_ea:
+        #     data, mask = self._mgr.as_array_masked()
+        #     ea2d = common_dtype.construct_array_type()(data, mask)
+        #     result = ea2d._reduce(name, axis=axis, skipna=skipna, **kwds)
+        #     labels = self._get_agg_axis(axis)
+        #     result = self._constructor_sliced(result, index=labels, copy=False)
+        #     return result
+
+        if axis == 1:
             if len(df.index) == 0:
                 # Taking a transpose would result in no columns, losing the dtype.
                 # In the empty case, reducing along axis 0 or 1 gives the same

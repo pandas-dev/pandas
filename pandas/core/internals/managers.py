@@ -1747,6 +1747,40 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return arr.transpose()
 
+    def as_array_masked(self) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
+
+        Returns
+        -------
+        arr : ndarray
+        """
+        # # TODO(CoW) handle case where resulting array is a view
+        # if len(self.blocks) == 0:
+        #     arr = np.empty(self.shape, dtype=float)
+        #     return arr.transpose()
+
+        # TODO we already established we only have a single dtype, but this
+        # could be generalized to be a mix of all masked dtypes
+        dtype = self.blocks[0].dtype.numpy_dtype
+
+        result_data = np.empty(self.shape, dtype=dtype)
+        result_mask = np.empty(self.shape, dtype="bool")
+
+        itemmask = np.zeros(self.shape[0])
+
+        for blk in self.blocks:
+            rl = blk.mgr_locs
+            arr = blk.values
+            result_data[rl.indexer] = arr._data
+            result_mask[rl.indexer] = arr._mask
+            itemmask[rl.indexer] = 1
+
+        if not itemmask.all():
+            raise AssertionError("Some items were not contained in blocks")
+
+        return result_data.transpose(), result_mask.transpose()
+
     def _interleave(
         self,
         dtype: np.dtype | None = None,
@@ -2130,6 +2164,7 @@ def create_block_manager_from_column_arrays(
     axes: list[Index],
     consolidate: bool,
     refs: list,
+    is_1d_ea_only: bool = False,
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2143,7 +2178,7 @@ def create_block_manager_from_column_arrays(
     #  verify_integrity=False below.
 
     try:
-        blocks = _form_blocks(arrays, consolidate, refs)
+        blocks = _form_blocks(arrays, consolidate, refs, is_1d_ea_only)
         mgr = BlockManager(blocks, axes, verify_integrity=False)
     except ValueError as e:
         raise_construction_error(len(arrays), arrays[0].shape, axes, e)
@@ -2197,8 +2232,16 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
     return sep, isinstance(dtype, np.dtype), dtype
 
 
-def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
+def _form_blocks(
+    arrays: list[ArrayLike], consolidate: bool, refs: list, is_1d_ea_only: bool
+) -> list[Block]:
     tuples = list(enumerate(arrays))
+
+    if is_1d_ea_only:
+        block_type = get_block_type(arrays[0].dtype)
+        return [
+            block_type(arr, placement=BlockPlacement(i), ndim=2) for i, arr in tuples
+        ]
 
     if not consolidate:
         nbs = _tuples_to_blocks_no_consolidate(tuples, refs)
