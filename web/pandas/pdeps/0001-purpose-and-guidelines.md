@@ -104,7 +104,7 @@ PDEPs, since there are discussions that are worth having, and decisions about
 changes to pandas being made. They will be merged with `Status: Rejected`, so
 there is visibility on what was discussed and what was the outcome of the
 discussion. A PDEP can be rejected for different reasons, for example good ideas
-that aren't backward-compatible, and the breaking changes aren't considered worth
+that are not backward-compatible, and the breaking changes are not considered worth
 implementing.
 
 #### Invalid PDEP
@@ -117,7 +117,7 @@ good as an accepted PDEP, but where the final decision was to not implement the 
 
 ## Evolution of PDEPs
 
-Most PDEPs aren't expected to change after accepted. Once there is agreement in the changes,
+Most PDEPs are not expected to change after accepted. Once there is agreement in the changes,
 and they are implemented, the PDEP will be only useful to understand why the development happened,
 and the details of the discussion.
 
@@ -142,45 +142,46 @@ changed and avoid confusion.
 - Support of new python features with a wide impact on the project. For example:
   - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
-- New required dependency. For example:
+- New required dependency. 
+- Removing module from the project or splitting it off to a seperate repository:
   - Moving rarely used I/O connectors to a separate repository [GH-28409](28409)
-- Significant changes to contributors' processes aren't going to have an impact on users, but 
+- Significant changes to contributors' processes are not going to have an impact on users, but 
   the do benefit from structured discussion among the contributors. For example:
   - Changing the build system to meson ([GH-49115][49115])
 
 ### Borderline examples:
 Small changes to core functionality, such as `DataFrame` and `Series`, should always be 
 considered as a PDEP candidate as it will likely have a big impact on users. But the same types 
-of changes in to functionalities would not be good PDEP candidates. That said, any discussion, 
+of changes in other functionalities would not be good PDEP candidates. That said, any discussion, 
 no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more 
 attention and/or a formal decision-making process would help. Following are some examples we 
 hope can help clarify our meaning here:
 
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
-  - Value counts rename ([GH-49497][49497]). The scope doesn’t justify a PDEP at first, but later a
+  - Value counts rename ([GH-49497][49497]). The scope does not justify a PDEP at first, but later a
     discussion about whether it should be executed as breaking change or with deprecation
     emerges, which could benefit from a PDEP process.
-- Adding new parameters or methods to an existing method typically won't require a PDEP for
+- Adding new parameters or methods to an existing method typically will not require a PDEP for
   non-core features. For example:
   - Both `dropna(percentage)` ([GH-35299][35299]), and `Timestamp.normalize()` ([GH-8794][8794])
     wouldn't have required a PDEP.
-  - On the other hand, `DataFrame.assign()` might. While it's a single method without backwards
-    compatibility concerns, it’s also a core feature and the discussion should be highly visible.
+  - On the other hand, `DataFrame.assign()` might. While it is a single method without backwards
+    compatibility concerns, it is also a core feature and the discussion should be highly visible.
 - Deprecating or removing a single method would not require a PDEP in most cases. For example:
   - `DataFrame.xs` ([GH-6249][6249]) is an example of deprecations on core features that would be
-    good a candidate for a PDEP.
+    a good candidate for a PDEP.
 - Changing the default value of parameters in a core pandas method is another edge case. For
   example:
   - Such changes in `dropna`,  `DataFrame.groupby`, or in `Series.groupby` could be PDEPs.
 - New top level modules and/or exposing internal classes. For example:
-  - Add `pandas.api.typing` ([GH-48577][48577]) is relatively small and wouldn’t necessarily
+  - Add `pandas.api.typing` ([GH-48577][48577]) is relatively small and would not necessarily
     require a PDEP.
 
 
 ### PDEP-1 History
 
 - 3 August 2022: Initial version ([GH-47938][47938]) 
-- 15 February 2023: Version 2 ([GH-51417][51417]) 
+- 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
