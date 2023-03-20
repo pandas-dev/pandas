@@ -4,8 +4,6 @@ Test the consistency of the groupby API, both internally and with other pandas o
 
 import inspect
 
-import pytest
-
 from pandas import (
     DataFrame,
     Series,
@@ -16,16 +14,13 @@ from pandas.core.groupby.generic import (
 )
 
 
-def test_frame_consistency(request, groupby_func):
+def test_frame_consistency(groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        msg = "first and last are entirely different between frame and groupby"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("cumcount",):
-        msg = "DataFrame has no such method"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        # first and last are entirely different between frame and groupby
+        return
 
-    if groupby_func == "ngroup":
+    if groupby_func in ("cumcount", "ngroup"):
         assert not hasattr(DataFrame, groupby_func)
         return
 
@@ -82,13 +77,10 @@ def test_frame_consistency(request, groupby_func):
 def test_series_consistency(request, groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        msg = "first and last are entirely different between Series and groupby"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("cumcount", "corrwith"):
-        msg = "Series has no such method"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        # first and last are entirely different between Series and groupby
+        return
 
-    if groupby_func == "ngroup":
+    if groupby_func in ("cumcount", "corrwith", "ngroup"):
         assert not hasattr(Series, groupby_func)
         return
 

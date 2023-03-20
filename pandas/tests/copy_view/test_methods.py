@@ -233,6 +233,21 @@ def test_reset_index(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), Index([1, 2])])
+def test_reset_index_series_drop(using_copy_on_write, index):
+    ser = Series([1, 2], index=index)
+    ser_orig = ser.copy()
+    ser2 = ser.reset_index(drop=True)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(ser2))
+        assert not ser._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(ser2))
+
+    ser2.iloc[0] = 100
+    tm.assert_series_equal(ser, ser_orig)
+
+
 def test_rename_columns(using_copy_on_write):
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
@@ -639,6 +654,14 @@ def test_swapaxes_single_block(using_copy_on_write):
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_swapaxes_read_only_array():
+    df = DataFrame({"a": [1, 2], "b": 3})
+    df = df.swapaxes(axis1="index", axis2="columns")
+    df.iloc[0, 0] = 100
+    expected = DataFrame({0: [100, 3], 1: [2, 3]}, index=["a", "b"])
+    tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
@@ -1672,6 +1695,14 @@ def test_transpose_ea_single_column(using_copy_on_write):
     result = df.T
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+
+
+def test_count_read_only_array():
+    df = DataFrame({"a": [1, 2], "b": 3})
+    result = df.count()
+    result.iloc[0] = 100
+    expected = Series([100, 2], index=["a", "b"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_view(using_copy_on_write):

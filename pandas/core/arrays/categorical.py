@@ -10,7 +10,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -104,6 +103,7 @@ if TYPE_CHECKING:
         Dtype,
         NpDtype,
         Ordered,
+        Self,
         Shape,
         SortKind,
         npt,
@@ -115,9 +115,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-
-
-CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -1904,7 +1901,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
-        width, height = get_terminal_size()
+        width, _ = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
             # 0 = no breaks
@@ -2163,9 +2160,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(
-        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
-    ) -> CategoricalT:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
 
         first = to_concat[0]

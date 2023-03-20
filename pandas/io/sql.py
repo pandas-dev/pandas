@@ -39,11 +39,11 @@ from pandas.errors import (
     DatabaseError,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
-    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -72,8 +72,8 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         IndexLabel,
+        Self,
     )
-
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -327,8 +327,10 @@ def read_sql_table(
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
@@ -458,8 +460,10 @@ def read_sql_query(
     parameter will be converted to UTC.
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
@@ -622,8 +626,10 @@ def read_sql(
     1           1  2010-11-12
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         if isinstance(pandas_sql, SQLiteDatabase):
@@ -634,7 +640,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
-                dtype_backend=dtype_backend,  # type: ignore[arg-type]
+                dtype_backend=dtype_backend,
                 dtype=dtype,
             )
 
@@ -1015,7 +1021,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
-                if is_integer(num_inserted):
+                if num_inserted is not None:
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:
@@ -1341,7 +1347,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:

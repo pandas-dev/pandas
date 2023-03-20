@@ -29,6 +29,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     ensure_str,
@@ -747,6 +748,8 @@ def read_json(
     if orient == "table" and convert_axes:
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
+    check_dtype_backend(dtype_backend)
+
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
@@ -947,14 +950,18 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             if self.engine == "pyarrow":
                 pyarrow_json = import_optional_dependency("pyarrow.json")
                 pa_table = pyarrow_json.read_json(self.data)
+
+                mapping: type[ArrowDtype] | None | Callable
                 if self.dtype_backend == "pyarrow":
-                    return pa_table.to_pandas(types_mapper=ArrowDtype)
+                    mapping = ArrowDtype
                 elif self.dtype_backend == "numpy_nullable":
                     from pandas.io._util import _arrow_dtype_mapping
 
-                    mapping = _arrow_dtype_mapping()
-                    return pa_table.to_pandas(types_mapper=mapping.get)
-                return pa_table.to_pandas()
+                    mapping = _arrow_dtype_mapping().get
+                else:
+                    mapping = None
+
+                return pa_table.to_pandas(types_mapper=mapping)
             elif self.engine == "ujson":
                 if self.lines:
                     if self.chunksize:

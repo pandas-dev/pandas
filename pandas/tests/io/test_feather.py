@@ -212,3 +212,14 @@ class TestFeather:
     def test_int_columns_and_index(self):
         df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([3, 4, 5], name="test"))
         self.check_round_trip(df)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        df = pd.DataFrame({"int": list(range(1, 4))})
+        with tm.ensure_clean("tmp.feather") as path:
+            df.to_feather(path)
+            with pytest.raises(ValueError, match=msg):
+                read_feather(path, dtype_backend="numpy")

@@ -754,3 +754,13 @@ def test_validate_allhashable():
 
     with pytest.raises(TypeError, match="list must be a hashable type"):
         com.validate_all_hashable([], error_name="list")
+
+
+def test_pandas_dtype_numpy_warning():
+    # GH#51523
+    with tm.assert_produces_warning(
+        DeprecationWarning,
+        check_stacklevel=False,
+        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
+    ):
+        pandas_dtype(np.integer)
