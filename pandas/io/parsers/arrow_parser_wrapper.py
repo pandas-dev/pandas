@@ -163,13 +163,12 @@ class ArrowParserWrapper(ParserBase):
 
         # Convert all pa.null() cols -> float64
         # TODO: There has to be a better way... right?
-        cols_to_convert = []
         new_schema = table.schema
-        for i, type in enumerate(table.schema.types):
-            if pa.types.is_null(type):
-                cols_to_convert.append(i)
-        for i in cols_to_convert:
-            new_schema = new_schema.set(i, new_schema.field(i).with_type(pa.float64()))
+        for i, arrow_type in enumerate(table.schema.types):
+            if pa.types.is_null(arrow_type):
+                new_schema = new_schema.set(
+                    i, new_schema.field(i).with_type(pa.float64())
+                )
 
         table = table.cast(new_schema)
 
