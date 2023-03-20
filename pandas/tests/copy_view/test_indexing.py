@@ -914,7 +914,8 @@ def test_column_as_series_set_with_upcast(
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
     elif using_copy_on_write or using_array_manager:
-        s[0] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
         with pd.option_context("chained_assignment", "warn"):
