@@ -1197,6 +1197,7 @@ Timezones
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 - Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
 - Bug in string parsing incorrectly allowing a :class:`Timestamp` to be constructed with an invalid timezone, which would raise when trying to print (:issue:`50668`)
+- Corrected TypeError message in :func:`objects_to_datetime64ns` to inform that DatetimeIndex has mixed timezones (:issue:`50974`)
 
 Numeric
 ^^^^^^^
