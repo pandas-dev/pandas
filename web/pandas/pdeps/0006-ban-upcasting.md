@@ -65,7 +65,10 @@ then the following would all raise:
 - ``ser.iloc[0] = 'foo'``
 - ``ser.loc[0] = 'foo'``
 - ``df.loc[indexer, 'a'] = 'foo'``
-- ``ser[indexer] = 'foo'``;
+- ``ser[indexer] = 'foo'``
+
+where ``indexer`` could be a slice, a mask, a single value, a list or array of values,
+or any other allowed indexer.
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
