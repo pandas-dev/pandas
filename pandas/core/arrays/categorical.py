@@ -2378,14 +2378,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             #  don't go down a group-by-group path, since in the empty-groups
             #  case that would fail to raise
             raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-        if how not in ["rank"]:
+        if how not in ["rank", "any", "all"]:
             # only "rank" is implemented in cython
             raise NotImplementedError(f"{dtype} dtype not supported")
 
-        assert how == "rank"  # the only one implemented ATM
-        assert self.ordered  # checked earlier
         mask = self.isna()
-        npvalues = self._ndarray
+        if how == "rank":
+            assert self.ordered  # checked earlier
+            npvalues = self._ndarray
+        else:
+            # any/all
+            npvalues = self.astype(bool)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,

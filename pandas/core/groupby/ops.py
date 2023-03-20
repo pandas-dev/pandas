@@ -97,7 +97,9 @@ class WrappedCythonOp:
 
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
-    cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
+    cast_blocklist = frozenset(
+        ["any", "all", "rank", "count", "size", "idxmin", "idxmax"]
+    )
 
     def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
         self.kind = kind
@@ -106,6 +108,8 @@ class WrappedCythonOp:
 
     _CYTHON_FUNCTIONS: dict[str, dict] = {
         "aggregate": {
+            "any": functools.partial(libgroupby.group_any_all, val_test="any"),
+            "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
             "min": "group_min",
@@ -343,6 +347,19 @@ class WrappedCythonOp:
         if values.dtype == "float16":
             values = values.astype(np.float32)
 
+        if self.how in ["any", "all"]:
+            if mask is None:
+                mask = isna(values)
+            if dtype == object:
+                if kwargs["skipna"]:
+                    # GH#37501: don't raise on pd.NA when skipna=True
+                    if mask.any():
+                        # mask on original values computed separately
+                        values = values.copy()
+                        values[mask] = True
+            values = values.astype(bool, copy=False).view(np.int8)
+            is_numeric = True
+
         values = values.T
         if mask is not None:
             mask = mask.T
@@ -381,6 +398,16 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     **kwargs,
                 )
+            elif self.how in ["any", "all"]:
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
+                result = result.astype(bool, copy=False)
             else:
                 raise NotImplementedError(f"{self.how} is not implemented")
         else:
