@@ -160,8 +160,8 @@ To convert data from sparse to dense, use the ``.sparse`` accessors
 
 .. ipython:: python
 
-   df.sparse.to_dense()
-   df.sparse.to_coo()
+   sdf.sparse.to_dense()
+   sdf.sparse.to_coo()
 
 From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
 
