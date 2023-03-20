@@ -1483,14 +1483,16 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func == "corrwith":
-        msg = "corrwith is not implemented on SeriesGroupBy"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     grouper = [0, 0, 1]
 
     ser = Series([1, 0, 0], dtype=dtype)
     gb = ser.groupby(grouper)
+
+    if groupby_func == "corrwith":
+        # corrwith is not implemented on SeriesGroupBy
+        assert not hasattr(gb, groupby_func)
+        return
+
     method = getattr(gb, groupby_func)
 
     expected_ser = Series([1, 0, 0])
