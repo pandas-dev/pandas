@@ -11,6 +11,7 @@ from pandas.compat import (
     IS64,
     PYPY,
 )
+import pandas.util._test_decorators as td
 
 from pandas import (
     CategoricalIndex,
@@ -501,3 +502,19 @@ def test_memory_usage_empty_no_warning():
         result = df.memory_usage()
     expected = Series(16 if IS64 else 8, index=["Index"])
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_info_compute_numba():
+    # GH#51922
+    df = DataFrame([[1, 2], [3, 4]])
+
+    with option_context("compute.use_numba", True):
+        buf = StringIO()
+        df.info()
+        result = buf.getvalue()
+
+    buf = StringIO()
+    df.info()
+    expected = buf.getvalue()
+    assert result == expected
