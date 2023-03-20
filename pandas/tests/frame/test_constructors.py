@@ -656,7 +656,7 @@ class TestDataFrameConstructors:
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
         with pytest.raises(ValueError, match=msg):
-            DataFrame(np.empty(0), columns=list("abc"))
+            DataFrame(np.empty(0), index=[1])
 
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
