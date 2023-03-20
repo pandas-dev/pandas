@@ -9,7 +9,8 @@ def _arrow_dtype_mapping() -> dict:
     pa = import_optional_dependency("pyarrow")
     return {
         # All nulls should still give Float64 not object
-        pa.null(): pd.Float64Dtype(),
+        # TODO: This breaks parquet
+        # pa.null(): pd.Float64Dtype(),
         pa.int8(): pd.Int8Dtype(),
         pa.int16(): pd.Int16Dtype(),
         pa.int32(): pd.Int32Dtype(),
