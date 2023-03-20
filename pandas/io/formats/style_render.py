@@ -1145,6 +1145,19 @@ class StylerRenderer:
         1 & \%\#\textasciicircum \space \( \$x^2 \) \\
         \end{tabular}
 
+        If we have in one DataFrame cell a combination of both shorthands
+        for math formulas, the shorthand with the sign ``$`` will be applied.
+
+        >>> df = pd.DataFrame([[r"\( x^2 \)  $x^2$"], \
+        ...     [r"$\frac{\beta}{\zeta}$ \(\frac{\beta}{\zeta}\)"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & \textbackslash ( x\textasciicircum 2 \textbackslash )  $x^2$ \\
+        1 & $\frac{\beta}{\zeta}$ \textbackslash (\textbackslash
+        frac\{\textbackslash beta\}\{\textbackslash zeta\}\textbackslash ) \\
+        \end{tabular}
+
         Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
         method to create `to_excel` permissible formatting. Note that semi-colons are
         CSS protected characters but used as separators in Excel's format string.
