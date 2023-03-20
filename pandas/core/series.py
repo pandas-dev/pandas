@@ -35,10 +35,7 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.lib import (
-    is_range_indexer,
-    no_default,
-)
+from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -5582,7 +5579,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = False,
     ) -> Resampler:
         return super().resample(
             rule=rule,

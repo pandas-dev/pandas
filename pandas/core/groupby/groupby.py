@@ -629,7 +629,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
     level: IndexLabel | None = None
-    group_keys: bool | lib.NoDefault
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -919,7 +919,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = True,
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
@@ -4367,7 +4367,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
     grouper: ops.BaseGrouper | None = None,
-    group_keys: bool | lib.NoDefault = True,
+    group_keys: bool = True,
 ) -> GroupBy:
     klass: type[GroupBy]
     if isinstance(obj, Series):
