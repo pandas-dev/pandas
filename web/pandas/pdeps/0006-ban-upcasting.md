@@ -47,7 +47,7 @@ In[9]: ser = pd.Series(pd.date_range("2000", periods=3))
 
 In[10]: ser[2] = "2000-01-04"  # works, is converted to datetime64
 
-In[11]: ser[2] = "2000-01-04x"  # typo - but pandas doesn't error, it upcasts to object
+In[11]: ser[2] = "2000-01-04x"  # typo - but pandas does not error, it upcasts to object
 ```
 
 The scope of this PDEP is limited to setitem-like operations on Series.
@@ -82,7 +82,7 @@ Concretely, the suggestion is:
 
 For a start, this would involve:
 
-1. changing ``Block.setitem`` such that it doesn't have an ``except`` block in
+1. changing ``Block.setitem`` such that it does not have an ``except`` block in
 
   ```python
   value = extract_array(value, extract_numpy=True)
@@ -115,7 +115,7 @@ In[1]: ser = pd.Series([1, 2, 3])
 In[2]: ser[0] = 1.5
 ```
 
-This isn't necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
+This is not necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
 numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer.
 
 Possible options could be:
@@ -153,8 +153,8 @@ This would make pandas stricter, so there should not be any risk of introducing 
 
 Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
 
-Given that users can get around this as simply as with a ``.astype({'my_column': float})`` call,
-I think it would be more beneficial to the community at large to err on the side of strictness.
+Given that users could still get the current behaviour by first explicitly casting to float,
+it would be more beneficial to the community at large to err on the side of strictness.
 
 ## Out of scope
 
