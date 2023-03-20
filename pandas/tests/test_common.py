@@ -1,5 +1,6 @@
 import collections
 from functools import partial
+import os
 import string
 
 import numpy as np
@@ -172,6 +173,12 @@ def test_version_tag():
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
         )
+
+
+def test_pyproject_present():
+    # Check pyproject.toml is present(relevant for wheels)
+    pyproject_loc = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
+    assert os.path.exists(pyproject_loc)
 
 
 @pytest.mark.parametrize(
