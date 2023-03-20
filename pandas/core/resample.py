@@ -153,7 +153,7 @@ class Resampler(BaseGroupBy, PandasObject):
         kind=None,
         *,
         gpr_index: Index,
-        group_keys: bool | lib.NoDefault = lib.no_default,
+        group_keys: bool = False,
         selection=None,
     ) -> None:
         self._timegrouper = timegrouper
@@ -413,11 +413,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         grouper = self.grouper
 
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
+
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -1269,11 +1267,9 @@ class DatetimeIndexResampler(Resampler):
         """
         how = com.get_cython_func(how) or how
         ax = self.ax
-        if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
-        else:
-            # Excludes `on` column when provided
-            obj = self._obj_with_exclusions
+
+        # Excludes `on` column when provided
+        obj = self._obj_with_exclusions
 
         if not len(ax):
             # reset to the new freq
@@ -1589,7 +1585,7 @@ class TimeGrouper(Grouper):
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]
         | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = False,
         **kwargs,
     ) -> None:
         # Check for correctness of the keyword arguments which would
