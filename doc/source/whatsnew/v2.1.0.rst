@@ -35,6 +35,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
+- Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -241,7 +242,6 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
-- Bug in :func:`_check_values_indices_shape_match` no longer raises ValueError with a message saying that indices were specified when creating an empty DataFrame that has an issue with the number of columns in the data and in the columns argument.
 
 .. ***DO NOT USE THIS SECTION***
 
