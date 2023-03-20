@@ -122,7 +122,7 @@ class WrappedCythonOp:
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS = {
+    _CYTHON_FUNCTIONS: dict[str, dict] = {
         "aggregate": {
             "sum": "group_sum",
             "prod": "group_prod",
@@ -131,6 +131,8 @@ class WrappedCythonOp:
             "mean": "group_mean",
             "median": "group_median_float64",
             "var": "group_var",
+            "std": functools.partial(libgroupby.group_var, name="std"),
+            "sem": functools.partial(libgroupby.group_var, name="sem"),
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
@@ -158,7 +160,10 @@ class WrappedCythonOp:
 
         # see if there is a fused-type version of function
         # only valid for numeric
-        f = getattr(libgroupby, ftype)
+        if callable(ftype):
+            f = ftype
+        else:
+            f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
         elif dtype == np.dtype(object):
@@ -168,6 +173,9 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
+            elif how in ["std", "sem"]:
+                # We have a partial object that does not have __signatures__
+                return f
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -196,7 +204,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how == "median":
+        if how in ["median", "std", "sem"]:
             # median only has a float64 implementation
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -314,7 +322,7 @@ class WrappedCythonOp:
         if how in ["sum", "cumsum", "sum", "prod", "cumprod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-        elif how in ["mean", "median", "var"]:
+        elif how in ["mean", "median", "var", "std", "sem"]:
             if is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
@@ -413,6 +421,13 @@ class WrappedCythonOp:
         elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
             # In to_cython_values we took a view as M8[ns]
             assert res_values.dtype == "M8[ns]"
+            if self.how in ["std", "sem"]:
+                if isinstance(values, PeriodArray):
+                    raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
+                new_dtype = f"m8[{values.unit}]"
+                res_values = res_values.view(new_dtype)
+                return TimedeltaArray(res_values)
+
             res_values = res_values.view(values._ndarray.dtype)
             return values._from_backing_data(res_values)
 
@@ -556,7 +571,9 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+                if self.how in ["std", "sem"]:
+                    kwargs["is_datetimelike"] = is_datetimelike
                 func(
                     result,
                     counts,
