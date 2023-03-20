@@ -80,6 +80,7 @@ class ArrowParserWrapper(ParserBase):
                 "decimal_point",
             )
         }
+        self.convert_options["strings_can_be_null"] = "" in self.kwds["null_values"]
         self.read_options = {
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
@@ -149,6 +150,7 @@ class ArrowParserWrapper(ParserBase):
         DataFrame
             The DataFrame created from the CSV file.
         """
+        pa = import_optional_dependency("pyarrow")
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
@@ -158,6 +160,19 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
+
+        # Convert all pa.null() cols -> float64
+        # TODO: There has to be a better way... right?
+        cols_to_convert = []
+        new_schema = table.schema
+        for i, type in enumerate(table.schema.types):
+            if pa.types.is_null(type):
+                cols_to_convert.append(i)
+        for i in cols_to_convert:
+            new_schema = new_schema.set(i, new_schema.field(i).with_type(pa.float64()))
+
+        table = table.cast(new_schema)
+
         if self.kwds["dtype_backend"] == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         elif self.kwds["dtype_backend"] == "numpy_nullable":
