@@ -10,7 +10,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -25,18 +24,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._validators import validate_bool_kwarg
 
@@ -109,14 +96,25 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Self,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
+    )
+
     from pandas import (
         DataFrame,
         Index,
         Series,
     )
-
-
-CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -1198,7 +1196,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
         """
         Map categories using an input mapping or function.
 
@@ -1267,6 +1265,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
+        if na_action is not None:
+            raise NotImplementedError
+
         new_categories = self.categories.map(mapper)
         try:
             return self.from_codes(
@@ -1900,7 +1901,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
-        width, height = get_terminal_size()
+        width, _ = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
             # 0 = no breaks
@@ -2159,9 +2160,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(
-        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
-    ) -> CategoricalT:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
 
         first = to_concat[0]
