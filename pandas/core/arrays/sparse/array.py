@@ -1305,21 +1305,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
-        if na_action is not None:
-            raise NotImplementedError
-
-        # this is used in apply.
-        # We get hit since we're an "is_extension_array_dtype" but regular extension
-        # types are not hit. This may be worth adding to the interface.
         if isinstance(mapper, ABCSeries):
             mapper = mapper.to_dict()
 
+        fill_value = self.fill_value
+
         if isinstance(mapper, abc.Mapping):
-            fill_value = mapper.get(self.fill_value, self.fill_value)
+            if na_action is None or notna(fill_value):
+                fill_value = mapper.get(self.fill_value, self.fill_value)
             sp_values = [mapper.get(x, None) for x in self.sp_values]
         else:
-            fill_value = mapper(self.fill_value)
+            if na_action is None or notna(fill_value):
+                fill_value = mapper(self.fill_value)
             sp_values = [mapper(x) for x in self.sp_values]
+
+        if fill_value in sp_values:
+            msg = "fill value in the sparse values not supported"
+            raise ValueError(msg)
 
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
 
