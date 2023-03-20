@@ -479,7 +479,7 @@ class TestMergeMulti:
             expected = DataFrame(
                 data={
                     "data": [1.5, 1.5],
-                    "state": [None, None],
+                    "state": np.array([np.nan, np.nan], dtype=object),
                 },
                 index=expected_index,
             )
@@ -488,7 +488,7 @@ class TestMergeMulti:
         else:
             expected = DataFrame(
                 data={
-                    "state": [None, None],
+                    "state": np.array([np.nan, np.nan], dtype=object),
                     "data": [1.5, 1.5],
                 },
                 index=expected_index,

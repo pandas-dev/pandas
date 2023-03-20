@@ -220,6 +220,43 @@ class Test2DCompat(base.Dim2CompatTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
+    # TODO: share this with IntegerArray/BooleanArray?
+    def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
+        # overwrite to ensure pd.NA is tested instead of np.nan
+        # https://github.com/pandas-dev/pandas/issues/30958
+        expected_dtype = ser.dtype
+
+        if op_name == "cumsum":
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                    dtype=expected_dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+        elif op_name in ["cummax", "cummin"]:
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                    dtype=ser.dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+        elif op_name == "cumprod":
+            result = getattr(ser[:12], op_name)(skipna=skipna)
+            expected = pd.Series(
+                pd.array(
+                    getattr(ser[:12].astype("float64"), op_name)(skipna=skipna),
+                    dtype=expected_dtype,
+                )
+            )
+            tm.assert_series_equal(result, expected)
+
+        else:
+            raise NotImplementedError(f"{op_name} not supported")
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
         pass

@@ -197,6 +197,8 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
+            if "string_with_nan" in expected:
+                expected.loc[1, "string_with_nan"] = None
             tm.assert_frame_equal(
                 expected,
                 actual,
@@ -696,6 +698,8 @@ class TestParquetPyArrow(Base):
         buf_stream = BytesIO(buf_bytes)
         res = read_parquet(buf_stream)
 
+        expected = df_full.copy(deep=False)
+        expected.loc[1, "string_with_nan"] = None
         tm.assert_frame_equal(df_full, res)
 
     def test_duplicate_columns(self, pa):

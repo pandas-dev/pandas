@@ -169,6 +169,9 @@ False,NA,True"""
             "C": [True, False, True],
         }
     )
+    if parser.engine == "pyarrow":
+        expected.loc[1, "A"] = None
+        expected.loc[2, "B"] = None
     tm.assert_frame_equal(result, expected)
 
 

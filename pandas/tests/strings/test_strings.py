@@ -68,7 +68,7 @@ def test_repeat_mixed_object():
     ser = Series(["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0])
     result = ser.str.repeat(3)
     expected = Series(
-        ["aaa", np.nan, "bbb", np.nan, np.nan, "foofoofoo", np.nan, np.nan, np.nan]
+        ["aaa", np.nan, "bbb", np.nan, np.nan, "foofoofoo", None, np.nan, np.nan]
     )
     tm.assert_series_equal(result, expected)
 
@@ -78,7 +78,7 @@ def test_repeat_with_null(any_string_dtype, arg, repeat):
     # GH: 31632
     ser = Series(["a", arg], dtype=any_string_dtype)
     result = ser.str.repeat([3, repeat])
-    expected = Series(["aaa", np.nan], dtype=any_string_dtype)
+    expected = Series(["aaa", None], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -260,7 +260,7 @@ def test_spilt_join_roundtrip_mixed_object():
     )
     result = ser.str.split("_").str.join("_")
     expected = Series(
-        ["a_b", np.nan, "asdf_cas_asdf", np.nan, np.nan, "foo", np.nan, np.nan, np.nan]
+        ["a_b", np.nan, "asdf_cas_asdf", np.nan, np.nan, "foo", None, np.nan, np.nan]
     )
     tm.assert_series_equal(result, expected)
 
@@ -381,8 +381,8 @@ def test_slice(start, stop, step, expected, any_string_dtype):
 @pytest.mark.parametrize(
     "start, stop, step, expected",
     [
-        (2, 5, None, ["foo", np.nan, "bar", np.nan, np.nan, np.nan, np.nan, np.nan]),
-        (4, 1, -1, ["oof", np.nan, "rab", np.nan, np.nan, np.nan, np.nan, np.nan]),
+        (2, 5, None, ["foo", np.nan, "bar", np.nan, np.nan, None, np.nan, np.nan]),
+        (4, 1, -1, ["oof", np.nan, "rab", np.nan, np.nan, None, np.nan, np.nan]),
     ],
 )
 def test_slice_mixed_object(start, stop, step, expected):
@@ -443,7 +443,7 @@ def test_strip_lstrip_rstrip_mixed_object(method, exp):
     ser = Series(["  aa  ", np.nan, " bb \t\n", True, datetime.today(), None, 1, 2.0])
 
     result = getattr(ser.str, method)()
-    expected = Series(exp + [np.nan, np.nan, np.nan, np.nan, np.nan])
+    expected = Series(exp + [np.nan, np.nan, None, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
