@@ -1323,12 +1323,18 @@ cdef class Seen:
         return (self.uint_ and (self.null_ or self.sint_)
                 and not self.coerce_numeric)
 
-    cdef saw_null(self):
+    cdef saw_null(self, seen_float=True):
         """
         Set flags indicating that a null value was encountered.
+
+        Parameters
+        ----------
+        seen_float: boolean, default True
+            Whether we saw a float NaN
         """
         self.null_ = True
-        self.float_ = True
+        self.float_ = self.float_ or seen_float
+        self.curr_seen = CurrSeen.null_
 
     cdef saw_int(self, object val):
         """
@@ -1391,17 +1397,17 @@ cdef class Seen:
         if self.curr_seen is CurrSeen.bool_:
             # There's nothing to a bool can be downcast to, it is 1 byte
             # so no checking
-            ret_val[0] = <curr_seen_t>self.curr_seen_val.bool_
+            ret_val[0] = self.curr_seen_val.bool_
         elif self.curr_seen is CurrSeen.uint_:
-            if sizeof(ret_val[0]) < sizeof(uint64_t):
+            if sizeof(curr_seen_t) < sizeof(uint64_t):
                 raise ValueError("Downcasting uint64 is not allowed")
-            ret_val[0] = <curr_seen_t>self.curr_seen_val.uint_
+            ret_val[0] = self.curr_seen_val.uint_
         elif self.curr_seen is CurrSeen.int_:
-            if sizeof(ret_val[0]) < sizeof(int64_t):
+            if sizeof(curr_seen_t) < sizeof(int64_t):
                 raise ValueError("Downcasting int64 is not allowed")
-            ret_val[0] = <curr_seen_t>self.curr_seen_val.int_
+            ret_val[0] = self.curr_seen_val.int_
         elif self.curr_seen is CurrSeen.float_:
-            if sizeof(ret_val[0]) < sizeof(float64_t) \
+            if sizeof(curr_seen_t) < sizeof(float64_t) \
                     or curr_seen_t is int64_t or curr_seen_t is uint64_t:
                 raise ValueError("Downcasting float64 is not allowed")
             ret_val[0] = <curr_seen_t>self.curr_seen_val.float_
@@ -1409,7 +1415,7 @@ cdef class Seen:
             if curr_seen_t is complex128_t:
                 # Need to gate behind specialization since complex can't safely
                 # cast to other types throwing a compile error
-                ret_val[0] = <curr_seen_t>self.curr_seen_val.complex_
+                ret_val[0] = self.curr_seen_val.complex_
             else:
                 raise ValueError("Downcasting complex128 is not allowed")
 
@@ -2331,26 +2337,18 @@ def maybe_convert_numeric(
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
         if val.__hash__ is not None and val in na_values:
-            if allow_null_in_int:
-                seen.null_ = True
+            if allow_null_in_int or convert_to_masked_nullable:
                 mask[i] = 1
-            else:
-                if convert_to_masked_nullable:
-                    mask[i] = 1
-                seen.saw_null()
-            seen.curr_seen = CurrSeen.null_
+            seen.saw_null(seen_float=not allow_null_in_int)
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
-                seen.null_ = True
                 if allow_null_in_int:
-                    seen.curr_seen = CurrSeen.null_
                     mask[i] = 1
                 else:
                     if convert_to_masked_nullable:
                         mask[i] = 1
-                        seen.curr_seen = CurrSeen.null_
-                    seen.set_curr_val(fval)
+                seen.saw_null(seen_float=not allow_null_in_int)
             else:
                 seen.set_curr_val(fval)
         elif util.is_integer_object(val):
@@ -2371,18 +2369,12 @@ def maybe_convert_numeric(
         elif util.is_bool_object(val):
             seen.set_curr_val(<uint8_t>val)
         elif val is None or val is C_NA:
-            if allow_null_in_int:
-                seen.null_ = True
+            if allow_null_in_int or convert_to_masked_nullable:
                 mask[i] = 1
-            else:
-                if convert_to_masked_nullable:
-                    mask[i] = 1
-                seen.saw_null()
-            seen.curr_seen = CurrSeen.null_
+            seen.saw_null(seen_float=not allow_null_in_int)
         elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                seen.curr_seen = CurrSeen.null_
                 mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
@@ -2398,11 +2390,9 @@ def maybe_convert_numeric(
                     as_int = int(val)
 
                     if as_int in na_values:
-                        seen.curr_seen = CurrSeen.null_
                         seen.null_ = True
                         mask[i] = 1
-                        if not allow_null_in_int:
-                            seen.float_ = True
+                        seen.saw_null(seen_float=not allow_null_in_int)
                     else:
                         seen.saw_int(as_int)
 
@@ -2420,14 +2410,13 @@ def maybe_convert_numeric(
 
                     seen.float_ = seen.float_ or (seen.uint_ and seen.sint_)
                 else:
+                    # TODO: Consider allow_null_in_int here
                     if fval in na_values:
                         seen.saw_null()
-                        seen.set_curr_val(NaN)
                         mask[i] = 1
                     else:
                         if fval != fval:
-                            seen.null_ = True
-                            seen.curr_seen = CurrSeen.null_
+                            seen.saw_null()
                             mask[i] = 1
                         else:
                             seen.set_curr_val(fval)
@@ -2436,7 +2425,6 @@ def maybe_convert_numeric(
                     raise type(err)(f"{err} at position {i}")
 
                 seen.saw_null()
-                seen.curr_seen = CurrSeen.null_
                 mask[i] = 1
 
         # Time to set values
