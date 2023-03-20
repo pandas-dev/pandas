@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
@@ -627,7 +628,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
-    group_keys: bool | lib.NoDefault
+    level: IndexLabel | None = None
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -811,7 +813,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         for each group
         """
         keys = self.keys
+        level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
+            # GH 51583
+            warnings.warn(
+                "Creating a Groupby object with a length-1 list-like "
+                "level parameter will yield indexes as tuples in a future version. "
+                "To keep indexes as scalars, create Groupby objects with "
+                "a scalar level parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if isinstance(keys, list) and len(keys) == 1:
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
@@ -905,7 +919,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = True,
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
@@ -1704,10 +1718,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def result_to_bool(
             result: np.ndarray,
             inference: type,
-            nullable: bool = False,
+            result_mask,
         ) -> ArrayLike:
-            if nullable:
-                return BooleanArray(result.astype(bool, copy=False), result == -1)
+            if result_mask is not None:
+                return BooleanArray(result.astype(bool, copy=False), result_mask)
             else:
                 return result.astype(inference, copy=False)
 
@@ -1985,10 +1999,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     return values._data, None
                 return values, None
 
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                if nullable:
+            def _postprocessing(vals, inference, result_mask=None) -> ArrayLike:
+                if result_mask is not None:
                     if result_mask.ndim == 2:
                         result_mask = result_mask[:, 0]
                     return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
@@ -3808,13 +3820,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
-            if how != "std":
-                is_nullable = isinstance(values, BaseMaskedArray)
-                func = partial(func, nullable=is_nullable)
-
-            elif isinstance(values, BaseMaskedArray):
+            result_mask = None
+            if isinstance(values, BaseMaskedArray):
                 result_mask = np.zeros(result.shape, dtype=np.bool_)
-                func = partial(func, result_mask=result_mask)
+
+            func = partial(func, result_mask=result_mask)
 
             # Call func to modify result in place
             if how == "std":
@@ -3825,14 +3835,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
                 result = result[:, 0]
+                if result_mask is not None:
+                    assert result_mask.shape[1] == 1, result_mask.shape
+                    result_mask = result_mask[:, 0]
 
             if post_processing:
-                pp_kwargs: dict[str, bool | np.ndarray] = {}
-                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std" and pp_kwargs["nullable"]:
-                    pp_kwargs["result_mask"] = result_mask
-
-                result = post_processing(result, inferences, **pp_kwargs)
+                result = post_processing(result, inferences, result_mask=result_mask)
 
             if how == "std" and is_datetimelike:
                 values = cast("DatetimeArray | TimedeltaArray", values)
@@ -4359,7 +4367,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
     grouper: ops.BaseGrouper | None = None,
-    group_keys: bool | lib.NoDefault = True,
+    group_keys: bool = True,
 ) -> GroupBy:
     klass: type[GroupBy]
     if isinstance(obj, Series):
