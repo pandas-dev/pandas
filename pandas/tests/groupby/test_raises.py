@@ -399,14 +399,20 @@ def test_groupby_raises_category(
         "prod": (TypeError, "category type does not support prod operations"),
         "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
-        "sem": (ValueError, "Cannot cast object dtype to float64"),
+        "sem": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'sem'",
+        ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
             "'Categorical' with dtype category does not support reduction 'skew'",
         ),
-        "std": (ValueError, "Cannot cast object dtype to float64"),
+        "std": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'std'",
+        ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
@@ -594,14 +600,20 @@ def test_groupby_raises_category_on_category(
         "prod": (TypeError, "category type does not support prod operations"),
         "quantile": (TypeError, ""),
         "rank": (None, ""),
-        "sem": (ValueError, "Cannot cast object dtype to float64"),
+        "sem": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'sem'",
+        ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
             "'Categorical' with dtype category does not support reduction 'skew'",
         ),
-        "std": (ValueError, "Cannot cast object dtype to float64"),
+        "std": (
+            TypeError,
+            "'Categorical' with dtype category does not support reduction 'std'",
+        ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
