@@ -2479,12 +2479,8 @@ def _escape_latex_math(s):
         Escaped string
     """
     s = s.replace(r"\$", r"rt8§=§7wz")
-    pattern_d = re.compile(r"\$.*?\$")
-    pattern_p = re.compile(r"\(.*?\)")
-    pos_d = 0
-    pos_p = 0
-    ps_d = pattern_d.search(s, pos_d)
-    ps_p = pattern_p.search(s, pos_p)
+    ps_d = re.compile(r"\$.*?\$").search(s, 0)
+    ps_p = re.compile(r"\(.*?\)").search(s, 0)
     mode = []
     if ps_d:
         mode.append(ps_d.span()[0])
