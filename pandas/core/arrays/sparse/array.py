@@ -1305,7 +1305,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
-        is_map = isinstance(mapper, abc.Mapping) or isinstance(mapper, ABCSeries)
+        is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
         fill_val = self.fill_value
 
