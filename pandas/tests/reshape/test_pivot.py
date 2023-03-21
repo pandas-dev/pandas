@@ -1172,26 +1172,32 @@ class TestPivotTable:
     def test_margins_no_values_two_rows(self, data):
         # Regression test on pivot table: no values passed but rows are a
         # multi-index
-        result = data[["A", "B", "C"]].pivot_table(
-            index=["A", "B"], columns="C", aggfunc=len, margins=True
-        )
+        msg = "DataFrame.pivot_table operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = data[["A", "B", "C"]].pivot_table(
+                index=["A", "B"], columns="C", aggfunc=len, margins=True
+            )
         assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
     def test_margins_no_values_one_row_one_col(self, data):
         # Regression test on pivot table: no values passed but row and col
         # defined
-        result = data[["A", "B"]].pivot_table(
-            index="A", columns="B", aggfunc=len, margins=True
-        )
+        msg = "DataFrame.pivot_table operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = data[["A", "B"]].pivot_table(
+                index="A", columns="B", aggfunc=len, margins=True
+            )
         assert result.All.tolist() == [4.0, 7.0, 11.0]
 
     def test_margins_no_values_two_row_two_cols(self, data):
         # Regression test on pivot table: no values passed but rows and cols
         # are multi-indexed
         data["D"] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
-        result = data[["A", "B", "C", "D"]].pivot_table(
-            index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
-        )
+        msg = "DataFrame.pivot_table operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = data[["A", "B", "C", "D"]].pivot_table(
+                index=["A", "B"], columns=["C", "D"], aggfunc=len, margins=True
+            )
         assert result.All.tolist() == [3.0, 1.0, 4.0, 3.0, 11.0]
 
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])

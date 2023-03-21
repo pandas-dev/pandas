@@ -673,14 +673,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby.apply(f)
+        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby.apply(f)
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
         return attr
 
@@ -1117,7 +1117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self.apply(curried)
+            return self._python_apply_general(curried, self._selected_obj)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1481,6 +1481,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
+                if (
+                    not isinstance(self.obj, Series)
+                    and self._selection is None
+                    and self._selected_obj.shape != self._obj_with_exclusions.shape
+                ):
+                    msg = (
+                        f"{type(self).__name__}.apply operated on the grouping "
+                        f"columns. This behavior is deprecated, and in a future "
+                        f"version of pandas the grouping columns will be excluded "
+                        f"from the operation. Subset the data to exclude the "
+                        f"groupings and silence this warning."
+                    )
+                    warnings.warn(
+                        message=msg,
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
