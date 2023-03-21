@@ -368,7 +368,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
-        # GHxxxxx
+        # GH52096
         msg = "fill value in the sparse values not supported"
         with pytest.raises(ValueError, match=msg):
             data.map(lambda x: np.nan, na_action=na_action)
