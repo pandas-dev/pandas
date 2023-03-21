@@ -106,7 +106,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -2341,10 +2340,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     -------
     cls : class, subclass of Block
     """
-    if isinstance(dtype, SparseDtype):
-        # Need this first(ish) so that Sparse[datetime] is sparse
-        return ExtensionBlock
-    elif isinstance(dtype, DatetimeTZDtype):
+    if isinstance(dtype, DatetimeTZDtype):
         return DatetimeTZBlock
     elif isinstance(dtype, PeriodDtype):
         return NDArrayBackedExtensionBlock
@@ -2355,9 +2351,9 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     # We use kind checks because it is much more performant
     #  than is_foo_dtype
     kind = dtype.kind
-    if kind in ["M", "m"]:
+    if kind in "Mm":
         return DatetimeLikeBlock
-    elif kind in ["f", "c", "i", "u", "b"]:
+    elif kind in "fciub":
         return NumericBlock
 
     return ObjectBlock
