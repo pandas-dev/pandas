@@ -35,6 +35,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
+- Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -141,13 +142,17 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
+- :meth:`arrays.DatetimeArray.map` can now take a ``na_action`` argument. :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+-
 
 Timedelta
 ^^^^^^^^^
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
+- :meth:`arrays.TimedeltaArray.map` can now take a ``na_action`` argument. :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+-
 
 Timezones
 ^^^^^^^^^
@@ -162,6 +167,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
+- Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 -
 
 Strings
@@ -197,6 +203,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
+- :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument. :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 -
@@ -240,11 +247,10 @@ Styler
 
 Other
 ^^^^^
--
+- Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
 
 .. ***DO NOT USE THIS SECTION***
 
--
 -
 
 .. ---------------------------------------------------------------------------

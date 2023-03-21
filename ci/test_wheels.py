@@ -41,10 +41,12 @@ else:
     multi_args = [
         "-m not clipboard and not single_cpu and not slow and not network and not db",
         "-n 2",
+        "--no-strict-data-files",
     ]
     pd.test(extra_args=multi_args)
     pd.test(
         extra_args=[
             "-m not clipboard and single_cpu and not slow and not network and not db",
+            "--no-strict-data-files",
         ]
     )
