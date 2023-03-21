@@ -752,11 +752,7 @@ cpdef ndarray[object] ensure_string_array(
             out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
-        if hasattr(arr, "type"):
-            # pyarrow array
-            arr = np.array(arr)
-        else:
-            arr = arr.to_numpy()
+        arr = arr.to_numpy()
     elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
 
