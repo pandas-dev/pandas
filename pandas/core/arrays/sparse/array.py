@@ -1305,25 +1305,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
-        if isinstance(mapper, ABCSeries):
-            mapper = mapper.to_dict()
+        is_map = isinstance(mapper, abc.Mapping) or isinstance(mapper, ABCSeries)
 
-        fill_value = self.fill_value
+        fill_val = self.fill_value
 
-        if isinstance(mapper, abc.Mapping):
-            if na_action is None or notna(fill_value):
-                fill_value = mapper.get(self.fill_value, self.fill_value)
-            sp_values = [mapper.get(x, None) for x in self.sp_values]
-        else:
-            if na_action is None or notna(fill_value):
-                fill_value = mapper(self.fill_value)
-            sp_values = [mapper(x) for x in self.sp_values]
+        if na_action is None or notna(fill_val):
+            fill_val = mapper.get(fill_val, fill_val) if is_map else mapper(fill_val)
 
-        if fill_value in sp_values:
-            msg = "fill value in the sparse values not supported"
-            raise ValueError(msg)
+        def func(sp_val):
+            new_sp_val = mapper.get(sp_val, None) if is_map else mapper(sp_val)
+            if new_sp_val in [fill_val]:
+                msg = "fill value in the sparse values not supported"
+                raise ValueError(msg)
+            return new_sp_val
 
-        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+        sp_values = [func(x) for x in self.sp_values]
+
+        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
 
     def to_dense(self) -> np.ndarray:
         """
