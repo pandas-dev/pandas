@@ -361,7 +361,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ],
     )
     def test_map(self, func, na_action, expected):
-        # GHxxxxx
+        # GH52096
         data = SparseArray([1, np.nan])
         result = data.map(func, na_action=na_action)
         self.assert_extension_array_equal(result, expected)
