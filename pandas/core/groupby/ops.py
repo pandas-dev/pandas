@@ -137,6 +137,7 @@ class WrappedCythonOp:
             "var": "group_var",
             "std": functools.partial(libgroupby.group_var, name="std"),
             "sem": functools.partial(libgroupby.group_var, name="sem"),
+            "skew": "group_skew",
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
@@ -180,7 +181,10 @@ class WrappedCythonOp:
             elif how in ["std", "sem"]:
                 # We have a partial object that does not have __signatures__
                 return f
-            if "object" not in f.__signatures__:
+            elif how == "skew":
+                # _get_cython_vals will convert to float64
+                pass
+            elif "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
@@ -208,7 +212,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "std", "sem"]:
+        if how in ["median", "std", "sem", "skew"]:
             # median only has a float64 implementation
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -250,7 +254,7 @@ class WrappedCythonOp:
             return
 
         if isinstance(dtype, CategoricalDtype):
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
                 raise TypeError(f"{dtype} type does not support {how} operations")
             if how in ["min", "max", "rank"] and not dtype.ordered:
                 # raise TypeError instead of NotImplementedError to ensure we
@@ -265,15 +269,15 @@ class WrappedCythonOp:
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
             # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
         elif is_period_dtype(dtype):
             # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
                 raise TypeError(f"Period type does not support {how} operations")
         elif is_timedelta64_dtype(dtype):
             # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod"]:
+            if how in ["prod", "cumprod", "skew"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
     def _get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
@@ -614,6 +618,19 @@ class WrappedCythonOp:
                     **kwargs,
                 )
                 result = result.astype(bool, copy=False)
+            elif self.how in ["skew"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
+                if dtype == object:
+                    result = result.astype(object)
+
             else:
                 raise NotImplementedError(f"{self.how} is not implemented")
         else:
