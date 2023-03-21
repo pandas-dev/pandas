@@ -28,6 +28,7 @@ jobs:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         pattern: ["not single_cpu", "single_cpu"]
         pyarrow_version: ["8", "9", "10"]
+        pandas_ci: [1]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -98,7 +99,7 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
+      PANDAS_CI: ${{ matrix.pandas_ci }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
