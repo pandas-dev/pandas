@@ -88,23 +88,8 @@
   padding: 5px;
 }
 
-.gs-torefguide a {
-  margin-left: 5px;
-  color: #130654;
-  border-bottom: 1px solid #FFCA00f3;
-  box-shadow: 0px -10px 0px #FFCA00f3 inset;
-}
-
 .gs-torefguide p {
   margin-top: 1rem;
-}
-
-.gs-torefguide a:hover {
-  margin-left: 5px;
-  color: grey;
-  text-decoration: none;
-  border-bottom: 1px solid #b2ff80f3;
-  box-shadow: 0px -10px 0px #b2ff80f3 inset;
 }
 
 /* question-task environment */
@@ -266,13 +251,12 @@ ul.task-bullet > li > p:first-child {
   margin: 0px;
 }
 
-/*
+
 .tutorial-card .gs-badge-link a {
-  color: white;
+  color: var(--pst-color-text-base);
   text-decoration: none;
 }
 
 .tutorial-card .badge:hover {
   background-color: grey;
 }
-*/
