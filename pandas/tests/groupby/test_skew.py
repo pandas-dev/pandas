@@ -23,5 +23,5 @@ def test_groupby_skew_equivalence():
 
     grpwise = [grp.skew().to_frame(i).T for i, grp in gb]
     expected = pd.concat(grpwise, axis=0)
-    expected.index = expected.index.astype(df.index.dtype)  # 32bit builds
+    expected.index = expected.index.astype(result.index.dtype)  # 32bit builds
     tm.assert_frame_equal(result, expected)
