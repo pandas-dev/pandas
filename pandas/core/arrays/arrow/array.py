@@ -1634,7 +1634,7 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
-        if isinstance(values, pa.ChunkedArray):
+        if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
