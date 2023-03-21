@@ -95,12 +95,9 @@ from pandas.core import (
 from pandas.core._numba import executor
 from pandas.core.arrays import (
     BaseMaskedArray,
-    BooleanArray,
     Categorical,
-    DatetimeArray,
     ExtensionArray,
     FloatingArray,
-    TimedeltaArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -629,7 +626,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
     level: IndexLabel | None = None
-    group_keys: bool | lib.NoDefault
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -919,7 +916,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = True,
+        group_keys: bool = True,
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
@@ -1547,6 +1544,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
+                if how in ["any", "all"]:
+                    raise  # TODO: re-raise as TypeError?
                 result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
 
             return result
@@ -1697,45 +1696,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self.obj._constructor
 
     @final
-    def _bool_agg(self, val_test: Literal["any", "all"], skipna: bool):
-        """
-        Shared func to call any / all Cython GroupBy implementations.
-        """
-
-        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype) and skipna:
-                # GH#37501: don't raise on pd.NA when skipna=True
-                mask = isna(vals)
-                if mask.any():
-                    # mask on original values computed separately
-                    vals = vals.copy()
-                    vals[mask] = True
-            elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data
-            vals = vals.astype(bool, copy=False)
-            return vals.view(np.int8), bool
-
-        def result_to_bool(
-            result: np.ndarray,
-            inference: type,
-            result_mask,
-        ) -> ArrayLike:
-            if result_mask is not None:
-                return BooleanArray(result.astype(bool, copy=False), result_mask)
-            else:
-                return result.astype(inference, copy=False)
-
-        return self._get_cythonized_result(
-            libgroupby.group_any_all,
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int8),
-            pre_processing=objs_to_bool,
-            post_processing=result_to_bool,
-            val_test=val_test,
-            skipna=skipna,
-        )
-
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def any(self, skipna: bool = True):
@@ -1753,7 +1713,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             DataFrame or Series of boolean values, where a value is True if any element
             is True within its respective group, False otherwise.
         """
-        return self._bool_agg("any", skipna)
+        return self._cython_agg_general(
+            "any",
+            alt=lambda x: Series(x).any(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1773,7 +1737,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             DataFrame or Series of boolean values, where a value is True if all elements
             are True within its respective group, False otherwise.
         """
-        return self._bool_agg("all", skipna)
+        return self._cython_agg_general(
+            "all",
+            alt=lambda x: Series(x).all(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1993,30 +1961,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
         else:
-
-            def _preprocessing(values):
-                if isinstance(values, BaseMaskedArray):
-                    return values._data, None
-                return values, None
-
-            def _postprocessing(vals, inference, result_mask=None) -> ArrayLike:
-                if result_mask is not None:
-                    if result_mask.ndim == 2:
-                        result_mask = result_mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
-                return np.sqrt(vals)
-
-            result = self._get_cythonized_result(
-                libgroupby.group_var,
-                cython_dtype=np.dtype(np.float64),
+            return self._cython_agg_general(
+                "std",
+                alt=lambda x: Series(x).std(ddof=ddof),
                 numeric_only=numeric_only,
-                needs_counts=True,
-                pre_processing=_preprocessing,
-                post_processing=_postprocessing,
                 ddof=ddof,
-                how="std",
             )
-            return result
 
     @final
     @Substitution(name="groupby")
@@ -2245,18 +2195,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only)
-
-        if result.ndim == 1:
-            result /= np.sqrt(self.count())
-        else:
-            cols = result.columns.difference(self.exclusions).unique()
-            counts = self.count()
-            result_ilocs = result.columns.get_indexer_for(cols)
-            count_ilocs = counts.columns.get_indexer_for(cols)
-
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
-        return result
+        return self._cython_agg_general(
+            "sem",
+            alt=lambda x: Series(x).sem(ddof=ddof),
+            numeric_only=numeric_only,
+            ddof=ddof,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -3729,139 +3673,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _get_cythonized_result(
-        self,
-        base_func: Callable,
-        cython_dtype: np.dtype,
-        numeric_only: bool = False,
-        needs_counts: bool = False,
-        pre_processing=None,
-        post_processing=None,
-        how: str = "any_all",
-        **kwargs,
-    ):
-        """
-        Get result for Cythonized functions.
-
-        Parameters
-        ----------
-        base_func : callable, Cythonized function to be called
-        cython_dtype : np.dtype
-            Type of the array that will be modified by the Cython call.
-        numeric_only : bool, default False
-            Whether only numeric datatypes should be computed
-        needs_counts : bool, default False
-            Whether the counts should be a part of the Cython call
-        pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython.
-            Function should return a tuple where the first element is the
-            values to be passed to Cython and the second element is an optional
-            type which the values should be converted to after being returned
-            by the Cython operation. This function is also responsible for
-            raising a TypeError if the values have an invalid type. Raises
-            if `needs_values` is False.
-        post_processing : function, default None
-            Function to be applied to result of Cython function. Should accept
-            an array of values as the first argument and type inferences as its
-            second argument, i.e. the signature should be
-            (ndarray, Type). If `needs_nullable=True`, a third argument should be
-            `nullable`, to allow for processing specific to nullable values.
-        how : str, default any_all
-            Determines if any/all cython interface or std interface is used.
-        **kwargs : dict
-            Extra arguments to be passed back to Cython funcs
-
-        Returns
-        -------
-        `Series` or `DataFrame`  with filled values
-        """
-        if post_processing and not callable(post_processing):
-            raise ValueError("'post_processing' must be a callable!")
-        if pre_processing and not callable(pre_processing):
-            raise ValueError("'pre_processing' must be a callable!")
-
-        grouper = self.grouper
-
-        ids, _, ngroups = grouper.group_info
-
-        base_func = partial(base_func, labels=ids)
-
-        def blk_func(values: ArrayLike) -> ArrayLike:
-            values = values.T
-            ncols = 1 if values.ndim == 1 else values.shape[1]
-
-            result: ArrayLike
-            result = np.zeros(ngroups * ncols, dtype=cython_dtype)
-            result = result.reshape((ngroups, ncols))
-
-            func = partial(base_func, out=result)
-
-            inferences = None
-
-            if needs_counts:
-                counts = np.zeros(ngroups, dtype=np.int64)
-                func = partial(func, counts=counts)
-
-            is_datetimelike = values.dtype.kind in ["m", "M"]
-            vals = values
-            if is_datetimelike and how == "std":
-                vals = vals.view("i8")
-            if pre_processing:
-                vals, inferences = pre_processing(vals)
-
-            vals = vals.astype(cython_dtype, copy=False)
-            if vals.ndim == 1:
-                vals = vals.reshape((-1, 1))
-            func = partial(func, values=vals)
-
-            if how != "std" or isinstance(values, BaseMaskedArray):
-                mask = isna(values).view(np.uint8)
-                if mask.ndim == 1:
-                    mask = mask.reshape(-1, 1)
-                func = partial(func, mask=mask)
-
-            result_mask = None
-            if isinstance(values, BaseMaskedArray):
-                result_mask = np.zeros(result.shape, dtype=np.bool_)
-
-            func = partial(func, result_mask=result_mask)
-
-            # Call func to modify result in place
-            if how == "std":
-                func(**kwargs, is_datetimelike=is_datetimelike)
-            else:
-                func(**kwargs)
-
-            if values.ndim == 1:
-                assert result.shape[1] == 1, result.shape
-                result = result[:, 0]
-                if result_mask is not None:
-                    assert result_mask.shape[1] == 1, result_mask.shape
-                    result_mask = result_mask[:, 0]
-
-            if post_processing:
-                result = post_processing(result, inferences, result_mask=result_mask)
-
-            if how == "std" and is_datetimelike:
-                values = cast("DatetimeArray | TimedeltaArray", values)
-                unit = values.unit
-                with warnings.catch_warnings():
-                    # suppress "RuntimeWarning: invalid value encountered in cast"
-                    warnings.filterwarnings("ignore")
-                    result = result.astype(np.int64, copy=False)
-                result = result.view(f"m8[{unit}]")
-
-            return result.T
-
-        # Operate block-wise instead of column-by-column
-        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
-
-        res_mgr = mgr.grouped_reduce(blk_func)
-
-        out = self._wrap_agged_manager(res_mgr)
-        return self._wrap_aggregated_output(out)
-
-    @final
     @Substitution(name="groupby")
     def shift(
         self,
@@ -4367,7 +4178,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
     grouper: ops.BaseGrouper | None = None,
-    group_keys: bool | lib.NoDefault = True,
+    group_keys: bool = True,
 ) -> GroupBy:
     klass: type[GroupBy]
     if isinstance(obj, Series):
