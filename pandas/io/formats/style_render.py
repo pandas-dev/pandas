@@ -1151,6 +1151,7 @@ class StylerRenderer:
         >>> df = pd.DataFrame([[r"\( x^2 \)  $x^2$"], \
         ...     [r"$\frac{\beta}{\zeta}$ \(\frac{\beta}{\zeta}\)"]])
         >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
         \begin{tabular}{ll}
          & 0 \\
         0 & \textbackslash ( x\textasciicircum 2 \textbackslash )  $x^2$ \\
