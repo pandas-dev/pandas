@@ -1,5 +1,3 @@
-import inspect
-
 import numpy as np
 import pytest
 
@@ -118,7 +116,7 @@ def test_methods_copy_keyword(
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
 
-    if "swapaxes" in inspect.getsource(method):
+    if "swapaxes" in request.node.callspec.id:
         msg = "'DataFrame.swapaxes' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df2 = method(df, copy=copy)
@@ -193,7 +191,7 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
 
     ser = Series([1, 2, 3], index=index)
 
-    if "swapaxes" in inspect.getsource(method):
+    if "swapaxes" in request.node.callspec.id:
         msg = "'Series.swapaxes' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             ser2 = method(ser, copy=copy)
