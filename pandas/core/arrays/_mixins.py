@@ -6,7 +6,6 @@ from typing import (
     Any,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
@@ -23,11 +22,11 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
+    Self,
     SequenceIndexer,
     Shape,
     TakeIndexer,
     npt,
-    type_t,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
@@ -60,10 +59,6 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.sorting import nargminmax
-
-NDArrayBackedExtensionArrayT = TypeVar(
-    "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
-)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -153,13 +148,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
-        self: NDArrayBackedExtensionArrayT,
+        self,
         indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: AxisInt = 0,
-    ) -> NDArrayBackedExtensionArrayT:
+    ) -> Self:
         if allow_fill:
             fill_value = self._validate_scalar(fill_value)
 
@@ -192,6 +187,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _values_for_factorize(self):
         return self._ndarray, self._internal_fill_value
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        from pandas.core.util.hashing import hash_array
+
+        values = self._ndarray
+        return hash_array(
+            values, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
@@ -208,17 +213,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
 
-    def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
+    def unique(self) -> Self:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
 
     @classmethod
     @doc(ExtensionArray._concat_same_type)
     def _concat_same_type(
-        cls: type[NDArrayBackedExtensionArrayT],
-        to_concat: Sequence[NDArrayBackedExtensionArrayT],
+        cls,
+        to_concat: Sequence[Self],
         axis: AxisInt = 0,
-    ) -> NDArrayBackedExtensionArrayT:
+    ) -> Self:
         dtypes = {str(x.dtype) for x in to_concat}
         if len(dtypes) != 1:
             raise ValueError("to_concat must have the same dtype (tz)", dtypes)
@@ -258,15 +263,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     @overload
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT,
+        self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> NDArrayBackedExtensionArrayT:
+    ) -> Self:
         ...
 
     def __getitem__(
-        self: NDArrayBackedExtensionArrayT,
+        self,
         key: PositionalIndexer2D,
-    ) -> NDArrayBackedExtensionArrayT | Any:
+    ) -> Self | Any:
         if lib.is_integer(key):
             # fast-path
             result = self._ndarray[key]
@@ -293,9 +298,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self: NDArrayBackedExtensionArrayT, value=None, method=None, limit=None
-    ) -> NDArrayBackedExtensionArrayT:
+    def fillna(self, value=None, method=None, limit=None) -> Self:
         value, method = validate_fillna_kwargs(
             value, method, validate_scalar_dict_value=False
         )
@@ -359,9 +362,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def _where(
-        self: NDArrayBackedExtensionArrayT, mask: npt.NDArray[np.bool_], value
-    ) -> NDArrayBackedExtensionArrayT:
+    def _where(self: Self, mask: npt.NDArray[np.bool_], value) -> Self:
         """
         Analogue to np.where(mask, self, value)
 
@@ -383,9 +384,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Index compat methods
 
-    def insert(
-        self: NDArrayBackedExtensionArrayT, loc: int, item
-    ) -> NDArrayBackedExtensionArrayT:
+    def insert(self, loc: int, item) -> Self:
         """
         Make new ExtensionArray inserting new item at location. Follows
         Python list.append semantics for negative values.
@@ -451,10 +450,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return Series(result._values, index=index, name=result.name)
 
     def _quantile(
-        self: NDArrayBackedExtensionArrayT,
+        self,
         qs: npt.NDArray[np.float64],
         interpolation: str,
-    ) -> NDArrayBackedExtensionArrayT:
+    ) -> Self:
         # TODO: disable for Categorical if not ordered?
 
         mask = np.asarray(self.isna())
@@ -478,9 +477,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # numpy-like methods
 
     @classmethod
-    def _empty(
-        cls: type_t[NDArrayBackedExtensionArrayT], shape: Shape, dtype: ExtensionDtype
-    ) -> NDArrayBackedExtensionArrayT:
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         """
         Analogous to np.empty(shape, dtype=dtype)
 

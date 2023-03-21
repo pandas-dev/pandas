@@ -115,15 +115,19 @@ class WrappedCythonOp:
 
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
-    cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
+    cast_blocklist = frozenset(
+        ["any", "all", "rank", "count", "size", "idxmin", "idxmax"]
+    )
 
     def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
         self.kind = kind
         self.how = how
         self.has_dropped_na = has_dropped_na
 
-    _CYTHON_FUNCTIONS = {
+    _CYTHON_FUNCTIONS: dict[str, dict] = {
         "aggregate": {
+            "any": functools.partial(libgroupby.group_any_all, val_test="any"),
+            "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
             "min": "group_min",
@@ -131,6 +135,8 @@ class WrappedCythonOp:
             "mean": "group_mean",
             "median": "group_median_float64",
             "var": "group_var",
+            "std": functools.partial(libgroupby.group_var, name="std"),
+            "sem": functools.partial(libgroupby.group_var, name="sem"),
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
@@ -158,7 +164,10 @@ class WrappedCythonOp:
 
         # see if there is a fused-type version of function
         # only valid for numeric
-        f = getattr(libgroupby, ftype)
+        if callable(ftype):
+            f = ftype
+        else:
+            f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
         elif dtype == np.dtype(object):
@@ -168,6 +177,9 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
+            elif how in ["std", "sem"]:
+                # We have a partial object that does not have __signatures__
+                return f
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
@@ -196,7 +208,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how == "median":
+        if how in ["median", "std", "sem"]:
             # median only has a float64 implementation
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
@@ -245,7 +257,7 @@ class WrappedCythonOp:
                 #  don't go down a group-by-group path, since in the empty-groups
                 #  case that would fail to raise
                 raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-            if how not in ["rank"]:
+            if how not in ["rank", "any", "all"]:
                 # only "rank" is implemented in cython
                 raise NotImplementedError(f"{dtype} dtype not supported")
 
@@ -314,7 +326,7 @@ class WrappedCythonOp:
         if how in ["sum", "cumsum", "sum", "prod", "cumprod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
-        elif how in ["mean", "median", "var"]:
+        elif how in ["mean", "median", "var", "std", "sem"]:
             if is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
@@ -344,10 +356,13 @@ class WrappedCythonOp:
             )
 
         elif isinstance(values, Categorical):
-            assert self.how == "rank"  # the only one implemented ATM
-            assert values.ordered  # checked earlier
+            assert self.how in ["rank", "any", "all"]
             mask = values.isna()
-            npvalues = values._ndarray
+            if self.how == "rank":
+                assert values.ordered  # checked earlier
+                npvalues = values._ndarray
+            else:
+                npvalues = values.astype(bool)
 
             res_values = self._cython_op_ndim_compat(
                 npvalues,
@@ -413,6 +428,13 @@ class WrappedCythonOp:
         elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
             # In to_cython_values we took a view as M8[ns]
             assert res_values.dtype == "M8[ns]"
+            if self.how in ["std", "sem"]:
+                if isinstance(values, PeriodArray):
+                    raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
+                new_dtype = f"m8[{values.unit}]"
+                res_values = res_values.view(new_dtype)
+                return TimedeltaArray(res_values)
+
             res_values = res_values.view(values._ndarray.dtype)
             return values._from_backing_data(res_values)
 
@@ -531,6 +553,19 @@ class WrappedCythonOp:
         if values.dtype == "float16":
             values = values.astype(np.float32)
 
+        if self.how in ["any", "all"]:
+            if mask is None:
+                mask = isna(values)
+            if dtype == object:
+                if kwargs["skipna"]:
+                    # GH#37501: don't raise on pd.NA when skipna=True
+                    if mask.any():
+                        # mask on original values computed separately
+                        values = values.copy()
+                        values[mask] = True
+            values = values.astype(bool, copy=False).view(np.int8)
+            is_numeric = True
+
         values = values.T
         if mask is not None:
             mask = mask.T
@@ -556,7 +591,9 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
-            elif self.how in ["var", "ohlc", "prod", "median"]:
+            elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
+                if self.how in ["std", "sem"]:
+                    kwargs["is_datetimelike"] = is_datetimelike
                 func(
                     result,
                     counts,
@@ -567,6 +604,16 @@ class WrappedCythonOp:
                     result_mask=result_mask,
                     **kwargs,
                 )
+            elif self.how in ["any", "all"]:
+                func(
+                    out=result,
+                    values=values,
+                    labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
+                result = result.astype(bool, copy=False)
             else:
                 raise NotImplementedError(f"{self.how} is not implemented")
         else:
@@ -734,7 +781,14 @@ class BaseGrouper:
         Generator yielding subsetted objects
         """
         ids, _, ngroups = self.group_info
-        return _get_splitter(data, ids, ngroups, axis=axis)
+        return _get_splitter(
+            data,
+            ids,
+            ngroups,
+            sorted_ids=self._sorted_ids,
+            sort_idx=self._sort_idx,
+            axis=axis,
+        )
 
     @final
     @cache_readonly
@@ -746,40 +800,6 @@ class BaseGrouper:
 
             # provide "flattened" iterator for multi-group setting
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
-
-    @final
-    def apply_groupwise(
-        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
-    ) -> tuple[list, bool]:
-        mutated = False
-        splitter = self._get_splitter(data, axis=axis)
-        group_keys = self.group_keys_seq
-        result_values = []
-
-        # This calls DataSplitter.__iter__
-        zipped = zip(group_keys, splitter)
-
-        for key, group in zipped:
-            object.__setattr__(group, "name", key)
-
-            # group might be modified
-            group_axes = group.axes
-            res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes, axis):
-                mutated = True
-            result_values.append(res)
-        # getattr pattern for __name__ is needed for functools.partial objects
-        if len(group_keys) == 0 and getattr(f, "__name__", None) in [
-            "skew",
-            "sum",
-            "prod",
-        ]:
-            #  If group_keys is empty, then no function calls have been made,
-            #  so we will not have raised even if this is an invalid dtype.
-            #  So do one dummy call here to raise appropriate TypeError.
-            f(data.iloc[:0])
-
-        return result_values, mutated
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -1024,6 +1044,61 @@ class BaseGrouper:
 
         return result
 
+    @final
+    def apply_groupwise(
+        self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
+    ) -> tuple[list, bool]:
+        mutated = False
+        splitter = self._get_splitter(data, axis=axis)
+        group_keys = self.group_keys_seq
+        result_values = []
+
+        # This calls DataSplitter.__iter__
+        zipped = zip(group_keys, splitter)
+
+        for key, group in zipped:
+            # Pinning name is needed for
+            #  test_group_apply_once_per_group,
+            #  test_inconsistent_return_type, test_set_group_name,
+            #  test_group_name_available_in_inference_pass,
+            #  test_groupby_multi_timezone
+            object.__setattr__(group, "name", key)
+
+            # group might be modified
+            group_axes = group.axes
+            res = f(group)
+            if not mutated and not _is_indexed_like(res, group_axes, axis):
+                mutated = True
+            result_values.append(res)
+        # getattr pattern for __name__ is needed for functools.partial objects
+        if len(group_keys) == 0 and getattr(f, "__name__", None) in [
+            "skew",
+            "sum",
+            "prod",
+        ]:
+            #  If group_keys is empty, then no function calls have been made,
+            #  so we will not have raised even if this is an invalid dtype.
+            #  So do one dummy call here to raise appropriate TypeError.
+            f(data.iloc[:0])
+
+        return result_values, mutated
+
+    # ------------------------------------------------------------
+    # Methods for sorting subsets of our GroupBy's object
+
+    @final
+    @cache_readonly
+    def _sort_idx(self) -> npt.NDArray[np.intp]:
+        # Counting sort indexer
+        ids, _, ngroups = self.group_info
+        return get_group_index_sorter(ids, ngroups)
+
+    @final
+    @cache_readonly
+    def _sorted_ids(self) -> npt.NDArray[np.intp]:
+        ids, _, _ = self.group_info
+        return ids.take(self._sort_idx)
+
 
 class BinGrouper(BaseGrouper):
     """
@@ -1206,24 +1281,20 @@ class DataSplitter(Generic[NDFrameT]):
         data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
+        *,
+        sort_idx: npt.NDArray[np.intp],
+        sorted_ids: npt.NDArray[np.intp],
         axis: AxisInt = 0,
     ) -> None:
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
 
+        self._slabels = sorted_ids
+        self._sort_idx = sort_idx
+
         self.axis = axis
         assert isinstance(axis, int), axis
-
-    @cache_readonly
-    def _slabels(self) -> npt.NDArray[np.intp]:
-        # Sorted labels
-        return self.labels.take(self._sort_idx)
-
-    @cache_readonly
-    def _sort_idx(self) -> npt.NDArray[np.intp]:
-        # Counting sort indexer
-        return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self) -> Iterator:
         sdata = self._sorted_data
@@ -1267,7 +1338,13 @@ class FrameSplitter(DataSplitter):
 
 
 def _get_splitter(
-    data: NDFrame, labels: np.ndarray, ngroups: int, axis: AxisInt = 0
+    data: NDFrame,
+    labels: npt.NDArray[np.intp],
+    ngroups: int,
+    *,
+    sort_idx: npt.NDArray[np.intp],
+    sorted_ids: npt.NDArray[np.intp],
+    axis: AxisInt = 0,
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
@@ -1275,4 +1352,6 @@ def _get_splitter(
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, labels, ngroups, axis)
+    return klass(
+        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
+    )

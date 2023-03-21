@@ -18,6 +18,17 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
 
+    def test_hash_pandas_object(self, data):
+        # _hash_pandas_object should return a uint64 ndarray of the same length
+        # as the data
+        res = data._hash_pandas_object(
+            encoding="utf-8",
+            hash_key=pd.core.util.hashing._default_hash_key,
+            categorize=False,
+        )
+        assert res.dtype == np.uint64
+        assert res.shape == data.shape
+
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
         if not hasattr(data, "value_counts"):
@@ -76,6 +87,12 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        expected = data.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()

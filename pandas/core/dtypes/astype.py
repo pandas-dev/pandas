@@ -15,11 +15,6 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    IgnoreRaise,
-)
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
@@ -37,8 +32,13 @@ from pandas.core.dtypes.dtypes import (
 )
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        IgnoreRaise,
+    )
 
+    from pandas.core.arrays import ExtensionArray
 
 _dtype_obj = np.dtype(object)
 
@@ -263,6 +263,9 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     -------
     True if new data is a view or not guaranteed to be a copy, False otherwise
     """
+    if isinstance(dtype, np.dtype) and not isinstance(new_dtype, np.dtype):
+        new_dtype, dtype = dtype, new_dtype
+
     if dtype == new_dtype:
         return True
 
@@ -290,7 +293,7 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         numpy_dtype = dtype
 
     if new_numpy_dtype is None and isinstance(new_dtype, np.dtype):
-        numpy_dtype = new_dtype
+        new_numpy_dtype = new_dtype
 
     if numpy_dtype is not None and new_numpy_dtype is not None:
         # if both have NumPy dtype or one of them is a numpy dtype

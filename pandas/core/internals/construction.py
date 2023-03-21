@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
@@ -15,13 +16,8 @@ import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    DtypeObj,
-    Manager,
-    npt,
-)
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     dict_compat,
@@ -89,6 +85,13 @@ from pandas.core.internals.managers import (
     create_block_manager_from_column_arrays,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeObj,
+        Manager,
+        npt,
+    )
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -291,7 +294,12 @@ def ndarray_to_mgr(
 
     elif isinstance(values, (np.ndarray, ExtensionArray, ABCSeries, Index)):
         # drop subclass info
-        values = np.array(values, copy=copy_on_sanitize)
+        _copy = (
+            copy_on_sanitize
+            if (dtype is None or astype_is_view(values.dtype, dtype))
+            else False
+        )
+        values = np.array(values, copy=_copy)
         values = _ensure_2d(values)
 
     else:
@@ -380,7 +388,7 @@ def _check_values_indices_shape_match(
     if values.shape[1] != len(columns) or values.shape[0] != len(index):
         # Could let this raise in Block constructor, but we get a more
         #  helpful exception message this way.
-        if values.shape[0] == 0:
+        if values.shape[0] == 0 < len(index):
             raise ValueError("Empty data passed with indices specified.")
 
         passed = values.shape
@@ -567,10 +575,7 @@ def _homogenize(
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
-            if isinstance(val._mgr, SingleBlockManager):
-                refs.append(val._mgr._block.refs)
-            else:
-                refs.append(None)
+            refs.append(val._references)
             val = val._values
         else:
             if isinstance(val, dict):
@@ -772,19 +777,6 @@ def to_arrays(
     -----
     Ensures that len(result_arrays) == len(result_index).
     """
-    if isinstance(data, ABCDataFrame):
-        # see test_from_records_with_index_data, test_from_records_bad_index_column
-        if columns is not None:
-            arrays = [
-                data._ixs(i, axis=1)._values
-                for i, col in enumerate(data.columns)
-                if col in columns
-            ]
-        else:
-            columns = data.columns
-            arrays = [data._ixs(i, axis=1)._values for i in range(len(columns))]
-
-        return arrays, columns
 
     if not len(data):
         if isinstance(data, np.ndarray):
@@ -984,7 +976,7 @@ def _validate_or_indexify_columns(
 def convert_object_array(
     content: list[npt.NDArray[np.object_]],
     dtype: DtypeObj | None,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: str = "numpy",
     coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
@@ -994,7 +986,7 @@ def convert_object_array(
     ----------
     content: List[np.ndarray]
     dtype: np.dtype or ExtensionDtype
-    use_nullable_dtypes: Controls if nullable dtypes are returned.
+    dtype_backend: Controls if nullable/pyarrow dtypes are returned.
     coerce_float: Cast floats that are integers to int.
 
     Returns
@@ -1008,7 +1000,7 @@ def convert_object_array(
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
-                convert_to_nullable_dtype=use_nullable_dtypes,
+                convert_to_nullable_dtype=dtype_backend != "numpy",
             )
             # Notes on cases that get here 2023-02-15
             # 1) we DO get here when arr is all Timestamps and dtype=None
@@ -1021,9 +1013,9 @@ def convert_object_array(
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
-                    if use_nullable_dtypes and arr.dtype == np.dtype("O"):
+                    if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
                         arr = StringDtype().construct_array_type()._from_sequence(arr)
-                elif use_nullable_dtypes and isinstance(arr, np.ndarray):
+                elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if is_integer_dtype(arr.dtype):
                         arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
                     elif is_bool_dtype(arr.dtype):
