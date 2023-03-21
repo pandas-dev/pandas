@@ -1314,7 +1314,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         def func(sp_val):
             new_sp_val = mapper.get(sp_val, None) if is_map else mapper(sp_val)
-            if new_sp_val in [fill_val]:
+            # check identity and equality because nans are not equal to each other
+            if new_sp_val is fill_val or new_sp_val == fill_val:
                 msg = "fill value in the sparse values not supported"
                 raise ValueError(msg)
             return new_sp_val
