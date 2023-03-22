@@ -117,7 +117,7 @@ good as an accepted PDEP, but where the final decision was to not implement the 
 
 ## Evolution of PDEPs
 
-Most PDEPs are not expected to change after accepted. Once there is agreement in the changes,
+Most PDEPs are not expected to change after they are accepted. However, this PDEP (PDEP-1), which governs the PDEP process, may change as the process evolves.  Once there is agreement on the changes,
 and they are implemented, the PDEP will be only useful to understand why the development happened,
 and the details of the discussion.
 
@@ -143,10 +143,10 @@ changed and avoid confusion.
   - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
 - New required dependency. 
-- Removing module from the project or splitting it off to a seperate repository:
+- Removing module from the project or splitting it off to a separate repository:
   - Moving rarely used I/O connectors to a separate repository [GH-28409](28409)
 - Significant changes to contributors' processes are not going to have an impact on users, but 
-  the do benefit from structured discussion among the contributors. For example:
+  they do benefit from structured discussion among the contributors. For example:
   - Changing the build system to meson ([GH-49115][49115])
 
 ### Borderline examples:
@@ -159,12 +159,12 @@ hope can help clarify our meaning here:
 
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
   - Value counts rename ([GH-49497][49497]). The scope does not justify a PDEP at first, but later a
-    discussion about whether it should be executed as breaking change or with deprecation
+    discussion about whether it should be executed as a breaking change or with deprecation
     emerges, which could benefit from a PDEP process.
 - Adding new parameters or methods to an existing method typically will not require a PDEP for
   non-core features. For example:
   - Both `dropna(percentage)` ([GH-35299][35299]), and `Timestamp.normalize()` ([GH-8794][8794])
-    wouldn't have required a PDEP.
+    would not have required a PDEP.
   - On the other hand, `DataFrame.assign()` might. While it is a single method without backwards
     compatibility concerns, it is also a core feature and the discussion should be highly visible.
 - Deprecating or removing a single method would not require a PDEP in most cases. For example:
