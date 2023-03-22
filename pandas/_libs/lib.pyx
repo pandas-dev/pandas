@@ -1383,7 +1383,7 @@ cdef class Seen:
             self.datetime_ or self.datetimetz_ or self.nat_ or self.timedelta_
             or self.period_ or self.interval_ or self.numeric_ or self.object_
         )
-    cdef void get_curr_val(self, curr_seen_t *ret_val):
+    cdef int get_curr_val(self, curr_seen_t *ret_val) except -1:
         """
         Gets the current seen val and casts it to ret_val's type.
 
@@ -1418,6 +1418,7 @@ cdef class Seen:
                 ret_val[0] = self.curr_seen_val.complex_
             else:
                 raise ValueError("Downcasting complex128 is not allowed")
+        return 0  # Success
 
     cdef void set_curr_val(self, curr_seen_t val):
         """
