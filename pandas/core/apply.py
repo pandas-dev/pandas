@@ -1095,7 +1095,7 @@ class SeriesApply(NDFrameApply):
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             warnings.warn(
                 "converting list of Series to a DataFrame in the Series.apply method "
-                "is deprecated and will be removed in the future version.",
+                "is deprecated and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )  # GH52116
