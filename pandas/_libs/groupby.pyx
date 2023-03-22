@@ -973,7 +973,7 @@ def group_skew(
                 elif M2[i, j] == 0:
                     out[i, j] = 0
                 else:
-                    out[i, j] = (
+                    out[i, j] = <float64_t>(
                         (ct * (ct - 1) ** 0.5 / (ct - 2)) * (M3[i, j] / M2[i, j]**1.5)
                     )
 
