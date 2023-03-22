@@ -68,7 +68,6 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
-    NDFrameTb,
     RandomState,
     Renamer,
     Scalar,
@@ -487,12 +486,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _data(self):
         # GH#33054 retained because some downstream packages uses this,
         #  e.g. fastparquet
+        # GH#33333
+        warnings.warn(
+            f"{type(self).__name__}._data is deprecated and will be removed in "
+            "a future version. Use public APIs instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._mgr
 
     # ----------------------------------------------------------------------
     # Axis
-    _stat_axis_number = 0
-    _stat_axis_name = "index"
     _AXIS_ORDERS: list[Literal["index", "columns"]]
     _AXIS_TO_AXIS_NUMBER: dict[Axis, AxisInt] = {0: 0, "index": 0, "rows": 0}
     _info_axis_number: int
@@ -601,10 +605,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _info_axis(self) -> Index:
         return getattr(self, self._info_axis_name)
-
-    @property
-    def _stat_axis(self) -> Index:
-        return getattr(self, self._stat_axis_name)
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -780,6 +780,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor(
             new_values,
             *new_axes,
+            # The no-copy case for CoW is handled above
+            copy=False,
         ).__finalize__(self, method="swapaxes")
 
     @final
@@ -3642,9 +3644,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : str, default 'w'
-            Python write mode. The available write modes are the same as
-            :py:func:`open`.
+        mode : {{'w', 'x', 'a'}}, default 'w'
+            Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
+            the file opening. Typical values include:
+
+            - 'w', truncate the file first.
+            - 'x', exclusive creation, failing if the file already exists.
+            - 'a', append to the end of file if it exists.
+
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
@@ -4088,7 +4095,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             loc, new_index = index._get_loc_level(key, level=0)
             if not drop_level:
                 if lib.is_integer(loc):
-                    new_index = index[loc : loc + 1]
+                    # Slice index must be an integer or None
+                    new_index = index[loc : loc + 1]  # type: ignore[misc]
                 else:
                     new_index = index[loc]
         else:
@@ -5839,7 +5847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fish           0          0                  8
         """  # noqa:E501
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
 
         axis = self._get_axis_number(axis)
         obj_len = self.shape[axis]
@@ -8447,7 +8455,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-04-10 12:00:00  4
         """
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
@@ -8527,7 +8535,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-04-12 01:00:00  4
         """
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
         axis = self._get_axis_number(axis)
 
         index = self._get_axis(axis)
@@ -8556,7 +8564,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool_t | lib.NoDefault = lib.no_default,
+        group_keys: bool_t = False,
     ) -> Resampler:
         """
         Resample time-series data.
@@ -8617,16 +8625,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.1.0
 
-        group_keys : bool, optional
+        group_keys : bool, default False
             Whether to include the group keys in the result index when using
-            ``.apply()`` on the resampled object. Not specifying ``group_keys``
-            will retain values-dependent behavior from pandas 1.4
-            and earlier (see :ref:`pandas 1.5.0 Release notes
-            <whatsnew_150.enhancements.resample_group_keys>`
-            for examples). In a future version of pandas, the behavior will
-            default to the same as specifying ``group_keys=False``.
+            ``.apply()`` on the resampled object.
 
             .. versionadded:: 1.5.0
+
+                Not specifying ``group_keys`` will retain values-dependent behavior
+                from pandas 1.4 and earlier (see :ref:`pandas 1.5.0 Release notes
+                <whatsnew_150.enhancements.resample_group_keys>` for examples).
+
+            .. versionchanged:: 2.0.0
+
+                ``group_keys`` now defaults to ``False``.
 
         Returns
         -------
@@ -9319,9 +9330,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level = None,
         copy: bool_t | None = None,
         fill_value: Hashable = None,
-        method: FillnaOptions | None = None,
-        limit: int | None = None,
-        fill_axis: Axis = 0,
+        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
+        fill_axis: Axis | lib.NoDefault = lib.no_default,
         broadcast_axis: Axis | None = None,
     ) -> tuple[Self, NDFrameT]:
         """
@@ -9350,6 +9361,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - pad / ffill: propagate last valid observation forward to next valid.
             - backfill / bfill: use NEXT valid observation to fill gap.
 
+            .. deprecated:: 2.1
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -9357,8 +9370,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+
+            .. deprecated:: 2.1
+
         fill_axis : {axes_single_arg}, default 0
             Filling axis, method and limit.
+
+            .. deprecated:: 2.1
+
         broadcast_axis : {axes_single_arg}, default None
             Broadcast values along this axis, if aligning two objects of
             different dimensions.
@@ -9433,7 +9452,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60.0   70.0   80.0   90.0 NaN
         4  600.0  700.0  800.0  900.0 NaN
         """
-
+        if (
+            method is not lib.no_default
+            or limit is not lib.no_default
+            or fill_axis is not lib.no_default
+        ):
+            # GH#51856
+            warnings.warn(
+                "The 'method', 'limit', and 'fill_axis' keywords in "
+                f"{type(self).__name__}.align are deprecated and will be removed "
+                "in a future version. Call fillna directly on the returned objects "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if fill_axis is lib.no_default:
+            fill_axis = 0
+        if method is lib.no_default:
+            method = None
+        if limit is lib.no_default:
+            limit = None
         method = clean_fill_method(method)
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
@@ -9445,7 +9483,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     {c: self for c in other.columns}, **other._construct_axes_dict()
                 )
                 # error: Incompatible return value type (got "Tuple[DataFrame,
-                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                # DataFrame]", expected "Tuple[Self, NDFrameT]")
                 return df._align_frame(  # type: ignore[return-value]
                     other,  # type: ignore[arg-type]
                     join=join,
@@ -9456,7 +9494,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     method=method,
                     limit=limit,
                     fill_axis=fill_axis,
-                )
+                )[:2]
             elif isinstance(other, ABCSeries):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
@@ -9465,7 +9503,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     {c: other for c in self.columns}, **self._construct_axes_dict()
                 )
                 # error: Incompatible return value type (got "Tuple[NDFrameT,
-                # DataFrame]", expected "Tuple[NDFrameT, NDFrameTb]")
+                # DataFrame]", expected "Tuple[Self, NDFrameT]")
                 return self._align_frame(  # type: ignore[return-value]
                     df,
                     join=join,
@@ -9476,14 +9514,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     method=method,
                     limit=limit,
                     fill_axis=fill_axis,
-                )
+                )[:2]
 
+        _right: DataFrame | Series
         if axis is not None:
             axis = self._get_axis_number(axis)
         if isinstance(other, ABCDataFrame):
-            # error: Incompatible return value type (got "Tuple[NDFrameT, DataFrame]",
-            # expected "Tuple[NDFrameT, NDFrameTb]")
-            return self._align_frame(  # type: ignore[return-value]
+            left, _right, join_index = self._align_frame(
                 other,
                 join=join,
                 axis=axis,
@@ -9494,10 +9531,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 limit=limit,
                 fill_axis=fill_axis,
             )
+
         elif isinstance(other, ABCSeries):
-            # error: Incompatible return value type (got "Tuple[NDFrameT, Series]",
-            # expected "Tuple[NDFrameT, NDFrameTb]")
-            return self._align_series(  # type: ignore[return-value]
+            left, _right, join_index = self._align_series(
                 other,
                 join=join,
                 axis=axis,
@@ -9511,9 +9547,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
+        right = cast(NDFrameT, _right)
+        if self.ndim == 1 or axis == 0:
+            # If we are aligning timezone-aware DatetimeIndexes and the timezones
+            #  do not match, convert both to UTC.
+            if is_datetime64tz_dtype(left.index.dtype):
+                if left.index.tz != right.index.tz:
+                    if join_index is not None:
+                        # GH#33671 copy to ensure we don't change the index on
+                        #  our original Series
+                        left = left.copy(deep=False)
+                        right = right.copy(deep=False)
+                        left.index = join_index
+                        right.index = join_index
+
+        left = left.__finalize__(self)
+        right = right.__finalize__(other)
+        return left, right
+
     @final
     def _align_frame(
-        self: NDFrameT,
+        self,
         other: DataFrame,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
@@ -9523,7 +9577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ) -> tuple[NDFrameT, DataFrame]:
+    ) -> tuple[Self, DataFrame, Index | None]:
         # defaults
         join_index, join_columns = None, None
         ilidx, iridx = None, None
@@ -9562,22 +9616,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
         if method is not None:
-            _left = left.fillna(method=method, axis=fill_axis, limit=limit)
-            assert _left is not None  # needed for mypy
-            left = _left
+            left = left.fillna(method=method, axis=fill_axis, limit=limit)
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
-        # if DatetimeIndex have different tz, convert to UTC
-        left, right = _align_as_utc(left, right, join_index)
-
-        return (
-            left.__finalize__(self),
-            right.__finalize__(other),
-        )
+        return left, right, join_index
 
     @final
     def _align_series(
-        self: NDFrameT,
+        self,
         other: Series,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
@@ -9587,7 +9633,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method=None,
         limit=None,
         fill_axis: Axis = 0,
-    ) -> tuple[NDFrameT, Series]:
+    ) -> tuple[Self, Series, Index | None]:
         is_series = isinstance(self, ABCSeries)
         if copy and using_copy_on_write():
             copy = False
@@ -9649,14 +9695,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left = left.fillna(fill_value, method=method, limit=limit, axis=fill_axis)
             right = right.fillna(fill_value, method=method, limit=limit)
 
-        # if DatetimeIndex have different tz, convert to UTC
-        if is_series or (not is_series and axis == 0):
-            left, right = _align_as_utc(left, right, join_index)
-
-        return (
-            left.__finalize__(self),
-            right.__finalize__(other),
-        )
+        return left, right, join_index
 
     @final
     def _where(
@@ -9686,7 +9725,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
-            cond = self._constructor(cond, **self._construct_axes_dict())
+            cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
         fill_value = bool(inplace)
@@ -9767,7 +9806,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                other = self._constructor(other, **self._construct_axes_dict())
+                other = self._constructor(
+                    other, **self._construct_axes_dict(), copy=False
+                )
 
         if axis is None:
             axis = 0
@@ -10329,7 +10370,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2016-01-10 23:59:59  1
         """
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
@@ -11001,7 +11042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         GOOG  0.179241  0.094112   NaN
         APPL -0.252395 -0.011860   NaN
         """
-        axis = self._get_axis_number(kwargs.pop("axis", self._stat_axis_name))
+        axis = self._get_axis_number(kwargs.pop("axis", "index"))
         if fill_method is None:
             data = self
         else:
@@ -11096,7 +11137,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
         else:
             axis = self._get_axis_number(axis)
 
@@ -11151,7 +11192,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11313,7 +11354,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
         if axis is None:
-            axis = self._stat_axis_number
+            axis = 0
 
         return self._reduce(
             func,
@@ -11915,12 +11956,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "rolling"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
 
         if win_type is not None:
             return Window(
@@ -11954,10 +12015,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         method: str = "single",
     ) -> Expanding:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "expanding"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
         return Expanding(self, min_periods=min_periods, axis=axis, method=method)
 
     @final
@@ -11971,11 +12052,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         times: np.ndarray | DataFrame | Series | None = None,
         method: str = "single",
     ) -> ExponentialMovingWindow:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "ewm"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
+
         return ExponentialMovingWindow(
             self,
             com=com,
@@ -11994,7 +12096,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Arithmetic Methods
 
     @final
-    def _inplace_method(self, other, op):
+    def _inplace_method(self, other, op) -> Self:
         """
         Wrap arithmetic method to operate inplace.
         """
@@ -12819,23 +12921,3 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
-
-
-def _align_as_utc(
-    left: NDFrameT, right: NDFrameTb, join_index: Index | None
-) -> tuple[NDFrameT, NDFrameTb]:
-    """
-    If we are aligning timezone-aware DatetimeIndexes and the timezones
-    do not match, convert both to UTC.
-    """
-    if is_datetime64tz_dtype(left.index.dtype):
-        if left.index.tz != right.index.tz:
-            if join_index is not None:
-                # GH#33671 ensure we don't change the index on
-                #  our original Series (NB: by default deep=False)
-                left = left.copy()
-                right = right.copy()
-                left.index = join_index
-                right.index = join_index
-
-    return left, right
