@@ -351,14 +351,27 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
 
+    @pytest.mark.parametrize(
+        "func, na_action, expected",
+        [
+            (lambda x: x, None, SparseArray([1.0, np.nan])),
+            (lambda x: x, "ignore", SparseArray([1.0, np.nan])),
+            (str, None, SparseArray(["1.0", "nan"], fill_value="nan")),
+            (str, "ignore", SparseArray(["1.0", np.nan])),
+        ],
+    )
+    def test_map(self, func, na_action, expected):
+        # GH52096
+        data = SparseArray([1, np.nan])
+        result = data.map(func, na_action=na_action)
+        self.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data, na_action):
-        if na_action is not None:
-            with pytest.raises(NotImplementedError, match=""):
-                data.map(lambda x: x, na_action=na_action)
-        else:
-            result = data.map(lambda x: x, na_action=na_action)
-            self.assert_extension_array_equal(result, data)
+    def test_map_raises(self, data, na_action):
+        # GH52096
+        msg = "fill value in the sparse values not supported"
+        with pytest.raises(ValueError, match=msg):
+            data.map(lambda x: np.nan, na_action=na_action)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
