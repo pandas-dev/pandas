@@ -352,6 +352,9 @@ class StringArray(BaseStringArray, PandasArray):
             result[na_values] = libmissing.NA
 
         else:
+            if hasattr(scalars, "type"):
+                # pyarrow array
+                scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
