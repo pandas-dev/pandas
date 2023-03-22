@@ -11981,12 +11981,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         center: bool_t = False,
         win_type: str | None = None,
         on: str | None = None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         step: int | None = None,
         method: str = "single",
     ) -> Window | Rolling:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "rolling"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
 
         if win_type is not None:
             return Window(
@@ -12020,10 +12040,30 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def expanding(
         self,
         min_periods: int = 1,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         method: str = "single",
     ) -> Expanding:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "expanding"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
         return Expanding(self, min_periods=min_periods, axis=axis, method=method)
 
     @final
@@ -12037,11 +12077,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         times: np.ndarray | DataFrame | Series | None = None,
         method: str = "single",
     ) -> ExponentialMovingWindow:
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            name = "ewm"
+            if axis == 1:
+                warnings.warn(
+                    f"Support for axis=1 in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    f"Use obj.T.{name}(...) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    f"The 'axis' keyword in {type(self).__name__}.{name} is "
+                    "deprecated and will be removed in a future version. "
+                    "Call the method without the axis keyword instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
+
         return ExponentialMovingWindow(
             self,
             com=com,
