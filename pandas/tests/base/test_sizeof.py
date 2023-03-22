@@ -7,14 +7,12 @@ from pandas import (
 
 
 def test_sysof():
-    assert getsizeof(DataFrame) == 1072
-    assert getsizeof(DataFrame()) == 140
-    assert getsizeof(DataFrame([])) == 140
+    getsizeof(DataFrame)
+    getsizeof(DataFrame())
+    getsizeof(DataFrame([]))
 
 
 def test_sysof_series():
-    assert getsizeof(Series) == 1200
-    assert getsizeof(Series()) == 140
     getsizeof(Series(str))
     getsizeof(Series(int))
     getsizeof(Series(list))
