@@ -75,11 +75,6 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
         s.map({1: 2}, na_action=input_na_action)
 
 
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
