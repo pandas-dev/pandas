@@ -912,7 +912,7 @@ def group_skew(
         float64_t[:, ::1] M1, M2, M3
         float64_t delta, delta_n, term1, val
         int64_t n1, n
-        float64_t ct
+        float64_t ct, m2_15
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -973,12 +973,10 @@ def group_skew(
                 elif M2[i, j] == 0:
                     out[i, j] = 0
                 else:
-                    term1 = (ct - 1) ** 0.5
-                    term1 = ct * term1
-                    term1 = term1 / (ct - 2)
-                    term1 = term1 * M3[i, j]
-                    term1 = term1 / <float64_t>(M2[i, j]**1.5)
-                    out[i, j] = term1
+                    m2_15 = <float64_t>(M2[i, j] ** 1.5)
+                    out[i, j] = (
+                        (ct * (ct - 1) ** 0.5 / (ct - 2)) * (M3[i, j] / m2_15)
+                    )
 
 
 @cython.wraparound(False)
