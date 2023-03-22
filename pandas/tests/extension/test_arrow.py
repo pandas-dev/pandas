@@ -2270,6 +2270,7 @@ def test_dt_to_pydatetime():
     result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+    assert all(type(res) is datetime for res in result)
 
     expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
