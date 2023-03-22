@@ -417,7 +417,7 @@ class TestDataFrameJoin:
         b = frame.loc[frame.index[2:], ["B", "C"]]
 
         joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy().values
+        expected = frame.copy().values.copy()
         expected[np.isnan(joined.values)] = np.nan
         expected = DataFrame(expected, index=frame.index, columns=frame.columns)
 

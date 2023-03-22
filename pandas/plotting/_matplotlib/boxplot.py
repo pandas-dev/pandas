@@ -254,7 +254,7 @@ def _grouped_plot_by_column(
     return_type=None,
     **kwargs,
 ):
-    grouped = data.groupby(by)
+    grouped = data.groupby(by, observed=False)
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]
