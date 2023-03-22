@@ -2378,14 +2378,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             #  don't go down a group-by-group path, since in the empty-groups
             #  case that would fail to raise
             raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-        if how not in ["rank", "any", "all"]:
-            # only "rank" is implemented in cython
+        if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
             raise NotImplementedError(f"{dtype} dtype not supported")
 
+        result_mask = None
         mask = self.isna()
         if how == "rank":
             assert self.ordered  # checked earlier
             npvalues = self._ndarray
+        elif how in ["first", "last", "min", "max"]:
+            npvalues = self._ndarray
+            result_mask = np.zeros(ngroups, dtype=np.uint8)
         else:
             # any/all
             npvalues = self.astype(bool)
@@ -2396,12 +2399,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ngroups=ngroups,
             comp_ids=ids,
             mask=mask,
+            result_mask=result_mask,
             **kwargs,
         )
 
-        # If we ever have more than just "rank" here, we'll need to do
-        #  `if op.how in op.cast_blocklist` like we do for other dtypes.
-        return res_values
+        if how in op.cast_blocklist:
+            return res_values
+        return self._from_backing_data(res_values)
 
 
 # The Series.cat accessor

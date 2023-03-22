@@ -1305,23 +1305,24 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
-        if na_action is not None:
-            raise NotImplementedError
+        is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
-        # this is used in apply.
-        # We get hit since we're an "is_extension_array_dtype" but regular extension
-        # types are not hit. This may be worth adding to the interface.
-        if isinstance(mapper, ABCSeries):
-            mapper = mapper.to_dict()
+        fill_val = self.fill_value
 
-        if isinstance(mapper, abc.Mapping):
-            fill_value = mapper.get(self.fill_value, self.fill_value)
-            sp_values = [mapper.get(x, None) for x in self.sp_values]
-        else:
-            fill_value = mapper(self.fill_value)
-            sp_values = [mapper(x) for x in self.sp_values]
+        if na_action is None or notna(fill_val):
+            fill_val = mapper.get(fill_val, fill_val) if is_map else mapper(fill_val)
 
-        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+        def func(sp_val):
+            new_sp_val = mapper.get(sp_val, None) if is_map else mapper(sp_val)
+            # check identity and equality because nans are not equal to each other
+            if new_sp_val is fill_val or new_sp_val == fill_val:
+                msg = "fill value in the sparse values not supported"
+                raise ValueError(msg)
+            return new_sp_val
+
+        sp_values = [func(x) for x in self.sp_values]
+
+        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
 
     def to_dense(self) -> np.ndarray:
         """
