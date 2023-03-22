@@ -390,6 +390,11 @@ class TestUltraJSONTests:
     def test_encode_as_null(self, decoded_input):
         assert ujson.encode(decoded_input) == "null", "Expected null"
 
+    def test_encode_datetime64(self):
+        val = np.datetime64("2000-01-01")
+        assert ujson.encode(val) == str(-6858695778871)
+        assert ujson.decode(ujson.encode(val)) == -6858695778871
+
     def test_datetime_units(self):
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val).as_unit("ns")
