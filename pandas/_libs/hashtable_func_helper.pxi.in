@@ -137,6 +137,7 @@ cdef value_count_{{name}}(const {{dtype}}_t[:] values, bint dropna, const uint8_
     return result_keys.to_array(), result_counts.base
 
 
+{{if name != 'string'}}
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
@@ -153,9 +154,6 @@ cdef duplicated_{{name}}(const {{dtype}}_t[:] values, object keep='first', const
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
-        {{if name == 'string'}}
-        set na_set = set()
-        {{endif}}
 
 
     kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
@@ -182,19 +180,7 @@ cdef duplicated_{{name}}(const {{dtype}}_t[:] values, object keep='first', const
                         out[i] = False
                         seen_na = True
                 else:
-                    {{if name == 'string'}}
-                    val = values[i]
-                    if not isinstance(val, str):
-                        if val in na_set:
-                            out[i] = True
-                        else:
-                            na_set.add(val)
-                            out[i] = False
-                        continue
-                    value = {{to_c_type}}(val)
-                    {{else}}
                     value = {{to_c_type}}(values[i])
-                    {{endif}}
                     kh_put_{{ttype}}(table, value, &ret)
                     out[i] = ret == 0
     {{endfor}}
@@ -231,7 +217,7 @@ cdef duplicated_{{name}}(const {{dtype}}_t[:] values, object keep='first', const
 
     kh_destroy_{{ttype}}(table)
     return out
-
+{{endif}}
 
 # ----------------------------------------------------------------------
 # Membership
@@ -351,8 +337,6 @@ cpdef value_count(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=N
 
 cpdef duplicated(ndarray[htfunc_t] values, object keep="first", const uint8_t[:] mask=None):
     if htfunc_t is object:
-        if lib.is_string_array(values, skipna=True):
-            return duplicated_string(values, keep, mask=mask)
         return duplicated_object(values, keep, mask=mask)
 
     elif htfunc_t is int8_t:
