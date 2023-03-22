@@ -912,7 +912,7 @@ def group_skew(
         float64_t[:, ::1] M1, M2, M3
         float64_t delta, delta_n, term1, val
         int64_t n1, n
-        float64_t ct, m2_15
+        float64_t ct, m2_15, root_n
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -974,8 +974,9 @@ def group_skew(
                     out[i, j] = 0
                 else:
                     m2_15 = <float64_t>(M2[i, j] ** 1.5)
+                    root_n = <float64_t>((ct - 1) ** 0.5)
                     out[i, j] = (
-                        (ct * (ct - 1) ** 0.5 / (ct - 2)) * (M3[i, j] / m2_15)
+                        (ct * root_n / (ct - 2)) * (M3[i, j] / m2_15)
                     )
 
 
