@@ -416,15 +416,22 @@ class Apply(metaclass=abc.ABCMeta):
                 results = {key: colg.agg(how) for key, how in arg.items()}
             else:
                 # key used for column selection and output
-                results = {
-                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-                }
+                results = {}
+                for key, how in arg.items():
+                    indices = [i for i, col in enumerate(obj.columns) if col == key]
+                    if len(indices) == 1:  # for unique columns
+                        results[key] = obj._gotitem(key, ndim=1).agg(how)
+                    else:  # for non-unique columns
+                        col_results = [obj.iloc[:, i].agg(how) for i in indices]
+                        results[key] = col_results
 
         # set the final keys
         keys = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+
+        is_list = [isinstance(v, list) for v in results.values()]
 
         # combine results
         if all(is_ndframe):
@@ -451,6 +458,14 @@ class Apply(metaclass=abc.ABCMeta):
                 "and transformation operations "
                 "simultaneously"
             )
+        elif any(is_list):
+            # GH#51099
+            # convert list-like values in results to Series with corresponding keys
+            from pandas import Series
+
+            values = [val for sublist in results.values() for val in sublist]
+            keys = [key for key, sublist in results.items() for _ in sublist]
+            result = Series(values, index=keys)
         else:
             from pandas import Series
 
