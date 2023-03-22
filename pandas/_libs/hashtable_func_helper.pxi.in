@@ -122,7 +122,7 @@ cdef value_count_{{name}}(const {{dtype}}_t[:] values, bint dropna, const uint8_
         {{if dtype == 'object'}}
         val = <object>result_keys.data[i]
         {{if name == 'string'}}
-        if checknull(val):
+        if not isinstance(val, str):
             result_counts[i] = na_dict[val]
             continue
         {{endif}}

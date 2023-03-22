@@ -200,8 +200,7 @@ class ValueCounts:
     def setup(self, N, dtype):
         ser = Series(np.random.randint(0, N, size=10 * N))
         if dtype == "string":
-            # self.s = ser.astype(object).apply(str)
-            self.s = tm.makeStringIndex(N)
+            self.s = ser.astype(object).apply(str)
         else:
             self.s = ser.astype(dtype)
 
@@ -209,6 +208,20 @@ class ValueCounts:
         self.s.value_counts()
 
     def peakmem_value_counts(self, N, dtype):
+        self.s.value_counts()
+
+
+class ValueCountsString:
+    params = [[10**3, 10**4, 10**5]]
+    param_names = [["N"]]
+
+    def setup(self, N):
+        self.s = tm.makeStringIndex(N)
+
+    def time_value_counts(self, N):
+        self.s.value_counts()
+
+    def peakmem_value_counts(self, N):
         self.s.value_counts()
 
 
