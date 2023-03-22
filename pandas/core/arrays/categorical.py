@@ -2388,7 +2388,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             npvalues = self._ndarray
         elif how in ["first", "last", "min", "max"]:
             npvalues = self._ndarray
-            result_mask = np.zeros(ngroups, dtype=np.uint8)
+            result_mask = np.zeros(ngroups, dtype=bool)
         else:
             # any/all
             npvalues = self.astype(bool)

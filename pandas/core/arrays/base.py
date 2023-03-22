@@ -1743,8 +1743,8 @@ class ExtensionArray:
 
         Parameters
         ----------
-        how : {'sum', 'prod', 'min', 'max', 'mean', 'median',
-               'median', 'var', 'nth', 'last', 'ohlc',
+        how : {'any', 'all', 'sum', 'prod', 'min', 'max', 'mean', 'median',
+               'median', 'var', 'std', 'sem', 'nth', 'last', 'ohlc',
                'cumprod', 'cumsum', 'cummin', 'cummax', 'rank'}
         has_dropped_na : bool
         min_count : int
@@ -1752,7 +1752,8 @@ class ExtensionArray:
         ids : np.ndarray[np.intp]
             ids[i] gives the integer label for the group that self[i] belongs to.
         **kwargs : operation-specific
-            'var' -> ['ddof']
+            'any', 'all' -> ['skipna']
+            'var', 'std', 'sem' -> ['ddof']
             'cumprod', 'cumsum', 'cummin', 'cummax' -> ['skipna']
             'rank' -> ['ties_method', 'ascending', 'na_option', 'pct']
 
