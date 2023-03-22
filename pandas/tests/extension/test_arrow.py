@@ -2324,3 +2324,11 @@ def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     else:
         expected = pd.NA
     assert result is expected
+
+
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_series_from_string_array(dtype):
+    arr = pa.array("the quick brown fox".split())
+    ser = pd.Series(arr, dtype=dtype)
+    expected = pd.Series(ArrowExtensionArray(arr), dtype=dtype)
+    tm.assert_series_equal(ser, expected)
