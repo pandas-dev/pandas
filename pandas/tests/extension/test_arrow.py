@@ -2354,6 +2354,14 @@ def test_concat_empty_arrow_backed_series(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_series_from_string_array(dtype):
+    arr = pa.array("the quick brown fox".split())
+    ser = pd.Series(arr, dtype=dtype)
+    expected = pd.Series(ArrowExtensionArray(arr), dtype=dtype)
+    tm.assert_series_equal(ser, expected)
+
+
 # _data was renamed to _pa_data
 class OldArrowExtensionArray(ArrowExtensionArray):
     def __getstate__(self):
