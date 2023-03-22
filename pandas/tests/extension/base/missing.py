@@ -117,7 +117,7 @@ class BaseMissingTests(BaseExtensionTests):
     def test_fillna_series_method(self, data_missing, fillna_method):
         fill_value = data_missing[1]
 
-        if fillna_method == "ffill":
+        if fillna_method in {"pad", "ffill"}:
             data_missing = data_missing[::-1]
 
         result = pd.Series(data_missing).fillna(method=fillna_method)
