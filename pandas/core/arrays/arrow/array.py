@@ -2091,7 +2091,10 @@ class ArrowExtensionArray(
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
     def _dt_to_pydatetime(self):
-        return np.array(self._pa_array.to_pylist(), dtype=object)
+        data = self._pa_array.to_pylist()
+        if self._dtype.pyarrow_dtype.unit == "ns":
+            data = [ts.to_pydatetime(warn=False) for ts in data]
+        return np.array(data, dtype=object)
 
     def _dt_tz_localize(
         self,
