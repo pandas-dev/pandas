@@ -61,7 +61,8 @@ class TestDataFrameSetItem:
         "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
     )
     def test_setitem_dtype(self, dtype, float_frame):
-        arr = np.random.randn(len(float_frame))
+        # Use randint since casting negative floats to uints is undefined
+        arr = np.random.randint(1, 10, len(float_frame))
 
         float_frame[dtype] = np.array(arr, dtype=dtype)
         assert float_frame[dtype].dtype.name == dtype
@@ -1002,8 +1003,9 @@ class TestDataFrameSetItemBooleanMask:
         result = df.copy()
         result[mask] = np.nan
 
-        expected = df.copy()
-        expected.values[np.array(mask)] = np.nan
+        expected = df.values.copy()
+        expected[np.array(mask)] = np.nan
+        expected = DataFrame(expected, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
