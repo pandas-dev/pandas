@@ -1979,3 +1979,14 @@ def test_df_rolling_axis_param_depr():
     warning_msg = "DataFrame.rolling with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         df.rolling(2, axis=1)
+
+
+def test_series_rolling_axis_param_depr():
+    series = Series([1, 2, 3])
+
+    warning_msg = (
+        "The 'axis' keyword in Series.rolling is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        series.rolling(2, axis=0)

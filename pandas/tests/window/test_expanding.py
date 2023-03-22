@@ -329,7 +329,7 @@ def test_expanding_corr_pairwise(frame):
 def test_expanding_func(func, static_comp, frame_or_series):
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
     warning_msg = (
-        "The 'axis' keyword in DataFrame.expanding is deprecated and "
+        f"The 'axis' keyword in {type(data).__name__}.expanding is deprecated and "
         "will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
@@ -352,7 +352,7 @@ def test_expanding_min_periods(func, static_comp):
     ser = Series(np.random.randn(50))
 
     warning_msg = (
-        "The 'axis' keyword in DataFrame.expanding is deprecated and "
+        f"The 'axis' keyword in {type(ser).__name__}.expanding is deprecated and "
         "will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
@@ -728,3 +728,14 @@ def test_df_expanding_axis_param_depr():
     warning_msg = "DataFrame.expanding with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         df.expanding(2, axis=1)
+
+
+def test_series_expanding_axis_param_depr():
+    series = Series([1, 2, 3])
+
+    warning_msg = (
+        "The 'axis' keyword in Series.expanding is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        series.expanding(2, axis=0)

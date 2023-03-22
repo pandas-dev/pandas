@@ -11983,15 +11983,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
             if axis == 1:
                 warnings.warn(
-                    "DataFrame.rolling with axis=1 is deprecated. Do "
+                    f"{type(self).__name__}.rolling with axis=1 is deprecated. Do "
                     "`frame.T.rolling(...)` without axis instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
-                    "The 'axis' keyword in DataFrame.rolling is deprecated and "
-                    "will be removed in a future version.",
+                    f"The 'axis' keyword in {type(self).__name__}.rolling "
+                    "is deprecated and will be removed in a future version.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -12037,15 +12037,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
             if axis == 1:
                 warnings.warn(
-                    "DataFrame.expanding with axis=1 is deprecated. Do "
+                    f"{type(self).__name__}.expanding with axis=1 is deprecated. Do "
                     "`frame.T.expanding(...)` without axis instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
-                    "The 'axis' keyword in DataFrame.expanding is deprecated and "
-                    "will be removed in a future version.",
+                    f"The 'axis' keyword in {type(self).__name__}.expanding "
+                    "is deprecated and will be removed in a future version.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -12073,15 +12073,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
             if axis == 1:
                 warnings.warn(
-                    "DataFrame.ewm with axis=1 is deprecated. Do "
+                    f"{type(self).__name__}.ewm with axis=1 is deprecated. Do "
                     "`frame.T.ewm(...)` without axis instead.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
-                    "The 'axis' keyword in DataFrame.ewm is deprecated and "
-                    "will be removed in a future version.",
+                    f"The 'axis' keyword in {type(self).__name__}.ewm "
+                    "is deprecated and will be removed in a future version.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

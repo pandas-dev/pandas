@@ -347,13 +347,12 @@ def test_dont_modify_attributes_after_methods(
 
 def test_centered_axis_validation(step):
     # ok
-    axis_0_warning_msg = (
-        "The 'axis' keyword in DataFrame.rolling is deprecated and "
+    series_axis_0_warning_msg = (
+        "The 'axis' keyword in Series.rolling is deprecated and "
         "will be removed in a future version."
     )
-    axis_1_warning_msg = "DataFrame.rolling with axis=1 is deprecated."
 
-    with tm.assert_produces_warning(FutureWarning, match=axis_0_warning_msg):
+    with tm.assert_produces_warning(FutureWarning, match=series_axis_0_warning_msg):
         Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
     # bad axis
@@ -361,12 +360,17 @@ def test_centered_axis_validation(step):
     with pytest.raises(ValueError, match=msg):
         Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
 
+    df_axis_0_warning_msg = (
+        "The 'axis' keyword in DataFrame.rolling is deprecated and "
+        "will be removed in a future version."
+    )
+    df_axis_1_warning_msg = "DataFrame.rolling with axis=1 is deprecated."
     # ok ok
-    with tm.assert_produces_warning(FutureWarning, match=axis_0_warning_msg):
+    with tm.assert_produces_warning(FutureWarning, match=df_axis_0_warning_msg):
         DataFrame(np.ones((10, 10))).rolling(
             window=3, center=True, axis=0, step=step
         ).mean()
-    with tm.assert_produces_warning(FutureWarning, match=axis_1_warning_msg):
+    with tm.assert_produces_warning(FutureWarning, match=df_axis_1_warning_msg):
         DataFrame(np.ones((10, 10))).rolling(
             window=3, center=True, axis=1, step=step
         ).mean()
