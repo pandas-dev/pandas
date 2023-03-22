@@ -169,10 +169,10 @@ def use_numpy(request):
     return request.param
 
 
-@pytest.fixture(params=["ffill", "bfill"])
+@pytest.fixture(params=["bfill", "pad", "ffill"])
 def fillna_method(request):
     """
-    Parametrized fixture giving method parameters 'ffill' and 'bfill' for
+    Parametrized fixture giving method parameters 'bfill', 'pad', and 'ffill' for
     Series.fillna(method=<method>) testing.
     """
     return request.param
