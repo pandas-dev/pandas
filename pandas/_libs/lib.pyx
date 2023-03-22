@@ -1393,7 +1393,7 @@ cdef class Seen:
         """
         if self.curr_seen is CurrSeen.null_:
             if curr_seen_t is float64_t or curr_seen_t is complex128_t:
-                ret_val[0] = <curr_seen_t>NaN
+                ret_val[0] = NaN
         if self.curr_seen is CurrSeen.bool_:
             # There's nothing to a bool can be downcast to, it is 1 byte
             # so no checking
@@ -1410,6 +1410,9 @@ cdef class Seen:
             if sizeof(curr_seen_t) < sizeof(float64_t) \
                     or curr_seen_t is int64_t or curr_seen_t is uint64_t:
                 raise ValueError("Downcasting float64 is not allowed")
+            # Cast is necessary here, since otherwise Cython will complain
+            # about downcasting the float to e.g. ints/bools
+            # (which can never happen, see exception above)
             ret_val[0] = <curr_seen_t>self.curr_seen_val.float_
         elif self.curr_seen is CurrSeen.complex_:
             if curr_seen_t is complex128_t:
@@ -1423,7 +1426,7 @@ cdef class Seen:
     cdef void set_curr_val(self, curr_seen_t val):
         """
         Sets the current seen val to val.
-        You should set Seen.curr_seen manually if it is a NaN,
+        You should call seen.saw_null(val) for nulls
         and also call seen.saw_int(val) for ints
         """
         if curr_seen_t is uint8_t:
