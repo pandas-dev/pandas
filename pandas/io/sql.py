@@ -964,14 +964,16 @@ class SQLTable(PandasObject):
         data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
 
         for i, (_, ser) in enumerate(temp.items()):
-            vals = ser._values
-            if vals.dtype.kind == "M":
-                d = vals.to_pydatetime()
-            elif vals.dtype.kind == "m":
+            if ser.dtype.kind == "M":
+                d = ser.dt.to_pydatetime()
+            elif ser.dtype.kind == "m":
+                vals = ser._values
+                if isinstance(vals, ArrowExtensionArray):
+                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
-                d = vals.astype(object)
+                d = ser._values.astype(object)
 
             assert isinstance(d, np.ndarray), type(d)
 
