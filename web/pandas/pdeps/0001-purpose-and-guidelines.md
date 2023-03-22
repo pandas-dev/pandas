@@ -20,13 +20,13 @@ significant discussion within the community.
 
 PDEPs are appropriate for user facing changes, internal changes and significant discussions.
 Examples of topics worth a PDEP could include substantial API changes, breaking behavior changes,
-moving a module from pandas to a separate repository, or a refactoring of the pandas block manager. 
-It is not always trivial to know which issue has enough scope to require the full PDEP process. 
-Some simple API changes have sufficient consensus among the core team, and minimal impact on the 
-community. On the other hand, if an issue becomes controversial, i.e. it generated a significant 
-discussion, one could suggest opening a PDEP to formalize and document the discussion, making it 
-easier for the wider community to participate. For context, see 
-[the list of issues that could have been a PDEP](#List-of-issues).  
+moving a module from pandas to a separate repository, or a refactoring of the pandas block manager.
+It is not always trivial to know which issue has enough scope to require the full PDEP process.
+Some simple API changes have sufficient consensus among the core team, and minimal impact on the
+community. On the other hand, if an issue becomes controversial, i.e. it generated a significant
+discussion, one could suggest opening a PDEP to formalize and document the discussion, making it
+easier for the wider community to participate. For context, see
+[the list of issues that could have been a PDEP](#List-of-issues).
 
 ## PDEP guidelines
 
@@ -46,7 +46,7 @@ consider when writing a PDEP are:
 
 ### PDEP authors
 
-Anyone can propose a PDEP, but a core member should be engaged to advise on a proposal made by 
+Anyone can propose a PDEP, but a core member should be engaged to advise on a proposal made by
 non-core contributors. To submit a PDEP as a community member, please propose the PDEP concept on
 [an issue](https://github.com/pandas-dev/pandas/issues/new/choose), and find a pandas team
 member to collaborate with. They can advise you on the PDEP process and should be listed as an
@@ -69,7 +69,7 @@ Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
 The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
-The initial status of a PDEP will be `Status: Under discussion`. This will be changed to 
+The initial status of a PDEP will be `Status: Under discussion`. This will be changed to
 `Status: Accepted` when the PDEP is ready and have the approval of the core team.
 
 #### Accepted PDEP
@@ -142,19 +142,19 @@ changed and avoid confusion.
 - Support of new python features with a wide impact on the project. For example:
   - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
-- New required dependency. 
+- New required dependency.
 - Removing module from the project or splitting it off to a separate repository:
   - Moving rarely used I/O connectors to a separate repository [GH-28409](28409)
-- Significant changes to contributors' processes are not going to have an impact on users, but 
-  they do benefit from structured discussion among the contributors. For example:
+- Significant changes to contributors' processes are not going to have an impact on users, but
+they do benefit from structured discussion among the contributors. For example:
   - Changing the build system to meson ([GH-49115][49115])
 
 ### Borderline examples:
-Small changes to core functionality, such as `DataFrame` and `Series`, should always be 
-considered as a PDEP candidate as it will likely have a big impact on users. But the same types 
-of changes in other functionalities would not be good PDEP candidates. That said, any discussion, 
-no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more 
-attention and/or a formal decision-making process would help. Following are some examples we 
+Small changes to core functionality, such as `DataFrame` and `Series`, should always be
+considered as a PDEP candidate as it will likely have a big impact on users. But the same types
+of changes in other functionalities would not be good PDEP candidates. That said, any discussion,
+no matter how small the change, which becomes controversial is a PDEP candidate. Consider if more
+attention and/or a formal decision-making process would help. Following are some examples we
 hope can help clarify our meaning here:
 
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
@@ -180,7 +180,7 @@ hope can help clarify our meaning here:
 
 ### PDEP-1 History
 
-- 3 August 2022: Initial version ([GH-47938][47938]) 
+- 3 August 2022: Initial version ([GH-47938][47938])
 - 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
@@ -198,4 +198,3 @@ hope can help clarify our meaning here:
 [28409]: https://github.com/pandas-dev/pandas/issues/28409
 [47938]: https://github.com/pandas-dev/pandas/pull/47938
 [51417]: https://github.com/pandas-dev/pandas/pull/51417
-
