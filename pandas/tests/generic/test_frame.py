@@ -61,12 +61,12 @@ class TestDataFrame:
             assert not df1.bool()
 
         df = DataFrame([[False, False]])
-        msg = "The truth value of a DataFrame is ambiguous"
-        with pytest.raises(ValueError, match=msg):
+        msg1 = "The truth value of a DataFrame is ambiguous"
+        with pytest.raises(ValueError, match=msg1):
             bool(df)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(ValueError, match=msg1):
                 df.bool()
 
     def test_metadata_propagation_indiv_groupby(self):
