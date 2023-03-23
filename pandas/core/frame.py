@@ -5037,7 +5037,7 @@ class DataFrame(NDFrame, OpsMixin):
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None = None,
+        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
     ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
