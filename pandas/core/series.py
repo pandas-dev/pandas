@@ -579,7 +579,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame
 
     def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        return self._constructor_expanddim._from_mgr(mgr, axes)
+        # error: "Callable[..., Series]" has no attribute "_from_mgr"
+        return self._constructor_expanddim._from_mgr(  # type: ignore[attr-defined]
+            mgr, axes
+        )
 
     # types
     @property

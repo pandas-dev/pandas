@@ -646,7 +646,10 @@ class DataFrame(NDFrame, OpsMixin):
     _constructor_sliced: Callable[..., Series] = Series
 
     def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return self._constructor_sliced._from_mgr(mgr, axes=axes)
+        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"
+        return self._constructor_sliced._from_mgr(  # type: ignore[attr-defined]
+            mgr, axes=axes
+        )
 
     # ----------------------------------------------------------------------
     # Constructors
