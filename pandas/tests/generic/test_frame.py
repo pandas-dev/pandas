@@ -54,7 +54,7 @@ class TestDataFrame:
         )
         df = DataFrame([[True]])
         df1 = DataFrame([[False]])
-        while tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert df.bool()
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
