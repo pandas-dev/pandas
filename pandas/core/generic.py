@@ -2347,7 +2347,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 - 'columns': default True, cannot be False
                 - 'values': default False, cannot be True
                 - 'table': default True, can also be False
-            
+
         indent : int, optional
            Length of whitespace used to indent each record.
 

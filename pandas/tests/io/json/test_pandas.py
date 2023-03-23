@@ -1483,7 +1483,10 @@ class TestPandasContainer:
 
         df = DataFrame([[1, 2], [4, 5]], columns=["a", "b"])
 
-        msg = "'index=False' is only valid when 'orient' is 'split', 'table', 'records', or 'values'"
+        msg = (
+            "'index=False' is only valid when 'orient' is 'split', "
+            "'table', 'records', or 'values'"
+        )
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
 
@@ -1494,7 +1497,10 @@ class TestPandasContainer:
 
         df = DataFrame([[1, 2], [4, 5]], columns=["a", "b"])
 
-        msg = "'index=True' is only valid when 'orient' is 'split', 'table', 'index', or 'columns'"
+        msg = (
+            "'index=True' is only valid when 'orient' is 'split', "
+            "'table', 'index', or 'columns'"
+        )
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=True)
 
