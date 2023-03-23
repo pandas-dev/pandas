@@ -509,12 +509,6 @@ class TestRollingTS:
 
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling("2s").min()
-        assert ((result - expected) < 0.01).all().bool()
-
-        expected = dfp.rolling(200, min_periods=1).min()
-        result = dfp.rolling("200s").min()
-        assert ((result - expected) < 0.01).all().bool()
-
         assert ((result - expected) < 0.01).all().all()
 
         expected = dfp.rolling(200, min_periods=1).min()
