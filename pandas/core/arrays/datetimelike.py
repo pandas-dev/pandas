@@ -747,12 +747,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action=None):
-        if na_action is not None:
-            raise NotImplementedError
-
         from pandas import Index
 
-        result = map_array(self, mapper)
+        result = map_array(self, mapper, na_action=na_action)
         result = Index(result)
 
         if isinstance(result, ABCMultiIndex):
