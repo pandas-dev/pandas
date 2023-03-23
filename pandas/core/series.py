@@ -4415,6 +4415,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Can be ufunc (a NumPy function that applies to the entire Series)
         or a Python function that only works on single values.
 
+        .. deprecated:: 2.1.0
+
+            If the output from ``func`` is a listlike of ``Series`` the output,
+            wrapping the output in a ``DataFrame`` instead of a ``Series`` has been
+            deprecated.
+
         Parameters
         ----------
         func : function
