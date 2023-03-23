@@ -1500,13 +1500,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
 
-        if isinstance(values, Categorical):
-            # Because we only get here with known dtype-preserving
-            #  reductions, we cast back to Categorical.
-            # TODO: if we ever get "rank" working, exclude it here.
-            res_values = type(values)._from_sequence(res_values, dtype=values.dtype)
-
-        elif ser.dtype == object:
+        if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
@@ -1544,8 +1538,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                if how in ["any", "all"]:
-                    raise  # TODO: re-raise as TypeError?
+                if how in ["any", "all", "std", "sem"]:
+                    raise  # TODO: re-raise as TypeError?  should not be reached
                 result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
 
             return result

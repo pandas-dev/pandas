@@ -9340,7 +9340,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None = None,
+        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
     ) -> tuple[Self, NDFrameT]:
         """
         Align two objects on their axes with the specified join method.
@@ -9388,6 +9388,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         broadcast_axis : {axes_single_arg}, default None
             Broadcast values along this axis, if aligning two objects of
             different dimensions.
+
+            .. deprecated:: 2.1
 
         Returns
         -------
@@ -9480,6 +9482,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if limit is lib.no_default:
             limit = None
         method = clean_fill_method(method)
+
+        if broadcast_axis is not lib.no_default:
+            # GH#51856
+            msg = (
+                f"The 'broadcast_axis' keyword in {type(self).__name__}.align is "
+                "deprecated and will be removed in a future version."
+            )
+            if broadcast_axis is not None:
+                if self.ndim == 1 and other.ndim == 2:
+                    msg += (
+                        " Use left = DataFrame({col: left for col in right.columns}, "
+                        "index=right.index) before calling `left.align(right)` instead."
+                    )
+                elif self.ndim == 2 and other.ndim == 1:
+                    msg += (
+                        " Use right = DataFrame({col: right for col in left.columns}, "
+                        "index=left.index) before calling `left.align(right)` instead"
+                    )
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        else:
+            broadcast_axis = None
 
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
@@ -9726,7 +9749,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
-            cond = cond.align(self, join="right", broadcast_axis=1, copy=False)[0]
+            if cond.ndim == 1 and self.ndim == 2:
+                cond = cond._constructor_expanddim(
+                    {i: cond for i in range(len(self.columns))},
+                    copy=False,
+                )
+                cond.columns = self.columns
+            cond = cond.align(self, join="right", copy=False)[0]
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
