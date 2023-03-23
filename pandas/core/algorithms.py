@@ -1673,7 +1673,10 @@ def union_with_duplicates(
 
 
 def map_array(
-    arr: ArrayLike, mapper, na_action: Literal["ignore"] | None = None
+    arr: ArrayLike,
+    mapper,
+    na_action: Literal["ignore"] | None = None,
+    convert: bool = True,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1685,6 +1688,9 @@ def map_array(
     na_action : {None, 'ignore'}, default None
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
+    convert : bool, default True
+        Try to find better dtype for elementwise function results. If
+        False, leave as dtype=object.
 
     Returns
     -------
@@ -1739,6 +1745,8 @@ def map_array(
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper)
+        return lib.map_infer(values, mapper, convert=convert)
     else:
-        return lib.map_infer_mask(values, mapper, isna(values).view(np.uint8))
+        return lib.map_infer_mask(
+            values, mapper, mask=isna(values).view(np.uint8), convert=convert
+        )

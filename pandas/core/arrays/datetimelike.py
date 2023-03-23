@@ -747,24 +747,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action=None):
-        if na_action is not None:
-            raise NotImplementedError
-
         from pandas import Index
 
-        idx = Index(self)
-        try:
-            result = mapper(idx)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-        except Exception:
-            result = map_array(self, mapper)
-            result = Index(result)
+        result = map_array(self, mapper, na_action=na_action)
+        result = Index(result)
 
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
