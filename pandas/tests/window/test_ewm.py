@@ -721,29 +721,3 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(ewm2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
-
-
-def test_df_ewn_axis_param_depr():
-    df = DataFrame({"a": [1], "b": 2, "c": 3})
-
-    warning_msg = (
-        "The 'axis' keyword in DataFrame.ewm is deprecated and "
-        "will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.ewm(span=2, axis=0)
-
-    warning_msg = "DataFrame.ewm with axis=1 is deprecated."
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.ewm(span=2, axis=1)
-
-
-def test_series_ewn_axis_param_depr():
-    series = Series([1, 2, 3])
-
-    warning_msg = (
-        "The 'axis' keyword in Series.ewm is deprecated and "
-        "will be removed in a future version."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        series.ewm(span=2, axis=0)

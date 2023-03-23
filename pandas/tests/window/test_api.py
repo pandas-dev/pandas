@@ -355,11 +355,6 @@ def test_centered_axis_validation(step):
     with pytest.raises(ValueError, match=msg):
         Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
 
-    df_axis_0_warning_msg = (
-        "The 'axis' keyword in DataFrame.rolling is deprecated and "
-        "will be removed in a future version."
-    )
-    df_axis_1_warning_msg = "DataFrame.rolling with axis=1 is deprecated."
     # ok ok
     df = DataFrame(np.ones((10, 10)))
     msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
