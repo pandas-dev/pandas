@@ -239,16 +239,23 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
         ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support sum operations"),
-        "var": (None, ""),
+        "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
     if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
+        warn = None
+        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+        if groupby_func in ["any", "all"]:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            if how == "method":
+                getattr(gb, groupby_func)(*args)
+            elif how == "agg":
+                gb.agg(groupby_func, *args)
+            else:
+                gb.transform(groupby_func, *args)
+
     else:
         with pytest.raises(klass, match=msg):
             if how == "method":
@@ -391,11 +398,21 @@ def test_groupby_raises_category(
         "max": (None, ""),
         "mean": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'mean'",
+                    "category dtype does not support aggregation 'mean'",
+                ]
+            ),
         ),
         "median": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'median'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'median'",
+                    "category dtype does not support aggregation 'median'",
+                ]
+            ),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
@@ -409,7 +426,12 @@ def test_groupby_raises_category(
         "rank": (None, ""),
         "sem": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'sem'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'sem'",
+                    "category dtype does not support aggregation 'sem'",
+                ]
+            ),
         ),
         "shift": (None, ""),
         "size": (None, ""),
@@ -424,12 +446,22 @@ def test_groupby_raises_category(
         ),
         "std": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'std'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'std'",
+                    "category dtype does not support aggregation 'std'",
+                ]
+            ),
         ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'var'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'var'",
+                    "category dtype does not support aggregation 'var'",
+                ]
+            ),
         ),
     }[groupby_func]
 
@@ -502,7 +534,7 @@ def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
         np.sum: (TypeError, "category type does not support sum operations"),
         np.mean: (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
+            "category dtype does not support aggregation 'mean'",
         ),
     }[groupby_func_np]
 
@@ -598,14 +630,8 @@ def test_groupby_raises_category_on_category(
         else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (
-            TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
-        ),
-        "median": (
-            TypeError,
-            "'Categorical' with dtype category does not support reduction 'median'",
-        ),
+        "mean": (TypeError, "category dtype does not support aggregation 'mean'"),
+        "median": (TypeError, "category dtype does not support aggregation 'median'"),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
@@ -615,7 +641,12 @@ def test_groupby_raises_category_on_category(
         "rank": (None, ""),
         "sem": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'sem'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'sem'",
+                    "category dtype does not support aggregation 'sem'",
+                ]
+            ),
         ),
         "shift": (None, ""),
         "size": (None, ""),
@@ -630,12 +661,22 @@ def test_groupby_raises_category_on_category(
         ),
         "std": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'std'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'std'",
+                    "category dtype does not support aggregation 'std'",
+                ]
+            ),
         ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'var'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'var'",
+                    "category dtype does not support aggregation 'var'",
+                ]
+            ),
         ),
     }[groupby_func]
 
