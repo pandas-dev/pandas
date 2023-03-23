@@ -140,14 +140,26 @@ def to_json(
     default_handler: Callable[[Any], JSONSerializable] | None = None,
     lines: bool = False,
     compression: CompressionOptions = "infer",
-    index: bool = True,
+    index: bool | None = None,
     indent: int = 0,
     storage_options: StorageOptions = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
-    if not index and orient not in ["split", "table"]:
+    if index is None and orient in ["records", "values"]:
+        index = False
+    elif index is None:
+        index = True
+
+    if not index and orient not in ["split", "table", "records", "values"]:
         raise ValueError(
-            "'index=False' is only valid when 'orient' is 'split' or 'table'"
+            "'index=False' is only valid when 'orient' is 'split', 'table', " +\
+            "'records', or 'values'"
+        )
+
+    if index and orient in ["records", "values"]:
+        raise ValueError(
+            "'index=True' is only valid when 'orient' is 'split', 'table', " +\
+            "'index', or 'columns'. Convert index to column for other orients."
         )
 
     if lines and orient != "records":

@@ -2268,7 +2268,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
-        index: bool_t = True,
+        index: bool_t | None = None,
         indent: int | None = None,
         storage_options: StorageOptions = None,
         mode: Literal["a", "w"] = "w",
@@ -2337,10 +2337,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
-        index : bool, default True
-            Whether to include the index values in the JSON string. Not
-            including the index (``index=False``) is only supported when
-            orient is 'split' or 'table'.
+        index : bool or None, default None
+            Whether to include the index values in the JSON string. Different
+            defaults and options depend on the 'orient' argument:
+
+                - 'split': default True, can also be False
+                - 'records': default False, cannot be True
+                - 'index': default True, cannot be False
+                - 'columns': default True, cannot be False
+                - 'values': default False, cannot be True
+                - 'table': default True, can also be False
+            
         indent : int, optional
            Length of whitespace used to indent each record.
 
