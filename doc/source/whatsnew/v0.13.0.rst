@@ -154,6 +154,7 @@ API changes
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
   .. ipython:: python
+      :okwarning:
 
      pd.Series([True]).bool()
      pd.Series([False]).bool()
