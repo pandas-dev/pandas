@@ -760,7 +760,7 @@ def index_or_series_obj(request):
     return _index_or_series_objs[request.param].copy(deep=True)
 
 
-_object_series = {
+_typ_objects_series = {
     f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
 }
 
@@ -769,7 +769,7 @@ _index_or_series_memory_objs = {
     **indices_dict,
     **_series,
     **_narrow_series,
-    **_object_series,
+    **_typ_objects_series,
 }
 
 
