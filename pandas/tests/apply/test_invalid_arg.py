@@ -83,13 +83,6 @@ def test_map_categorical_na_action():
         s.map(lambda x: x, na_action="ignore")
 
 
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
@@ -112,7 +105,6 @@ def test_series_nested_renamer(renamer):
 
 
 def test_apply_dict_depr():
-
     tsdf = DataFrame(
         np.random.randn(10, 3),
         columns=["A", "B", "C"],
@@ -125,7 +117,6 @@ def test_apply_dict_depr():
 
 @pytest.mark.parametrize("method", ["agg", "transform"])
 def test_dict_nested_renaming_depr(method):
-
     df = DataFrame({"A": range(5), "B": 5})
 
     # nested renaming

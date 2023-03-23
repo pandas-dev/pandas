@@ -25,15 +25,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Frequency,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -44,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import (
@@ -60,6 +52,16 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Frequency,
+        IntervalClosedType,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
+    )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -131,6 +133,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Represented internally as int64, and which can be boxed to Timestamp objects
     that are subclasses of datetime and carry metadata.
+
+    .. versionchanged:: 2.0.0
+        The various numeric date/time attributes (:attr:`~DatetimeIndex.day`,
+        :attr:`~DatetimeIndex.month`, :attr:`~DatetimeIndex.year` etc.) now have dtype
+        ``int32``. Previously they had dtype ``int64``.
 
     Parameters
     ----------
@@ -261,7 +268,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> DatetimeIndex:
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
@@ -311,7 +318,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         copy: bool = False,
         name: Hashable = None,
     ) -> DatetimeIndex:
-
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -341,8 +347,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name)
+        subarr = cls._simple_new(dtarr, name=name, refs=refs)
         return subarr
 
     # --------------------------------------------------------------------
@@ -545,7 +554,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = Timestamp(key)
 
         elif isinstance(key, str):
-
             try:
                 parsed, reso = self._parse_with_reso(key)
             except (ValueError, pytz.NonExistentTimeError) as err:
@@ -580,7 +588,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str):
-
         # GH#42855 handle date here instead of get_slice_bound
         if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
             # Pandas supports slicing with dates, treated as datetimes at midnight.

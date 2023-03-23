@@ -96,13 +96,8 @@ def test_cython_agg_nothing_to_agg():
     with pytest.raises(TypeError, match=msg):
         frame.groupby("a")["b"].mean(numeric_only=True)
 
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
-        frame.groupby("a")["b"].mean()
-
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        frame[["b"]].groupby(frame["a"]).mean()
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
     expected = DataFrame(
         [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
@@ -127,10 +122,15 @@ def test_cython_agg_frame_columns():
     # #2113
     df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
 
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
 
 
 def test_cython_agg_return_dict():

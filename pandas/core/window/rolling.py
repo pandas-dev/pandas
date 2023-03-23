@@ -26,13 +26,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    QuantileInterpolation,
-    WindowingRankType,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
@@ -99,6 +92,14 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -302,6 +303,8 @@ class BaseWindow(SelectionMixin):
         if subset.ndim == 2 and (
             (is_scalar(key) and key in subset) or is_list_like(key)
         ):
+            selection = key
+        elif subset.ndim == 1 and is_scalar(key) and key == subset.name:
             selection = key
 
         new_win = type(self)(subset, selection=selection, **kwargs)
@@ -1202,7 +1205,11 @@ class Window(BaseWindow):
             def calc(x):
                 additional_nans = np.array([np.nan] * offset)
                 x = np.concatenate((x, additional_nans))
-                return func(x, window, self.min_periods or len(window))
+                return func(
+                    x,
+                    window,
+                    self.min_periods if self.min_periods is not None else len(window),
+                )
 
             with np.errstate(all="ignore"):
                 # Our weighted aggregations return memoryviews
@@ -1249,7 +1256,6 @@ class Window(BaseWindow):
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
-
             # these must apply directly
             result = func(self)
 
@@ -1309,7 +1315,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1328,7 +1333,6 @@ class Window(BaseWindow):
 
     @doc(
         template_header,
-        ".. versionadded:: 1.0.0 \n\n",
         create_section_header("Parameters"),
         kwargs_numeric_only,
         kwargs_scipy,
@@ -1398,7 +1402,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        raw: bool,
+        raw: bool | np.bool_,
         function: Callable[..., Any],
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
         from pandas import Series
@@ -1736,7 +1740,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
-
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -1757,7 +1760,6 @@ class Rolling(RollingAndExpandingMixin):
             self.obj.empty
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
-
             self._validate_datetimelike_monotonic()
 
             # this will raise ValueError on non-fixed freqs

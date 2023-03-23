@@ -16,12 +16,7 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
+from pandas._libs import lib
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -51,6 +46,13 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        npt,
+    )
+
     from pandas.core.generic import NDFrame
 
 
@@ -258,10 +260,25 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
+        if type(self) is Grouper:
+            # i.e. not TimeGrouper
+            if axis is not lib.no_default:
+                warnings.warn(
+                    "Grouper axis keyword is deprecated and will be removed in a "
+                    "future version. To group on axis=1, use obj.T.groupby(...) "
+                    "instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                axis = 0
+        if axis is lib.no_default:
+            axis = 0
+
         self.key = key
         self.level = level
         self.freq = freq
@@ -270,20 +287,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
+        self._indexer_deprecated = None
+        self._obj_deprecated = None
         self._gpr_index = None
-        self.obj = None
-        self.indexer = None
         self.binner = None
         self._grouper = None
         self._indexer = None
-
-    @final
-    @property
-    def ax(self) -> Index:
-        index = self._gpr_index
-        if index is None:
-            raise ValueError("_set_grouper must be called before ax is accessed")
-        return index
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -299,7 +308,7 @@ class Grouper:
         -------
         a tuple of grouper, obj (possibly sorted)
         """
-        obj, _ = self._set_grouper(obj)
+        obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
             obj,
             [self.key],
@@ -335,8 +344,11 @@ class Grouper:
         -------
         NDFrame
         Index
+        np.ndarray[np.intp] | None
         """
         assert obj is not None
+
+        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -345,7 +357,7 @@ class Grouper:
         if self._grouper is None:
             # TODO: What are we assuming about subsequent calls?
             self._grouper = gpr_index
-            self._indexer = self.indexer
+            self._indexer = self._indexer_deprecated
 
         # the key must be a valid info item
         if self.key is not None:
@@ -387,7 +399,7 @@ class Grouper:
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
-            indexer = self.indexer = ax.array.argsort(
+            indexer = self._indexer_deprecated = ax.array.argsort(
                 kind="mergesort", na_position="first"
             )
             ax = ax.take(indexer)
@@ -395,9 +407,45 @@ class Grouper:
 
         # error: Incompatible types in assignment (expression has type
         # "NDFrameT", variable has type "None")
-        self.obj = obj  # type: ignore[assignment]
+        self._obj_deprecated = obj  # type: ignore[assignment]
         self._gpr_index = ax
-        return obj, ax
+        return obj, ax, indexer
+
+    @final
+    @property
+    def ax(self) -> Index:
+        warnings.warn(
+            f"{type(self).__name__}.ax is deprecated and will be removed in a "
+            "future version. Use Resampler.ax instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        index = self._gpr_index
+        if index is None:
+            raise ValueError("_set_grouper must be called before ax is accessed")
+        return index
+
+    @final
+    @property
+    def indexer(self):
+        warnings.warn(
+            f"{type(self).__name__}.indexer is deprecated and will be removed "
+            "in a future version. Use Resampler.indexer instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._indexer_deprecated
+
+    @final
+    @property
+    def obj(self):
+        warnings.warn(
+            f"{type(self).__name__}.obj is deprecated and will be removed "
+            "in a future version. Use GroupBy.indexer instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._obj_deprecated
 
     @final
     @property
@@ -894,7 +942,6 @@ def get_grouper(
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
-
         if not _is_label_like(key):
             if obj.ndim == 1:
                 return False
@@ -914,12 +961,17 @@ def get_grouper(
         if not hasattr(gpr, "name"):
             return False
         if using_copy_on_write():
-            # For the CoW case, we need an equality check as the identity check
-            # no longer works (each Series from column access is a new object)
+            # For the CoW case, we check the references to determine if the
+            # series is part of the object
             try:
-                return gpr.equals(obj[gpr.name])
-            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                obj_gpr_column = obj[gpr.name]
+            except (KeyError, IndexError, InvalidIndexError):
                 return False
+            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
+                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                )
+            return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):
@@ -930,7 +982,6 @@ def get_grouper(
             return False
 
     for gpr, level in zip(keys, levels):
-
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)

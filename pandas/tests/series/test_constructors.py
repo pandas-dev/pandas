@@ -140,7 +140,6 @@ class TestSeriesConstructors:
             Series(cdt_arr, index=["A", "B"])
 
     def test_scalar_conversion(self):
-
         # Pass in scalar is disabled
         scalar = Series(0.5)
         assert not isinstance(scalar, float)
@@ -310,7 +309,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
 
     def test_constructor_list_like(self):
-
         # make sure that we are coercing different
         # list-likes to standard dtypes and not
         # platform specific
@@ -727,6 +725,18 @@ class TestSeriesConstructors:
         # we make 1 copy; this is just a smoke test here
         assert s._mgr.blocks[0].values is not index
 
+    def test_constructor_shallow_copy(self):
+        # constructing a Series from Series with copy=False should still
+        # give a "shallow" copy (share data, not attributes)
+        # https://github.com/pandas-dev/pandas/issues/49523
+        s = Series([1, 2, 3])
+        s_orig = s.copy()
+        s2 = Series(s)
+        assert s2._mgr is not s._mgr
+        # Overwriting index of s2 doesn't change s
+        s2.index = ["a", "b", "c"]
+        tm.assert_series_equal(s, s_orig)
+
     def test_constructor_pass_none(self):
         s = Series(None, index=range(5))
         assert s.dtype == np.float64
@@ -804,7 +814,7 @@ class TestSeriesConstructors:
         # Long-standing behavior (for Series, new in 2.0 for DataFrame)
         #  has been to ignore the dtype on these;
         #  not clear if this is what we want long-term
-        expected = frame_or_series(arr)
+        # expected = frame_or_series(arr)
 
         # GH#49599 as of 2.0 we raise instead of silently retaining float dtype
         msg = "Trying to coerce float values to integer"
@@ -816,7 +826,7 @@ class TestSeriesConstructors:
 
         # pre-2.0, when we had NaNs, we silently ignored the integer dtype
         arr[0] = np.nan
-        expected = frame_or_series(arr)
+        # expected = frame_or_series(arr)
 
         msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
         with pytest.raises(IntCastingNaNError, match=msg):
@@ -873,16 +883,18 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
-        assert s[1] == 5
+        if using_copy_on_write:
+            assert s[1] == 2
+        else:
+            assert s[1] == 5
 
     def test_constructor_datelike_coercion(self):
-
         # GH 9477
         # incorrectly inferring on dateimelike looking when object dtype is
         # specified
@@ -907,7 +919,7 @@ class TestSeriesConstructors:
 
     def test_constructor_mixed_int_and_timestamp(self, frame_or_series):
         # specifically Timestamp with nanos, not datetimes
-        objs = [Timestamp(9), 10, NaT.value]
+        objs = [Timestamp(9), 10, NaT._value]
         result = frame_or_series(objs, dtype="M8[ns]")
 
         expected = frame_or_series([Timestamp(9), Timestamp(10), NaT])
@@ -923,7 +935,6 @@ class TestSeriesConstructors:
             assert result.dtype == "M8[ns]"
 
     def test_constructor_dtype_datetime64(self):
-
         s = Series(iNaT, dtype="M8[ns]", index=range(5))
         assert isna(s).all()
 
@@ -1083,7 +1094,6 @@ class TestSeriesConstructors:
         assert "NaN" in str(s)
 
     def test_constructor_with_datetime_tz(self):
-
         # 8260
         # support datetime64 with tz
 
@@ -1244,7 +1254,6 @@ class TestSeriesConstructors:
         assert result.tolist() == data
 
     def test_construction_consistency(self):
-
         # make sure that we are not re-localizing upon construction
         # GH 14928
         ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
@@ -1446,7 +1455,6 @@ class TestSeriesConstructors:
         assert series.dtype == np.float64
 
     def test_fromValue(self, datetime_series):
-
         nans = Series(np.NaN, index=datetime_series.index, dtype=np.float64)
         assert nans.dtype == np.float_
         assert len(nans) == len(datetime_series)
@@ -1469,7 +1477,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(categorical, expected)
 
     def test_constructor_dtype_timedelta64(self):
-
         # basic
         td = Series([timedelta(days=i) for i in range(3)])
         assert td.dtype == "timedelta64[ns]"
@@ -1627,7 +1634,6 @@ class TestSeriesConstructors:
         ids=lambda x: type(x).__name__,
     )
     def test_constructor_cant_cast_datetimelike(self, index):
-
         # floats are not ok
         # strip Index to convert PeriodIndex -> Period
         # We don't care whether the error message says
@@ -2049,6 +2055,14 @@ class TestSeriesConstructors:
             )
         )
         tm.assert_series_equal(result, expected)
+
+    def test_series_from_index_dtype_equal_does_not_copy(self):
+        # GH#52008
+        idx = Index([1, 2, 3])
+        expected = idx.copy(deep=True)
+        ser = Series(idx, dtype="int64")
+        ser.iloc[0] = 100
+        tm.assert_index_equal(idx, expected)
 
 
 class TestSeriesConstructorIndexCoercion:

@@ -112,38 +112,56 @@ level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
 as_index : bool, default True
-    For aggregated output, return object with group labels as the
+    Return object with group labels as the
     index. Only relevant for DataFrame input. as_index=False is
-    effectively "SQL-style" grouped output.
+    effectively "SQL-style" grouped output. This argument has no effect
+    on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
+    This argument has no effect on filtrations (see the `filtrations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+    such as ``head()``, ``tail()``, ``nth()`` and in transformations
+    (see the `transformations in the user guide
+    <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 
     .. versionchanged:: 2.0.0
 
         Specifying ``sort=False`` with an ordered categorical grouper will no
         longer sort the values.
 
-group_keys : bool, optional
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
+
+    .. versionchanged:: 2.0.0
+
+       ``group_keys`` now defaults to ``True``.
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.1.0
+
+        The default value will change to True in a future version of pandas.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.

@@ -56,7 +56,6 @@ def _get_masked_engines():
 
 
 class NumericEngineIndexing:
-
     params = [
         _get_numeric_engines(),
         ["monotonic_incr", "monotonic_decr", "non_monotonic"],
@@ -106,7 +105,6 @@ class NumericEngineIndexing:
 
 
 class MaskedNumericEngineIndexing:
-
     params = [
         _get_masked_engines(),
         ["monotonic_incr", "monotonic_decr", "non_monotonic"],
@@ -161,7 +159,6 @@ class MaskedNumericEngineIndexing:
 
 
 class ObjectEngineIndexing:
-
     params = [("monotonic_incr", "monotonic_decr", "non_monotonic")]
     param_names = ["index_type"]
 

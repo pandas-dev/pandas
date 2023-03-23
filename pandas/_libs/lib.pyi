@@ -1,6 +1,6 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
-
+from decimal import Decimal
 from typing import (
     Any,
     Callable,
@@ -13,9 +13,12 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.interval import Interval
+from pandas._libs.tslibs import Period
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    TypeGuard,
     npt,
 )
 
@@ -38,13 +41,13 @@ def infer_dtype(value: object, skipna: bool = ...) -> str: ...
 def is_iterator(obj: object) -> bool: ...
 def is_scalar(val: object) -> bool: ...
 def is_list_like(obj: object, allow_sets: bool = ...) -> bool: ...
-def is_period(val: object) -> bool: ...
-def is_interval(val: object) -> bool: ...
-def is_decimal(val: object) -> bool: ...
-def is_complex(val: object) -> bool: ...
-def is_bool(val: object) -> bool: ...
-def is_integer(val: object) -> bool: ...
-def is_float(val: object) -> bool: ...
+def is_period(val: object) -> TypeGuard[Period]: ...
+def is_interval(val: object) -> TypeGuard[Interval]: ...
+def is_decimal(val: object) -> TypeGuard[Decimal]: ...
+def is_complex(val: object) -> TypeGuard[complex]: ...
+def is_bool(val: object) -> TypeGuard[bool | np.bool_]: ...
+def is_integer(val: object) -> TypeGuard[int | np.integer]: ...
+def is_float(val: object) -> TypeGuard[float]: ...
 def is_interval_array(values: np.ndarray) -> bool: ...
 def is_datetime64_array(values: np.ndarray) -> bool: ...
 def is_timedelta_or_timedelta64_array(values: np.ndarray) -> bool: ...
@@ -71,6 +74,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[False] = ...,
     convert_timedelta: Literal[False] = ...,
     convert_period: Literal[False] = ...,
@@ -84,6 +88,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[False] = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[False] = ...,
@@ -97,6 +102,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
@@ -110,6 +116,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: Literal[True] = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
@@ -123,6 +130,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[True] = ...,
@@ -136,6 +144,7 @@ def maybe_convert_objects(
     *,
     try_float: bool = ...,
     safe: bool = ...,
+    convert_numeric: bool = ...,
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
@@ -217,7 +226,6 @@ def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
     labels: np.ndarray,  # const intp_t[:]
     max_bin: int,
-    axis: int,
 ) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=2]
 def get_level_sorter(
     label: np.ndarray,  # const int64_t[:]

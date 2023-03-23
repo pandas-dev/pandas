@@ -14,7 +14,6 @@ import itertools
 import os
 import re
 from textwrap import dedent
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -41,15 +40,6 @@ from pandas._libs import (
     writers as libwriters,
 )
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    AxisInt,
-    DtypeArg,
-    FilePath,
-    Shape,
-    npt,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -115,14 +105,26 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from tables import (
         Col,
         File,
         Node,
     )
 
-    from pandas.core.internals import Block
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        AxisInt,
+        DtypeArg,
+        FilePath,
+        Self,
+        Shape,
+        npt,
+    )
 
+    from pandas.core.internals import Block
 
 # versioning attribute
 _version = "0.15.2"
@@ -554,7 +556,6 @@ class HDFStore:
         fletcher32: bool = False,
         **kwargs,
     ) -> None:
-
         if "format" in kwargs:
             raise ValueError("format is not a defined argument for HDFStore")
 
@@ -631,7 +632,7 @@ class HDFStore:
         pstr = pprint_thing(self._path)
         return f"{type(self)}\nFile path: {pstr}\n"
 
-    def __enter__(self) -> HDFStore:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -1033,7 +1034,6 @@ class HDFStore:
         axis = {t.non_index_axes[0][0] for t in _tbls}.pop()
 
         def func(_start, _stop, _where):
-
             # retrieve the objs, _where is always passed as a set of
             # coordinates here
             objs = [
@@ -1554,14 +1554,12 @@ class HDFStore:
         for k in keys:
             s = self.get_storer(k)
             if s is not None:
-
                 if k in new_store:
                     if overwrite:
                         new_store.remove(k)
 
                 data = self.select(k)
                 if isinstance(s, Table):
-
                     index: bool | list[str] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
@@ -1978,7 +1976,6 @@ class IndexCol:
         meta=None,
         metadata=None,
     ) -> None:
-
         if not isinstance(name, str):
             raise ValueError("`name` must be a str.")
 
@@ -2179,7 +2176,6 @@ class IndexCol:
         if there is a conflict raise/warn as needed
         """
         for key in self._info_fields:
-
             value = getattr(self, key, None)
             idx = info.setdefault(self.name, {})
 
@@ -2202,9 +2198,8 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-            else:
-                if value is not None or existing_value is not None:
-                    idx[key] = value
+            elif value is not None or existing_value is not None:
+                idx[key] = value
 
     def set_info(self, info) -> None:
         """set my state from the passed info"""
@@ -2529,7 +2524,6 @@ class DataCol(IndexCol):
             )
 
         else:
-
             try:
                 converted = converted.astype(dtype, copy=False)
             except TypeError:
@@ -3132,7 +3126,7 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name)
+        return Series(values, index=index, name=self.name, copy=False)
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3187,7 +3181,6 @@ class BlockManagerFixed(GenericFixed):
 
         axes = []
         for i in range(self.ndim):
-
             _start, _stop = (start, stop) if i == select_axis else (None, None)
             ax = self.read_index(f"axis{i}", start=_start, stop=_stop)
             axes.append(ax)
@@ -3196,12 +3189,11 @@ class BlockManagerFixed(GenericFixed):
         dfs = []
 
         for i in range(self.nblocks):
-
             blk_items = self.read_index(f"block{i}_items")
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
 
             columns = items[items.get_indexer(blk_items)]
-            df = DataFrame(values.T, columns=columns, index=axes[1])
+            df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3340,7 +3332,6 @@ class Table(Fixed):
             sv = getattr(self, c, None)
             ov = getattr(other, c, None)
             if sv != ov:
-
                 # show the error for the specific axes
                 # Argument 1 to "enumerate" has incompatible type
                 # "Optional[Any]"; expected "Iterable[Any]"  [arg-type]
@@ -3409,7 +3400,7 @@ class Table(Fixed):
         return self.table.description
 
     @property
-    def axes(self):
+    def axes(self) -> itertools.chain[IndexCol]:
         return itertools.chain(self.index_axes, self.values_axes)
 
     @property
@@ -3470,7 +3461,7 @@ class Table(Fixed):
         """
         self.parent.put(
             self._get_metadata_path(key),
-            Series(values),
+            Series(values, copy=False),
             format="table",
             encoding=self.encoding,
             errors=self.errors,
@@ -3531,7 +3522,6 @@ class Table(Fixed):
 
         q = self.queryables()
         for k in min_itemsize:
-
             # ok, apply generally
             if k == "values":
                 continue
@@ -3705,7 +3695,7 @@ class Table(Fixed):
 
     def _read_axes(
         self, where, start: int | None = None, stop: int | None = None
-    ) -> list[tuple[ArrayLike, ArrayLike]]:
+    ) -> list[tuple[np.ndarray, np.ndarray] | tuple[Index, Index]]:
         """
         Create the axes sniffed from the table.
 
@@ -3862,7 +3852,6 @@ class Table(Fixed):
             indexer = len(new_non_index_axes)  # i.e. 0
             exist_axis = self.non_index_axes[indexer][1]
             if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
-
                 # ahah! -> reindex
                 if array_equivalent(
                     np.array(sorted(append_axis)), np.array(sorted(exist_axis))
@@ -3914,7 +3903,6 @@ class Table(Fixed):
         # add my values
         vaxes = []
         for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
-
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
@@ -4037,6 +4025,10 @@ class Table(Fixed):
         blk_items: list[Index] = get_blk_items(mgr)
 
         if len(data_columns):
+            # TODO: prove that we only get here with axis == 1?
+            #  It is the case in all extant tests, but NOT the case
+            #  outside this `if len(data_columns)` check.
+
             axis, axis_labels = new_non_index_axes[0]
             new_labels = Index(axis_labels).difference(Index(data_columns))
             mgr = frame.reindex(new_labels, axis=axis)._mgr
@@ -4045,6 +4037,9 @@ class Table(Fixed):
             blocks = list(mgr.blocks)
             blk_items = get_blk_items(mgr)
             for c in data_columns:
+                # This reindex would raise ValueError if we had a duplicate
+                #  index, so we can infer that (as long as axis==1) we
+                #  get a single column back, so a single block.
                 mgr = frame.reindex([c], axis=axis)._mgr
                 mgr = cast(BlockManager, mgr)
                 blocks.extend(mgr.blocks)
@@ -4093,7 +4088,6 @@ class Table(Fixed):
             obj = _reindex_axis(obj, axis, labels, columns)
 
             def process_filter(field, filt, op):
-
                 for axis_name in obj._AXIS_ORDERS:
                     axis_number = obj._get_axis_number(axis_name)
                     axis_values = obj._get_axis(axis_name)
@@ -4101,7 +4095,6 @@ class Table(Fixed):
 
                     # see if the field is the name of an axis
                     if field == axis_name:
-
                         # if we have a multi-index, then need to include
                         # the levels
                         if self.is_multi_index:
@@ -4112,7 +4105,6 @@ class Table(Fixed):
 
                     # this might be the name of a file IN an axis
                     elif field in axis_values:
-
                         # we need to filter on this dimension
                         values = ensure_index(getattr(obj, field).values)
                         filt = ensure_index(filt)
@@ -4229,7 +4221,7 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(col_values[1], a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column, copy=False)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4303,7 +4295,6 @@ class AppendableTable(Table):
             a.validate_names()
 
         if not table.is_exists:
-
             # create the table
             options = table.create_description(
                 complib=complib,
@@ -4434,7 +4425,6 @@ class AppendableTable(Table):
             self.table.flush()
 
     def delete(self, where=None, start: int | None = None, stop: int | None = None):
-
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -4458,11 +4448,10 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values).sort_values()
+        sorted_series = Series(values, copy=False).sort_values()
         ln = len(sorted_series)
 
         if ln:
-
             # construct groups of consecutive rows
             diff = sorted_series.diff()
             groups = list(diff[diff > 1].index)
@@ -4520,7 +4509,6 @@ class AppendableFrameTable(AppendableTable):
         start: int | None = None,
         stop: int | None = None,
     ):
-
         # validate the version
         self.validate_version(where)
 
@@ -4573,7 +4561,7 @@ class AppendableFrameTable(AppendableTable):
                 values = values.reshape((1, values.shape[0]))
 
             if isinstance(values, np.ndarray):
-                df = DataFrame(values.T, columns=cols_, index=index_)
+                df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
@@ -4624,7 +4612,6 @@ class AppendableSeriesTable(AppendableFrameTable):
         start: int | None = None,
         stop: int | None = None,
     ) -> Series:
-
         is_multi_index = self.is_multi_index
         if columns is not None and is_multi_index:
             assert isinstance(self.levels, list)  # needed for mypy
@@ -4757,7 +4744,6 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         start: int | None = None,
         stop: int | None = None,
     ):
-
         df = super().read(where=where, columns=columns, start=start, stop=stop)
         df = df.set_index(self.levels)
 
@@ -4894,7 +4880,6 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
-
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
@@ -4951,7 +4936,6 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
-
     if bvalues.dtype != object:
         return bvalues
 
@@ -4979,7 +4963,6 @@ def _maybe_convert_for_string_atom(
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
-
         # we cannot serialize this data, so report an exception on a column
         # by column basis
 
@@ -5034,7 +5017,7 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel())
+            Series(data.ravel(), copy=False)
             .str.encode(encoding, errors)
             ._values.reshape(data.shape)
         )
@@ -5070,12 +5053,11 @@ def _unconvert_string_array(
     data = np.asarray(data.ravel(), dtype=object)
 
     if len(data):
-
         itemsize = libwriters.max_len_string_array(ensure_object(data))
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors)._values
+            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -5142,13 +5124,13 @@ def _dtype_to_kind(dtype_str: str) -> str:
     """
     dtype_str = _ensure_decoded(dtype_str)
 
-    if dtype_str.startswith("string") or dtype_str.startswith("bytes"):
+    if dtype_str.startswith(("string", "bytes")):
         kind = "string"
     elif dtype_str.startswith("float"):
         kind = "float"
     elif dtype_str.startswith("complex"):
         kind = "complex"
-    elif dtype_str.startswith("int") or dtype_str.startswith("uint"):
+    elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
         kind = "datetime64"
@@ -5220,7 +5202,6 @@ class Selection:
         self.coordinates = None
 
         if is_list_like(where):
-
             # see if we have a passed coordinate like
             with suppress(ValueError):
                 inferred = lib.infer_dtype(where, skipna=False)
@@ -5243,7 +5224,6 @@ class Selection:
                         self.coordinates = where
 
         if self.coordinates is None:
-
             self.terms = self.generate(where)
 
             # create the numexpr & the filter

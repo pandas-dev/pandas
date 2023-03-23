@@ -74,7 +74,6 @@ class FromSeries:
 
 
 class FromDictwithTimestamp:
-
     params = [Nano(1), Hour(1)]
     param_names = ["offset"]
 
@@ -89,7 +88,6 @@ class FromDictwithTimestamp:
 
 
 class FromRecords:
-
     params = [None, 1000]
     param_names = ["nrows"]
 
@@ -116,7 +114,6 @@ class FromNDArray:
 
 
 class FromLists:
-
     goal_time = 0.2
 
     def setup(self):
@@ -129,7 +126,6 @@ class FromLists:
 
 
 class FromRange:
-
     goal_time = 0.2
 
     def setup(self):
@@ -162,7 +158,6 @@ class FromScalar:
 
 
 class FromArrays:
-
     goal_time = 0.2
 
     def setup(self):

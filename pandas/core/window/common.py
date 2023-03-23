@@ -15,7 +15,6 @@ from pandas.core.indexes.api import MultiIndex
 
 
 def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
-
     if isinstance(arg1, ABCSeries) and isinstance(arg2, ABCSeries):
         X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
@@ -67,7 +66,6 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
 
                 result_index = arg1.index.union(arg2.index)
                 if len(result_index):
-
                     # construct result frame
                     result = concat(
                         [
@@ -119,7 +117,6 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                             [result_index] + [arg2.columns]
                         )
                 else:
-
                     # empty result
                     result = DataFrame(
                         index=MultiIndex(

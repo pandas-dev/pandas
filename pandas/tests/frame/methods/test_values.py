@@ -16,9 +16,14 @@ import pandas._testing as tm
 
 class TestDataFrameValues:
     @td.skip_array_manager_invalid_test
-    def test_values(self, float_frame):
-        float_frame.values[:, 0] = 5.0
-        assert (float_frame.values[:, 0] == 5).all()
+    def test_values(self, float_frame, using_copy_on_write):
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                float_frame.values[:, 0] = 5.0
+            assert (float_frame.values[:, 0] != 5).all()
+        else:
+            float_frame.values[:, 0] = 5.0
+            assert (float_frame.values[:, 0] == 5).all()
 
     def test_more_values(self, float_string_frame):
         values = float_string_frame.values
@@ -115,7 +120,6 @@ class TestDataFrameValues:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_interleave_with_tzaware(self, timezone_frame):
-
         # interleave with object
         result = timezone_frame.assign(D="foo").values
         expected = np.array(
@@ -185,7 +189,6 @@ class TestDataFrameValues:
         assert values.dtype == np.float64
 
     def test_values_lcd(self, mixed_float_frame, mixed_int_frame):
-
         # mixed lcd
         values = mixed_float_frame[["A", "B", "C", "D"]].values
         assert values.dtype == np.float64
@@ -227,14 +230,17 @@ class TestDataFrameValues:
 
 class TestPrivateValues:
     @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz(self):
+    def test_private_values_dt64tz(self, using_copy_on_write):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
         df = DataFrame(dta, columns=["A"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        if using_copy_on_write:
+            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
+        else:
+            # we have a view
+            assert np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
@@ -242,14 +248,17 @@ class TestPrivateValues:
         tm.assert_equal(df2._values, tda)
 
     @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz_multicol(self):
+    def test_private_values_dt64tz_multicol(self, using_copy_on_write):
         dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 
         df = DataFrame(dta, columns=["A", "B"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        if using_copy_on_write:
+            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
+        else:
+            # we have a view
+            assert np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta

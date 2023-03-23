@@ -5,6 +5,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_linux
+from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -238,6 +240,11 @@ class TestSeriesPlots(TestPlotBase):
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
     def test_bar_log(self):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
@@ -573,7 +580,6 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-
         s = Series(np.arange(10), name="x")
         s_err = np.abs(np.random.randn(10))
         d_err = DataFrame(
@@ -842,3 +848,10 @@ class TestSeriesPlots(TestPlotBase):
         xlims = (3, 1)
         ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
+
+    def test_series_none_color(self):
+        # GH51953
+        series = Series([1, 2, 3])
+        ax = series.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:1]
+        self._check_colors(ax.get_lines(), linecolors=expected)

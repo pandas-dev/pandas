@@ -3,7 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -24,7 +23,6 @@ test_frame = DataFrame(
 
 
 @async_mark()
-@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
@@ -45,7 +43,6 @@ async def test_tab_complete_ipython6_warning(ip):
 
 
 def test_deferred_with_groupby():
-
     # GH 12486
     # support deferred resample ops with groupby
     data = [
@@ -103,7 +100,6 @@ def test_getitem():
 
 
 def test_getitem_multiple():
-
     # GH 13174
     # multiple calls after selection causing an issue with aliasing
     data = [{"id": 1, "buyer": "A"}, {"id": 2, "buyer": "B"}]
@@ -176,7 +172,6 @@ def test_groupby_with_origin():
 
 
 def test_nearest():
-
     # GH 17496
     # Resample nearest
     index = date_range("1/1/2000", periods=3, freq="T")
@@ -249,7 +244,6 @@ def test_methods_std_var(f):
 
 
 def test_apply():
-
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -286,7 +280,7 @@ def test_apply_with_mutated_index():
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
 
@@ -329,7 +323,6 @@ def test_resample_groupby_with_label():
 
 
 def test_consistency_with_window():
-
     # consistent return values with window
     df = test_frame
     expected = Index([1, 2, 3], name="A")

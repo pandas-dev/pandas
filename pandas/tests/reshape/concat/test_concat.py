@@ -59,8 +59,12 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for arr in result._mgr.arrays:
-            assert arr.base is None
+        if not using_copy_on_write:
+            for arr in result._mgr.arrays:
+                assert arr.base is None
+        else:
+            for arr in result._mgr.arrays:
+                assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -267,7 +271,6 @@ class TestConcatenate:
         concat([df1, df2], sort=sort)
 
     def test_concat_mixed_objs(self):
-
         # concat mixed series/frames
         # G2385
 
@@ -336,7 +339,6 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_dtype_coerceion(self):
-
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 
@@ -409,7 +411,6 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_3602(self):
-
         # GH 3602, duplicate columns
         df1 = DataFrame(
             {

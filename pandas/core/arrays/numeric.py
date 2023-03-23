@@ -6,7 +6,6 @@ from typing import (
     Any,
     Callable,
     Mapping,
-    TypeVar,
 )
 
 import numpy as np
@@ -14,11 +13,6 @@ import numpy as np
 from pandas._libs import (
     lib,
     missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -40,8 +34,12 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-
-T = TypeVar("T", bound="NumericArray")
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Self,
+        npt,
+    )
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -281,11 +279,11 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> T:
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
-        scalars = to_numeric(strings, errors="raise", use_nullable_dtypes=True)
+        scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

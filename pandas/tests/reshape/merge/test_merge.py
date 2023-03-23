@@ -401,7 +401,6 @@ class TestMerge:
             merge(df1, df2)
 
     def test_merge_non_unique_indexes(self):
-
         dt = datetime(2012, 5, 1)
         dt2 = datetime(2012, 5, 2)
         dt3 = datetime(2012, 5, 3)
@@ -793,7 +792,6 @@ class TestMerge:
             merge(df, df2)
 
     def test_merge_on_datetime64tz(self):
-
         # GH11405
         left = DataFrame(
             {
@@ -1447,7 +1445,6 @@ class TestMergeDtypes:
         "right_vals", [["foo", "bar"], Series(["foo", "bar"]).astype("category")]
     )
     def test_different(self, right_vals):
-
         left = DataFrame(
             {
                 "A": ["foo", "bar"],
@@ -1469,7 +1466,6 @@ class TestMergeDtypes:
     @pytest.mark.parametrize("d1", [np.int64, np.int32, np.int16, np.int8, np.uint8])
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, d1, d2):
-
         dtype1 = np.dtype(d1)
         dtype2 = np.dtype(d2)
 
@@ -1634,9 +1630,8 @@ class TestMergeDtypes:
         df2 = DataFrame({"A": df2_vals})
 
         msg = (
-            f"You are trying to merge on {df1['A'].dtype} and "
-            f"{df2['A'].dtype} columns. If you wish to proceed "
-            "you should use pd.concat"
+            f"You are trying to merge on {df1['A'].dtype} and {df2['A'].dtype} "
+            "columns for key 'A'. If you wish to proceed you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
@@ -1644,13 +1639,40 @@ class TestMergeDtypes:
 
         # Check that error still raised when swapping order of dataframes
         msg = (
-            f"You are trying to merge on {df2['A'].dtype} and "
-            f"{df1['A'].dtype} columns. If you wish to proceed "
-            "you should use pd.concat"
+            f"You are trying to merge on {df2['A'].dtype} and {df1['A'].dtype} "
+            "columns for key 'A'. If you wish to proceed you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             merge(df2, df1, on=["A"])
+
+        # Check that error still raised when merging on multiple columns
+        # The error message should mention the first incompatible column
+        if len(df1_vals) == len(df2_vals):
+            # Column A in df1 and df2 is of compatible (the same) dtype
+            # Columns B and C in df1 and df2 are of incompatible dtypes
+            df3 = DataFrame({"A": df2_vals, "B": df1_vals, "C": df1_vals})
+            df4 = DataFrame({"A": df2_vals, "B": df2_vals, "C": df2_vals})
+
+            # Check that error raised correctly when merging all columns A, B, and C
+            # The error message should mention key 'B'
+            msg = (
+                f"You are trying to merge on {df3['B'].dtype} and {df4['B'].dtype} "
+                "columns for key 'B'. If you wish to proceed you should use pd.concat"
+            )
+            msg = re.escape(msg)
+            with pytest.raises(ValueError, match=msg):
+                merge(df3, df4)
+
+            # Check that error raised correctly when merging columns A and C
+            # The error message should mention key 'C'
+            msg = (
+                f"You are trying to merge on {df3['C'].dtype} and {df4['C'].dtype} "
+                "columns for key 'C'. If you wish to proceed you should use pd.concat"
+            )
+            msg = re.escape(msg)
+            with pytest.raises(ValueError, match=msg):
+                merge(df3, df4, on=["A", "C"])
 
     @pytest.mark.parametrize(
         "expected_data, how",
@@ -1758,7 +1780,6 @@ class TestMergeDtypes:
         ],
     )
     def test_merge_empty(self, left_empty, how, exp):
-
         left = DataFrame({"A": [2, 1], "B": [3, 4]})
         right = DataFrame({"A": [1], "C": [5]}, dtype="int64")
 

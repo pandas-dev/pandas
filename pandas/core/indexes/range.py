@@ -4,6 +4,7 @@ from datetime import timedelta
 import operator
 from sys import getsizeof
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -20,10 +21,6 @@ from pandas._libs import (
 )
 from pandas._libs.algos import unique_deltas
 from pandas._libs.lib import no_default
-from pandas._typing import (
-    Dtype,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -51,6 +48,11 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        npt,
+    )
 _empty_range = range(0)
 
 
@@ -175,6 +177,7 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
+        result._references = None
         return result
 
     @classmethod
@@ -688,7 +691,7 @@ class RangeIndex(Index):
         if not isinstance(other, RangeIndex):
             return super()._difference(other, sort=sort)
 
-        if sort is None and self.step < 0:
+        if sort is not False and self.step < 0:
             return self[::-1]._difference(other)
 
         res_name = ops.get_op_result_name(self, other)
@@ -901,8 +904,7 @@ class RangeIndex(Index):
         Conserve RangeIndex type for scalar and slice keys.
         """
         if isinstance(key, slice):
-            new_range = self._range[key]
-            return self._simple_new(new_range, name=self._name)
+            return self._getitem_slice(key)
         elif is_integer(key):
             new_key = int(key)
             try:
@@ -929,7 +931,6 @@ class RangeIndex(Index):
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-
         if is_integer(other) and other != 0:
             if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
                 start = self.start // other

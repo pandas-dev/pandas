@@ -1,6 +1,8 @@
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -10,13 +12,13 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -27,6 +29,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 @inherit_names(
@@ -168,7 +173,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr, name=name)
+        refs = None
+        if not copy and isinstance(data, (ABCSeries, Index)):
+            refs = data._references
+
+        return cls._simple_new(tdarr, name=name, refs=refs)
 
     # -------------------------------------------------------------------
 

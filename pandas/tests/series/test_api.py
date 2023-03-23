@@ -118,7 +118,6 @@ class TestSeriesMisc:
         assert pydoc.getdoc(Series.index)
 
     def test_ndarray_compat(self):
-
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
             np.random.randn(1000, 3),
@@ -171,7 +170,10 @@ class TestSeriesMisc:
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)
-        with tm.assert_produces_warning(None, check_stacklevel=False):
+        msg = "Series._data is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
