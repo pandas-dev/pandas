@@ -129,9 +129,8 @@ def test_agg(step):
 def test_multi_axis_1_raises(func):
     # GH#46904
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    warning_msg = "DataFrame.rolling with axis=1 is deprecated."
-
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         r = df.rolling(window=3, axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         r.agg(func)
@@ -347,12 +346,8 @@ def test_dont_modify_attributes_after_methods(
 
 def test_centered_axis_validation(step):
     # ok
-    series_axis_0_warning_msg = (
-        "The 'axis' keyword in Series.rolling is deprecated and "
-        "will be removed in a future version."
-    )
-
-    with tm.assert_produces_warning(FutureWarning, match=series_axis_0_warning_msg):
+    msg = "The 'axis' keyword in Series.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
     # bad axis
@@ -366,23 +361,18 @@ def test_centered_axis_validation(step):
     )
     df_axis_1_warning_msg = "DataFrame.rolling with axis=1 is deprecated."
     # ok ok
-    with tm.assert_produces_warning(FutureWarning, match=df_axis_0_warning_msg):
-        DataFrame(np.ones((10, 10))).rolling(
-            window=3, center=True, axis=0, step=step
-        ).mean()
-    with tm.assert_produces_warning(FutureWarning, match=df_axis_1_warning_msg):
-        DataFrame(np.ones((10, 10))).rolling(
-            window=3, center=True, axis=1, step=step
-        ).mean()
+    df = DataFrame(np.ones((10, 10)))
+    msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.rolling(window=3, center=True, axis=0, step=step).mean()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.rolling(window=3, center=True, axis=1, step=step).mean()
 
     # bad axis
     msg = "No axis named 2 for object type DataFrame"
     with pytest.raises(ValueError, match=msg):
-        (
-            DataFrame(np.ones((10, 10)))
-            .rolling(window=3, center=True, axis=2, step=step)
-            .mean()
-        )
+        (df.rolling(window=3, center=True, axis=2, step=step).mean())
 
 
 def test_rolling_min_min_periods(step):

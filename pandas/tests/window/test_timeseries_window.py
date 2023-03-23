@@ -508,11 +508,11 @@ class TestRollingTS:
         )
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling("2s").min()
-        assert ((result - expected) < 0.01).all().bool()
+        assert ((result - expected) < 0.01).all().all()
 
         expected = dfp.rolling(200, min_periods=1).min()
         result = dfp.rolling("200s").min()
-        assert ((result - expected) < 0.01).all().bool()
+        assert ((result - expected) < 0.01).all().all()
 
     def test_ragged_max(self, ragged):
         df = ragged
@@ -683,14 +683,9 @@ def test_nat_axis_error(msg, axis):
     idx = [Timestamp("2020"), NaT]
     kwargs = {"columns" if axis == 1 else "index": idx}
     df = DataFrame(np.eye(2), **kwargs)
-    if axis == 0:
-        warning_msg = (
-            "The 'axis' keyword in DataFrame.rolling is deprecated and "
-            "will be removed in a future version."
-        )
-    else:
-        warning_msg = "DataFrame.rolling with axis=1 is deprecated."
-
+    warn_msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
+    if axis == 1:
+        warn_msg = "Support for axis=1 in DataFrame.rolling is deprecated"
     with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
-        with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             df.rolling("D", axis=axis).mean()

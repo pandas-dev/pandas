@@ -679,9 +679,8 @@ def test_rolling_center_axis_1():
         {"a": [1, 1, 0, 0, 0, 1], "b": [1, 0, 0, 1, 0, 0], "c": [1, 0, 0, 1, 0, 1]}
     )
 
-    warning_msg = "DataFrame.rolling with axis=1 is deprecated."
-
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.rolling(window=3, axis=1, win_type="boxcar", center=True).sum()
 
     expected = DataFrame(
