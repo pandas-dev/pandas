@@ -2271,6 +2271,7 @@ def test_dt_to_pydatetime():
     result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+    assert all(type(res) is datetime for res in result)
 
     expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
@@ -2351,6 +2352,14 @@ def test_concat_empty_arrow_backed_series(dtype):
     expected = ser.copy()
     result = pd.concat([ser[np.array([], dtype=np.bool_)]])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_series_from_string_array(dtype):
+    arr = pa.array("the quick brown fox".split())
+    ser = pd.Series(arr, dtype=dtype)
+    expected = pd.Series(ArrowExtensionArray(arr), dtype=dtype)
+    tm.assert_series_equal(ser, expected)
 
 
 # _data was renamed to _pa_data
