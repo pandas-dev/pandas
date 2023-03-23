@@ -140,8 +140,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         (
             "pandas.core.generic.NDFrame.bool",
             "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas and cases that relied on it will raise "
-            "a future warning",
+            "in future version of pandas",
         ),
     ]
 

@@ -450,10 +450,9 @@ class TestNDFrame:
         assert obj2.flags is not obj.flags
 
     def test_bool_dep(self) -> None:
-        msg = (
+        msg_warn = (
             "DataFrame.bool is now deprecated and will be removed "
-            "in future version of pandas and cases that relied on it will raise "
-            "a future warning"
+            "in future version of pandas"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             DataFrame({"col": [False]}).bool()

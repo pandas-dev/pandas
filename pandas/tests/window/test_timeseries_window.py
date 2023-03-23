@@ -506,7 +506,6 @@ class TestRollingTS:
         dfp = DataFrame(
             {"B": np.random.randn(N)}, index=date_range("20130101", periods=N, freq="s")
         )
-
         expected = dfp.rolling(2, min_periods=1).min()
         result = dfp.rolling("2s").min()
         assert ((result - expected) < 0.01).all().all()
