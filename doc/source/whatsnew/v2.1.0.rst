@@ -110,6 +110,7 @@ Deprecations
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.ewm`, :meth:`DataFrame.rolling`, :meth:`DataFrame.expanding`, transpose before calling the method instead (:issue:`51778`)
 - Deprecated the ``axis`` keyword in :meth:`DataFrame.ewm`, :meth:`Series.ewm`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.expanding` (:issue:`51778`)
+- Deprecated the ``axis`` keyword in :meth:`DataFrame.resample`, :meth:`Series.resample` (:issue:`51778`)
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated the 'axis' keyword in :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.fillna`, :meth:`.GroupBy.take`, :meth:`.GroupBy.skew`, :meth:`.GroupBy.rank`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cummax`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.pct_change`, :meth:`GroupBy.diff`, :meth:`.GroupBy.shift`, and :meth:`DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)

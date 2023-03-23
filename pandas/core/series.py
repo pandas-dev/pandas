@@ -5570,7 +5570,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -5581,6 +5581,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
     ) -> Resampler:
+        if axis is not lib.no_default:
+            warnings.warn(
+                "Series resample axis keyword is deprecated and will be removed in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         return super().resample(
             rule=rule,
             axis=axis,
