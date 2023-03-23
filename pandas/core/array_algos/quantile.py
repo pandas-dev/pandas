@@ -217,7 +217,7 @@ def _nanpercentile(
                 result = result.astype(values.dtype, copy=False)
         return result
     else:
-        return np.percentile(
+        result = np.percentile(
             values,
             qs,
             axis=1,
@@ -226,3 +226,4 @@ def _nanpercentile(
             # "int", "Dict[str, str]"  [call-overload]
             **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
         )
+        return result.astype(values.dtype, copy=False)
