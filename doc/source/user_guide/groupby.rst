@@ -1225,7 +1225,7 @@ The dimension of the returned result can also change:
 that is itself a series, and possibly upcast the result to a DataFrame:
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     def f(x):
         return pd.Series([x, x ** 2], index=["x", "x^2"])
