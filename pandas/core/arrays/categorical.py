@@ -13,6 +13,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -25,6 +26,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -551,6 +553,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Alias for tolist.
         """
+        # GH#51254
+        warnings.warn(
+            "Categorical.to_list is deprecated and will be removed in a future "
+            "version. Use obj.tolist() instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.tolist()
 
     @classmethod
