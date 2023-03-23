@@ -177,7 +177,7 @@ def test_version_tag():
 
 def test_pyproject_present():
     # Check pyproject.toml is present(relevant for wheels)
-    pyproject_loc = os.path.join(os.path.dirname(__file__), "../../pyproject.toml")
+    pyproject_loc = os.path.join(os.path.dirname(__file__), "../pyproject.toml")
     assert os.path.exists(pyproject_loc)
 
 
