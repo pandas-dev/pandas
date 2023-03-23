@@ -240,7 +240,7 @@ elif "rc" in version:
 
 html_theme_options = {
     "external_links": [],
-    "footer_items": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
     "google_analytics_id": "UA-27880019-2",

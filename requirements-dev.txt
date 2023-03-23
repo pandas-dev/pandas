@@ -62,7 +62,7 @@ gitpython
 gitdb
 natsort
 numpydoc
-pydata-sphinx-theme<0.11
+pydata-sphinx-theme>=0.13.0
 pytest-cython
 sphinx
 sphinx-panels
