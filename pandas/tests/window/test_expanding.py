@@ -83,6 +83,7 @@ def test_expanding_axis(axis_frame):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
     axis = df._get_axis_number(axis_frame)
+
     if axis == 0:
         msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
         expected = DataFrame(
