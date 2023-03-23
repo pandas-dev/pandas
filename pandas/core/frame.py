@@ -645,6 +645,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     _constructor_sliced: Callable[..., Series] = Series
 
+    def _sliced_from_mgr(self, mgr, axes) -> Series:
+        return self._constructor_sliced._from_mgr(mgr, axes=axes)
+
     # ----------------------------------------------------------------------
     # Constructors
 
@@ -2335,7 +2338,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2545,7 +2548,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -3681,9 +3684,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # if we are a copy, mark as such
             copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
-            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
-                self
-            )
+            result = self._sliced_from_mgr(new_mgr, axes=new_mgr.axes)
+            result._name = self.index[i]
+            result = result.__finalize__(self)
             result._set_is_copy(self, copy=copy)
             return result
 
@@ -3736,7 +3739,7 @@ class DataFrame(NDFrame, OpsMixin):
             copy=False,
             only_slice=True,
         )
-        return self._constructor(new_mgr)
+        return self._from_mgr(new_mgr, axes=new_mgr.axes)
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -4279,9 +4282,10 @@ class DataFrame(NDFrame, OpsMixin):
         # Lookup in columns so that if e.g. a str datetime was passed
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
-        klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True).__finalize__(self)
+        obj = self._sliced_from_mgr(values, axes=values.axes)
+        obj._name = name
+        return obj.__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -4754,7 +4758,7 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return type(self)(mgr).__finalize__(self)
+        return self._from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
     def insert(
         self,
@@ -5750,7 +5754,7 @@ class DataFrame(NDFrame, OpsMixin):
                     fill_value=fill_value,
                     allow_dups=True,
                 )
-                res_df = self._constructor(mgr)
+                res_df = self._from_mgr(mgr, axes=mgr.axes)
                 return res_df.__finalize__(self, method="shift")
 
         return super().shift(
@@ -6278,7 +6282,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._mgr.isna(func=isna))
+        result = self._from_mgr(self._mgr.isna(func=isna), axes=self._mgr.axes)
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -6843,7 +6847,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self._get_block_manager_axis(axis), default_index(len(indexer))
             )
 
-        result = self._constructor(new_data)
+        result = self._from_mgr(new_data, axes=new_data.axes)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7531,7 +7535,7 @@ class DataFrame(NDFrame, OpsMixin):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
-            return self._constructor(bm)
+            return self._from_mgr(bm, axes=bm.axes)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -7552,7 +7556,7 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
-            return self._constructor(bm)
+            return self._from_mgr(bm, axes=bm.axes)
 
         elif isinstance(right, Series) and axis == 1:
             # axis=1 means we want to operate row-by-row
@@ -9538,7 +9542,7 @@ class DataFrame(NDFrame, OpsMixin):
             axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
-        return self._constructor(new_data).__finalize__(self, "diff")
+        return self._from_mgr(new_data, axes=new_data.axes).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -10397,12 +10401,13 @@ class DataFrame(NDFrame, OpsMixin):
             # Dispatch to Block.round
             # Argument "decimals" to "round" of "BaseBlockManager" has incompatible
             # type "Union[int, integer[Any]]"; expected "int"
-            return self._constructor(
-                self._mgr.round(
-                    decimals=decimals,  # type: ignore[arg-type]
-                    using_cow=using_copy_on_write(),
-                ),
-            ).__finalize__(self, method="round")
+            new_mgr = self._mgr.round(
+                decimals=decimals,  # type: ignore[arg-type]
+                using_cow=using_copy_on_write(),
+            )
+            return self._from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
+                self, method="round"
+            )
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
@@ -10956,7 +10961,7 @@ class DataFrame(NDFrame, OpsMixin):
         # After possibly _get_data and transposing, we are now in the
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
-        out = df._constructor(res).iloc[0]
+        out = df._from_mgr(res, axes=res.axes).iloc[0]
         if out_dtype is not None:
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any():
@@ -11394,7 +11399,7 @@ class DataFrame(NDFrame, OpsMixin):
             res = data._mgr.take(indexer[q_idx], verify=False)
             res.axes[1] = q
 
-        result = self._constructor(res)
+        result = self._from_mgr(res, axes=res.axes)
         return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
@@ -11719,7 +11724,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {
-            k: self._constructor(v).__finalize__(self)
+            k: self._from_mgr(v, axes=v.axes).__finalize__(self)
             for k, v, in mgr.to_dict(copy=copy).items()
         }
 

@@ -578,6 +578,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return DataFrame
 
+    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
+        return self._constructor_expanddim._from_mgr(mgr, axes)
+
     # types
     @property
     def _can_hold_na(self) -> bool:
@@ -1053,7 +1056,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
-        return self._constructor(new_mgr).__finalize__(self)
+        return self._from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1896,7 +1899,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace: bool = False) -> Series:
