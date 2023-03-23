@@ -8582,6 +8582,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Which axis to use for up- or down-sampling. For `Series` this parameter
             is unused and defaults to 0. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
+
             .. deprecated:: 2.0.0
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
