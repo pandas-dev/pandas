@@ -89,7 +89,11 @@ jobs:
         retention-days: 14
 
     - name: Trigger web/doc preview
-      run: curl -X POST https://pandas.pydata.org/preview/submit/$RUN_ID/$PR_ID/
+      run: |
+        PREVIEW_URL_BASE=https://pandas.pydata.org/preview
+        curl -X POST $PREVIEW_URL_BASE/submit/$RUN_ID/$PR_ID/
+        PREVIEW_URL=https://pandas.pydata.org/preview/$PR_ID/
+        echo "doc preview available at ${PREVIEW_URL}" | tee -a $GITHUB_STEP_SUMMARY
       env:
         RUN_ID: ${{ github.run_id }}
         PR_ID: ${{ github.event.pull_request.number }}
