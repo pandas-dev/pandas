@@ -36,6 +36,7 @@ Other enhancements
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
+- :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -237,7 +238,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
+- Bug in :meth:`arrays.SparseArray.map` allowed the fill value to be included in the sparse values (:issue:`52095`)
 -
 
 ExtensionArray
