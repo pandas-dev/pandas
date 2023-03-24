@@ -343,8 +343,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     _name: Hashable
-    _metadata: list[str] = ["name"]
-    _internal_names_set = {"index"} | NDFrame._internal_names_set
+    _metadata: list[str] = ["_name"]
+    _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
@@ -4580,7 +4580,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None = None,
+        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
     ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
@@ -5570,7 +5570,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -5581,6 +5581,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
     ) -> Resampler:
+        if axis is not lib.no_default:
+            warnings.warn(
+                "Series resample axis keyword is deprecated and will be removed in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         return super().resample(
             rule=rule,
             axis=axis,

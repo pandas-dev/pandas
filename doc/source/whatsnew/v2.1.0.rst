@@ -100,15 +100,19 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated :meth:`DataFrame._data` and :meth:`Series._data`, use public APIs instead (:issue:`33333`)
+- Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
 - Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)
 - Deprecated :meth:`DataFrameGroupBy.dtypes`, check ``dtypes`` on the underlying object instead (:issue:`51045`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
+- Deprecated :meth:`Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.ewm`, :meth:`DataFrame.rolling`, :meth:`DataFrame.expanding`, transpose before calling the method instead (:issue:`51778`)
 - Deprecated the ``axis`` keyword in :meth:`DataFrame.ewm`, :meth:`Series.ewm`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.expanding` (:issue:`51778`)
+- Deprecated the ``axis`` keyword in :meth:`DataFrame.resample`, :meth:`Series.resample` (:issue:`51778`)
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
+- Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated the 'axis' keyword in :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.fillna`, :meth:`.GroupBy.take`, :meth:`.GroupBy.skew`, :meth:`.GroupBy.rank`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cummax`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.pct_change`, :meth:`GroupBy.diff`, :meth:`.GroupBy.shift`, and :meth:`DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
 -
@@ -227,6 +231,7 @@ Groupby/resample/rolling
   grouped :class:`Series` or :class:`DataFrame` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex`
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
+- Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64 or :class:`PeriodDtype` values (:issue:`52128`)
 -
 
 Reshaping
