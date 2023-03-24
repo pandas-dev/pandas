@@ -4,6 +4,8 @@ import warnings
 cimport cython
 from cpython.object cimport (
     Py_EQ,
+    Py_GE,
+    Py_GT,
     Py_LE,
     Py_LT,
     Py_NE,
@@ -1163,14 +1165,20 @@ cdef class _Timedelta(timedelta):
                 if not PyDelta_Check(other):
                     # TODO: handle this case
                     raise
+                ltup = (self.days, self.seconds, self.microseconds, self.nanoseconds)
+                rtup = (other.days, other.seconds, other.microseconds, 0)
                 if op == Py_EQ:
-                    return False
+                    return ltup == rtup
                 elif op == Py_NE:
-                    return True
-                elif op == Py_LE or op == Py_LT:
-                    return self.days <= other.days
-                else:
-                    return self.days >= other.days
+                    return ltup != rtup
+                elif op == Py_LT:
+                    return ltup < rtup
+                elif op == Py_LE:
+                    return ltup <= rtup
+                elif op == Py_GT:
+                    return ltup > rtup
+                elif op == Py_GE:
+                    return ltup >= rtup
 
         elif other is NaT:
             return op == Py_NE
