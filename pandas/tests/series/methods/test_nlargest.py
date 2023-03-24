@@ -32,11 +32,13 @@ main_dtypes = [
 def s_main_dtypes():
     """
     A DataFrame with many dtypes
+
     * datetime
     * datetimetz
     * timedelta
     * [u]int{8,16,32,64}
     * float{32,64}
+
     The columns are the name of the dtype.
     """
     df = pd.DataFrame(
