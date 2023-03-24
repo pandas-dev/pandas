@@ -2487,10 +2487,10 @@ def _escape_latex_math(s):
     if ps_p:
         mode.append(ps_p.span()[0])
     if len(mode) == 0:
-        return _escape_latex(s.replace(r"\$", r"rt8§=§7wz"))
+        return _escape_latex(s.replace(r"rt8§=§7wz", r"\$"))
     if s[mode[0]] == r"$":
-        return _math_mode_with_dollar(s.replace(r"\$", r"rt8§=§7wz"))
+        return _math_mode_with_dollar(s.replace(r"rt8§=§7wz", r"\$"))
     if s[mode[0] - 1 : mode[0] + 1] == r"\(":
-        return _math_mode_with_parentheses(s.replace(r"\$", r"rt8§=§7wz"))
+        return _math_mode_with_parentheses(s.replace(r"rt8§=§7wz", r"\$"))
     else:
-        return _escape_latex(s.replace(r"\$", r"rt8§=§7wz"))
+        return _escape_latex(s.replace(r"rt8§=§7wz", r"\$"))

@@ -216,6 +216,10 @@ def test_format_escape_html(escape, exp):
             ),
         ),
         (
+            r"$\&%#_{}^\$",
+            r"\$\textbackslash \&\%\#\_\{\}\textasciicircum \textbackslash \$",
+        ),
+        (
             r"$ \frac{1}{2} $ \( \frac{1}{2} \)",
             "".join(
                 [
