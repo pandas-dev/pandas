@@ -40,3 +40,22 @@ class TestCommon(TestPlotBase):
         subplot_geometry = list(axes[0].get_subplotspec().get_geometry()[:-1])
         subplot_geometry[-1] += 1
         assert subplot_geometry == [2, 1, 2]
+
+    def test_colorbar_layout(self):
+        fig = self.plt.figure()
+
+        axes = fig.subplot_mosaic(
+            """
+            AB
+            CC
+            """
+        )
+
+        x = [1, 2, 3]
+        y = [1, 2, 3]
+
+        cs0 = axes["A"].scatter(x, y)
+        axes["B"].scatter(x, y)
+
+        fig.colorbar(cs0, ax=[axes["A"], axes["B"]], location="right")
+        DataFrame(x).plot(ax=axes["C"])

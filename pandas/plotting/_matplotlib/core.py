@@ -1112,7 +1112,9 @@ class MPLPlot(ABC):
         from matplotlib.axes import Subplot
 
         return [
-            ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
+            ax
+            for ax in self.fig.get_axes()
+            if (isinstance(ax, Subplot) and ax.get_subplotspec() is not None)
         ]
 
     def _get_axes_layout(self) -> tuple[int, int]:
