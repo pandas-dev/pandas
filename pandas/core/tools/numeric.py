@@ -19,17 +19,19 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
+    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.arrow import ArrowDtype
+from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -196,6 +198,8 @@ def to_numeric(
     else:
         values = arg
 
+    orig_values = values
+
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
@@ -225,6 +229,7 @@ def to_numeric(
         except (ValueError, TypeError):
             if errors == "raise":
                 raise
+            values = orig_values
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
@@ -264,9 +269,16 @@ def to_numeric(
                         break
 
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
-    # masked array
-    if (mask is not None or new_mask is not None) and not is_object_dtype(values.dtype):
-        if mask is None:
+    # masked array. For StringArray need to compute a mask if conversion was successful.
+    if (
+        mask is not None
+        or new_mask is not None
+        or isinstance(values_dtype, StringDtype)
+    ) and not is_string_dtype(values.dtype):
+        if mask is None and isinstance(values_dtype, StringDtype):
+            mask = isna(values)
+            values = values[~mask]
+        elif mask is None:
             mask = new_mask
         else:
             mask = mask.copy()
