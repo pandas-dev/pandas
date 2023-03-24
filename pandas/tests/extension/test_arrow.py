@@ -39,6 +39,7 @@ from pandas.compat import (
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_any_int_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
 import pandas._testing as tm
@@ -690,8 +691,8 @@ class TestBaseMissing(base.BaseMissingTests):
         result = data.fillna(valid)
         assert result is not data
         self.assert_extension_array_equal(result, data)
-        with tm.assert_produces_warning(PerformanceWarning):
-            result = data.fillna(method="backfill")
+
+        result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
@@ -1530,9 +1531,23 @@ def test_mode_dropna_false_mode_na(data):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("arrow_dtype", [pa.binary(), pa.binary(16), pa.large_binary()])
-def test_arrow_dtype_type(arrow_dtype):
-    assert ArrowDtype(arrow_dtype).type == bytes
+@pytest.mark.parametrize(
+    "arrow_dtype, expected_type",
+    [
+        [pa.binary(), bytes],
+        [pa.binary(16), bytes],
+        [pa.large_binary(), bytes],
+        [pa.large_string(), str],
+        [pa.list_(pa.int64()), list],
+        [pa.large_list(pa.int64()), list],
+        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
+    ],
+)
+def test_arrow_dtype_type(arrow_dtype, expected_type):
+    # GH 51845
+    # TODO: Redundant with test_getitem_scalar once arrow_dtype exists in data fixture
+    assert ArrowDtype(arrow_dtype).type == expected_type
 
 
 def test_is_bool_dtype():
@@ -1925,7 +1940,7 @@ def test_str_get(i, exp):
 
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
-    raises=NotImplementedError,
+    raises=AttributeError,
 )
 def test_str_join():
     ser = pd.Series(ArrowExtensionArray(pa.array([list("abc"), list("123"), None])))
@@ -2256,6 +2271,7 @@ def test_dt_to_pydatetime():
     result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+    assert all(type(res) is datetime for res in result)
 
     expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
@@ -2336,3 +2352,28 @@ def test_concat_empty_arrow_backed_series(dtype):
     expected = ser.copy()
     result = pd.concat([ser[np.array([], dtype=np.bool_)]])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["string", "string[pyarrow]"])
+def test_series_from_string_array(dtype):
+    arr = pa.array("the quick brown fox".split())
+    ser = pd.Series(arr, dtype=dtype)
+    expected = pd.Series(ArrowExtensionArray(arr), dtype=dtype)
+    tm.assert_series_equal(ser, expected)
+
+
+# _data was renamed to _pa_data
+class OldArrowExtensionArray(ArrowExtensionArray):
+    def __getstate__(self):
+        state = super().__getstate__()
+        state["_data"] = state.pop("_pa_array")
+        return state
+
+
+def test_pickle_old_arrowextensionarray():
+    data = pa.array([1])
+    expected = OldArrowExtensionArray(data)
+    result = pickle.loads(pickle.dumps(expected))
+    tm.assert_extension_array_equal(result, expected)
+    assert result._pa_array == pa.chunked_array(data)
+    assert not hasattr(result, "_data")

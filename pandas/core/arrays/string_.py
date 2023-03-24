@@ -14,13 +14,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    Scalar,
-    npt,
-    type_t,
-)
 from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -58,8 +51,13 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        AxisInt,
+        Dtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Scalar,
+        npt,
+        type_t,
     )
 
     from pandas import Series
@@ -354,6 +352,9 @@ class StringArray(BaseStringArray, PandasArray):
             result[na_values] = libmissing.NA
 
         else:
+            if hasattr(scalars, "type"):
+                # pyarrow array
+                scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 

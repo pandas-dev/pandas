@@ -42,13 +42,6 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._typing import (
-    DateTimeErrorChoices,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -87,6 +80,14 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DateTimeErrorChoices,
+        IntervalClosedType,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
+    )
+
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
 
@@ -2199,7 +2200,7 @@ def objects_to_datetime64ns(
         #  datetimes but they have conflicting timezones/awareness
         if allow_object:
             return result, tz_parsed
-        raise TypeError(result)
+        raise TypeError("DatetimeIndex has mixed timezones")
     else:  # pragma: no cover
         # GH#23675 this TypeError should never be hit, whereas the TypeError
         #  in the object-dtype branch above is reachable.
