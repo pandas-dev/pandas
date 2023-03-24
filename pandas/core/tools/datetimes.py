@@ -139,13 +139,14 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
             )
             if guessed_format is not None:
                 return guessed_format
-            warnings.warn(
-                "Could not infer format, so each element will be parsed "
-                "individually, falling back to `dateutil`. To ensure parsing is "
-                "consistent and as-expected, please specify a format.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
+            if tslib.first_non_null(arr[first_non_null + 1 :]) != -1:
+                warnings.warn(
+                    "Could not infer format, so each element will be parsed "
+                    "individually, falling back to `dateutil`. To ensure parsing is "
+                    "consistent and as-expected, please specify a format.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
     return None
 
 
