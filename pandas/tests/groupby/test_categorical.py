@@ -1340,16 +1340,10 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
-
-    if reduction_func == "corrwith":  # GH 32293
-        mark = pytest.mark.xfail(
-            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
-        )
-        request.node.add_marker(mark)
 
     df = DataFrame(
         {
@@ -1363,6 +1357,12 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
     expected_length = 4 if observed else 16
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+
+    if reduction_func == "corrwith":
+        # TODO: implemented SeriesGroupBy.corrwith. See GH 32293
+        assert not hasattr(series_groupby, reduction_func)
+        return
+
     agg = getattr(series_groupby, reduction_func)
     result = agg(*args)
 
