@@ -989,6 +989,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     # in the first level of our MultiIndex
                     return self._get_values_tuple(key)
 
+        if isinstance(key, slice):
+            # Do slice check before somewhat-costly is_bool_indexer
+            # _convert_slice_indexer to determine if this slice is positional
+            #  or label based, and if the latter, convert to positional
+            slobj = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._slice(slobj)
+
         if is_iterator(key):
             key = list(key)
 
@@ -1001,12 +1008,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _get_with(self, key):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
-            # _convert_slice_indexer to determine if this slice is positional
-            #  or label based, and if the latter, convert to positional
-            slobj = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._slice(slobj)
-        elif isinstance(key, ABCDataFrame):
+        if isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
                 "supported, use the appropriate DataFrame column"
