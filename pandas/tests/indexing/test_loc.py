@@ -3197,6 +3197,68 @@ class TestLocSeries:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_setitems_dict(self):
+        # GH 52175
+
+        # single row, single column
+        df1 = DataFrame(index=[1, 2], columns=["a"])
+        d = {"b": 1.1}
+        df1.loc[1, d.keys()] = d.values()
+
+        # single row, multiple columns
+        df2 = DataFrame(index=[1, 2], columns=["a"])
+        d = {"b": 1.1, "c": 2.2}
+        df2.loc[1, d.keys()] = d.values()
+
+        # multiple rows, single column
+        df3 = DataFrame(index=[1, 2], columns=["a"])
+        d = {"b": 1.1}
+        df3.loc[[1, 2], d.keys()] = d.values()
+
+        # multiple rows, multiple columns
+        df4 = DataFrame(index=[1, 2], columns=["a"])
+        d = {"b": 1.1, "c": 2.2}
+        df4.loc[[1, 2], d.keys()] = d.values()
+
+        expected1 = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [1.1, np.nan],
+            },
+            index=[1, 2],
+        )
+
+        expected2 = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [1.1, np.nan],
+                "c": [2.2, np.nan],
+            },
+            index=[1, 2],
+        )
+
+        expected3 = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [1.1, 1.1],
+            },
+            index=[1, 2],
+        )
+
+        expected4 = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [1.1, 1.1],
+                "c": [2.2, 2.2]
+            },
+            index=[1, 2],
+        )
+
+        tm.assert_frame_equal(df1, expected1)
+        tm.assert_frame_equal(df2, expected2)
+        tm.assert_frame_equal(df3, expected3)
+        tm.assert_frame_equal(df4, expected4)
+
     def test_loc_set_multiple_items_in_multiple_new_columns(self):
         # GH 25594
         df = DataFrame(index=[1, 2], columns=["a"])
