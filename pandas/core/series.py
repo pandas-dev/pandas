@@ -2573,6 +2573,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
                 * linear: `i + (j - i) * fraction`, where `fraction` is the
                   fractional part of the index surrounded by `i` and `j`.
+                  For example, if (len(self) - 1) * q is 9.6,
+                  and the elements at indices 9 and 10 are 3 and 4,
+                  return 0.4 * 3 + 0.6 * 4 = 3.6
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
