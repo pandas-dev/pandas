@@ -297,8 +297,6 @@ exclude = [
 "pandas/io/*" = ["PLW2901"]
 "pandas/tests/*" = ["PLW2901"]
 "pandas/plotting/*" = ["PLW2901"]
-# TCH to be enabled gradually
-"pandas/core/nanops.py" = ["TCH"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 
