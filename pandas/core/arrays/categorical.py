@@ -1301,18 +1301,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         new_categories = self.categories.map(mapper)
 
-        not_dictlike_and_no_nans = not (is_dict_like(mapper) and np.nan not in mapper)
+        has_nans = np.any(self._codes == -1)
 
-        if na_action is None and not_dictlike_and_no_nans and np.any(self._codes == -1):
-            na_value = mapper(np.nan) if callable(mapper) else mapper[np.nan]
-            new_categories = new_categories.insert(len(new_categories), na_value)
-            return np.take(new_categories, self._codes)
-        elif new_categories.is_unique and not new_categories.hasnans:
+        na_val = np.nan
+        if na_action is None and has_nans:
+            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+
+        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype)
 
-        if np.any(self._codes == -1):
-            new_categories = new_categories.insert(len(new_categories), np.nan)
+        if has_nans:
+            new_categories = new_categories.insert(len(new_categories), na_val)
 
         return np.take(new_categories, self._codes)
 
