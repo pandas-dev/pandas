@@ -1625,6 +1625,30 @@ class Timestamp(_Timestamp):
             # When year, month or day is not given, we call the datetime
             # constructor to make sure we get the same error message
             # since Timestamp inherits datetime
+
+            if year is not None and not (0 < year < 10_000):
+                # GH#52091
+                obj = cls(
+                    year=1970,
+                    month=month,
+                    day=day,
+                    hour=hour,
+                    minute=minute,
+                    second=second,
+                    microsecond=microsecond,
+                    nanosecond=nanosecond,
+                    fold=fold,
+                    tz=tz,
+                    tzinfo=tzinfo,
+                    unit=unit,
+                )
+                if nanosecond is not None and nanosecond != 0:
+                    raise OutOfBoundsDatetime(
+                        f"Cannot construct a Timestamp with year={year} and "
+                        "non-zero nanoseconds"
+                    )
+                return obj.as_unit("us").replace(year=year)
+
             datetime_kwargs = {
                 "hour": hour or 0,
                 "minute": minute or 0,
@@ -1645,6 +1669,29 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, tzinfo]]]]])
+            if not (0 < ts_input < 10_000):
+                # GH#52091
+                obj = cls(
+                    1970,
+                    year,
+                    month,
+                    day,
+                    hour,
+                    minute,
+                    second,
+                    microsecond,
+                    nanosecond=nanosecond,
+                    fold=fold,
+                    tz=tz,
+                    tzinfo=tzinfo,
+                    unit=unit,
+                )
+                if nanosecond is not None and nanosecond != 0:
+                    raise OutOfBoundsDatetime(
+                        f"Cannot construct a Timestamp with year={ts_input} and "
+                        "non-zero nanoseconds"
+                    )
+                return obj.as_unit("us").replace(year=ts_input)
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None

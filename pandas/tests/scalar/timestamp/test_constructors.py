@@ -30,6 +30,26 @@ if PY39:
 
 
 class TestTimestampConstructors:
+    def test_construct_year_out_of_pydatetime_bounds(self):
+        # GH#52091 pass a year outside of pydatetime bounds either as positional
+        #  or keyword argument
+        ts = Timestamp(year=21000, month=1, day=2)
+        assert ts.year == 21000
+        assert ts.month == 1
+        assert ts.day == 2
+        assert ts.unit == "us"
+
+        ts2 = Timestamp(21000, 1, 2)
+        assert ts2 == ts
+        assert ts2.unit == "us"
+
+        msg = "Cannot construct a Timestamp with year=21000 and non-zero nanoseconds"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(year=21000, month=1, day=2, nanosecond=1)
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(21000, 1, 2, nanosecond=1)
+
     def test_construct_from_string_invalid_raises(self):
         # dateutil (weirdly) parses "200622-12-31" as
         #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
