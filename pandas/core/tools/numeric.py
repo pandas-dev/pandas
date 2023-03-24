@@ -273,7 +273,7 @@ def to_numeric(
                         break
 
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
-    # masked array. For StringArray need to compute a mask if conversion was successful.
+    # masked array
     if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
         if mask is None:
             mask = new_mask
