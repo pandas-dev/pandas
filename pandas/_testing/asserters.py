@@ -871,7 +871,9 @@ def assert_series_equal(
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert (
+            left._flags == right._flags
+        ), f"{repr(left._flags)} != {repr(right._flags)}"
 
     if check_index:
         # GH #38183
@@ -1144,7 +1146,9 @@ def assert_frame_equal(
         )
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert (
+            left._flags == right._flags
+        ), f"{repr(left._flags)} != {repr(right._flags)}"
 
     # index comparison
     assert_index_equal(

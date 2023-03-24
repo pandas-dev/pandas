@@ -4810,7 +4810,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if allow_duplicates is lib.no_default:
             allow_duplicates = False
-        if allow_duplicates and not self.flags.allows_duplicate_labels:
+        if allow_duplicates and not self._flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."

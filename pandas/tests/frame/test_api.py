@@ -328,19 +328,25 @@ class TestDataFrameMisc:
             obj = obj["A"]
             key = 0
 
-        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        set_msg = "(DataFrame|Series).set_flags is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=set_msg):
+            result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
 
+        get_msg = "(DataFrame|Series).flags is deprecated"
         if allows_duplicate_labels is None:
             # We don't update when it's not provided
-            assert result.flags.allows_duplicate_labels is True
+            with tm.assert_produces_warning(FutureWarning, match=get_msg):
+                assert result.flags.allows_duplicate_labels is True
         else:
-            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+            with tm.assert_produces_warning(FutureWarning, match=get_msg):
+                assert result.flags.allows_duplicate_labels is allows_duplicate_labels
 
         # We made a copy
         assert obj is not result
 
         # We didn't mutate obj
-        assert obj.flags.allows_duplicate_labels is True
+        with tm.assert_produces_warning(FutureWarning, match=get_msg):
+            assert obj.flags.allows_duplicate_labels is True
 
         # But we didn't copy data
         if frame_or_series is Series:
@@ -357,9 +363,10 @@ class TestDataFrameMisc:
             result.iloc[key] = 1
 
         # Now we do copy.
-        result = obj.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
+        with tm.assert_produces_warning(FutureWarning, match=set_msg):
+            result = obj.set_flags(
+                copy=True, allows_duplicate_labels=allows_duplicate_labels
+            )
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 

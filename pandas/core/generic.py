@@ -396,6 +396,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         False
         >>> df.flags["allows_duplicate_labels"] = True
         """
+        warnings.warn(
+            f"{type(self).__name__}.flags is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._flags
 
     @final
@@ -446,6 +452,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2.flags.allows_duplicate_labels
         False
         """
+        warnings.warn(
+            f"{type(self).__name__}.set_flags is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         df = self.copy(deep=copy and not using_copy_on_write())
         if allows_duplicate_labels is not None:
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
@@ -2019,7 +2032,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "_typ": self._typ,
             "_metadata": self._metadata,
             "attrs": self.attrs,
-            "_flags": {k: self.flags[k] for k in self.flags._keys},
+            "_flags": {k: self._flags[k] for k in self._flags._keys},
             **meta,
         }
 
@@ -4298,7 +4311,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _check_inplace_and_allows_duplicate_labels(self, inplace):
-        if inplace and not self.flags.allows_duplicate_labels:
+        if inplace and not self._flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
@@ -6000,26 +6013,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                stable across pandas releases.
         """
         if isinstance(other, NDFrame):
-            for name in other.attrs:
-                self.attrs[name] = other.attrs[name]
+            for name in other._attrs:
+                self._attrs[name] = other._attrs[name]
 
-            self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
+            self._flags.allows_duplicate_labels = other._flags.allows_duplicate_labels
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
-            attrs = other.objs[0].attrs
-            check_attrs = all(objs.attrs == attrs for objs in other.objs[1:])
+            attrs = other.objs[0]._attrs
+            check_attrs = all(objs._attrs == attrs for objs in other.objs[1:])
             if check_attrs:
                 for name in attrs:
-                    self.attrs[name] = attrs[name]
+                    self._attrs[name] = attrs[name]
 
             allows_duplicate_labels = all(
-                x.flags.allows_duplicate_labels for x in other.objs
+                x._flags.allows_duplicate_labels for x in other.objs
             )
-            self.flags.allows_duplicate_labels = allows_duplicate_labels
+            self._flags.allows_duplicate_labels = allows_duplicate_labels
 
         return self
 

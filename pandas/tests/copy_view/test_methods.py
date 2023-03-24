@@ -104,8 +104,12 @@ def test_copy_shallow(using_copy_on_write):
 def test_methods_copy_keyword(
     request, method, copy, using_copy_on_write, using_array_manager
 ):
+    warn = None
+    msg = "(DataFrame|Series).set_flags is deprecated"
     index = None
-    if "to_timestamp" in request.node.callspec.id:
+    if "set_flags" in request.node.callspec.id:
+        warn = FutureWarning
+    elif "to_timestamp" in request.node.callspec.id:
         index = period_range("2012-01-01", freq="D", periods=3)
     elif "to_period" in request.node.callspec.id:
         index = date_range("2012-01-01", freq="D", periods=3)
@@ -115,7 +119,8 @@ def test_methods_copy_keyword(
         index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
-    df2 = method(df, copy=copy)
+    with tm.assert_produces_warning(warn, match=msg):
+        df2 = method(df, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -171,8 +176,12 @@ def test_methods_copy_keyword(
     ],
 )
 def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write):
+    warn = None
+    msg = "(DataFrame|Series).set_flags is deprecated"
     index = None
-    if "to_timestamp" in request.node.callspec.id:
+    if "set_flags" in request.node.callspec.id:
+        warn = FutureWarning
+    elif "to_timestamp" in request.node.callspec.id:
         index = period_range("2012-01-01", freq="D", periods=3)
     elif "to_period" in request.node.callspec.id:
         index = date_range("2012-01-01", freq="D", periods=3)
@@ -184,7 +193,8 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
         index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
     ser = Series([1, 2, 3], index=index)
-    ser2 = method(ser, copy=copy)
+    with tm.assert_produces_warning(warn, match=msg):
+        ser2 = method(ser, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -1203,7 +1213,9 @@ def test_series_set_axis(using_copy_on_write):
 def test_set_flags(using_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
-    ser2 = ser.set_flags(allows_duplicate_labels=False)
+    msg = "Series.set_flags is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2 = ser.set_flags(allows_duplicate_labels=False)
 
     assert np.shares_memory(ser, ser2)
 

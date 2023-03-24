@@ -445,6 +445,9 @@ class TestNDFrame:
         if frame_or_series is DataFrame:
             obj = obj.to_frame()
 
-        assert obj.flags is obj.flags
+        msg = "(DataFrame|Series).flags is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.flags is obj.flags
         obj2 = obj.copy()
-        assert obj2.flags is not obj.flags
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj2.flags is not obj.flags

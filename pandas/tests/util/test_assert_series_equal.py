@@ -357,7 +357,9 @@ def test_assert_series_equal_ignore_extension_dtype_mismatch(right_dtype):
 
 def test_allows_duplicate_labels():
     left = Series([1])
-    right = Series([1]).set_flags(allows_duplicate_labels=False)
+    msg = "Series.set_flags is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        right = Series([1]).set_flags(allows_duplicate_labels=False)
     tm.assert_series_equal(left, left)
     tm.assert_series_equal(right, right)
     tm.assert_series_equal(left, right, check_flags=False)

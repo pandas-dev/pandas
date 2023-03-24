@@ -439,7 +439,9 @@ class TestResetIndex:
     ):
         # GH#44755 reset_index with duplicate column labels
         df = multiindex_df.rename_axis("A")
-        df = df.set_flags(allows_duplicate_labels=flag)
+        msg = "DataFrame.set_flags is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = df.set_flags(allows_duplicate_labels=flag)
 
         if flag and allow_duplicates:
             result = df.reset_index(allow_duplicates=allow_duplicates)
@@ -462,7 +464,9 @@ class TestResetIndex:
     @pytest.mark.parametrize("flag", [False, True])
     def test_reset_index_duplicate_columns_default(self, multiindex_df, flag):
         df = multiindex_df.rename_axis("A")
-        df = df.set_flags(allows_duplicate_labels=flag)
+        msg = "DataFrame.set_flags is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = df.set_flags(allows_duplicate_labels=flag)
 
         msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
