@@ -9,7 +9,7 @@
 ## Abstract
 
 The suggestion is that setitem-like operations would
-not change a ``Series``' dtype.
+not change a ``Series`` dtype (nor that of a ``DataFrame``'s column).
 
 Current behaviour:
 ```python
@@ -32,7 +32,7 @@ In [1]: ser = pd.Series([1, 2, 3])
 
 In [2]: ser[2] = 'potage'  # raises!
 ---------------------------------------------------------------------------
-TypeError: Invalid value 'potage' for dtype int64
+ValueError: Invalid value 'potage' for dtype int64
 ```
 
 ## Motivation and Scope
@@ -57,13 +57,12 @@ df = DataFrame({"a": [1, 2, np.nan], "b": [4, 5, 6]})
 ser = df["a"].copy()
 ```
 then the following would all raise:
-- ``ser[0] = 'foo'``;
 - ``ser.fillna('foo', inplace=True)``;
 - ``ser.where(ser.isna(), 'foo', inplace=True)``
 - ``ser.fillna('foo', inplace=False)``;
 - ``ser.where(ser.isna(), 'foo', inplace=False)``
-- ``ser.iloc[0] = 'foo'``
-- ``ser.loc[0] = 'foo'``
+- ``ser.iloc[indexer] = 'foo'``
+- ``ser.loc[indexer] = 'foo'``
 - ``df.loc[indexer, 'a'] = 'foo'``
 - ``ser[indexer] = 'foo'``
 
@@ -75,6 +74,7 @@ Examples of operations which would not raise are:
 - ``pd.concat([ser, ser.astype(object)])``;
 - ``ser.mean()``;
 - ``ser[0] = 3.``;
+- ``df['a'] = pd.date_range(datetime(2020, 1, 1), periods=3)``;
 - ``ser[0] = 3``.
 
 ## Detailed description
@@ -106,7 +106,9 @@ For a start, this would involve:
    - ``EABackedBlock.putmask``;
    - ``_iLocIndexer._setitem_single_column``;
 
-The above would already require several hundreds of tests to be adjusted.
+The above would already require several hundreds of tests to be adjusted. Note that once
+implementation starts, the list of locations to change may turn out to be slightly
+different.
 
 ### Ban upcasting altogether, or just upcasting to ``object``?
 
@@ -122,7 +124,7 @@ This is not necessarily a sign of a bug, because the user might just be thinking
 numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer.
 
 Possible options could be:
-1. just raise, forcing users to be explicit;
+1. only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``);
 2. convert the float value to ``int`` before setting it;
 3. limit "banning upcasting" to when the upcasted dtype is ``object``.
 
@@ -144,7 +146,7 @@ There are several downsides to option ``3``:
 - it would also add complexity to the codebase and to tests;
 - it would be hard to teach, as instead of being able to teach a simple rule,
   there would be a rule with exceptions;
-- there would be a risk of loss of precision;
+- there would be a risk of loss of precision and or overflow;
 - it opens the door to other exceptions, such as not upcasting ``'int8'`` to ``'int16'``.
 
 Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
