@@ -115,6 +115,9 @@ def test_flatten_buffer(data):
         assert result.shape == (result.nbytes,)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:(DataFrame|Series).attrs is deprecated:FutureWarning"
+)
 def test_pickles(datapath):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
