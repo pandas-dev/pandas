@@ -31,6 +31,7 @@ class IntFrameWithScalar:
         [np.float64, np.int64],
         [2, 3.0, np.int32(4), np.float64(5)],
         [
+            operator.iadd,
             operator.add,
             operator.sub,
             operator.mul,

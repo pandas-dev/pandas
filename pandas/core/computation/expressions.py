@@ -17,6 +17,9 @@ from pandas._config import get_option
 
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.inference import is_scalar
+
 from pandas.core import roperator
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -64,10 +67,13 @@ def set_numexpr_threads(n=None) -> None:
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b):
+def _evaluate_standard(op, op_str, a, b, inplace):
     """
     Standard evaluation.
     """
+    if op in _inplace_ops and not inplace:
+        # Replace with the non-inplace variant
+        op = _inplace_ops[op]
     if _TEST_MODE:
         _store_test_result(False)
     return op(a, b)
@@ -92,7 +98,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b):
+def _evaluate_numexpr(op, op_str, a, b, inplace=False):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
@@ -109,6 +115,7 @@ def _evaluate_numexpr(op, op_str, a, b):
                 f"a_value {op_str} b_value",
                 local_dict={"a_value": a_value, "b_value": b_value},
                 casting="safe",
+                out=a_value if inplace else None,
             )
         except TypeError:
             # numexpr raises eg for array ** array with integers
@@ -128,13 +135,21 @@ def _evaluate_numexpr(op, op_str, a, b):
         _store_test_result(result is not None)
 
     if result is None:
-        result = _evaluate_standard(op, op_str, a, b)
+        result = _evaluate_standard(op, op_str, a, b, inplace)
 
     return result
 
 
+# Inplace ops and their fallbacks, in-case
+# the operation actually can't be done inplace
+_inplace_ops = {operator.iadd: operator.add}
+
+# For inplace ops, we'll map to the regular variant
+# however, we'll also use the out parameter to make it
+# inplace
 _op_str_mapping = {
     operator.add: "+",
+    operator.iadd: "+",
     roperator.radd: "+",
     operator.mul: "*",
     roperator.rmul: "*",
@@ -236,11 +251,24 @@ def evaluate(op, a, b, use_numexpr: bool = True):
         Whether to try to use numexpr.
     """
     op_str = _op_str_mapping[op]
+    inplace = False
+    if op in _inplace_ops:
+        if is_scalar(b):
+            # TODO: This is not right
+            # numpy cannot do e.g. an int + float inplace
+            # even if float can be losslessly cast to an int
+            inplace = can_hold_element(a, b)
+        else:
+            # Array-like
+            # TODO: Be more permissive here
+            # e.g. allow upcasting smaller float/int dtypes?
+            inplace = a.dtype == b.dtype
+
     if op_str is not None:
         if use_numexpr:
             # error: "None" not callable
-            return _evaluate(op, op_str, a, b)  # type: ignore[misc]
-    return _evaluate_standard(op, op_str, a, b)
+            return _evaluate(op, op_str, a, b, inplace=inplace)  # type: ignore[misc]
+    return _evaluate_standard(op, op_str, a, b, inplace=inplace)
 
 
 def where(cond, a, b, use_numexpr: bool = True):

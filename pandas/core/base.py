@@ -1312,7 +1312,7 @@ class IndexOpsMixin(OpsMixin):
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         return algorithms.duplicated(self._values, keep=keep)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op, inplace=False):
         res_name = ops.get_op_result_name(self, other)
 
         lvalues = self._values
@@ -1324,6 +1324,9 @@ class IndexOpsMixin(OpsMixin):
 
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
+            if inplace and result is lvalues:
+                # inplace case
+                return self
 
         return self._construct_result(result, name=res_name)
 

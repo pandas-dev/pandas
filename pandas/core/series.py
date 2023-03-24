@@ -96,6 +96,7 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -5747,8 +5748,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._construct_result(res_values, name=res_name)
 
     def _arith_method(self, other, op):
+        inplace = False
+        if op in _inplace_ops:
+            # If inplace, and the inplace op fails, e.g.
+            # mismatched dtypes with numpy, we need to do
+            # an _update_inplace call
+            inplace = True
+
         self, other = self._align_for_op(other)
-        return base.IndexOpsMixin._arith_method(self, other, op)
+        res = base.IndexOpsMixin._arith_method(self, other, op, inplace)
+        if inplace:
+            if res is not self:
+                # Need to update arrays inplace with res, since the
+                # inplace operation couldn't be done directly
+                # Delete cacher
+                self._reset_cacher()
+                self._update_inplace(
+                    res.reindex_like(self, copy=False), verify_is_copy=False
+                )
+            return self
+        return res
 
     def _align_for_op(self, right, align_asobject: bool = False):
         """align lhs and rhs Series"""

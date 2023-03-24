@@ -1718,6 +1718,7 @@ class TestFrameArithmeticUnsorted:
         s = s_orig.copy()
         s2 = s
         s += 1.5
+        assert s is s2
         tm.assert_series_equal(s, s2)
         tm.assert_series_equal(s_orig + 1.5, s)
 

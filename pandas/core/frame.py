@@ -134,6 +134,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -7504,6 +7505,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other = self._align_for_op(other, axis, flex=True, level=None)
 
         new_data = self._dispatch_frame_op(other, op, axis=axis)
+        if new_data is self:
+            # TODO: copy what _construct_result does(just the finalize call?)
+            return self
         return self._construct_result(new_data)
 
     _logical_method = _arith_method
@@ -7531,6 +7535,9 @@ class DataFrame(NDFrame, OpsMixin):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
+            if func in _inplace_ops:
+                self._mgr = bm
+                return self
             return self._constructor(bm)
 
         elif isinstance(right, DataFrame):
@@ -7552,6 +7559,9 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
+                if bm is self._mgr:
+                    # Inplace operation was successful
+                    return self
             return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:

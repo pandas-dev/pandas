@@ -204,6 +204,8 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     """
     if isinstance(right, str):
         # can never use numexpr
+        # TODO: Probably also need to detect mismatched dtypes here
+        # since numpy will error on them if you use an inplace operator
         func = op
     else:
         func = partial(expressions.evaluate, op)
@@ -476,6 +478,7 @@ def get_array_op(op):
         return partial(logical_op, op=op)
     elif op_name in {
         "add",
+        "iadd",
         "sub",
         "mul",
         "truediv",
