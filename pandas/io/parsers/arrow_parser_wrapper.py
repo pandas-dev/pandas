@@ -161,21 +161,28 @@ class ArrowParserWrapper(ParserBase):
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
 
-        # Convert all pa.null() cols -> float64
+        dtype_backend = self.kwds["dtype_backend"]
+
+        # Convert all pa.null() cols -> float64 (non nullable)
+        # else Int64 (nullable case)
         # TODO: There has to be a better way... right?
-        if self.kwds["dtype_backend"] != "pyarrow":
+        if dtype_backend != "pyarrow":
             new_schema = table.schema
+            if dtype_backend == "numpy_nullable":
+                new_type = pa.int64()
+            else:
+                new_type = pa.float64()
             for i, arrow_type in enumerate(table.schema.types):
                 if pa.types.is_null(arrow_type):
                     new_schema = new_schema.set(
-                        i, new_schema.field(i).with_type(pa.float64())
+                        i, new_schema.field(i).with_type(new_type)
                     )
 
             table = table.cast(new_schema)
 
-        if self.kwds["dtype_backend"] == "pyarrow":
+        if dtype_backend == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-        elif self.kwds["dtype_backend"] == "numpy_nullable":
+        elif dtype_backend == "numpy_nullable":
             frame = table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
         else:
             frame = table.to_pandas()

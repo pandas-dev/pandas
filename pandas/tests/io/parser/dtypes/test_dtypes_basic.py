@@ -425,7 +425,7 @@ def test_dtype_backend(all_parsers):
             "g": pd.Series([pd.NA, True], dtype="boolean"),
             "h": pd.Series([pd.NA, "a"], dtype="string"),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),
-            "j": pd.Series([pd.NA, pd.NA], dtype="Float64"),
+            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
