@@ -17,6 +17,9 @@ pytest.importorskip("tables")
 
 class TestHDFStoreSubclass:
     # GH 33748
+
+    # _metadata warning only shows up on ArrayManager build
+    @pytest.mark.filterwarnings("ignore")
     def test_supported_for_subclass_dataframe(self, tmp_path):
         data = {"a": [1, 2], "b": [3, 4]}
         sdf = tm.SubclassedDataFrame(data, dtype=np.intp)

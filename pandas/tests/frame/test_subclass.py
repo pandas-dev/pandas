@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -731,7 +733,10 @@ class TestDataFrameSubclassing:
             result = df.memory_usage()
         assert isinstance(result, tm.SubclassedSeries)
 
-        result = df.memory_usage(index=False)
+        with warnings.catch_warnings():
+            # this only warns in the CoW build
+            warnings.filterwarnings("ignore")
+            result = df.memory_usage(index=False)
         assert isinstance(result, tm.SubclassedSeries)
 
     @td.skip_if_no_scipy
