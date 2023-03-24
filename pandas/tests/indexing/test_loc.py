@@ -3249,7 +3249,7 @@ class TestLocSeries:
             {
                 "a": Series([np.nan, np.nan], dtype="object"),
                 "b": [1.1, 1.1],
-                "c": [2.2, 2.2]
+                "c": [2.2, 2.2],
             },
             index=[1, 2],
         )
