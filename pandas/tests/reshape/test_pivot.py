@@ -2378,6 +2378,43 @@ class TestPivotTable:
             expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_aggfunc_nunique_with_different_values(self):
+        test = DataFrame(
+            {
+                "a": range(10),
+                "b": range(10),
+                "c": range(10),
+                "d": range(10),
+            }
+        )
+
+        columnval = MultiIndex.from_arrays(
+            [
+                ["nunique" for i in range(10)],
+                ["c" for i in range(10)],
+                range(10),
+            ],
+            names=(None, None, "b"),
+        )
+        nparr = np.full((10, 10), np.NaN)
+        np.fill_diagonal(nparr, 1.0)
+
+        expected = DataFrame(nparr, index=Index(range(10), name="a"), columns=columnval)
+        result = test.pivot_table(
+            index=[
+                "a",
+            ],
+            columns=[
+                "b",
+            ],
+            values=[
+                "c",
+            ],
+            aggfunc=["nunique"],
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
