@@ -156,8 +156,9 @@ This would make pandas stricter, so there should not be any risk of introducing 
 
 Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
 
-Given that users could still get the current behaviour by first explicitly casting to float,
-it would be more beneficial to the community at large to err on the side of strictness.
+Given that users could still get the current behaviour by first explicitly casting the Series
+to float, it would be more beneficial to the community at large to err on the side
+of strictness.
 
 ## Out of scope
 
