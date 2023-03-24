@@ -24,6 +24,7 @@ from datetime import (
     date,
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 from pathlib import Path
@@ -547,6 +548,26 @@ def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
     test_frame1.to_sql("test", conn, if_exists="append", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes(conn, request):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "int": pd.array([1], dtype="int8[pyarrow]"),
+            "datetime": pd.array(
+                [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
+            ),
+            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
+            "string": pd.array(["a"], dtype="string[pyarrow]"),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
+        df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db

@@ -957,10 +957,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
                     #  compare_mismatched_resolutions handle broadcasting
-                    other_arr = np.array(other.asm8)
+                    try:
+                        # GH#52080 see if we can losslessly cast to shared unit
+                        other = other.as_unit(self.unit, round_ok=False)
+                    except ValueError:
+                        other_arr = np.array(other.asm8)
+                        return compare_mismatched_resolutions(
+                            self._ndarray, other_arr, op
+                        )
                 else:
                     other_arr = other._ndarray
-                return compare_mismatched_resolutions(self._ndarray, other_arr, op)
+                    return compare_mismatched_resolutions(self._ndarray, other_arr, op)
 
         other_vals = self._unbox(other)
         # GH#37462 comparison on i8 values is almost 2x faster than M8/m8
@@ -1585,12 +1592,29 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = self.dtype
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
+            if how in ["any", "all"]:
+                # GH#34479
+                warnings.warn(
+                    f"'{how}' with datetime64 dtypes is deprecated and will raise in a "
+                    f"future version. Use (obj != pd.Timestamp(0)).{how}() instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         elif is_period_dtype(dtype):
             # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
                 raise TypeError(f"Period type does not support {how} operations")
+            if how in ["any", "all"]:
+                # GH#34479
+                warnings.warn(
+                    f"'{how}' with PeriodDtype is deprecated and will raise in a "
+                    f"future version. Use (obj != pd.Period(0, freq)).{how}() instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         else:
             # timedeltas we can add but not multiply
             if how in ["prod", "cumprod"]:
