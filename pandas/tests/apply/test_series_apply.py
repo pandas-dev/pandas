@@ -381,7 +381,8 @@ def test_agg_apply_evaluate_lambdas_the_same(string_series):
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    with tm.assert_produces_warning(FutureWarning, match="converting list of Series"):
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
         result = datetime_series.apply(
             lambda x: Series([x, x**2], index=["x", "x^2"])
@@ -389,7 +390,7 @@ def test_with_nested_series(datetime_series):
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match="converting list of Series"):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
         result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
@@ -863,7 +864,8 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
         index = dti.tz_localize("UTC").index
     else:
         index = dti.index
-    with tm.assert_produces_warning(FutureWarning, match="converting list of Series"):
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
         result = Series(index).apply(lambda x: Series([1, 2]))
     tm.assert_frame_equal(result, exp)
@@ -975,7 +977,8 @@ def test_apply_retains_column_name():
     # GH 16380
     df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
     func = lambda x: Series(range(x + 1), Index(range(x + 1), name="y"))
-    with tm.assert_produces_warning(FutureWarning, match="converting list of Series"):
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
         result = df.x.apply(func)
     expected = DataFrame(
