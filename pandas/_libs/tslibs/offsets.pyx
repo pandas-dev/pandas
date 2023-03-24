@@ -2788,10 +2788,10 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-02-15 00:00:00')
 
-    If you want to get the result for the current month pass the parameter n equals 0:
+    If you want to get the result for the current month:
 
     >>> ts = pd.Timestamp(2022, 1, 15)
-    >>> ts + pd.offsets.SemiMonthEnd(0)
+    >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
     _prefix = "SM"
