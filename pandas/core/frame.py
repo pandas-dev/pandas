@@ -646,10 +646,12 @@ class DataFrame(NDFrame, OpsMixin):
     _constructor_sliced: Callable[..., Series] = Series
 
     def _sliced_from_mgr(self, mgr, axes) -> Series:
-        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"
-        return self._constructor_sliced._from_mgr(  # type: ignore[attr-defined]
-            mgr, axes=axes
-        )
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #  with self._constructor_slcied._from_mgr(...)
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        return self._constructor_sliced(mgr)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -2341,7 +2343,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        return cls(mgr)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2551,7 +2553,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        return cls(mgr)
 
     @doc(
         storage_options=_shared_docs["storage_options"],

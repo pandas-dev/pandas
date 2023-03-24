@@ -579,10 +579,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame
 
     def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        # error: "Callable[..., Series]" has no attribute "_from_mgr"
-        return self._constructor_expanddim._from_mgr(  # type: ignore[attr-defined]
-            mgr, axes
-        )
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #  with self._constructor_expanddim._from_mgr(...)
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        return self._constructor_expanddim(mgr)
 
     # types
     @property

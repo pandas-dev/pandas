@@ -823,7 +823,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     def _expanddim_from_mgr(self, mgr, axes):
-        return SubclassedDataFrame._from_mgr(mgr, axes)
+        return self._constructor_expanddim(mgr)
 
 
 class SubclassedDataFrame(DataFrame):
@@ -838,7 +838,7 @@ class SubclassedDataFrame(DataFrame):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     def _sliced_from_mgr(self, mgr, axes):
-        return SubclassedSeries._from_mgr(mgr, axes)
+        return self._constructor_sliced(mgr)
 
 
 class SubclassedCategorical(Categorical):

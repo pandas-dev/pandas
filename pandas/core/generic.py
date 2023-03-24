@@ -333,8 +333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 
-    @classmethod
-    def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
+    def _from_mgr(self, mgr: Manager, axes: list[Index]) -> Self:
         """
         Construct a new object of this type from a Manager object and axes.
 
@@ -349,9 +348,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The axes must match mgr.axes, but are required for future-proofing
         in the event that axes are refactored out of the Manager objects.
         """
-        obj = cls.__new__(cls)
-        NDFrame.__init__(obj, mgr)
-        return obj
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #   obj = cls.__new__(cls)
+        #   NDFrame.__init__(obj, mgr)
+        #   return obj
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        return self._constructor(mgr)
 
     # ----------------------------------------------------------------------
     # attrs and flags
