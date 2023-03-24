@@ -312,11 +312,14 @@ class TestDataFrameMisc:
 
     def test_attrs(self):
         df = DataFrame({"A": [2, 3]})
-        assert df.attrs == {}
-        df.attrs["version"] = 1
+        msg = "DataFrame.attrs is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert df.attrs == {}
+            df.attrs["version"] = 1
 
         result = df.rename(columns=str)
-        assert result.attrs == {"version": 1}
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert result.attrs == {"version": 1}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(

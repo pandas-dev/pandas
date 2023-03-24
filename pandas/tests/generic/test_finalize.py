@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 # TODO:
 # * Binary methods (mul, div, etc.)
@@ -457,19 +458,26 @@ def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)
 
-    ndframe.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        ndframe.attrs = {"a": 1}
     result = method(ndframe)
 
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @not_implemented_mark
 def test_finalize_called_eval_numexpr():
     pytest.importorskip("numexpr")
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+
     df = pd.DataFrame({"A": [1, 2]})
-    df.attrs["A"] = 1
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        df.attrs["A"] = 1
     result = df.eval("A + 1", engine="numexpr")
-    assert result.attrs == {"A": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"A": 1}
 
 
 # ----------------------------------------------------------------------------
@@ -491,13 +499,18 @@ def test_finalize_called_eval_numexpr():
     ],
     ids=lambda x: f"({type(x[0]).__name__},{type(x[1]).__name__})",
 )
+@pytest.mark.filterwarnings("ignore:Series.attrs is deprecated:FutureWarning")
 def test_binops(request, args, annotate, all_binary_operators):
     # This generates 624 tests... Is that needed?
     left, right = args
+
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
     if isinstance(left, (pd.DataFrame, pd.Series)):
-        left.attrs = {}
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            left.attrs = {}
     if isinstance(right, (pd.DataFrame, pd.Series)):
-        right.attrs = {}
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            right.attrs = {}
 
     if annotate == "left" and isinstance(left, int):
         pytest.skip("left is an int and doesn't support .attrs")
@@ -552,9 +565,11 @@ def test_binops(request, args, annotate, all_binary_operators):
                         )
                     )
     if annotate in {"left", "both"} and not isinstance(left, int):
-        left.attrs = {"a": 1}
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            left.attrs = {"a": 1}
     if annotate in {"right", "both"} and not isinstance(right, int):
-        right.attrs = {"a": 1}
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            right.attrs = {"a": 1}
 
     is_cmp = all_binary_operators in [
         operator.eq,
@@ -571,7 +586,8 @@ def test_binops(request, args, annotate, all_binary_operators):
         right, left = right.align(left, axis=1, copy=False)
 
     result = all_binary_operators(left, right)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 # ----------------------------------------------------------------------------
@@ -633,9 +649,12 @@ def test_binops(request, args, annotate, all_binary_operators):
 )
 def test_string_method(method):
     s = pd.Series(["a1"])
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = method(s.str)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize(
@@ -655,9 +674,12 @@ def test_string_method(method):
 )
 def test_datetime_method(method):
     s = pd.Series(pd.date_range("2000", periods=4))
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = method(s.dt)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize(
@@ -692,9 +714,12 @@ def test_datetime_method(method):
 )
 def test_datetime_property(attr):
     s = pd.Series(pd.date_range("2000", periods=4))
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = getattr(s.dt, attr)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize(
@@ -702,17 +727,23 @@ def test_datetime_property(attr):
 )
 def test_timedelta_property(attr):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = getattr(s.dt, attr)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize("method", [operator.methodcaller("total_seconds")])
 def test_timedelta_methods(method):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = method(s.dt)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize(
@@ -732,9 +763,12 @@ def test_timedelta_methods(method):
 @not_implemented_mark
 def test_categorical_accessor(method):
     s = pd.Series(["a", "b"], dtype="category")
-    s.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        s.attrs = {"a": 1}
     result = method(s.cat)
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 # ----------------------------------------------------------------------------
@@ -755,9 +789,12 @@ def test_categorical_accessor(method):
     ],
 )
 def test_groupby_finalize(obj, method):
-    obj.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0], group_keys=False))
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 @pytest.mark.parametrize(
@@ -777,9 +814,12 @@ def test_groupby_finalize(obj, method):
 )
 @not_implemented_mark
 def test_groupby_finalize_not_implemented(obj, method):
-    obj.attrs = {"a": 1}
+    warn_msg = "(DataFrame|Series).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
-    assert result.attrs == {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        assert result.attrs == {"a": 1}
 
 
 def test_finalize_frame_series_name():

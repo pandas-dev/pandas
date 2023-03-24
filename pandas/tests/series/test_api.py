@@ -161,10 +161,13 @@ class TestSeriesMisc:
 
     def test_attrs(self):
         s = Series([0, 1], name="abc")
-        assert s.attrs == {}
-        s.attrs["version"] = 1
+        msg = "Series.attrs is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert s.attrs == {}
+            s.attrs["version"] = 1
         result = s + 1
-        assert result.attrs == {"version": 1}
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert result.attrs == {"version": 1}
 
     @skip_if_no("jinja2")
     def test_inspect_getmembers(self):

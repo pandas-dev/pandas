@@ -583,8 +583,10 @@ def test_pickle_frame_v124_unpickle_130(datapath):
         "1.2.4",
         "empty_frame_v1_2_4-GH#42345.pkl",
     )
-    with open(path, "rb") as fd:
-        df = pickle.load(fd)
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with open(path, "rb") as fd:
+            df = pickle.load(fd)
 
     expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

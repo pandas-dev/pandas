@@ -71,7 +71,10 @@ def test_categorical_dtype(data):
         desc_cat["categories"]._col, pd.Series(["a", "d", "e", "s", "t"])
     )
 
-    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(df, res)
 
 
 @pytest.mark.parametrize(
@@ -90,12 +93,15 @@ def test_dataframe(data):
     indices = (0, 2)
     names = tuple(list(data.keys())[idx] for idx in indices)
 
-    result = from_dataframe(df2.select_columns(indices))
-    expected = from_dataframe(df2.select_columns_by_name(names))
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = from_dataframe(df2.select_columns(indices))
+        expected = from_dataframe(df2.select_columns_by_name(names))
     tm.assert_frame_equal(result, expected)
 
-    assert isinstance(result.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
-    assert isinstance(expected.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert isinstance(result.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
+        assert isinstance(expected.attrs["_INTERCHANGE_PROTOCOL_BUFFERS"], list)
 
 
 def test_missing_from_masked():
@@ -193,7 +199,10 @@ def test_datetime():
     assert col.dtype[0] == DtypeKind.DATETIME
     assert col.describe_null == (ColumnNullType.USE_SENTINEL, iNaT)
 
-    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = from_dataframe(df.__dataframe__())
+    tm.assert_frame_equal(df, res)
 
 
 @td.skip_if_np_lt("1.23")

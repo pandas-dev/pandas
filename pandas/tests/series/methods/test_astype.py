@@ -441,10 +441,13 @@ class TestAstype:
     def test_astype_retain_Attrs(self, any_numpy_dtype):
         # GH#44414
         ser = Series([0, 1, 2, 3])
-        ser.attrs["Location"] = "Michigan"
+        msg = "Series.attrs is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.attrs["Location"] = "Michigan"
 
-        result = ser.astype(any_numpy_dtype).attrs
-        expected = ser.attrs
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.astype(any_numpy_dtype).attrs
+            expected = ser.attrs
 
         tm.assert_dict_equal(expected, result)
 

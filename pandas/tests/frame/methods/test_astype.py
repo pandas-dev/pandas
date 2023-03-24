@@ -801,10 +801,13 @@ class TestAstype:
     def test_astype_retain_attrs(self, any_numpy_dtype):
         # GH#44414
         df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
-        df.attrs["Location"] = "Michigan"
+        msg = "DataFrame.attrs is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.attrs["Location"] = "Michigan"
 
-        result = df.astype({"a": any_numpy_dtype}).attrs
-        expected = df.attrs
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.astype({"a": any_numpy_dtype}).attrs
+            expected = df.attrs
 
         tm.assert_dict_equal(expected, result)
 

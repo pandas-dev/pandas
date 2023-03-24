@@ -710,11 +710,15 @@ def test_concat_multiindex_with_empty_rangeindex():
 def test_concat_drop_attrs(data):
     # GH#41828
     df1 = data.copy()
-    df1.attrs = {1: 1}
+    msg = "(Series|DataFrame).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df1.attrs = {1: 1}
     df2 = data.copy()
-    df2.attrs = {1: 2}
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2.attrs = {1: 2}
     df = concat([df1, df2])
-    assert len(df.attrs) == 0
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert len(df.attrs) == 0
 
 
 @pytest.mark.parametrize(
@@ -733,11 +737,15 @@ def test_concat_drop_attrs(data):
 def test_concat_retain_attrs(data):
     # GH#41828
     df1 = data.copy()
-    df1.attrs = {1: 1}
+    msg = "(Series|DataFrame).attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df1.attrs = {1: 1}
     df2 = data.copy()
-    df2.attrs = {1: 1}
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2.attrs = {1: 1}
     df = concat([df1, df2])
-    assert df.attrs[1] == 1
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert df.attrs[1] == 1
 
 
 @td.skip_array_manager_invalid_test

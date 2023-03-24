@@ -349,12 +349,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         DataFrame.flags : Global flags applying to this object.
         """
+        warnings.warn(
+            f"{type(self).__name__}.attrs is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if self._attrs is None:
             self._attrs = {}
         return self._attrs
 
     @attrs.setter
     def attrs(self, value: Mapping[Hashable, Any]) -> None:
+        warnings.warn(
+            f"{type(self).__name__}.attrs is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         self._attrs = dict(value)
 
     @final
@@ -2018,7 +2031,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "_mgr": self._mgr,
             "_typ": self._typ,
             "_metadata": self._metadata,
-            "attrs": self.attrs,
+            "_attrs": self._attrs,
             "_flags": {k: self.flags[k] for k in self.flags._keys},
             **meta,
         }
@@ -6000,8 +6013,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                stable across pandas releases.
         """
         if isinstance(other, NDFrame):
-            for name in other.attrs:
-                self.attrs[name] = other.attrs[name]
+            for name in other._attrs:
+                self._attrs[name] = other._attrs[name]
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
@@ -6010,11 +6023,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
-            attrs = other.objs[0].attrs
-            check_attrs = all(objs.attrs == attrs for objs in other.objs[1:])
+            attrs = other.objs[0]._attrs
+            check_attrs = all(objs._attrs == attrs for objs in other.objs[1:])
             if check_attrs:
                 for name in attrs:
-                    self.attrs[name] = attrs[name]
+                    self._attrs[name] = attrs[name]
 
             allows_duplicate_labels = all(
                 x.flags.allows_duplicate_labels for x in other.objs
