@@ -255,6 +255,7 @@ Occasionally, contributors are unable to finish off a pull request.
 If some time has passed (two weeks, say) since the last review requesting changes,
 gently ask if they're still interested in working on this. If another two weeks or
 so passes with no response, thank them for their work and then either:
+
 - close the pull request;
 - push to the contributor's branch to push their work over the finish line (if
   you're part of ``pandas-core``). This can be helpful for pushing an important PR
