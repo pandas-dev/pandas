@@ -950,7 +950,7 @@ class MultiIndex(Index):
             pass
         elif is_array_like(levels):
             levels = Index(levels)
-        else:
+        elif is_list_like(levels):
             levels = list(levels)
 
         level, levels = _require_listlike(level, levels, "Levels")
