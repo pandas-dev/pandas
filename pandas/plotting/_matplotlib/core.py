@@ -1113,7 +1113,7 @@ class MPLPlot(ABC):
 
         return [
             ax
-            for ax in self.axes[0].get_figure().get_axes()
+            for ax in self.fig.get_axes()
             if (isinstance(ax, Subplot) and ax.get_subplotspec() is not None)
         ]
 
