@@ -8555,7 +8555,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
@@ -8582,6 +8582,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Which axis to use for up- or down-sampling. For `Series` this parameter
             is unused and defaults to 0. Must be
             `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
+
+            .. deprecated:: 2.0.0
+                Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -8938,7 +8941,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.core.resample import get_resampler
 
-        axis = self._get_axis_number(axis)
+        if axis is not lib.no_default:
+            axis = self._get_axis_number(axis)
+            if axis == 1:
+                warnings.warn(
+                    "DataFrame.resample with axis=1 is deprecated. Do "
+                    "`frame.T.resample(...)` without axis instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "The 'axis' keyword in DataFrame.resample is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            axis = 0
+
         return get_resampler(
             cast("Series | DataFrame", self),
             freq=rule,

@@ -11418,7 +11418,7 @@ class DataFrame(NDFrame, OpsMixin):
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
