@@ -1864,6 +1864,10 @@ class _iLocIndexer(_LocationIndexer):
                 if len(value) == 1 and not is_integer(info_axis):
                     # This is a case like df.iloc[:3, [1]] = [0]
                     #  where we treat as df.iloc[:3, 1] = 0
+
+                    # to avoid "TypeError: 'dict_values' object is not subscriptable"
+                    value = list(value) if type(value) == {}.values().__class__ else value
+
                     return self._setitem_with_indexer((pi, info_axis[0]), value[0])
 
                 raise ValueError(
