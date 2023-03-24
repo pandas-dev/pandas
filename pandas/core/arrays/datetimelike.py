@@ -747,24 +747,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action=None):
-        if na_action is not None:
-            raise NotImplementedError
-
         from pandas import Index
 
-        idx = Index(self)
-        try:
-            result = mapper(idx)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-        except Exception:
-            result = map_array(self, mapper)
-            result = Index(result)
+        result = map_array(self, mapper, na_action=na_action)
+        result = Index(result)
 
         if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
@@ -971,10 +957,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 if not isinstance(other, type(self)):
                     # i.e. Timedelta/Timestamp, cast to ndarray and let
                     #  compare_mismatched_resolutions handle broadcasting
-                    other_arr = np.array(other.asm8)
+                    try:
+                        # GH#52080 see if we can losslessly cast to shared unit
+                        other = other.as_unit(self.unit, round_ok=False)
+                    except ValueError:
+                        other_arr = np.array(other.asm8)
+                        return compare_mismatched_resolutions(
+                            self._ndarray, other_arr, op
+                        )
                 else:
                     other_arr = other._ndarray
-                return compare_mismatched_resolutions(self._ndarray, other_arr, op)
+                    return compare_mismatched_resolutions(self._ndarray, other_arr, op)
 
         other_vals = self._unbox(other)
         # GH#37462 comparison on i8 values is almost 2x faster than M8/m8
@@ -2172,7 +2165,6 @@ def validate_periods(periods: int | float | None) -> int | None:
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
-        periods = cast(int, periods)
     return periods
 
 

@@ -44,7 +44,6 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
-    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -965,14 +964,16 @@ class SQLTable(PandasObject):
         data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
 
         for i, (_, ser) in enumerate(temp.items()):
-            vals = ser._values
-            if vals.dtype.kind == "M":
-                d = vals.to_pydatetime()
-            elif vals.dtype.kind == "m":
+            if ser.dtype.kind == "M":
+                d = ser.dt.to_pydatetime()
+            elif ser.dtype.kind == "m":
+                vals = ser._values
+                if isinstance(vals, ArrowExtensionArray):
+                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
-                d = vals.astype(object)
+                d = ser._values.astype(object)
 
             assert isinstance(d, np.ndarray), type(d)
 
@@ -1022,7 +1023,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
-                if is_integer(num_inserted):
+                if num_inserted is not None:
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:
