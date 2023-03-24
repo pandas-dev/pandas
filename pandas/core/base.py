@@ -801,6 +801,12 @@ class IndexOpsMixin(OpsMixin):
         --------
         numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
             nested list of Python scalars.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.to_list()
+        [1, 2, 3]
         """
         return self._values.tolist()
 
