@@ -110,8 +110,11 @@ class TestDataFrame:
             df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["a", "b"])
             df2 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=["c", "d"])
             DataFrame._metadata = ["filename"]
-            df1.filename = "fname1.csv"
-            df2.filename = "fname2.csv"
+            msg = "_metadata handling is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df1.filename = "fname1.csv"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df2.filename = "fname2.csv"
 
             result = df1.merge(df2, left_on=["a"], right_on=["c"], how="inner")
             assert result.filename == "fname1.csv|fname2.csv"
@@ -119,7 +122,8 @@ class TestDataFrame:
             # concat
             # GH#6927
             df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
-            df1.filename = "foo"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                df1.filename = "foo"
 
             result = pd.concat([df1, df1])
             assert result.filename == "foo+foo"

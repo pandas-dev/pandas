@@ -106,6 +106,7 @@ class TestSeries:
 
     def test_metadata_propagation_indiv(self, monkeypatch):
         # check that the metadata matches up on the resulting ops
+        msg = "_metadata handling is deprecated"
 
         ser = Series(range(3), range(3))
         ser.name = "foo"
@@ -135,8 +136,10 @@ class TestSeries:
             m.setattr(Series, "_metadata", ["name", "filename"])
             m.setattr(Series, "__finalize__", finalize)
 
-            ser.filename = "foo"
-            ser2.filename = "bar"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                ser.filename = "foo"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                ser2.filename = "bar"
 
             result = pd.concat([ser, ser2])
             assert result.filename == "foo+bar"

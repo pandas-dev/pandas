@@ -92,8 +92,12 @@ class TestSeriesFlexArithmetic:
         opname = all_arithmetic_operators
         op = getattr(Series, opname)
         m = MySeries([1, 2, 3], name="test")
-        m.x = 42
-        result = op(m, 1)
+        msg = "_metadata handling is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            m.x = 42
+        msg = "_metadata propagation is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = op(m, 1)
         assert result.x == 42
 
     def test_flex_add_scalar_fill_value(self):

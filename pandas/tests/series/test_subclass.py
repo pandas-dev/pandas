@@ -4,6 +4,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+warn_msg = "_metadata propagation is deprecated"
+
 
 class TestSeriesSubclassing:
     @pytest.mark.parametrize(
@@ -15,15 +17,18 @@ class TestSeriesSubclassing:
     )
     def test_indexing_sliced(self, idx_method, indexer, exp_data, exp_idx):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list("abcd"))
-        res = getattr(s, idx_method)[indexer]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = getattr(s, idx_method)[indexer]
         exp = tm.SubclassedSeries(exp_data, index=list(exp_idx))
         tm.assert_series_equal(res, exp)
 
     def test_to_frame(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list("abcd"), name="xxx")
-        res = s.to_frame()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = s.to_frame()
         exp = tm.SubclassedDataFrame({"xxx": [1, 2, 3, 4]}, index=list("abcd"))
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
         # GH 15564
@@ -32,7 +37,8 @@ class TestSeriesSubclassing:
         res = s.unstack()
         exp = tm.SubclassedDataFrame({"x": [1, 3], "y": [2, 4]}, index=["a", "b"])
 
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_empty_repr(self):
         sub_series = tm.SubclassedSeries()
@@ -41,9 +47,12 @@ class TestSeriesSubclassing:
     def test_asof(self):
         N = 3
         rng = pd.date_range("1/1/1990", periods=N, freq="53s")
-        s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
 
-        result = s.asof(rng[-2:])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = s.asof(rng[-2:])
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_explode(self):

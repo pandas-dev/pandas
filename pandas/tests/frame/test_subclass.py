@@ -12,6 +12,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+warn_msg = "_metadata propagation is deprecated"
+
 
 @pytest.fixture()
 def gpd_style_subclass_df():
@@ -80,22 +82,30 @@ class TestDataFrameSubclassing:
         assert isinstance(cdf_multi2["A"], CustomSeries)
 
     def test_dataframe_metadata(self):
+        setattr_msg = "_metadata handling is deprecated"
+
         df = tm.SubclassedDataFrame(
             {"X": [1, 2, 3], "Y": [1, 2, 3]}, index=["a", "b", "c"]
         )
-        df.testattr = "XXX"
+        with tm.assert_produces_warning(FutureWarning, match=setattr_msg):
+            df.testattr = "XXX"
 
         assert df.testattr == "XXX"
-        assert df[["X"]].testattr == "XXX"
-        assert df.loc[["a", "b"], :].testattr == "XXX"
-        assert df.iloc[[0, 1], :].testattr == "XXX"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            assert df[["X"]].testattr == "XXX"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            assert df.loc[["a", "b"], :].testattr == "XXX"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            assert df.iloc[[0, 1], :].testattr == "XXX"
 
         # see gh-9776
-        assert df.iloc[0:1, :].testattr == "XXX"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            assert df.iloc[0:1, :].testattr == "XXX"
 
         # see gh-10553
         unpickled = tm.round_trip_pickle(df)
-        tm.assert_frame_equal(df, unpickled)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(df, unpickled)
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr
 
@@ -104,32 +114,38 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame(
             {"X": [1, 2, 3], "Y": [4, 5, 6], "Z": [7, 8, 9]}, index=["a", "b", "c"]
         )
-        res = df.loc[:, "X"]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.loc[:, "X"]
         exp = tm.SubclassedSeries([1, 2, 3], index=list("abc"), name="X")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-        res = df.iloc[:, 1]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.iloc[:, 1]
         exp = tm.SubclassedSeries([4, 5, 6], index=list("abc"), name="Y")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-        res = df.loc[:, "Z"]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.loc[:, "Z"]
         exp = tm.SubclassedSeries([7, 8, 9], index=list("abc"), name="Z")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-        res = df.loc["a", :]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.loc["a", :]
         exp = tm.SubclassedSeries([1, 4, 7], index=list("XYZ"), name="a")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-        res = df.iloc[1, :]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.iloc[1, :]
         exp = tm.SubclassedSeries([2, 5, 8], index=list("XYZ"), name="b")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
-        res = df.loc["c", :]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.loc["c", :]
         exp = tm.SubclassedSeries([3, 6, 9], index=list("XYZ"), name="c")
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
@@ -153,7 +169,8 @@ class TestDataFrameSubclassing:
             {"c": [1, 2, 4], "d": [1, 2, 4]}, index=list("ABD")
         )
 
-        res1, res2 = df1.align(df2, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res1, res2 = df1.align(df2, axis=0)
         exp1 = tm.SubclassedDataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
@@ -163,15 +180,20 @@ class TestDataFrameSubclassing:
             index=list("ABCDE"),
         )
         assert isinstance(res1, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(res1, exp1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res1, exp1)
         assert isinstance(res2, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(res2, exp2)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res2, exp2)
 
-        res1, res2 = df1.a.align(df2.c)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res1, res2 = df1.a.align(df2.c)
         assert isinstance(res1, tm.SubclassedSeries)
-        tm.assert_series_equal(res1, exp1.a)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_series_equal(res1, exp1.a)
         assert isinstance(res2, tm.SubclassedSeries)
-        tm.assert_series_equal(res2, exp2.c)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_series_equal(res2, exp2.c)
 
     def test_subclass_align_combinations(self):
         # GH 12983
@@ -179,7 +201,8 @@ class TestDataFrameSubclassing:
         s = tm.SubclassedSeries([1, 2, 4], index=list("ABD"), name="x")
 
         # frame + series
-        res1, res2 = df.align(s, axis=0)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res1, res2 = df.align(s, axis=0)
         exp1 = tm.SubclassedDataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
@@ -190,23 +213,27 @@ class TestDataFrameSubclassing:
         )
 
         assert isinstance(res1, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(res1, exp1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res1, exp1)
         assert isinstance(res2, tm.SubclassedSeries)
         tm.assert_series_equal(res2, exp2)
 
         # series + frame
-        res1, res2 = s.align(df)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res1, res2 = s.align(df)
         assert isinstance(res1, tm.SubclassedSeries)
         tm.assert_series_equal(res1, exp2)
         assert isinstance(res2, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(res2, exp1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res2, exp1)
 
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({"a": [1]})
-        for i, row in df.iterrows():
-            assert isinstance(row, tm.SubclassedSeries)
-            tm.assert_series_equal(row, df.loc[i])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            for i, row in df.iterrows():
+                assert isinstance(row, tm.SubclassedSeries)
+                tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_stack(self):
         # GH 15564
@@ -216,7 +243,8 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.stack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack()
         exp = tm.SubclassedSeries(
             [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
         )
@@ -252,12 +280,15 @@ class TestDataFrameSubclassing:
             ),
             columns=Index(["W", "X"], name="www"),
         )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
-        res = df.stack()
-        tm.assert_frame_equal(res, exp)
-
-        res = df.stack("yyy")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack("yyy")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
             [
@@ -277,8 +308,10 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack("www")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_stack_multi_mixed(self):
         # GH 15564
@@ -314,12 +347,15 @@ class TestDataFrameSubclassing:
             ),
             columns=Index(["W", "X"], name="www"),
         )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
-        res = df.stack()
-        tm.assert_frame_equal(res, exp)
-
-        res = df.stack("yyy")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack("yyy")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
             [
@@ -339,8 +375,10 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.stack("www")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
         # GH 15564
@@ -350,7 +388,8 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.unstack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack()
         exp = tm.SubclassedSeries(
             [1, 4, 7, 2, 5, 8, 3, 6, 9], index=[list("XXXYYYZZZ"), list("abcabcabc")]
         )
@@ -378,11 +417,15 @@ class TestDataFrameSubclassing:
             ),
         )
 
-        res = df.unstack()
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
-        res = df.unstack("ccc")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack("ccc")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
             [[10, 30, 11, 31, 12, 32, 13, 33], [20, 40, 21, 41, 22, 42, 23, 43]],
@@ -393,8 +436,10 @@ class TestDataFrameSubclassing:
             ),
         )
 
-        res = df.unstack("aaa")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack("aaa")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack_multi_mixed(self):
         # GH 15564
@@ -425,11 +470,15 @@ class TestDataFrameSubclassing:
             ),
         )
 
-        res = df.unstack()
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
-        res = df.unstack("ccc")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack("ccc")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
             [
@@ -443,8 +492,10 @@ class TestDataFrameSubclassing:
             ),
         )
 
-        res = df.unstack("aaa")
-        tm.assert_frame_equal(res, exp)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = df.unstack("aaa")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(res, exp)
 
     def test_subclass_pivot(self):
         # GH 15564
@@ -456,7 +507,8 @@ class TestDataFrameSubclassing:
             }
         )
 
-        pivoted = df.pivot(index="index", columns="columns", values="values")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            pivoted = df.pivot(index="index", columns="columns", values="values")
 
         expected = tm.SubclassedDataFrame(
             {
@@ -467,7 +519,8 @@ class TestDataFrameSubclassing:
 
         expected.index.name, expected.columns.name = "index", "columns"
 
-        tm.assert_frame_equal(pivoted, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(pivoted, expected)
 
     def test_subclassed_melt(self):
         # GH 15564
@@ -480,7 +533,8 @@ class TestDataFrameSubclassing:
             }
         )
 
-        melted = pd.melt(cheese, id_vars=["first", "last"])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            melted = pd.melt(cheese, id_vars=["first", "last"])
 
         expected = tm.SubclassedDataFrame(
             [
@@ -492,7 +546,8 @@ class TestDataFrameSubclassing:
             columns=["first", "last", "variable", "value"],
         )
 
-        tm.assert_frame_equal(melted, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(melted, expected)
 
     def test_subclassed_wide_to_long(self):
         # GH 9762
@@ -518,10 +573,13 @@ class TestDataFrameSubclassing:
             "id": [0, 1, 2, 0, 1, 2],
         }
         expected = tm.SubclassedDataFrame(exp_data)
-        expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
-        long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
 
-        tm.assert_frame_equal(long_frame, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(long_frame, expected)
 
     def test_subclassed_apply(self):
         # GH 19822
@@ -544,8 +602,10 @@ class TestDataFrameSubclassing:
             columns=["first", "last", "variable", "value"],
         )
 
-        df.apply(lambda x: check_row_subclass(x))
-        df.apply(lambda x: check_row_subclass(x), axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df.apply(lambda x: check_row_subclass(x))
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df.apply(lambda x: check_row_subclass(x), axis=1)
 
         expected = tm.SubclassedDataFrame(
             [
@@ -557,23 +617,30 @@ class TestDataFrameSubclassing:
             columns=["first", "last", "variable", "value"],
         )
 
-        result = df.apply(lambda x: stretch(x), axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.apply(lambda x: stretch(x), axis=1)
         assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(result, expected)
 
         expected = tm.SubclassedDataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
-        result = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
         assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(result, expected)
 
-        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
         assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(result, expected)
 
         expected = tm.SubclassedSeries([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
-        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.apply(lambda x: [1, 2, 3], axis=1)
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
 
@@ -581,7 +648,8 @@ class TestDataFrameSubclassing:
         # GH 25596
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = getattr(df, all_reductions)()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = getattr(df, all_reductions)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_subclassed_count(self):
@@ -592,11 +660,13 @@ class TestDataFrameSubclassing:
                 "Single": [False, True, True, True, False],
             }
         )
-        result = df.count()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame({"A": [1, 0, 3], "B": [0, 5, 6], "C": [7, 8, 0]})
-        result = df.count()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame(
@@ -608,23 +678,27 @@ class TestDataFrameSubclassing:
                 list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
             ),
         )
-        result = df.count()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame()
-        result = df.count()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_isin(self):
         df = tm.SubclassedDataFrame(
             {"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"]
         )
-        result = df.isin([0, 2])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.isin([0, 2])
         assert isinstance(result, tm.SubclassedDataFrame)
 
     def test_duplicated(self):
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.duplicated()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.duplicated()
         assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame()
@@ -634,23 +708,27 @@ class TestDataFrameSubclassing:
     @pytest.mark.parametrize("idx_method", ["idxmax", "idxmin"])
     def test_idx(self, idx_method):
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = getattr(df, idx_method)()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = getattr(df, idx_method)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_dot(self):
         df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
         s = tm.SubclassedSeries([1, 1, 2, 1])
-        result = df.dot(s)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.dot(s)
         assert isinstance(result, tm.SubclassedSeries)
 
         df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
         s = tm.SubclassedDataFrame([1, 1, 2, 1])
-        result = df.dot(s)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.dot(s)
         assert isinstance(result, tm.SubclassedDataFrame)
 
     def test_memory_usage(self):
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.memory_usage()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.memory_usage()
         assert isinstance(result, tm.SubclassedSeries)
 
         result = df.memory_usage(index=False)
@@ -666,7 +744,8 @@ class TestDataFrameSubclassing:
         df2 = tm.SubclassedDataFrame(
             np.random.randn(4, 4), index=index[:4], columns=columns
         )
-        correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
 
         assert isinstance(correls, (tm.SubclassedSeries))
 
@@ -682,10 +761,12 @@ class TestDataFrameSubclassing:
             index=rng,
         )
 
-        result = df.asof(rng[-2:])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.asof(rng[-2:])
         assert isinstance(result, tm.SubclassedDataFrame)
 
-        result = df.asof(rng[-2])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.asof(rng[-2])
         assert isinstance(result, tm.SubclassedSeries)
 
         result = df.asof("1989-12-31")
@@ -695,20 +776,23 @@ class TestDataFrameSubclassing:
         # GH 28330
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.idxmin()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.idxmin()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_idxmax_preserves_subclass(self):
         # GH 28330
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.idxmax()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
         # GH 43668
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.convert_dtypes()
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.convert_dtypes()
         assert isinstance(result, tm.SubclassedDataFrame)
 
         result = gpd_style_subclass_df.convert_dtypes()
@@ -718,7 +802,8 @@ class TestDataFrameSubclassing:
         # GH#40810
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
 
-        result = df.astype({"A": np.int64, "B": np.int32, "C": np.float64})
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.astype({"A": np.int64, "B": np.int32, "C": np.float64})
         assert isinstance(result, tm.SubclassedDataFrame)
 
     def test_equals_subclass(self):
@@ -732,7 +817,9 @@ class TestDataFrameSubclassing:
     def test_replace_list_method(self):
         # https://github.com/pandas-dev/pandas/pull/46018
         df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        result = df.replace([1, 2], method="ffill")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = df.replace([1, 2], method="ffill")
         expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
         assert isinstance(result, tm.SubclassedDataFrame)
-        tm.assert_frame_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            tm.assert_frame_equal(result, expected)

@@ -2069,12 +2069,18 @@ def test_frame_op_subclass_nonclass_constructor():
         def _constructor_sliced(self):
             return SubclassedSeries
 
-    sdf = SubclassedDataFrame("some_data", {"A": [1, 2, 3], "B": [4, 5, 6]})
-    result = sdf * 2
-    expected = SubclassedDataFrame("some_data", {"A": [2, 4, 6], "B": [8, 10, 12]})
+    msg = "_metadata handling is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        sdf = SubclassedDataFrame("some_data", {"A": [1, 2, 3], "B": [4, 5, 6]})
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = sdf * 2
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = SubclassedDataFrame("some_data", {"A": [2, 4, 6], "B": [8, 10, 12]})
     tm.assert_frame_equal(result, expected)
 
-    result = sdf + sdf
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = sdf + sdf
     tm.assert_frame_equal(result, expected)
 
 

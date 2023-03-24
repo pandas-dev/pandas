@@ -6007,6 +6007,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
+                if name != "_name":
+                    warnings.warn(
+                        "_metadata propagation is deprecated and will be removed "
+                        "in a future version. To retain the old behavior, "
+                        "override __finalize__ in a subclass.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
@@ -6059,6 +6067,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if name in self._internal_names_set:
             object.__setattr__(self, name, value)
         elif name in self._metadata:
+            warnings.warn(
+                "_metadata handling is deprecated and will be removed in "
+                "a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             object.__setattr__(self, name, value)
         else:
             try:
