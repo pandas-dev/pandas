@@ -6000,10 +6000,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                stable across pandas releases.
         """
         if isinstance(other, NDFrame):
-            for name in other.attrs:
+            for name in other._attrs:
                 self.attrs[name] = other.attrs[name]
 
-            self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
+            self._flags.allows_duplicate_labels = other._flags.allows_duplicate_labels
             # For subclasses using _metadata.
             for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)

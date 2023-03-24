@@ -10,6 +10,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -50,14 +52,10 @@ def is_valid_positional_slice(slc: slice) -> bool:
     A valid positional slice may also be interpreted as a label-based slice
     depending on the index being sliced.
     """
-
-    def is_int_or_none(val):
-        return val is None or is_integer(val)
-
     return (
-        is_int_or_none(slc.start)
-        and is_int_or_none(slc.stop)
-        and is_int_or_none(slc.step)
+        lib.is_int_or_none(slc.start)
+        and lib.is_int_or_none(slc.stop)
+        and lib.is_int_or_none(slc.step)
     )
 
 
