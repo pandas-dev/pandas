@@ -1238,6 +1238,28 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.parametrize("displayed_only", [True, False])
+    def test_displayed_only_with_many_elements(self, displayed_only):
+        html_table = """
+        <table>
+            <tr>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td><span style="display:none"></span>4</td>
+                <td>5</td>
+            </tr>
+        </table>
+        """
+        result = read_html(html_table, displayed_only=displayed_only)[0]
+        expected = DataFrame({"A": [1, 4], "B": [2, 5]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
         "from_encoding.*:UserWarning"

@@ -125,9 +125,6 @@ include-package-data = true
 include = ["pandas", "pandas.*"]
 namespaces = false
 
-[tool.setuptools.package-data]
-pandas = ["../pyproject.toml"]
-
 [tool.setuptools.exclude-package-data]
 "*" = ["*.c", "*.h"]
 
@@ -297,8 +294,6 @@ exclude = [
 "pandas/io/*" = ["PLW2901"]
 "pandas/tests/*" = ["PLW2901"]
 "pandas/plotting/*" = ["PLW2901"]
-# TCH to be enabled gradually
-"pandas/core/nanops.py" = ["TCH"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 
@@ -409,7 +404,7 @@ disable = [
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "7.0"
-addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
@@ -419,7 +414,6 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 filterwarnings = [
-  "error::_pytest.warning_types.PytestUnknownMarkWarning",
   "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
