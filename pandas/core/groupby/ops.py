@@ -18,6 +18,7 @@ from typing import (
     Sequence,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -37,6 +38,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
@@ -257,20 +259,39 @@ class WrappedCythonOp:
                 #  don't go down a group-by-group path, since in the empty-groups
                 #  case that would fail to raise
                 raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-            if how not in ["rank", "any", "all"]:
-                # only "rank" is implemented in cython
-                raise NotImplementedError(f"{dtype} dtype not supported")
+            if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
+                if self.kind == "transform":
+                    raise TypeError(f"{dtype} type does not support {how} operations")
+                raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
 
         elif is_sparse(dtype):
             raise NotImplementedError(f"{dtype} dtype not supported")
         elif is_datetime64_any_dtype(dtype):
             # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
                 raise TypeError(f"datetime64 type does not support {how} operations")
+            if how in ["any", "all"]:
+                # GH#34479
+                warnings.warn(
+                    f"'{how}' with datetime64 dtypes is deprecated and will raise in a "
+                    f"future version. Use (obj != pd.Timestamp(0)).{how}() instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         elif is_period_dtype(dtype):
             # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
+            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
                 raise TypeError(f"Period type does not support {how} operations")
+            if how in ["any", "all"]:
+                # GH#34479
+                warnings.warn(
+                    f"'{how}' with PeriodDtype is deprecated and will raise in a "
+                    f"future version. Use (obj != pd.Period(0, freq)).{how}() instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         elif is_timedelta64_dtype(dtype):
             # timedeltas we can add but not multiply
             if how in ["prod", "cumprod"]:
@@ -356,11 +377,17 @@ class WrappedCythonOp:
             )
 
         elif isinstance(values, Categorical):
-            assert self.how in ["rank", "any", "all"]
+            assert self.how in ["rank", "any", "all", "first", "last", "min", "max"]
             mask = values.isna()
             if self.how == "rank":
                 assert values.ordered  # checked earlier
                 npvalues = values._ndarray
+            elif self.how in ["first", "last", "min", "max"]:
+                if self.how in ["min", "max"]:
+                    assert values.ordered  # checked earlier
+                npvalues = values._ndarray
+                result_mask = np.zeros(ngroups, dtype=np.uint8)
+                kwargs["result_mask"] = result_mask
             else:
                 npvalues = values.astype(bool)
 
@@ -373,9 +400,9 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-            # If we ever have more than just "rank" here, we'll need to do
-            #  `if self.how in self.cast_blocklist` like we do for other dtypes.
-            return res_values
+            if self.how in self.cast_blocklist:
+                return res_values
+            return values._from_backing_data(res_values)
 
         npvalues = self._ea_to_cython_values(values)
 

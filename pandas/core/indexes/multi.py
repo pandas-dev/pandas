@@ -73,6 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCTimedeltaIndex,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -945,7 +946,11 @@ class MultiIndex(Index):
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
 
-        if is_list_like(levels) and not isinstance(levels, Index):
+        if isinstance(levels, Index):
+            pass
+        elif is_array_like(levels):
+            levels = Index(levels)
+        elif is_list_like(levels):
             levels = list(levels)
 
         level, levels = _require_listlike(level, levels, "Levels")
