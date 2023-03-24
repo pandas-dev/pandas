@@ -57,17 +57,22 @@ df = DataFrame({"a": [1, 2, np.nan], "b": [4, 5, 6]})
 ser = df["a"].copy()
 ```
 then the following would all raise:
-- ``ser.fillna('foo', inplace=True)``;
-- ``ser.where(ser.isna(), 'foo', inplace=True)``
-- ``ser.fillna('foo', inplace=False)``;
-- ``ser.where(ser.isna(), 'foo', inplace=False)``
-- ``ser.iloc[indexer] = 'foo'``
-- ``ser.loc[indexer] = 'foo'``
-- ``df.loc[indexer, 'a'] = 'foo'``
-- ``ser[indexer] = 'foo'``
 
-where ``indexer`` could be a slice, a mask, a single value, a list or array of values,
-or any other allowed indexer.
+- setitem-like operations:
+  - ``ser.fillna('foo', inplace=True)``;
+  - ``ser.where(ser.isna(), 'foo', inplace=True)``
+  - ``ser.fillna('foo', inplace=False)``;
+  - ``ser.where(ser.isna(), 'foo', inplace=False)``
+- setitem indexing operations (where ``indexer`` could be a slice, a mask,
+  a single value, a list or array of values, or any other allowed indexer):
+  - ``ser.iloc[indexer] = 'foo'``
+  - ``ser.loc[indexer] = 'foo'``
+  - ``df.iloc[indexer, 0] = 'foo'``
+  - ``df.loc[indexer, 'a'] = 'foo'``
+  - ``ser[indexer] = 'foo'``
+
+It may be desirable to expand the top list to ``mask``, ``replace``, and ``update``,
+but to keep the scope of the PDEP down, they are excluded for now.
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
@@ -104,7 +109,6 @@ For a start, this would involve:
    - ``EABackedBlock.setitem``;
    - ``EABackedBlock.where``;
    - ``EABackedBlock.putmask``;
-   - ``_iLocIndexer._setitem_single_column``;
 
 The above would already require several hundreds of tests to be adjusted. Note that once
 implementation starts, the list of locations to change may turn out to be slightly
