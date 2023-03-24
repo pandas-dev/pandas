@@ -177,6 +177,23 @@ NARROW_NP_DTYPES = [
     np.uint32,
 ]
 
+PYTHON_DATA_TYPES = [
+    str,
+    int,
+    float,
+    complex,
+    list,
+    tuple,
+    range,
+    dict,
+    set,
+    frozenset,
+    bool,
+    bytes,
+    bytearray,
+    memoryview,
+]
+
 ENDIAN = {"little": "<", "big": ">"}[byteorder]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]

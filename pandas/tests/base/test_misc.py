@@ -82,8 +82,8 @@ def test_ndarray_compat_properties(index_or_series_obj):
 
 
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-def test_memory_usage(index_or_series_obj):
-    obj = index_or_series_obj
+def test_memory_usage(index_or_series_memory_obj):
+    obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
     if isinstance(obj, Series):
         is_ser = True
