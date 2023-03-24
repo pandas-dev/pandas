@@ -723,7 +723,7 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, np.nan], dtype="Float64")),
+        (["1", "2", None], Series([1, 2, np.nan], dtype="Int64")),
         (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
         (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
@@ -743,7 +743,7 @@ def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
     values = ["a", "1"]
     ser = Series(values, dtype=nullable_string_dtype)
     result = to_numeric(ser, errors="coerce")
-    expected = Series([pd.NA, 1], dtype="Float64")
+    expected = Series([pd.NA, 1], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 

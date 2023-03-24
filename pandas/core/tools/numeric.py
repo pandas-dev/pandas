@@ -27,7 +27,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.arrow import ArrowDtype
@@ -224,7 +223,8 @@ def to_numeric(
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=dtype_backend is not lib.no_default,
+                convert_to_masked_nullable=dtype_backend is not lib.no_default
+                or isinstance(values_dtype, StringDtype),
             )
         except (ValueError, TypeError):
             if errors == "raise":
@@ -235,7 +235,11 @@ def to_numeric(
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif dtype_backend is not lib.no_default and new_mask is None:
+    elif (
+        dtype_backend is not lib.no_default
+        and new_mask is None
+        or isinstance(values_dtype, StringDtype)
+    ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
     # attempt downcast only if the data has been successfully converted
@@ -270,15 +274,8 @@ def to_numeric(
 
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array. For StringArray need to compute a mask if conversion was successful.
-    if (
-        mask is not None
-        or new_mask is not None
-        or isinstance(values_dtype, StringDtype)
-    ) and not is_string_dtype(values.dtype):
-        if mask is None and isinstance(values_dtype, StringDtype):
-            mask = isna(values)
-            values = values[~mask]
-        elif mask is None:
+    if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
+        if mask is None:
             mask = new_mask
         else:
             mask = mask.copy()
