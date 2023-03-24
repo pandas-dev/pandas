@@ -32,13 +32,11 @@ main_dtypes = [
 def s_main_dtypes():
     """
     A DataFrame with many dtypes
-
     * datetime
     * datetimetz
     * timedelta
     * [u]int{8,16,32,64}
     * float{32,64}
-
     The columns are the name of the dtype.
     """
     df = pd.DataFrame(
@@ -217,7 +215,12 @@ class TestSeriesNLargestNSmallest:
     def test_nlargest_nullable(self, any_numeric_ea_dtype):
         # GH#42816
         dtype = any_numeric_ea_dtype
-        arr = np.random.randn(10).astype(dtype.lower(), copy=False)
+        if dtype.startswith("UInt"):
+            # Can't cast from negative float to uint on some platforms
+            arr = np.random.randint(1, 10, 10)
+        else:
+            arr = np.random.randn(10)
+        arr = arr.astype(dtype.lower(), copy=False)
 
         ser = Series(arr.copy(), dtype=dtype)
         ser[1] = pd.NA
