@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -161,3 +163,65 @@ class TestSequenceToDT64NS:
         res = DatetimeArray._from_sequence(arr)
         expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
         tm.assert_datetime_array_equal(res, expected)
+
+
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+pyarrow_skip = td.skip_if_no("pyarrow")
+
+
+@pytest.mark.parametrize(
+    ("pa_unit", "pd_unit", "pa_tz", "pd_tz"),
+    [
+        ("s", "s", "UTC", "UTC"),
+        ("ms", "ms", "UTC", "Europe/Berlin"),
+        ("us", "us", "US/Eastern", "UTC"),
+        ("ns", "ns", "US/Central", "Asia/Kolkata"),
+        ("ns", "s", "UTC", "UTC"),
+        ("us", "ms", "UTC", "Europe/Berlin"),
+        ("ms", "us", "US/Eastern", "UTC"),
+        ("s", "ns", "US/Central", "Asia/Kolkata"),
+    ],
+)
+@pyarrow_skip
+def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, pd_tz):
+    # in case pyarrow lost the Interval extension type (eg on parquet roundtrip
+    # with datetime64[ns] subtype, see GH-45881), still allow conversion
+    # from arrow to IntervalArray
+    import pyarrow as pa
+
+    data = [0, 123456789, None, 2**63 - 1, -123456789]
+    pa_type = pa.timestamp(pa_unit, tz=pa_tz)
+    arr = pa.array(data, type=pa_type)
+    dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(
+        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]")
+    )
+    expected = expected.tz_localize(pd_tz)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pyarrow_skip
+def test_from_arrow_from_integers():
+    # in case pyarrow lost the Interval extension type (eg on parquet roundtrip
+    # with datetime64[ns] subtype, see GH-45881), still allow conversion
+    # from arrow to IntervalArray
+    import pyarrow as pa
+
+    data = [0, 123456789, None, 2**63 - 1, -123456789]
+    arr = pa.array(data)
+    dtype = DatetimeTZDtype(unit="ns", tz="UTC")
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(np.array(data, dtype="datetime64[ns]"))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)

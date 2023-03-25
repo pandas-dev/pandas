@@ -811,6 +811,45 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and tz_compare(self.tz, other.tz)
         )
 
+    def __from_arrow__(
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ) -> DatetimeArray:
+        """
+        Construct DatetimeArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow
+        import pyarrow.types
+
+        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays.arrow._arrow_utils import (
+            pyarrow_array_to_numpy_and_mask,
+        )
+
+        pa_type = array.type
+        pa_unit = "ns"
+        if pyarrow.types.is_timestamp(pa_type):
+            pa_unit = pa_type.unit
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            data, mask = pyarrow_array_to_numpy_and_mask(
+                arr, dtype=np.dtype(f"datetime64[{pa_unit}]")
+            )
+            data = data.astype(f"datetime64[{self._unit}]")
+            darr = DatetimeArray(data.copy(), copy=False)
+            darr[~mask] = NaT
+            darr = darr.tz_localize(self._tz)
+            results.append(darr)
+
+        if not results:
+            return DatetimeArray(np.array([], dtype="int64"), copy=False)
+        return DatetimeArray._concat_same_type(results)
+
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
