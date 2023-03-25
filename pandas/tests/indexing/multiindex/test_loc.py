@@ -421,6 +421,7 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(res, expected)
 
     def test_loc_multi_index_key_error(self):
+        # GH 51892
         df = DataFrame(
             {
                 (1, 2): ["a", "b", "c"],
