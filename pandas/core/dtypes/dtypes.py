@@ -818,7 +818,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
         Construct DatetimeArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
-        import pyarrow.types
 
         from pandas.core.arrays import DatetimeArray
         from pandas.core.arrays.arrow._arrow_utils import (

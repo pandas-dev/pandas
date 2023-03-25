@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -170,9 +169,6 @@ class TestSequenceToDT64NS:
 # Arrow interaction
 
 
-pyarrow_skip = td.skip_if_no("pyarrow")
-
-
 @pytest.mark.parametrize(
     ("pa_unit", "pd_unit", "pa_tz", "pd_tz"),
     [
@@ -186,9 +182,8 @@ pyarrow_skip = td.skip_if_no("pyarrow")
         ("s", "ns", "US/Central", "Asia/Kolkata"),
     ],
 )
-@pyarrow_skip
 def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, pd_tz):
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
     pa_type = pa.timestamp(pa_unit, tz=pa_tz)
@@ -216,9 +211,8 @@ def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, 
         ("ns", "UTC"),
     ],
 )
-@pyarrow_skip
 def test_from_arrow_from_empty(unit, tz):
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = []
     arr = pa.array(data)
@@ -233,9 +227,8 @@ def test_from_arrow_from_empty(unit, tz):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pyarrow_skip
 def test_from_arrow_from_integers():
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
     arr = pa.array(data)
