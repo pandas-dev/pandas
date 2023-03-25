@@ -200,11 +200,12 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
 -
 
 I/O
 ^^^
+- Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
 - :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 -
 
@@ -257,6 +258,7 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
+- Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
 
 .. ***DO NOT USE THIS SECTION***
 

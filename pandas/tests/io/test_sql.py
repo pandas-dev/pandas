@@ -572,6 +572,22 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "datetime": pd.array(
+                [datetime(2023, 1, 1), nulls_fixture], dtype="timestamp[ns][pyarrow]"
+            ),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
