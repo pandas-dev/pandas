@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from sys import getsizeof
 from typing import (
     Literal,
     _GenericAlias,
@@ -159,7 +160,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     n = len(arr)
     for i in range(n):
-        size += arr[i].__sizeof__()
+        size += getsizeof(arr[i])
     return size
 
 
@@ -2325,9 +2326,13 @@ def maybe_convert_numeric(
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
-                seen.saw_null()
-                floats[i] = NaN
                 mask[i] = 1
+
+                if allow_null_in_int:
+                    seen.null_ = True
+                else:
+                    seen.saw_null()
+                    floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return (values, None)
