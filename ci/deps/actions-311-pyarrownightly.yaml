@@ -1,0 +1,28 @@
+name: pandas-dev
+channels:
+  - arrow-nightlies
+  - conda-forge
+dependencies:
+  - python=3.11
+
+  # build dependencies
+  - versioneer[toml]
+  - cython>=0.29.33
+
+  # test dependencies
+  - pytest>=7.0.0
+  - pytest-cov
+  - pytest-xdist>=2.2.0
+  - pytest-asyncio>=0.17.0
+  - boto3
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+  - pytz
+
+  # optional dependencies
+  - pyarrow
+
+  - pip:
+    - tzdata>=2022.1
