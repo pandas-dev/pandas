@@ -35,6 +35,23 @@ which is similar to a NumPy array. To construct these from the main pandas data 
    df = pd.DataFrame([[1, 2], [3, 4]], dtype="uint64[pyarrow]")
    df
 
+.. note::
+
+    The string alias ``"string[pyarrow]"`` maps to ``pd.StringDtype("pyarrow")`` which is not equivalent to
+    specifying ``dtype=pd.ArrowDtype(pa.string())``. Generally, operations on the data will behave similarly
+    except ``pd.StringDtype("pyarrow")`` can return NumPy-backed nullable types while ``pd.ArrowDtype(pa.string())``
+    will return :class:`ArrowDtype`.
+
+   .. ipython:: python
+
+      import pyarrow as pa
+      data = list("abc")
+      ser_sd = pd.Series(data, dtype="string[pyarrow]")
+      ser_ad = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+      ser_ad.dtype == ser_sd.dtype
+      ser_sd.str.contains("a")
+      ser_ad.str.contains("a")
+
 For PyArrow types that accept parameters, you can pass in a PyArrow type with those parameters
 into :class:`ArrowDtype` to use in the ``dtype`` parameter.
 
@@ -106,6 +123,7 @@ The following are just some examples of operations that are accelerated by nativ
 
 .. ipython:: python
 
+   import pyarrow as pa
    ser = pd.Series([-1.545, 0.211, None], dtype="float32[pyarrow]")
    ser.mean()
    ser + ser
@@ -115,7 +133,7 @@ The following are just some examples of operations that are accelerated by nativ
    ser.isna()
    ser.fillna(0)
 
-   ser_str = pd.Series(["a", "b", None], dtype="string[pyarrow]")
+   ser_str = pd.Series(["a", "b", None], dtype=pd.ArrowDtype(pa.string()))
    ser_str.str.startswith("a")
 
    from datetime import datetime
