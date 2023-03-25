@@ -139,6 +139,8 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
             )
             if guessed_format is not None:
                 return guessed_format
+            # If there are multiple non-null elements, warn about
+            # how parsing might not be consistent
             if tslib.first_non_null(arr[first_non_null + 1 :]) != -1:
                 warnings.warn(
                     "Could not infer format, so each element will be parsed "
