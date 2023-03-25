@@ -110,3 +110,7 @@ def test_AbstractMethodError_classmethod():
     xpr = "This method must be defined in the concrete class Foo"
     with pytest.raises(AbstractMethodError, match=xpr):
         Foo().method()
+
+    xpr = "methodtype must be one of method, classmethod, staticmethod, property, got unknownmethod instead."
+    with pytest.raises(AbstractMethodError, match=xpr):
+        Foo().unknownmethod()
