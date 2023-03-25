@@ -839,7 +839,24 @@ class Resampler(BaseGroupBy, PandasObject):
         **kwargs,
     ):
         """
-        Interpolate values according to different methods.
+        Interpolate values according to different methods. Note that the points used
+        as anchor points in the interpolation are taken from the original timeseries
+        and thus it can lead to information loss and wrong interpolation!
+        
+        ```
+        # example of 2Hz timeseries resampled with rule="400ms"
+        2023-03-01 07:00:00.000    1.0  <- anchor 0
+        2023-03-01 07:00:00.500    0.0
+        2023-03-01 07:00:01.000   -1.0
+        2023-03-01 07:00:01.500    0.5
+        2023-03-01 07:00:02.000    2.0  <- anchor 1
+        2023-03-01 07:00:02.500    1.5
+        2023-03-01 07:00:03.000    1.0
+        2023-03-01 07:00:03.500    2.0
+        2023-03-01 07:00:04.000    3.0  <- anchor 2
+        ```
+        
+        The new time-series based on the `rule` is based solely on the anchor points.
         """
         result = self._upsample("asfreq")
         return result.interpolate(
