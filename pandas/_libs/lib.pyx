@@ -2321,9 +2321,13 @@ def maybe_convert_numeric(
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
-                seen.saw_null()
-                floats[i] = NaN
                 mask[i] = 1
+
+                if allow_null_in_int:
+                    seen.null_ = True
+                else:
+                    seen.saw_null()
+                    floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return (values, None)
