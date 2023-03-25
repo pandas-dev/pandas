@@ -835,19 +835,22 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             chunks = array.chunks
 
+        np_dtype = np.dtype(f"datetime64[{self._unit}]")
         results = []
         for arr in chunks:
+            if arr.nbytes == 0:
+                continue
             data, mask = pyarrow_array_to_numpy_and_mask(
                 arr, dtype=np.dtype(f"datetime64[{pa_unit}]")
             )
-            data = data.astype(f"datetime64[{self._unit}]")
+            data = data.astype(np_dtype)
             darr = DatetimeArray(data.copy(), copy=False)
             darr[~mask] = NaT
             darr = darr.tz_localize(self._tz)
             results.append(darr)
 
         if not results:
-            return DatetimeArray(np.array([], dtype="int64"), copy=False)
+            return DatetimeArray(np.array([], dtype=np_dtype), dtype=self, copy=False)
         return DatetimeArray._concat_same_type(results)
 
     def __setstate__(self, state) -> None:
