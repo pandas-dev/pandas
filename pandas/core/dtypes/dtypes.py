@@ -845,7 +845,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
             )
             data = data.astype(np_dtype)
             darr = DatetimeArray(data.copy(), copy=False)
-            darr[~mask] = NaT
+            # error: Invalid index type "ndarray[Any, dtype[bool_]]" for
+            # "DatetimeArray"; expected type "Union[int, Sequence[int],
+            # Sequence[bool], slice]"
+            darr[~mask] = NaT  # type: ignore[index]
             darr = darr.tz_localize(self._tz)
             results.append(darr)
 
