@@ -44,6 +44,7 @@ which is similar to a NumPy array. To construct these from the main pandas data 
 
    .. ipython:: python
 
+      import pyarrow as pa
       data = list("abc")
       ser_sd = pd.Series(data, dtype="string[pyarrow]")
       ser_ad = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
@@ -122,6 +123,7 @@ The following are just some examples of operations that are accelerated by nativ
 
 .. ipython:: python
 
+   import pyarrow as pa
    ser = pd.Series([-1.545, 0.211, None], dtype="float32[pyarrow]")
    ser.mean()
    ser + ser
