@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._libs import iNaT
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -189,7 +190,7 @@ pyarrow_skip = td.skip_if_no("pyarrow")
 def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, pd_tz):
     import pyarrow as pa
 
-    data = [0, 123456789, None, 2**63 - 1, -123456789]
+    data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
     pa_type = pa.timestamp(pa_unit, tz=pa_tz)
     arr = pa.array(data, type=pa_type)
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
@@ -236,12 +237,13 @@ def test_from_arrow_from_empty(unit, tz):
 def test_from_arrow_from_integers():
     import pyarrow as pa
 
-    data = [0, 123456789, None, 2**63 - 1, -123456789]
+    data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
     arr = pa.array(data)
     dtype = DatetimeTZDtype(unit="ns", tz="UTC")
 
     result = dtype.__from_arrow__(arr)
     expected = DatetimeArray(np.array(data, dtype="datetime64[ns]"))
+    expected = expected.tz_localize("UTC")
     tm.assert_extension_array_equal(result, expected)
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
