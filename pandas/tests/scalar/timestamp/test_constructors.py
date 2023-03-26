@@ -593,12 +593,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
     def test_out_of_bounds_string_consistency(self, arg):
         # GH 15829
-        msg = "|".join(
-            [
-                "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow",
-                "Out of bounds nanosecond timestamp: 0001-01-01 00:00:00",
-            ]
-        )
+        msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(arg).as_unit("ns")
 
