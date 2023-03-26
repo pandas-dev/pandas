@@ -193,20 +193,20 @@ class TestDataFrameBlockInternals:
 
         # check dtypes
         result = df.dtypes
-        expected = Series({"datetime64[ns]": 3})
+        expected = Series({"datetime64[us]": 3})
 
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
-        assert float_string_frame["datetime"].dtype == "M8[ns]"
-        assert float_string_frame["timedelta"].dtype == "m8[ns]"
+        assert float_string_frame["datetime"].dtype == "M8[us]"
+        assert float_string_frame["timedelta"].dtype == "m8[us]"
         result = float_string_frame.dtypes
         expected = Series(
             [np.dtype("float64")] * 4
             + [
                 np.dtype("object"),
-                np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("datetime64[us]"),
+                np.dtype("timedelta64[us]"),
             ],
             index=list("ABCD") + ["foo", "datetime", "timedelta"],
         )
@@ -228,10 +228,11 @@ class TestDataFrameBlockInternals:
                 "dt1": Timestamp("20130101"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
+                # FIXME: don't leave commented-out
             },
             index=range(3),
         )
-        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
@@ -242,6 +243,7 @@ class TestDataFrameBlockInternals:
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
+        # FIXME: don't leave commented-out
 
         tm.assert_frame_equal(df, expected)
 

@@ -1465,7 +1465,7 @@ class TestSeriesConstructors:
 
         d = datetime.now()
         dates = Series(d, index=datetime_series.index)
-        assert dates.dtype == "M8[ns]"
+        assert dates.dtype == "M8[us]"
         assert len(dates) == len(datetime_series)
 
         # GH12336

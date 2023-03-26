@@ -187,6 +187,7 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
             "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
         }
     )
+    df["d"] = df["d"].astype("M8[ns]")
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 

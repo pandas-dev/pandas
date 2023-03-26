@@ -662,7 +662,18 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         if inferred == dtype:
             return dtype, fv
 
-        return np.dtype("object"), fill_value
+        elif inferred.kind == "m":
+            # different unit, e.g. passed np.timedelta64(24, "h") with dtype=m8[ns]
+            # see if we can losslessly cast it to our dtype
+            unit = np.datetime_data(dtype)[0]
+            try:
+                td = Timedelta(fill_value).as_unit(unit, round_ok=False)
+            except OutOfBoundsTimedelta:
+                return _dtype_obj, fill_value
+            else:
+                return dtype, td.asm8
+
+        return _dtype_obj, fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -799,8 +810,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
-            if val is not NaT:
-                val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
@@ -810,7 +819,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
             if pandas_dtype:
-                dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
+                dtype = DatetimeTZDtype(unit=val.unit, tz=val.tz)
             else:
                 # return datetimetz as object
                 return _dtype_obj, val
@@ -821,8 +830,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            dtype = np.dtype("m8[ns]")
-            val = np.timedelta64(val.value, "ns")
+            if val is NaT:
+                val = np.timedelta64("NaT", "ns")
+            else:
+                val = val.asm8
+            dtype = val.dtype
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
