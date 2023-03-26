@@ -551,7 +551,7 @@ def test_applymap_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])
     sparse_arr = arr.astype(pd.SparseDtype(object))
-    df = pd.DataFrame(data={"a": arr, "b": sparse_arr})
+    df = DataFrame(data={"a": arr, "b": sparse_arr})
 
     def func(x):
         return str.upper(x) if not pd.isna(x) else x
@@ -560,7 +560,7 @@ def test_applymap_keeps_dtype(na_action):
 
     expected_sparse = pd.array(["A", np.nan, "B"], dtype=pd.SparseDtype(object))
     expected_arr = expected_sparse.astype(object)
-    expected = pd.DataFrame({"a": expected_arr, "b": expected_sparse})
+    expected = DataFrame({"a": expected_arr, "b": expected_sparse})
 
     tm.assert_frame_equal(result, expected)
 
