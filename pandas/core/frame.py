@@ -495,7 +495,6 @@ ValueError: columns overlap but no suffix specified:
 
 
 class DataFrame(NDFrame, OpsMixin):
-
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
