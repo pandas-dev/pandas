@@ -51,10 +51,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.nattype import NaTType
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -64,7 +62,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -355,7 +357,7 @@ class SeriesFormatter:
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if is_categorical_dtype(self.tr_series.dtype):
+        if isinstance(self.tr_series.dtype, CategoricalDtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -1294,7 +1296,7 @@ def format_array(
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
