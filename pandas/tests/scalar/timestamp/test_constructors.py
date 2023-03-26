@@ -899,3 +899,13 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     result = ts._value
     expected = value_out
     assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+def test_timestamp_constructor_positional_with_fold(tz):
+    # Check that we build an object successfully
+    # if we pass positional arguments and fold
+    ts = Timestamp(2019, 10, 27, 1, 30, tz=tz, fold=0)
+    result = ts._value
+    expected = 1572136200000000
+    assert result == expected
