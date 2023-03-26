@@ -9955,14 +9955,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(
                 f"na_action must be 'ignore' or None. Got {repr(na_action)}"
             )
-        ignore_na = na_action == "ignore"
+
+        if self.empty:
+            return self.copy()
+
         func = functools.partial(func, **kwargs)
 
-        # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if x.empty:
-                return lib.map_infer(x, func, ignore_na=ignore_na)
-            return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
+            return x._map_values(func, na_action=na_action)
 
         return self.apply(infer).__finalize__(self, "applymap")
 

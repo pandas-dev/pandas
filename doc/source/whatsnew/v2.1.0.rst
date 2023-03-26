@@ -34,6 +34,7 @@ Other enhancements
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
+- :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method for of the underlying arrays for :class:`api.extensions.ExtensionArray` instances (:issue:`xxxxx`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
