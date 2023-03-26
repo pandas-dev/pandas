@@ -1581,9 +1581,14 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            if (ts_input is not _no_input and
+            # GH#52117 note that currently we end up with the year in the ts_input
+            # variable when using positional arguments. We should fix this.
+            from_positional = (ts_input is not None and
+                               year is not None and month is not None)
+
+            if (ts_input is not _no_input and not from_positional and not (
                     PyDateTime_Check(ts_input) and
-                    getattr(ts_input, "tzinfo", None) is not None):
+                    getattr(ts_input, "tzinfo", None) is None)):
                 raise ValueError(
                     "Cannot pass fold with possibly unambiguous input: int, "
                     "float, numpy.datetime64, str, or timezone-aware "
