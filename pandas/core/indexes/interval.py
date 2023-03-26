@@ -711,12 +711,13 @@ class IntervalIndex(ExtensionIndex):
         # GH#51503
         if method in ("bfill", "backfill"):
             temp = []
-            for i in range(len(self)):
+            _len_self = len(self)
+            for i in range(_len_self):
                 # not sure to call this method for every value
                 t = self._maybe_cast_listlike_indexer([self[i]])
                 temp.append(self._maybe_convert_i8(t))
 
-            for i in range(len(temp)):
+            for i in range(_len_self):
                 # TODO: Comparing is not written professionally. Needs more review
                 if target[0] < temp[i].values[0].left:
                     return [i]
