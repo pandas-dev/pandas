@@ -1581,9 +1581,9 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            if (ts_input is not _no_input and not (
+            if (ts_input is not _no_input and
                     PyDateTime_Check(ts_input) and
-                    getattr(ts_input, "tzinfo", None) is None)):
+                    getattr(ts_input, "tzinfo", None) is not None):
                 raise ValueError(
                     "Cannot pass fold with possibly unambiguous input: int, "
                     "float, numpy.datetime64, str, or timezone-aware "
