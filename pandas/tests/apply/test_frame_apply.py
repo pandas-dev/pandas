@@ -548,7 +548,7 @@ def test_applymap_float_object_conversion(val):
 
 @pytest.mark.parametrize("na_action", ["ignore", None])
 def test_applymap_keeps_dtype(na_action):
-    # GHxxxxx
+    # GH52219
     arr = pd.Series(["a", np.nan, "b"])
     sparse_arr = arr.astype(pd.SparseDtype(object))
     df = pd.DataFrame(data={"a": arr, "b": sparse_arr})
