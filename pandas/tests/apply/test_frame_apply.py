@@ -546,10 +546,10 @@ def test_applymap_float_object_conversion(val):
     assert result == object
 
 
-@pytest.mark.parametrize("na_action", ["ignore", None])
+@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_applymap_keeps_dtype(na_action):
     # GH52219
-    arr = pd.Series(["a", np.nan, "b"])
+    arr = Series(["a", np.nan, "b"])
     sparse_arr = arr.astype(pd.SparseDtype(object))
     df = pd.DataFrame(data={"a": arr, "b": sparse_arr})
 
