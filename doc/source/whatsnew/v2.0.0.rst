@@ -1208,6 +1208,7 @@ Numeric
 - Bug in :meth:`~arrays.ArrowExtensionArray.mode` where ``dropna=False`` was not respected when there was ``NA`` values (:issue:`50982`)
 - Bug in :meth:`DataFrame.query` with ``engine="numexpr"`` and column names are ``min`` or ``max`` would raise a ``TypeError`` (:issue:`50937`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with tz-aware data containing ``pd.NaT`` and ``axis=1`` would return incorrect results (:issue:`51242`)
+- Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 
 Conversion
 ^^^^^^^^^^

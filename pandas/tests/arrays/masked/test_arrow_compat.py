@@ -184,6 +184,13 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
 
 
+def test_from_arrow_null(data):
+    arr = pa.nulls(10)
+    res = data.dtype.__from_arrow__(arr)
+    assert res.isna().all()
+    assert len(res) == 10
+
+
 def test_from_arrow_type_error(data):
     # ensure that __from_arrow__ returns a TypeError when getting a wrong
     # array type

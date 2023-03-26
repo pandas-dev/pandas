@@ -108,7 +108,7 @@ class BooleanDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        if array.type != pyarrow.bool_():
+        if array.type != pyarrow.bool_() and not pyarrow.types.is_null(array.type):
             raise TypeError(f"Expected array of boolean type, got {array.type} instead")
 
         if isinstance(array, pyarrow.Array):
@@ -119,6 +119,13 @@ class BooleanDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
+            if pyarrow.types.is_null(arr.type):
+                mask = np.ones(len(arr), dtype=bool)
+                # No need to init data, since all null
+                data = np.empty(len(arr), dtype=bool)
+                bool_arr = BooleanArray(data, mask)
+                results.append(bool_arr)
+                continue
             buflist = arr.buffers()
             data = pyarrow.BooleanArray.from_buffers(
                 arr.type, len(arr), [None, buflist[1]], offset=arr.offset
