@@ -5,36 +5,31 @@ from datetime import (
     datetime,
     time,
 )
-from tempfile import NamedTemporaryFile
 from typing import (
+    TYPE_CHECKING,
     Union,
-    cast,
 )
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import stringify_path
-from pandas.io.excel._base import (
-    BaseExcelReader,
-    inspect_excel_format,
-)
+from pandas.io.excel._base import BaseExcelReader
 
-ValueT = Union[int, float, str, bool, time, date, datetime]
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+    )
+
+_ValueT = Union[int, float, str, bool, time, date, datetime]
 
 
 class CalamineExcelReader(BaseExcelReader):
-    _sheet_names: list[str] | None = None
-
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
@@ -55,26 +50,14 @@ class CalamineExcelReader(BaseExcelReader):
 
     @property
     def _workbook_class(self):
-        from python_calamine import CalamineReader
+        from python_calamine import CalamineWorkbook
 
-        return CalamineReader
+        return CalamineWorkbook
 
     def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
-        if hasattr(filepath_or_buffer, "read") and hasattr(filepath_or_buffer, "seek"):
-            filepath_or_buffer = cast(ReadBuffer, filepath_or_buffer)
-            ext = inspect_excel_format(filepath_or_buffer)
-            with NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp_file:
-                filepath_or_buffer.seek(0)
-                tmp_file.write(filepath_or_buffer.read())
-                filepath_or_buffer = tmp_file.name
-        else:
-            filepath_or_buffer = stringify_path(filepath_or_buffer)
+        from python_calamine import load_workbook
 
-        assert isinstance(filepath_or_buffer, str)
-
-        from python_calamine import CalamineReader
-
-        return CalamineReader.from_path(filepath_or_buffer)
+        return load_workbook(filepath_or_buffer)  # type: ignore[arg-type]
 
     @property
     def sheet_names(self) -> list[str]:
@@ -91,7 +74,7 @@ class CalamineExcelReader(BaseExcelReader):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-        def _convert_cell(value: ValueT) -> Scalar:
+        def _convert_cell(value: _ValueT) -> Scalar:
             if isinstance(value, float):
                 val = int(value)
                 if val == value:
@@ -105,7 +88,7 @@ class CalamineExcelReader(BaseExcelReader):
 
             return value
 
-        rows: list[list[ValueT]] = sheet.to_python(skip_empty_area=False)
+        rows: list[list[_ValueT]] = sheet.to_python(skip_empty_area=False)
         data: list[list[Scalar]] = []
 
         for row in rows:

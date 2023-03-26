@@ -3420,7 +3420,8 @@ Excel files
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
 using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
 can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``.
+files can be read using ``pyxlsb``. Also, all this formats can be read using ``python-calamine``,
+but this library has sime limitation, for example, can't detect date in most formats.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
