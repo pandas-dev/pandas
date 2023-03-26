@@ -5992,58 +5992,49 @@ Keep all original rows and also all original values
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
-        axis=0, doc="The index (axis labels) of the Series."
-            """
-            
-            A one-dimensional ndarray with hashable type axis labels.
-            
-            Pandas Series.index attribute is used to get or set the index labels 
-            of the given Series object.The object supports both 
-            integer- and label-based indexing and provides a host of methods for 
-            performing operations involving the index. 
-            The labels need not be unique but must be of the hashable type.
-            
+        axis=0, doc="""The index (axis labels) of the Series.
+           
+            Get the index (row labels) of the Series.
+
             Returns
             -------
-            index
-                index of the series
+            Index
+                The index labels of the Series.
+
+            See Also
+            --------
+            Series.reindex: 
+                Conform Series to new index.
+            Series.set_index: 
+                Set Series as DataFrame index.
+            Index: 
+                The base pandas index type.
+
+            Notes
+            -----
+            The index of a Series is used to label and identify each element of the
+            underlying data. The index can be thought of as an immutable ordered set
+            (technically a multi-set, as it may contain duplicate labels), and is
+            used to index and align data in pandas.
+
+             For more information on pandas indexing, see the `indexing user guide
+            <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
 
             Examples
             --------
-            **Use the Series.index attribute to set the index label for 
-            the given Series object.** 
+            To create a Series with a custom index and view the index labels:
 
-            >>> s = pd.Series(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'])
-            >>> print(s)
-            0     Kolkata
-            1     Chicago
-            2     Toronto
-            3      Lisbon
-            dtype: object
+            >>> cities = ['Kolkata', 'Chicago', 'Toronto', 'Lisbon']
+            >>> populations = [14.85, 2.71, 2.93, 0.51]
+            >>> city_series = pd.Series(populations, index=cities)
+            >>> city_series.index
+            Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
 
-            The ``Series.index`` attribute will now be used to set the index 
-            label for the given object.
+            To change the index labels of an existing Series:
 
-            >>> s.index = ['City 1', 'City 2', 'City 3', 'City 4'] 
-            >>> print(s)
-            City 1     Kolkata
-            City 2     Chicago
-            City 3     Toronto
-            City 4      Lisbon
-            dtype: object
-
-            As we can see in the output, the ``Series.index`` attribute has 
-            successfully set the index labels for the given Series object. 
-
-            **We can also assign duplicate or nonunique indexes in Pandas.**
-
-            >>> s.index = ['City 1', 'City 1', 'City 3', 'City 3'] 
-            >>> print(s)
-            City 1     Kolkata
-            City 1     Chicago
-            City 3     Toronto
-            City 3      Lisbon
-            dtype: object
+            >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
+            >>> city_series.index
+            Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
             """
     )
 
