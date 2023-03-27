@@ -85,7 +85,9 @@ class Accumulation(base.BaseAccumulateTests):
         elif ser.dtype.name.startswith("I"):
             expected_dtype = f"Int{length}"
         elif ser.dtype.name.startswith("F"):
-            expected_dtype = ser.dtype
+            # Incompatible types in assignment (expression has type
+            # "Union[dtype[Any], ExtensionDtype]", variable has type "str")
+            expected_dtype = ser.dtype  # type: ignore[assignment]
 
         if op_name == "cumsum":
             result = getattr(ser, op_name)(skipna=skipna)
