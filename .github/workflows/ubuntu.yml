@@ -179,7 +179,7 @@ jobs:
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
-    
+
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
@@ -188,4 +188,3 @@ jobs:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1
       if: ${{ env.PATTERN == '' }}
-
