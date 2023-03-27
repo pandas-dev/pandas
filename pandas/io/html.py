@@ -531,7 +531,7 @@ class _HtmlFrameParser:
 
         return all_texts
 
-    def _handle_hidden_tables(self, tbl_list, attr_name):
+    def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """
         Return list of tables, potentially removing hidden elements
 
@@ -732,7 +732,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 # attribute and iterate them to check for display:none
                 for elem in table.xpath(".//*[@style]"):
                     if "display:none" in elem.attrib.get("style", "").replace(" ", ""):
-                        elem.getparent().remove(elem)
+                        elem.drop_tree()
 
         if not tables:
             raise ValueError(f"No tables found matching regex {repr(pattern)}")

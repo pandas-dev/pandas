@@ -3758,18 +3758,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
+
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            if isinstance(indexer, np.ndarray):
-                # reachable with DatetimeIndex
-                indexer = lib.maybe_indices_to_slice(
-                    indexer.astype(np.intp, copy=False), len(self)
-                )
-                if isinstance(indexer, np.ndarray):
-                    # GH#43223 If we can not convert, use take
-                    return self.take(indexer, axis=0)
-            return self._slice(indexer, axis=0)
+            return self._getitem_slice(key)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
@@ -4936,7 +4928,9 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
+    def _reindex_axes(
+        self, axes, level, limit: int | None, tolerance, method, fill_value, copy
+    ):
         frame = self
 
         columns = axes["columns"]
@@ -4960,7 +4954,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=np.nan,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_index, indexer = self.index.reindex(
@@ -4980,7 +4974,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=None,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_columns, indexer = self.columns.reindex(
@@ -5033,7 +5027,7 @@ class DataFrame(NDFrame, OpsMixin):
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None = None,
+        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
     ) -> tuple[Self, NDFrameT]:
         return super().align(
             other,
@@ -11418,7 +11412,7 @@ class DataFrame(NDFrame, OpsMixin):
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",
