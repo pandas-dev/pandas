@@ -186,5 +186,5 @@ jobs:
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
       env:
         PATTERN: 'single_cpu'
-        PYTEST_WORKERS: 1
-      if: ${{ env.PATTERN == '' }}
+        PYTEST_WORKERS: 1 
+      if: ${{ matrix.pattern == '' }}
