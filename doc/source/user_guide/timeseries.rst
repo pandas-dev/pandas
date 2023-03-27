@@ -517,6 +517,7 @@ can be represented using a 64-bit integer is limited to approximately 584 years:
    pd.Timestamp.max
 
 When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
+Different resolutions can be converted to each other through ``as_unit``.
 
 .. seealso::
 
