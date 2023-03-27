@@ -74,7 +74,7 @@ jobs:
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
             # There are some warnings failing the build with -werror
-            #pandas_ci: "0"
+            pandas_ci: "0"
         exclude:
           - env_file: actions-38.yaml
             pyarrow_version: "8"
