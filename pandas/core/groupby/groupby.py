@@ -2781,7 +2781,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _fill(self, direction: Literal["ffill", "bfill"], limit=None):
+    def _fill(self, direction: Literal["ffill", "bfill"], limit: int | None = None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -2868,7 +2868,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def ffill(self, limit=None):
+    def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
 
@@ -2893,7 +2893,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def bfill(self, limit=None):
+    def bfill(self, limit: int | None = None):
         """
         Backward fill the values.
 
@@ -3789,7 +3789,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         periods: int = 1,
         fill_method: FillnaOptions = "ffill",
-        limit=None,
+        limit: int | None = None,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
     ):

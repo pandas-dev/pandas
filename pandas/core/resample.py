@@ -376,7 +376,7 @@ class Resampler(BaseGroupBy, PandasObject):
     def _downsample(self, f, **kwargs):
         raise AbstractMethodError(self)
 
-    def _upsample(self, f, limit=None, fill_value=None):
+    def _upsample(self, f, limit: int | None = None, fill_value=None):
         raise AbstractMethodError(self)
 
     def _gotitem(self, key, ndim: int, subset=None):
@@ -483,7 +483,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def ffill(self, limit=None):
+    def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
 
@@ -503,7 +503,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("ffill", limit=limit)
 
-    def nearest(self, limit=None):
+    def nearest(self, limit: int | None = None):
         """
         Resample by using the nearest value.
 
@@ -563,7 +563,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("nearest", limit=limit)
 
-    def bfill(self, limit=None):
+    def bfill(self, limit: int | None = None):
         """
         Backward fill the new missing values in the resampled data.
 
@@ -665,7 +665,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("bfill", limit=limit)
 
-    def fillna(self, method, limit=None):
+    def fillna(self, method, limit: int | None = None):
         """
         Fill missing values introduced by upsampling.
 
@@ -831,7 +831,7 @@ class Resampler(BaseGroupBy, PandasObject):
         method: QuantileInterpolation = "linear",
         *,
         axis: Axis = 0,
-        limit=None,
+        limit: int | None = None,
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
@@ -1311,7 +1311,7 @@ class DatetimeIndexResampler(Resampler):
             binner = binner[:-1]
         return binner
 
-    def _upsample(self, method, limit=None, fill_value=None):
+    def _upsample(self, method, limit: int | None = None, fill_value=None):
         """
         Parameters
         ----------
@@ -1440,7 +1440,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             "as they are not sub or super periods"
         )
 
-    def _upsample(self, method, limit=None, fill_value=None):
+    def _upsample(self, method, limit: int | None = None, fill_value=None):
         """
         Parameters
         ----------
@@ -1532,7 +1532,7 @@ def get_resampler_for_grouping(
     rule,
     how=None,
     fill_method=None,
-    limit=None,
+    limit: int | None = None,
     kind=None,
     on=None,
     **kwargs,
@@ -1579,7 +1579,7 @@ class TimeGrouper(Grouper):
         how: str = "mean",
         axis: Axis = 0,
         fill_method=None,
-        limit=None,
+        limit: int | None = None,
         kind: str | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
         origin: Literal["epoch", "start", "start_day", "end", "end_day"]

@@ -111,7 +111,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_pad(
         self,
-        width,
+        width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ):
@@ -283,14 +283,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: x.rindex(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         return self._str_map(sep.join)
 
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         result = self._str_map(lambda x: x.partition(sep), dtype="object")
         return result
 
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         return self._str_map(lambda x: x.rpartition(sep), dtype="object")
 
     def _str_len(self):
@@ -362,7 +362,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_translate(self, table):
         return self._str_map(lambda x: x.translate(table))
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))

@@ -531,7 +531,7 @@ class _HtmlFrameParser:
 
         return all_texts
 
-    def _handle_hidden_tables(self, tbl_list, attr_name):
+    def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """
         Return list of tables, potentially removing hidden elements
 

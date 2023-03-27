@@ -222,7 +222,10 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed: bool = True, int_allowed: bool = False
+    value: BoolishNoneT,
+    arg_name: str,
+    none_allowed: bool = True,
+    int_allowed: bool = False,
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.

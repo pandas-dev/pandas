@@ -2249,7 +2249,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
         """

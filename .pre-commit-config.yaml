@@ -413,8 +413,8 @@ repos:
         language: python
         stages: [manual]
         additional_dependencies:
-        - autotyping==22.9.0
-        - libcst==0.4.7
+        - autotyping==23.3.0
+        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

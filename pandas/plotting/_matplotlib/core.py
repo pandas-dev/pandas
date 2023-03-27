@@ -127,7 +127,7 @@ class MPLPlot(ABC):
         sharex=None,
         sharey: bool = False,
         use_index: bool = True,
-        figsize=None,
+        figsize: tuple[float, float] | None = None,
         grid=None,
         legend: bool | str = True,
         rot=None,
@@ -140,7 +140,7 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        fontsize=None,
+        fontsize: int | None = None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
         table: bool = False,
@@ -729,7 +729,9 @@ class MPLPlot(ABC):
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
-    def _apply_axis_properties(self, axis: Axis, rot=None, fontsize=None) -> None:
+    def _apply_axis_properties(
+        self, axis: Axis, rot=None, fontsize: int | None = None
+    ) -> None:
         """
         Tick creation within matplotlib is reasonably expensive and is
         internally deferred until accessed as Ticks are created/destroyed
@@ -958,7 +960,7 @@ class MPLPlot(ABC):
         if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
-    def _apply_style_colors(self, colors, kwds, col_num, label):
+    def _apply_style_colors(self, colors, kwds, col_num, label: str):
         """
         Manage style and color based on column number and its label.
         Returns tuple of appropriate style and kwds which "color" may be added.

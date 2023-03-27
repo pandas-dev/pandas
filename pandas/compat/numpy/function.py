@@ -342,7 +342,7 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
+def validate_groupby_func(name: str, args, kwargs, allowed=None) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed kwargs because all
     of their necessary parameters are explicitly listed in the function
