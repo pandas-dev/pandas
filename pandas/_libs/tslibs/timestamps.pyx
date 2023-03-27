@@ -1562,6 +1562,14 @@ class Timestamp(_Timestamp):
             _TSObject ts
             tzinfo_type tzobj
 
+        # GH#52117 If we passed positional args, then _ts_input
+        # is now set to year and the other positional args
+        # are shifted to the left. Let's shift back
+        if (isinstance(ts_input, int) and
+                isinstance(year, int) and isinstance(month, int)):
+            ts_input, year, month, day, hour, minute, second, microsecond = (
+                _no_input, ts_input, year, month, day, hour, minute, second)
+
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
 
@@ -1581,12 +1589,7 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            # GH#52117 note that currently we end up with the year in the ts_input
-            # variable when using positional arguments. We should fix this.
-            from_positional = (ts_input is not None and
-                               year is not None and month is not None)
-
-            if (ts_input is not _no_input and not from_positional and not (
+            if (ts_input is not _no_input and not (
                     PyDateTime_Check(ts_input) and
                     getattr(ts_input, "tzinfo", None) is None)):
                 raise ValueError(
