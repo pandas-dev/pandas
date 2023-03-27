@@ -10557,6 +10557,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
 
             .. versionadded:: 1.1.0
 
