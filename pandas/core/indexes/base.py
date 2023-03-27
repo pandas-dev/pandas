@@ -2714,6 +2714,17 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=['a', 'b', None])
+        >>> s
+        a    1
+        b    2
+        None 3
+        dtype: int64
+        >>> s.index.hasnans
+        True
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
@@ -4177,7 +4188,12 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
-        self, target, method=None, level=None, limit=None, tolerance=None
+        self,
+        target,
+        method=None,
+        level=None,
+        limit: int | None = None,
+        tolerance: float | None = None,
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values.
