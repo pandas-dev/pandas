@@ -371,7 +371,7 @@ PlottingOrientation = Literal["horizontal", "vertical"]
 AnyAll = Literal["any", "all"]
 
 # merge
-MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeHow = Literal["left", "right", "inner", "outer", "cross", "leftsemi", "rightsemi"]
 
 # join
 JoinHow = Literal["left", "right", "inner", "outer"]

@@ -1053,7 +1053,9 @@ class _MergeOperation:
         self,
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # make mypy happy
-        assert self.how != "cross"
+        assert (
+            self.how != "cross" and self.how != "leftsemi" and self.how != "rightsemi"
+        )
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
 
