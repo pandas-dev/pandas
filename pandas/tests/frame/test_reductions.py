@@ -317,8 +317,10 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    def test_stat_operators_attempt_obj_array(self, method, df, axis):
+    def test_stat_operators_attempt_obj_array(self, method, df, axis, request):
         # GH#676
+        if axis in (1, "columns") or method not in ("sum", "prod", "min", "max"):
+            request.node.add_marker(pytest.mark.xfail(reason="Revert of GH#51335"))
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
         expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
@@ -402,6 +404,7 @@ class TestDataFrameAnalytics:
         expected = Series([Timestamp("2000", tz=tz)], index=["A"])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="Revert of GH#51335")
     def test_mean_mixed_string_decimal(self):
         # GH 11670
         # possible bug when calculating mean of DataFrame?
@@ -731,7 +734,9 @@ class TestDataFrameAnalytics:
             tm.makePeriodIndex(0),
         ],
     )
-    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
+    def test_axis_1_empty(self, all_reductions, index, using_array_manager, request):
+        if all_reductions not in ("count", "any", "all"):
+            request.node.add_marker(pytest.mark.xfail(reason="Revert of GH#51335"))
         df = DataFrame(columns=["a"], index=index)
         result = getattr(df, all_reductions)(axis=1)
         if all_reductions in ("any", "all"):
@@ -1464,6 +1469,7 @@ class TestDataFrameReductions:
         result = getattr(df, method)(axis=1)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH#51335")
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_minmax_tzaware_skipna_axis_1(self, method, skipna):
         # GH#51242
@@ -1671,9 +1677,10 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+def test_reduction_axis_none_returns_scalar(method, numeric_only, request):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
-
+    if numeric_only:
+        request.node.add_marker(pytest.mark.xfail(reason="Revert of GH#51335"))
     df = DataFrame(np.random.randn(4, 4))
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
