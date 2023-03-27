@@ -95,7 +95,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dtype_equal,
     is_ea_or_datetimelike_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -1376,7 +1375,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.io.formats.format import FloatArrayFormatter
 
-        if is_float_dtype(self.dtype) and not is_extension_array_dtype(self.dtype):
+        if is_float_dtype(self.dtype) and not isinstance(self.dtype, ExtensionDtype):
             formatter = FloatArrayFormatter(
                 self._values,
                 na_rep=na_rep,
@@ -1388,7 +1387,7 @@ class Index(IndexOpsMixin, PandasObject):
             return formatter.get_result_as_array()
 
         mask = isna(self)
-        if not is_object_dtype(self) and not quoting:
+        if self.dtype != object and not quoting:
             values = np.asarray(self).astype(str)
         else:
             values = np.array(self, dtype=object, copy=True)
@@ -2714,6 +2713,17 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=['a', 'b', None])
+        >>> s
+        a    1
+        b    2
+        None 3
+        dtype: int64
+        >>> s.index.hasnans
+        True
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
@@ -4177,7 +4187,12 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
-        self, target, method=None, level=None, limit=None, tolerance=None
+        self,
+        target,
+        method=None,
+        level=None,
+        limit: int | None = None,
+        tolerance: float | None = None,
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values.
@@ -5189,7 +5204,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
             #  time below from 3.8 ms to 496 µs
             # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
-            if is_extension_array_dtype(getattr(key, "dtype", None)):
+            if isinstance(getattr(key, "dtype", None), ExtensionDtype):
                 key = key.to_numpy(dtype=bool, na_value=False)
             else:
                 key = np.asarray(key, dtype=bool)
@@ -5398,7 +5413,7 @@ class Index(IndexOpsMixin, PandasObject):
             earr = cast(ExtensionArray, self._data)
             return earr.equals(other._data)
 
-        if is_extension_array_dtype(other.dtype):
+        if isinstance(other.dtype, ExtensionDtype):
             # All EA-backed Index subclasses override equals
             return other.equals(self)
 

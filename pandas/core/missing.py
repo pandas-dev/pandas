@@ -873,7 +873,7 @@ def _datetimelike_compat(func: F) -> F:
     """
 
     @wraps(func)
-    def new_func(values, limit=None, mask=None):
+    def new_func(values, limit: int | None = None, mask=None):
         if needs_i8_conversion(values.dtype):
             if mask is None:
                 # This needs to occur before casting to int64
@@ -910,7 +910,11 @@ def _backfill_1d(
 
 
 @_datetimelike_compat
-def _pad_2d(values: np.ndarray, limit=None, mask: npt.NDArray[np.bool_] | None = None):
+def _pad_2d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
+):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -922,7 +926,9 @@ def _pad_2d(values: np.ndarray, limit=None, mask: npt.NDArray[np.bool_] | None =
 
 
 @_datetimelike_compat
-def _backfill_2d(values, limit=None, mask: npt.NDArray[np.bool_] | None = None):
+def _backfill_2d(
+    values, limit: int | None = None, mask: npt.NDArray[np.bool_] | None = None
+):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -982,7 +988,7 @@ def _interp_limit(invalid: npt.NDArray[np.bool_], fw_limit, bw_limit):
     f_idx = set()
     b_idx = set()
 
-    def inner(invalid, limit):
+    def inner(invalid, limit: int):
         limit = min(limit, N)
         windowed = _rolling_window(invalid, limit + 1).all(1)
         idx = set(np.where(windowed)[0] + limit) | set(
