@@ -726,7 +726,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
 
         tables = self._handle_hidden_tables(tables, "attrib")
-        self.displayed_only = True
         if self.displayed_only:
             for table in tables:
                 # lxml utilizes XPATH 1.0 which does not have regex
