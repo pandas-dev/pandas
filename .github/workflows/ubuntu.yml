@@ -26,7 +26,6 @@ jobs:
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
         pyarrow_version: ["8", "9", "10"]
         include:
           - name: "Downstream Compat"
@@ -100,7 +99,7 @@ jobs:
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
@@ -171,7 +170,19 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
-    - name: Test
+    - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      with:
+        PATTERN: ${{ matrix.pattern || 'not single_cpu'}}
+    
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      with:
+        PATTERN: 'single_cpu'
+        PYTEST_WORKERS: 1
+      if: ${{ env.PATTERN == '' }}
+
