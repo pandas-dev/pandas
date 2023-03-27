@@ -2808,6 +2808,7 @@ def test_merge_semi_multicol(expected, how):
     result = left.merge(right, how=how)
     tm.assert_frame_equal(result, expected)
 
+
 def test_merge_ea(any_numeric_ea_dtype, join_type):
     # GH#44240
     left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)

@@ -38,7 +38,7 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
-- :meth:`DataFrame.merge` now supports ``how`` with ``leftsemi`` and ``rightsemi`` (:issue:`42784`) 
+- :meth:`DataFrame.merge` now supports ``how`` with ``leftsemi`` and ``rightsemi`` (:issue:`42784`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
