@@ -10975,45 +10975,6 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor_sliced(result, index=labels)
         return result
 
-        # # Case with EAs see GH#35881
-        # df = self
-        # if numeric_only:
-        #     df = _get_data()
-        # if axis is None:
-        #     return func(df.values)
-        # elif axis == 1:
-        #     if len(df.index) == 0:
-        #         # Taking a transpose would result in no columns, losing the dtype.
-        #         # In the empty case, reducing along axis 0 or 1 gives the same
-        #         # result dtype, so reduce with axis=0 and ignore values
-        #         result = df._reduce(
-        #             op,
-        #             name,
-        #             axis=0,
-        #             skipna=skipna,
-        #             numeric_only=False,
-        #             filter_type=filter_type,
-        #             **kwds,
-        #         ).iloc[:0]
-        #         result.index = df.index
-        #         return result
-        #     df = df.T
-        #
-        # # After possibly _get_data and transposing, we are now in the
-        # #  simple case where we can use BlockManager.reduce
-        # res = df._mgr.reduce(blk_func)
-        # out = df._constructor(res).iloc[0]
-        # if out_dtype is not None:
-        #     out = out.astype(out_dtype)
-        # elif (df._mgr.get_dtypes() == object).any():
-        #     out = out.astype(object)
-        # elif len(self) == 0 and name in ("sum", "prod"):
-        #     # Even if we are object dtype, follow numpy and return
-        #     #  float64, see test_apply_funcs_over_empty
-        #     out = out.astype(np.float64)
-        #
-        # return out
-
     def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
         """
         Special case for _reduce to try to avoid a potentially-expensive transpose.
