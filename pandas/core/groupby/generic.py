@@ -683,12 +683,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = self.grouper.names + [self.obj.name]
 
-        constructor_1d = (
-            self._obj_1d_constructor
-            if isinstance(self._obj_1d_constructor, Series)
-            else Series
-        )
-
         if is_categorical_dtype(val.dtype) or (
             bins is not None and not np.iterable(bins)
         ):
@@ -696,7 +690,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # in a backward compatible way
             # GH38672 relates to categorical dtype
             ser = self.apply(
-                constructor_1d.value_counts,
+                self._obj_1d_constructor.value_counts,
                 normalize=normalize,
                 sort=sort,
                 ascending=ascending,
