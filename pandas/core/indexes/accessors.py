@@ -81,7 +81,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
-    def _delegate_property_get(self, name):
+    # error: Signature of "_delegate_property_get" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_get(self, name: str):  # type: ignore[override]
         from pandas import Series
 
         values = self._get_values()
@@ -113,13 +115,13 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return result
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         raise ValueError(
             "modifications to a property of a datetimelike object are not supported. "
             "Change values on the original."
         )
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
         values = self._get_values()
