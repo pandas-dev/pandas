@@ -822,7 +822,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
         downcast: dict | None = None,
@@ -846,6 +846,11 @@ class SeriesGroupBy(GroupBy[Series]):
             ``'bfill'`` will use next valid observation to fill the gap.
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -927,7 +932,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> Series:
         """
@@ -949,6 +954,11 @@ class SeriesGroupBy(GroupBy[Series]):
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `SeriesGroupBy` this parameter is unused and defaults to 0.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -1023,6 +1033,10 @@ class SeriesGroupBy(GroupBy[Series]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis for the function to be applied on.
             This parameter is only for compatibility with DataFrame and is unused.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
@@ -1103,12 +1117,16 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmin(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmax(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
@@ -1932,7 +1950,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmax(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -1948,6 +1966,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
@@ -2004,7 +2026,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmax")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2018,7 +2045,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmin(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -2034,6 +2061,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
@@ -2090,7 +2121,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmin")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2221,9 +2257,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
         """
@@ -2250,8 +2286,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
 
-            .. deprecated:: 2.0.0
-                Use frame.T.groupby(...) instead.
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         inplace : bool, default False
             Broken. Do not set to True.
@@ -2355,7 +2392,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis | None = 0,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2376,6 +2413,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -2468,6 +2510,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             Specifying ``axis=None`` will apply the aggregation across both axes.
 
             .. versionadded:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
@@ -2601,6 +2647,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
+        # GH#51045
+        warnings.warn(
+            f"{type(self).__name__}.dtypes is deprecated and will be removed in "
+            "a future version. Check the dtypes on the base object instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         # error: Incompatible return value type (got "DataFrame", expected "Series")
         return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
 
@@ -2608,7 +2662,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def corrwith(
         self,
         other: DataFrame | Series,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,

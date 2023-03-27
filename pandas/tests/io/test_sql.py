@@ -24,6 +24,7 @@ from datetime import (
     date,
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 from pathlib import Path
@@ -551,6 +552,42 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes(conn, request):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "int": pd.array([1], dtype="int8[pyarrow]"),
+            "datetime": pd.array(
+                [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
+            ),
+            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
+            "string": pd.array(["a"], dtype="string[pyarrow]"),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
+        df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "datetime": pd.array(
+                [datetime(2023, 1, 1), nulls_fixture], dtype="timestamp[ns][pyarrow]"
+            ),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -775,7 +812,7 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
         "test_frame", conn, index=False, method=psql_insert_copy
     )
     # GH 46891
-    if not isinstance(expected_count, int):
+    if expected_count is None:
         assert result_count is None
     else:
         assert result_count == expected_count
@@ -2485,6 +2522,19 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             expected = self.dtype_backend_expected(string_storage, dtype_backend)
             for result in iterator:
                 tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
+    def test_read_sql_invalid_dtype_backend_table(self, func):
+        table = "test"
+        df = self.dtype_backend_data()
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            getattr(pd, func)(table, self.conn, dtype_backend="numpy")
 
     def dtype_backend_data(self) -> DataFrame:
         return DataFrame(

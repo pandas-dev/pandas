@@ -113,7 +113,7 @@ def tz_to_dtype(tz: tzinfo | None, unit: str = "ns"):
         return DatetimeTZDtype(tz=tz, unit=unit)
 
 
-def _field_accessor(name: str, field: str, docstring=None):
+def _field_accessor(name: str, field: str, docstring: str | None = None):
     def f(self):
         values = self._local_timestamps()
 
@@ -2200,7 +2200,7 @@ def objects_to_datetime64ns(
         #  datetimes but they have conflicting timezones/awareness
         if allow_object:
             return result, tz_parsed
-        raise TypeError(result)
+        raise TypeError("DatetimeIndex has mixed timezones")
     else:  # pragma: no cover
         # GH#23675 this TypeError should never be hit, whereas the TypeError
         #  in the object-dtype branch above is reachable.

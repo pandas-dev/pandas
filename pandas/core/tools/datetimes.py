@@ -307,12 +307,12 @@ def _convert_and_box_cache(
     """
     from pandas import Series
 
-    result = Series(arg).map(cache_array)
+    result = Series(arg, dtype=cache_array.index.dtype).map(cache_array)
     return _box_as_indexlike(result._values, utc=False, name=name)
 
 
 def _return_parsed_timezone_results(
-    result: np.ndarray, timezones, utc: bool, name
+    result: np.ndarray, timezones, utc: bool, name: str
 ) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.

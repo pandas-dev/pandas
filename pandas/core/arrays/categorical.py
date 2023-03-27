@@ -10,10 +10,10 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -26,6 +26,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -104,6 +105,7 @@ if TYPE_CHECKING:
         Dtype,
         NpDtype,
         Ordered,
+        Self,
         Shape,
         SortKind,
         npt,
@@ -115,9 +117,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-
-
-CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -554,6 +553,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Alias for tolist.
         """
+        # GH#51254
+        warnings.warn(
+            "Categorical.to_list is deprecated and will be removed in a future "
+            "version. Use obj.tolist() instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.tolist()
 
     @classmethod
@@ -1904,7 +1910,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
-        width, height = get_terminal_size()
+        width, _ = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
             # 0 = no breaks
@@ -2163,9 +2169,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(
-        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
-    ) -> CategoricalT:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
 
         first = to_concat[0]
@@ -2496,10 +2500,14 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_categorical_dtype(data.dtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    def _delegate_property_get(self, name):
+    # error: Signature of "_delegate_property_get" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_get(self, name: str):  # type: ignore[override]
         return getattr(self._parent, name)
 
-    def _delegate_property_set(self, name, new_values):
+    # error: Signature of "_delegate_property_set" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
         return setattr(self._parent, name, new_values)
 
     @property
@@ -2511,7 +2519,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return Series(self._parent.codes, index=self._index)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
         method = getattr(self._parent, name)

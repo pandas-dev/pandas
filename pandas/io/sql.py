@@ -39,11 +39,11 @@ from pandas.errors import (
     DatabaseError,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
-    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -72,8 +72,8 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         IndexLabel,
+        Self,
     )
-
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -223,7 +223,7 @@ def execute(sql, con, params=None):
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -238,7 +238,7 @@ def read_sql_table(
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -327,8 +327,10 @@ def read_sql_table(
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
@@ -458,8 +460,10 @@ def read_sql_query(
     parameter will be converted to UTC.
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
@@ -622,8 +626,10 @@ def read_sql(
     1           1  2010-11-12
     """
 
+    check_dtype_backend(dtype_backend)
     if dtype_backend is lib.no_default:
         dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         if isinstance(pandas_sql, SQLiteDatabase):
@@ -634,7 +640,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
-                dtype_backend=dtype_backend,  # type: ignore[arg-type]
+                dtype_backend=dtype_backend,
                 dtype=dtype,
             )
 
@@ -958,14 +964,16 @@ class SQLTable(PandasObject):
         data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
 
         for i, (_, ser) in enumerate(temp.items()):
-            vals = ser._values
-            if vals.dtype.kind == "M":
-                d = vals.to_pydatetime()
-            elif vals.dtype.kind == "m":
+            if ser.dtype.kind == "M":
+                d = ser.dt.to_pydatetime()
+            elif ser.dtype.kind == "m":
+                vals = ser._values
+                if isinstance(vals, ArrowExtensionArray):
+                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
-                d = vals.astype(object)
+                d = ser._values.astype(object)
 
             assert isinstance(d, np.ndarray), type(d)
 
@@ -1015,7 +1023,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
-                if is_integer(num_inserted):
+                if num_inserted is not None:
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:
@@ -1026,7 +1034,7 @@ class SQLTable(PandasObject):
         self,
         result,
         exit_stack: ExitStack,
-        chunksize: str | None,
+        chunksize: int | None,
         columns,
         coerce_float: bool = True,
         parse_dates=None,
@@ -1064,7 +1072,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         columns=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
@@ -1341,7 +1349,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:
@@ -1378,12 +1386,12 @@ class PandasSQL(PandasObject, ABC):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",
@@ -1417,10 +1425,10 @@ class BaseEngine:
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1441,10 +1449,10 @@ class SQLAlchemyEngine(BaseEngine):
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1762,7 +1770,7 @@ class SQLDatabase(PandasSQL):
     def prep_table(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
@@ -1844,7 +1852,7 @@ class SQLDatabase(PandasSQL):
         index: bool = True,
         index_label=None,
         schema: str | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",
@@ -1990,7 +1998,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name):
+def _get_unicode_name(name: object):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -1998,7 +2006,7 @@ def _get_unicode_name(name):
     return uname
 
 
-def _get_valid_sqlite_name(name):
+def _get_valid_sqlite_name(name: object):
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2294,12 +2302,12 @@ class SQLiteDatabase(PandasSQL):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: str = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",
