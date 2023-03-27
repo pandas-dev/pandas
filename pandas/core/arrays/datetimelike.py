@@ -1078,7 +1078,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return other + self
 
     @final
-    def _sub_datetimelike_scalar(self, other: datetime | np.datetime64):
+    def _sub_datetimelike_scalar(
+        self, other: datetime | np.datetime64
+    ) -> TimedeltaArray:
         if self.dtype.kind != "M":
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
@@ -1095,7 +1097,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._sub_datetimelike(ts)
 
     @final
-    def _sub_datetime_arraylike(self, other: DatetimeArray):
+    def _sub_datetime_arraylike(self, other: DatetimeArray) -> TimedeltaArray:
         if self.dtype.kind != "M":
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
@@ -1296,7 +1298,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = op(self.astype("O"), np.asarray(other))
         return res_values
 
-    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs):
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> Self:
         if name not in {"cummin", "cummax"}:
             raise TypeError(f"Accumulation {name} not supported for {type(self)}")
 
@@ -2015,7 +2017,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ):
+    ) -> Self:
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
@@ -2024,7 +2026,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ):
+    ) -> Self:
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
@@ -2033,7 +2035,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ):
+    ) -> Self:
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     # --------------------------------------------------------------
@@ -2054,7 +2056,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _maybe_clear_freq(self) -> None:
         self._freq = None
 
-    def _with_freq(self, freq):
+    def _with_freq(self, freq) -> Self:
         """
         Helper to get a view on the same data, with a new freq.
 

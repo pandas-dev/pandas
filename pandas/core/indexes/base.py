@@ -936,7 +936,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.dtype
 
     @final
-    def ravel(self, order: str_t = "C") -> Index:
+    def ravel(self, order: str_t = "C") -> Self:
         """
         Return a view on self.
 

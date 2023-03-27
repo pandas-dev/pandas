@@ -2428,7 +2428,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         _TSObject tsobj
-        float64_t fnan = np.nan
+        float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
