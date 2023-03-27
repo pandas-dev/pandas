@@ -800,7 +800,7 @@ class HDFStore:
         stop=None,
         columns=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -948,7 +948,7 @@ class HDFStore:
         start=None,
         stop=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -1202,7 +1202,7 @@ class HDFStore:
         columns=None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool | None = None,
         data_columns: Literal[True] | list[str] | None = None,
@@ -1734,7 +1734,7 @@ class HDFStore:
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,
@@ -4271,7 +4271,7 @@ class AppendableTable(Table):
         complevel=None,
         fletcher32=None,
         min_itemsize=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,

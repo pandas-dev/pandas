@@ -10,6 +10,7 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
+    Hashable,
     Callable,
     Generic,
     Literal,
@@ -1167,7 +1168,7 @@ class Parser:
 
     def _try_convert_data(
         self,
-        name,
+        name: Hashable,
         data,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,

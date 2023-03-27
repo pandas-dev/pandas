@@ -4936,7 +4936,9 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
+    def _reindex_axes(
+        self, axes, level, limit: int | None, tolerance, method, fill_value, copy
+    ):
         frame = self
 
         columns = axes["columns"]
@@ -4960,7 +4962,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=np.nan,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_index, indexer = self.index.reindex(
@@ -4980,7 +4982,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=None,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_columns, indexer = self.columns.reindex(
