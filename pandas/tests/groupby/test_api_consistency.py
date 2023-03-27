@@ -4,8 +4,6 @@ Test the consistency of the groupby API, both internally and with other pandas o
 
 import inspect
 
-import pytest
-
 from pandas import (
     DataFrame,
     Series,
@@ -16,22 +14,24 @@ from pandas.core.groupby.generic import (
 )
 
 
-def test_frame_consistency(request, groupby_func):
+def test_frame_consistency(groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        msg = "first and last are entirely different between frame and groupby"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("nth", "cumcount", "ngroup"):
-        msg = "DataFrame has no such method"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("size",):
-        msg = "Method is a property"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        # first and last are entirely different between frame and groupby
+        return
+
+    if groupby_func in ("cumcount", "ngroup"):
+        assert not hasattr(DataFrame, groupby_func)
+        return
 
     frame_method = getattr(DataFrame, groupby_func)
     gb_method = getattr(DataFrameGroupBy, groupby_func)
     result = set(inspect.signature(gb_method).parameters)
-    expected = set(inspect.signature(frame_method).parameters)
+    if groupby_func == "size":
+        # "size" is a method on GroupBy but property on DataFrame:
+        expected = {"self"}
+    else:
+        expected = set(inspect.signature(frame_method).parameters)
 
     # Exclude certain arguments from result and expected depending on the operation
     # Some of these may be purposeful inconsistencies between the APIs
@@ -77,19 +77,21 @@ def test_frame_consistency(request, groupby_func):
 def test_series_consistency(request, groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        msg = "first and last are entirely different between Series and groupby"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("nth", "cumcount", "ngroup", "corrwith"):
-        msg = "Series has no such method"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    if groupby_func in ("size",):
-        msg = "Method is a property"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        # first and last are entirely different between Series and groupby
+        return
+
+    if groupby_func in ("cumcount", "corrwith", "ngroup"):
+        assert not hasattr(Series, groupby_func)
+        return
 
     series_method = getattr(Series, groupby_func)
     gb_method = getattr(SeriesGroupBy, groupby_func)
     result = set(inspect.signature(gb_method).parameters)
-    expected = set(inspect.signature(series_method).parameters)
+    if groupby_func == "size":
+        # "size" is a method on GroupBy but property on Series
+        expected = {"self"}
+    else:
+        expected = set(inspect.signature(series_method).parameters)
 
     # Exclude certain arguments from result and expected depending on the operation
     # Some of these may be purposeful inconsistencies between the APIs

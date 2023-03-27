@@ -25,17 +25,11 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    NpDtype,
-    RandomState,
-    T,
-)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -53,6 +47,14 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        NpDtype,
+        RandomState,
+        T,
+    )
+
     from pandas import Index
 
 
@@ -226,7 +228,6 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLik
 
 
 def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
-
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
@@ -235,7 +236,17 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    try:
+        with warnings.catch_warnings():
+            # Can remove warning filter once NumPy 1.24 is min version
+            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            result = np.asarray(values, dtype=dtype)
+    except ValueError:
+        # Using try/except since it's more performant than checking is_list_like
+        # over each element
+        # error: Argument 1 to "construct_1d_object_array_from_listlike"
+        # has incompatible type "Iterable[Any]"; expected "Sized"
+        return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
@@ -302,6 +313,18 @@ def is_null_slice(obj) -> bool:
         and obj.start is None
         and obj.stop is None
         and obj.step is None
+    )
+
+
+def is_empty_slice(obj) -> bool:
+    """
+    We have an empty slice, e.g. no values are selected.
+    """
+    return (
+        isinstance(obj, slice)
+        and obj.start is not None
+        and obj.stop is not None
+        and obj.start == obj.stop
     )
 
 

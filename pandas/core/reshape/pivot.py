@@ -11,17 +11,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AggFuncType,
-    AggFuncTypeBase,
-    AggFuncTypeDict,
-    IndexLabel,
-)
 from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -49,6 +42,13 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AggFuncType,
+        AggFuncTypeBase,
+        AggFuncTypeDict,
+        IndexLabel,
+    )
+
     from pandas import DataFrame
 
 
@@ -165,17 +165,7 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort)
-    msg = (
-        "pivot_table dropped a column because it failed to aggregate. This behavior "
-        "is deprecated and will raise in a future version of pandas. Select only the "
-        "columns that can be aggregated."
-    )
-    with rewrite_warning(
-        target_message="The default value of numeric_only",
-        target_category=FutureWarning,
-        new_message=msg,
-    ):
-        agged = grouped.agg(aggfunc)
+    agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
@@ -353,7 +343,6 @@ def _add_margins(
 def _compute_grand_margin(
     data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
 ):
-
     if values:
         grand_margin = {}
         for k, v in data[values].items():
@@ -389,7 +378,8 @@ def _generate_marginal_results(
             margin = data[rows + values].groupby(rows, observed=observed).agg(aggfunc)
             cat_axis = 1
 
-            for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
+            for key, piece in table.T.groupby(level=0, observed=observed):
+                piece = piece.T
                 all_key = _all_key(key)
 
                 # we are going to mutate this, so need to copy!
@@ -402,7 +392,7 @@ def _generate_marginal_results(
             from pandas import DataFrame
 
             cat_axis = 0
-            for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
+            for key, piece in table.groupby(level=0, observed=observed):
                 if len(cols) > 1:
                     all_key = _all_key(key)
                 else:
@@ -511,13 +501,10 @@ def _convert_by(by):
 def pivot(
     data: DataFrame,
     *,
+    columns: IndexLabel,
     index: IndexLabel | lib.NoDefault = lib.NoDefault,
-    columns: IndexLabel | lib.NoDefault = lib.NoDefault,
     values: IndexLabel | lib.NoDefault = lib.NoDefault,
 ) -> DataFrame:
-    if columns is lib.NoDefault:
-        raise TypeError("pivot() missing 1 required argument: 'columns'")
-
     columns_listlike = com.convert_to_list_like(columns)
 
     # If columns is None we will create a MultiIndex level with None as name
@@ -750,7 +737,6 @@ def crosstab(
 def _normalize(
     table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
 ) -> DataFrame:
-
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}
         try:
@@ -759,7 +745,6 @@ def _normalize(
             raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
-
         # Actual Normalizations
         normalizers: dict[bool | str, Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),

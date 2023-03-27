@@ -3,14 +3,18 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
+    Any,
     Generator,
+    Mapping,
 )
 
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
     from matplotlib.figure import Figure
+    from matplotlib.table import Table
     import numpy as np
 
     from pandas import (
@@ -19,7 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-def table(ax, data, **kwargs):
+def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
 
@@ -93,8 +97,8 @@ def scatter_matrix(
     grid: bool = False,
     diagonal: str = "hist",
     marker: str = ".",
-    density_kwds=None,
-    hist_kwds=None,
+    density_kwds: Mapping[str, Any] | None = None,
+    hist_kwds: Mapping[str, Any] | None = None,
     range_padding: float = 0.05,
     **kwargs,
 ) -> np.ndarray:
@@ -177,7 +181,7 @@ def radviz(
     class_column: str,
     ax: Axes | None = None,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwds,
 ) -> Axes:
     """
@@ -193,7 +197,7 @@ def radviz(
     influence of all dimensions.
 
     More info available at the `original article
-    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://doi.org/10.1145/331770.331775>`_
     describing RadViz.
 
     Parameters
@@ -214,11 +218,11 @@ def radviz(
 
     Returns
     -------
-    class:`matplotlib.axes.Axes`
+    :class:`matplotlib.axes.Axes`
 
     See Also
     --------
-    plotting.andrews_curves : Plot clustering visualization.
+    pandas.plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -246,8 +250,7 @@ def radviz(
         ...         ]
         ...     }
         ... )
-        >>> pd.plotting.radviz(df, 'Category')
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        >>> pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -266,7 +269,7 @@ def andrews_curves(
     ax: Axes | None = None,
     samples: int = 200,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwargs,
 ) -> Axes:
     """
@@ -274,12 +277,13 @@ def andrews_curves(
 
     Andrews curves have the functional form:
 
-    f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) +
-           x_4 sin(2t) + x_5 cos(2t) + ...
+    .. math::
+        f(t) = \\frac{x_1}{\\sqrt{2}} + x_2 \\sin(t) + x_3 \\cos(t) +
+        x_4 \\sin(2t) + x_5 \\cos(2t) + \\cdots
 
-    Where x coefficients correspond to the values of each dimension and t is
-    linearly spaced between -pi and +pi. Each row of frame then corresponds to
-    a single curve.
+    Where :math:`x` coefficients correspond to the values of each dimension
+    and :math:`t` is linearly spaced between :math:`-\\pi` and :math:`+\\pi`.
+    Each row of frame then corresponds to a single curve.
 
     Parameters
     ----------
@@ -302,7 +306,7 @@ def andrews_curves(
 
     Returns
     -------
-    class:`matplotlip.axis.Axes`
+    :class:`matplotlib.axes.Axes`
 
     Examples
     --------
@@ -311,11 +315,10 @@ def andrews_curves(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
-        >>> pd.plotting.andrews_curves(df, 'Name')
-        <AxesSubplot: title={'center': 'width'}>
+        >>> pd.plotting.andrews_curves(df, 'Name')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -369,8 +372,8 @@ def bootstrap_plot(
 
     See Also
     --------
-    DataFrame.plot : Basic plotting for DataFrame objects.
-    Series.plot : Basic plotting for Series objects.
+    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
+    pandas.Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -397,9 +400,9 @@ def parallel_coordinates(
     color: list[str] | tuple[str, ...] | None = None,
     use_columns: bool = False,
     xticks: list | tuple | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     axvlines: bool = True,
-    axvlines_kwds=None,
+    axvlines_kwds: Mapping[str, Any] | None = None,
     sort_labels: bool = False,
     **kwargs,
 ) -> Axes:
@@ -434,7 +437,7 @@ def parallel_coordinates(
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -443,13 +446,12 @@ def parallel_coordinates(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.github.com/pandas-dev/'
+        ...     'https://raw.githubusercontent.com/pandas-dev/'
         ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
         ... )
         >>> pd.plotting.parallel_coordinates(
         ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
-        ... )
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        ... )  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
@@ -485,7 +487,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -499,8 +501,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         >>> np.random.seed(5)
         >>> x = np.cumsum(np.random.normal(loc=1, scale=5, size=50))
         >>> s = pd.Series(x)
-        >>> s.plot()
-        <AxesSubplot: xlabel='Midrange'>
+        >>> s.plot()  # doctest: +SKIP
 
     A lag plot with ``lag=1`` returns
 
@@ -529,7 +530,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
     Returns
     -------
-    matplotlib.axis.Axes
+    matplotlib.axes.Axes
 
     Examples
     --------
@@ -542,8 +543,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
         >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
-        >>> pd.plotting.autocorrelation_plot(s)
-        <AxesSubplot: title={'center': 'width'}, xlabel='Lag', ylabel='Autocorrelation'>
+        >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)

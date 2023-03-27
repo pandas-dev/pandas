@@ -46,7 +46,7 @@ def mi_styler(mi_df):
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
-    mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
+    mi_styler.css = {**mi_styler.css, "row": "ROW", "col": "COL"}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
@@ -707,13 +707,13 @@ class TestStyler:
             and isinstance(slice_[-1][-1], list)
             and "C" in slice_[-1][-1]
         ):
-            ctx = pytest.raises(KeyError, match="C")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="C")
         elif (
             isinstance(slice_[0], tuple)
             and isinstance(slice_[0][1], list)
             and 3 in slice_[0][1]
         ):
-            ctx = pytest.raises(KeyError, match="3")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="3")
         else:
             ctx = contextlib.nullcontext()
 

@@ -242,3 +242,10 @@ class TestSeriesDropDuplicates:
             index=[0, 1, 4],
         )
         tm.assert_series_equal(result, expected)
+
+    def test_drop_duplicates_ignore_index(self):
+        # GH#48304
+        ser = Series([1, 2, 2, 3])
+        result = ser.drop_duplicates(ignore_index=True)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)

@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -11,6 +12,7 @@ import pytest
 from pandas._libs import iNaT
 from pandas.errors import (
     InvalidIndexError,
+    PerformanceWarning,
     SettingWithCopyError,
 )
 import pandas.util._test_decorators as td
@@ -55,8 +57,16 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match="random"):
             float_frame["random"]
 
-    def test_getitem2(self, float_frame):
+    def test_getitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        result = df[1]
+        expected = DataFrame([[1, 3], [4, 6]], columns=Index([1, 1], dtype=dtype))
+        tm.assert_frame_equal(result, expected, check_exact=True)
 
+    def test_getitem2(self, float_frame):
         df = float_frame.copy()
         df["$10"] = np.random.randn(len(df))
 
@@ -69,8 +79,16 @@ class TestDataFrameIndexing:
         res = df["@awesome_domain"]
         tm.assert_numpy_array_equal(ad, res.values)
 
-    def test_setitem_list(self, float_frame):
+    def test_setitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
+        # GH51053
+        dtype = any_numeric_dtype
+        idx = Index([1, 0, 1], dtype=dtype)
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
+        df[1] = 10
+        expected = DataFrame([[10, 2, 10], [10, 5, 10]], columns=idx)
+        tm.assert_frame_equal(df, expected, check_exact=True)
 
+    def test_setitem_list(self, float_frame):
         float_frame["E"] = "foo"
         data = float_frame[["A", "B"]]
         float_frame[["B", "A"]] = data
@@ -90,7 +108,6 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
@@ -144,7 +161,6 @@ class TestDataFrameIndexing:
             mixed_float_frame,
             mixed_int_frame,
         ]:
-
             data = df._get_numeric_data()
             bif = df[df > 0]
             bifw = DataFrame(
@@ -165,7 +181,6 @@ class TestDataFrameIndexing:
                     assert bif[c].dtype == df[c].dtype
 
     def test_getitem_boolean_casting(self, datetime_frame):
-
         # don't upcast if we don't need to
         df = datetime_frame.copy()
         df["E"] = 1
@@ -330,7 +345,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_boolean(self, float_frame):
         df = float_frame.copy()
-        values = float_frame.values
+        values = float_frame.values.copy()
 
         df[df["A"] > 0] = 4
         values[values[:, 0] > 0] = 4
@@ -366,16 +381,18 @@ class TestDataFrameIndexing:
             df[df * 0] = 2
 
         # index with DataFrame
+        df_orig = df.copy()
         mask = df > np.abs(df)
-        expected = df.copy()
         df[df > np.abs(df)] = np.nan
-        expected.values[mask.values] = np.nan
+        values = df_orig.values.copy()
+        values[mask.values] = np.nan
+        expected = DataFrame(values, index=df_orig.index, columns=df_orig.columns)
         tm.assert_frame_equal(df, expected)
 
         # set from DataFrame
-        expected = df.copy()
         df[df > np.abs(df)] = df * 2
-        np.putmask(expected.values, mask.values, df.values * 2)
+        np.putmask(values, mask.values, df.values * 2)
+        expected = DataFrame(values, index=df_orig.index, columns=df_orig.columns)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_cast(self, float_frame):
@@ -466,8 +483,6 @@ class TestDataFrameIndexing:
 
     def test_setitem_ambig(self):
         # Difficulties with mixed-type data
-        from decimal import Decimal
-
         # Created as float type
         dm = DataFrame(index=range(3), columns=range(3))
 
@@ -545,7 +560,6 @@ class TestDataFrameIndexing:
     def test_fancy_getitem_slice_mixed(
         self, float_frame, float_string_frame, using_copy_on_write
     ):
-
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -556,14 +570,13 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                sliced.loc[:, "C"] = 4.0
-
             assert (float_frame["C"] == 4).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
         else:
-            sliced.loc[:, "C"] = 4.0
             tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
@@ -620,7 +633,7 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
                 val = np.random.randn()
-                expected.values[i, j] = val
+                expected.iloc[i, j] = val
 
                 ix[idx, col] = val
                 tm.assert_frame_equal(f, expected)
@@ -653,16 +666,20 @@ class TestDataFrameIndexing:
         # from 2d, set with booleans
         frame = float_frame.copy()
         expected = float_frame.copy()
+        values = expected.values.copy()
 
         mask = frame["A"] > 0
         frame.loc[mask] = 0.0
-        expected.values[mask.values] = 0.0
+        values[mask.values] = 0.0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(frame, expected)
 
         frame = float_frame.copy()
         expected = float_frame.copy()
+        values = expected.values.copy()
         frame.loc[mask, ["A", "B"]] = 0.0
-        expected.values[mask.values, :2] = 0.0
+        values[mask.values, :2] = 0.0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(frame, expected)
 
     def test_getitem_fancy_ints(self, float_frame):
@@ -737,7 +754,7 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do positional indexing on Float64Index with "
+            "cannot do positional indexing on Index with "
             r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):
@@ -786,10 +803,7 @@ class TestDataFrameIndexing:
         assert len(result) == 5
 
         cp = df.copy()
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-        with tm.assert_produces_warning(warn, match=msg):
-            cp.loc[1.0:5.0] = 0
+        cp.loc[1.0:5.0] = 0
         result = cp.loc[1.0:5.0]
         assert (result == 0).values.all()
 
@@ -1007,7 +1021,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_array_manager, using_copy_on_write):
+    def test_iloc_row_slice_view(self, using_copy_on_write, request):
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         original = df.copy()
 
@@ -1018,20 +1032,16 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
+        subset.loc[:, 2] = 0.0
+        if not using_copy_on_write:
             subset.loc[:, 2] = 0.0
-        else:
-            with pytest.raises(SettingWithCopyError, match=msg):
-                subset.loc[:, 2] = 0.0
+            exp_col._values[4:8] = 0.0
 
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            if not using_array_manager:
-                exp_col._values[4:8] = 0.0
+            # With the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[2], subset[2])
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
-
         df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
 
         result = df.iloc[:, 1]
@@ -1061,12 +1071,12 @@ class TestDataFrameIndexing:
             # verify slice is view
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
-            # and that we are setting a copy
-            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(SettingWithCopyError, match=msg):
-                subset.loc[:, 8] = 0.0
+            subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
+
+            # with the enforcement of GH#45333 in 2.0, this remains a view
+            assert np.shares_memory(df[8]._values, subset[8]._values)
         else:
             if using_copy_on_write:
                 # verify slice is view
@@ -1471,7 +1481,8 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        result = df.loc[indexer]
+        with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
+            result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
         )
@@ -1497,10 +1508,18 @@ class TestDataFrameIndexing:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer, idx", [(tm.loc, 1), (tm.iloc, 2)])
+    def test_setitem_value_coercing_dtypes(self, indexer, idx):
+        # GH#50467
+        df = DataFrame([["1", np.nan], ["2", np.nan], ["3", np.nan]], dtype=object)
+        rhs = DataFrame([[1, np.nan], [2, np.nan]])
+        indexer(df)[:idx, :] = rhs
+        expected = DataFrame([[1, np.nan], [2, np.nan], ["3", np.nan]], dtype=object)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
-
         df = uint64_frame
         idx = df["A"].rename("foo")
 

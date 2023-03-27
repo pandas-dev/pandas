@@ -45,12 +45,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import (
-    AnyArrayLike,
-    Dtype,
-    NpDtype,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -80,10 +74,13 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-
     from pandas._typing import (
+        AnyArrayLike,
+        Dtype,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        npt,
     )
 
     from pandas.core.arrays import (
@@ -101,7 +98,7 @@ _shared_doc_kwargs = {
 }
 
 
-def _field_accessor(name: str, docstring=None):
+def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
         base = self.freq._period_dtype_code
         result = get_period_field_arr(name, self.asi8, base)
@@ -331,7 +328,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     ) -> np.int64:
         if value is NaT:
             # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value.value)  # type: ignore[union-attr]
+            return np.int64(value._value)  # type: ignore[union-attr]
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -353,8 +350,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Read-only property cannot override read-write property
-    @property  # type: ignore[misc]
+    # error: Cannot override writeable attribute with read-only property
+    @property  # type: ignore[override]
     def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
@@ -617,31 +614,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return str
         return "'{}'".format
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
         """
-        values = self.astype(object)
-
-        # Create the formatter function
-        if date_format:
-            formatter = lambda per: per.strftime(date_format)
-        else:
-            # Uses `_Period.str` which in turn uses `format_period`
-            formatter = lambda per: str(per)
-
-        # Apply the formatter to all values in the array, possibly with a mask
-        if self._hasna:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(per) for per in values[imask]])
-        else:
-            values = np.array([formatter(per) for per in values])
-        return values
+        return libperiod.period_array_strftime(
+            self.asi8, self.dtype._dtype_code, na_rep, date_format
+        )
 
     # ------------------------------------------------------------------
 
@@ -677,7 +658,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> PeriodArray:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
@@ -761,6 +742,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
+        # Similar to _check_timedeltalike_freq_compat, but we raise with a
+        #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False

@@ -133,7 +133,7 @@ def forbid_nonstring_types(
     return _forbid_nonstring_types
 
 
-def _map_and_wrap(name, docstring):
+def _map_and_wrap(name: str | None, docstring: str | None):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
@@ -413,7 +413,7 @@ class StringMethods(NoNewAttributesMixin):
     def cat(
         self,
         others=None,
-        sep=None,
+        sep: str | None = None,
         na_rep=None,
         join: AlignJoin = "left",
     ) -> str | Series | Index:
@@ -455,9 +455,6 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
-
-            .. versionchanged:: 1.0.0
-                Changed default of `join` from None to `'left'`.
 
         Returns
         -------
@@ -1046,7 +1043,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def join(self, sep):
+    def join(self, sep: str):
         """
         Join lists contained as elements in the Series/Index with passed delimiter.
 
@@ -1479,7 +1476,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        Series or Index of object
+        Series or pandas.Index
             Series or Index of repeated string objects specified by
             input parameter repeats.
 
@@ -1514,7 +1511,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def pad(
         self,
-        width,
+        width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ):
@@ -1606,21 +1603,21 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
-    def center(self, width, fillchar: str = " "):
+    def center(self, width: int, fillchar: str = " "):
         return self.pad(width, side="both", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
-    def ljust(self, width, fillchar: str = " "):
+    def ljust(self, width: int, fillchar: str = " "):
         return self.pad(width, side="right", fillchar=fillchar)
 
     @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
-    def rjust(self, width, fillchar: str = " "):
+    def rjust(self, width: int, fillchar: str = " "):
         return self.pad(width, side="left", fillchar=fillchar)
 
     @forbid_nonstring_types(["bytes"])
-    def zfill(self, width):
+    def zfill(self, width: int):
         """
         Pad strings in the Series/Index by prepending '0' characters.
 
@@ -2044,7 +2041,7 @@ class StringMethods(NoNewAttributesMixin):
         _shared_docs["str_removefix"] % {"side": "prefix", "other_side": "suffix"}
     )
     @forbid_nonstring_types(["bytes"])
-    def removeprefix(self, prefix):
+    def removeprefix(self, prefix: str):
         result = self._data.array._str_removeprefix(prefix)
         return self._wrap_result(result)
 
@@ -2052,12 +2049,12 @@ class StringMethods(NoNewAttributesMixin):
         _shared_docs["str_removefix"] % {"side": "suffix", "other_side": "prefix"}
     )
     @forbid_nonstring_types(["bytes"])
-    def removesuffix(self, suffix):
+    def removesuffix(self, suffix: str):
         result = self._data.array._str_removesuffix(suffix)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def wrap(self, width, **kwargs):
+    def wrap(self, width: int, **kwargs):
         r"""
         Wrap strings in Series/Index at specified line width.
 
@@ -2247,7 +2244,7 @@ class StringMethods(NoNewAttributesMixin):
         This is also available on Index
 
         >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
-        Int64Index([0, 0, 2, 1], dtype='int64')
+        Index([0, 0, 2, 1], dtype='int64')
         """
         result = self._data.array._str_count(pat, flags)
         return self._wrap_result(result, returns_string=False)
@@ -2614,7 +2611,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
-    def extractall(self, pat, flags: int = 0):
+    def extractall(self, pat, flags: int = 0) -> DataFrame:
         r"""
         Extract capture groups in the regex `pat` as columns in DataFrame.
 
@@ -3298,7 +3295,7 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     return [names.get(1 + i, i) for i in range(regex.groups)]
 
 
-def str_extractall(arr, pat, flags: int = 0):
+def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
@@ -3314,7 +3311,6 @@ def str_extractall(arr, pat, flags: int = 0):
 
     for subject_key, subject in arr.items():
         if isinstance(subject, str):
-
             if not is_mi:
                 subject_key = (subject_key,)
 

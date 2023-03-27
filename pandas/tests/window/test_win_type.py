@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -74,23 +73,6 @@ def test_constructor_with_win_type(frame_or_series, win_types):
     c(win_type=win_types, window=2)
 
 
-@pytest.mark.parametrize("method", ["sum", "mean"])
-def test_numpy_compat(method):
-    # see gh-12811
-    w = Series([2, 4, 6]).rolling(window=2)
-
-    error_msg = "numpy operations are not valid with window objects"
-
-    warn_msg = f"Passing additional args to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(w, method)(1, 2, 3)
-    warn_msg = f"Passing additional kwargs to Rolling.{method}"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-            getattr(w, method)(dtype=np.float64)
-
-
 @td.skip_if_no_scipy
 @pytest.mark.parametrize("arg", ["median", "kurt", "skew"])
 def test_agg_function_support(arg):
@@ -128,7 +110,6 @@ def test_constructor_with_win_type_invalid(frame_or_series):
 
 
 @td.skip_if_no_scipy
-@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_window_with_args(step):
     # make sure that we are aggregating window functions correctly with arg
     r = Series(np.random.randn(100)).rolling(
@@ -340,16 +321,16 @@ def test_cmov_window_frame(f, xp, step):
     tm.assert_frame_equal(xp, rs)
 
 
+@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4, 5])
 @td.skip_if_no_scipy
-def test_cmov_window_na_min_periods(step):
-    # min_periods
+def test_cmov_window_na_min_periods(step, min_periods):
     vals = Series(np.random.randn(10))
     vals[4] = np.nan
     vals[8] = np.nan
 
-    xp = vals.rolling(5, min_periods=4, center=True, step=step).mean()
+    xp = vals.rolling(5, min_periods=min_periods, center=True, step=step).mean()
     rs = vals.rolling(
-        5, win_type="boxcar", min_periods=4, center=True, step=step
+        5, win_type="boxcar", min_periods=min_periods, center=True, step=step
     ).mean()
     tm.assert_series_equal(xp, rs)
 
@@ -698,7 +679,9 @@ def test_rolling_center_axis_1():
         {"a": [1, 1, 0, 0, 0, 1], "b": [1, 0, 0, 1, 0, 0], "c": [1, 0, 0, 1, 0, 1]}
     )
 
-    result = df.rolling(window=3, axis=1, win_type="boxcar", center=True).sum()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(window=3, axis=1, win_type="boxcar", center=True).sum()
 
     expected = DataFrame(
         {"a": [np.nan] * 6, "b": [3.0, 1.0, 0.0, 2.0, 0.0, 2.0], "c": [np.nan] * 6}

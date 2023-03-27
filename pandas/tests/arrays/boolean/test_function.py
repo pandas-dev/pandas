@@ -67,7 +67,7 @@ def test_ufuncs_unary(ufunc):
 
 
 def test_ufunc_numeric():
-    # np.sqrt on np.bool returns float16, which we upcast to Float32
+    # np.sqrt on np.bool_ returns float16, which we upcast to Float32
     #  bc we do not have Float16
     arr = pd.array([True, False, None], dtype="boolean")
 
@@ -92,12 +92,12 @@ def test_ufunc_reduce_raises(values):
 def test_value_counts_na():
     arr = pd.array([True, False, pd.NA], dtype="boolean")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([1, 1, 1], index=arr, dtype="Int64")
+    expected = pd.Series([1, 1, 1], index=arr, dtype="Int64", name="count")
     assert expected.index.dtype == arr.dtype
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([1, 1], index=arr[:-1], dtype="Int64")
+    expected = pd.Series([1, 1], index=arr[:-1], dtype="Int64", name="count")
     assert expected.index.dtype == arr.dtype
     tm.assert_series_equal(result, expected)
 
@@ -105,7 +105,7 @@ def test_value_counts_na():
 def test_value_counts_with_normalize():
     ser = pd.Series([True, False, pd.NA], dtype="boolean")
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([1, 1], index=ser[:-1], dtype="Float64") / 2
+    expected = pd.Series([1, 1], index=ser[:-1], dtype="Float64", name="proportion") / 2
     assert expected.index.dtype == "boolean"
     tm.assert_series_equal(result, expected)
 

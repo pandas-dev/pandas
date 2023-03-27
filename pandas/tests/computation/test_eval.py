@@ -99,7 +99,6 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
 def lhs(request):
-
     nan_df1 = DataFrame(np.random.rand(10, 5))
     nan_df1[nan_df1 > 0.5] = np.nan
 
@@ -179,7 +178,6 @@ class TestEval:
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
-
             msg = "'(In|NotIn)' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 ex = f"~(lhs {op} rhs)"
@@ -353,7 +351,7 @@ class TestEval:
             expected = _eval_single_bin(middle, "**", rhs, engine)
             tm.assert_almost_equal(result, expected)
 
-    def check_single_invert_op(self, lhs, engine, parser):
+    def test_check_single_invert_op(self, lhs, engine, parser):
         # simple
         try:
             elb = lhs.astype(bool)
@@ -754,7 +752,6 @@ def should_warn(*args):
 
 
 class TestAlignment:
-
     index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
@@ -805,7 +802,6 @@ class TestAlignment:
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
     def test_medium_complex_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -860,6 +856,19 @@ class TestAlignment:
     def test_basic_series_frame_alignment(
         self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
+        if (
+            engine == "numexpr"
+            and parser in ("pandas", "python")
+            and index_name == "index"
+            and r_idx_type == "i"
+            and c_idx_type == "s"
+        ):
+            reason = (
+                f"Flaky column ordering when engine={engine}, "
+                f"parser={parser}, index_name={index_name}, "
+                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
+            )
+            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -884,7 +893,6 @@ class TestAlignment:
     def test_series_frame_commutativity(
         self, engine, parser, index_name, op, r_idx_type, c_idx_type
     ):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -1362,7 +1370,6 @@ class TestOperations:
         tm.assert_dict_equal(df, expected)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2], np.array([]), (1, 3)])
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1711,7 +1718,6 @@ def test_disallowed_nodes(engine, parser):
     inst = VisitorClass("x + 1", engine, parser)
 
     for ops in VisitorClass.unsupported_nodes:
-
         msg = "nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
             getattr(inst, ops)()
@@ -1861,7 +1867,6 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 def test_set_inplace(using_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
@@ -1884,7 +1889,6 @@ def test_set_inplace(using_copy_on_write):
 class TestValidate:
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
-
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
             pd.eval("2+2", inplace=value)

@@ -364,23 +364,17 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(df, rs)
 
-    def test_shift_duplicate_columns(self, using_array_manager):
+    def test_shift_duplicate_columns(self):
         # GH#9092; verify that position-based shifting works
         # in the presence of duplicate columns
         column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
         data = np.random.randn(20, 5)
 
-        warn = None
-        if using_array_manager:
-            warn = FutureWarning
-
         shifted = []
         for columns in column_lists:
             df = DataFrame(data.copy(), columns=columns)
             for s in range(5):
-                msg = "will attempt to set the values inplace"
-                with tm.assert_produces_warning(warn, match=msg):
-                    df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
             df.columns = range(5)
             shifted.append(df)
 
@@ -403,6 +397,13 @@ class TestDataFrameShift:
         result = df3.shift(2, axis=1)
 
         expected = df3.take([-1, -1, 0, 1, 2], axis=1)
+        # Explicit cast to float to avoid implicit cast when setting nan.
+        # Column names aren't unique, so directly calling `expected.astype` won't work.
+        expected = expected.pipe(
+            lambda df: df.set_axis(range(df.shape[1]), axis=1)
+            .astype({0: "float", 1: "float"})
+            .set_axis(df.columns, axis=1)
+        )
         expected.iloc[:, :2] = np.nan
         expected.columns = df3.columns
 
@@ -416,6 +417,13 @@ class TestDataFrameShift:
         result = df3.shift(-2, axis=1)
 
         expected = df3.take([2, 3, 4, -1, -1], axis=1)
+        # Explicit cast to float to avoid implicit cast when setting nan.
+        # Column names aren't unique, so directly calling `expected.astype` won't work.
+        expected = expected.pipe(
+            lambda df: df.set_axis(range(df.shape[1]), axis=1)
+            .astype({3: "float", 4: "float"})
+            .set_axis(df.columns, axis=1)
+        )
         expected.iloc[:, -2:] = np.nan
         expected.columns = df3.columns
 

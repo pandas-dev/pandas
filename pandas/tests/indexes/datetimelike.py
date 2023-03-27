@@ -35,7 +35,6 @@ class DatetimeLike(Base):
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_shift_identity(self, simple_index):
-
         idx = simple_index
         tm.assert_index_equal(idx, idx.shift(0))
 
@@ -45,7 +44,6 @@ class DatetimeLike(Base):
         tm.assert_index_equal(idx, idx.shift(1))
 
     def test_str(self, simple_index):
-
         # test the string repr
         idx = simple_index
         idx.name = "foo"
@@ -75,7 +73,7 @@ class DatetimeLike(Base):
     def test_map_callable(self, simple_index):
         index = simple_index
         expected = index + index.freq
-        result = index.map(lambda x: x + x.freq)
+        result = index.map(lambda x: x + index.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT

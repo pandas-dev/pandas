@@ -1,3 +1,8 @@
+from datetime import (
+    date,
+    time,
+    timedelta,
+)
 import pickle
 
 import numpy as np
@@ -67,7 +72,21 @@ def test_arithmetic_ops(all_arithmetic_functions, other):
 
 
 @pytest.mark.parametrize(
-    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan, np.bool_(True)]
+    "other",
+    [
+        NA,
+        1,
+        1.0,
+        "a",
+        b"a",
+        np.int64(1),
+        np.nan,
+        np.bool_(True),
+        time(0),
+        date(1, 2, 3),
+        timedelta(1),
+        pd.NaT,
+    ],
 )
 def test_comparison_ops(comparison_op, other):
     assert comparison_op(NA, other) is NA
@@ -142,7 +161,6 @@ def test_unary_ops():
 
 
 def test_logical_and():
-
     assert NA & True is NA
     assert True & NA is NA
     assert NA & False is False
@@ -155,7 +173,6 @@ def test_logical_and():
 
 
 def test_logical_or():
-
     assert NA | True is True
     assert True | NA is True
     assert NA | False is NA
@@ -168,7 +185,6 @@ def test_logical_or():
 
 
 def test_logical_xor():
-
     assert NA ^ True is NA
     assert True ^ NA is NA
     assert NA ^ False is NA

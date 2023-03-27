@@ -29,9 +29,13 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
+
+import_pandas_datetime()
+
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc
@@ -54,6 +58,11 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     -------
     ndarray[int64]
     """
+    if tz is None or is_utc(tz) or stamps.size == 0:
+        # Much faster than going through the "standard" pattern below;
+        #  do this before initializing Localizer.
+        return stamps.copy()
+
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
@@ -61,10 +70,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 
         ndarray result
         cnp.broadcast mi
-
-    if tz is None or is_utc(tz) or stamps.size == 0:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
 
     result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
     mi = cnp.PyArray_MultiIterNew2(result, stamps)

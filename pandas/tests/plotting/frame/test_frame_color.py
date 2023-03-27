@@ -1,6 +1,5 @@
 """ Test cases for DataFrame.plot """
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -14,27 +13,18 @@ from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
 )
+from pandas.util.version import Version
 
 
 @td.skip_if_no_mpl
 class TestDataFrameColor(TestPlotBase):
-    def test_mpl2_color_cycle_str(self):
+    @pytest.mark.parametrize(
+        "color", ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
+    )
+    def test_mpl2_color_cycle_str(self, color):
         # GH 15516
         df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
-        colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always", "MatplotlibDeprecationWarning")
-
-            for color in colors:
-                _check_plot_works(df.plot, color=color)
-
-            # if warning is raised, check that it is the exact problematic one
-            # GH 36972
-            if w:
-                match = "Support for uppercase single-letter colors is deprecated"
-                warning_message = str(w[0].message)
-                msg = "MatplotlibDeprecationWarning related to CN colors was raised"
-                assert match not in warning_message, msg
+        _check_plot_works(df.plot, color=color)
 
     def test_color_single_series_list(self):
         # GH 3486
@@ -650,11 +640,18 @@ class TestDataFrameColor(TestPlotBase):
     def test_colors_of_columns_with_same_name(self):
         # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
         # Creating a DataFrame with duplicate column labels and testing colors of them.
+        import matplotlib as mpl
+
         df = DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
         df1 = DataFrame({"a": [2, 4, 6]})
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
-        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+        legend = result.get_legend()
+        if Version(mpl.__version__) < Version("3.7"):
+            handles = legend.legendHandles
+        else:
+            handles = legend.legend_handles
+        for legend, line in zip(handles, result.lines):
             assert legend.get_color() == line.get_color()
 
     def test_invalid_colormap(self):
@@ -662,3 +659,10 @@ class TestDataFrameColor(TestPlotBase):
         msg = "(is not a valid value)|(is not a known colormap)"
         with pytest.raises((ValueError, KeyError), match=msg):
             df.plot(colormap="invalid_colormap")
+
+    def test_dataframe_none_color(self):
+        # GH51953
+        df = DataFrame([[1, 2, 3]])
+        ax = df.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:3]
+        self._check_colors(ax.get_lines(), linecolors=expected)

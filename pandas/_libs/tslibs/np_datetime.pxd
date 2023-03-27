@@ -54,7 +54,8 @@ cdef extern from "numpy/ndarraytypes.h":
 
     int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
 
-cdef extern from "src/datetime/np_datetime.h":
+
+cdef extern from "src/datetime/pd_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
@@ -70,6 +71,17 @@ cdef extern from "src/datetime/np_datetime.h":
                                              NPY_DATETIMEUNIT fr,
                                              pandas_timedeltastruct *result
                                              ) nogil
+
+    void PandasDateTime_IMPORT()
+
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
+
+# You must call this before using the PandasDateTime CAPI functions
+cdef inline void import_pandas_datetime():
+    PandasDateTime_IMPORT
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
@@ -106,8 +118,12 @@ cpdef cnp.ndarray astype_overflowsafe(
     cnp.dtype dtype,  # ndarray[datetime64[anyunit]]
     bint copy=*,
     bint round_ok=*,
+    bint is_coerce=*,
 )
-cdef int64_t get_conversion_factor(NPY_DATETIMEUNIT from_unit, NPY_DATETIMEUNIT to_unit) except? -1
+cdef int64_t get_conversion_factor(
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit,
+) except? -1
 
 cdef bint cmp_dtstructs(npy_datetimestruct* left, npy_datetimestruct* right, int op)
 cdef get_implementation_bounds(

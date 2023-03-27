@@ -121,7 +121,7 @@ class TestToTimestamp:
         assert result1.columns.freqstr == "AS-JAN"
         assert result2.columns.freqstr == "AS-JAN"
 
-    def to_timestamp_invalid_axis(self):
+    def test_to_timestamp_invalid_axis(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
         obj = DataFrame(np.random.randn(len(index), 5), index=index)
 
@@ -130,7 +130,6 @@ class TestToTimestamp:
             obj.to_timestamp(axis=2)
 
     def test_to_timestamp_hourly(self, frame_or_series):
-
         index = period_range(freq="H", start="1/1/2001", end="1/2/2001")
         obj = Series(1, index=index, name="foo")
         if frame_or_series is not Series:

@@ -25,7 +25,6 @@ class Dtypes:
 
 
 class Construction:
-
     params = ["str", "string"]
     param_names = ["dtype"]
 
@@ -35,7 +34,6 @@ class Construction:
 
         # GH37371. Testing construction of string series/frames from ExtensionArrays
         self.series_cat_arr = Categorical(self.series_arr)
-        self.frame_cat_arr = Categorical(self.frame_arr)
 
     def time_series_construction(self, dtype):
         Series(self.series_arr, dtype=dtype)
@@ -54,12 +52,6 @@ class Construction:
 
     def peakmem_cat_series_construction(self, dtype):
         Series(self.series_cat_arr, dtype=dtype)
-
-    def time_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
-
-    def peakmem_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
 
 
 class Methods(Dtypes):
@@ -177,7 +169,6 @@ class Methods(Dtypes):
 
 
 class Repeat:
-
     params = ["int", "array"]
     param_names = ["repeats"]
 
@@ -192,7 +183,6 @@ class Repeat:
 
 
 class Cat:
-
     params = ([0, 3], [None, ","], [None, "-"], [0.0, 0.001, 0.15])
     param_names = ["other_cols", "sep", "na_rep", "na_frac"]
 
@@ -217,7 +207,6 @@ class Cat:
 
 
 class Contains(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
@@ -229,7 +218,6 @@ class Contains(Dtypes):
 
 
 class Split(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
@@ -245,7 +233,6 @@ class Split(Dtypes):
 
 
 class Extract(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 

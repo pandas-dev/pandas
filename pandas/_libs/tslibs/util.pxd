@@ -2,15 +2,6 @@
 from cpython.object cimport PyTypeObject
 
 
-cdef extern from *:
-    """
-    PyObject* char_to_string(const char* data) {
-        return PyUnicode_FromString(data);
-    }
-    """
-    object char_to_string(const char* data)
-
-
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
@@ -83,7 +74,7 @@ cdef inline bint is_integer_object(object obj) nogil:
 
 cdef inline bint is_float_object(object obj) nogil:
     """
-    Cython equivalent of `isinstance(val, (float, np.complex_))`
+    Cython equivalent of `isinstance(val, (float, np.float_))`
 
     Parameters
     ----------

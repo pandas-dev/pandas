@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from contextlib import nullcontext
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    ContextManager,
     DefaultDict,
     Dict,
     Hashable,
@@ -22,7 +24,6 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -292,6 +293,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -312,29 +317,47 @@ class Apply(metaclass=abc.ABCMeta):
         results = []
         keys = []
 
-        # degenerate case
-        if selected_obj.ndim == 1:
-            for a in arg:
-                colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                new_res = colg.aggregate(a)
-                results.append(new_res)
-
-                # make sure we find a good name
-                name = com.get_callable_name(a) or a
-                keys.append(name)
-
-        # multiples
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            indices = []
-            for index, col in enumerate(selected_obj):
-                colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                new_res = colg.aggregate(arg)
-                results.append(new_res)
-                indices.append(index)
-            keys = selected_obj.columns.take(indices)
+            context_manager = nullcontext()
+        with context_manager:
+            # degenerate case
+            if selected_obj.ndim == 1:
+                for a in arg:
+                    colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            a, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    results.append(new_res)
+
+                    # make sure we find a good name
+                    name = com.get_callable_name(a) or a
+                    keys.append(name)
+
+            else:
+                indices = []
+                for index, col in enumerate(selected_obj):
+                    colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
+                        new_res = colg.aggregate(
+                            arg, self.axis, *self.args, **self.kwargs
+                        )
+                    else:
+                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    results.append(new_res)
+                    indices.append(index)
+                keys = selected_obj.columns.take(indices)
 
         try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -346,16 +369,6 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> DataFrame | Series:
         """
@@ -366,6 +379,10 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation.
         """
         from pandas import Index
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -384,15 +401,24 @@ class Apply(metaclass=abc.ABCMeta):
 
         arg = self.normalize_dictlike_arg("agg", selected_obj, arg)
 
-        if selected_obj.ndim == 1:
-            # key only used for output
-            colg = obj._gotitem(selection, ndim=1)
-            results = {key: colg.agg(how) for key, how in arg.items()}
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        context_manager: ContextManager
+        if is_groupby:
+            # When as_index=False, we combine all results using indices
+            # and adjust index after
+            context_manager = com.temp_setattr(obj, "as_index", True)
         else:
-            # key used for column selection and output
-            results = {
-                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-            }
+            context_manager = nullcontext()
+        with context_manager:
+            if selected_obj.ndim == 1:
+                # key only used for output
+                colg = obj._gotitem(selection, ndim=1)
+                results = {key: colg.agg(how) for key, how in arg.items()}
+            else:
+                # key used for column selection and output
+                results = {
+                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                }
 
         # set the final keys
         keys = list(arg.keys())
@@ -453,6 +479,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
@@ -465,7 +496,21 @@ class Apply(metaclass=abc.ABCMeta):
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             if "axis" in arg_names:
-                self.kwargs["axis"] = self.axis
+                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
+                    # Try to avoid FutureWarning for deprecated axis keyword;
+                    # If self.axis matches the axis we would get by not passing
+                    #  axis, we safely exclude the keyword.
+
+                    default_axis = 0
+                    if f in ["idxmax", "idxmin"]:
+                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
+                        # whereas other axis keywords default to 0
+                        default_axis = self.obj.axis
+
+                    if default_axis != self.axis:
+                        self.kwargs["axis"] = self.axis
+                else:
+                    self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -559,13 +604,11 @@ class NDFrameApply(Apply):
     not GroupByApply or ResamplerWindowApply
     """
 
+    obj: DataFrame | Series
+
     @property
     def index(self) -> Index:
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
-        return self.obj.index  # type:ignore[arg-type]
+        return self.obj.index
 
     @property
     def agg_axis(self) -> Index:
@@ -612,10 +655,6 @@ class FrameApply(NDFrameApply):
     @cache_readonly
     def values(self):
         return self.obj.values
-
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
@@ -757,7 +796,6 @@ class FrameApply(NDFrameApply):
             if ares > 1:
                 raise ValueError("too many dims to broadcast")
             if ares == 1:
-
                 # must match return dim
                 if result_compare != len(res):
                     raise ValueError("cannot broadcast result")
@@ -910,7 +948,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for (arr, name) in zip(values, self.index):
+            for arr, name in zip(values, self.index):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -955,7 +993,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects()
+        result = result.infer_objects(copy=False)
 
         return result
 
@@ -1039,21 +1077,12 @@ class SeriesApply(NDFrameApply):
         f = cast(Callable, self.f)
         obj = self.obj
 
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
+        if isinstance(f, np.ufunc):
+            with np.errstate(all="ignore"):
                 return f(obj)
 
-            # row-wise access
-            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
-                # GH#23179 some EAs do not have `map`
-                mapped = obj._values.map(f)
-            else:
-                values = obj.astype(object)._values
-                mapped = lib.map_infer(
-                    values,
-                    f,
-                    convert=self.convert_dtype,
-                )
+        # row-wise access
+        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
@@ -1163,7 +1192,6 @@ def reconstruct_func(
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
-
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(
@@ -1300,17 +1328,23 @@ def relabel_result(
     columns: New columns name for relabelling
     order: New order for relabelling
 
-    Examples:
-    ---------
-    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
-    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    Examples
+    --------
+    >>> from pandas.core.apply import relabel_result
+    >>> result = pd.DataFrame(
+    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
+    ...     index=["max", "mean", "min"]
+    ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
-    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
+    >>> result_in_dict = relabel_result(result, funcs, columns, order)
+    >>> pd.DataFrame(result_in_dict, index=columns)
+           A    C    B
+    foo  2.0  NaN  NaN
+    aab  NaN  6.0  NaN
+    bar  NaN  NaN  4.0
+    dat  NaN  NaN  2.5
     """
     from pandas.core.indexes.base import Index
 

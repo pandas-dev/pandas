@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -22,10 +23,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    Axis,
-    Level,
-)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -46,6 +43,11 @@ from pandas import (
 from pandas.api.types import is_list_like
 import pandas.core.common as com
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        Level,
+    )
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
@@ -85,11 +87,10 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | tuple | None = None,
+        caption: str | tuple | list | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
     ) -> None:
-
         # validate ordered args
         if isinstance(data, Series):
             data = data.to_frame()
@@ -964,9 +965,6 @@ class StylerRenderer:
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
-
-            .. versionadded:: 1.0.0
-
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
@@ -989,6 +987,8 @@ class StylerRenderer:
             Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
+            Use 'latex-math' to replace the characters the same way as in 'latex' mode,
+            except for math substrings, which start and end with ``$``.
             Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
@@ -1077,8 +1077,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
+        >>> (df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]))  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -1105,16 +1105,28 @@ class StylerRenderer:
         <td .. >NA</td>
         ...
 
-        Using a ``formatter`` with LaTeX ``escape``.
+        Using a ``formatter`` with ``escape`` in 'latex' mode.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
         >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
         ...  # doctest: +SKIP
         \begin{tabular}{ll}
-        {} & {0} \\
+         & 0 \\
         0 & \textbf{123} \\
         1 & \textbf{\textasciitilde \space \textasciicircum } \\
         2 & \textbf{\$\%\#} \\
+        \end{tabular}
+
+        Using ``escape`` in 'latex-math' mode.
+
+        >>> df = pd.DataFrame([[r"$\sum_{i=1}^{10} a_i$ a~b $\alpha \
+        ...     = \frac{\beta}{\zeta^2}$"], ["%#^ $ \$x^2 $"]])
+        >>> df.style.format(escape="latex-math").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+         & 0 \\
+        0 & $\sum_{i=1}^{10} a_i$ a\textasciitilde b $\alpha = \frac{\beta}{\zeta^2}$ \\
+        1 & \%\#\textasciicircum \space $ \$x^2 $ \\
         \end{tabular}
 
         Pandas defines a `number-format` pseudo CSS attribute instead of the `.format`
@@ -1125,7 +1137,8 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
-        >>> df.style.applymap(lambda v: pseudo_css).to_excel("formatted_file.xlsx")
+        >>> filename = "formatted_file.xlsx"
+        >>> df.style.applymap(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1275,7 +1288,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]],
         ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
-        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        >>> df.style.format_index({0: lambda v: v.upper()}, axis=1, precision=1)
         ...  # doctest: +SKIP
                        A       B
               2.0    nan     4.0
@@ -1742,9 +1755,12 @@ def _str_escape(x, escape):
             return escape_html(x)
         elif escape == "latex":
             return _escape_latex(x)
+        elif escape == "latex-math":
+            return _escape_latex_math(x)
         else:
             raise ValueError(
-                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+                f"`escape` only permitted in {{'html', 'latex', 'latex-math'}}, \
+got {escape}"
             )
     return x
 
@@ -1814,7 +1830,7 @@ def _maybe_wrap_formatter(
     if na_rep is None:
         return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_3(x)
+        return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
@@ -2151,7 +2167,7 @@ def _parse_latex_cell_styles(
     """
     if convert_css:
         latex_styles = _parse_latex_css_conversion(latex_styles)
-    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+    for command, options in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
             "--nowrap": f"\\{command}--to_parse {display_value}",
@@ -2294,7 +2310,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     }
 
     latex_styles: CSSList = []
-    for (attribute, value) in styles:
+    for attribute, value in styles:
         if isinstance(value, str) and "--latex" in value:
             # return the style without conversion but drop '--latex'
             latex_styles.append((attribute, value.replace("--latex", "")))
@@ -2343,3 +2359,36 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
+
+
+def _escape_latex_math(s):
+    r"""
+    All characters between two characters ``$`` are preserved.
+
+    The substrings in LaTeX math mode, which start with the character ``$``
+    and end with ``$``, are preserved without escaping. Otherwise
+    regular LaTeX escaping applies. See ``_escape_latex()``.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    s = s.replace(r"\$", r"rt8§=§7wz")
+    pattern = re.compile(r"\$.*?\$")
+    pos = 0
+    ps = pattern.search(s, pos)
+    res = []
+    while ps:
+        res.append(_escape_latex(s[pos : ps.span()[0]]))
+        res.append(ps.group())
+        pos = ps.span()[1]
+        ps = pattern.search(s, pos)
+
+    res.append(_escape_latex(s[pos : len(s)]))
+    return "".join(res).replace(r"rt8§=§7wz", r"\$")

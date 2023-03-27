@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from io import StringIO
+from typing import TYPE_CHECKING
 import warnings
 
+from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -13,8 +16,15 @@ from pandas import (
     option_context,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import DtypeBackend
 
-def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
+
+def read_clipboard(
+    sep: str = r"\s+",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    **kwargs,
+):  # pragma: no cover
     r"""
     Read text from clipboard and pass to read_csv.
 
@@ -23,6 +33,16 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     sep : str, default '\s+'
         A string or regex delimiter. The default of '\s+' denotes
         one or more whitespace characters.
+
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
+
+        The dtype_backends are still experimential.
+
+        .. versionadded:: 2.0
 
     **kwargs
         See read_csv for the full argument list.
@@ -38,6 +58,8 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
     # supports
     if encoding is not None and encoding.lower().replace("-", "") != "utf8":
         raise NotImplementedError("reading from clipboard only supports utf-8 encoding")
+
+    check_dtype_backend(dtype_backend)
 
     from pandas.io.clipboard import clipboard_get
     from pandas.io.parsers import read_csv
@@ -85,7 +107,7 @@ def read_clipboard(sep: str = r"\s+", **kwargs):  # pragma: no cover
             stacklevel=find_stack_level(),
         )
 
-    return read_csv(StringIO(text), sep=sep, **kwargs)
+    return read_csv(StringIO(text), sep=sep, dtype_backend=dtype_backend, **kwargs)
 
 
 def to_clipboard(

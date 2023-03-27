@@ -18,7 +18,7 @@ runs:
     - name: Set Arrow version in ${{ inputs.environment-file }} to ${{ inputs.pyarrow-version }}
       run: |
         grep -q '  - pyarrow' ${{ inputs.environment-file }}
-        sed -i"" -e "s/  - pyarrow<10/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
+        sed -i"" -e "s/  - pyarrow/  - pyarrow=${{ inputs.pyarrow-version }}/" ${{ inputs.environment-file }}
         cat ${{ inputs.environment-file }}
       shell: bash
       if: ${{ inputs.pyarrow-version }}
@@ -30,7 +30,7 @@ runs:
         environment-name: ${{ inputs.environment-name }}
         extra-specs: ${{ inputs.extra-specs }}
         channels: conda-forge
-        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        channel-priority: 'strict'
         condarc-file: ci/condarc.yml
         cache-env: true
         cache-downloads: true

@@ -11,7 +11,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     Union,
     cast,
     overload,
@@ -37,15 +36,20 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
+    Self,
     SequenceIndexer,
     SortKind,
+    TimeArrayLike,
     npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import LossySetitemError
+from pandas.core.dtypes.cast import (
+    LossySetitemError,
+    maybe_upcast_numeric_to_64bit,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -82,6 +86,8 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
+from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -101,7 +107,7 @@ if TYPE_CHECKING:
     )
 
 
-IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+IntervalSideT = Union[TimeArrayLike, np.ndarray]
 IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
@@ -123,8 +129,8 @@ _interval_shared_docs[
 Parameters
 ----------
 data : array-like (1-dimensional)
-    Array-like containing Interval objects from which to build the
-    %(klass)s.
+    Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing
+    Interval objects from which to build the %(klass)s.
 closed : {'left', 'right', 'both', 'neither'}, default 'right'
     Whether the intervals are closed on the left-side, right-side, both or
     neither.
@@ -213,30 +219,29 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: np.ndarray
-    _right: np.ndarray
+    _left: IntervalSideT
+    _right: IntervalSideT
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
     # Constructors
 
     def __new__(
-        cls: type[IntervalArrayT],
+        cls,
         data,
         closed=None,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
-
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
-            left = data._left
-            right = data._right
+            left: IntervalSideT = data._left
+            right: IntervalSideT = data._right
             closed = closed or data.closed
+            dtype = IntervalDtype(left.dtype, closed=closed)
         else:
-
             # don't allow scalars
             if is_scalar(data):
                 msg = (
@@ -255,36 +260,59 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 right = lib.maybe_convert_objects(right)
             closed = closed or infer_closed
 
+            left, right, dtype = cls._ensure_simple_new_inputs(
+                left,
+                right,
+                closed=closed,
+                copy=copy,
+                dtype=dtype,
+            )
+
+        if verify_integrity:
+            cls._validate(left, right, dtype=dtype)
+
         return cls._simple_new(
             left,
             right,
-            closed,
-            copy=copy,
             dtype=dtype,
-            verify_integrity=verify_integrity,
         )
 
     @classmethod
     def _simple_new(
-        cls: type[IntervalArrayT],
+        cls,
+        left: IntervalSideT,
+        right: IntervalSideT,
+        dtype: IntervalDtype,
+    ) -> Self:
+        result = IntervalMixin.__new__(cls)
+        result._left = left
+        result._right = right
+        result._dtype = dtype
+
+        return result
+
+    @classmethod
+    def _ensure_simple_new_inputs(
+        cls,
         left,
         right,
         closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-        verify_integrity: bool = True,
-    ) -> IntervalArrayT:
-        result = IntervalMixin.__new__(cls)
+    ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
+        """Ensure correctness of input parameters for cls._simple_new."""
+        from pandas.core.indexes.base import ensure_index
+
+        left = ensure_index(left, copy=copy)
+        left = maybe_upcast_numeric_to_64bit(left)
+
+        right = ensure_index(right, copy=copy)
+        right = maybe_upcast_numeric_to_64bit(right)
 
         if closed is None and isinstance(dtype, IntervalDtype):
             closed = dtype.closed
 
         closed = closed or "right"
-
-        from pandas.core.indexes.base import ensure_index
-
-        left = ensure_index(left, copy=copy)
-        right = ensure_index(right, copy=copy)
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
@@ -346,28 +374,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             right = right.copy()
 
         dtype = IntervalDtype(left.dtype, closed=closed)
-        result._dtype = dtype
 
-        result._left = left
-        result._right = right
-        if verify_integrity:
-            result._validate()
-        return result
+        return left, right, dtype
 
     @classmethod
     def _from_sequence(
-        cls: type[IntervalArrayT],
+        cls,
         scalars,
         *,
         dtype: Dtype | None = None,
         copy: bool = False,
-    ) -> IntervalArrayT:
+    ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_factorized(
-        cls: type[IntervalArrayT], values: np.ndarray, original: IntervalArrayT
-    ) -> IntervalArrayT:
+    def _from_factorized(cls, values: np.ndarray, original: IntervalArray) -> Self:
         if len(values) == 0:
             # An empty array returns object-dtype here. We can't create
             # a new IA from an (empty) object-dtype array, so turn it into the
@@ -425,12 +446,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_breaks(
-        cls: type[IntervalArrayT],
+        cls,
         breaks,
         closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> IntervalArrayT:
+    ) -> Self:
         breaks = _maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(breaks[:-1], breaks[1:], closed, copy=copy, dtype=dtype)
@@ -502,19 +523,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_arrays(
-        cls: type[IntervalArrayT],
+        cls,
         left,
         right,
         closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> IntervalArrayT:
+    ) -> Self:
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
 
-        return cls._simple_new(
-            left, right, closed, copy=copy, dtype=dtype, verify_integrity=True
+        left, right, dtype = cls._ensure_simple_new_inputs(
+            left,
+            right,
+            closed=closed,
+            copy=copy,
+            dtype=dtype,
         )
+        cls._validate(left, right, dtype=dtype)
+
+        return cls._simple_new(left, right, dtype=dtype)
 
     _interval_shared_docs["from_tuples"] = textwrap.dedent(
         """
@@ -568,12 +596,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_tuples(
-        cls: type[IntervalArrayT],
+        cls,
         data,
         closed: IntervalClosedType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> IntervalArrayT:
+    ) -> Self:
         if len(data):
             left, right = [], []
         else:
@@ -581,7 +609,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left = right = data
 
         for d in data:
-            if isna(d):
+            if not isinstance(d, tuple) and isna(d):
                 lhs = rhs = np.nan
             else:
                 name = cls.__name__
@@ -599,36 +627,37 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
-    def _validate(self):
+    @classmethod
+    def _validate(cls, left, right, dtype: IntervalDtype) -> None:
         """
         Verify that the IntervalArray is valid.
 
         Checks that
 
-        * closed is valid
+        * dtype is correct
         * left and right match lengths
         * left and right have the same missing values
         * left is always below right
         """
-        if self.closed not in VALID_CLOSED:
-            msg = f"invalid option for 'closed': {self.closed}"
+        if not isinstance(dtype, IntervalDtype):
+            msg = f"invalid dtype: {dtype}"
             raise ValueError(msg)
-        if len(self._left) != len(self._right):
+        if len(left) != len(right):
             msg = "left and right must have the same length"
             raise ValueError(msg)
-        left_mask = notna(self._left)
-        right_mask = notna(self._right)
+        left_mask = notna(left)
+        right_mask = notna(right)
         if not (left_mask == right_mask).all():
             msg = (
                 "missing values must be missing in the same "
                 "location both left and right sides"
             )
             raise ValueError(msg)
-        if not (self._left[left_mask] <= self._right[left_mask]).all():
+        if not (left[left_mask] <= right[left_mask]).all():
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
-    def _shallow_copy(self: IntervalArrayT, left, right) -> IntervalArrayT:
+    def _shallow_copy(self, left, right) -> Self:
         """
         Return a new IntervalArray with the replacement attributes
 
@@ -639,7 +668,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right : Index
             Values to be used for the right-side of the intervals.
         """
-        return self._simple_new(left, right, closed=self.closed, verify_integrity=False)
+        dtype = IntervalDtype(left.dtype, closed=self.closed)
+        left, right, dtype = self._ensure_simple_new_inputs(left, right, dtype=dtype)
+
+        return self._simple_new(left, right, dtype=dtype)
 
     # ---------------------------------------------------------------------
     # Descriptive
@@ -671,12 +703,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ...
 
     @overload
-    def __getitem__(self: IntervalArrayT, key: SequenceIndexer) -> IntervalArrayT:
+    def __getitem__(self, key: SequenceIndexer) -> Self:
         ...
 
-    def __getitem__(
-        self: IntervalArrayT, key: PositionalIndexer
-    ) -> IntervalArrayT | IntervalOrNA:
+    def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]
@@ -689,7 +719,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
-        return self._shallow_copy(left, right)
+        # Argument 2 to "_simple_new" of "IntervalArray" has incompatible type
+        # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
+        # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
+        # ndarray[Any, Any]]"
+        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
@@ -812,6 +846,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         if ascending and kind == "quicksort" and na_position == "last":
+            # TODO: in an IntervalIndex we can re-use the cached
+            #  IntervalTree.left_sorter
             return np.lexsort((self.right, self.left))
 
         # TODO: other cases we can use lexsort for?  much more performant.
@@ -853,9 +889,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(
-        self: IntervalArrayT, value=None, method=None, limit=None
-    ) -> IntervalArrayT:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -965,9 +999,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(
-        cls: type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
-    ) -> IntervalArrayT:
+    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
         """
         Concatenate multiple IntervalArray
 
@@ -986,9 +1018,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
-        return cls._simple_new(left, right, closed=closed, copy=False)
 
-    def copy(self: IntervalArrayT) -> IntervalArrayT:
+        left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
+
+        return cls._simple_new(left, right, dtype=dtype)
+
+    def copy(self) -> Self:
         """
         Return a copy of the array.
 
@@ -998,9 +1033,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         left = self._left.copy()
         right = self._right.copy()
-        closed = self.closed
-        # TODO: Could skip verify_integrity here.
-        return type(self).from_arrays(left, right, closed=closed)
+        dtype = self.dtype
+        return self._simple_new(left, right, dtype=dtype)
 
     def isna(self) -> np.ndarray:
         return isna(self._left)
@@ -1009,8 +1043,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if not len(self) or periods == 0:
             return self.copy()
 
-        if isna(fill_value):
-            fill_value = self.dtype.na_value
+        self._validate_scalar(fill_value)
 
         # ExtensionArray.shift doesn't work for two reasons
         # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
@@ -1035,14 +1068,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._concat_same_type([a, b])
 
     def take(
-        self: IntervalArrayT,
+        self,
         indices,
         *,
         allow_fill: bool = False,
         fill_value=None,
         axis=None,
         **kwargs,
-    ) -> IntervalArrayT:
+    ) -> Self:
         """
         Take elements from the IntervalArray.
 
@@ -1140,7 +1173,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
-
         if is_valid_na_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             value = self.left._na_value
@@ -1187,7 +1219,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Rendering Methods
 
     def _format_data(self) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         n = len(self)
@@ -1205,7 +1236,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             last = formatter(self[-1])
             summary = f"[{first}, {last}]"
         else:
-
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
@@ -1395,14 +1425,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def set_closed(self: IntervalArrayT, closed: IntervalClosedType) -> IntervalArrayT:
+    def set_closed(self, closed: IntervalClosedType) -> Self:
         if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
 
-        return type(self)._simple_new(
-            left=self._left, right=self._right, closed=closed, verify_integrity=False
-        )
+        left, right = self._left, self._right
+        dtype = IntervalDtype(left.dtype, closed=closed)
+        return self._simple_new(left, right, dtype=dtype)
 
     _interval_shared_docs[
         "is_non_overlapping_monotonic"
@@ -1544,12 +1574,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if isinstance(self._left, np.ndarray):
             np.putmask(self._left, mask, value_left)
+            assert isinstance(self._right, np.ndarray)
             np.putmask(self._right, mask, value_right)
         else:
             self._left._putmask(mask, value_left)
+            assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
-    def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
+    def insert(self, loc: int, item: Interval) -> Self:
         """
         Return a new IntervalArray inserting new item at location. Follows
         Python numpy.insert semantics for negative values.  Only Interval
@@ -1571,21 +1603,23 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(new_left, new_right)
 
-    def delete(self: IntervalArrayT, loc) -> IntervalArrayT:
+    def delete(self, loc) -> Self:
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
+            assert isinstance(self._right, np.ndarray)
             new_right = np.delete(self._right, loc)
         else:
             new_left = self._left.delete(loc)
+            assert not isinstance(self._right, np.ndarray)
             new_right = self._right.delete(loc)
         return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(
-        self: IntervalArrayT,
+        self,
         repeats: int | Sequence[int],
         axis: AxisInt | None = None,
-    ) -> IntervalArrayT:
+    ) -> Self:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
@@ -1677,7 +1711,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isin(self.astype(object), values.astype(object))
 
     @property
-    def _combined(self) -> ArrayLike:
+    def _combined(self) -> IntervalSideT:
         left = self.left._values.reshape(-1, 1)
         right = self.right._values.reshape(-1, 1)
         if needs_i8_conversion(left.dtype):
@@ -1694,15 +1728,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
-            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
-            new_left = type(self._left)._from_sequence(  # type: ignore[attr-defined]
-                nc[:, 0], dtype=dtype
-            )
-            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
-            new_right = type(self._right)._from_sequence(  # type: ignore[attr-defined]
-                nc[:, 1], dtype=dtype
-            )
+            assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
+            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            assert isinstance(self._right, (DatetimeArray, TimedeltaArray))
+            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
         else:
+            assert isinstance(dtype, np.dtype)
             new_left = nc[:, 0].view(dtype)
             new_right = nc[:, 1].view(dtype)
         return self._shallow_copy(left=new_left, right=new_right)
@@ -1750,5 +1781,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         values = extract_array(values, extract_numpy=True)
 
     if not hasattr(values, "dtype"):
-        return np.asarray(values)
+        values = np.asarray(values)
+        if is_integer_dtype(values) and values.dtype != np.int64:
+            values = values.astype(np.int64)
     return values

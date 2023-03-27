@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
@@ -98,18 +100,28 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    def test_concat_copy_index_series(self, axis):
+    def test_concat_copy_index_series(self, axis, using_copy_on_write):
         # GH 29879
         ser = Series([1, 2])
         comb = concat([ser, ser], axis=axis, copy=True)
-        assert comb.index is not ser.index
+        if not using_copy_on_write or axis in [0, "index"]:
+            assert comb.index is not ser.index
+        else:
+            assert comb.index is ser.index
 
-    def test_concat_copy_index_frame(self, axis):
+    def test_concat_copy_index_frame(self, axis, using_copy_on_write):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         comb = concat([df, df], axis=axis, copy=True)
-        assert comb.index is not df.index
-        assert comb.columns is not df.columns
+        if not using_copy_on_write:
+            assert comb.index is not df.index
+            assert comb.columns is not df.columns
+        elif axis in [0, "index"]:
+            assert comb.index is not df.index
+            assert comb.columns is df.columns
+        elif axis in [1, "columns"]:
+            assert comb.index is df.index
+            assert comb.columns is not df.columns
 
     def test_default_index(self):
         # is_series and ignore_index
@@ -240,8 +252,6 @@ class TestMultiIndexConcat:
 
     def test_concat_multiindex_dfs_with_deepcopy(self):
         # GH 9967
-        from copy import deepcopy
-
         example_multiindex1 = MultiIndex.from_product([["a"], ["b"]])
         example_dataframe1 = DataFrame([0], index=example_multiindex1)
 

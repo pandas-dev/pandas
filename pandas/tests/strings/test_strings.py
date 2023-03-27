@@ -13,6 +13,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.strings.accessor import StringMethods
 
 
 @pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
@@ -24,13 +25,6 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.startswith(pattern)
     with pytest.raises(TypeError, match=msg):
         ser.str.endswith(pattern)
-
-
-def assert_series_or_index_equal(left, right):
-    if isinstance(left, Series):
-        tm.assert_series_equal(left, right)
-    else:  # Index
-        tm.assert_index_equal(left, right)
 
 
 # test integer/float dtypes (inferred by constructor) and mixed
@@ -303,7 +297,6 @@ def test_len_mixed():
     ],
 )
 def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
-
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
     )
@@ -606,8 +599,6 @@ def test_normalize_index():
     ],
 )
 def test_index_str_accessor_visibility(values, inferred_type, index_or_series):
-    from pandas.core.strings import StringMethods
-
     obj = index_or_series(values)
     if index_or_series is Index:
         assert obj.inferred_type == inferred_type

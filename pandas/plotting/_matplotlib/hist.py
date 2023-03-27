@@ -7,8 +7,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PlottingOrientation
-
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -41,6 +39,8 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+
+    from pandas._typing import PlottingOrientation
 
     from pandas import DataFrame
 
@@ -80,7 +80,7 @@ class HistPlot(LinePlot):
 
     def _calculate_bins(self, data: DataFrame) -> np.ndarray:
         """Calculate bins given data"""
-        nd_values = data.infer_objects()._get_numeric_data()
+        nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
@@ -146,14 +146,23 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            y = reformat_hist_y_given_by(y, self.by)
-
             # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
             # and each sub-array (10,) will be called in each iteration. If users only
             # provide 1D array, we assume the same weights is used for all iterations
             weights = kwds.get("weights", None)
-            if weights is not None and np.ndim(weights) != 1:
-                kwds["weights"] = weights[:, i]
+            if weights is not None:
+                if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
+                    try:
+                        weights = weights[:, i]
+                    except IndexError as err:
+                        raise ValueError(
+                            "weights must have the same shape as data, "
+                            "or be a single column"
+                        ) from err
+                weights = weights[~isna(y)]
+                kwds["weights"] = weights
+
+            y = reformat_hist_y_given_by(y, self.by)
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 
@@ -260,7 +269,7 @@ def _grouped_plot(
     column=None,
     by=None,
     numeric_only: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     sharex: bool = True,
     sharey: bool = True,
     layout=None,
@@ -268,8 +277,9 @@ def _grouped_plot(
     ax=None,
     **kwargs,
 ):
-
-    if figsize == "default":
+    # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
+    # float]]", right operand type: "Literal['default']")
+    if figsize == "default":  # type: ignore[comparison-overlap]
         # allowed to specify mpl default with 'default'
         raise ValueError(
             "figsize='default' is no longer supported. "
@@ -303,15 +313,15 @@ def _grouped_hist(
     by=None,
     ax=None,
     bins: int = 50,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = False,
     rot: float = 90,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
     legend: bool = False,
     **kwargs,
@@ -384,11 +394,11 @@ def hist_series(
     by=None,
     ax=None,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     bins: int = 10,
     legend: bool = False,
     **kwds,
@@ -456,14 +466,14 @@ def hist_frame(
     column=None,
     by=None,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
     ax=None,
     sharex: bool = False,
     sharey: bool = False,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     bins: int = 10,
     legend: bool = False,
