@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -283,7 +282,7 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
-    elif is_extension_array_dtype(vdtype):
+    elif isinstance(vdtype, ExtensionDtype):
         # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
         #  are already caught above
         values = extract_array(values, extract_numpy=True)

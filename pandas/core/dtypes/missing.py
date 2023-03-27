@@ -26,7 +26,6 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -283,7 +282,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
-        if inf_as_na and is_categorical_dtype(dtype):
+        if inf_as_na and isinstance(dtype, CategoricalDtype):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             # error: Incompatible types in assignment (expression has type
