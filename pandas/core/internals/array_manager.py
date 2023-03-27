@@ -842,9 +842,7 @@ class ArrayManager(BaseArrayManager):
         else:
             assert isinstance(loc, np.ndarray)
             assert loc.dtype == "bool"
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "range")
-            indices = np.nonzero(loc)[0]  # type: ignore[assignment]
+            indices = np.array([index for index in loc[1:]])
 
         assert value.ndim == 2
         assert value.shape[0] == len(self._axes[0])
