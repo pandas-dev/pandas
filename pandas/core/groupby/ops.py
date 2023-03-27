@@ -402,6 +402,8 @@ class WrappedCythonOp:
 
             if self.how in self.cast_blocklist:
                 return res_values
+            elif self.how in ["first", "last", "min", "max"]:
+                res_values[result_mask == 1] = -1
             return values._from_backing_data(res_values)
 
         npvalues = self._ea_to_cython_values(values)
