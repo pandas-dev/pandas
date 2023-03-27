@@ -36,6 +36,7 @@ Other enhancements
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
+- :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - Implemented ``__from_arrow__`` on :class:`DatetimeTZDtype`. (:issue:`52201`)
 
