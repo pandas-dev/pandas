@@ -110,6 +110,7 @@ Deprecations
 - Deprecated :meth:`DataFrame._data` and :meth:`Series._data`, use public APIs instead (:issue:`33333`)
 - Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
 - Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
+- Deprecated the behavior of :func:`concat` with both ``len(keys) != len(objs)``, in a future version this will raise instead of truncating to the shorter of the two sequences (:issue:`43485`)
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)
 - Deprecated explicit support for subclassing :class:`Index` (:issue:`45289`)
 - Deprecated :meth:`DataFrameGroupBy.dtypes`, check ``dtypes`` on the underlying object instead (:issue:`51045`)
@@ -128,6 +129,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 -
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
