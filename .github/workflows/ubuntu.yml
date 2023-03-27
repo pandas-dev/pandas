@@ -176,7 +176,7 @@ jobs:
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-      with:
+      env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
     
@@ -184,7 +184,7 @@ jobs:
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
-      with:
+      env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1
       if: ${{ env.PATTERN == '' }}
