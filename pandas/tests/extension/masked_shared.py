@@ -50,7 +50,9 @@ class NumericReduce(base.BaseNumericReduceTests):
 
         cmp_dtype = "int64"
         if ser.dtype.kind == "f":
-            cmp_dtype = ser.dtype.numpy_dtype
+            # Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has
+            # no attribute "numpy_dtype"
+            cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
 
         if op_name == "count":
             result = getattr(ser, op_name)()
@@ -73,7 +75,9 @@ class Accumulation(base.BaseAccumulateTests):
         # https://github.com/pandas-dev/pandas/issues/30958
         length = 64
         if not IS64 or is_platform_windows():
-            if not ser.dtype.itemsize == 8:
+            # Item "ExtensionDtype" of "Union[dtype[Any], ExtensionDtype]" has
+            # no attribute "itemsize"
+            if not ser.dtype.itemsize == 8:  # type: ignore[union-attr]
                 length = 32
 
         if ser.dtype.name.startswith("U"):
