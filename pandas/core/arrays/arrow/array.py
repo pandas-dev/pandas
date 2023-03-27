@@ -1952,7 +1952,7 @@ class ArrowExtensionArray(
             "str.translate not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         raise NotImplementedError(
             "str.wrap not supported with pd.ArrowDtype(pa.string())."
         )

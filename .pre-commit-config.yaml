@@ -28,7 +28,7 @@ repos:
         types_or: [python, pyi]
         additional_dependencies: [black==23.1.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.255
+    rev: v0.0.259
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -392,14 +392,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: flake8-pyi
-        name: flake8-pyi
-        entry: flake8 --extend-ignore=E301,E302,E305,E701,E704
-        types: [pyi]
-        language: python
-        additional_dependencies:
-        - flake8==5.0.4
-        - flake8-pyi==22.8.1
     -   id: future-annotations
         name: import annotations from __future__
         entry: 'from __future__ import annotations'
@@ -421,8 +413,8 @@ repos:
         language: python
         stages: [manual]
         additional_dependencies:
-        - autotyping==22.9.0
-        - libcst==0.4.7
+        - autotyping==23.3.0
+        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

@@ -291,14 +291,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return result
 
     def _fill_mask_inplace(
-        self, method: str, limit, mask: npt.NDArray[np.bool_]
+        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
     ) -> None:
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit=None) -> Self:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         value, method = validate_fillna_kwargs(
             value, method, validate_scalar_dict_value=False
         )
