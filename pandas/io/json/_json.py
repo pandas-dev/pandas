@@ -10,9 +10,9 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     Callable,
     Generic,
+    Hashable,
     Literal,
     Mapping,
     TypeVar,
