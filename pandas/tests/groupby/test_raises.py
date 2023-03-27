@@ -40,8 +40,8 @@ def groupby_series(request):
     return request.param
 
 
-@pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_string(how, by, groupby_series, groupby_func):
+@pytest.fixture
+def df_with_string_col():
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -50,6 +50,62 @@ def test_groupby_raises_string(how, by, groupby_series, groupby_func):
             "d": list("xyzwtyuio"),
         }
     )
+    return df
+
+
+@pytest.fixture
+def df_with_datetime_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
+        }
+    )
+    return df
+
+
+@pytest.fixture
+def df_with_cat_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": Categorical(
+                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
+                categories=["a", "b", "c", "d"],
+                ordered=True,
+            ),
+        }
+    )
+    return df
+
+
+def _call_and_check(klass, msg, how, gb, groupby_func, args):
+    if klass is None:
+        if how == "method":
+            getattr(gb, groupby_func)(*args)
+        elif how == "agg":
+            gb.agg(groupby_func, *args)
+        else:
+            gb.transform(groupby_func, *args)
+    else:
+        with pytest.raises(klass, match=msg):
+            if how == "method":
+                getattr(gb, groupby_func)(*args)
+            elif how == "agg":
+                gb.agg(groupby_func, *args)
+            else:
+                gb.transform(groupby_func, *args)
+
+
+@pytest.mark.parametrize("how", ["method", "agg", "transform"])
+def test_groupby_raises_string(
+    how, by, groupby_series, groupby_func, df_with_string_col
+):
+    df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -109,33 +165,12 @@ def test_groupby_raises_string(how, by, groupby_series, groupby_func):
         "var": (TypeError, "could not convert string to float"),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_string_udf(how, by, groupby_series):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": list("xyzwtyuio"),
-        }
-    )
+def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
+    df = df_with_string_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -150,16 +185,11 @@ def test_groupby_raises_string_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_string_np(
+    how, by, groupby_series, groupby_func_np, df_with_string_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": list("xyzwtyuio"),
-        }
-    )
+    df = df_with_string_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -170,23 +200,14 @@ def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
         np.mean: (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
-    else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
+def test_groupby_raises_datetime(
+    how, by, groupby_series, groupby_func, df_with_datetime_col
+):
+    df = df_with_datetime_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -234,41 +255,18 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
         "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    if klass is None:
-        warn = None
-        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
-        if groupby_func in ["any", "all"]:
-            warn = FutureWarning
+    warn = None
+    warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    if groupby_func in ["any", "all"]:
+        warn = FutureWarning
 
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
-
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_datetime_udf(how, by, groupby_series):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
-
+def test_groupby_raises_datetime_udf(how, by, groupby_series, df_with_datetime_col):
+    df = df_with_datetime_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -283,16 +281,11 @@ def test_groupby_raises_datetime_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_datetime_np(
+    how, by, groupby_series, groupby_func_np, df_with_datetime_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
+    df = df_with_datetime_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -303,30 +296,15 @@ def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
         np.mean: (None, ""),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
-    else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category(
-    how, by, groupby_series, groupby_func, using_copy_on_write
+    how, by, groupby_series, groupby_func, using_copy_on_write, df_with_cat_col
 ):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -452,38 +430,13 @@ def test_groupby_raises_category(
         ),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_category_udf(how, by, groupby_series):
+def test_groupby_raises_category_udf(how, by, groupby_series, df_with_cat_col):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -498,20 +451,11 @@ def test_groupby_raises_category_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_category_np(
+    how, by, groupby_series, groupby_func_np, df_with_cat_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -525,33 +469,25 @@ def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
         ),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
-    else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
-    how, by, groupby_series, groupby_func, observed, using_copy_on_write
+    how,
+    by,
+    groupby_series,
+    groupby_func,
+    observed,
+    using_copy_on_write,
+    df_with_cat_col,
 ):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "c", "c", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
+    df = df_with_cat_col
+    df["a"] = Categorical(
+        ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
+        categories=["a", "b", "c", "d"],
+        ordered=True,
     )
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, observed=observed)
@@ -662,21 +598,7 @@ def test_groupby_raises_category_on_category(
         ),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 def test_subsetting_columns_axis_1_raises():
