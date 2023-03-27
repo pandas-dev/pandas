@@ -18,6 +18,7 @@ runs:
         environment-file: ${{ inputs.environment-file }}
         environment-name: ${{ inputs.environment-name }}
         extra-specs: ${{ inputs.extra-specs }}
+        channels: conda-forge
         channel-priority: 'strict'
         condarc-file: ci/condarc.yml
         cache-env: true
