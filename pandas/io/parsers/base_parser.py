@@ -927,7 +927,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
-    def _validate_usecols_names(self, usecols, names):
+    def _validate_usecols_names(self, usecols, names: Sequence):
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that

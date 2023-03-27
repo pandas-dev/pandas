@@ -2841,6 +2841,8 @@ class MultiIndex(Index):
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
+            except KeyError as err:
+                raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
                 loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
