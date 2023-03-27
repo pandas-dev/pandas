@@ -113,7 +113,7 @@ def tz_to_dtype(tz: tzinfo | None, unit: str = "ns"):
         return DatetimeTZDtype(tz=tz, unit=unit)
 
 
-def _field_accessor(name: str, field: str, docstring=None):
+def _field_accessor(name: str, field: str, docstring: str | None = None):
     def f(self):
         values = self._local_timestamps()
 
