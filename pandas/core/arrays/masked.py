@@ -1074,6 +1074,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        keepdims = kwargs.pop("keepdims", False)
+        if keepdims and "axis" not in kwargs:
+            return self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
+
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
@@ -1081,13 +1085,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask
 
         # median, skew, kurt, sem
+        axis = kwargs.pop("axis", 0)
         op = getattr(nanops, f"nan{name}")
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+        result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if np.isnan(result):
             return libmissing.NA
 
-        return result
+        return self._wrap_reduction_result(
+            name=name, result=result, skipna=skipna, axis=axis
+        )
 
     def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
         if isinstance(result, np.ndarray):
@@ -1098,7 +1105,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 mask = self._mask.any(axis=axis)
 
-            return self._maybe_mask_result(result, mask)
+            if name not in ["argmin", "argmax"]:
+                return self._maybe_mask_result(result, mask)
         return result
 
     def sum(

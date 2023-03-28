@@ -155,7 +155,7 @@ def mean(
     skipna: bool = True,
     axis: AxisInt | None = None,
 ):
-    if not values.size or mask.all():
+    if (not values.size or mask.all()) and (values.ndim == 1 or axis is None):
         return libmissing.NA
     return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
 
@@ -168,7 +168,7 @@ def var(
     axis: AxisInt | None = None,
     ddof: int = 1,
 ):
-    if not values.size or mask.all():
+    if (not values.size or mask.all()) and (values.ndim == 1 or axis is None):
         return libmissing.NA
 
     return _reductions(
@@ -184,7 +184,7 @@ def std(
     axis: AxisInt | None = None,
     ddof: int = 1,
 ):
-    if not values.size or mask.all():
+    if (not values.size or mask.all()) and (values.ndim == 1 or axis is None):
         return libmissing.NA
 
     return _reductions(

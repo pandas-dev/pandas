@@ -1222,6 +1222,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        keepdims = kwargs.pop("keepdims", False)
         pa_type = self._pa_array.type
 
         data_to_reduce = self._pa_array
@@ -1289,6 +1290,12 @@ class ArrowExtensionArray(
                 f"upgrading pyarrow."
             )
             raise TypeError(msg) from err
+
+        if keepdims:
+            # TODO: is there a way to do this without .as_py()
+            result = pa.array([result.as_py()], type=result.type)
+            return type(self)(result)
+
         if pc.is_null(result).as_py():
             return self.dtype.na_value
 

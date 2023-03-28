@@ -2049,6 +2049,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         min : the minimum of this `Categorical`, NA value if empty
         """
+        keepdims = kwargs.pop("keepdims", False)
+        if keepdims:
+            result = self.min(skipna=skipna, **kwargs)
+            return type(self)([result], dtype=self.dtype)
+
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_min((), kwargs)
         self.check_for_ordered("min")
@@ -2081,6 +2086,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         max : the maximum of this `Categorical`, NA if array is empty
         """
+        keepdims = kwargs.pop("keepdims", False)
+        if keepdims:
+            result = self.max(skipna=skipna, **kwargs)
+            return type(self)([result], dtype=self.dtype)
+
         nv.validate_minmax_axis(kwargs.get("axis", 0))
         nv.validate_max((), kwargs)
         self.check_for_ordered("max")

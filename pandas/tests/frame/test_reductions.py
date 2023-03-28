@@ -693,14 +693,7 @@ class TestDataFrameAnalytics:
     def test_std_datetime64_with_nat(
         self, values, skipna, using_array_manager, request
     ):
-        # GH#51335
-        if using_array_manager and (
-            not skipna or all(value is pd.NaT for value in values)
-        ):
-            mark = pytest.mark.xfail(
-                reason="GH#51446: Incorrect type inference on NaT in reduction result"
-            )
-            request.node.add_marker(mark)
+        # GH#51335, GH#51446
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
@@ -918,7 +911,7 @@ class TestDataFrameAnalytics:
         arr = np.random.randint(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
-        expected = DataFrame(arr).mean()
+        expected = DataFrame(arr).mean().astype("Float64")
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
@@ -1726,3 +1719,19 @@ def test_fails_on_non_numeric(kernel):
     )
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_Int64_mean_preserves_dtype(dtype):
+    # GH#42895
+    arr = np.random.randn(4, 3).astype("int64")
+    df = DataFrame(arr).astype(dtype)
+    df.iloc[:, 1] = pd.NA
+    assert (df.dtypes == dtype).all()
+
+    res = df.mean()
+    exp_dtype = "Float64" if dtype == "Int64" else "float64[pyarrow]"
+    expected = Series([arr[:, 0].mean(), pd.NA, arr[:, 2].mean()], dtype=exp_dtype)
+    tm.assert_series_equal(res, expected)

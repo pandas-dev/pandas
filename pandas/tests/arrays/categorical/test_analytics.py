@@ -124,7 +124,7 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=re.escape(msg)):
             method(cat)
 
-    @pytest.mark.parametrize("kwarg", ["axis", "out", "keepdims"])
+    @pytest.mark.parametrize("kwarg", ["axis", "out"])
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_numpy_min_max_unsupported_kwargs_raises(self, method, kwarg):
         cat = Categorical(["a", "b", "c", "b"], ordered=True)

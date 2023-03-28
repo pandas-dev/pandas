@@ -980,13 +980,17 @@ class ArrayManager(BaseArrayManager):
         for i, arr in enumerate(self.arrays):
             res = func(arr, axis=0)
 
-            # TODO NaT doesn't preserve dtype, so we need to ensure to create
-            # a timedelta result array if original was timedelta
-            # what if datetime results in timedelta? (eg std)
-            dtype = arr.dtype if res is NaT else None
-            result_arrays.append(
-                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
-            )
+            if isinstance(res, (np.ndarray, ExtensionArray)):
+                # keepdims worked!
+                result_arrays.append(res)
+            else:
+                # TODO NaT doesn't preserve dtype, so we need to ensure to create
+                # a timedelta result array if original was timedelta
+                # what if datetime results in timedelta? (eg std)
+                dtype = arr.dtype if res is NaT else None
+                result_arrays.append(
+                    sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+                )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items

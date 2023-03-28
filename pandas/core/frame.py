@@ -10906,13 +10906,24 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
+        is_am = isinstance(self._mgr, ArrayManager)
+
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
-                if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
-                    self._mgr, ArrayManager
-                ):
-                    return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, **kwds)
+                if not is_1d_only_ea_dtype(values.dtype):
+                    if is_am:
+                        return values.reshape(1, -1)._reduce(
+                            name, axis=1, skipna=skipna, **kwds
+                        )
+                    else:
+                        return values._reduce(name, axis=1, skipna=skipna, **kwds)
+
+                try:
+                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                except (TypeError, ValueError):
+                    # no keepdims keyword yet; ValueError gets raised by
+                    #  util validator functions
+                    return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
