@@ -2341,4 +2341,4 @@ def test_setitem_boolean_replace_with_mask_segfault():
     arr = ArrowExtensionArray(pa.chunked_array([np.ones((N,), dtype=np.bool_)]))
     expected = arr.copy()
     arr[np.zeros((N,), dtype=np.bool_)] = False
-    assert arr._pa_array == expected._pa_array
+    assert arr._data == expected._data
