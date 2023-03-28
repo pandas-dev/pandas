@@ -943,10 +943,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice | np.ndarray, axis: Axis = 0) -> Series:
+    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
-        return self._get_values(slobj)
+        mgr = self._mgr.get_slice(slobj, axis=axis)
+        out = self._constructor(mgr, fastpath=True)
+        return out.__finalize__(self)
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -983,10 +985,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             # Do slice check before somewhat-costly is_bool_indexer
-            # _convert_slice_indexer to determine if this slice is positional
-            #  or label based, and if the latter, convert to positional
-            slobj = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._slice(slobj)
+            return self._getitem_slice(key)
 
         if is_iterator(key):
             key = list(key)
@@ -1600,7 +1599,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
-        length=...,
+        length: bool = ...,
         dtype=...,
         name=...,
         max_rows: int | None = ...,
@@ -1616,7 +1615,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         float_format: str | None = ...,
         header: bool = ...,
         index: bool = ...,
-        length=...,
+        length: bool = ...,
         dtype=...,
         name=...,
         max_rows: int | None = ...,
@@ -4247,6 +4246,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         Series.apply : For applying more complex functions on a Series.
+        Series.replace: Replace values given in `to_replace` with `value`.
         DataFrame.apply : Apply a function row-/column-wise.
         DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
