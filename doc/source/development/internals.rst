@@ -31,8 +31,9 @@ There are functions that make the creation of a regular index easy:
 * :func:`period_range`: fixed frequency date range generated from a time rule or
   DateOffset. An ndarray of :class:`Period` objects, representing timespans
 
-.. warning:: Custom :class:`Index` subclasses are not supported, custom behavior should
-be implemented using the :class:`ExtensionArray` interface instead.
+.. warning::
+
+   Custom :class:`Index` subclasses are not supported, custom behavior should be implemented using the :class:`ExtensionArray` interface instead.
 
 MultiIndex
 ~~~~~~~~~~
