@@ -177,8 +177,8 @@ jobs:
         run: |
           # TODO: Remove once meson-python releases 0.11.0, also remove
           # no-isolation from build flag
-          pip install "meson[ninja] @ git+https://github.com/mesonbuild/meson.git@master"
-          pip install git+https://github.com/mesonbuild/meson-python.git@main
+          pip install "meson[ninja]==1.0.1"
+          pip install "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
           pip install build Cython oldest-supported-numpy versioneer[toml]
           python -m build --sdist --no-isolation
       - name: Test the sdist
