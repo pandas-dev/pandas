@@ -4387,7 +4387,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def apply(
         self,
         func: AggFuncType,
-        convert_dtype: bool = True,
+        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         **kwargs,
     ) -> DataFrame | Series:
@@ -4405,6 +4405,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object. Note that the dtype is always
             preserved for some extension array dtypes, such as Categorical.
+
+            .. deprecated:: 2.1.0
+                The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
+                instead if you want this functionality.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4494,6 +4498,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
+        if convert_dtype is not lib.no_default:
+            warnings.warn(
+                "the convert_dtype parameter is deprecated and will be removed in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            convert_dtype = True
         return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
