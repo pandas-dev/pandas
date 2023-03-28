@@ -13,10 +13,8 @@ import pandas._libs.testing as _testing
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_categorical_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
-    is_interval_dtype,
     is_number,
     is_numeric_dtype,
     needs_i8_conversion,
@@ -33,6 +31,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    IntervalDtype,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
@@ -238,7 +237,9 @@ def assert_index_equal(
         assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
-        if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+        if isinstance(left.dtype, CategoricalDtype) and isinstance(
+            right.dtype, CategoricalDtype
+        ):
             if check_categorical:
                 assert_attr_equal("dtype", left, right, obj=obj)
                 assert_index_equal(left.categories, right.categories, exact=exact)
@@ -335,7 +336,9 @@ def assert_index_equal(
         assert_interval_array_equal(left._values, right._values)
 
     if check_categorical:
-        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+        if isinstance(left.dtype, CategoricalDtype) or isinstance(
+            right.dtype, CategoricalDtype
+        ):
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
@@ -946,7 +949,9 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
+    elif isinstance(left.dtype, IntervalDtype) and isinstance(
+        right.dtype, IntervalDtype
+    ):
         assert_interval_array_equal(left.array, right.array)
     elif isinstance(left.dtype, CategoricalDtype) or isinstance(
         right.dtype, CategoricalDtype
