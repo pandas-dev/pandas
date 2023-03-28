@@ -187,4 +187,4 @@ jobs:
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1
-      if: ${{ matrix.pattern == '' }}
+      if: ${{ matrix.pattern == '' && always() && steps.build.outcome == 'success' && always()}}
