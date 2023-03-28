@@ -53,7 +53,6 @@ objects.
       api.extensions.ExtensionArray.insert
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
-      api.extensions.ExtensionArray.map
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted

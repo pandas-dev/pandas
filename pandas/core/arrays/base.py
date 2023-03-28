@@ -1719,12 +1719,6 @@ class ExtensionArray:
             The output of the mapping function applied to the array.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
-        Examples
-        --------
-        >>> ext_arr = pd.array([1, 2, 3])
-        >>> ext_arr.map(str)
-        array(['1', '2', '3'], dtype=object)
         """
         return map_array(self, mapper, na_action=na_action)
 
