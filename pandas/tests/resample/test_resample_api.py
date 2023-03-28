@@ -983,12 +983,12 @@ def test_df_axis_param_depr():
     index.name = "date"
     df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
 
-    # Deprication error when axis=1 is explicitly passed
+    # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         df.resample("M", axis=1)
 
-    # Deprication error when axis=0 is explicitly passed
+    # Deprecation error when axis=0 is explicitly passed
     df = df.T
     warning_msg = (
         "The 'axis' keyword in DataFrame.resample is deprecated and "

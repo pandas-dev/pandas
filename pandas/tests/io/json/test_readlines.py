@@ -320,7 +320,7 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
 
 def test_readjson_nrows_requires_lines(engine):
     # GH 33916
-    # Test ValuError raised if nrows is set without setting lines in read_json
+    # Test ValueError raised if nrows is set without setting lines in read_json
     jsonl = """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}

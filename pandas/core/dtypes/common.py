@@ -1697,7 +1697,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     try:
         with warnings.catch_warnings():
             # GH#51523 - Series.astype(np.integer) doesn't show
-            # numpy deprication warning of np.integer
+            # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)

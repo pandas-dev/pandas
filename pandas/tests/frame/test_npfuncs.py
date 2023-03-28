@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 
 class TestAsArray:
-    def test_asarray_homogenous(self):
+    def test_asarray_homogeneous(self):
         df = DataFrame({"A": Categorical([1, 2]), "B": Categorical([1, 2])})
         result = np.asarray(df)
         # may change from object in the future

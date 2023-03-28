@@ -523,7 +523,7 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError, match=msg):
             PeriodDtype()
 
-        msg = "PeriodDtype argument should be string or BaseOffet, got NoneType"
+        msg = "PeriodDtype argument should be string or BaseOffset, got NoneType"
         with pytest.raises(TypeError, match=msg):
             # GH#51790
             PeriodDtype(None)
