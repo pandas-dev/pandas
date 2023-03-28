@@ -5760,7 +5760,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
 
-    def _align_for_op(self, right, align_asobject: bool = False):
+    def _align_for_op(self, right, *, align_asobject: bool = False):
         """align lhs and rhs Series"""
         # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
         # are not coerced here
