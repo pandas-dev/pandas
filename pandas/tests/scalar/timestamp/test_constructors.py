@@ -904,3 +904,11 @@ def test_timestamp_constructor_positional_with_fold(tz):
     result = ts._value
     expected = 1572136200000000
     assert result == expected
+
+
+def test_timestamp_constructor_arg_shift():
+    # Check that passing a positional argument as keyword
+    # does not change the value
+    result = Timestamp(2019, 10, 27, minute=30)
+    expected = Timestamp(2019, 10, 27, 0, 30)
+    assert result == expected
