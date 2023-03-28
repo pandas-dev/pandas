@@ -1495,3 +1495,28 @@ class TestReadHtml:
         )
         with pytest.raises(ValueError, match=msg):
             read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(data)[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected)
