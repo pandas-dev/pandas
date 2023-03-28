@@ -4340,29 +4340,13 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    def query_with_duplicate_index(self, expr, engine='numexpr'):
     
-        # Create a copy of the dataframe with a unique index to avoid reindexing errors
-        unique_index = RangeIndex(len(self.index))
-        df_copy = self.copy()
-        df_copy.index = unique_index
-
-        # Filter the copied dataframe
-        filtered_df = df_copy.query(expr, engine=engine)
-
-        # Map the filtered index back to the original index labels
-        index_mapping = dict(zip(unique_index, self.index))
-        filtered_df.index = filtered_df.index.map(index_mapping)
-
-        # Return the filtered dataframe
-        return filtered_df
 
 
     @overload
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    def query(self, expr: str, *, inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4505,8 +4489,26 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
-        res = self.eval(expr, **kwargs)
+        
+        
+        try:
+            res = self.eval(expr, **kwargs)
+        except ValueError:
+            
+            # Create a copy of the dataframe with a unique index to avoid reindexing errors
+            unique_index = RangeIndex(len(self.index))
+            df_copy = self.copy()
+            df_copy.index = unique_index
 
+            # Filter the copied dataframe
+            filtered_df = df_copy.query(expr, engine=engine)
+
+            # Map the filtered index back to the original index labels
+            index_mapping = dict(zip(unique_index, self.index))
+            filtered_df.index = filtered_df.index.map(index_mapping)
+
+            return filtered_df
+        
         try:
             result = self.loc[res]
         except ValueError:
