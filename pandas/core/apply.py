@@ -1491,7 +1491,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 

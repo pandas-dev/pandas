@@ -730,7 +730,7 @@ class TestTimestampConstructors:
         assert isinstance(result, Timestamp)
 
 
-def test_constructor_ambigous_dst():
+def test_constructor_ambiguous_dst():
     # GH 24329
     # Make sure that calling Timestamp constructor
     # on Timestamp created from ambiguous time
