@@ -9843,6 +9843,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.replace: Replace values given in `to_replace` with `value`.
 
         Examples
         --------
