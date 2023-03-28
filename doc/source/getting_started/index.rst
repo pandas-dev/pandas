@@ -533,7 +533,7 @@ Data sets do not only contain numerical data. pandas provides a wide range of fu
 Coming from...
 --------------
 
-Are you familiar with other software for manipulating tablular data? Learn
+Are you familiar with other software for manipulating tabular data? Learn
 the pandas-equivalent operations compared to software you already know:
 
 .. panels::
