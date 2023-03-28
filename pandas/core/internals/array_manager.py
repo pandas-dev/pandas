@@ -842,7 +842,7 @@ class ArrayManager(BaseArrayManager):
         else:
             assert isinstance(loc, np.ndarray)
             assert loc.dtype == "bool"
-            indices = np.array([index for index in loc[1:]])
+            indices = np.array([i for i in range(len(loc)) if loc[i] is True])
 
         assert value.ndim == 2
         assert value.shape[0] == len(self._axes[0])
