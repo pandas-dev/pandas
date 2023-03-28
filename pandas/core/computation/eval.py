@@ -320,8 +320,8 @@ def eval(
     first_expr = True
     target_modified = False
 
-    for expr in exprs:
-        expr = _convert_expression(expr)
+    for expr_obj in exprs:
+        expr = _convert_expression(expr_obj)
         _check_for_locals(expr, level, parser)
 
         # get our (possibly passed-in) scope

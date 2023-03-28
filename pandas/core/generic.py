@@ -292,9 +292,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """passed a manager and a axes dict"""
         for a, axe in axes.items():
             if axe is not None:
-                axe = ensure_index(axe)
+                axe_w_idx = ensure_index(axe)
                 bm_axis = cls._get_block_manager_axis(a)
-                mgr = mgr.reindex_axis(axe, axis=bm_axis)
+                mgr = mgr.reindex_axis(axe_w_idx, axis=bm_axis)
 
         # make a copy if explicitly requested
         if copy:

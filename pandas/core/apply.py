@@ -1379,10 +1379,10 @@ def relabel_result(
         # mean  1.5
         # mean  1.5
         if reorder_mask:
-            fun = [
+            fun_name = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun)
+            col_idx_order = Index(s.index).get_indexer(fun_name)
             s = s[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
@@ -1421,14 +1421,16 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     if len(aggfuncs) <= 1:
         # don't mangle for .agg([lambda x: .])
         return aggfuncs
-    i = 0
+
     mangled_aggfuncs = []
-    for aggfunc in aggfuncs:
-        if com.get_callable_name(aggfunc) == "<lambda>":
-            aggfunc = partial(aggfunc)
-            aggfunc.__name__ = f"<lambda_{i}>"
-            i += 1
-        mangled_aggfuncs.append(aggfunc)
+    for idx, aggfunc in enumerate(aggfuncs):
+        if not com.get_callable_name(aggfunc) == "<lambda>":
+            mangled_aggfuncs.append(aggfunc)
+            continue
+
+        partial_aggfunc = partial(aggfunc)
+        partial_aggfunc.__name__ = f"<lambda_{idx}>"
+        mangled_aggfuncs.append(partial_aggfunc)
 
     return mangled_aggfuncs
 

@@ -1267,9 +1267,12 @@ class IntervalDtype(PandasExtensionDtype):
             chunks = array.chunks
 
         results = []
-        for arr in chunks:
-            if isinstance(arr, pyarrow.ExtensionArray):
-                arr = arr.storage
+        for arr_chunk in chunks:
+            arr = (
+                arr_chunk.storage
+                if isinstance(arr_chunk, pyarrow.ExtensionArray)
+                else arr_chunk
+            )
             left = np.asarray(arr.field("left"), dtype=self.subtype)
             right = np.asarray(arr.field("right"), dtype=self.subtype)
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
