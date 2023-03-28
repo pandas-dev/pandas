@@ -7605,7 +7605,7 @@ class DataFrame(NDFrame, OpsMixin):
         return False
 
     def _align_for_op(
-        self, other, *, axis: AxisInt, flex: bool | None = False, level: Level = None
+        self, other, axis: AxisInt, flex: bool | None = False, level: Level = None
     ):
         """
         Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
