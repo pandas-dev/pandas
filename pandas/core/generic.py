@@ -2338,15 +2338,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionchanged:: 1.4.0 Zstandard support.
 
         index : bool or None, default None
-            Whether to include the index values in the JSON string. Different
-            defaults and options depend on the 'orient' argument:
-
-                - 'split': default True, can also be False
-                - 'records': default False, cannot be True
-                - 'index': default True, cannot be False
-                - 'columns': default True, cannot be False
-                - 'values': default False, cannot be True
-                - 'table': default True, can also be False
+            The index is only used when 'orient' is 'split', 'index', 'column',
+            or 'table'. Of these, 'index' and 'column' do not support
+            `index=False`.
 
         indent : int, optional
            Length of whitespace used to indent each record.
