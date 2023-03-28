@@ -317,9 +317,15 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    def test_stat_operators_attempt_obj_array(self, method, df, axis, request):
+    def test_stat_operators_attempt_obj_array(
+        self, method, df, axis, request, using_array_manager
+    ):
         # GH#676
-        if axis in (1, "columns") or method not in ("sum", "prod", "min", "max"):
+        if (
+            axis in (1, "columns")
+            or method not in ("sum", "prod", "min", "max")
+            or using_array_manager
+        ):
             request.node.add_marker(pytest.mark.xfail(reason="Revert of GH#51335"))
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
