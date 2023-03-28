@@ -1366,7 +1366,7 @@ Reshaping
 - Bug in :meth:`DataFrame.explode` raising ``ValueError`` on multiple columns with ``NaN`` values or empty lists (:issue:`46084`)
 - Bug in :meth:`DataFrame.transpose` with ``IntervalDtype`` column with ``timedelta64[ns]`` endpoints (:issue:`44917`)
 - Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` would ignore arguments when passed a list of functions (:issue:`50863`)
-- Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` would return incorrect type when dist-like argument passed in (:issue:`51099`)
+- Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)
 
 Sparse
 ^^^^^^

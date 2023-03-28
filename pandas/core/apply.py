@@ -411,7 +411,7 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = nullcontext()
 
         if isinstance(selected_obj, ABCDataFrame):
-            is_non_unique_col = selected_obj.columns.duplicated()
+            is_non_unique_col = selected_obj.columns.duplicated().tolist()
         else:
             is_non_unique_col = [False]
 
