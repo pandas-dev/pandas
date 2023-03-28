@@ -13,11 +13,11 @@ import numpy as np
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -531,7 +531,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
 
     dtype = indexer.dtype
     if is_bool_dtype(dtype):
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             indexer = indexer.to_numpy(dtype=bool, na_value=False)
         else:
             indexer = np.asarray(indexer, dtype=bool)
