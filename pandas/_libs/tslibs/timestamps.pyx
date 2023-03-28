@@ -1277,9 +1277,9 @@ def _fix_positional_arguments(cls):
         # is now set to year and the other positional args
         # are shifted to the left. Let's shift back
         if len(args) > 2 and all(isinstance(arg, int) for arg in args[:3]):
-            args = (_no_input,) + args
-        instance = original_new(cls, *args, **kwargs)
-        return instance
+            return original_new(cls, _no_input, *args, **kwargs)
+        else:
+            return original_new(cls, *args, **kwargs)
 
     cls.__new__ = updated_new
     return cls
