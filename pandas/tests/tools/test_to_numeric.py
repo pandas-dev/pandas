@@ -723,18 +723,36 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, np.nan])),
-        (["1", "2", "3"], Series([1, 2, 3])),
-        (["1", "2", 3], Series([1, 2, 3])),
-        (["1", "2", 3.5], Series([1, 2, 3.5])),
-        (["1", None, 3.5], Series([1, np.nan, 3.5])),
-        (["1", "2", "3.5"], Series([1, 2, 3.5])),
+        (["1", "2", None], Series([1, 2, np.nan], dtype="Int64")),
+        (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
+        (["1", None, 3.5], Series([1, np.nan, 3.5], dtype="Float64")),
+        (["1", "2", "3.5"], Series([1, 2, 3.5], dtype="Float64")),
     ],
 )
 def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected):
     # https://github.com/pandas-dev/pandas/issues/37262
     s = Series(values, dtype=nullable_string_dtype)
     result = to_numeric(s)
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
+    # GH#52146
+    values = ["a", "1"]
+    ser = Series(values, dtype=nullable_string_dtype)
+    result = to_numeric(ser, errors="coerce")
+    expected = Series([pd.NA, 1], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_from_nullable_string_ignore(nullable_string_dtype):
+    # GH#52146
+    values = ["a", "1"]
+    ser = Series(values, dtype=nullable_string_dtype)
+    expected = ser.copy()
+    result = to_numeric(ser, errors="ignore")
     tm.assert_series_equal(result, expected)
 
 

@@ -139,13 +139,16 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
             )
             if guessed_format is not None:
                 return guessed_format
-            warnings.warn(
-                "Could not infer format, so each element will be parsed "
-                "individually, falling back to `dateutil`. To ensure parsing is "
-                "consistent and as-expected, please specify a format.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
+            # If there are multiple non-null elements, warn about
+            # how parsing might not be consistent
+            if tslib.first_non_null(arr[first_non_null + 1 :]) != -1:
+                warnings.warn(
+                    "Could not infer format, so each element will be parsed "
+                    "individually, falling back to `dateutil`. To ensure parsing is "
+                    "consistent and as-expected, please specify a format.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
     return None
 
 
@@ -312,7 +315,7 @@ def _convert_and_box_cache(
 
 
 def _return_parsed_timezone_results(
-    result: np.ndarray, timezones, utc: bool, name
+    result: np.ndarray, timezones, utc: bool, name: str
 ) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.

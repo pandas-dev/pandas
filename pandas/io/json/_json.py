@@ -12,6 +12,7 @@ from typing import (
     Any,
     Callable,
     Generic,
+    Hashable,
     Literal,
     Mapping,
     TypeVar,
@@ -1178,7 +1179,7 @@ class Parser:
 
     def _try_convert_data(
         self,
-        name,
+        name: Hashable,
         data,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
