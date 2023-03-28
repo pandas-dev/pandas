@@ -4498,14 +4498,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        if convert_dtype is not lib.no_default:
+        if convert_dtype is lib.no_default:
+            convert_dtype = True
+        else:
             warnings.warn(
                 "the convert_dtype parameter is deprecated and will be removed in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            convert_dtype = True
         return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
