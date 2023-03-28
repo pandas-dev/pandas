@@ -524,7 +524,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.insert \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
-        pandas.api.extensions.ExtensionArray.map \
         pandas.api.extensions.ExtensionArray.ravel \
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
