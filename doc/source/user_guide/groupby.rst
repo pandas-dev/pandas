@@ -149,7 +149,7 @@ the columns except the one we specify:
    grouped.sum()
 
 The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
-a tranpose:
+a transpose:
 
 .. ipython::
 
