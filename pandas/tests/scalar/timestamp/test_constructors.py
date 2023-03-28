@@ -340,12 +340,7 @@ class TestTimestampConstructors:
 
     @pytest.mark.parametrize("kwd", ["nanosecond", "microsecond", "second", "minute"])
     def test_constructor_positional_keyword_mixed_with_tzinfo(self, kwd, request):
-        # TODO: if we passed microsecond with a keyword we would mess up
-        #  xref GH#45307
-        if kwd != "nanosecond":
-            # nanosecond is keyword-only as of 2.0, others are not
-            mark = pytest.mark.xfail(reason="GH#45307")
-            request.node.add_marker(mark)
+        # GH#52221 makes a mix of positional and keyword arguments behave consistently
 
         kwargs = {kwd: 4}
         ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc, **kwargs)
