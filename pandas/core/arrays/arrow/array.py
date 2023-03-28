@@ -251,7 +251,7 @@ class ArrowExtensionArray(
             except pa.ArrowInvalid:
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
-        if pa_dtype:
+        if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
         return cls(scalars)
 
