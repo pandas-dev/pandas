@@ -4246,6 +4246,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         Series.apply : For applying more complex functions on a Series.
+        Series.replace: Replace values given in `to_replace` with `value`.
         DataFrame.apply : Apply a function row-/column-wise.
         DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
