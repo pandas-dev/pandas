@@ -249,7 +249,7 @@ def test_min_max_nullable_uint64_empty_group():
     tm.assert_frame_equal(res, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.parametrize("func", ["first", "last", "min", "max"])
 def test_groupby_min_max_categorical(func):
     # GH: 52151
     df = DataFrame(
