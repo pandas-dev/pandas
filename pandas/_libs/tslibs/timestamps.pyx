@@ -1269,7 +1269,23 @@ cdef class _Timestamp(ABCTimestamp):
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
 
+def _fix_positional_arguments(cls):
+    original_new = cls.__new__
 
+    def updated_new(cls, *args, **kwargs):
+        # GH#52117 If we passed positional args, then _ts_input
+        # is now set to year and the other positional args
+        # are shifted to the left. Let's shift back
+        if len(args) > 2 and all(isinstance(arg, int) for arg in args[:3]):
+            args = (_no_input,) + args
+        instance = original_new(cls, *args, **kwargs)
+        return instance
+
+    cls.__new__ = updated_new
+    return cls
+
+
+@_fix_positional_arguments
 class Timestamp(_Timestamp):
     """
     Pandas replacement for python datetime.datetime object.
@@ -1561,14 +1577,6 @@ class Timestamp(_Timestamp):
         cdef:
             _TSObject ts
             tzinfo_type tzobj
-
-        # GH#52117 If we passed positional args, then _ts_input
-        # is now set to year and the other positional args
-        # are shifted to the left. Let's shift back
-        if (isinstance(ts_input, int) and
-                isinstance(year, int) and isinstance(month, int)):
-            ts_input, year, month, day, hour, minute, second, microsecond = (
-                _no_input, ts_input, year, month, day, hour, minute, second)
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
