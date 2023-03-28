@@ -409,29 +409,37 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = com.temp_setattr(obj, "as_index", True)
         else:
             context_manager = nullcontext()
+
+        if isinstance(selected_obj, ABCDataFrame):
+            is_non_unique_col = selected_obj.columns.duplicated()
+        else:
+            is_non_unique_col = [False]
+
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
-                colg = obj._gotitem(selection, ndim=1)
-                results = {key: colg.agg(how) for key, how in arg.items()}
-            else:
-                # key used for column selection and output
+                key_res = obj._gotitem(selection, ndim=1)
+                results = {key: key_res.agg(how) for key, how in arg.items()}
+            elif any(is_non_unique_col):
+                # GH#51099
+                # results is a dict of lists
                 results = {}
                 for key, how in arg.items():
-                    indices = [i for i, col in enumerate(obj.columns) if col == key]
-                    if len(indices) == 1:  # for unique columns
-                        results[key] = obj._gotitem(key, ndim=1).agg(how)
-                    else:  # for non-unique columns
-                        col_results = [obj.iloc[:, i].agg(how) for i in indices]
-                        results[key] = col_results
-
+                    key_res = []
+                    for col_idx in selected_obj.columns.get_indexer_for([key]):
+                        col = selected_obj.iloc[:, col_idx]
+                        key_res.append(col.agg(how))
+                    results[key] = key_res
+            else:
+                # key used for column selection and output
+                results = {
+                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                }
         # set the final keys
         keys = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
-
-        is_list = [isinstance(v, list) for v in results.values()]
 
         # combine results
         if all(is_ndframe):
@@ -458,18 +466,10 @@ class Apply(metaclass=abc.ABCMeta):
                 "and transformation operations "
                 "simultaneously"
             )
-        elif any(is_list):
-            # GH#51099
-            # convert list-like values in results to Series with corresponding keys
-            from pandas import Series
-
-            values = [val for sublist in results.values() for val in sublist]
-            keys = [key for key, sublist in results.items() for _ in sublist]
-            result = Series(values, index=keys)
         else:
             from pandas import Series
 
-            # we have a dict of scalars
+            # we have a dict of scalars or a list of scalars
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)
@@ -477,7 +477,17 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            result = Series(results, name=name)
+            if any(is_non_unique_col):
+                # Expand the scalar list and construct a series.
+                series_list = []
+                for key, value in results.items():
+                    assert isinstance(value, list)
+                    series_list.append(Series(value, index=[key] * len(value)))
+
+                result = concat(series_list, axis=0)
+                result.name = name
+            else:
+                result = Series(results, name=name)
 
         return result
 

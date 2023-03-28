@@ -1674,6 +1674,6 @@ def test_agg_dist_like_and_nonunique_columns():
     )
     df.columns = ["A", "A", "C"]
 
-    result = df.agg({"A": "count"})  # same with 'apply' instead of 'agg'
+    result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
