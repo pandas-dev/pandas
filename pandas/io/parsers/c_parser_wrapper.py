@@ -19,14 +19,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.concat import (
     concat_compat,
     union_categoricals,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
@@ -381,10 +379,10 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
-        non_cat_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        non_cat_dtypes = {x for x in dtypes if not isinstance(x, CategoricalDtype)}
 
         dtype = dtypes.pop()
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
         else:
             result[name] = concat_compat(arrs)

@@ -33,9 +33,9 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_numeric_dtype,
-    is_period_dtype,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -163,7 +163,7 @@ def infer_freq(
 
     if not hasattr(index, "dtype"):
         pass
-    elif is_period_dtype(index.dtype):
+    elif isinstance(index.dtype, PeriodDtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."

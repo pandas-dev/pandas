@@ -91,7 +91,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_period_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
@@ -1405,7 +1404,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
-        elif is_period_dtype(other_dtype):
+        elif isinstance(other_dtype, PeriodDtype):
             # PeriodIndex
             result = self._sub_periodlike(other)
         elif is_integer_dtype(other_dtype):

@@ -42,10 +42,10 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -565,7 +565,7 @@ class IndexOpsMixin(OpsMixin):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if is_extension_array_dtype(self.dtype):
+        if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
@@ -1132,7 +1132,7 @@ class IndexOpsMixin(OpsMixin):
             )
 
         v = self.array.nbytes
-        if deep and is_object_dtype(self) and not PYPY:
+        if deep and is_object_dtype(self.dtype) and not PYPY:
             values = cast(np.ndarray, self._values)
             v += lib.memory_usage_of_objects(values)
         return v

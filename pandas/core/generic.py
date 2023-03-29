@@ -110,7 +110,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -123,6 +122,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -9623,7 +9623,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1 or axis == 0:
             # If we are aligning timezone-aware DatetimeIndexes and the timezones
             #  do not match, convert both to UTC.
-            if is_datetime64tz_dtype(left.index.dtype):
+            if isinstance(left.index.dtype, DatetimeTZDtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
                         # GH#33671 copy to ensure we don't change the index on

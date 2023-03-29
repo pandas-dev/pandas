@@ -27,12 +27,12 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_integer,
     is_list_like,
     is_object_dtype,
     is_re,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -178,7 +178,7 @@ class StringMethods(NoNewAttributesMixin):
         from pandas.core.arrays.string_ import StringDtype
 
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data.dtype)
+        self._is_categorical = isinstance(data.dtype, CategoricalDtype)
         self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
@@ -628,7 +628,7 @@ class StringMethods(NoNewAttributesMixin):
 
             out = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            if is_categorical_dtype(self._orig.dtype):
+            if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
                 dtype = None
             else:

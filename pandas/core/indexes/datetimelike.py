@@ -39,12 +39,12 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -139,7 +139,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             inferable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferable
-            elif is_categorical_dtype(other.dtype):
+            elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
                 should_try = other.categories.inferred_type in inferable
 
