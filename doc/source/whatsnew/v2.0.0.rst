@@ -191,7 +191,8 @@ Copy-on-Write improvements
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a
-  :class:`Series` and specifying ``copy=False``, will now respect Copy-on-Write.
+  :class:`Series` or :class:`Index` and specifying ``copy=False``, will
+  now respect Copy-on-Write.
 
 - The :class:`DataFrame` and :class:`Series` constructors, when constructing from
   a NumPy array, will now copy the array by default to avoid mutating
