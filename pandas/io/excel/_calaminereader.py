@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         StorageOptions,
     )
 
-_ValueT = Union[int, float, str, bool, time, date, datetime]
+_CellValueT = Union[int, float, str, bool, time, date, datetime]
 
 
 class CalamineExcelReader(BaseExcelReader):
@@ -74,7 +74,7 @@ class CalamineExcelReader(BaseExcelReader):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-        def _convert_cell(value: _ValueT) -> Scalar:
+        def _convert_cell(value: _CellValueT) -> Scalar:
             if isinstance(value, float):
                 val = int(value)
                 if val == value:
@@ -88,7 +88,7 @@ class CalamineExcelReader(BaseExcelReader):
 
             return value
 
-        rows: list[list[_ValueT]] = sheet.to_python(skip_empty_area=False)
+        rows: list[list[_CellValueT]] = sheet.to_python(skip_empty_area=False)
         data: list[list[Scalar]] = []
 
         for row in rows:
