@@ -1057,6 +1057,17 @@ def is_integer(obj: object) -> bool:
     return util.is_integer_object(obj)
 
 
+def is_int_or_none(obj) -> bool:
+    """
+    Return True if given object is integer or None.
+
+    Returns
+    -------
+    bool
+    """
+    return obj is None or util.is_integer_object(obj)
+
+
 def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.

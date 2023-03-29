@@ -32,9 +32,9 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -382,7 +382,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
-            return is_datetime64tz_dtype(dtype)
+            return isinstance(dtype, DatetimeTZDtype)
         # if we dont have tz, we can only compare to tznaive
         return is_datetime64_dtype(dtype)
 
