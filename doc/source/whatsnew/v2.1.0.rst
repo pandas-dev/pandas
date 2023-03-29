@@ -210,6 +210,7 @@ I/O
 ^^^
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
 - :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
+- Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 -
 
 Period
