@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_number,
     is_object_dtype,
@@ -508,7 +507,8 @@ class IntervalIndex(ExtensionIndex):
         -------
         bool
         """
-        if is_interval_dtype(key) or isinstance(key, Interval):
+        key_dtype = getattr(key, "dtype", None)
+        if isinstance(key_dtype, IntervalDtype) or isinstance(key, Interval):
             return self._needs_i8_conversion(key.left)
 
         i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)
@@ -539,7 +539,8 @@ class IntervalIndex(ExtensionIndex):
             return key
 
         scalar = is_scalar(key)
-        if is_interval_dtype(key) or isinstance(key, Interval):
+        key_dtype = getattr(key, "dtype", None)
+        if isinstance(key_dtype, IntervalDtype) or isinstance(key, Interval):
             # convert left/right and reconstruct
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
