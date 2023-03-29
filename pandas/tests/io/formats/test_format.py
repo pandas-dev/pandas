@@ -2812,7 +2812,7 @@ class TestGenericArrayFormatter:
             def dtype(self):
                 return DtypeStub()
 
-        series = Series(ExtTypeStub())
+        series = Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
         assert res == expected
