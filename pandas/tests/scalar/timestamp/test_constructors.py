@@ -58,6 +58,12 @@ class TestTimestampConstructors:
         ts = Timestamp("2016 June 3 15:25:01.345")
         assert ts.unit == "ms"
 
+        ts = Timestamp("300-01-01")
+        assert ts.unit == "s"
+
+        ts = Timestamp("300 June 1:30:01.300")
+        assert ts.unit == "ms"
+
     def test_constructor_from_iso8601_str_with_offset_reso(self):
         # GH#49737
         ts = Timestamp("2016-01-01 04:05:06-01:00")
@@ -724,7 +730,7 @@ class TestTimestampConstructors:
         assert isinstance(result, Timestamp)
 
 
-def test_constructor_ambigous_dst():
+def test_constructor_ambiguous_dst():
     # GH 24329
     # Make sure that calling Timestamp constructor
     # on Timestamp created from ambiguous time

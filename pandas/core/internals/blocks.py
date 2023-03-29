@@ -58,14 +58,13 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_1d_only_ea_obj,
     is_dtype_equal,
-    is_interval_dtype,
     is_list_like,
-    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     PandasDtype,
     PeriodDtype,
 )
@@ -106,7 +105,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -1621,7 +1620,7 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
+            if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value)
                 return nb.setitem(orig_indexer, orig_value)
@@ -1666,7 +1665,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
@@ -1741,7 +1740,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
                     blk = self.coerce_to_target_dtype(orig_new)
@@ -1849,7 +1848,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         downcast=None,
         using_cow: bool = False,
     ) -> list[Block]:
-        if is_interval_dtype(self.dtype):
+        if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
                 value=value,
@@ -2329,7 +2328,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
-def get_block_type(dtype: DtypeObj):
+def get_block_type(dtype: DtypeObj) -> type[Block]:
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -2341,30 +2340,23 @@ def get_block_type(dtype: DtypeObj):
     -------
     cls : class, subclass of Block
     """
+    if isinstance(dtype, DatetimeTZDtype):
+        return DatetimeTZBlock
+    elif isinstance(dtype, PeriodDtype):
+        return NDArrayBackedExtensionBlock
+    elif isinstance(dtype, ExtensionDtype):
+        # Note: need to be sure PandasArray is unwrapped before we get here
+        return ExtensionBlock
+
     # We use kind checks because it is much more performant
     #  than is_foo_dtype
     kind = dtype.kind
+    if kind in "Mm":
+        return DatetimeLikeBlock
+    elif kind in "fciub":
+        return NumericBlock
 
-    cls: type[Block]
-
-    if isinstance(dtype, SparseDtype):
-        # Need this first(ish) so that Sparse[datetime] is sparse
-        cls = ExtensionBlock
-    elif isinstance(dtype, DatetimeTZDtype):
-        cls = DatetimeTZBlock
-    elif isinstance(dtype, PeriodDtype):
-        cls = NDArrayBackedExtensionBlock
-    elif isinstance(dtype, ExtensionDtype):
-        # Note: need to be sure PandasArray is unwrapped before we get here
-        cls = ExtensionBlock
-
-    elif kind in ["M", "m"]:
-        cls = DatetimeLikeBlock
-    elif kind in ["f", "c", "i", "u", "b"]:
-        cls = NumericBlock
-    else:
-        cls = ObjectBlock
-    return cls
+    return ObjectBlock
 
 
 def new_block_2d(
@@ -2525,7 +2517,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif values.dtype.kind == "f" and not is_sparse(values):
+    elif values.dtype.kind == "f" and not isinstance(values.dtype, SparseDtype):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter

@@ -98,7 +98,7 @@ _shared_doc_kwargs = {
 }
 
 
-def _field_accessor(name: str, docstring=None):
+def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
         base = self.freq._period_dtype_code
         result = get_period_field_arr(name, self.asi8, base)
@@ -658,7 +658,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> PeriodArray:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
