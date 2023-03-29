@@ -576,7 +576,7 @@ for more details.
     see the examples below.
 {examples}"""
 
-_agg_template = """
+_agg_template_frame = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters

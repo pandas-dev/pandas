@@ -68,7 +68,8 @@ from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _agg_template,
+    _agg_template_frame,
+    _agg_template_series,
     _apply_docs,
     _transform_template,
 )
@@ -214,7 +215,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
+    @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -1301,7 +1302,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     """
     )
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
+    @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
