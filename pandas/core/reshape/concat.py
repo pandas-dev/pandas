@@ -71,7 +71,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -88,7 +88,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -105,7 +105,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -122,7 +122,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -139,7 +139,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -155,7 +155,7 @@ def concat(
     ignore_index: bool = False,
     keys=None,
     levels=None,
-    names=None,
+    names: list[HashableT] | None = None,
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool | None = None,
@@ -391,6 +391,8 @@ class _Concatenator:
     Orchestrates a concatenation operation for BlockManagers
     """
 
+    sort: bool
+
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
@@ -398,7 +400,7 @@ class _Concatenator:
         join: str = "outer",
         keys=None,
         levels=None,
-        names=None,
+        names: list[HashableT] | None = None,
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
@@ -555,7 +557,9 @@ class _Concatenator:
             raise ValueError(
                 f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
-        self.sort = sort
+        # Incompatible types in assignment (expression has type "Union[bool, bool_]",
+        # variable has type "bool")
+        self.sort = sort  # type: ignore[assignment]
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity

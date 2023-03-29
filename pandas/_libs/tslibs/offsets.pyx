@@ -60,11 +60,14 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
+
+import_pandas_datetime()
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport (
@@ -2543,7 +2546,6 @@ cdef class MonthEnd(MonthOffset):
     DateOffset of one month end.
 
     MonthEnd goes to the next date which is an end of the month.
-    To get the end of the current month pass the parameter n equals 0.
 
     See Also
     --------
@@ -2559,10 +2561,10 @@ cdef class MonthEnd(MonthOffset):
     >>> ts + pd.offsets.MonthEnd()
     Timestamp('2022-02-28 00:00:00')
 
-    If you want to get the end of the current month pass the parameter n equals 0:
+    If you want to get the end of the current month:
 
     >>> ts = pd.Timestamp(2022, 1, 31)
-    >>> ts + pd.offsets.MonthEnd(0)
+    >>> pd.offsets.MonthEnd().rollforward(ts)
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
@@ -2574,11 +2576,27 @@ cdef class MonthBegin(MonthOffset):
     """
     DateOffset of one month at beginning.
 
+    MonthBegin goes to the next date which is a start of the month.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 11, 30)
     >>> ts + pd.offsets.MonthBegin()
-    Timestamp('2022-02-01 00:00:00')
+    Timestamp('2022-12-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 1)
+    >>> ts + pd.offsets.MonthBegin()
+    Timestamp('2023-01-01 00:00:00')
+
+    If you want to get the start of the current month:
+
+    >>> ts = pd.Timestamp(2022, 12, 1)
+    >>> pd.offsets.MonthBegin().rollback(ts)
+    Timestamp('2022-12-01 00:00:00')
     """
     _prefix = "MS"
     _day_opt = "start"
@@ -2589,7 +2607,6 @@ cdef class BusinessMonthEnd(MonthOffset):
     DateOffset increments between the last business day of the month.
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
-    To get the last business day of the current month pass the parameter n equals 0.
 
     Examples
     --------
@@ -2601,11 +2618,10 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts + pd.offsets.BMonthEnd()
     Timestamp('2022-12-30 00:00:00')
 
-    If you want to get the end of the current business month
-    pass the parameter n equals 0:
+    If you want to get the end of the current business month:
 
     >>> ts = pd.Timestamp(2022, 11, 30)
-    >>> ts + pd.offsets.BMonthEnd(0)
+    >>> pd.offsets.BMonthEnd().rollforward(ts)
     Timestamp('2022-11-30 00:00:00')
     """
     _prefix = "BM"
@@ -2616,16 +2632,24 @@ cdef class BusinessMonthBegin(MonthOffset):
     """
     DateOffset of one month at the first business day.
 
+    BusinessMonthBegin goes to the next date which is the first business day
+    of the month.
+
     Examples
     --------
-    >>> from pandas.tseries.offsets import BMonthBegin
-    >>> ts=pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts + BMonthBegin()
-    Timestamp('2020-06-01 05:01:15')
-    >>> ts + BMonthBegin(2)
-    Timestamp('2020-07-01 05:01:15')
-    >>> ts + BMonthBegin(-3)
-    Timestamp('2020-03-02 05:01:15')
+    >>> ts = pd.Timestamp(2022, 11, 30)
+    >>> ts + pd.offsets.BMonthBegin()
+    Timestamp('2022-12-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 1)
+    >>> ts + pd.offsets.BMonthBegin()
+    Timestamp('2023-01-02 00:00:00')
+
+    If you want to get the start of the current business month:
+
+    >>> ts = pd.Timestamp(2022, 12, 1)
+    >>> pd.offsets.BMonthBegin().rollback(ts)
+    Timestamp('2022-12-01 00:00:00')
     """
     _prefix = "BMS"
     _day_opt = "business_start"
@@ -2791,10 +2815,10 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-02-15 00:00:00')
 
-    If you want to get the result for the current month pass the parameter n equals 0:
+    If you want to get the result for the current month:
 
     >>> ts = pd.Timestamp(2022, 1, 15)
-    >>> ts + pd.offsets.SemiMonthEnd(0)
+    >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
     _prefix = "SM"
@@ -3671,7 +3695,9 @@ cdef class Easter(SingleConstructorOffset):
 
 cdef class CustomBusinessDay(BusinessDay):
     """
-    DateOffset subclass representing custom business days excluding holidays.
+    DateOffset subclass representing possibly n custom business days.
+
+    In CustomBusinessDay we can use custom weekmask, holidays, and calendar.
 
     Parameters
     ----------
@@ -3685,13 +3711,50 @@ cdef class CustomBusinessDay(BusinessDay):
         List/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``.
     calendar : np.busdaycalendar
+        Calendar to integrate.
     offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 8, 5)
-    >>> ts + pd.offsets.CustomBusinessDay(1)
-    Timestamp('2022-08-08 00:00:00')
+    In the example below the default parameters give the next business day.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 16)
+    >>> ts + pd.offsets.CustomBusinessDay()
+    Timestamp('2022-08-08 16:00:00')
+
+    Business days can be specified by ``weekmask`` parameter. To convert
+    the returned datetime object to its string representation
+    the function strftime() is used in the next example.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessDay(weekmask="Mon Wed Fri")
+    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 21),
+    ...               freq=freq).strftime('%a %d %b %Y %H:%M')
+    Index(['Mon 12 Dec 2022 00:00', 'Wed 14 Dec 2022 00:00',
+           'Fri 16 Dec 2022 00:00', 'Mon 19 Dec 2022 00:00',
+           'Wed 21 Dec 2022 00:00'],
+           dtype='object')
+
+    Using NumPy business day calendar you can define custom holidays.
+
+    >>> import datetime as dt
+    >>> bdc = np.busdaycalendar(holidays=['2022-12-12', '2022-12-14'])
+    >>> freq = pd.offsets.CustomBusinessDay(calendar=bdc)
+    >>> pd.date_range(dt.datetime(2022, 12, 10), dt.datetime(2022, 12, 25), freq=freq)
+    DatetimeIndex(['2022-12-13', '2022-12-15', '2022-12-16', '2022-12-19',
+                   '2022-12-20', '2022-12-21', '2022-12-22', '2022-12-23'],
+                   dtype='datetime64[ns]', freq='C')
+
+    If you want to shift the result on n day you can use the parameter ``offset``.
+
+    >>> pd.Timestamp(2022, 8, 5, 16) + pd.offsets.CustomBusinessDay(1)
+    Timestamp('2022-08-08 16:00:00')
+
+    >>> import datetime as dt
+    >>> ts = pd.Timestamp(2022, 8, 5, 16)
+    >>> ts + pd.offsets.CustomBusinessDay(1, offset=dt.timedelta(days=1))
+    Timestamp('2022-08-09 16:00:00')
     """
 
     _prefix = "C"

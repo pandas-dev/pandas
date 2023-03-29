@@ -44,7 +44,6 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dict_like,
-    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -224,7 +223,7 @@ def execute(sql, con, params=None):
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -239,7 +238,7 @@ def read_sql_table(
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -965,14 +964,16 @@ class SQLTable(PandasObject):
         data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
 
         for i, (_, ser) in enumerate(temp.items()):
-            vals = ser._values
-            if vals.dtype.kind == "M":
-                d = vals.to_pydatetime()
-            elif vals.dtype.kind == "m":
+            if ser.dtype.kind == "M":
+                d = ser.dt.to_pydatetime()
+            elif ser.dtype.kind == "m":
+                vals = ser._values
+                if isinstance(vals, ArrowExtensionArray):
+                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
-                d = vals.astype(object)
+                d = ser._values.astype(object)
 
             assert isinstance(d, np.ndarray), type(d)
 
@@ -1022,7 +1023,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
-                if is_integer(num_inserted):
+                if num_inserted is not None:
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:
@@ -1033,7 +1034,7 @@ class SQLTable(PandasObject):
         self,
         result,
         exit_stack: ExitStack,
-        chunksize: str | None,
+        chunksize: int | None,
         columns,
         coerce_float: bool = True,
         parse_dates=None,
@@ -1071,7 +1072,7 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         columns=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
@@ -1385,12 +1386,12 @@ class PandasSQL(PandasObject, ABC):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",
@@ -1424,10 +1425,10 @@ class BaseEngine:
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1448,10 +1449,10 @@ class SQLAlchemyEngine(BaseEngine):
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1769,7 +1770,7 @@ class SQLDatabase(PandasSQL):
     def prep_table(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
@@ -1851,7 +1852,7 @@ class SQLDatabase(PandasSQL):
         index: bool = True,
         index_label=None,
         schema: str | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",
@@ -1997,7 +1998,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name):
+def _get_unicode_name(name: object):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -2005,7 +2006,7 @@ def _get_unicode_name(name):
     return uname
 
 
-def _get_valid_sqlite_name(name):
+def _get_valid_sqlite_name(name: object):
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2301,12 +2302,12 @@ class SQLiteDatabase(PandasSQL):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: str = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method=None,
         engine: str = "auto",

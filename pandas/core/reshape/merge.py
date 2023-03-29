@@ -364,7 +364,7 @@ def merge_asof(
     left_by=None,
     right_by=None,
     suffixes: Suffixes = ("_x", "_y"),
-    tolerance=None,
+    tolerance: int | Timedelta | None = None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
 ) -> DataFrame:
@@ -2026,7 +2026,8 @@ class _AsOfMerge(_OrderedMerge):
             elif is_float_dtype(lt):
                 if not is_number(self.tolerance):
                     raise MergeError(msg)
-                if self.tolerance < 0:
+                # error: Unsupported operand types for > ("int" and "Number")
+                if self.tolerance < 0:  # type: ignore[operator]
                     raise MergeError("tolerance must be positive")
 
             else:
@@ -2553,7 +2554,7 @@ def _items_overlap_with_suffix(
     if not lsuffix and not rsuffix:
         raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
 
-    def renamer(x, suffix):
+    def renamer(x, suffix: str | None):
         """
         Rename the left and right indices.
 

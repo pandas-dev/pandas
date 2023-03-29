@@ -22,7 +22,10 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
-from pandas._libs.internals import BlockPlacement
+from pandas._libs.internals import (
+    BlockPlacement,
+    BlockValuesRefs,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -422,7 +425,7 @@ class BaseBlockManager(DataManager):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -1877,11 +1880,13 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return cls(blocks[0], axes[0], verify_integrity=False)
 
     @classmethod
-    def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
+    def from_array(
+        cls, array: ArrayLike, index: Index, refs: BlockValuesRefs | None = None
+    ) -> SingleBlockManager:
         """
         Constructor for if we have an array that is not yet a Block.
         """
-        block = new_block(array, placement=slice(0, len(index)), ndim=1)
+        block = new_block(array, placement=slice(0, len(index)), ndim=1, refs=refs)
         return cls(block, index)
 
     def to_2d_mgr(self, columns: Index) -> BlockManager:

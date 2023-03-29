@@ -13,7 +13,7 @@ Reshaping by pivoting DataFrame objects
 
 .. image:: ../_static/reshaping_pivot.png
 
-Data is often stored in so-called "stacked" or "record" format:
+Data is often stored in so-called "stacked" or "record" format. In a "record" or "wide" format typically there is one row for each subject. In the "stacked" or "long" format there are multiple rows for each subject where applicable.
 
 .. ipython:: python
 
