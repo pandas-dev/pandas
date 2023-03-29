@@ -3758,18 +3758,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
+
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            if isinstance(indexer, np.ndarray):
-                # reachable with DatetimeIndex
-                indexer = lib.maybe_indices_to_slice(
-                    indexer.astype(np.intp, copy=False), len(self)
-                )
-                if isinstance(indexer, np.ndarray):
-                    # GH#43223 If we can not convert, use take
-                    return self.take(indexer, axis=0)
-            return self._slice(indexer, axis=0)
+            return self._getitem_slice(key)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
@@ -4936,7 +4928,9 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Reindexing and alignment
 
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
+    def _reindex_axes(
+        self, axes, level, limit: int | None, tolerance, method, fill_value, copy
+    ):
         frame = self
 
         columns = axes["columns"]
@@ -4960,7 +4954,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=np.nan,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_index, indexer = self.index.reindex(
@@ -4980,7 +4974,7 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool,
         level: Level,
         fill_value=None,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ):
         new_columns, indexer = self.columns.reindex(
@@ -9568,17 +9562,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_summary_and_see_also_doc = dedent(
+    _agg_see_also_doc = dedent(
         """
-    The aggregation operations are always performed over an axis, either the
-    index (default) or the column axis. This behavior is different from
-    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-    `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to
-    ``numpy.mean(arr_2d, axis=0)``.
-
-    `agg` is an alias for `aggregate`. Use the alias.
-
     See Also
     --------
     DataFrame.apply : Perform any type of operations.
@@ -9641,7 +9626,7 @@ class DataFrame(NDFrame, OpsMixin):
         _shared_docs["aggregate"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_summary_and_see_also_doc,
+        see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
@@ -9913,6 +9898,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.replace: Replace values given in `to_replace` with `value`.
 
         Examples
         --------
@@ -9955,14 +9941,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(
                 f"na_action must be 'ignore' or None. Got {repr(na_action)}"
             )
-        ignore_na = na_action == "ignore"
+
+        if self.empty:
+            return self.copy()
+
         func = functools.partial(func, **kwargs)
 
-        # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if x.empty:
-                return lib.map_infer(x, func, ignore_na=ignore_na)
-            return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
+            return x._map_values(func, na_action=na_action)
 
         return self.apply(infer).__finalize__(self, "applymap")
 
@@ -10563,6 +10549,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
 
             .. versionadded:: 1.1.0
 
@@ -11418,7 +11405,7 @@ class DataFrame(NDFrame, OpsMixin):
     def resample(
         self,
         rule,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         closed: str | None = None,
         label: str | None = None,
         convention: str = "start",

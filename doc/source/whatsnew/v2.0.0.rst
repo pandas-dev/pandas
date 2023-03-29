@@ -190,6 +190,9 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a
+  :class:`Series` and specifying ``copy=False``, will now respect Copy-on-Write.
+
 - The :class:`DataFrame` constructor, when constructing from a NumPy array,
   will now copy the array by default to avoid mutating the :class:`DataFrame`
   when mutating the array. Specify ``copy=False`` to get the old behavior.
@@ -1190,6 +1193,7 @@ Timedelta
 - Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
 - Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`48898`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`48898`)
+- Bug in :class:`Timedelta` comparisons with very large ``datetime.timedelta`` objects incorrect raising ``OutOfBoundsTimedelta`` (:issue:`49021`)
 
 Timezones
 ^^^^^^^^^
