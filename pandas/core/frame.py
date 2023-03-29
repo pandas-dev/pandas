@@ -9562,17 +9562,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_summary_and_see_also_doc = dedent(
+    _agg_see_also_doc = dedent(
         """
-    The aggregation operations are always performed over an axis, either the
-    index (default) or the column axis. This behavior is different from
-    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-    `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to
-    ``numpy.mean(arr_2d, axis=0)``.
-
-    `agg` is an alias for `aggregate`. Use the alias.
-
     See Also
     --------
     DataFrame.apply : Perform any type of operations.
@@ -9635,7 +9626,7 @@ class DataFrame(NDFrame, OpsMixin):
         _shared_docs["aggregate"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_summary_and_see_also_doc,
+        see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
