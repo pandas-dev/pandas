@@ -211,13 +211,25 @@ class TestCategoricalDtype(Base):
         dtype = CategoricalDtype(categories=rng, ordered=False)
         result = repr(dtype)
 
-        expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
+        expected = (
+            "CategoricalDtype(categories=range(0, 3), ordered=False, "
+            "categories_dtype=int64)"
+        )
         assert result == expected
 
     def test_update_dtype(self):
         # GH 27338
         result = CategoricalDtype(["a"]).update_dtype(Categorical(["b"], ordered=True))
         expected = CategoricalDtype(["b"], ordered=True)
+        assert result == expected
+
+    def test_repr(self):
+        cat = Categorical(pd.Index([1, 2, 3], dtype="int32"))
+        result = cat.dtype.__repr__()
+        expected = (
+            "CategoricalDtype(categories=[1, 2, 3], ordered=False, "
+            "categories_dtype=int32)"
+        )
         assert result == expected
 
 
@@ -523,7 +535,7 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError, match=msg):
             PeriodDtype()
 
-        msg = "PeriodDtype argument should be string or BaseOffet, got NoneType"
+        msg = "PeriodDtype argument should be string or BaseOffset, got NoneType"
         with pytest.raises(TypeError, match=msg):
             # GH#51790
             PeriodDtype(None)
@@ -980,7 +992,10 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
-        pat = r"CategoricalDtype\(categories=\[.*\], ordered={ordered}\)"
+        pat = (
+            r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
+            r"categories_dtype=object\)"
+        )
         assert re.match(pat.format(ordered=ordered), repr(c1))
 
     def test_categorical_categories(self):

@@ -271,7 +271,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
-        ser = pd.Series(arr)
+        ser = pd.Series(arr, copy=False)
         ser_orig = ser.copy()
 
         filled_val = ser[0]

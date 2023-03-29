@@ -437,7 +437,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
 
-        elif is_categorical_dtype(values.dtype):
+        elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
@@ -504,9 +504,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            dtype = cast(CategoricalDtype, dtype)
-
+        elif isinstance(dtype, CategoricalDtype):
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
@@ -2554,13 +2552,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @staticmethod
     def _validate(data):
-        if not is_categorical_dtype(data.dtype):
+        if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    def _delegate_property_get(self, name):
+    # error: Signature of "_delegate_property_get" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_get(self, name: str):  # type: ignore[override]
         return getattr(self._parent, name)
 
-    def _delegate_property_set(self, name, new_values):
+    # error: Signature of "_delegate_property_set" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
         return setattr(self._parent, name, new_values)
 
     @property
@@ -2572,7 +2574,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return Series(self._parent.codes, index=self._index)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
         method = getattr(self._parent, name)

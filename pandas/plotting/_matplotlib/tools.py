@@ -443,9 +443,9 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 def set_ticks_props(
     axes: Axes | Sequence[Axes],
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
 ):
     import matplotlib.pyplot as plt

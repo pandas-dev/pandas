@@ -42,7 +42,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_array_like,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -59,6 +58,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -141,7 +141,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             return _ensure_data(values._data)
         return np.asarray(values)
 
-    elif is_categorical_dtype(values.dtype):
+    elif isinstance(values.dtype, CategoricalDtype):
         # NB: cases that go through here should NOT be using _reconstruct_data
         #  on the back-end.
         values = cast("Categorical", values)
@@ -417,7 +417,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values.dtype):
+    if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -1534,7 +1534,7 @@ def safe_sort(
     ordered: AnyArrayLike
 
     if (
-        not is_extension_array_dtype(values)
+        not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
         ordered = _sort_mixed(values)
