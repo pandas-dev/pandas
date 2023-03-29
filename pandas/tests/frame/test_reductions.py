@@ -170,15 +170,24 @@ class TestDataFrameAnalytics:
         ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "unsupported operand type",
-                    "not supported between instances of",
-                ]
-            )
+            if opname in ["var", "std", "sem", "skew", "kurt"]:
+                msg = "could not convert string to float: 'bar'"
+            elif opname == "product":
+                if axis == 1:
+                    msg = "can't multiply sequence by non-int of type 'float'"
+                else:
+                    msg = "can't multiply sequence by non-int of type 'str'"
+            elif opname == "sum":
+                msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname == "mean":
+                if axis == 0:
+                    msg = r"Could not convert \['.*'\] to numeric"
+                else:
+                    msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname in ["min", "max"]:
+                msg = "'[><]=' not supported between instances of 'float' and 'str'"
+            elif opname == "median":
+                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -1724,5 +1733,10 @@ def test_fails_on_non_numeric(kernel):
             "argument must be a string or a real number",
         ]
     )
+    if kernel == "median":
+        msg = (
+            r"Cannot convert \[\[<class 'object'> <class 'object'> "
+            r"<class 'object'>\]\] to numeric"
+        )
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)

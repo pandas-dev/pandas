@@ -724,7 +724,8 @@ def nanmean(
         dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
-    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
+    the_sum = values.sum(axis, dtype=dtype_sum)
+    the_sum = _ensure_numeric(the_sum)
 
     if axis is not None and getattr(the_sum, "ndim", False):
         count = cast(np.ndarray, count)
@@ -782,6 +783,11 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask, fill_value=0)
     if not is_float_dtype(values.dtype):
+        if values.dtype == object:
+            # GH#34671 avoid casting strings to numeric
+            inferred = lib.infer_dtype(values)
+            if inferred in ["string", "mixed"]:
+                raise TypeError(f"Cannot convert {values} to numeric")
         try:
             values = values.astype("f8")
         except ValueError as err:
@@ -1682,6 +1688,10 @@ def _ensure_numeric(x):
         if is_integer_dtype(x) or is_bool_dtype(x):
             x = x.astype(np.float64)
         elif is_object_dtype(x):
+            inferred = lib.infer_dtype(x)
+            if inferred in ["string", "mixed"]:
+                # GH#44008, GH#36703 avoid casting e.g. strings to numeric
+                raise TypeError(f"Could not convert {x} to numeric")
             try:
                 x = x.astype(np.complex128)
             except (TypeError, ValueError):
@@ -1694,6 +1704,9 @@ def _ensure_numeric(x):
                 if not np.any(np.imag(x)):
                     x = x.real
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
+        if isinstance(x, str):
+            # GH#44008, GH#36703 avoid casting e.g. strings to numeric
+            raise TypeError(f"Could not convert string '{x}' to numeric")
         try:
             x = float(x)
         except (TypeError, ValueError):
