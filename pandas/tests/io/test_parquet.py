@@ -1021,7 +1021,7 @@ class TestParquetPyArrow(Base):
         expected = df.copy()
         import pyarrow
 
-        if Version(pyarrow.__version__) < Version("12.0.0"):
+        if Version(pyarrow.__version__) > Version("11.0.0"):
             expected.index = expected.index.astype("int64[pyarrow]")
         check_round_trip(
             df,
