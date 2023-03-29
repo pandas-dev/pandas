@@ -146,7 +146,7 @@ Index values are different \\(33\\.33333 %\\)
 
 
 @pytest.mark.parametrize("check_order", [True, False])
-def test_index_equal_value_oder_mismatch(check_exact, rtol, check_order):
+def test_index_equal_value_order_mismatch(check_exact, rtol, check_order):
     idx1 = Index([1, 2, 3])
     idx2 = Index([3, 2, 1])
 
@@ -209,9 +209,10 @@ def test_index_equal_category_mismatch(check_categorical):
     msg = """Index are different
 
 Attribute "dtype" are different
-\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
+\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
+categories_dtype=object\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False\\)"""
+ordered=False, categories_dtype=object\\)"""
 
     idx1 = Index(Categorical(["a", "b"]))
     idx2 = Index(Categorical(["a", "b"], categories=["a", "b", "c"]))

@@ -151,7 +151,7 @@ class Holiday:
 
     def __init__(
         self,
-        name,
+        name: str,
         year=None,
         month=None,
         day=None,
@@ -366,7 +366,7 @@ def register(cls) -> None:
     holiday_calendars[name] = cls
 
 
-def get_calendar(name):
+def get_calendar(name: str):
     """
     Return an instance of a calendar based on its name.
 
@@ -379,7 +379,7 @@ def get_calendar(name):
 
 
 class HolidayCalendarMetaClass(type):
-    def __new__(cls, clsname, bases, attrs):
+    def __new__(cls, clsname: str, bases, attrs):
         calendar_class = super().__new__(cls, clsname, bases, attrs)
         register(calendar_class)
         return calendar_class
@@ -395,7 +395,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
-    def __init__(self, name=None, rules=None) -> None:
+    def __init__(self, name: str = "", rules=None) -> None:
         """
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.
@@ -408,14 +408,14 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
             A set of rules used to create the holidays.
         """
         super().__init__()
-        if name is None:
+        if not name:
             name = type(self).__name__
         self.name = name
 
         if rules is not None:
             self.rules = rules
 
-    def rule_from_name(self, name):
+    def rule_from_name(self, name: str):
         for rule in self.rules:
             if rule.name == name:
                 return rule
@@ -579,7 +579,7 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
     ]
 
 
-def HolidayCalendarFactory(name, base, other, base_class=AbstractHolidayCalendar):
+def HolidayCalendarFactory(name: str, base, other, base_class=AbstractHolidayCalendar):
     rules = AbstractHolidayCalendar.merge_class(base, other)
     calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
     return calendar_class

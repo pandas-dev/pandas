@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from sys import getsizeof
 from typing import (
     Literal,
     _GenericAlias,
@@ -159,7 +160,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     n = len(arr)
     for i in range(n):
-        size += arr[i].__sizeof__()
+        size += getsizeof(arr[i])
     return size
 
 
@@ -752,7 +753,6 @@ cpdef ndarray[object] ensure_string_array(
             out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
-
         arr = arr.to_numpy()
     elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
@@ -1055,6 +1055,17 @@ def is_integer(obj: object) -> bool:
     bool
     """
     return util.is_integer_object(obj)
+
+
+def is_int_or_none(obj) -> bool:
+    """
+    Return True if given object is integer or None.
+
+    Returns
+    -------
+    bool
+    """
+    return obj is None or util.is_integer_object(obj)
 
 
 def is_bool(obj: object) -> bool:
@@ -2326,9 +2337,13 @@ def maybe_convert_numeric(
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
-                seen.saw_null()
-                floats[i] = NaN
                 mask[i] = 1
+
+                if allow_null_in_int:
+                    seen.null_ = True
+                else:
+                    seen.saw_null()
+                    floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return (values, None)
@@ -2424,7 +2439,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         _TSObject tsobj
-        float64_t fnan = np.nan
+        float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
