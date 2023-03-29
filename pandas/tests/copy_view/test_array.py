@@ -110,3 +110,12 @@ def test_series_to_numpy(using_copy_on_write):
     arr = ser.to_numpy(dtype="float64")
     assert not np.shares_memory(arr, get_array(ser, "name"))
     assert arr.flags.writeable is True
+
+
+@pytest.mark.parametrize("order", ["F", "C"])
+def test_ravel_read_only(using_copy_on_write, order):
+    ser = Series([1, 2, 3])
+    arr = ser.ravel(order=order)
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    assert np.shares_memory(get_array(ser), arr)
