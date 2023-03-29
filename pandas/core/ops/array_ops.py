@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas._libs.tslibs import BaseOffset
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -416,6 +418,14 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     right = lib.item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
+        warnings.warn(
+            "Logical ops (and, or, xor) between Pandas objects and dtype-less "
+            "sequences (e.g. list, tuple) are deprecated and will raise in a "
+            "future version. Wrap the object in a Series, Index, or np.array "
+            "before operating instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
