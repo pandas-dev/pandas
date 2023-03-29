@@ -2173,7 +2173,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 def _catch_deprecated_value_error(err: Exception) -> None:
     """
     We catch ValueError for now, but only a specific one raised by DatetimeArray
-    which will no longer be raised in version.2.0.
+    which will no longer be raised in version 2.0.
     """
     if isinstance(err, ValueError):
         if isinstance(err, IncompatibleFrequency):
@@ -2431,8 +2431,8 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
 
 
 def extract_pandas_array(
-    values: np.ndarray | ExtensionArray, dtype: DtypeObj | None, ndim: int
-) -> tuple[np.ndarray | ExtensionArray, DtypeObj | None]:
+    values: ArrayLike, dtype: DtypeObj | None, ndim: int
+) -> tuple[ArrayLike, DtypeObj | None]:
     """
     Ensure that we don't allow PandasArray / PandasDtype in internals.
     """
@@ -2492,7 +2492,7 @@ def to_native_types(
     float_format=None,
     decimal: str = ".",
     **kwargs,
-) -> np.ndarray:
+) -> npt.NDArray[np.object_]:
     """convert to our native types format"""
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array

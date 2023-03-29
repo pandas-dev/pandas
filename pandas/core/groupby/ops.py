@@ -234,7 +234,7 @@ class WrappedCythonOp:
         return values
 
     # TODO: general case implementation overridable by EAs.
-    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
+    def _disallow_invalid_ops(self, dtype: DtypeObj):
         """
         Check if we can do this operation with our cython functions.
 
@@ -247,7 +247,7 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if is_numeric:
+        if is_numeric_dtype(dtype):
             # never an invalid op for those dtypes, so return early as fastpath
             return
 
@@ -711,12 +711,9 @@ class WrappedCythonOp:
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
             assert axis == 0
 
-        dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
-
         # can we do this operation with our cython functions
         # if not raise NotImplementedError
-        self._disallow_invalid_ops(dtype, is_numeric)
+        self._disallow_invalid_ops(values.dtype)
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray

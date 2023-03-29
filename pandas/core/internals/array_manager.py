@@ -167,7 +167,7 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def get_dtypes(self) -> np.ndarray:
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
     def add_references(self, mgr: BaseArrayManager) -> None:

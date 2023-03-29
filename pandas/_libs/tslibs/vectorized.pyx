@@ -1,14 +1,11 @@
 cimport cython
+cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
     time,
     tzinfo,
 )
-
-import numpy as np
-
-cimport numpy as cnp
 from numpy cimport (
     int64_t,
     ndarray,
@@ -101,7 +98,7 @@ def ints_to_pydatetime(
     tzinfo tz=None,
     str box="datetime",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
-) -> np.ndarray:
+) -> ndarray:
     # stamps is int64, arbitrary ndim
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.
