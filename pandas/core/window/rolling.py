@@ -483,12 +483,12 @@ class BaseWindow(SelectionMixin):
             # GH#42736 operate column-wise instead of block-wise
             # As of 2.0, hfunc will raise for nuisance columns
             try:
-                arr = self._prep_values(arr)
+                arr_np = self._prep_values(arr)
             except (TypeError, NotImplementedError) as err:
                 raise DataError(
                     f"Cannot aggregate non-numeric type: {arr.dtype}"
                 ) from err
-            res = homogeneous_func(arr)
+            res = homogeneous_func(arr_np)
             res_values.append(res)
             taker.append(i)
 

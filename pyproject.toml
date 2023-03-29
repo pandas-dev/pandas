@@ -302,7 +302,12 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501", "PLW2901"]
+"pandas/core/*" = ["PLR5501"]
+"pandas/core/groupby/*" = ["PLW2901"]
+"pandas/core/indexes/*" = ["PLW2901"]
+"pandas/core/internals/*" = ["PLW2901"]
+"pandas/core/reshape/*" = ["PLW2901"]
+"pandas/core/strings/*" = ["PLW2901"]
 "pandas/io/*" = ["PLW2901"]
 "pandas/tests/*" = ["B028", "PLW2901"]
 "pandas/plotting/*" = ["PLW2901"]
