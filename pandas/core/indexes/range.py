@@ -54,6 +54,7 @@ if TYPE_CHECKING:
         npt,
     )
 _empty_range = range(0)
+_dtype_int64 = np.dtype(np.int64)
 
 
 class RangeIndex(Index):
@@ -309,7 +310,7 @@ class RangeIndex(Index):
 
     @property
     def dtype(self) -> np.dtype:
-        return np.dtype(np.int64)
+        return _dtype_int64
 
     @property
     def is_unique(self) -> bool:

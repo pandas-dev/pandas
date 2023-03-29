@@ -831,7 +831,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _get_index_slice(self, slobj):
+    cdef BlockManager _get_index_slice(self, slice slobj):
         cdef:
             SharedBlock blk, nb
             BlockManager mgr
