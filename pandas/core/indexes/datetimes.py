@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         DtypeObj,
         Frequency,
         IntervalClosedType,
+        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -266,7 +267,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
-    def tz_convert(self, tz) -> DatetimeIndex:
+    def tz_convert(self, tz) -> Self:
         arr = self._data.tz_convert(tz)
         return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
@@ -276,7 +277,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         tz,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ) -> DatetimeIndex:
+    ) -> Self:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -317,7 +318,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
-    ) -> DatetimeIndex:
+    ) -> Self:
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
