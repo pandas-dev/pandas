@@ -228,26 +228,28 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     assert np.shares_memory(arr_before, arr_after)
 
 
+@pytest.mark.parametrize("cons", [Series, Index])
 @pytest.mark.parametrize(
     "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
 )
-def test_dataframe_from_series(using_copy_on_write, data, dtype):
-    ser = Series(data, dtype=dtype)
-    ser_orig = ser.copy()
-    df = DataFrame(ser, dtype=dtype)
-    assert np.shares_memory(get_array(ser), get_array(df, 0))
+def test_dataframe_from_series_or_index(using_copy_on_write, data, dtype, cons):
+    obj = cons(data, dtype=dtype)
+    obj_orig = obj.copy()
+    df = DataFrame(obj, dtype=dtype)
+    assert np.shares_memory(get_array(obj), get_array(df, 0))
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = data[-1]
     if using_copy_on_write:
-        tm.assert_series_equal(ser, ser_orig)
+        tm.assert_equal(obj, obj_orig)
 
 
-def test_dataframe_from_series_different_dtype(using_copy_on_write):
-    ser = Series([1, 2], dtype="int64")
-    df = DataFrame(ser, dtype="int32")
-    assert not np.shares_memory(get_array(ser), get_array(df, 0))
+@pytest.mark.parametrize("cons", [Series, Index])
+def test_dataframe_from_series_or_index_different_dtype(using_copy_on_write, cons):
+    obj = cons([1, 2], dtype="int64")
+    df = DataFrame(obj, dtype="int32")
+    assert not np.shares_memory(get_array(obj), get_array(df, 0))
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
 
