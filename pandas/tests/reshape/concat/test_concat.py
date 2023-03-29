@@ -338,7 +338,7 @@ class TestConcatenate:
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_coerceion(self):
+    def test_dtype_coercion(self):
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 

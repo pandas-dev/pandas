@@ -656,10 +656,6 @@ class FrameApply(NDFrameApply):
     def values(self):
         return self.obj.values
 
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
-
     def apply(self) -> DataFrame | Series:
         """compute the results"""
         # dispatch to agg
@@ -1495,7 +1491,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 
