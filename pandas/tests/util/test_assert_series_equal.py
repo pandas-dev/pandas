@@ -250,9 +250,10 @@ def test_series_equal_categorical_mismatch(check_categorical):
     msg = """Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
+\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
+categories_dtype=object\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False\\)"""
+ordered=False, categories_dtype=object\\)"""
 
     s1 = Series(Categorical(["a", "b"]))
     s2 = Series(Categorical(["a", "b"], categories=list("abc")))

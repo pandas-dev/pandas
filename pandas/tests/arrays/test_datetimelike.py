@@ -755,9 +755,7 @@ class TestDatetimeArray(SharedTests):
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)
 
-        # placeholder until these become actual EA subclasses and we can use
-        #  an EA-specific tm.assert_ function
-        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+        tm.assert_equal(result, expected._data)
 
     def test_to_period_2d(self, arr1d):
         arr2d = arr1d.reshape(1, -1)
@@ -1057,9 +1055,7 @@ class TestPeriodArray(SharedTests):
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
-        # placeholder until these become actual EA subclasses and we can use
-        #  an EA-specific tm.assert_ function
-        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+        tm.assert_equal(result, expected)
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"

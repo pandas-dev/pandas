@@ -192,7 +192,7 @@ class TestDST:
             Timestamp("1900-01-01"),
             Timestamp("1905-07-01"),
             MonthBegin(66),
-            "Africa/Kinshasa",
+            "Africa/Lagos",
             marks=pytest.mark.xfail(
                 pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
                 reason="GH#41906: pytz utc transition dates changed",

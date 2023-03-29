@@ -49,10 +49,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
