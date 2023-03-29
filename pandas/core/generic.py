@@ -2114,7 +2114,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
-        na_rep: str = "",
+        na_rep: str = "=na()",
         float_format: str | None = None,
         columns: Sequence[Hashable] | None = None,
         header: Sequence[Hashable] | bool_t = True,
