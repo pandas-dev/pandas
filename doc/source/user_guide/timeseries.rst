@@ -507,13 +507,17 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-Since pandas represents timestamps in nanosecond resolution, the time span that
+The limits of timestamp representation depend on the chosen resolution. For
+nanosecond resolution, the time span that
 can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+
+When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
+Different resolutions can be converted to each other through ``as_unit``.
 
 .. seealso::
 
