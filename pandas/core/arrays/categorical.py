@@ -1287,7 +1287,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Index(['first', 'second', nan], dtype='object')
         """
         if na_action is lib.no_default:
-            warn(
+            warnings.warn(
                 "The default value of 'ignore' for the `na_action` parameter in "
                 "pandas.Categorical.map is deprecated and will be "
                 "changed to 'None' in a future version. Please set na_action to the "
