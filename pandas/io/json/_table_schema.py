@@ -181,7 +181,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     ...         "ordered": True,
     ...     }
     ... )
-    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
 
     >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'

@@ -253,11 +253,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         Examples
         --------
         >>> pd.CategoricalDtype._from_values_or_dtype()
-        CategoricalDtype(categories=None, ordered=None)
+        CategoricalDtype(categories=None, ordered=None, categories_dtype=None)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     categories=['a', 'b'], ordered=True
         ... )
-        CategoricalDtype(categories=['a', 'b'], ordered=True)
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
         >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
@@ -272,7 +272,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The supplied dtype takes precedence over values' dtype:
 
         >>> pd.CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
-        CategoricalDtype(categories=['x', 'y'], ordered=False)
+        CategoricalDtype(categories=['x', 'y'], ordered=False, categories_dtype=object)
         """
 
         if dtype is not None:
