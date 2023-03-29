@@ -4332,14 +4332,11 @@ class DataFrame(NDFrame, OpsMixin):
     def query(self, expr: str, *, inplace: Literal[True], **kwargs) -> None:
         ...
 
-    
-
-
     @overload
     def query(self, expr: str, *, inplace: bool = ..., **kwargs) -> DataFrame | None:
         ...
 
-    def query(self,expr: str, engine='numexpr', *, inplace: bool = False, **kwargs) -> DataFrame | None:
+    def query(self,expr: str, *,inplace: bool = False, **kwargs) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
 
@@ -4476,6 +4473,7 @@ class DataFrame(NDFrame, OpsMixin):
            A   B  C C
         0  1  10   10
         """
+        engine='numexpr'
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
