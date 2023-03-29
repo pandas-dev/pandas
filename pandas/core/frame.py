@@ -4473,19 +4473,16 @@ class DataFrame(NDFrame, OpsMixin):
            A   B  C C
         0  1  10   10
         """
-        engine='numexpr'
+        
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
         kwargs["level"] = kwargs.pop("level", 0) + 1
         kwargs["target"] = None
-        
-        
-        try:
-            res = self.eval(expr, **kwargs)
-        except ValueError:
-            
+
+        if self.index.duplicated().any():
+            engine='numexpr'
             # Create a copy of the dataframe with a unique index to avoid reindexing errors
             unique_index = RangeIndex(len(self.index))
             df_copy = self.copy()
@@ -4497,11 +4494,13 @@ class DataFrame(NDFrame, OpsMixin):
             # Map the filtered index back to the original index labels
             index_mapping = dict(zip(unique_index, self.index))
             filtered_df.index = filtered_df.index.map(index_mapping)
-
+            
             return filtered_df
-        
+
+        res = self.eval(expr, **kwargs)
         try:
             result = self.loc[res]
+            
         except ValueError:
             # when res is multi-dimensional loc raises, but this is sometimes a
             # valid query
