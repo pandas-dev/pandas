@@ -834,7 +834,7 @@ class ArrayManager(BaseArrayManager):
 
         # multiple columns -> convert slice or array to integer indices
         elif isinstance(loc, slice):
-            indices = range(
+            indices: range | np.ndarray = range(
                 loc.start if loc.start is not None else 0,
                 loc.stop if loc.stop is not None else self.shape_proper[1],
                 loc.step if loc.step is not None else 1,
