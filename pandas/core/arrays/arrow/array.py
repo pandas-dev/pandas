@@ -251,7 +251,7 @@ class ArrowExtensionArray(
             except pa.ArrowInvalid:
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
-        if pa_dtype:
+        if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
         return cls(scalars)
 
@@ -1634,6 +1634,10 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
+        if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
+            # GH#52059 replace_with_mask segfaults for chunked array
+            # https://github.com/apache/arrow/issues/34634
+            values = values.combine_chunks()
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
@@ -1952,7 +1956,7 @@ class ArrowExtensionArray(
             "str.translate not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         raise NotImplementedError(
             "str.wrap not supported with pd.ArrowDtype(pa.string())."
         )

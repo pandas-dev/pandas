@@ -59,6 +59,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.util.version import Version
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -2397,9 +2398,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
             # TODO(GH#36465): remove this version check after GH 36465 is fixed
-            import pymysql
+            pymysql = pytest.importorskip("pymysql")
 
-            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+            if (
+                Version(pymysql.__version__) < Version("1.0.3")
+                and "infe0" in df.columns
+            ):
                 mark = pytest.mark.xfail(reason="GH 36465")
                 request.node.add_marker(mark)
 

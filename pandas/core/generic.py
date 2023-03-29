@@ -255,7 +255,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
-    _is_copy: weakref.ReferenceType[NDFrame] | None = None
+    _is_copy: weakref.ReferenceType[NDFrame] | str | None = None
     _mgr: Manager
     _attrs: dict[Hashable, Any]
     _typ: str
@@ -4150,7 +4150,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
-    def _slice(self, slobj: slice, axis: Axis = 0) -> Self:
+    @final
+    def _getitem_slice(self, key: slice) -> Self:
+        """
+        __getitem__ for the case where the key is a slice object.
+        """
+        # _convert_slice_indexer to determine if this slice is positional
+        #  or label based, and if the latter, convert to positional
+        slobj = self.index._convert_slice_indexer(key, kind="getitem")
+        if isinstance(slobj, np.ndarray):
+            # reachable with DatetimeIndex
+            indexer = lib.maybe_indices_to_slice(
+                slobj.astype(np.intp, copy=False), len(self)
+            )
+            if isinstance(indexer, np.ndarray):
+                # GH#43223 If we can not convert, use take
+                return self.take(indexer, axis=0)
+            slobj = indexer
+        return self._slice(slobj)
+
+    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Self:
         """
         Construct a slice of this container.
 
@@ -4306,7 +4325,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Unsorted
 
     @final
-    def _check_inplace_and_allows_duplicate_labels(self, inplace):
+    def _check_inplace_and_allows_duplicate_labels(self, inplace: bool_t):
         if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
@@ -4384,7 +4403,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         other,
         method: Literal["backfill", "bfill", "pad", "ffill", "nearest"] | None = None,
         copy: bool_t | None = None,
-        limit=None,
+        limit: int | None = None,
         tolerance=None,
     ) -> Self:
         """
@@ -6540,7 +6559,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         copy : bool, default True
-            Whether to make a copy for non-object or non-inferrable columns
+            Whether to make a copy for non-object or non-inferable columns
             or Series.
 
         Returns
@@ -9628,7 +9647,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool_t | None = None,
         fill_value=None,
         method=None,
-        limit=None,
+        limit: int | None = None,
         fill_axis: Axis = 0,
     ) -> tuple[Self, DataFrame, Index | None]:
         # defaults
@@ -9684,7 +9703,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool_t | None = None,
         fill_value=None,
         method=None,
-        limit=None,
+        limit: int | None = None,
         fill_axis: Axis = 0,
     ) -> tuple[Self, Series, Index | None]:
         is_series = isinstance(self, ABCSeries)
@@ -10983,7 +11002,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         periods: int = 1,
         fill_method: Literal["backfill", "bfill", "pad", "ffill"] | None = "pad",
-        limit=None,
+        limit: int | None = None,
         freq=None,
         **kwargs,
     ) -> Self:

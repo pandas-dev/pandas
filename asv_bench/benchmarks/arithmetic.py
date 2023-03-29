@@ -266,9 +266,13 @@ class Timeseries:
         self.ts = self.s[halfway]
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
+        self.ts_different_reso = Timestamp("2001-01-02", tz=tz)
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
+
+    def time_series_timestamp_different_reso_compare(self, tz):
+        self.s <= self.ts_different_reso
 
     def time_timestamp_series_compare(self, tz):
         self.ts >= self.s
