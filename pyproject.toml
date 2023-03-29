@@ -215,6 +215,8 @@ select = [
   "PLE", "PLR", "PLW",
   # misc lints
   "PIE",
+  # flake8-pyi
+  "PYI",
   # tidy imports
   "TID",
   # implicit string concatenation
@@ -266,13 +268,21 @@ ignore = [
   "PLR0915",
   # Global statements are discouraged
   "PLW0603",
+  # Docstrings should not be included in stubs
+  "PYI021",
+  # Use typing_extensions.TypeAlias for type aliases
+  # "PYI026",  # not yet implemented
+  # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
+  # "PYI027",  # not yet implemented
+  # while int | float can be shortened to float, the former is more explicit
+  # "PYI041",  # not yet implemented
 
   # Additional checks that don't pass yet
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
-  # Consider `elif` instead of `else` then `if` to remove indendation level
+  # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
 ]
 
@@ -281,6 +291,8 @@ exclude = [
   "doc/build/*.py",
   "doc/temp/*.py",
   ".eggs/*.py",
+  # vendored files
+  "pandas/util/version/*",
   "versioneer.py",
   # exclude asv benchmark environments from linting
   "env",
@@ -292,8 +304,9 @@ exclude = [
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501", "PLW2901"]
 "pandas/io/*" = ["PLW2901"]
-"pandas/tests/*" = ["PLW2901"]
+"pandas/tests/*" = ["B028", "PLW2901"]
 "pandas/plotting/*" = ["PLW2901"]
+"scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 

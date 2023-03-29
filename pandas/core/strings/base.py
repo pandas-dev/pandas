@@ -46,7 +46,7 @@ class BaseStringArrayMethods(abc.ABC):
     @abc.abstractmethod
     def _str_pad(
         self,
-        width,
+        width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ):
@@ -127,15 +127,15 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         pass
 
     @abc.abstractmethod
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         pass
 
     @abc.abstractmethod
@@ -155,7 +155,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         pass
 
     @abc.abstractmethod

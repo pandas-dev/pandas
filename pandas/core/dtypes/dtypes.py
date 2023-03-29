@@ -907,7 +907,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 return freq_offset
 
         raise TypeError(
-            "PeriodDtype argument should be string or BaseOffet, "
+            "PeriodDtype argument should be string or BaseOffset, "
             f"got {type(freq).__name__}"
         )
 
