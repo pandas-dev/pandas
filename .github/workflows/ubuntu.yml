@@ -170,6 +170,7 @@ jobs:
         pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
+      id: build
       uses: ./.github/actions/build_pandas
 
     - name: Test (not single_cpu)
@@ -187,4 +188,4 @@ jobs:
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1
-      if: ${{ matrix.pattern == '' && always() && steps.build.outcome == 'success' && always()}}
+      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
