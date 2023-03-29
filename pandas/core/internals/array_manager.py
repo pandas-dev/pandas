@@ -976,7 +976,7 @@ class ArrayManager(BaseArrayManager):
         -------
         ArrayManager
         """
-        result_arrays: list[np.ndarray] = []
+        result_arrays: list[ArrayLike] = []
         for i, arr in enumerate(self.arrays):
             res = func(arr, axis=0)
 
@@ -988,16 +988,12 @@ class ArrayManager(BaseArrayManager):
                 # a timedelta result array if original was timedelta
                 # what if datetime results in timedelta? (eg std)
                 dtype = arr.dtype if res is NaT else None
-                result_arrays.append(
-                    sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
-                )
+                result_arrays.append(sanitize_array([res], None, dtype=dtype))
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
         columns = self.items
 
-        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
-        # expected "List[Union[ndarray, ExtensionArray]]"
-        new_mgr = type(self)(result_arrays, [index, columns])  # type: ignore[arg-type]
+        new_mgr = type(self)(result_arrays, [index, columns])
         return new_mgr
 
     def operate_blockwise(self, other: ArrayManager, array_op) -> ArrayManager:
