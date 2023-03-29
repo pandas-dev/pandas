@@ -10912,9 +10912,10 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype):
                     if is_am:
-                        return values.reshape(1, -1)._reduce(
-                            name, axis=1, skipna=skipna, **kwds
-                        )
+                        # error: "ExtensionArray" has no attribute "reshape";
+                        #  maybe "shape"?
+                        vals2d = values.reshape(1, -1)  # type: ignore[attr-defined]
+                        return vals2d._reduce(name, axis=1, skipna=skipna, **kwds)
                     else:
                         return values._reduce(name, axis=1, skipna=skipna, **kwds)
 
