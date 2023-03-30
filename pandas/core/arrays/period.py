@@ -635,7 +635,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 return self
             else:
                 return self.copy()
-        if is_period_dtype(dtype):
+        if isinstance(dtype, PeriodDtype):
             return self.asfreq(dtype.freq)
 
         if is_datetime64_any_dtype(dtype):
@@ -897,7 +897,7 @@ def period_array(
 
     if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
-    if is_period_dtype(data_dtype):
+    if isinstance(data_dtype, PeriodDtype):
         return PeriodArray(data, freq=freq)
 
     # other iterable of some kind
@@ -966,7 +966,7 @@ def validate_dtype_freq(
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-        if not is_period_dtype(dtype):
+        if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
         if freq is None:
             freq = dtype.freq

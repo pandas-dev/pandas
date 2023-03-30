@@ -49,10 +49,10 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import (
     Categorical,
@@ -2407,7 +2407,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
+        is_cat = [isinstance(data[col].dtype, CategoricalDtype) for col in data]
         if not any(is_cat):
             return data
 

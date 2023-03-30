@@ -32,10 +32,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    ensure_str,
-    is_period_dtype,
-)
+from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
@@ -369,7 +367,7 @@ class JSONTableWriter(FrameWriter):
         if len(timedeltas):
             obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
         # Convert PeriodIndex to datetimes before serializing
-        if is_period_dtype(obj.index.dtype):
+        if isinstance(obj.index.dtype, PeriodDtype):
             obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
