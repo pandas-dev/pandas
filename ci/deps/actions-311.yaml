@@ -41,7 +41,7 @@ dependencies:
   - psycopg2>=2.8.6
   - pymysql>=1.0.2
   # - pytables>=3.8.0  # first version that supports 3.11
-  - pyarrow
+  - pyarrow>=7.0.0
   - pyreadstat>=1.1.2
   - python-snappy>=0.6.0
   - pyxlsb>=1.0.8
