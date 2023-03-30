@@ -1780,7 +1780,7 @@ the string values returned are correct."""
         # Decode strings
         for col, typ in zip(data, self._typlist):
             if type(typ) is int:
-                data[col] = data[col].apply(self._decode, convert_dtype=True)
+                data[col] = data[col].apply(self._decode)
 
         data = self._insert_strls(data)
 
