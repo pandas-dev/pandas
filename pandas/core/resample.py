@@ -839,12 +839,60 @@ class Resampler(BaseGroupBy, PandasObject):
         **kwargs,
     ):
         """
-        Interpolate values according to different methods. Note that the points used
-        as anchor points in the interpolation are taken from the original timeseries
-        and thus it can lead to information loss and wrong interpolation!
+        Interpolate values according to different methods. 
         
-        ```
-        # example of 2Hz timeseries resampled with rule="400ms"
+        Notes
+        -----
+        The original index is first reindexed to new time buckets (anchors), 
+        then the interpolation happens. For non-equidistant time-series this
+        behaviour may lead to data loss as shown in the last example.
+
+        Examples
+        --------
+
+        >>> import datetime as dt
+        >>> timesteps = [
+        ...    dt.datetime(2023, 3, 1, 7, 0, 0),
+        ...    dt.datetime(2023, 3, 1, 7, 0, 1),
+        ...    dt.datetime(2023, 3, 1, 7, 0, 2),
+        ...    dt.datetime(2023, 3, 1, 7, 0, 3),
+        ...    dt.datetime(2023, 3, 1, 7, 0, 4)]
+        >>> series = pd.Series(data=[1, -1, 2, 1, 3], index=timesteps)
+        >>> series
+        2023-03-01 07:00:00    1
+        2023-03-01 07:00:01   -1
+        2023-03-01 07:00:02    2
+        2023-03-01 07:00:03    1
+        2023-03-01 07:00:04    3
+        dtype: int64
+
+        Upsample the dataframe to 0.5Hz
+
+        >>> series.resample("2s").interpolate("linear")
+        2023-03-01 07:00:00    1
+        2023-03-01 07:00:02    2
+        2023-03-01 07:00:04    3
+        Freq: 2S, dtype: int64
+
+        Downsample the dataframe to 2Hz
+
+        >>> series.resample("500ms").interpolate("linear")
+        2023-03-01 07:00:00.000    1.0
+        2023-03-01 07:00:00.500    0.0
+        2023-03-01 07:00:01.000   -1.0
+        2023-03-01 07:00:01.500    0.5
+        2023-03-01 07:00:02.000    2.0
+        2023-03-01 07:00:02.500    1.5
+        2023-03-01 07:00:03.000    1.0
+        2023-03-01 07:00:03.500    2.0
+        2023-03-01 07:00:04.000    3.0
+        Freq: 500L, dtype: float64
+
+        Internal reindexing prior to interpolation leads to a timeseries
+        interpolated given the reindexed timestamps (anchros) which can lead
+        to misleading interpolation results:
+
+        >>> series.resample("400ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0  <- anchor 0
         2023-03-01 07:00:00.500    0.0
         2023-03-01 07:00:01.000   -1.0
@@ -854,10 +902,11 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:03.000    1.0
         2023-03-01 07:00:03.500    2.0
         2023-03-01 07:00:04.000    3.0  <- anchor 2
-        ```
-        
-        The new time-series based on the `rule` is based solely on the anchor points.
+        Freq: 1500L, dtype: float64
+
+        Note that the series erroneously increases between two anchors.
         """
+
         result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
