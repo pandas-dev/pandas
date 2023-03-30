@@ -55,6 +55,7 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     convert_dtypes,
@@ -373,15 +374,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=None,
         dtype: Dtype | None = None,
         name=None,
-        copy: bool = False,
+        copy: bool | None = None,
         fastpath: bool = False,
     ) -> None:
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
-            and copy is False
+            and (copy is False or copy is None)
         ):
+            if using_copy_on_write():
+                data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
             if fastpath:
@@ -390,6 +393,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             else:
                 self.name = name
             return
+
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False and using_copy_on_write():
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+        if copy is None:
+            copy = False
 
         # we are called internally, so short-circuit
         if fastpath:
@@ -400,12 +410,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+            elif using_copy_on_write() and not copy:
+                data = data.copy(deep=False)
             if copy:
                 data = data.copy()
             # skips validation of the name
             object.__setattr__(self, "_name", name)
             NDFrame.__init__(self, data)
             return
+
+        if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
+            data = data.copy(deep=False)
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -768,7 +783,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.ndarray.ravel : Return a flattened array.
         """
-        return self._values.ravel(order=order)
+        arr = self._values.ravel(order=order)
+        if isinstance(arr, np.ndarray) and using_copy_on_write():
+            arr.flags.writeable = False
+        return arr
 
     def __len__(self) -> int:
         """
@@ -5845,7 +5863,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # TODO: result should always be ArrayLike, but this fails for some
         #  JSONArray tests
         dtype = getattr(result, "dtype", None)
-        out = self._constructor(result, index=self.index, dtype=dtype)
+        out = self._constructor(result, index=self.index, dtype=dtype, copy=False)
         out = out.__finalize__(self)
 
         # Set the result's name after __finalize__ is called because __finalize__
@@ -5864,7 +5882,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
-            other = self._constructor(other, self.index)
+            other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result.name = res_name
             return result
