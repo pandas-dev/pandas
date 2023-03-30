@@ -612,6 +612,8 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
+
+                new_index: Index
                 if self.ignore_index:
                     # We can avoid surprisingly-expensive _get_concat_axis
                     new_index = default_index(len(res))
