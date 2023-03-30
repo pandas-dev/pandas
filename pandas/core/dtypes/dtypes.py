@@ -850,7 +850,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         else:
             np_arr = array.to_numpy()
 
-        darr = DatetimeArray(np_arr.copy(), copy=False)
+        darr = DatetimeArray(np_arr, copy=False)
         return darr.tz_localize(self._tz)
 
     def __setstate__(self, state) -> None:
