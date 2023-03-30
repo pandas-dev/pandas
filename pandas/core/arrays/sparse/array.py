@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -54,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -458,7 +458,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             data = extract_array(data, extract_numpy=True)
             if not isinstance(data, np.ndarray):
                 # EA
-                if is_datetime64tz_dtype(data.dtype):
+                if isinstance(data.dtype, DatetimeTZDtype):
                     warnings.warn(
                         f"Creating SparseArray from {data.dtype} data "
                         "loses timezone information. Cast to object before "
