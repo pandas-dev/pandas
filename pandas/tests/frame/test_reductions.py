@@ -181,7 +181,13 @@ class TestDataFrameAnalytics:
                 msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
             elif opname == "mean":
                 if axis == 0:
-                    msg = r"Could not convert \['.*'\] to numeric"
+                    # different message on different builds
+                    msg = "|".join(
+                        [
+                            r"Could not convert \['.*'\] to numeric",
+                            "Could not convert string '(bar){30}' to numeric",
+                        ]
+                    )
                 else:
                     msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
             elif opname in ["min", "max"]:
@@ -1734,9 +1740,15 @@ def test_fails_on_non_numeric(kernel):
         ]
     )
     if kernel == "median":
-        msg = (
+        # slightly different message on different builds
+        msg1 = (
             r"Cannot convert \[\[<class 'object'> <class 'object'> "
             r"<class 'object'>\]\] to numeric"
         )
+        msg2 = (
+            r"Cannot convert \[<class 'object'> <class 'object'> "
+            r"<class 'object'>\] to numeric"
+        )
+        msg = "|".join([msg1, msg2])
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)
