@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Literal,
     cast,
 )
 
@@ -402,7 +403,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using input an input mapping or function.
 
@@ -469,7 +470,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper)
+        mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name)
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:

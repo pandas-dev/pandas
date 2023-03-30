@@ -39,6 +39,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_dict_like,
     is_list_like,
     is_sequence,
@@ -1082,7 +1083,12 @@ class SeriesApply(NDFrameApply):
                 return f(obj)
 
         # row-wise access
-        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
+        # apply doesn't have a `na_action` keyword and for backward compat reasons
+        # we need to give `na_action="ignore"` for categorical data.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
+        action = "ignore" if is_categorical_dtype(obj) else None
+        mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
