@@ -4408,7 +4408,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             .. deprecated:: 2.1.0
                 The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
-                instead if you want this functionality.
+                instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
