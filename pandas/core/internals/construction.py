@@ -291,7 +291,7 @@ def ndarray_to_mgr(
         if values.ndim == 1:
             values = values.reshape(-1, 1)
 
-    elif isinstance(values, ABCSeries):
+    elif isinstance(values, (ABCSeries, Index)):
         if not copy_on_sanitize and (
             dtype is None or astype_is_view(values.dtype, dtype)
         ):
@@ -304,7 +304,7 @@ def ndarray_to_mgr(
 
         values = _ensure_2d(values)
 
-    elif isinstance(values, (np.ndarray, ExtensionArray, Index)):
+    elif isinstance(values, (np.ndarray, ExtensionArray)):
         # drop subclass info
         _copy = (
             copy_on_sanitize
