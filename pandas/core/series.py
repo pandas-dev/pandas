@@ -4503,7 +4503,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             warnings.warn(
                 "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.",
+                "future version.  Do ``ser.astype(object).apply()`` "
+                "instead if you want ``convert_dtype=False``.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
