@@ -26,9 +26,9 @@ jobs:
     strategy:
       matrix:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
+        # Prevent the include jobs from overriding other jobs
+        pattern: [""]
         pyarrow_version: ["8", "9", "10"]
-        pandas_ci: [1]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -75,7 +75,7 @@ jobs:
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
             # There are some warnings failing the build with -werror
-            pandas_ci: 0
+            pandas_ci: "0"
         exclude:
           - env_file: actions-38.yaml
             pyarrow_version: "8"
@@ -99,9 +99,9 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      PANDAS_CI: ${{ matrix.pandas_ci }}
+      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
@@ -170,9 +170,22 @@ jobs:
         pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
+      id: build
       uses: ./.github/actions/build_pandas
 
-    - name: Test
+    - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      env:
+        # Set pattern to not single_cpu if not already set
+        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      env:
+        PATTERN: 'single_cpu'
+        PYTEST_WORKERS: 1
+      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
