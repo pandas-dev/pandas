@@ -71,16 +71,17 @@ then the following would all raise:
   - ``df.loc[indexer, 'a'] = 'foo'``
   - ``ser[indexer] = 'foo'``
 
-It may be desirable to expand the top list to ``mask``, ``replace``, and ``update``,
+It may be desirable to expand the top list to ``replace`` and ``update``,
 but to keep the scope of the PDEP down, they are excluded for now.
 
 Examples of operations which would not raise are:
 - ``ser.diff()``;
 - ``pd.concat([ser, ser.astype(object)])``;
 - ``ser.mean()``;
-- ``ser[0] = 3.``;
+- ``ser[0] = 3``;  # same dtype
+- ``ser[0] = 3.``;  # 3.0 is a 'round' float and so compatible with 'int64' dtype
 - ``df['a'] = pd.date_range(datetime(2020, 1, 1), periods=3)``;
-- ``ser[0] = 3``.
+- ``df.index.intersection(ser.index)``.
 
 ## Detailed description
 
