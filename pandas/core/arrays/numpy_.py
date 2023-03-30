@@ -40,7 +40,9 @@ if TYPE_CHECKING:
     )
 
 
-class PandasArray(
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PandasArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
