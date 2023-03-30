@@ -182,7 +182,11 @@ def _period_dispatch(meth: F) -> F:
     return cast(F, new_meth)
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class DatetimeLikeArrayMixin(  # type: ignore[misc]
+    OpsMixin, NDArrayBackedExtensionArray
+):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -504,42 +508,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # we need to explicitly call super() method as long as the `@overload`s
         #  are present in this file.
         return super().view(dtype)
-
-    # ------------------------------------------------------------------
-    # ExtensionArray Interface
-
-    @classmethod
-    def _concat_same_type(
-        cls,
-        to_concat: Sequence[Self],
-        axis: AxisInt = 0,
-    ) -> Self:
-        new_obj = super()._concat_same_type(to_concat, axis)
-
-        obj = to_concat[0]
-        dtype = obj.dtype
-
-        new_freq = None
-        if isinstance(dtype, PeriodDtype):
-            new_freq = obj.freq
-        elif axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:])
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-
-        new_obj._freq = new_freq
-        return new_obj
-
-    def copy(self, order: str = "C") -> Self:
-        # error: Unexpected keyword argument "order" for "copy"
-        new_obj = super().copy(order=order)  # type: ignore[call-arg]
-        new_obj._freq = self.freq
-        return new_obj
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -2085,6 +2053,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return arr
 
     # --------------------------------------------------------------
+    # ExtensionArray Interface
 
     def factorize(
         self,
@@ -2101,6 +2070,34 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(use_na_sentinel=use_na_sentinel)
+
+    @classmethod
+    def _concat_same_type(
+        cls,
+        to_concat: Sequence[Self],
+        axis: AxisInt = 0,
+    ) -> Self:
+        new_obj = super()._concat_same_type(to_concat, axis)
+
+        obj = to_concat[0]
+
+        if axis == 0:
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            to_concat = [x for x in to_concat if len(x)]
+
+            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
+                pairs = zip(to_concat[:-1], to_concat[1:])
+                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                    new_freq = obj.freq
+                    new_obj._freq = new_freq
+        return new_obj
+
+    def copy(self, order: str = "C") -> Self:
+        # error: Unexpected keyword argument "order" for "copy"
+        new_obj = super().copy(order=order)  # type: ignore[call-arg]
+        new_obj._freq = self.freq
+        return new_obj
 
 
 # -------------------------------------------------------------------
