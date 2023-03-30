@@ -1085,7 +1085,7 @@ class TestToDatetime:
         # A list of datetimes where the last one is out of bounds
         dts_with_oob = dts + [np.datetime64("9999-01-01")]
 
-        # As of GH#?? we do not raise in this case
+        # As of GH#51978 we do not raise in this case
         to_datetime(dts_with_oob, errors="raise")
 
         result = to_datetime(dts_with_oob, errors="coerce", cache=cache)
