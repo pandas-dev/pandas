@@ -3890,8 +3890,7 @@ class Index(IndexOpsMixin, PandasObject):
                         "tolerance not implemented yet for MultiIndex"
                     )
 
-
-        if is_categorical_dtype(self.dtype):
+        if isinstance(self.dtype, (CategoricalDtype)):
             # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
             if method is not None:  # and method not in ("bfill", "backfill")
                 # and not is_interval_dtype(self.dtype):
