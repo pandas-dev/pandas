@@ -79,7 +79,7 @@ jobs:
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
       fail-fast: false
-    name: ${{ matrix.name || format('{0} {1}', matrix.env_file, matrix.pattern) }}
+    name: ${{ matrix.name || matrix.env_file }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
