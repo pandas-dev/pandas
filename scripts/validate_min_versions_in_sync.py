@@ -37,7 +37,7 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
-EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]", "pyarrow"])
+EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")

@@ -28,7 +28,6 @@ jobs:
         env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
-        pyarrow_version: ["8", "9", "10"]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -76,21 +75,11 @@ jobs:
             # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
             # There are some warnings failing the build with -werror
             pandas_ci: "0"
-        exclude:
-          - env_file: actions-38.yaml
-            pyarrow_version: "8"
-          - env_file: actions-38.yaml
-            pyarrow_version: "9"
-          - env_file: actions-39.yaml
-            pyarrow_version: "8"
-          - env_file: actions-39.yaml
-            pyarrow_version: "9"
-          - env_file: actions-310.yaml
-            pyarrow_version: "8"
-          - env_file: actions-310.yaml
-            pyarrow_version: "9"
+          - name: "Pyarrow Nightly"
+            env_file: actions-311-pyarrownightly.yaml
+            pattern: "not slow and not network and not single_cpu"
       fail-fast: false
-    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
+    name: ${{ matrix.name || matrix.env_file }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
@@ -108,7 +97,7 @@ jobs:
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
       cancel-in-progress: true
 
     services:
@@ -167,7 +156,6 @@ jobs:
       uses: ./.github/actions/setup-conda
       with:
         environment-file: ${{ env.ENV_FILE }}
-        pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
       id: build
