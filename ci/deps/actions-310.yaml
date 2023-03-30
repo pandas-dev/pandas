@@ -41,7 +41,7 @@ dependencies:
   - psycopg2
   - pymysql
   - pytables
-  - pyarrow
+  - pyarrow>=7.0.0
   - pyreadstat
   - python-snappy
   - pyxlsb
