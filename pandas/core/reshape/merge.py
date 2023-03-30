@@ -2015,7 +2015,7 @@ class _AsOfMerge(_OrderedMerge):
                 f"with type {repr(lt.dtype)}"
             )
 
-            if needs_i8_conversion(lt):
+            if needs_i8_conversion(getattr(lt, "dtype", None)):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -2101,7 +2101,7 @@ class _AsOfMerge(_OrderedMerge):
             raise ValueError(f"{side} keys must be sorted")
 
         # initial type conversion as needed
-        if needs_i8_conversion(left_values):
+        if needs_i8_conversion(getattr(left_values, "dtype", None)):
             if tolerance is not None:
                 tolerance = Timedelta(tolerance)
 
