@@ -1232,7 +1232,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
             .. deprecated:: 2.1.0
 
-               The dault value of 'ignore' has been deprecated and will be changed to
+               The default value of 'ignore' has been deprecated and will be changed to
                None in the future.
 
         Returns

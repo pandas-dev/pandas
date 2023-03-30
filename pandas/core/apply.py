@@ -1085,7 +1085,8 @@ class SeriesApply(NDFrameApply):
         # row-wise access
         # apply doesn't have a `na_action` keyword and for backward compat reasons
         # we need to give `na_action="ignore"` for categorical data.
-        # TODO: remove the `na_action="ignore"` has been removed from Categorical.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
         action = "ignore" if is_categorical_dtype(obj) else None
         mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
