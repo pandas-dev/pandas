@@ -2272,7 +2272,7 @@ class TestPartialStringSlicing:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_partial_string_slicing_with_periodindex(self):
-        pi = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
+        pi = pd.period_range(start="2017-01-01", end="2018-01-01", freq="ME")
         ser = pi.to_series()
         result = ser.loc[:"2017-12"]
         expected = ser.iloc[:-1]
@@ -2381,7 +2381,7 @@ class TestLabelSlicing:
     @pytest.mark.parametrize(
         "index",
         [
-            pd.period_range(start="2017-01-01", end="2018-01-01", freq="M"),
+            pd.period_range(start="2017-01-01", end="2018-01-01", freq="ME"),
             timedelta_range(start="1 day", end="2 days", freq="1H"),
         ],
     )
@@ -2844,7 +2844,7 @@ def test_loc_datetimelike_mismatched_dtypes():
 
 def test_loc_with_period_index_indexer():
     # GH#4125
-    idx = pd.period_range("2002-01", "2003-12", freq="M")
+    idx = pd.period_range("2002-01", "2003-12", freq="ME")
     df = DataFrame(np.random.randn(24, 10), index=idx)
     tm.assert_frame_equal(df, df.loc[idx])
     tm.assert_frame_equal(df, df.loc[list(idx)])

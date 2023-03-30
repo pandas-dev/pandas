@@ -391,7 +391,7 @@ def test_timedelta(transform_assert_equal):
 def test_period(request, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
 
-    idx = pd.period_range("2011-01", periods=3, freq="M", name="")
+    idx = pd.period_range("2011-01", periods=3, freq="ME", name="")
     inp = transform(idx)
 
     if not isinstance(inp, Index):

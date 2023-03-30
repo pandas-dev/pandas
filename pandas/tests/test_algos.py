@@ -168,8 +168,8 @@ class TestFactorize:
         tm.assert_index_equal(uniques, exp)
 
         # period
-        v1 = Period("201302", freq="M")
-        v2 = Period("201303", freq="M")
+        v1 = Period("201302", freq="ME")
+        v2 = Period("201303", freq="ME")
         x = Series([v1, v1, v1, v2, v2, v1])
 
         # periods are not 'sorted' as they are converted back into an index
@@ -580,7 +580,7 @@ class TestUnique:
         if any_numpy_dtype in tm.STRING_DTYPES:
             expected = expected.astype(object)
 
-        if expected.dtype.kind in ["m", "M"]:
+        if expected.dtype.kind in ["m", "ME"]:
             # We get TimedeltaArray/DatetimeArray
             assert isinstance(result, (DatetimeArray, TimedeltaArray))
             result = np.array(result)

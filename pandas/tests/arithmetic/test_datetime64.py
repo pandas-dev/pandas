@@ -173,8 +173,8 @@ class TestDatetime64SeriesComparison:
                 [NaT, NaT, Timedelta("3 days")],
             ),
             (
-                [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")],
-                [NaT, NaT, Period("2011-03", freq="M")],
+                [Period("2011-01", freq="ME"), NaT, Period("2011-03", freq="ME")],
+                [NaT, NaT, Period("2011-03", freq="ME")],
             ),
         ],
     )
@@ -218,7 +218,7 @@ class TestDatetime64SeriesComparison:
         [
             [Timestamp("2011-01-01"), NaT, Timestamp("2011-01-03")],
             [Timedelta("1 days"), NaT, Timedelta("3 days")],
-            [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")],
+            [Period("2011-01", freq="ME"), NaT, Period("2011-03", freq="ME")],
         ],
     )
     @pytest.mark.parametrize("dtype", [None, object])
@@ -1078,7 +1078,7 @@ class TestDatetime64Arithmetic:
     # Note: freq here includes both Tick and non-Tick offsets; this is
     #  relevant because historically integer-addition was allowed if we had
     #  a freq.
-    @pytest.mark.parametrize("freq", ["H", "D", "W", "M", "MS", "Q", "B", None])
+    @pytest.mark.parametrize("freq", ["H", "D", "W", "ME", "MS", "Q", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
         self, dtype, box_with_array, freq, tz_naive_fixture

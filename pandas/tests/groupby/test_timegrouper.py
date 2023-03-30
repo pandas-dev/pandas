@@ -473,7 +473,7 @@ class TestGroupBy:
             return Series([x["value"].sum()], ("sum",))
 
         expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
-        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_series)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -490,7 +490,7 @@ class TestGroupBy:
             return x.value.sum()
 
         expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -837,7 +837,7 @@ class TestGroupBy:
         # GH 32108
         periods = 2
         index = pd.period_range(
-            start="2018-01", periods=periods, freq="M", name="Month"
+            start="2018-01", periods=periods, freq="ME", name="Month"
         )
         period_series = Series(range(periods), index=index)
         result = period_series.groupby(period_series.index.month).sum()

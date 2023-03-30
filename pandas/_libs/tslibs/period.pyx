@@ -2372,7 +2372,7 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
         """
-        return self.freq.freqstr.replace("ME", "M")
+        return self.freq.freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code

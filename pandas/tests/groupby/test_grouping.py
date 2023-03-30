@@ -263,7 +263,7 @@ class TestGrouping:
         result = s.groupby(Grouper(level="three", freq="M")).sum()
         expected = Series(
             [28],
-            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
+            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="ME", name="three"),
         )
         tm.assert_series_equal(result, expected)
 
@@ -375,7 +375,7 @@ class TestGrouping:
         expected = DataFrame(
             {"A": [31, 28, 21, 31, 28, 21]},
             index=MultiIndex.from_product(
-                [list("ab"), date_range("20130101", freq="M", periods=3)],
+                [list("ab"), date_range("20130101", freq="ME", periods=3)],
                 names=["one", "two"],
             ),
         )

@@ -58,7 +58,7 @@ class TestIntervalRange:
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     @pytest.mark.parametrize(
-        "freq, periods", [("D", 364), ("2D", 182), ("22D18H", 16), ("M", 11)]
+        "freq, periods", [("D", 364), ("2D", 182), ("22D18H", 16), ("ME", 11)]
     )
     def test_constructor_timestamp(self, closed, name, freq, periods, tz):
         start, end = Timestamp("20180101", tz=tz), Timestamp("20181231", tz=tz)
