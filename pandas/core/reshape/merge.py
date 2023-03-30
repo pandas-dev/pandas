@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -67,7 +66,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -364,7 +366,7 @@ def merge_asof(
     left_by=None,
     right_by=None,
     suffixes: Suffixes = ("_x", "_y"),
-    tolerance=None,
+    tolerance: int | Timedelta | None = None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
 ) -> DataFrame:
@@ -1277,8 +1279,8 @@ class _MergeOperation:
             lk = extract_array(lk, extract_numpy=True)
             rk = extract_array(rk, extract_numpy=True)
 
-            lk_is_cat = is_categorical_dtype(lk.dtype)
-            rk_is_cat = is_categorical_dtype(rk.dtype)
+            lk_is_cat = isinstance(lk.dtype, CategoricalDtype)
+            rk_is_cat = isinstance(rk.dtype, CategoricalDtype)
             lk_is_object = is_object_dtype(lk.dtype)
             rk_is_object = is_object_dtype(rk.dtype)
 
@@ -1978,7 +1980,9 @@ class _AsOfMerge(_OrderedMerge):
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
             if not is_dtype_equal(lk.dtype, rk.dtype):
-                if is_categorical_dtype(lk.dtype) and is_categorical_dtype(rk.dtype):
+                if isinstance(lk.dtype, CategoricalDtype) and isinstance(
+                    rk.dtype, CategoricalDtype
+                ):
                     # The generic error message is confusing for categoricals.
                     #
                     # In this function, the join keys include both the original
@@ -2011,7 +2015,7 @@ class _AsOfMerge(_OrderedMerge):
                 f"with type {repr(lt.dtype)}"
             )
 
-            if needs_i8_conversion(lt):
+            if needs_i8_conversion(getattr(lt, "dtype", None)):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -2097,7 +2101,7 @@ class _AsOfMerge(_OrderedMerge):
             raise ValueError(f"{side} keys must be sorted")
 
         # initial type conversion as needed
-        if needs_i8_conversion(left_values):
+        if needs_i8_conversion(getattr(left_values, "dtype", None)):
             if tolerance is not None:
                 tolerance = Timedelta(tolerance)
 
@@ -2359,8 +2363,8 @@ def _factorize_keys(
         rk = cast("DatetimeArray", rk)._ndarray
 
     elif (
-        is_categorical_dtype(lk.dtype)
-        and is_categorical_dtype(rk.dtype)
+        isinstance(lk.dtype, CategoricalDtype)
+        and isinstance(rk.dtype, CategoricalDtype)
         and is_dtype_equal(lk.dtype, rk.dtype)
     ):
         assert isinstance(lk, Categorical)
@@ -2554,7 +2558,7 @@ def _items_overlap_with_suffix(
     if not lsuffix and not rsuffix:
         raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
 
-    def renamer(x, suffix):
+    def renamer(x, suffix: str | None):
         """
         Rename the left and right indices.
 

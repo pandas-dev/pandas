@@ -167,7 +167,7 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def get_dtypes(self) -> np.ndarray:
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
     def add_references(self, mgr: BaseArrayManager) -> None:
@@ -363,7 +363,7 @@ class BaseArrayManager(DataManager):
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -834,7 +834,7 @@ class ArrayManager(BaseArrayManager):
 
         # multiple columns -> convert slice or array to integer indices
         elif isinstance(loc, slice):
-            indices = range(
+            indices: range | np.ndarray = range(
                 loc.start if loc.start is not None else 0,
                 loc.stop if loc.stop is not None else self.shape_proper[1],
                 loc.step if loc.step is not None else 1,
@@ -842,9 +842,7 @@ class ArrayManager(BaseArrayManager):
         else:
             assert isinstance(loc, np.ndarray)
             assert loc.dtype == "bool"
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "range")
-            indices = np.nonzero(loc)[0]  # type: ignore[assignment]
+            indices = np.nonzero(loc)[0]
 
         assert value.ndim == 2
         assert value.shape[0] == len(self._axes[0])

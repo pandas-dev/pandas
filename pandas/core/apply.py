@@ -39,11 +39,12 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_dict_like,
-    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -940,7 +941,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        if is_extension_array_dtype(ser.dtype):
+        if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -1082,7 +1083,12 @@ class SeriesApply(NDFrameApply):
                 return f(obj)
 
         # row-wise access
-        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
+        # apply doesn't have a `na_action` keyword and for backward compat reasons
+        # we need to give `na_action="ignore"` for categorical data.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
+        action = "ignore" if is_categorical_dtype(obj) else None
+        mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
@@ -1491,7 +1497,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 
