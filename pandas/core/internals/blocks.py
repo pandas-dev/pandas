@@ -58,14 +58,13 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_1d_only_ea_obj,
     is_dtype_equal,
-    is_interval_dtype,
     is_list_like,
-    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     PandasDtype,
     PeriodDtype,
 )
@@ -106,6 +105,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -1620,7 +1620,7 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
+            if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value)
                 return nb.setitem(orig_indexer, orig_value)
@@ -1665,7 +1665,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
@@ -1740,7 +1740,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
                     blk = self.coerce_to_target_dtype(orig_new)
@@ -1848,7 +1848,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         downcast=None,
         using_cow: bool = False,
     ) -> list[Block]:
-        if is_interval_dtype(self.dtype):
+        if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
                 value=value,
@@ -2173,7 +2173,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 def _catch_deprecated_value_error(err: Exception) -> None:
     """
     We catch ValueError for now, but only a specific one raised by DatetimeArray
-    which will no longer be raised in version.2.0.
+    which will no longer be raised in version 2.0.
     """
     if isinstance(err, ValueError):
         if isinstance(err, IncompatibleFrequency):
@@ -2431,8 +2431,8 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
 
 
 def extract_pandas_array(
-    values: np.ndarray | ExtensionArray, dtype: DtypeObj | None, ndim: int
-) -> tuple[np.ndarray | ExtensionArray, DtypeObj | None]:
+    values: ArrayLike, dtype: DtypeObj | None, ndim: int
+) -> tuple[ArrayLike, DtypeObj | None]:
     """
     Ensure that we don't allow PandasArray / PandasDtype in internals.
     """
@@ -2492,7 +2492,7 @@ def to_native_types(
     float_format=None,
     decimal: str = ".",
     **kwargs,
-) -> np.ndarray:
+) -> npt.NDArray[np.object_]:
     """convert to our native types format"""
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array
@@ -2517,7 +2517,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif values.dtype.kind == "f" and not is_sparse(values):
+    elif values.dtype.kind == "f" and not isinstance(values.dtype, SparseDtype):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
