@@ -169,23 +169,29 @@ class TestSequenceToDT64NS:
 # Arrow interaction
 
 
+EXTREME_VALUES = [0, 123456789, None, iNaT, 2**63 - 1, -(2**63) + 1]
+FINE_TO_COARSE_SAFE = [123_000_000_000, None, -123_000_000_000]
+COARSE_TO_FINE_SAFE = [123, None, -123]
+
+
 @pytest.mark.parametrize(
-    ("pa_unit", "pd_unit", "pa_tz", "pd_tz"),
+    ("pa_unit", "pd_unit", "pa_tz", "pd_tz", "data"),
     [
-        ("s", "s", "UTC", "UTC"),
-        ("ms", "ms", "UTC", "Europe/Berlin"),
-        ("us", "us", "US/Eastern", "UTC"),
-        ("ns", "ns", "US/Central", "Asia/Kolkata"),
-        ("ns", "s", "UTC", "UTC"),
-        ("us", "ms", "UTC", "Europe/Berlin"),
-        ("ms", "us", "US/Eastern", "UTC"),
-        ("s", "ns", "US/Central", "Asia/Kolkata"),
+        ("s", "s", "UTC", "UTC", EXTREME_VALUES),
+        ("ms", "ms", "UTC", "Europe/Berlin", EXTREME_VALUES),
+        ("us", "us", "US/Eastern", "UTC", EXTREME_VALUES),
+        ("ns", "ns", "US/Central", "Asia/Kolkata", EXTREME_VALUES),
+        ("ns", "s", "UTC", "UTC", FINE_TO_COARSE_SAFE),
+        ("us", "ms", "UTC", "Europe/Berlin", FINE_TO_COARSE_SAFE),
+        ("ms", "us", "US/Eastern", "UTC", COARSE_TO_FINE_SAFE),
+        ("s", "ns", "US/Central", "Asia/Kolkata", COARSE_TO_FINE_SAFE),
     ],
 )
-def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, pd_tz):
+def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
+    pa_unit, pd_unit, pa_tz, pd_tz, data
+):
     pa = pytest.importorskip("pyarrow")
 
-    data = [0, 123456789, None, 2**63 - 1]
     pa_type = pa.timestamp(pa_unit, tz=pa_tz)
     arr = pa.array(data, type=pa_type)
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)

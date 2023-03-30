@@ -842,8 +842,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         from pandas.core.arrays import DatetimeArray
 
-        # Cast to desired units.
-        array = array.cast(pyarrow.timestamp(unit=self._unit), safe=False)
+        array = array.cast(pyarrow.timestamp(unit=self._unit), safe=True)
 
         if isinstance(array, pyarrow.Array):
             np_arr = array.to_numpy(zero_copy_only=False)
