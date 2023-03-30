@@ -271,8 +271,7 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_with_NA_with_warning(self):
         # GH#42957
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            result = to_datetime(["201010", pd.NA])
+        result = to_datetime(["201010", pd.NA])
         expected = DatetimeIndex(["2010-10-20", "NaT"])
         tm.assert_index_equal(result, expected)
 
@@ -946,8 +945,7 @@ class TestToDatetime:
     def test_to_datetime_unparsable_ignore(self):
         # unparsable
         ser = "Month 1, 1999"
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            assert to_datetime(ser, errors="ignore") == ser
+        assert to_datetime(ser, errors="ignore") == ser
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):
@@ -1087,7 +1085,7 @@ class TestToDatetime:
         # A list of datetimes where the last one is out of bounds
         dts_with_oob = dts + [np.datetime64("9999-01-01")]
 
-        # As of GH#?? we do not raise in this case
+        # As of GH#51978 we do not raise in this case
         to_datetime(dts_with_oob, errors="raise")
 
         result = to_datetime(dts_with_oob, errors="coerce", cache=cache)
@@ -1344,17 +1342,13 @@ class TestToDatetime:
             to_datetime(["00:00:00"], format="H%:M%:S%", errors=errors)
 
     @pytest.mark.parametrize("value", ["a", "00:01:99"])
-    @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
-    )
-    def test_datetime_invalid_scalar(self, value, format, warning):
+    @pytest.mark.parametrize("format", [None, "%H:%M:%S"])
+    def test_datetime_invalid_scalar(self, value, format):
         # GH24763
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="ignore", format=format)
+        res = to_datetime(value, errors="ignore", format=format)
         assert res == value
 
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="coerce", format=format)
+        res = to_datetime(value, errors="coerce", format=format)
         assert res is NaT
 
         msg = "|".join(
@@ -1368,21 +1362,16 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warning, match="Could not infer format"):
-                to_datetime(value, errors="raise", format=format)
+            to_datetime(value, errors="raise", format=format)
 
     @pytest.mark.parametrize("value", ["3000/12/11 00:00:00"])
-    @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
-    )
-    def test_datetime_outofbounds_scalar(self, value, format, warning):
+    @pytest.mark.parametrize("format", [None, "%H:%M:%S"])
+    def test_datetime_outofbounds_scalar(self, value, format):
         # GH24763
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="ignore", format=format)
+        res = to_datetime(value, errors="ignore", format=format)
         assert res == value
 
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            res = to_datetime(value, errors="coerce", format=format)
+        res = to_datetime(value, errors="coerce", format=format)
         assert res is NaT
 
         if format is not None:
@@ -1391,22 +1380,26 @@ class TestToDatetime:
                 to_datetime(value, errors="raise", format=format)
         else:
             msg = "^Out of bounds .*, at position 0$"
-            with pytest.raises(
-                OutOfBoundsDatetime, match=msg
-            ), tm.assert_produces_warning(warning, match="Could not infer format"):
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
                 to_datetime(value, errors="raise", format=format)
 
-    @pytest.mark.parametrize("values", [["a"], ["00:01:99"], ["a", "b", "99:00:00"]])
     @pytest.mark.parametrize(
-        "format,warning", [(None, UserWarning), ("%H:%M:%S", None)]
+        ("values"), [(["a"]), (["00:01:99"]), (["a", "b", "99:00:00"])]
     )
-    def test_datetime_invalid_index(self, values, format, warning):
+    @pytest.mark.parametrize("format", [(None), ("%H:%M:%S")])
+    def test_datetime_invalid_index(self, values, format):
         # GH24763
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
+        # Not great to have logic in tests, but this one's hard to
+        # parametrise over
+        if format is None and len(values) > 1:
+            warn = UserWarning
+        else:
+            warn = None
+        with tm.assert_produces_warning(warn, match="Could not infer format"):
             res = to_datetime(values, errors="ignore", format=format)
         tm.assert_index_equal(res, Index(values))
 
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
+        with tm.assert_produces_warning(warn, match="Could not infer format"):
             res = to_datetime(values, errors="coerce", format=format)
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
@@ -1421,7 +1414,7 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warning, match="Could not infer format"):
+            with tm.assert_produces_warning(warn, match="Could not infer format"):
                 to_datetime(values, errors="raise", format=format)
 
     @pytest.mark.parametrize("utc", [True, None])
@@ -2220,10 +2213,7 @@ class TestToDatetimeMisc:
 
         msg = "^Out of bounds nanosecond timestamp: .*, at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(arr)
+            to_datetime(arr)
 
     @pytest.mark.parametrize(
         "arg, exp_str",
@@ -2537,10 +2527,7 @@ class TestToDatetimeMisc:
         # GH #51084
 
         with pytest.raises(ValueError, match="Unknown datetime string format"):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(invalid, errors="raise", cache=cache)
+            to_datetime(invalid, errors="raise", cache=cache)
 
     def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
@@ -2567,22 +2554,15 @@ class TestToDatetimeMisc:
         # GH 10636, default is now 'raise'
         msg = r"Unknown datetime string format"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(malformed, errors="raise", cache=cache)
+            to_datetime(malformed, errors="raise", cache=cache)
 
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            result = to_datetime(malformed, errors="ignore", cache=cache)
+        result = to_datetime(malformed, errors="ignore", cache=cache)
         # GH 21864
         expected = Index(malformed)
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(malformed, errors="raise", cache=cache)
+            to_datetime(malformed, errors="raise", cache=cache)
 
     def test_string_na_nat_conversion_with_name(self, cache):
         idx = ["a", "b", "c", "d", "e"]
@@ -2811,14 +2791,13 @@ class TestToDatetimeInferFormat:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "tz_name, offset, warning",
-        [("UTC", 0, None), ("UTC-3", 180, UserWarning), ("UTC+3", -180, UserWarning)],
+        "tz_name, offset",
+        [("UTC", 0), ("UTC-3", 180), ("UTC+3", -180)],
     )
-    def test_infer_datetime_format_tz_name(self, tz_name, offset, warning):
+    def test_infer_datetime_format_tz_name(self, tz_name, offset):
         # GH 33133
         ser = Series([f"2019-02-02 08:07:13 {tz_name}"])
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            result = to_datetime(ser)
+        result = to_datetime(ser)
         tz = timezone(timedelta(minutes=offset))
         expected = Series([Timestamp("2019-02-02 08:07:13").tz_localize(tz)])
         tm.assert_series_equal(result, expected)
@@ -2866,25 +2845,21 @@ class TestDaysInMonth:
     # tests for issue #10154
 
     @pytest.mark.parametrize(
-        "arg, format, warning",
+        "arg, format",
         [
-            ["2015-02-29", None, UserWarning],
-            ["2015-02-29", "%Y-%m-%d", None],
-            ["2015-02-32", "%Y-%m-%d", None],
-            ["2015-04-31", "%Y-%m-%d", None],
+            ["2015-02-29", None],
+            ["2015-02-29", "%Y-%m-%d"],
+            ["2015-02-32", "%Y-%m-%d"],
+            ["2015-04-31", "%Y-%m-%d"],
         ],
     )
-    def test_day_not_in_month_coerce(self, cache, arg, format, warning):
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
+    def test_day_not_in_month_coerce(self, cache, arg, format):
+        assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
         msg = "day is out of range for month: 2015-02-29, at position 0"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime("2015-02-29", errors="raise", cache=cache)
+            to_datetime("2015-02-29", errors="raise", cache=cache)
 
     @pytest.mark.parametrize(
         "arg, format, msg",
@@ -2929,72 +2904,71 @@ class TestDaysInMonth:
             to_datetime(arg, errors="raise", format=format, cache=cache)
 
     @pytest.mark.parametrize(
-        "expected, format, warning",
+        "expected, format",
         [
-            ["2015-02-29", None, UserWarning],
-            ["2015-02-29", "%Y-%m-%d", None],
-            ["2015-02-29", "%Y-%m-%d", None],
-            ["2015-04-31", "%Y-%m-%d", None],
+            ["2015-02-29", None],
+            ["2015-02-29", "%Y-%m-%d"],
+            ["2015-02-29", "%Y-%m-%d"],
+            ["2015-04-31", "%Y-%m-%d"],
         ],
     )
-    def test_day_not_in_month_ignore(self, cache, expected, format, warning):
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            result = to_datetime(expected, errors="ignore", format=format, cache=cache)
+    def test_day_not_in_month_ignore(self, cache, expected, format):
+        result = to_datetime(expected, errors="ignore", format=format, cache=cache)
         assert result == expected
 
 
 class TestDatetimeParsingWrappers:
     @pytest.mark.parametrize(
-        "date_str, expected, warning",
+        "date_str, expected",
         [
-            ("2011-01-01", datetime(2011, 1, 1), None),
-            ("2Q2005", datetime(2005, 4, 1), UserWarning),
-            ("2Q05", datetime(2005, 4, 1), UserWarning),
-            ("2005Q1", datetime(2005, 1, 1), UserWarning),
-            ("05Q1", datetime(2005, 1, 1), UserWarning),
-            ("2011Q3", datetime(2011, 7, 1), UserWarning),
-            ("11Q3", datetime(2011, 7, 1), UserWarning),
-            ("3Q2011", datetime(2011, 7, 1), UserWarning),
-            ("3Q11", datetime(2011, 7, 1), UserWarning),
+            ("2011-01-01", datetime(2011, 1, 1)),
+            ("2Q2005", datetime(2005, 4, 1)),
+            ("2Q05", datetime(2005, 4, 1)),
+            ("2005Q1", datetime(2005, 1, 1)),
+            ("05Q1", datetime(2005, 1, 1)),
+            ("2011Q3", datetime(2011, 7, 1)),
+            ("11Q3", datetime(2011, 7, 1)),
+            ("3Q2011", datetime(2011, 7, 1)),
+            ("3Q11", datetime(2011, 7, 1)),
             # quarterly without space
-            ("2000Q4", datetime(2000, 10, 1), UserWarning),
-            ("00Q4", datetime(2000, 10, 1), UserWarning),
-            ("4Q2000", datetime(2000, 10, 1), UserWarning),
-            ("4Q00", datetime(2000, 10, 1), UserWarning),
-            ("2000q4", datetime(2000, 10, 1), UserWarning),
-            ("2000-Q4", datetime(2000, 10, 1), UserWarning),
-            ("00-Q4", datetime(2000, 10, 1), UserWarning),
-            ("4Q-2000", datetime(2000, 10, 1), UserWarning),
-            ("4Q-00", datetime(2000, 10, 1), UserWarning),
-            ("00q4", datetime(2000, 10, 1), UserWarning),
-            ("2005", datetime(2005, 1, 1), None),
-            ("2005-11", datetime(2005, 11, 1), None),
-            ("2005 11", datetime(2005, 11, 1), UserWarning),
-            ("11-2005", datetime(2005, 11, 1), UserWarning),
-            ("11 2005", datetime(2005, 11, 1), UserWarning),
-            ("200511", datetime(2020, 5, 11), UserWarning),
-            ("20051109", datetime(2005, 11, 9), None),
-            ("20051109 10:15", datetime(2005, 11, 9, 10, 15), None),
-            ("20051109 08H", datetime(2005, 11, 9, 8, 0), None),
-            ("2005-11-09 10:15", datetime(2005, 11, 9, 10, 15), None),
-            ("2005-11-09 08H", datetime(2005, 11, 9, 8, 0), None),
-            ("2005/11/09 10:15", datetime(2005, 11, 9, 10, 15), None),
-            ("2005/11/09 08H", datetime(2005, 11, 9, 8, 0), None),
-            ("Thu Sep 25 10:36:28 2003", datetime(2003, 9, 25, 10, 36, 28), None),
-            ("Thu Sep 25 2003", datetime(2003, 9, 25), None),
-            ("Sep 25 2003", datetime(2003, 9, 25), None),
-            ("January 1 2014", datetime(2014, 1, 1), None),
+            ("2000Q4", datetime(2000, 10, 1)),
+            ("00Q4", datetime(2000, 10, 1)),
+            ("4Q2000", datetime(2000, 10, 1)),
+            ("4Q00", datetime(2000, 10, 1)),
+            ("2000q4", datetime(2000, 10, 1)),
+            ("2000-Q4", datetime(2000, 10, 1)),
+            ("00-Q4", datetime(2000, 10, 1)),
+            ("4Q-2000", datetime(2000, 10, 1)),
+            ("4Q-00", datetime(2000, 10, 1)),
+            ("00q4", datetime(2000, 10, 1)),
+            ("2005", datetime(2005, 1, 1)),
+            ("2005-11", datetime(2005, 11, 1)),
+            ("2005 11", datetime(2005, 11, 1)),
+            ("11-2005", datetime(2005, 11, 1)),
+            ("11 2005", datetime(2005, 11, 1)),
+            ("200511", datetime(2020, 5, 11)),
+            ("20051109", datetime(2005, 11, 9)),
+            ("20051109 10:15", datetime(2005, 11, 9, 10, 15)),
+            ("20051109 08H", datetime(2005, 11, 9, 8, 0)),
+            ("2005-11-09 10:15", datetime(2005, 11, 9, 10, 15)),
+            ("2005-11-09 08H", datetime(2005, 11, 9, 8, 0)),
+            ("2005/11/09 10:15", datetime(2005, 11, 9, 10, 15)),
+            ("2005/11/09 08H", datetime(2005, 11, 9, 8, 0)),
+            ("Thu Sep 25 10:36:28 2003", datetime(2003, 9, 25, 10, 36, 28)),
+            ("Thu Sep 25 2003", datetime(2003, 9, 25)),
+            ("Sep 25 2003", datetime(2003, 9, 25)),
+            ("January 1 2014", datetime(2014, 1, 1)),
             # GHE10537
-            ("2014-06", datetime(2014, 6, 1), None),
-            ("06-2014", datetime(2014, 6, 1), UserWarning),
-            ("2014-6", datetime(2014, 6, 1), None),
-            ("6-2014", datetime(2014, 6, 1), UserWarning),
-            ("20010101 12", datetime(2001, 1, 1, 12), None),
-            ("20010101 1234", datetime(2001, 1, 1, 12, 34), None),
-            ("20010101 123456", datetime(2001, 1, 1, 12, 34, 56), None),
+            ("2014-06", datetime(2014, 6, 1)),
+            ("06-2014", datetime(2014, 6, 1)),
+            ("2014-6", datetime(2014, 6, 1)),
+            ("6-2014", datetime(2014, 6, 1)),
+            ("20010101 12", datetime(2001, 1, 1, 12)),
+            ("20010101 1234", datetime(2001, 1, 1, 12, 34)),
+            ("20010101 123456", datetime(2001, 1, 1, 12, 34, 56)),
         ],
     )
-    def test_parsers(self, date_str, expected, warning, cache):
+    def test_parsers(self, date_str, expected, cache):
         # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
@@ -3002,13 +2976,12 @@ class TestDatetimeParsingWrappers:
         result1, _ = parsing.parse_datetime_string_with_reso(
             date_str, yearfirst=yearfirst
         )
-        with tm.assert_produces_warning(warning, match="Could not infer format"):
-            result2 = to_datetime(date_str, yearfirst=yearfirst)
-            result3 = to_datetime([date_str], yearfirst=yearfirst)
-            # result5 is used below
-            result4 = to_datetime(
-                np.array([date_str], dtype=object), yearfirst=yearfirst, cache=cache
-            )
+        result2 = to_datetime(date_str, yearfirst=yearfirst)
+        result3 = to_datetime([date_str], yearfirst=yearfirst)
+        # result5 is used below
+        result4 = to_datetime(
+            np.array([date_str], dtype=object), yearfirst=yearfirst, cache=cache
+        )
         result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
         # result7 is used below
         result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
@@ -3117,10 +3090,9 @@ class TestDatetimeParsingWrappers:
             result2 = Timestamp(date_str)
             assert result2 == expected
 
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            result3 = to_datetime(
-                date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
-            )
+        result3 = to_datetime(
+            date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
+        )
 
         result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[0]
 
@@ -3137,9 +3109,8 @@ class TestDatetimeParsingWrappers:
         exp_now = parse(date_str)
 
         result1, _ = parsing.parse_datetime_string_with_reso(date_str)
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            result2 = to_datetime(date_str)
-            result3 = to_datetime([date_str])
+        result2 = to_datetime(date_str)
+        result3 = to_datetime([date_str])
         result4 = Timestamp(date_str)
         result5 = DatetimeIndex([date_str])[0]
         # parse time string return time string based on default date
@@ -3316,10 +3287,7 @@ class TestOrigin:
             "Unknown datetime string format, unable to parse: yesterday, at position 1"
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(["today", "yesterday"])
+            to_datetime(["today", "yesterday"])
 
     @pytest.mark.parametrize(
         "format, warning",
@@ -3333,8 +3301,7 @@ class TestOrigin:
         # see gh-23830
         msg = r"^Out of bounds nanosecond timestamp: 2417-10-10 00:00:00, at position 0"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(warning, match="Could not infer format"):
-                to_datetime("2417-10-10 00:00:00", format=format)
+            to_datetime("2417-10-10 00:00:00", format=format)
 
     @pytest.mark.parametrize(
         "arg, origin, expected_str",

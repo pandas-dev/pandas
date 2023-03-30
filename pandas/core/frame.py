@@ -865,6 +865,7 @@ class DataFrame(NDFrame, OpsMixin):
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
+
     def __dataframe__(
         self, nan_as_null: bool = False, allow_copy: bool = True
     ) -> DataFrameXchg:
@@ -1029,16 +1030,10 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows = get_option("display.max_rows")
         return len(self) <= max_rows
 
-    def _repr_fits_horizontal_(self, ignore_width: bool = False) -> bool:
+    def _repr_fits_horizontal_(self) -> bool:
         """
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
-
-        In case of non-interactive session, no boundaries apply.
-
-        `ignore_width` is here so ipynb+HTML output can behave the way
-        users expect. display.max_columns remains in effect.
-        GH3541, GH3573
         """
         width, height = console.get_console_size()
         max_columns = get_option("display.max_columns")
@@ -1046,13 +1041,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         # exceed max columns
         if (max_columns and nb_columns > max_columns) or (
-            (not ignore_width) and width and nb_columns > (width // 2)
+            width and nb_columns > (width // 2)
         ):
             return False
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or width is None or not console.in_interactive_session():
+        if width is None or not console.in_interactive_session():
             return True
 
         if get_option("display.width") is not None or console.in_ipython_frontend():
@@ -3758,18 +3753,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             elif is_mi and self.columns.is_unique and key in self.columns:
                 return self._getitem_multilevel(key)
+
         # Do we have a slicer (on rows)?
         if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            if isinstance(indexer, np.ndarray):
-                # reachable with DatetimeIndex
-                indexer = lib.maybe_indices_to_slice(
-                    indexer.astype(np.intp, copy=False), len(self)
-                )
-                if isinstance(indexer, np.ndarray):
-                    # GH#43223 If we can not convert, use take
-                    return self.take(indexer, axis=0)
-            return self._slice(indexer, axis=0)
+            return self._getitem_slice(key)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):
@@ -4935,63 +4922,6 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Reindexing and alignment
-
-    def _reindex_axes(self, axes, level, limit, tolerance, method, fill_value, copy):
-        frame = self
-
-        columns = axes["columns"]
-        if columns is not None:
-            frame = frame._reindex_columns(
-                columns, method, copy, level, fill_value, limit, tolerance
-            )
-
-        index = axes["index"]
-        if index is not None:
-            frame = frame._reindex_index(
-                index, method, copy, level, fill_value, limit, tolerance
-            )
-
-        return frame
-
-    def _reindex_index(
-        self,
-        new_index,
-        method,
-        copy: bool,
-        level: Level,
-        fill_value=np.nan,
-        limit=None,
-        tolerance=None,
-    ):
-        new_index, indexer = self.index.reindex(
-            new_index, method=method, level=level, limit=limit, tolerance=tolerance
-        )
-        return self._reindex_with_indexers(
-            {0: [new_index, indexer]},
-            copy=copy,
-            fill_value=fill_value,
-            allow_dups=False,
-        )
-
-    def _reindex_columns(
-        self,
-        new_columns,
-        method,
-        copy: bool,
-        level: Level,
-        fill_value=None,
-        limit=None,
-        tolerance=None,
-    ):
-        new_columns, indexer = self.columns.reindex(
-            new_columns, method=method, level=level, limit=limit, tolerance=tolerance
-        )
-        return self._reindex_with_indexers(
-            {1: [new_columns, indexer]},
-            copy=copy,
-            fill_value=fill_value,
-            allow_dups=False,
-        )
 
     def _reindex_multi(
         self, axes: dict[str, Index], copy: bool, fill_value
@@ -7508,7 +7438,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     _logical_method = _arith_method
 
-    def _dispatch_frame_op(self, right, func: Callable, axis: AxisInt | None = None):
+    def _dispatch_frame_op(
+        self, right, func: Callable, axis: AxisInt | None = None
+    ) -> DataFrame:
         """
         Evaluate the frame operation func(left, right) by evaluating
         column-by-column, dispatching to the Series implementation.
@@ -7673,7 +7605,7 @@ class DataFrame(NDFrame, OpsMixin):
         return False
 
     def _align_for_op(
-        self, other, axis, flex: bool | None = False, level: Level = None
+        self, other, axis: AxisInt, flex: bool | None = False, level: Level = None
     ):
         """
         Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -7682,7 +7614,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         left : DataFrame
         right : Any
-        axis : int, str, or None
+        axis : int
         flex : bool or None, default False
             Whether this is a flex op, in which case we reindex.
             None indicates not to check for alignment.
@@ -7709,7 +7641,7 @@ class DataFrame(NDFrame, OpsMixin):
                 #  datetime64[h] ndarray
                 dtype = object
 
-            if axis is not None and left._get_axis_number(axis) == 0:
+            if axis == 0:
                 if len(left.index) != len(right):
                     raise ValueError(
                         msg.format(req_len=len(left.index), given_len=len(right))
@@ -7786,8 +7718,6 @@ class DataFrame(NDFrame, OpsMixin):
                     )
         elif isinstance(right, Series):
             # axis=1 is default for DataFrame-with-Series op
-            axis = left._get_axis_number(axis) if axis is not None else 1
-
             if not flex:
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
@@ -9568,17 +9498,8 @@ class DataFrame(NDFrame, OpsMixin):
         # TODO: _shallow_copy(subset)?
         return subset[key]
 
-    _agg_summary_and_see_also_doc = dedent(
+    _agg_see_also_doc = dedent(
         """
-    The aggregation operations are always performed over an axis, either the
-    index (default) or the column axis. This behavior is different from
-    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
-    `var`), where the default is to compute the aggregation of the flattened
-    array, e.g., ``numpy.mean(arr_2d)`` as opposed to
-    ``numpy.mean(arr_2d, axis=0)``.
-
-    `agg` is an alias for `aggregate`. Use the alias.
-
     See Also
     --------
     DataFrame.apply : Perform any type of operations.
@@ -9641,7 +9562,7 @@ class DataFrame(NDFrame, OpsMixin):
         _shared_docs["aggregate"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_summary_and_see_also_doc,
+        see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
@@ -9913,6 +9834,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.replace: Replace values given in `to_replace` with `value`.
 
         Examples
         --------
@@ -9955,14 +9877,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(
                 f"na_action must be 'ignore' or None. Got {repr(na_action)}"
             )
-        ignore_na = na_action == "ignore"
+
+        if self.empty:
+            return self.copy()
+
         func = functools.partial(func, **kwargs)
 
-        # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
-            if x.empty:
-                return lib.map_infer(x, func, ignore_na=ignore_na)
-            return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
+            return x._map_values(func, na_action=na_action)
 
         return self.apply(infer).__finalize__(self, "applymap")
 
@@ -10563,6 +10485,7 @@ class DataFrame(NDFrame, OpsMixin):
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
 
             .. versionadded:: 1.1.0
 

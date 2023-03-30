@@ -1057,6 +1057,17 @@ def is_integer(obj: object) -> bool:
     return util.is_integer_object(obj)
 
 
+def is_int_or_none(obj) -> bool:
+    """
+    Return True if given object is integer or None.
+
+    Returns
+    -------
+    bool
+    """
+    return obj is None or util.is_integer_object(obj)
+
+
 def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
@@ -2428,7 +2439,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         _TSObject tsobj
-        float64_t fnan = np.nan
+        float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2797,12 +2808,9 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result,
-                                     try_float=False,
-                                     convert_datetime=False,
-                                     convert_timedelta=False)
-
-    return result
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 @cython.boundscheck(False)
@@ -2845,12 +2853,9 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result,
-                                     try_float=False,
-                                     convert_datetime=False,
-                                     convert_timedelta=False)
-
-    return result
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 def to_object_array(rows: object, min_width: int = 0) -> ndarray:
