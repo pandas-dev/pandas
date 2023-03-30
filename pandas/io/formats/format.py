@@ -740,7 +740,7 @@ class DataFrameFormatter:
             _, height = get_terminal_size()
             if self.max_rows == 0:
                 # rows available to fill with actual data
-                return height - self._get_number_of_auxillary_rows()
+                return height - self._get_number_of_auxiliary_rows()
 
             if self._is_screen_short(height):
                 max_rows = height
@@ -775,7 +775,7 @@ class DataFrameFormatter:
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
-    def _get_number_of_auxillary_rows(self) -> int:
+    def _get_number_of_auxiliary_rows(self) -> int:
         """Get number of rows occupied by prompt, dots and dimension info."""
         dot_row = 1
         prompt_row = 1
