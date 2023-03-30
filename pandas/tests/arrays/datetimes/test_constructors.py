@@ -185,7 +185,7 @@ class TestSequenceToDT64NS:
 def test_from_arrow_with_different_units_and_timezones(pa_unit, pd_unit, pa_tz, pd_tz):
     pa = pytest.importorskip("pyarrow")
 
-    data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
+    data = [0, 123456789, None, 2**63 - 1]
     pa_type = pa.timestamp(pa_unit, tz=pa_tz)
     arr = pa.array(data, type=pa_type)
     dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)

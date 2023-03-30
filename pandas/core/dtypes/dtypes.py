@@ -823,9 +823,11 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         Construct DatetimeArray from pyarrow Array/ChunkedArray.
 
-        Note: Values corresponding to the integer representation of ``NaT``
-        (e.g. one nanosecond before :attr:`pandas.Timestamp.min`) are converted
-        to ``NaT``, regardless of the null indicator in the pyarrow array.
+        Note: If the units in the pyarrow Array are the same as this
+        DatetimeDtype, then values corresponding to the integer representation
+        of ``NaT`` (e.g. one nanosecond before :attr:`pandas.Timestamp.min`)
+        are converted to ``NaT``, regardless of the null indicator in the
+        pyarrow array.
 
         Parameters
         ----------
@@ -839,40 +841,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import DatetimeArray
-        from pandas.core.arrays.arrow._arrow_utils import (
-            pyarrow_array_to_numpy_and_mask,
-        )
 
-        pa_type = array.type
-        pa_unit = "ns"
-        if pyarrow.types.is_timestamp(pa_type):
-            pa_unit = pa_type.unit
+        # Cast to desired units.
+        array = array.cast(pyarrow.timestamp(unit=self._unit), safe=False)
 
         if isinstance(array, pyarrow.Array):
-            chunks = [array]
+            np_arr = array.to_numpy(zero_copy_only=False)
         else:
-            chunks = array.chunks
+            np_arr = array.to_numpy()
 
-        np_dtype = np.dtype(f"datetime64[{self._unit}]")
-        results = []
-        for arr in chunks:
-            if arr.nbytes == 0:
-                continue
-            data, mask = pyarrow_array_to_numpy_and_mask(
-                arr, dtype=np.dtype(f"datetime64[{pa_unit}]")
-            )
-            data = data.astype(np_dtype)
-            darr = DatetimeArray(data.copy(), copy=False)
-            # error: Invalid index type "ndarray[Any, dtype[bool_]]" for
-            # "DatetimeArray"; expected type "Union[int, Sequence[int],
-            # Sequence[bool], slice]"
-            darr[~mask] = NaT  # type: ignore[index]
-            darr = darr.tz_localize(self._tz)
-            results.append(darr)
-
-        if not results:
-            return DatetimeArray(np.array([], dtype=np_dtype), dtype=self, copy=False)
-        return DatetimeArray._concat_same_type(results)
+        darr = DatetimeArray(np_arr.copy(), copy=False)
+        return darr.tz_localize(self._tz)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
