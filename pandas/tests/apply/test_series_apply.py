@@ -74,14 +74,15 @@ def test_apply_same_length_inference_bug():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_dont_convert_dtype():
-    s = Series(np.random.randn(10))
+@pytest.mark.parametrize("convert_dtype", [True, False])
+def test_apply_convert_dtype_deprecated(convert_dtype):
+    ser = Series(np.random.randn(10))
 
-    def f(x):
+    def func(x):
         return x if x > 0 else np.nan
 
-    result = s.apply(f, convert_dtype=False)
-    assert result.dtype == object
+    with tm.assert_produces_warning(FutureWarning):
+        ser.apply(func, convert_dtype=convert_dtype)
 
 
 def test_apply_args():

@@ -124,6 +124,7 @@ Deprecations
 - Deprecated the 'axis' keyword in :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.fillna`, :meth:`.GroupBy.take`, :meth:`.GroupBy.skew`, :meth:`.GroupBy.rank`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cummax`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.pct_change`, :meth:`GroupBy.diff`, :meth:`.GroupBy.shift`, and :meth:`DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or numpy array before operating instead (:issue:`51521`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
+- Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 -
 
 .. ---------------------------------------------------------------------------
