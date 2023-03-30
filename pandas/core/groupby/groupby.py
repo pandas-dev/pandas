@@ -503,23 +503,22 @@ func : function, str, list, dict or None
     - function
     - string function name
     - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-    - dict of axis labels -> functions, function names or list of such.
     - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
       output has one column for each element in ``**kwargs``. The name of the
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified. Only passing a single function is supported
-    with this engine.
-
-    If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the
-    first and second arguments respectively in the function signature.
-    Each group's index will be passed to the user defined function
-    and optionally available for use.
-
     .. versionchanged:: 1.1.0
+
+        Can also accept a Numba JIT function with
+        ``engine='numba'`` specified. Only passing a single function is supported
+        with this engine.
+
+        If the ``'numba'`` engine is chosen, the function must be
+        a user defined function with ``values`` and ``index`` as the
+        first and second arguments respectively in the function signature.
+        Each group's index will be passed to the user defined function
+        and optionally available for use.
 
     .. deprecated:: 2.1.0
 
