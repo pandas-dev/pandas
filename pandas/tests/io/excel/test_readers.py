@@ -6,6 +6,7 @@ from functools import partial
 import os
 from pathlib import Path
 import platform
+import re
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -147,6 +148,26 @@ class TestReaders:
         else:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
+
+    def test_engine_kwargs(self, read_ext, engine):
+        # GH#52214
+        expected_defaults = {
+            "xlsx": {"foo": "abcd"},
+            "xlsm": {"foo": 123},
+            "xlsb": {"foo": "True"},
+            "xls": {"foo": True},
+            "ods": {},
+        }
+
+        msg = re.escape(r"read_excel() got an unexpected keyword argument 'foo'")
+        if engine is not None and expected_defaults[read_ext[1:]]:
+            with pytest.raises(TypeError, match=msg):
+                pd.read_excel(
+                    "test1" + read_ext,
+                    sheet_name="Sheet1",
+                    index_col=0,
+                    **expected_defaults[read_ext[1:]],
+                )
 
     def test_usecols_int(self, read_ext):
         # usecols as int

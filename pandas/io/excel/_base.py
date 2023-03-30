@@ -289,6 +289,9 @@ dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFr
 
     .. versionadded:: 2.0
 
+engine_kwargs : dict
+    Arbitrary keyword arguments passed to excel engine.
+
 Returns
 -------
 DataFrame or dict of DataFrames
@@ -301,6 +304,11 @@ DataFrame.to_excel : Write DataFrame to an Excel file.
 DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+Notes
+-----
+For specific information on the methods used for each Excel engine, refer to the pandas
+user guide: :doc: `/source/user_guide/io`
 
 Examples
 --------
@@ -472,13 +480,18 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    engine_kwargs: dict = dict(),
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     check_dtype_backend(dtype_backend)
-
     should_close = False
     if not isinstance(io, ExcelFile):
         should_close = True
-        io = ExcelFile(io, storage_options=storage_options, engine=engine)
+        io = ExcelFile(
+            io,
+            storage_options=storage_options,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
@@ -520,7 +533,10 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
-        self, filepath_or_buffer, storage_options: StorageOptions = None
+        self,
+        filepath_or_buffer,
+        storage_options: StorageOptions = None,
+        **engine_kwargs,
     ) -> None:
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
@@ -540,7 +556,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
             try:
-                self.book = self.load_workbook(self.handles.handle)
+                self.book = self.load_workbook(self.handles.handle, **engine_kwargs)
             except Exception:
                 self.close()
                 raise
@@ -555,7 +571,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer, **engine_kwargs):
         pass
 
     def close(self) -> None:
@@ -1469,6 +1485,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict = dict(),
     ) -> None:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
@@ -1513,7 +1530,9 @@ class ExcelFile:
         self.engine = engine
         self.storage_options = storage_options
 
-        self._reader = self._engines[engine](self._io, storage_options=storage_options)
+        self._reader = self._engines[engine](
+            self._io, storage_options=storage_options, **engine_kwargs
+        )
 
     def __fspath__(self):
         return self._io

@@ -536,6 +536,7 @@ class OpenpyxlReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
+        **engine_kwargs,
     ) -> None:
         """
         Reader using openpyxl engine.
@@ -545,9 +546,12 @@ class OpenpyxlReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         {storage_options}
+        engine_kwargs : Arbitrary keyword arguments passed to excel engine
         """
         import_optional_dependency("openpyxl")
-        super().__init__(filepath_or_buffer, storage_options=storage_options)
+        super().__init__(
+            filepath_or_buffer, storage_options=storage_options, **engine_kwargs
+        )
 
     @property
     def _workbook_class(self):
@@ -555,11 +559,17 @@ class OpenpyxlReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
+    def load_workbook(
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], **engine_kwargs
+    ):
         from openpyxl import load_workbook
 
         return load_workbook(
-            filepath_or_buffer, read_only=True, data_only=True, keep_links=False
+            filepath_or_buffer,
+            read_only=True,
+            data_only=True,
+            keep_links=False,
+            **engine_kwargs,
         )
 
     @property

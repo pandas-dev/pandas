@@ -38,7 +38,8 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
-- Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
+- :meth:`pandas.read_excel` now supports ``engine_kwargs`` to pass keyword args to Excel engines. (:issue:`40274`).
+- Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
