@@ -291,6 +291,7 @@ class BaseArrayManager(DataManager):
                 #  convert for the Block constructors.
                 arr = np.asarray(arr)
 
+            arr = maybe_coerce_values(arr)
             if self.ndim == 2:
                 arr = ensure_block_shape(arr, 2)
                 bp = BlockPlacement(slice(0, 1, 1))
