@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Sequence,
     Sized,
     TypeVar,
     cast,
@@ -1317,7 +1318,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
 
 def common_dtype_categorical_compat(
-    objs: list[Index | ArrayLike], dtype: DtypeObj
+    objs: Sequence[Index | ArrayLike], dtype: DtypeObj
 ) -> DtypeObj:
     """
     Update the result of find_common_type to account for NAs in a Categorical.
