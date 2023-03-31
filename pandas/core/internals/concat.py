@@ -230,10 +230,12 @@ def concatenate_managers(
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
                 values = np.concatenate(vals, axis=1)
-            else:
+            elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
+            else:
+                values = concat_compat(vals, axis=1)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -541,6 +543,9 @@ class JoinUnit:
                     #  if we did, the missing_arr.fill would cast to gibberish
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
+
+                    if empty_dtype.kind in "mM":
+                        missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
                     return missing_arr
 
             if (not self.indexers) and (not self.block._can_consolidate):
