@@ -863,7 +863,13 @@ def _build_names_mapper(
 
     def get_duplicates(names):
         seen: set = set()
-        return {name for name in names if name not in seen}
+        duplicates: set = set()
+        for name in names:
+            if name not in seen:
+                seen.add(name)
+            else:
+                duplicates.add(name)
+        return duplicates
 
     shared_names = set(rownames).intersection(set(colnames))
     dup_names = get_duplicates(rownames) | get_duplicates(colnames) | shared_names
