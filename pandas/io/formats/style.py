@@ -175,7 +175,11 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
+        LaTeX-safe sequences. Use 'latex-math' to replace the characters
+        the same way as in 'latex' mode, except for math substrings,
+        which either are surrounded by two characters ``$`` or start with
+        the character ``\(`` and end with ``\)``.
+        If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
