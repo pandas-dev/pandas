@@ -1666,7 +1666,11 @@ def union_with_duplicates(
             lvals = lvals._values
         if isinstance(rvals, ABCIndex):
             rvals = rvals._values
-        unique_vals = unique(concat_compat([lvals, rvals]))
+        # error: List item 0 has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any], Index]"; expected "Union[ExtensionArray,
+        # ndarray[Any, Any]]"
+        combined = concat_compat([lvals, rvals])  # type: ignore[list-item]
+        unique_vals = unique(combined)
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
