@@ -79,7 +79,12 @@ def concat_compat(
             # e.g. DatetimeArray
             # NB: We are assuming here that ensure_wrapped_if_arraylike has
             #  been called where relevant.
-            return obj._concat_same_type(to_concat_eas, axis=axis)
+            return obj._concat_same_type(
+                # error: Unexpected keyword argument "axis" for "_concat_same_type"
+                # of "ExtensionArray"
+                to_concat_eas,
+                axis=axis,  # type: ignore[call-arg]
+            )
 
     # filter empty arrays
     # 1-d dtypes always are included here

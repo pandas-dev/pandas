@@ -506,7 +506,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # be fixed by GH#41493
         res_values = res_i8.values.view(self._data._ndarray.dtype)
         result = type(self._data)._simple_new(
-            res_values, dtype=self.dtype, freq=new_freq
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+            # "Union[dtype[datetime64], DatetimeTZDtype]"
+            res_values,
+            dtype=self.dtype,  # type: ignore[arg-type]
+            freq=new_freq,  # type: ignore[arg-type]
         )
         return cast("Self", self._wrap_setop_result(other, result))
 
