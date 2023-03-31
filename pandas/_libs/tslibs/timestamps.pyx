@@ -1015,7 +1015,7 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self.year}-" + base.split("-", 1)[1]
+        base = f"{self.year:04d}-" + base.split("-", 1)[1]
 
         if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
