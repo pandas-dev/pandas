@@ -3,9 +3,15 @@ Utility functions related to concat.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+    cast,
+)
 
 import numpy as np
+
+from pandas._libs import lib
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -26,7 +32,10 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas._typing import AxisInt
 
-    from pandas.core.arrays import Categorical
+    from pandas.core.arrays import (
+        Categorical,
+        ExtensionArray,
+    )
 
 
 def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
@@ -38,7 +47,7 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
 
     Parameters
     ----------
-    to_concat : array of arrays
+    to_concat : sequence of arrays
     axis : axis to provide concatenation
     ea_compat_axis : bool, default False
         For ExtensionArray compat, behave as if axis == 1 when determining
@@ -48,6 +57,24 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     -------
     a single array, preserving the combined dtypes
     """
+    if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
+        # fastpath!
+        obj = to_concat[0]
+        if isinstance(obj, np.ndarray):
+            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            return np.concatenate(to_concat_arrs, axis=axis)
+
+        to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+        if ea_compat_axis:
+            # We have 1D objects, that don't support axis keyword
+            return obj._concat_same_type(to_concat_eas)
+        elif axis == 0:
+            return obj._concat_same_type(to_concat_eas)
+        else:
+            # e.g. DatetimeArray
+            # NB: We are assuming here that ensure_wrapped_if_arraylike has
+            #  been called where relevant.
+            return obj._concat_same_type(to_concat_eas, axis=axis)
 
     # filter empty arrays
     # 1-d dtypes always are included here
