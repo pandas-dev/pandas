@@ -965,7 +965,7 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
 def test_raise_on_nuisance_python_single(df):
     # GH 38815
     grouped = df.groupby("A")
-    with pytest.raises(TypeError, match="could not convert"):
+    with pytest.raises(ValueError, match="could not convert"):
         grouped.skew()
 
 
@@ -1972,14 +1972,14 @@ def test_empty_groupby(
         if is_dt64 or is_cat or is_per:
             # GH#41291
             # datetime64 -> prod and sum are invalid
-            if op == "skew":
-                msg = "does not support reduction 'skew'"
-            elif is_dt64:
+            if is_dt64:
                 msg = "datetime64 type does not support"
             elif is_per:
                 msg = "Period type does not support"
             else:
                 msg = "category type does not support"
+            if op == "skew":
+                msg = "|".join([msg, "does not support reduction 'skew'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
