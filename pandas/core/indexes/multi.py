@@ -57,8 +57,6 @@ from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
-    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -67,7 +65,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -748,7 +749,7 @@ class MultiIndex(Index):
             codes = self.codes[i]
 
             vals = index
-            if is_categorical_dtype(vals.dtype):
+            if isinstance(vals.dtype, CategoricalDtype):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
@@ -2841,6 +2842,8 @@ class MultiIndex(Index):
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
+            except KeyError as err:
+                raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
                 loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
@@ -3650,7 +3653,7 @@ class MultiIndex(Index):
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             msg = "> 1 ndim Categorical are not supported at this time"
             raise NotImplementedError(msg)
         if not is_object_dtype(dtype):
@@ -3852,13 +3855,13 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     return list(zip(*result))
 
 
-def _get_na_rep(dtype) -> str:
-    if is_extension_array_dtype(dtype):
+def _get_na_rep(dtype: DtypeObj) -> str:
+    if isinstance(dtype, ExtensionDtype):
         return f"{dtype.na_value}"
     else:
-        dtype = dtype.type
+        dtype_type = dtype.type
 
-    return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
+    return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype_type, "NaN")
 
 
 def maybe_droplevels(index: Index, key) -> Index:
