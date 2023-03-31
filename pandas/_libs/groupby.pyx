@@ -49,7 +49,6 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
@@ -256,9 +255,9 @@ def group_cumprod(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -345,9 +344,9 @@ def group_cumsum(
         True if `values` contains datetime-like entries.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -615,7 +614,7 @@ def group_any_all(
         # value encountered is True
         flag_val = 1
     else:
-        raise ValueError("'bool_func' must be either 'any' or 'all'!")
+        raise ValueError("'val_test' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
 
@@ -1036,7 +1035,7 @@ def group_ohlc(
         raise NotImplementedError("Argument 'values' must have only one dimension")
 
     if int64float_t is float32_t or int64float_t is float64_t:
-        out[:] = np.nan
+        out[:] = NAN
     else:
         out[:] = 0
 

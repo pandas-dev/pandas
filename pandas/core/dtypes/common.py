@@ -1090,22 +1090,20 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     )
 
 
-def needs_i8_conversion(arr_or_dtype) -> bool:
+def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     """
-    Check whether the array or dtype should be converted to int64.
+    Check whether the dtype should be converted to int64.
 
-    An array-like or dtype "needs" such a conversion if the array-like
-    or dtype is of a datetime-like dtype
+    Dtype "needs" such a conversion if the dtype is of a datetime-like dtype
 
     Parameters
     ----------
-    arr_or_dtype : array-like or dtype
-        The array or dtype to check.
+    dtype : np.dtype, ExtensionDtype, or None
 
     Returns
     -------
     boolean
-        Whether or not the array or dtype should be converted to int64.
+        Whether or not the dtype should be converted to int64.
 
     Examples
     --------
@@ -1114,30 +1112,27 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     >>> needs_i8_conversion(np.int64)
     False
     >>> needs_i8_conversion(np.datetime64)
+    False
+    >>> needs_i8_conversion(np.dtype(np.datetime64))
     True
     >>> needs_i8_conversion(np.array(['a', 'b']))
     False
     >>> needs_i8_conversion(pd.Series([1, 2]))
     False
     >>> needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    True
+    False
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    False
+    >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
-    if arr_or_dtype is None:
-        return False
-    if isinstance(arr_or_dtype, np.dtype):
-        return arr_or_dtype.kind in ["m", "M"]
-    elif isinstance(arr_or_dtype, ExtensionDtype):
-        return isinstance(arr_or_dtype, (PeriodDtype, DatetimeTZDtype))
-
-    try:
-        dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError):
+    if dtype is None:
         return False
     if isinstance(dtype, np.dtype):
-        return dtype.kind in ["m", "M"]
-    return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
+        return dtype.kind in "mM"
+    elif isinstance(dtype, ExtensionDtype):
+        return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
+    return False
 
 
 def is_numeric_dtype(arr_or_dtype) -> bool:
@@ -1697,7 +1692,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     try:
         with warnings.catch_warnings():
             # GH#51523 - Series.astype(np.integer) doesn't show
-            # numpy deprication warning of np.integer
+            # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)
