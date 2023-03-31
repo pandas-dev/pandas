@@ -55,17 +55,19 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -800,7 +802,7 @@ class HDFStore:
         stop=None,
         columns=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -948,7 +950,7 @@ class HDFStore:
         start=None,
         stop=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -1202,7 +1204,7 @@ class HDFStore:
         columns=None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool | None = None,
         data_columns: Literal[True] | list[str] | None = None,
@@ -1734,7 +1736,7 @@ class HDFStore:
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,
@@ -2070,7 +2072,9 @@ class IndexCol:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
         factory: type[Index] | type[DatetimeIndex] = Index
-        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+        if is_datetime64_dtype(values.dtype) or isinstance(
+            values.dtype, DatetimeTZDtype
+        ):
             factory = DatetimeIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
@@ -2371,7 +2375,7 @@ class DataCol(IndexCol):
         if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
-        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
         elif is_timedelta64_dtype(dtype):
             atom = cls.get_atom_timedelta64(shape)
@@ -2924,7 +2928,7 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names)
         ):
             # write the level
-            if is_extension_array_dtype(lev):
+            if isinstance(lev.dtype, ExtensionDtype):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -3028,7 +3032,7 @@ class GenericFixed(Fixed):
         empty_array = value.size == 0
         transposed = False
 
-        if is_categorical_dtype(value.dtype):
+        if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
                 "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
@@ -3077,7 +3081,7 @@ class GenericFixed(Fixed):
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
-        elif is_datetime64tz_dtype(value.dtype):
+        elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
 
@@ -3950,7 +3954,7 @@ class Table(Fixed):
                 tz = _get_tz(data_converted.tz)
 
             meta = metadata = ordered = None
-            if is_categorical_dtype(data_converted.dtype):
+            if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
@@ -4271,7 +4275,7 @@ class AppendableTable(Table):
         complevel=None,
         fletcher32=None,
         min_itemsize=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,

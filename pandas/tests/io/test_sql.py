@@ -24,6 +24,7 @@ from datetime import (
     date,
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 from pathlib import Path
@@ -58,6 +59,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.util.version import Version
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -547,6 +549,42 @@ def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
     test_frame1.to_sql("test", conn, if_exists="append", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes(conn, request):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "int": pd.array([1], dtype="int8[pyarrow]"),
+            "datetime": pd.array(
+                [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
+            ),
+            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
+            "string": pd.array(["a"], dtype="string[pyarrow]"),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
+        df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "datetime": pd.array(
+                [datetime(2023, 1, 1), nulls_fixture], dtype="timestamp[ns][pyarrow]"
+            ),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
@@ -2360,9 +2398,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
             # TODO(GH#36465): remove this version check after GH 36465 is fixed
-            import pymysql
+            pymysql = pytest.importorskip("pymysql")
 
-            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+            if (
+                Version(pymysql.__version__) < Version("1.0.3")
+                and "infe0" in df.columns
+            ):
                 mark = pytest.mark.xfail(reason="GH 36465")
                 request.node.add_marker(mark)
 
