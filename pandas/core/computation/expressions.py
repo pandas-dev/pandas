@@ -71,9 +71,6 @@ def _evaluate_standard(op, op_str, a, b, inplace):
     """
     Standard evaluation.
     """
-    if op in _inplace_ops and not inplace:
-        # Replace with the non-inplace variant
-        op = _inplace_ops[op]
     if _TEST_MODE:
         _store_test_result(False)
     return op(a, b)
@@ -238,7 +235,7 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
     return False
 
 
-def evaluate(op, a, b, use_numexpr: bool = True):
+def evaluate(op, a, b, use_numexpr: bool = True, inplace=False):
     """
     Evaluate and return the expression of the op on a and b.
 
@@ -249,10 +246,13 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     b : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
+    inplace: bool, default False
+        Whether to do the op inplace. If False, will replace
+        inplace op with the non-inplace version of it.
     """
     op_str = _op_str_mapping[op]
-    inplace = False
-    if op in _inplace_ops:
+    inplace = inplace and op in _inplace_ops
+    if inplace:
         if is_scalar(b):
             # TODO: This is not right
             # numpy cannot do e.g. an int + float inplace
@@ -261,8 +261,13 @@ def evaluate(op, a, b, use_numexpr: bool = True):
         else:
             # Array-like
             # TODO: Be more permissive here
-            # e.g. allow upcasting smaller float/int dtypes?
+            # e.g. allow upcasting b if it is a smaller float/int dtypes?
             inplace = a.dtype == b.dtype
+
+    if op in _inplace_ops and not inplace:
+        # Replace with the non-inplace variant
+        # Don't need to change op_str since its the same for inplace/non-inplace
+        op = _inplace_ops[op]
 
     if op_str is not None:
         if use_numexpr:

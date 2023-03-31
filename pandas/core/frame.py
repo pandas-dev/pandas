@@ -7425,12 +7425,18 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op, inplace=False):
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
 
         axis: Literal[1] = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
+
+        if op in _inplace_ops and isinstance(other, DataFrame):
+            # TODO: Do this actually inplace, instead of dispatching
+            # to non-inplace version of operator
+            # Alignment is tricky to get right though
+            return self._inplace_method(other, _inplace_ops[op])
 
         self, other = self._align_for_op(other, axis, flex=True, level=None)
 
@@ -7491,9 +7497,6 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
-                if bm is self._mgr:
-                    # Inplace operation was successful
-                    return self
             return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -7505,21 +7508,38 @@ class DataFrame(NDFrame, OpsMixin):
             assert not isinstance(right, np.ndarray)
 
             with np.errstate(all="ignore"):
-                arrays = [
-                    array_op(_left, _right)
-                    for _left, _right in zip(self._iter_column_arrays(), right)
-                ]
+                if func in _inplace_ops:
+                    # TODO: _iter_column_arrays does not handle CoW
+                    for _left, _right in zip(self._iter_column_arrays(), right):
+                        array_op(_left, _right)
+                    arrays = None
+                else:
+                    arrays = [
+                        array_op(_left, _right)
+                        for _left, _right in zip(self._iter_column_arrays(), right)
+                    ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)
             right = right._values
 
             with np.errstate(all="ignore"):
-                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+                if func in _inplace_ops:
+                    # TODO: _iter_column_arrays does not handle CoW
+                    for left in self._iter_column_arrays():
+                        array_op(left, right)
+                    arrays = None
+                else:
+                    arrays = [
+                        array_op(left, right) for left in self._iter_column_arrays()
+                    ]
 
         else:
             raise NotImplementedError(right)
 
+        if arrays is None:
+            # Inplace
+            return self
         return type(self)._from_arrays(
             arrays, self.columns, self.index, verify_integrity=False
         )

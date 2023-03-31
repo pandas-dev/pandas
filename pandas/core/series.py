@@ -97,7 +97,6 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -5775,22 +5774,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name)
 
-    def _arith_method(self, other, op):
-        inplace = False
-        if op in _inplace_ops:
-            # If inplace, and the inplace op fails, e.g.
-            # mismatched dtypes with numpy, we need to do
-            # an _update_inplace call
-            inplace = True
+    def _arith_method(self, other, op, inplace=False):
+        # We need do_inplace to keep track of whether
+        # op can be done inplace (according to CoW)
+        # Still need to track inplace if it can't, since
+        # we need to "fake" it being done inplace
+        do_inplace = inplace
+        if do_inplace:
+            if using_copy_on_write():
+                do_inplace = self._mgr._has_no_reference()
 
         self, other = self._align_for_op(other)
-        res = base.IndexOpsMixin._arith_method(self, other, op, inplace)
+        res = base.IndexOpsMixin._arith_method(self, other, op, do_inplace)
         if inplace:
             if res is not self:
                 # Need to update arrays inplace with res, since the
                 # inplace operation couldn't be done directly
                 # Delete cacher
                 self._reset_cacher()
+                # TODO: the reindex call is copied from _inplace_method in
+                # generic.py. There shouldn't be any alignment issues so
+                # this should be unnecessary here, right?
                 self._update_inplace(
                     res.reindex_like(self, copy=False), verify_is_copy=False
                 )

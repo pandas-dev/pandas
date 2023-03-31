@@ -182,7 +182,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
+def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False, inplace=False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -193,8 +193,15 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     left : np.ndarray
     right : np.ndarray or scalar
         Excludes DataFrame, Series, Index, ExtensionArray.
+    op: object
+        The operator to call with left and right
     is_cmp : bool, default False
         If this a comparison operation.
+    inplace: bool, default False
+        If this operation should be done inplace. If not, if op is an inplace operator
+        e.g. iadd, it will be converted to the non-inplace version of the operator
+        (so iadd -> add).
+        This will not convert a non-inplace op to an inplace one, though.
 
     Returns
     -------
@@ -206,11 +213,12 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     """
     if isinstance(right, str):
         # can never use numexpr
+
         # TODO: Probably also need to detect mismatched dtypes here
         # since numpy will error on them if you use an inplace operator
         func = op
     else:
-        func = partial(expressions.evaluate, op)
+        func = partial(expressions.evaluate, op, inplace=inplace)
 
     try:
         result = func(left, right)
@@ -233,7 +241,7 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op):
+def arithmetic_op(left: ArrayLike, right: Any, op, inplace=False):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -247,6 +255,12 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
         Cannot be a DataFrame or Index.  Series is *not* excluded.
     op : {operator.add, operator.sub, ...}
         Or one of the reversed variants from roperator.
+    inplace: boolean, default False
+        Whether operation should be done inplace. If not, if op
+        is an inplace operator(e.g. iadd) it will be converted
+        to the non-inplace version of it (e.g. iadd -> add)
+
+        This will not convert a non-inplace op to an inplace one, though.
 
     Returns
     -------
@@ -274,7 +288,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
         # error: Argument 1 to "_na_arithmetic_op" has incompatible type
         # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
-        res_values = _na_arithmetic_op(left, right, op)  # type: ignore[arg-type]
+        res_values = _na_arithmetic_op(
+            left, right, op, inplace=inplace
+        )  # type: ignore[arg-type]
 
     return res_values
 

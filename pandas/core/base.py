@@ -1341,7 +1341,7 @@ class IndexOpsMixin(OpsMixin):
             rvalues = np.arange(rvalues.start, rvalues.stop, rvalues.step)
 
         with np.errstate(all="ignore"):
-            result = ops.arithmetic_op(lvalues, rvalues, op)
+            result = ops.arithmetic_op(lvalues, rvalues, op, inplace)
             if inplace and result is lvalues:
                 # inplace case
                 return self

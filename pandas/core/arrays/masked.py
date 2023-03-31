@@ -617,7 +617,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # expected "ndarray[Any, dtype[bool_]]")
         return mask  # type: ignore[return-value]
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op, inplace=False):
+        # TODO: Make sure inplace handled correctly here
         op_name = op.__name__
         omask = None
 

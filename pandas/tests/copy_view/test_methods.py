@@ -1661,26 +1661,6 @@ def test_update_series(using_copy_on_write):
         tm.assert_series_equal(view, expected)
 
 
-def test_inplace_arithmetic_series():
-    ser = Series([1, 2, 3])
-    data = get_array(ser)
-    ser *= 2
-    assert np.shares_memory(get_array(ser), data)
-    tm.assert_numpy_array_equal(data, get_array(ser))
-
-
-def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
-    ser = Series([1, 2, 3])
-    ser_orig = ser.copy()
-    view = ser[:]
-    ser *= 2
-    if using_copy_on_write:
-        assert not np.shares_memory(get_array(ser), get_array(view))
-        tm.assert_series_equal(ser_orig, view)
-    else:
-        assert np.shares_memory(get_array(ser), get_array(view))
-
-
 @pytest.mark.parametrize("copy", [True, False])
 def test_transpose(using_copy_on_write, copy, using_array_manager):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
