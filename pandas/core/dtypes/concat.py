@@ -3,7 +3,11 @@ Utility functions related to concat.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+    cast,
+)
 
 import numpy as np
 
@@ -26,9 +30,15 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import AxisInt
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+    )
 
-    from pandas.core.arrays import Categorical
+    from pandas.core.arrays import (
+        Categorical,
+        ExtensionArray,
+    )
 
 
 def _is_nonempty(x, axis) -> bool:
@@ -39,7 +49,9 @@ def _is_nonempty(x, axis) -> bool:
     return x.shape[axis] > 0
 
 
-def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
+def concat_compat(
+    to_concat: Sequence[ArrayLike], axis: AxisInt = 0, ea_compat_axis: bool = False
+) -> ArrayLike:
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -48,7 +60,7 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
 
     Parameters
     ----------
-    to_concat : array of arrays
+    to_concat : sequence of arrays
     axis : axis to provide concatenation
     ea_compat_axis : bool, default False
         For ExtensionArray compat, behave as if axis == 1 when determining
@@ -58,6 +70,30 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
     -------
     a single array, preserving the combined dtypes
     """
+    if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
+        # fastpath!
+        obj = to_concat[0]
+        if isinstance(obj, np.ndarray):
+            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            return np.concatenate(to_concat_arrs, axis=axis)
+
+        to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+        if ea_compat_axis:
+            # We have 1D objects, that don't support axis keyword
+            return obj._concat_same_type(to_concat_eas)
+        elif axis == 0:
+            return obj._concat_same_type(to_concat_eas)
+        else:
+            # e.g. DatetimeArray
+            # NB: We are assuming here that ensure_wrapped_if_arraylike has
+            #  been called where relevant.
+            return obj._concat_same_type(
+                # error: Unexpected keyword argument "axis" for "_concat_same_type"
+                # of "ExtensionArray"
+                to_concat_eas,
+                axis=axis,  # type: ignore[call-arg]
+            )
+
     # If all arrays are empty, there's nothing to convert, just short-cut to
     # the concatenation, #3121.
     #
@@ -95,10 +131,12 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
 
         if isinstance(to_concat[0], ABCExtensionArray):
             # TODO: what about EA-backed Index?
+            to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
             cls = type(to_concat[0])
-            return cls._concat_same_type(to_concat)
+            return cls._concat_same_type(to_concat_eas)
         else:
-            return np.concatenate(to_concat)
+            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            return np.concatenate(to_concat_arrs)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -113,7 +151,10 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
                 to_concat = [x.astype("object") for x in to_concat]
                 kinds = {"o"}
 
-    result = np.concatenate(to_concat, axis=axis)
+    # error: Argument 1 to "concatenate" has incompatible type
+    # "Sequence[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
+    # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[Any]]]]"
+    result: np.ndarray = np.concatenate(to_concat, axis=axis)  # type: ignore[arg-type]
     if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
         # GH#39817 cast to object instead of casting bools to numeric
         result = result.astype(object, copy=False)
@@ -285,21 +326,21 @@ def union_categoricals(
     return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
 
 
-def _concatenate_2d(to_concat, axis: AxisInt):
+def _concatenate_2d(to_concat: Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:
     # coerce to 2d if needed & concatenate
     if axis == 1:
         to_concat = [np.atleast_2d(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat, axis: AxisInt = 0):
+def _concat_datetime(to_concat: Sequence[ArrayLike], axis: AxisInt = 0) -> ArrayLike:
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype
 
     Parameters
     ----------
-    to_concat : array of arrays
+    to_concat : sequence of arrays
     axis : axis to provide concatenation
 
     Returns
@@ -318,5 +359,10 @@ def _concat_datetime(to_concat, axis: AxisInt = 0):
         #  in Timestamp/Timedelta
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
-    result = type(to_concat[0])._concat_same_type(to_concat, axis=axis)
+    # error: Unexpected keyword argument "axis" for "_concat_same_type" of
+    # "ExtensionArray"
+    to_concat_eas = cast("list[ExtensionArray]", to_concat)
+    result = type(to_concat_eas[0])._concat_same_type(  # type: ignore[call-arg]
+        to_concat_eas, axis=axis
+    )
     return result
