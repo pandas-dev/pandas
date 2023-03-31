@@ -78,6 +78,7 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    BlockPlacement,
     ensure_block_shape,
     external_values,
     extract_pandas_array,
@@ -292,9 +293,11 @@ class BaseArrayManager(DataManager):
 
             if self.ndim == 2:
                 arr = ensure_block_shape(arr, 2)
-                block = new_block(arr, placement=slice(0, 1, 1), ndim=2)
+                bp = BlockPlacement(slice(0, 1, 1))
+                block = new_block(arr, placement=bp, ndim=2)
             else:
-                block = new_block(arr, placement=slice(0, len(self), 1), ndim=1)
+                bp = BlockPlacement(slice(0, len(self), 1))
+                block = new_block(arr, placement=bp, ndim=1)
 
             applied = getattr(block, f)(**kwargs)
             if isinstance(applied, list):
