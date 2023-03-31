@@ -1151,8 +1151,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
+            if name not in columns:
+                if in_axis:
+                    result.insert(0, name, lev)
+                else:
+                    msg = (
+                        "A grouping was used that is not in the columns of the "
+                        "DataFrame and so was excluded from the result. This grouping "
+                        "will be included in a future version of pandas. Add the "
+                        "grouping as a column of the DataFrame to silence this warning."
+                    )
+                    warnings.warn(
+                        message=msg,
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         return result
 
