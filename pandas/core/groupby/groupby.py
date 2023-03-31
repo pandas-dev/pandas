@@ -2832,11 +2832,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # We broadcast algorithms.take_nd analogous to
                 #  np.take_along_axis
-
-                # Note: we only get here with backfill/pad,
-                #  so if we have a dtype that cannot hold NAs,
-                #  then there will be no -1s in indexer, so we can use
-                #  the original dtype (no need to ensure_dtype_can_hold_na)
                 if isinstance(values, np.ndarray):
                     dtype = values.dtype
                     if self.grouper.has_dropped_na:
@@ -2844,6 +2839,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         dtype = ensure_dtype_can_hold_na(values.dtype)
                     out = np.empty(values.shape, dtype=dtype)
                 else:
+                    # Note: we only get here with backfill/pad,
+                    #  so if we have a dtype that cannot hold NAs,
+                    #  then there will be no -1s in indexer, so we can use
+                    #  the original dtype (no need to ensure_dtype_can_hold_na)
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
                 for i, value_element in enumerate(values):
