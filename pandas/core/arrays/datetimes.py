@@ -52,12 +52,9 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
@@ -66,6 +63,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -113,7 +111,7 @@ def tz_to_dtype(tz: tzinfo | None, unit: str = "ns"):
         return DatetimeTZDtype(tz=tz, unit=unit)
 
 
-def _field_accessor(name: str, field: str, docstring=None):
+def _field_accessor(name: str, field: str, docstring: str | None = None):
     def f(self):
         values = self._local_timestamps()
 
@@ -153,7 +151,9 @@ def _field_accessor(name: str, field: str, docstring=None):
     return property(f)
 
 
-class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
@@ -697,7 +697,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "Pass e.g. 'datetime64[ns]' instead."
             )
 
-        elif is_period_dtype(dtype):
+        elif isinstance(dtype, PeriodDtype):
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
@@ -734,7 +734,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         other_tz = getattr(other, "tzinfo", None)
         other_dtype = getattr(other, "dtype", None)
 
-        if is_datetime64tz_dtype(other_dtype):
+        if isinstance(other_dtype, DatetimeTZDtype):
             # Get tzinfo from Series dtype
             other_tz = other.dtype.tz
         if other is NaT:
@@ -2075,7 +2075,7 @@ def _sequence_to_dt64ns(
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
-    if is_datetime64tz_dtype(data_dtype):
+    if isinstance(data_dtype, DatetimeTZDtype):
         # DatetimeArray -> ndarray
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
@@ -2242,14 +2242,16 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
         # GH#29794 enforcing deprecation introduced in GH#23539
         raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
-    elif is_period_dtype(data.dtype):
+    elif isinstance(data.dtype, PeriodDtype):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
         raise TypeError(
             "Passing PeriodDtype data is invalid. Use `data.to_timestamp()` instead"
         )
 
-    elif is_extension_array_dtype(data.dtype) and not is_datetime64tz_dtype(data.dtype):
+    elif isinstance(data.dtype, ExtensionDtype) and not isinstance(
+        data.dtype, DatetimeTZDtype
+    ):
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)
         copy = False

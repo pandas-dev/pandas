@@ -34,7 +34,6 @@ class Construction:
 
         # GH37371. Testing construction of string series/frames from ExtensionArrays
         self.series_cat_arr = Categorical(self.series_arr)
-        self.frame_cat_arr = Categorical(self.frame_arr)
 
     def time_series_construction(self, dtype):
         Series(self.series_arr, dtype=dtype)
@@ -53,12 +52,6 @@ class Construction:
 
     def peakmem_cat_series_construction(self, dtype):
         Series(self.series_cat_arr, dtype=dtype)
-
-    def time_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
-
-    def peakmem_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
 
 
 class Methods(Dtypes):

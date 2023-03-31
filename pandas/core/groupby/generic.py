@@ -43,12 +43,14 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
-    is_categorical_dtype,
     is_dict_like,
     is_integer_dtype,
-    is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -681,7 +683,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = self.grouper.names + [self.obj.name]
 
-        if is_categorical_dtype(val.dtype) or (
+        if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
         ):
             # scalar bins cannot be done at top level
@@ -717,7 +719,7 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
-        if is_interval_dtype(lab.dtype):
+        if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
             lab_interval = cast(Interval, lab)
 
@@ -2249,7 +2251,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
         """
