@@ -25,6 +25,7 @@ table {
 .intro-card .card-img-top {
   margin: 10px;
   height: 52px;
+  background: none !important;
 }
 
 .intro-card .card-header {
@@ -48,5 +49,5 @@ table {
 }
 
 .card, .card img {
-  background-color: transparent !important;
+  background-color: var(--pst-color-background);
 }

@@ -16,13 +16,13 @@ How do I create plots in pandas?
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/air_quality_no2.rst
 
