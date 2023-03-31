@@ -39,7 +39,7 @@ dependencies:
   - openpyxl<3.1.1
   - odfpy
   - psycopg2
-  - pyarrow
+  - pyarrow>=7.0.0
   - pymysql
   - pyreadstat
   - pytables
