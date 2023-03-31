@@ -39,12 +39,12 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -139,7 +139,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             inferable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferable
-            elif is_categorical_dtype(other.dtype):
+            elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
                 should_try = other.categories.inferred_type in inferable
 
@@ -280,7 +280,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         self,
         reso: Resolution,
         parsed: datetime,
-    ):
+    ) -> slice | npt.NDArray[np.intp]:
         """
         Parameters
         ----------
@@ -488,10 +488,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
-    def _can_range_setop(self, other):
+    def _can_range_setop(self, other) -> bool:
         return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
 
-    def _wrap_range_setop(self, other, res_i8):
+    def _wrap_range_setop(self, other, res_i8) -> Self:
         new_freq = None
         if not len(res_i8):
             # RangeIndex defaults to step=1, which we don't want.
@@ -508,16 +508,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result = type(self._data)._simple_new(
             res_values, dtype=self.dtype, freq=new_freq
         )
-        return self._wrap_setop_result(other, result)
+        return cast("Self", self._wrap_setop_result(other, result))
 
-    def _range_intersect(self, other, sort):
+    def _range_intersect(self, other, sort) -> Self:
         # Dispatch to RangeIndex intersection logic.
         left = self._as_range_index
         right = other._as_range_index
         res_i8 = left.intersection(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
-    def _range_union(self, other, sort):
+    def _range_union(self, other, sort) -> Self:
         # Dispatch to RangeIndex union logic.
         left = self._as_range_index
         right = other._as_range_index
@@ -747,7 +747,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc) -> DatetimeTimedeltaMixin:
+    def delete(self, loc) -> Self:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
@@ -771,7 +771,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Self:
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 
