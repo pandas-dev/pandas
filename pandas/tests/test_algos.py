@@ -580,7 +580,7 @@ class TestUnique:
         if any_numpy_dtype in tm.STRING_DTYPES:
             expected = expected.astype(object)
 
-        if expected.dtype.kind in ["m", "ME"]:
+        if expected.dtype.kind in ["m", "M"]:
             # We get TimedeltaArray/DatetimeArray
             assert isinstance(result, (DatetimeArray, TimedeltaArray))
             result = np.array(result)

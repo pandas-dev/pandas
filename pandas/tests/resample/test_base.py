@@ -99,7 +99,7 @@ def test_raises_on_non_datetimelike_index():
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_empty_series(freq, empty_series_dti, resample_method, request):
     # GH12771 & GH12868
 
@@ -111,7 +111,7 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
         )
 
     ser = empty_series_dti
-    if freq == "M" and isinstance(ser.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(ser.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -132,11 +132,11 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_nat_index_series(request, freq, series, resample_method):
     # GH39227
 
-    if freq == "M":
+    if freq == "ME":
         request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
 
     ser = series.copy()
@@ -157,12 +157,12 @@ def test_resample_nat_index_series(request, freq, series, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 @pytest.mark.parametrize("resample_method", ["count", "size"])
 def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
     ser = empty_series_dti
-    if freq == "M" and isinstance(ser.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(ser.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -183,12 +183,12 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
     df = empty_frame_dti
     # count retains dimensions too
-    if freq == "M" and isinstance(df.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(df.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -215,13 +215,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
     empty_frame_dti["a"] = []
 
-    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -240,13 +240,13 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
     empty_frame_dti["a"] = []
 
-    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -280,12 +280,12 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     ser = empty_series_dti
 
-    if freq == "M" and isinstance(empty_series_dti.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(empty_series_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"

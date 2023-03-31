@@ -110,7 +110,7 @@ def test_setitem_raises_type():
 
 def test_sub_period():
     arr = period_array(["2000", "2001"], freq="D")
-    other = pd.Period("2000", freq="M")
+    other = pd.Period("2000", freq="ME")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr - other
 

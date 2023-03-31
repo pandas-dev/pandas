@@ -398,7 +398,7 @@ def test_indexing_unordered():
 
 def test_indexing_unordered2():
     # diff freq
-    rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
+    rng = date_range(datetime(2005, 1, 1), periods=20, freq="ME")
     ts = Series(np.arange(len(rng)), index=rng)
     ts = ts.take(np.random.permutation(20))
 
@@ -408,7 +408,7 @@ def test_indexing_unordered2():
 
 
 def test_indexing():
-    idx = date_range("2001-1-1", periods=20, freq="M")
+    idx = date_range("2001-1-1", periods=20, freq="ME")
     ts = Series(np.random.rand(len(idx)), index=idx)
 
     # getting
