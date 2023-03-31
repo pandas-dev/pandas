@@ -23,6 +23,7 @@ from pandas._config import using_copy_on_write
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import is_iterator
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -439,8 +440,10 @@ class _Concatenator:
             # #1649
             clean_keys = []
             clean_objs = []
-            keys = list(keys)
-            objs = list(objs)
+            if is_iterator(keys):
+                keys = list(keys)
+            if is_iterator(objs):
+                objs = list(objs)
             if len(keys) != len(objs):
                 # GH#43485
                 warnings.warn(

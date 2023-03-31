@@ -787,7 +787,7 @@ def test_concat_ignore_empty_from_reindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_mismatched_keys_lenght():
+def test_concat_mismatched_keys_length():
     # GH#43485
     ser = Series(range(5))
     sers = [ser + n for n in range(4)]
@@ -798,3 +798,7 @@ def test_concat_mismatched_keys_lenght():
         concat(sers, keys=keys, axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         concat(sers, keys=keys, axis=0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=1)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=0)
