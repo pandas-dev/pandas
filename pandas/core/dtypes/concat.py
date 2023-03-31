@@ -11,6 +11,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
@@ -60,6 +62,24 @@ def concat_compat(
     -------
     a single array, preserving the combined dtypes
     """
+    if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
+        # fastpath!
+        obj = to_concat[0]
+        if isinstance(obj, np.ndarray):
+            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            return np.concatenate(to_concat_arrs, axis=axis)
+
+        to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+        if ea_compat_axis:
+            # We have 1D objects, that don't support axis keyword
+            return obj._concat_same_type(to_concat_eas)
+        elif axis == 0:
+            return obj._concat_same_type(to_concat_eas)
+        else:
+            # e.g. DatetimeArray
+            # NB: We are assuming here that ensure_wrapped_if_arraylike has
+            #  been called where relevant.
+            return obj._concat_same_type(to_concat_eas, axis=axis)
 
     # filter empty arrays
     # 1-d dtypes always are included here

@@ -3060,6 +3060,9 @@ def dtypes_all_equal(list types not None) -> bool:
     """
     first = types[0]
     for t in types[1:]:
+        if t is first:
+            # Fastpath can provide a nice boost for EADtypes
+            continue
         try:
             if not t == first:
                 return False
