@@ -109,7 +109,6 @@ if TYPE_CHECKING:
         Shape,
         SortKind,
         npt,
-        type_t,
     )
 
     from pandas import (
@@ -473,8 +472,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> Categorical:
-        return Categorical(scalars, dtype=dtype, copy=copy)
+    ) -> Self:
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -563,7 +562,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None
-    ):
+    ) -> Self:
         """
         Construct a Categorical from inferred values.
 
@@ -632,7 +631,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def from_codes(
         cls, codes, categories=None, ordered=None, dtype: Dtype | None = None
-    ) -> Categorical:
+    ) -> Self:
         """
         Make a Categorical type from codes and categories or dtype.
 
@@ -1542,8 +1541,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # "ExtensionDtype"
     @classmethod
     def _empty(  # type: ignore[override]
-        cls: type_t[Categorical], shape: Shape, dtype: CategoricalDtype
-    ) -> Categorical:
+        cls, shape: Shape, dtype: CategoricalDtype
+    ) -> Self:
         """
         Analogous to np.empty(shape, dtype=dtype)
 
