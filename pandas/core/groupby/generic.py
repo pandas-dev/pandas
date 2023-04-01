@@ -70,7 +70,8 @@ from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _agg_template,
+    _agg_template_frame,
+    _agg_template_series,
     _apply_docs,
     _transform_template,
 )
@@ -216,7 +217,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
+    @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -308,6 +309,16 @@ class SeriesGroupBy(GroupBy[Series]):
                 raise SpecificationError("nested renamer is not supported")
             else:
                 # GH#50684 - This accidentally worked in 1.x
+                msg = (
+                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
+                    "and will raise in a future version of pandas. Pass a list "
+                    "of aggregations instead."
+                )
+                warnings.warn(
+                    message=msg,
+                    category=FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
@@ -1073,14 +1084,27 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(Series.plot.__doc__)
@@ -1293,7 +1317,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     """
     )
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
+    @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -2556,14 +2580,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(DataFrame.plot.__doc__)
