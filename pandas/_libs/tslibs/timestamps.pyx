@@ -1518,12 +1518,6 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
-    def _get_list_value(cls, in_list, key, default):
-        try:
-            return in_list[key]
-        except IndexError:
-            return default
-
     def __new__(cls, *args, **kwargs):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
@@ -1550,33 +1544,30 @@ class Timestamp(_Timestamp):
             _TSObject ts
             tzinfo_type tzinfo, tzobj
 
-        invalid_args_msg = "Invalid Timestamp arguments. args: {}, kwargs: {}"
-        invalid_args_msg = invalid_args_msg.format(args, kwargs)
-
-        # Set initial defaults
-        year = month = day = hour = minute = second = microsecond = tzinfo = None
-        nanosecond = tz = unit = fold = None
-
         args_len = len(args)
 
+        # Shortcut in case we've already passed a Timestamp
+        if args_len == 1 and len(kwargs) == 0 and isinstance(args[0], _Timestamp):
+            return args[0]
+
         # Check that kwargs weren't passed as args
-        if args_len > 9:
-            raise ValueError(invalid_args_msg)
+        # if args_len > 9:
+        #     raise ValueError(invalid_args_msg)
 
         # Unpack the arguments
         # Building from positional arguments
-        if args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
-
-            year, month, day = args[0:3]
+        if 9 > args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
+            args = args + (None,) * (8 - args_len)
+            year, month, day, hour, minute, second, microsecond, tzinfo = args
 
             # Positional or keyword arguments
-            hour = cls._get_list_value(cls, args, 3, kwargs.get("hour"))
-            minute = cls._get_list_value(cls, args, 4, kwargs.get("minute"))
-            second = cls._get_list_value(cls, args, 5, kwargs.get("second"))
-            microsecond = cls._get_list_value(cls, args, 6, kwargs.get("microsecond"))
-            tzinfo = cls._get_list_value(cls, args, 7, kwargs.get("tzinfo"))
+            hour = kwargs.get("hour", hour)
+            minute = kwargs.get("minute", minute)
+            second = kwargs.get("second", second)
+            microsecond = kwargs.get("microsecond", microsecond)
+            tzinfo = kwargs.get("tzinfo", tzinfo)
         # Building from ts_input
-        elif len(args) == 1:
+        elif args_len == 1:
             if ("year" in kwargs or "month" in kwargs or "day" in kwargs or
                     "hour" in kwargs or "minute" in kwargs or "second" in kwargs or
                     "microsecond" in kwargs):
@@ -1584,6 +1575,7 @@ class Timestamp(_Timestamp):
 
             ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")
+            year = month = day = hour = minute = second = microsecond = None
         # Keywords only
         elif args_len == 0:
             ts_input = kwargs.get("ts_input", _no_input)
@@ -1596,7 +1588,9 @@ class Timestamp(_Timestamp):
             microsecond = kwargs.get("microsecond")
             tzinfo = kwargs.get("tzinfo")
         else:
-            raise ValueError(invalid_args_msg)
+            raise ValueError(
+                f"Invalid Timestamp arguments. args: {args}, kwargs: {kwargs}"
+            )
 
         # Unpack keyword-only arguments
         nanosecond = kwargs.get("nanosecond")
@@ -1646,14 +1640,7 @@ class Timestamp(_Timestamp):
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, _Timestamp) and
-                tz is None and unit is None and year is None and
-                month is None and day is None and hour is None and
-                minute is None and second is None and
-                microsecond is None and nanosecond is None and
-                tzinfo is None):
-            return ts_input
-        elif isinstance(ts_input, str):
+        if isinstance(ts_input, str):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
