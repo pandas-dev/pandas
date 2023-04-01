@@ -411,26 +411,33 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             context_manager = nullcontext()
 
-        if isinstance(selected_obj, ABCDataFrame):
-            is_non_unique_col = selected_obj.columns.duplicated().tolist()
-        else:
-            is_non_unique_col = [False]
+        is_non_unique_col = (
+            selected_obj.ndim == 2
+            and selected_obj.columns.nunique() < len(selected_obj.columns)
+        )
 
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
-                key_res = obj._gotitem(selection, ndim=1)
-                results = {key: key_res.agg(how) for key, how in arg.items()}
-            elif any(is_non_unique_col):
+                colg = obj._gotitem(selection, ndim=1)
+                results = {key: colg.agg(how) for key, how in arg.items()}
+            elif is_non_unique_col:
                 # GH#51099
-                # results is a dict of lists
-                results = {}
+                result_data = []
+                result_index = []
                 for key, how in arg.items():
-                    key_res = []
-                    for col_idx in selected_obj.columns.get_indexer_for([key]):
-                        col = selected_obj.iloc[:, col_idx]
-                        key_res.append(col.agg(how))
-                    results[key] = key_res
+                    indices = selected_obj.columns.get_indexer_for([key])
+                    labels = selected_obj.columns.take(indices)
+                    label_to_indices = defaultdict(list)
+                    for index, label in zip(indices, labels):
+                        label_to_indices[label].append(index)
+
+                    for indices in label_to_indices.values():
+                        for indice in indices:
+                            result_index.append(key)
+                            result_data.append(
+                                selected_obj._ixs(indice, axis=1).agg(how)
+                            )
             else:
                 # key used for column selection and output
                 results = {
@@ -440,7 +447,10 @@ class Apply(metaclass=abc.ABCMeta):
         keys = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
-        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+        if is_non_unique_col:
+            is_ndframe = [False]
+        else:
+            is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
 
         # combine results
         if all(is_ndframe):
@@ -478,15 +488,8 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            if any(is_non_unique_col):
-                # Expand the scalar list and construct a series.
-                series_list = []
-                for key, value in results.items():
-                    assert isinstance(value, list)
-                    series_list.append(Series(value, index=[key] * len(value)))
-
-                result = concat(series_list, axis=0)
-                result.name = name
+            if is_non_unique_col:
+                result = Series(result_data, index=result_index, name=name)
             else:
                 result = Series(results, name=name)
 
