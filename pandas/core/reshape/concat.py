@@ -621,6 +621,7 @@ class _Concatenator:
                     new_index = self.new_axes[0]
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
+
                 result = cons(mgr, name=name, fastpath=True)
                 return result.__finalize__(self, method="concat")
 
