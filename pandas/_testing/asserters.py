@@ -300,6 +300,7 @@ def assert_index_equal(
                 exact=exact,
                 check_names=check_names,
                 check_exact=check_exact,
+                check_categorical=check_categorical,
                 rtol=rtol,
                 atol=atol,
                 obj=lobj,
