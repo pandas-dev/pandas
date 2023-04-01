@@ -3457,7 +3457,7 @@ using internally.
 
 * For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
 
-* For the engine xlrd, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
 

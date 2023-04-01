@@ -159,14 +159,18 @@ class TestReaders:
             "ods": {},
         }
 
-        msg = re.escape(r"read_excel() got an unexpected keyword argument 'foo'")
+        msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
+
+        if read_ext[1:] == 'xls' or read_ext[1:] == 'xlsb':
+            msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
+
         if engine is not None and expected_defaults[read_ext[1:]]:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel(
                     "test1" + read_ext,
                     sheet_name="Sheet1",
                     index_col=0,
-                    **expected_defaults[read_ext[1:]],
+                    engine_kwargs=expected_defaults[read_ext[1:]]
                 )
 
     def test_usecols_int(self, read_ext):

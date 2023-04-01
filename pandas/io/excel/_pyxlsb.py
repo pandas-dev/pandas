@@ -24,8 +24,8 @@ class PyxlsbReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
-        **engine_kwargs,
+        engine_kwargs,
+        storage_options: StorageOptions = None
     ) -> None:
         """
         Reader using pyxlsb engine.
@@ -34,14 +34,15 @@ class PyxlsbReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
+        engine_kwargs : dict
+            Arbitrary keyword arguments passed to excel engine
         {storage_options}
-        engine_kwargs : Arbitrary keyword arguments passed to excel engine
         """
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
         super().__init__(
-            filepath_or_buffer, storage_options=storage_options, **engine_kwargs
+            filepath_or_buffer, engine_kwargs, storage_options=storage_options,
         )
 
     @property
@@ -51,7 +52,7 @@ class PyxlsbReader(BaseExcelReader):
         return Workbook
 
     def load_workbook(
-        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], **engine_kwargs
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
     ):
         from pyxlsb import open_workbook
 

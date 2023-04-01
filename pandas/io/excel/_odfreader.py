@@ -30,8 +30,8 @@ class ODFReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        engine_kwargs,
         storage_options: StorageOptions = None,
-        **engine_kwargs,
     ) -> None:
         """
         Read tables out of OpenDocument formatted files.
@@ -40,12 +40,13 @@ class ODFReader(BaseExcelReader):
         ----------
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
+        engine_kwargs : dict
+            Arbitrary keyword arguments passed to excel engine
         {storage_options}
-        engine_kwargs : Arbitrary keyword arguments passed to excel engine
         """
         import_optional_dependency("odf")
         super().__init__(
-            filepath_or_buffer, storage_options=storage_options, **engine_kwargs
+            filepath_or_buffer, engine_kwargs, storage_options=storage_options,
         )
 
     @property
@@ -55,7 +56,7 @@ class ODFReader(BaseExcelReader):
         return OpenDocument
 
     def load_workbook(
-        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], **engine_kwargs
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
     ):
         from odf.opendocument import load
 

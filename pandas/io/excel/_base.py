@@ -480,17 +480,20 @@ def read_excel(
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    engine_kwargs: dict = dict(),
+    engine_kwargs: dict | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     check_dtype_backend(dtype_backend)
     should_close = False
+    if engine_kwargs is None:
+        engine_kwargs = {}
+
     if not isinstance(io, ExcelFile):
         should_close = True
         io = ExcelFile(
             io,
+            engine_kwargs,
             storage_options=storage_options,
             engine=engine,
-            engine_kwargs=engine_kwargs,
         )
     elif engine and engine != io.engine:
         raise ValueError(
@@ -535,8 +538,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
         self,
         filepath_or_buffer,
+        engine_kwargs,
         storage_options: StorageOptions = None,
-        **engine_kwargs,
     ) -> None:
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
@@ -556,7 +559,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
             try:
-                self.book = self.load_workbook(self.handles.handle, **engine_kwargs)
+                self.book = self.load_workbook(self.handles.handle, engine_kwargs)
             except Exception:
                 self.close()
                 raise
@@ -1483,9 +1486,9 @@ class ExcelFile:
     def __init__(
         self,
         path_or_buffer,
+        engine_kwargs,
         engine: str | None = None,
         storage_options: StorageOptions = None,
-        engine_kwargs: dict = dict(),
     ) -> None:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
@@ -1531,7 +1534,7 @@ class ExcelFile:
         self.storage_options = storage_options
 
         self._reader = self._engines[engine](
-            self._io, storage_options=storage_options, **engine_kwargs
+            self._io, engine_kwargs, storage_options=storage_options,
         )
 
     def __fspath__(self):
