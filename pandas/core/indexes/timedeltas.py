@@ -246,7 +246,7 @@ def timedelta_range(
         Right bound for generating timedeltas.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'.
     name : str, default None
         Name of the resulting TimedeltaIndex.
