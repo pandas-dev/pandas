@@ -2137,13 +2137,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
         res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
-        ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+        ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
         assert sql.to_sql(df, "test_time3", self.conn, index=False) == 2
         if self.flavor == "sqlite":
             res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
-            ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(ref, res)
         res = sql.read_sql_table("test_time3", self.conn)
         tm.assert_frame_equal(df, res)
@@ -2951,7 +2951,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
-            expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(res, expected)
 
     def _get_index_columns(self, tbl_name):

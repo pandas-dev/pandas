@@ -131,7 +131,7 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
