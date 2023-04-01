@@ -97,6 +97,9 @@ class Foo:
     def method(self):
         raise AbstractMethodError(self)
 
+    def unknownmethod(self):
+        raise AbstractMethodError(self, methodtype="unknownmethod")
+
 
 def test_AbstractMethodError_classmethod():
     xpr = "This classmethod must be defined in the concrete class Foo"
