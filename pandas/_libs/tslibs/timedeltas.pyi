@@ -1,8 +1,6 @@
 from datetime import timedelta
 from typing import (
     ClassVar,
-    Literal,
-    TypeVar,
     overload,
 )
 
@@ -19,50 +17,8 @@ from pandas._typing import (
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs
 # in pandas/_libs/tslibs/timedeltas.pyx
-UnitChoices = Literal[
-    "Y",
-    "y",
-    "M",
-    "W",
-    "w",
-    "D",
-    "d",
-    "days",
-    "day",
-    "hours",
-    "hour",
-    "hr",
-    "h",
-    "m",
-    "minute",
-    "min",
-    "minutes",
-    "t",
-    "s",
-    "seconds",
-    "sec",
-    "second",
-    "ms",
-    "milliseconds",
-    "millisecond",
-    "milli",
-    "millis",
-    "l",
-    "us",
-    "microseconds",
-    "microsecond",
-    "µs",
-    "micro",
-    "micros",
-    "u",
-    "ns",
-    "nanoseconds",
-    "nano",
-    "nanos",
-    "nanosecond",
-    "n",
-]
-_S = TypeVar("_S", bound=timedelta)
+UnitChoices = ...
+_S = ...
 
 def ints_to_pytimedelta(
     arr: npt.NDArray[np.timedelta64],

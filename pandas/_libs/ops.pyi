@@ -1,6 +1,4 @@
 from typing import (
-    Any,
-    Callable,
     Iterable,
     Literal,
     overload,
@@ -10,8 +8,8 @@ import numpy as np
 
 from pandas._typing import npt
 
-_BinOp = Callable[[Any, Any], Any]
-_BoolOp = Callable[[Any, Any], bool]
+_BinOp = ...
+_BoolOp = ...
 
 def scalar_compare(
     values: np.ndarray,  # object[:]

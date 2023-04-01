@@ -1,11 +1,6 @@
-from typing import (
-    Generic,
-    TypeVar,
-)
+from typing import Generic
 
-from pandas.core.indexing import IndexingMixin
-
-_IndexingMixinT = TypeVar("_IndexingMixinT", bound=IndexingMixin)
+_IndexingMixinT = ...
 
 class NDFrameIndexerBase(Generic[_IndexingMixinT]):
     name: str

@@ -1,18 +1,12 @@
-from datetime import (
-    datetime,
-    timedelta,
-    tzinfo as _tzinfo,
-)
+from datetime import tzinfo as _tzinfo
 
 import numpy as np
-
-from pandas._libs.tslibs.period import Period
 
 NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-_NaTComparisonTypes = datetime | timedelta | Period | np.datetime64 | np.timedelta64
+_NaTComparisonTypes = ...
 
 class _NatComparison:
     def __call__(self, other: _NaTComparisonTypes) -> bool: ...
