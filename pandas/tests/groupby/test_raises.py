@@ -143,8 +143,14 @@ def test_groupby_raises_string(
         "ffill": (None, ""),
         "fillna": (None, ""),
         "first": (None, ""),
-        "idxmax": (TypeError, "'argmax' not allowed for this dtype"),
-        "idxmin": (TypeError, "'argmin' not allowed for this dtype"),
+        "idxmax": (
+            TypeError,
+            "reduction operation 'argmax' not allowed for this dtype",
+        ),
+        "idxmin": (
+            TypeError,
+            "reduction operation 'argmin' not allowed for this dtype",
+        ),
         "last": (None, ""),
         "max": (None, ""),
         "mean": (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),

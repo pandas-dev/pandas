@@ -1819,6 +1819,70 @@ def group_min(
     )
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_argmin_argmax(
+    int64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[numeric_t, ndim=2] values,
+    const intp_t[::1] labels,
+    bint is_datetimelike=False,
+    const uint8_t[:, ::1] mask=None,
+    str name="argmin",
+    Py_ssize_t min_count=-1,
+    uint8_t[:, ::1] result_mask=None  # ignored for now!
+):
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        numeric_t val
+        numeric_t[:, ::1] group_min_or_max
+        int64_t[:, ::1] nobs
+        bint uses_mask = mask is not None
+        bint isna_entry
+        bint compute_max = name == "argmax"
+
+    assert min_count == -1, "'min_count' only used in sum and prod"
+
+    # TODO(cython3):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
+        raise AssertionError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    group_min_or_max = np.empty((<object>out).shape, dtype=(<object>values).dtype)
+    group_min_or_max[:] = _get_min_or_max(<numeric_t>0, compute_max, is_datetimelike)
+    out[:] = -1
+
+    N, K = (<object>values).shape
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
+
+                if not isna_entry:
+                    nobs[lab, j] += 1
+                    if compute_max:
+                        if val > group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+                    else:
+                        if val < group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef group_cummin_max(

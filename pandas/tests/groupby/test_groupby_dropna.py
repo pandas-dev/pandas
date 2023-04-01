@@ -565,6 +565,7 @@ def test_categorical_reducers(
         else:
             values = [(np.nan, np.nan) if e == (4, 4) else e for e in values]
         expected["y"] = values
+        expected["y"] = expected["y"].astype(df.index.dtype)
     if reduction_func == "size":
         # size, unlike other methods, has the desired behavior in GH#49519
         expected = expected.rename(columns={0: "size"})

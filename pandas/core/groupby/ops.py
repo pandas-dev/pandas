@@ -118,7 +118,7 @@ class WrappedCythonOp:
     # Functions for which we do _not_ attempt to cast the cython result
     #  back to the original dtype.
     cast_blocklist = frozenset(
-        ["any", "all", "rank", "count", "size", "idxmin", "idxmax"]
+        ["any", "all", "rank", "count", "size", "idxmin", "idxmax", "argmin", "argmax"]
     )
 
     def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
@@ -143,6 +143,8 @@ class WrappedCythonOp:
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
+            "argmin": functools.partial(libgroupby.group_argmin_argmax, name="argmin"),
+            "argmax": functools.partial(libgroupby.group_argmin_argmax, name="argmax"),
         },
         "transform": {
             "cumprod": "group_cumprod",
@@ -176,6 +178,13 @@ class WrappedCythonOp:
         elif dtype == np.dtype(object):
             if how in ["median", "cumprod"]:
                 # no fused types -> no __signatures__
+                raise NotImplementedError(
+                    f"function is not implemented for this dtype: "
+                    f"[how->{how},dtype->{dtype_str}]"
+                )
+            elif how in ["argmin", "argmax"]:
+                # We have a partial object that does not have __signatures__
+                # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
@@ -263,7 +272,17 @@ class WrappedCythonOp:
                 #  don't go down a group-by-group path, since in the empty-groups
                 #  case that would fail to raise
                 raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-            if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
+            if how not in [
+                "rank",
+                "any",
+                "all",
+                "first",
+                "last",
+                "min",
+                "max",
+                "argmin",
+                "argmax",
+            ]:
                 if self.kind == "transform":
                     raise TypeError(f"{dtype} type does not support {how} operations")
                 raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
@@ -323,7 +342,9 @@ class WrappedCythonOp:
     def _get_out_dtype(self, dtype: np.dtype) -> np.dtype:
         how = self.how
 
-        if how == "rank":
+        if how in ["argmax", "argmin"]:
+            out_dtype = "int64"
+        elif how == "rank":
             out_dtype = "float64"
         else:
             if is_numeric_dtype(dtype):
@@ -381,7 +402,17 @@ class WrappedCythonOp:
             )
 
         elif isinstance(values, Categorical):
-            assert self.how in ["rank", "any", "all", "first", "last", "min", "max"]
+            assert self.how in [
+                "rank",
+                "any",
+                "all",
+                "first",
+                "last",
+                "min",
+                "max",
+                "argmin",
+                "argmax",
+            ]
             mask = values.isna()
             if self.how == "rank":
                 assert values.ordered  # checked earlier
@@ -613,7 +644,16 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean", "last", "first", "sum"]:
+            if self.how in [
+                "min",
+                "max",
+                "mean",
+                "last",
+                "first",
+                "sum",
+                "argmin",
+                "argmax",
+            ]:
                 func(
                     out=result,
                     counts=counts,
@@ -686,6 +726,10 @@ class WrappedCythonOp:
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
+                    if self.how in ["argmin", "argmax"]:
+                        raise ValueError(
+                            f"attempt to get {self.how} of an empty sequence"
+                        )
                     if result_mask is not None:
                         assert result_mask[empty_groups].all()
                     else:

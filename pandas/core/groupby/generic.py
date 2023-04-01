@@ -1138,6 +1138,25 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmin(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
+        if axis is lib.no_default:
+            alt = lambda x: Series(x).argmin(skipna=skipna)
+            with com.temp_setattr(self, "observed", True):
+                argmin = self._cython_agg_general("argmin", alt=alt, skipna=skipna)
+
+            obj = self._obj_with_exclusions
+            res_col = obj.index.take(argmin._values)
+            if argmin.ndim == 1:
+                argmin = argmin._constructor(
+                    res_col, index=argmin.index, name=argmin.name
+                )
+            else:
+                argmin = argmin._constructor(
+                    res_col, index=argmin.index, columns=argmin.columns
+                )
+            res = self._wrap_agged_manager(argmin._mgr)
+            out = self._wrap_aggregated_output(res)
+            return out
+
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
@@ -1145,6 +1164,25 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmax(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
+        if axis is lib.no_default:
+            alt = lambda x: Series(x).argmax(skipna=skipna)
+            with com.temp_setattr(self, "observed", True):
+                argmax = self._cython_agg_general("argmax", alt=alt, skipna=skipna)
+
+            obj = self._obj_with_exclusions
+            res_col = obj.index.take(argmax._values)
+            if argmax.ndim == 1:
+                argmax = argmax._constructor(
+                    res_col, index=argmax.index, name=argmax.name
+                )
+            else:
+                argmax = argmax._constructor(
+                    res_col, index=argmax.index, columns=argmax.columns
+                )
+            res = self._wrap_agged_manager(argmax._mgr)
+            out = self._wrap_aggregated_output(res)
+            return out
+
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
@@ -2042,6 +2080,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
+        if self.axis == 0 and axis is lib.no_default:
+            alt = lambda x: Series(x).argmax(skipna=skipna)
+            with com.temp_setattr(self, "observed", True):
+                argmax = self._cython_agg_general(
+                    "argmax", alt=alt, skipna=skipna, numeric_only=numeric_only
+                )
+
+            obj = self._obj_with_exclusions
+            for i in range(argmax.shape[1]):
+                res_col = obj.index.take(argmax.iloc[:, i]._values)
+                argmax.isetitem(i, res_col)
+
+            res = self._wrap_agged_manager(argmax._mgr)
+            out = self._wrap_aggregated_output(res)
+            return out
+
         if axis is not lib.no_default:
             if axis is None:
                 axis = self.axis
@@ -2057,6 +2111,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = self._python_apply_general(
             func, self._obj_with_exclusions, not_indexed_same=True
         )
+
         return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
@@ -2137,6 +2192,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
+        if self.axis == 0 and axis is lib.no_default:
+            alt = lambda x: Series(x).argmin(skipna=skipna)
+            with com.temp_setattr(self, "observed", True):
+                argmin = self._cython_agg_general(
+                    "argmin", alt=alt, skipna=skipna, numeric_only=numeric_only
+                )
+
+            obj = self._obj_with_exclusions
+            for i in range(argmin.shape[1]):
+                res_col = obj.index.take(argmin.iloc[:, i]._values)
+                argmin.isetitem(i, res_col)
+
+            res = self._wrap_agged_manager(argmin._mgr)
+            out = self._wrap_aggregated_output(res)
+            return out
+
         if axis is not lib.no_default:
             if axis is None:
                 axis = self.axis

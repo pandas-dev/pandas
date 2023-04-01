@@ -1860,6 +1860,12 @@ def test_category_order_reducer(
     op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
+    elif reduction_func in ["idxmax", "idxmin"]:
+        # We don't expect to get Categorical back
+        exp = {
+            key: getattr(gb.get_group(key), reduction_func)(*args) for key in gb.groups
+        }
+        pd.concat(exp, axis=1)
     else:
         result = op_result["a"].cat.categories
     expected = Index([1, 4, 3, 2])
