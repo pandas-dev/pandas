@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test-arm:
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
       ENV_FILE: ci/deps/circle-38-arm64.yaml
@@ -23,7 +23,7 @@ jobs:
       cibw-build:
         type: string
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
       ENV_FILE: ci/deps/circle-38-arm64.yaml
@@ -48,7 +48,7 @@ jobs:
       - run:
           name: Build aarch64 wheels
           command: |
-            pip3 install cibuildwheel==2.9.0
+            pip3 install cibuildwheel==2.12.1
             cibuildwheel --output-dir wheelhouse
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
@@ -57,7 +57,7 @@ jobs:
           name: Install Anaconda Client & Upload Wheels
           command: |
             echo "Install Mambaforge"
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/23.1.0-0/Mambaforge-23.1.0-0-Linux-aarch64.sh"
             echo "Downloading $MAMBA_URL"
             wget -q $MAMBA_URL -O minimamba.sh
             chmod +x minimamba.sh
