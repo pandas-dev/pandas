@@ -1999,7 +1999,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_date(self):
-        return type(self)(self._data.cast(pa.date64()))
+        return type(self)(self._data.cast(pa.date32()))
 
     @property
     def _dt_time(self):
