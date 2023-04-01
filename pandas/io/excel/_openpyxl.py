@@ -546,12 +546,14 @@ class OpenpyxlReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         engine_kwargs : dict
-            Arbitrary keyword arguments passed to excel engine
+            Arbitrary keyword arguments passed to excel engine.
         {storage_options}
         """
         import_optional_dependency("openpyxl")
         super().__init__(
-            filepath_or_buffer, engine_kwargs, storage_options=storage_options,
+            filepath_or_buffer,
+            engine_kwargs,
+            storage_options=storage_options,
         )
 
     @property

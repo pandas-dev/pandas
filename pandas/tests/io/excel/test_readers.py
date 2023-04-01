@@ -161,7 +161,7 @@ class TestReaders:
 
         msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
 
-        if read_ext[1:] == 'xls' or read_ext[1:] == 'xlsb':
+        if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
             msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
 
         if engine is not None and expected_defaults[read_ext[1:]]:
@@ -170,7 +170,7 @@ class TestReaders:
                     "test1" + read_ext,
                     sheet_name="Sheet1",
                     index_col=0,
-                    engine_kwargs=expected_defaults[read_ext[1:]]
+                    engine_kwargs=expected_defaults[read_ext[1:]],
                 )
 
     def test_usecols_int(self, read_ext):

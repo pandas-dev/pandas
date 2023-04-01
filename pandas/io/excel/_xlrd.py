@@ -35,13 +35,15 @@ class XlrdReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         engine_kwargs : dict
-            Arbitrary keyword arguments passed to excel engine
+            Arbitrary keyword arguments passed to excel engine.
         {storage_options}
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
         super().__init__(
-            filepath_or_buffer, engine_kwargs, storage_options=storage_options,
+            filepath_or_buffer,
+            engine_kwargs,
+            storage_options=storage_options,
         )
 
     @property

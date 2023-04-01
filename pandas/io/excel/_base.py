@@ -1435,6 +1435,8 @@ class ExcelFile:
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
+    engine_kwargs: dict
+        Arbitrary keyword arguments passed to excel engine.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
@@ -1534,7 +1536,9 @@ class ExcelFile:
         self.storage_options = storage_options
 
         self._reader = self._engines[engine](
-            self._io, engine_kwargs, storage_options=storage_options,
+            self._io,
+            engine_kwargs,
+            storage_options=storage_options,
         )
 
     def __fspath__(self):
