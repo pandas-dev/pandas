@@ -11,8 +11,12 @@ on:
       - 2.0.x
 
 env:
+  COVERAGE: true
   ENV_FILE: environment.yml
   PANDAS_CI: 1
+  PYTEST_TARGET: pandas
+  PYTEST_WORKERS: 'auto'
+  PATTERN: "not slow and not db and not network and not single_cpu"
 
 permissions:
   contents: read
@@ -159,6 +163,12 @@ jobs:
 
       - name: Show environment
         run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
+
+      - name: Install requirements-dev.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Test
+        uses: ./.github/actions/run-tests
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
