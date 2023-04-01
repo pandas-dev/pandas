@@ -96,7 +96,7 @@ class TestDatetimeIndexOps:
         "freq, error_msg",
         [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ],
     )
@@ -133,9 +133,9 @@ class TestDatetimeIndexOps:
 
         msg = "<MonthEnd> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
-            rng.round(freq="M")
+            rng.round(freq="ME")
         with pytest.raises(ValueError, match=msg):
-            elt.round(freq="M")
+            elt.round(freq="ME")
 
         # GH#14440 & GH#15578
         index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz)

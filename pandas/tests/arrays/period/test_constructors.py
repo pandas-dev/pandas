@@ -51,8 +51,8 @@ def test_period_array_readonly_object():
 def test_from_datetime64_freq_changes():
     # https://github.com/pandas-dev/pandas/issues/23438
     arr = pd.date_range("2017", periods=3, freq="D")
-    result = PeriodArray._from_datetime64(arr, freq="M")
-    expected = period_array(["2017-01-01", "2017-01-01", "2017-01-01"], freq="M")
+    result = PeriodArray._from_datetime64(arr, freq="ME")
+    expected = period_array(["2017-01-01", "2017-01-01", "2017-01-01"], freq="ME")
     tm.assert_period_array_equal(result, expected)
 
 
@@ -81,7 +81,7 @@ def test_period_array_non_period_series_raies():
 def test_period_array_freq_mismatch():
     arr = period_array(["2000", "2001"], freq="D")
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, freq="M")
+        PeriodArray(arr, freq="ME")
 
     with pytest.raises(IncompatibleFrequency, match="freq"):
         PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
