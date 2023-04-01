@@ -289,7 +289,7 @@ dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFr
 
     .. versionadded:: 2.0
 
-engine_kwargs : dict
+engine_kwargs : dict, default None
     Arbitrary keyword arguments passed to excel engine.
 
 Returns
@@ -491,9 +491,9 @@ def read_excel(
         should_close = True
         io = ExcelFile(
             io,
-            engine_kwargs,
             storage_options=storage_options,
             engine=engine,
+            engine_kwargs=engine_kwargs,
         )
     elif engine and engine != io.engine:
         raise ValueError(
@@ -538,9 +538,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
         self,
         filepath_or_buffer,
-        engine_kwargs,
         storage_options: StorageOptions = None,
+        engine_kwargs: None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
@@ -1435,8 +1438,6 @@ class ExcelFile:
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
-    engine_kwargs: dict
-        Arbitrary keyword arguments passed to excel engine.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
@@ -1471,6 +1472,8 @@ class ExcelFile:
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.
+    engine_kwargs: dict, default None
+        Arbitrary keyword arguments passed to excel engine.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1488,10 +1491,13 @@ class ExcelFile:
     def __init__(
         self,
         path_or_buffer,
-        engine_kwargs,
         engine: str | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
@@ -1537,8 +1543,8 @@ class ExcelFile:
 
         self._reader = self._engines[engine](
             self._io,
-            engine_kwargs,
             storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
     def __fspath__(self):
