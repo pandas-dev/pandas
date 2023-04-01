@@ -577,7 +577,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer, **engine_kwargs):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs):
         pass
 
     def close(self) -> None:
