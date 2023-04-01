@@ -374,10 +374,10 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
 @pytest.mark.parametrize(
     "fill_value",
     [
-        pd.Timestamp("now"),
-        np.datetime64("now"),
-        datetime.datetime.now(),
-        datetime.date.today(),
+        pd.Timestamp(2023, 1, 1),
+        np.datetime64("2023-01-01"),
+        datetime.datetime(2023, 1, 1),
+        datetime.date(2023, 1, 1),
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
@@ -420,7 +420,7 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value, request):
+def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value):
     dtype = np.dtype(any_numpy_dtype)
 
     # filling anything but timedelta with timedelta casts to object

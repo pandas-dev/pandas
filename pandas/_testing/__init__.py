@@ -177,6 +177,23 @@ NARROW_NP_DTYPES = [
     np.uint32,
 ]
 
+PYTHON_DATA_TYPES = [
+    str,
+    int,
+    float,
+    complex,
+    list,
+    tuple,
+    range,
+    dict,
+    set,
+    frozenset,
+    bool,
+    bytes,
+    bytearray,
+    memoryview,
+]
+
 ENDIAN = {"little": "<", "big": ">"}[byteorder]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
@@ -1028,8 +1045,8 @@ def shares_memory(left, right) -> bool:
         left = cast("ArrowExtensionArray", left)
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
             right = cast("ArrowExtensionArray", right)
-            left_pa_data = left._data
-            right_pa_data = right._data
+            left_pa_data = left._pa_array
+            right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1

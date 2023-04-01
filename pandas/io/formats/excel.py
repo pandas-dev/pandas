@@ -52,9 +52,13 @@ from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        FilePath,
         IndexLabel,
         StorageOptions,
+        WriteExcelBuffer,
     )
+
+    from pandas import ExcelWriter
 
 
 class ExcelCell:
@@ -446,7 +450,7 @@ class CSSToExcelConverter:
             return size
         return self._pt_to_float(size)
 
-    def _select_font_family(self, font_names) -> int | None:
+    def _select_font_family(self, font_names: Sequence[str]) -> int | None:
         family = None
         for name in font_names:
             family = self.FAMILY_MAP.get(name)
@@ -890,7 +894,7 @@ class ExcelFormatter:
     @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
-        writer,
+        writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,

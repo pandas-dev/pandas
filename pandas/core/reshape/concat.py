@@ -71,7 +71,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -88,7 +88,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -105,7 +105,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -122,7 +122,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -139,7 +139,7 @@ def concat(
     ignore_index: bool = ...,
     keys=...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -155,7 +155,7 @@ def concat(
     ignore_index: bool = False,
     keys=None,
     levels=None,
-    names=None,
+    names: list[HashableT] | None = None,
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool | None = None,
@@ -367,6 +367,8 @@ def concat(
             copy = False
         else:
             copy = True
+    elif copy and using_copy_on_write():
+        copy = False
 
     op = _Concatenator(
         objs,
@@ -389,6 +391,8 @@ class _Concatenator:
     Orchestrates a concatenation operation for BlockManagers
     """
 
+    sort: bool
+
     def __init__(
         self,
         objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
@@ -396,7 +400,7 @@ class _Concatenator:
         join: str = "outer",
         keys=None,
         levels=None,
-        names=None,
+        names: list[HashableT] | None = None,
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
@@ -476,9 +480,7 @@ class _Concatenator:
         else:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
-            non_empties = [
-                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)
-            ]
+            non_empties = [obj for obj in objs if sum(obj.shape) > 0 or obj.ndim == 1]
 
             if len(non_empties) and (
                 keys is None and names is None and levels is None and not self.intersect
@@ -491,19 +493,21 @@ class _Concatenator:
         self.objs = objs
 
         # Standardize axis parameter to int
-        if isinstance(sample, ABCSeries):
+        if sample.ndim == 1:
             from pandas import DataFrame
 
             axis = DataFrame._get_axis_number(axis)
+            self._is_frame = False
+            self._is_series = True
         else:
             axis = sample._get_axis_number(axis)
+            self._is_frame = True
+            self._is_series = False
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = sample._get_block_manager_axis(axis)
 
-        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
                 f"axis must be between 0 and {sample.ndim}, input was {axis}"
@@ -553,7 +557,9 @@ class _Concatenator:
             raise ValueError(
                 f"The 'sort' keyword only accepts boolean values; {sort} was passed."
             )
-        self.sort = sort
+        # Incompatible types in assignment (expression has type "Union[bool, bool_]",
+        # variable has type "bool")
+        self.sort = sort  # type: ignore[assignment]
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
@@ -577,7 +583,8 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
-                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                mgr = type(sample._mgr).from_array(res, index=self.new_axes[0])
+                result = cons(mgr, name=name, fastpath=True)
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -660,7 +667,7 @@ class _Concatenator:
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, ABCSeries):
+                    if x.ndim != 1:
                         raise TypeError(
                             f"Cannot concatenate type 'Series' with "
                             f"object of type '{type(x).__name__}'"

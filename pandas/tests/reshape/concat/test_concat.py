@@ -59,8 +59,12 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for arr in result._mgr.arrays:
-            assert arr.base is None
+        if not using_copy_on_write:
+            for arr in result._mgr.arrays:
+                assert arr.base is None
+        else:
+            for arr in result._mgr.arrays:
+                assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -334,7 +338,7 @@ class TestConcatenate:
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_coerceion(self):
+    def test_dtype_coercion(self):
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 

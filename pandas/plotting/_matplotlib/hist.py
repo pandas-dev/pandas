@@ -7,8 +7,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PlottingOrientation
-
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -41,6 +39,8 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+
+    from pandas._typing import PlottingOrientation
 
     from pandas import DataFrame
 
@@ -269,7 +269,7 @@ def _grouped_plot(
     column=None,
     by=None,
     numeric_only: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     sharex: bool = True,
     sharey: bool = True,
     layout=None,
@@ -277,7 +277,9 @@ def _grouped_plot(
     ax=None,
     **kwargs,
 ):
-    if figsize == "default":
+    # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
+    # float]]", right operand type: "Literal['default']")
+    if figsize == "default":  # type: ignore[comparison-overlap]
         # allowed to specify mpl default with 'default'
         raise ValueError(
             "figsize='default' is no longer supported. "
@@ -311,15 +313,15 @@ def _grouped_hist(
     by=None,
     ax=None,
     bins: int = 50,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = False,
     rot: float = 90,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
     legend: bool = False,
     **kwargs,
@@ -392,11 +394,11 @@ def hist_series(
     by=None,
     ax=None,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     bins: int = 10,
     legend: bool = False,
     **kwds,
@@ -464,14 +466,14 @@ def hist_frame(
     column=None,
     by=None,
     grid: bool = True,
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
     ax=None,
     sharex: bool = False,
     sharey: bool = False,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     bins: int = 10,
     legend: bool = False,

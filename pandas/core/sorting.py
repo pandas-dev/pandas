@@ -20,15 +20,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import (
-    AxisInt,
-    IndexKeyFunc,
-    Level,
-    NaPosition,
-    Shape,
-    SortKind,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -44,6 +35,16 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        IndexKeyFunc,
+        Level,
+        NaPosition,
+        Shape,
+        SortKind,
+        npt,
+    )
+
     from pandas import MultiIndex
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
@@ -152,7 +153,7 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)

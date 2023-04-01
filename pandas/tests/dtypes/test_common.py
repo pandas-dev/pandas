@@ -518,9 +518,12 @@ def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(pd.Series([1, 2]))
     assert not com.needs_i8_conversion(np.array(["a", "b"]))
 
-    assert com.needs_i8_conversion(np.datetime64)
-    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert not com.needs_i8_conversion(np.datetime64)
+    assert com.needs_i8_conversion(np.dtype(np.datetime64))
+    assert not com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]").dtype)
+    assert not com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern").dtype)
 
 
 def test_is_numeric_dtype():
@@ -754,3 +757,13 @@ def test_validate_allhashable():
 
     with pytest.raises(TypeError, match="list must be a hashable type"):
         com.validate_all_hashable([], error_name="list")
+
+
+def test_pandas_dtype_numpy_warning():
+    # GH#51523
+    with tm.assert_produces_warning(
+        DeprecationWarning,
+        check_stacklevel=False,
+        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
+    ):
+        pandas_dtype(np.integer)

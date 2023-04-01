@@ -26,6 +26,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -174,7 +176,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         other_name="PeriodArray",
         **_shared_doc_kwargs,
     )
-    def asfreq(self, freq=None, how: str = "E") -> PeriodIndex:
+    def asfreq(self, freq=None, how: str = "E") -> Self:
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -210,7 +212,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         copy: bool = False,
         name: Hashable = None,
         **fields,
-    ) -> PeriodIndex:
+    ) -> Self:
         valid_field_set = {
             "year",
             "month",
@@ -220,6 +222,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "minute",
             "second",
         }
+
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
 
         if not set(fields).issubset(valid_field_set):
             argument = list(set(fields) - valid_field_set)[0]
@@ -261,13 +267,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if copy:
             data = data.copy()
 
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=name, refs=refs)
 
     # ------------------------------------------------------------------------
     # Data
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> npt.NDArray[np.object_]:
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
@@ -298,9 +304,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             raise raise_on_incompatible(self, other)
         elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
+            assert isinstance(other, int)
             return other
 
         # raise when input doesn't have freq
@@ -473,7 +477,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     @doc(DatetimeIndexOpsMixin.shift)
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         if freq is not None:
             raise TypeError(
                 f"`freq` argument is not supported for {type(self).__name__}.shift"
@@ -482,7 +486,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

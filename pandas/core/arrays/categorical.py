@@ -10,10 +10,10 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -25,19 +25,8 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Ordered,
-    Shape,
-    SortKind,
-    npt,
-    type_t,
-)
 from pandas.compat.numpy import function as nv
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -109,14 +98,25 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Ordered,
+        Self,
+        Shape,
+        SortKind,
+        npt,
+        type_t,
+    )
+
     from pandas import (
         DataFrame,
         Index,
         Series,
     )
-
-
-CategoricalT = TypeVar("CategoricalT", bound="Categorical")
 
 
 def _cat_compare_op(op):
@@ -437,7 +437,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
 
-        elif is_categorical_dtype(values.dtype):
+        elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories, copy=copy
@@ -504,9 +504,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if self.dtype is dtype:
             result = self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            dtype = cast(CategoricalDtype, dtype)
-
+        elif isinstance(dtype, CategoricalDtype):
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
@@ -553,6 +551,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Alias for tolist.
         """
+        # GH#51254
+        warnings.warn(
+            "Categorical.to_list is deprecated and will be removed in a future "
+            "version. Use obj.tolist() instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.tolist()
 
     @classmethod
@@ -1198,7 +1203,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+    ):
         """
         Map categories using an input mapping or function.
 
@@ -1215,6 +1224,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
+        na_action : {None, 'ignore'}, default 'ignore'
+            If 'ignore', propagate NaN values, without passing them to the
+            mapping correspondence.
+
+            .. deprecated:: 2.1.0
+
+               The default value of 'ignore' has been deprecated and will be changed to
+               None in the future.
 
         Returns
         -------
@@ -1238,10 +1255,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> cat.map(lambda x: x.upper())
+        >>> cat.map(lambda x: x.upper(), na_action=None)
         ['A', 'B', 'C']
         Categories (3, object): ['A', 'B', 'C']
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'}, na_action=None)
         ['first', 'second', 'third']
         Categories (3, object): ['first', 'second', 'third']
 
@@ -1252,32 +1269,50 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
-        >>> cat.map({'a': 3, 'b': 2, 'c': 1})
+        >>> cat.map({'a': 3, 'b': 2, 'c': 1}, na_action=None)
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'}, na_action=None)
         Index(['first', 'second', 'first'], dtype='object')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
-        >>> cat.map({'a': 'first', 'b': 'second'})
+        >>> cat.map({'a': 'first', 'b': 'second'}, na_action=None)
         Index(['first', 'second', nan], dtype='object')
         """
-        new_categories = self.categories.map(mapper)
-        try:
-            return self.from_codes(
-                self._codes.copy(), categories=new_categories, ordered=self.ordered
+        if na_action is lib.no_default:
+            warnings.warn(
+                "The default value of 'ignore' for the `na_action` parameter in "
+                "pandas.Categorical.map is deprecated and will be "
+                "changed to 'None' in a future version. Please set na_action to the "
+                "desired value to avoid seeing this warning",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
-        except ValueError:
-            # NA values are represented in self._codes with -1
-            # np.take causes NA values to take final element in new_categories
-            if np.any(self._codes == -1):
-                new_categories = new_categories.insert(len(new_categories), np.nan)
-            return np.take(new_categories, self._codes)
+            na_action = "ignore"
+
+        assert callable(mapper) or is_dict_like(mapper)
+
+        new_categories = self.categories.map(mapper)
+
+        has_nans = np.any(self._codes == -1)
+
+        na_val = np.nan
+        if na_action is None and has_nans:
+            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+
+        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+            new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
+            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+
+        if has_nans:
+            new_categories = new_categories.insert(len(new_categories), na_val)
+
+        return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op(operator.eq)
     __ne__ = _cat_compare_op(operator.ne)
@@ -1349,7 +1384,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -1900,7 +1935,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
-        width, height = get_terminal_size()
+        width, _ = get_terminal_size()
         max_width = get_option("display.width") or width
         if console.in_ipython_frontend():
             # 0 = no breaks
@@ -2159,9 +2194,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(
-        cls: type[CategoricalT], to_concat: Sequence[CategoricalT], axis: AxisInt = 0
-    ) -> CategoricalT:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
 
         first = to_concat[0]
@@ -2489,13 +2522,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     @staticmethod
     def _validate(data):
-        if not is_categorical_dtype(data.dtype):
+        if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    def _delegate_property_get(self, name):
+    # error: Signature of "_delegate_property_get" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_get(self, name: str):  # type: ignore[override]
         return getattr(self._parent, name)
 
-    def _delegate_property_set(self, name, new_values):
+    # error: Signature of "_delegate_property_set" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
         return setattr(self._parent, name, new_values)
 
     @property
@@ -2507,7 +2544,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return Series(self._parent.codes, index=self._index)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
         method = getattr(self._parent, name)

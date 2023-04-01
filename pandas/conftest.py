@@ -708,7 +708,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -758,6 +758,29 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=True)
+
+
+_typ_objects_series = {
+    f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
+}
+
+
+_index_or_series_memory_objs = {
+    **indices_dict,
+    **_series,
+    **_narrow_series,
+    **_typ_objects_series,
+}
+
+
+@pytest.fixture(params=_index_or_series_memory_objs.keys())
+def index_or_series_memory_obj(request):
+    """
+    Fixture for tests on indexes, series, series with a narrow dtype and
+    series with empty objects type
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_memory_objs[request.param].copy(deep=True)
 
 
 # ----------------------------------------------------------------
@@ -1274,7 +1297,7 @@ def string_storage(request):
 
 @pytest.fixture(
     params=[
-        "pandas",
+        "numpy_nullable",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ]
 )

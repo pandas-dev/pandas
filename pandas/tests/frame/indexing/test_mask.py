@@ -141,3 +141,12 @@ def test_mask_return_dtype():
     excepted = Series([1.0, 0.0, 1.0, 0.0], dtype=ser.dtype)
     result = ser.mask(cond, other)
     tm.assert_series_equal(result, excepted)
+
+
+def test_mask_inplace_no_other():
+    # GH#51685
+    df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    cond = DataFrame({"a": [True, False], "b": [False, True]})
+    df.mask(cond, inplace=True)
+    expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
+    tm.assert_frame_equal(df, expected)

@@ -7,14 +7,12 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import using_nullable_dtypes
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
 import pandas as pd
-from pandas import get_option
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
@@ -22,6 +20,7 @@ from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        DtypeBackend,
         FilePath,
         ReadBuffer,
         StorageOptions,
@@ -70,7 +69,7 @@ def read_feather(
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ):
     """
     Load a feather-format object from the file path.
@@ -90,18 +89,13 @@ def read_feather(
 
         .. versionadded:: 1.2.0
 
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -112,27 +106,21 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    check_dtype_backend(dtype_backend)
 
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if not use_nullable_dtypes:
+        if dtype_backend is lib.no_default:
             return feather.read_feather(
                 handles.handle, columns=columns, use_threads=bool(use_threads)
             )
-
-        dtype_backend = get_option("mode.dtype_backend")
 
         pa_table = feather.read_table(
             handles.handle, columns=columns, use_threads=bool(use_threads)
         )
 
-        if dtype_backend == "pandas":
+        if dtype_backend == "numpy_nullable":
             from pandas.io._util import _arrow_dtype_mapping
 
             return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)

@@ -70,7 +70,10 @@ if TYPE_CHECKING:
         Scalar,
         StorageOptions,
         WriteBuffer,
+        WriteExcelBuffer,
     )
+
+    from pandas import ExcelWriter
 
 try:
     import matplotlib as mpl
@@ -172,7 +175,11 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
+        LaTeX-safe sequences. Use 'latex-math' to replace the characters
+        the same way as in 'latex' mode, except for math substrings,
+        which either are surrounded by two characters ``$`` or start with
+        the character ``\(`` and end with ``\)``.
+        If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
@@ -494,7 +501,7 @@ class Styler(StylerRenderer):
     )
     def to_excel(
         self,
-        excel_writer,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -1327,7 +1334,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1341,7 +1348,7 @@ class Styler(StylerRenderer):
         self,
         buf: None = ...,
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1355,7 +1362,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        encoding=None,
+        encoding: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_rows: int | None = None,
@@ -3385,8 +3392,11 @@ class Styler(StylerRenderer):
 
     @classmethod
     def from_custom_template(
-        cls, searchpath, html_table: str | None = None, html_style: str | None = None
-    ):
+        cls,
+        searchpath: Sequence[str],
+        html_table: str | None = None,
+        html_style: str | None = None,
+    ) -> type[Styler]:
         """
         Factory function for creating a subclass of ``Styler``.
 

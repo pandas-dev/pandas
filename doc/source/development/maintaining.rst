@@ -174,6 +174,8 @@ conversation is over. It's typically best to give the reporter some time to
 respond or self-close their issue if it's determined that the behavior is not a bug,
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
+If you think an issue should be closed but are not completely sure, please apply
+the "closing candidate" label and wait for other maintainers to take a look.
 
 .. _maintaining.reviewing:
 
@@ -252,14 +254,16 @@ Cleaning up old pull requests
 Occasionally, contributors are unable to finish off a pull request.
 If some time has passed (two weeks, say) since the last review requesting changes,
 gently ask if they're still interested in working on this. If another two weeks or
-so passes with no response, thank them for their work and close the pull request.
-Comment on the original issue that "There's a stalled PR at #1234 that may be
-helpful.", and perhaps label the issue as "Good first issue" if the PR was relatively
-close to being accepted.
+so passes with no response, thank them for their work and then either:
 
-Additionally, core-team members can push to contributors branches. This can be
-helpful for pushing an important PR across the line, or for fixing a small
-merge conflict.
+- close the pull request;
+- push to the contributor's branch to push their work over the finish line (if
+  you're part of ``pandas-core``). This can be helpful for pushing an important PR
+  across the line, or for fixing a small merge conflict.
+
+If closing the pull request, then please comment on the original issue that
+"There's a stalled PR at #1234 that may be helpful.", and perhaps label the issue
+as "Good first issue" if the PR was relatively close to being accepted.
 
 Becoming a pandas maintainer
 ----------------------------
@@ -276,12 +280,13 @@ The required steps for adding a maintainer are:
   * ``pandas-core`` is for core team members
   * ``pandas-triage`` is for pandas triage members
 
+If adding to ``pandas-core``, there are two additional steps:
+
 3. Add the contributor to the pandas Google group.
 4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
-5. Create a pull request to add the contributor's name/GitHub handle to the `governance document <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`_.
 
 The current list of core-team members is at
-https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+https://github.com/pandas-dev/pandas/blob/main/web/pandas/config.yml
 
 
 .. _maintaining.merging:
@@ -496,5 +501,5 @@ Post-Release
     - Twitter, Mastodon and Telegram
 
 
-.. _governance documents: https://github.com/pandas-dev/pandas-governance
+.. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization
