@@ -1554,28 +1554,27 @@ class Timestamp(_Timestamp):
         invalid_args_msg = invalid_args_msg.format(args, kwargs)
 
         # Set initial defaults
-        year, month, day, hour, minute, second, microsecond, tzinfo = [None] * 8
-        nanosecond, tz, unit, fold = [None] * 4
+        year = month = day = hour = minute = second = microsecond = tzinfo = None
+        nanosecond = tz = unit = fold = None
+
+        args_len = len(args)
 
         # Check that kwargs weren't passed as args
-        if len(args) > 9:
+        if args_len > 9:
             raise ValueError(invalid_args_msg)
-
-        # Check if the *args need shifting
-        if len(args) > 2 and all(isinstance(arg, int) for arg in args[:3]):
-            args = (_no_input,) + args
 
         # Unpack the arguments
         # Building from positional arguments
-        if len(args) > 3 and all(isinstance(arg, int) for arg in args[1:4]):
-            year, month, day = args[1:4]
+        if args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
+
+            year, month, day = args[0:3]
 
             # Positional or keyword arguments
-            hour = cls._get_list_value(cls, args, 4, kwargs.get("hour"))
-            minute = cls._get_list_value(cls, args, 5, kwargs.get("minute"))
-            second = cls._get_list_value(cls, args, 6, kwargs.get("second"))
-            microsecond = cls._get_list_value(cls, args, 7, kwargs.get("microsecond"))
-            tzinfo = cls._get_list_value(cls, args, 8, kwargs.get("tzinfo"))
+            hour = cls._get_list_value(cls, args, 3, kwargs.get("hour"))
+            minute = cls._get_list_value(cls, args, 4, kwargs.get("minute"))
+            second = cls._get_list_value(cls, args, 5, kwargs.get("second"))
+            microsecond = cls._get_list_value(cls, args, 6, kwargs.get("microsecond"))
+            tzinfo = cls._get_list_value(cls, args, 7, kwargs.get("tzinfo"))
         # Building from ts_input
         elif len(args) == 1:
             if ("year" in kwargs or "month" in kwargs or "day" in kwargs or
@@ -1586,7 +1585,7 @@ class Timestamp(_Timestamp):
             ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")
         # Keywords only
-        elif len(args) == 0:
+        elif args_len == 0:
             ts_input = kwargs.get("ts_input", _no_input)
             year = kwargs.get("year")
             month = kwargs.get("month")
@@ -1688,7 +1687,7 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, tzinfo]]]]])
-            ts_input = datetime(ts_input, year, month, day or 0,
+            ts_input = datetime(year, month, day,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
 

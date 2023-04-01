@@ -48,6 +48,9 @@ class TimestampConstruction:
     def time_from_pd_timestamp(self):
         Timestamp(self.ts)
 
+    def time_from_positional(self):
+        Timestamp(2020, 1, 1, 0, 0, 0)
+
 
 class TimestampProperties:
     params = [_tzs]
