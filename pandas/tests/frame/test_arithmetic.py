@@ -1803,12 +1803,12 @@ class TestFrameArithmeticUnsorted:
         align = DataFrame._align_for_op
 
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-        tm.assert_frame_equal(align(df, val, "index")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=0)[1], expected)
 
         expected = DataFrame(
             {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
         )
-        tm.assert_frame_equal(align(df, val, "columns")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=1)[1], expected)
 
     @pytest.mark.parametrize("val", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)])
     def test_alignment_non_pandas_length_mismatch(self, val):
@@ -1820,10 +1820,10 @@ class TestFrameArithmeticUnsorted:
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_alignment_non_pandas_index_columns(self):
         index = ["A", "B", "C"]
@@ -1833,11 +1833,11 @@ class TestFrameArithmeticUnsorted:
         align = DataFrame._align_for_op
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index")[1],
+            align(df, val, axis=0)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns")[1],
+            align(df, val, axis=1)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 
@@ -1845,19 +1845,19 @@ class TestFrameArithmeticUnsorted:
         msg = "Unable to coerce to DataFrame, shape must be"
         val = np.array([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
         val = np.zeros((3, 3, 3))
         msg = re.escape(
             "Unable to coerce to Series/DataFrame, dimension must be <= 2: (3, 3, 3)"
         )
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_no_warning(self, all_arithmetic_operators):
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
@@ -2006,7 +2006,7 @@ def test_inplace_arithmetic_series_update(using_copy_on_write):
         tm.assert_frame_equal(df, expected)
 
 
-def test_arithemetic_multiindex_align():
+def test_arithmetic_multiindex_align():
     """
     Regression test for: https://github.com/pandas-dev/pandas/issues/33765
     """

@@ -274,7 +274,17 @@ class TestDataFrameCorr:
 
 
 class TestDataFrameCorrWith:
-    def test_corrwith(self, datetime_frame):
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float64",
+            "Float64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_corrwith(self, datetime_frame, dtype):
+        datetime_frame = datetime_frame.astype(dtype)
+
         a = datetime_frame
         noise = Series(np.random.randn(len(a)), index=a.index)
 
