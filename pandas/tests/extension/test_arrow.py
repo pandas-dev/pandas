@@ -2156,7 +2156,7 @@ def test_dt_properties(prop, expected):
     result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
-        exp_type = pa.date64()
+        exp_type = pa.date32()
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
