@@ -1493,7 +1493,7 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions = None,
-        engine_kwargs: None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
