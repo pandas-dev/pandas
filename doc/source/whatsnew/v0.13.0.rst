@@ -156,15 +156,15 @@ API changes
   .. code-block:: python
 
      >>> pd.Series([True]).bool()
-        ..  True
+      True
      >>> pd.Series([False]).bool()
-        ..  False
+      False
      >>> pd.DataFrame([[True]]).bool()
-        ..  True
+      True
      >>> pd.DataFrame([[False]]).bool()
-        ..  False
+      False
 
-- All non-Index NDFrames ( ``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
+- All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators
   and arithmetic flex methods (add, sub, mul, etc.). ``SparsePanel`` does not
   support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
