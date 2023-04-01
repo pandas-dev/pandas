@@ -1688,7 +1688,6 @@ cdef class _Period(PeriodMixin):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
-            assert False
 
         freq = to_offset(freq)
 
