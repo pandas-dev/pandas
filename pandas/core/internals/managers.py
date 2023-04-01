@@ -50,6 +50,7 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseDtype
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -1769,6 +1770,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
             dtype = cast(np.dtype, dtype)
+        elif (
+            isinstance(dtype, ArrowDtype)
+            and dtype.numpy_dtype is not None
+            and dtype.numpy_dtype.kind in "fciub"
+            and all(blk.dtype == dtype and not blk.values._hasna for blk in self.blocks)
+        ):
+            dtype = dtype.numpy_dtype
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
         elif is_dtype_equal(dtype, str):
