@@ -8078,13 +8078,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         mask = self.isna()
 
         if lower is not None:
-            cond = mask | (self >= lower)
+            cond = mask | (result >= lower)
             result = result.where(
                 cond, lower, inplace=inplace
             )  # type: ignore[assignment]
         if upper is not None:
-            cond = mask | (self <= upper)
             result = self if inplace else result
+            cond = mask | (result <= upper)
             result = result.where(
                 cond, upper, inplace=inplace
             )  # type: ignore[assignment]
@@ -8254,15 +8254,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 upper = None
         elif np.all(isna_upper):
             upper = None
-
-        # GH 2747 (arguments were reversed)
-        if (
-            lower is not None
-            and upper is not None
-            and is_scalar(lower)
-            and is_scalar(upper)
-        ):
-            lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
         if (lower is None or (is_scalar(lower) and is_number(lower))) and (

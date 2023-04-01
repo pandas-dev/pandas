@@ -32,16 +32,16 @@ class TestDataFrameClip:
         # GH#2747
         df = DataFrame(np.random.randn(1000, 2))
 
-        for lb, ub in [(-1, 1), (1, -1)]:
-            clipped_df = df.clip(lb, ub)
+        lb = -1
+        ub = 1
+        clipped_df = df.clip(lb, ub)
 
-            lb, ub = min(lb, ub), max(ub, lb)
-            lb_mask = df.values <= lb
-            ub_mask = df.values >= ub
-            mask = ~lb_mask & ~ub_mask
-            assert (clipped_df.values[lb_mask] == lb).all()
-            assert (clipped_df.values[ub_mask] == ub).all()
-            assert (clipped_df.values[mask] == df.values[mask]).all()
+        lb_mask = df.values <= lb
+        ub_mask = df.values >= ub
+        mask = ~lb_mask & ~ub_mask
+        assert (clipped_df.values[lb_mask] == lb).all()
+        assert (clipped_df.values[ub_mask] == ub).all()
+        assert (clipped_df.values[mask] == df.values[mask]).all()
 
     def test_clip_mixed_numeric(self):
         # clip on mixed integer or floats
@@ -171,3 +171,14 @@ class TestDataFrameClip:
         result = df.clip(lower=1.5)
         expected = DataFrame({"a": [1.5, 2.0, 3.0]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("lower,upper", [(7, [3, 3]), ([7, 7], 3), (7, 3)])
+    def test_lower_higher_than_upper(self, lower, upper):
+        # GH52147
+        data = {"A": range(10), "B": range(10)}
+        df = DataFrame(data)
+
+        excepted = DataFrame([[3, 3]] * 10, columns=["A", "B"])
+
+        result = df.clip(lower=lower, upper=upper)
+        tm.assert_frame_equal(result, excepted)
