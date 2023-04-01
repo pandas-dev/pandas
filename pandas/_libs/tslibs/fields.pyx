@@ -150,12 +150,13 @@ def get_date_name_field(
     name based on requested field (e.g. day_name)
     """
     cdef:
-        Py_ssize_t i, count = dtindex.shape[0]
+        Py_ssize_t i
+        cnp.npy_intp count = dtindex.shape[0]
         ndarray[object] out, names
         npy_datetimestruct dts
         int dow
 
-    out = np.empty(count, dtype=object)
+    out = cnp.PyArray_EMPTY(1, &count, cnp.NPY_OBJECT, 0)
 
     if field == "day_name":
         if locale is None:
