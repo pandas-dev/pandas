@@ -314,22 +314,21 @@ def _get_values(
         values = np.asarray(values.view("i8"))
         datetimelike = True
 
-    dtype_ok = _na_ok_dtype(dtype)
+    if skipna and (mask is not None):
+        # get our fill value (in case we need to provide an alternative
+        # dtype for it)
+        fill_value = _get_fill_value(
+            dtype, fill_value=fill_value, fill_value_typ=fill_value_typ
+        )
 
-    # get our fill value (in case we need to provide an alternative
-    # dtype for it)
-    fill_value = _get_fill_value(
-        dtype, fill_value=fill_value, fill_value_typ=fill_value_typ
-    )
-
-    if skipna and (mask is not None) and (fill_value is not None):
-        if mask.any():
-            if dtype_ok or datetimelike:
-                values = values.copy()
-                np.putmask(values, mask, fill_value)
-            else:
-                # np.where will promote if needed
-                values = np.where(~mask, values, fill_value)
+        if fill_value is not None:
+            if mask.any():
+                if datetimelike or _na_ok_dtype(dtype):
+                    values = values.copy()
+                    np.putmask(values, mask, fill_value)
+                else:
+                    # np.where will promote if needed
+                    values = np.where(~mask, values, fill_value)
 
     return values, mask
 
@@ -442,7 +441,7 @@ def _na_for_min_count(values: np.ndarray, axis: AxisInt | None) -> Scalar | np.n
         For 2-D values, returns a 1-D array where each element is missing.
     """
     # we either return np.nan or pd.NaT
-    if is_numeric_dtype(values):
+    if is_numeric_dtype(values.dtype):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
 
@@ -1051,7 +1050,7 @@ def nansem(
     nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     mask = _maybe_get_mask(values, skipna, mask)
-    if not is_float_dtype(values.dtype):
+    if values.dtype.kind != "f":
         values = values.astype("f8")
 
     if not skipna and mask is not None and mask.any():
@@ -1231,7 +1230,7 @@ def nanskew(
     # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
     values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
-    if not is_float_dtype(values.dtype):
+    if values.dtype.kind != "f":
         values = values.astype("f8")
         count = _get_counts(values.shape, mask, axis)
     else:
@@ -1266,7 +1265,7 @@ def nanskew(
         result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
 
     dtype = values.dtype
-    if is_float_dtype(dtype):
+    if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
 
     if isinstance(result, np.ndarray):
@@ -1321,7 +1320,7 @@ def nankurt(
     # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
     values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
-    if not is_float_dtype(values.dtype):
+    if values.dtype.kind != "f":
         values = values.astype("f8")
         count = _get_counts(values.shape, mask, axis)
     else:
@@ -1369,7 +1368,7 @@ def nankurt(
         result = numerator / denominator - adj
 
     dtype = values.dtype
-    if is_float_dtype(dtype):
+    if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
 
     if isinstance(result, np.ndarray):
