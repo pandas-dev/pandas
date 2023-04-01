@@ -1268,24 +1268,6 @@ cdef class _Timestamp(ABCTimestamp):
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
-
-def _fix_positional_arguments(cls):
-    original_new = cls.__new__
-
-    def updated_new(cls, *args, **kwargs):
-        # GH#52117 If we passed positional args, then _ts_input
-        # is now set to year and the other positional args
-        # are shifted to the left. Let's shift back
-        if len(args) > 2 and all(isinstance(arg, int) for arg in args[:3]):
-            return original_new(cls, _no_input, *args, **kwargs)
-        else:
-            return original_new(cls, *args, **kwargs)
-
-    cls.__new__ = updated_new
-    return cls
-
-
-@_fix_positional_arguments
 class Timestamp(_Timestamp):
     """
     Pandas replacement for python datetime.datetime object.
@@ -1536,31 +1518,20 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.combine(date, time))
 
-    def __new__(
-        cls,
-        object ts_input=_no_input,
-        year=None,
-        month=None,
-        day=None,
-        hour=None,
-        minute=None,
-        second=None,
-        microsecond=None,
-        tzinfo_type tzinfo=None,
-        *,
-        nanosecond=None,
-        tz=None,
-        unit=None,
-        fold=None,
-    ):
+    def _get_list_value(cls, in_list, key, default):
+        try:
+            return in_list[key]
+        except IndexError:
+            return default
+
+    def __new__(cls, *args, **kwargs):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
         # There are three calling forms:
         #
         # - In the legacy form, the first parameter, ts_input, is required
-        #   and may be datetime-like, str, int, or float. The second
-        #   parameter, offset, is optional and may be str or DateOffset.
+        #   and may be datetime-like, str, int, or float.
         #
         # - ints in the first, second, and third arguments indicate
         #   pydatetime positional arguments. Only the first 8 arguments
@@ -1575,8 +1546,48 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef:
+            object ts_input=_no_input
             _TSObject ts
-            tzinfo_type tzobj
+            tzinfo_type tzinfo, tzobj
+
+        invalid_args_msg = "Invalid Timestamp arguments. args: {}, kwargs: {}"
+        invalid_args_msg = invalid_args_msg.format(*args, **kwargs)
+
+        # Check that kwargs weren't passed as args
+        if len(args) > 9:
+            raise ValueError(invalid_args_msg)
+
+        # Check if the *args need shifting
+        if len(args) > 2 and all(isinstance(arg, int) for arg in args[:3]):
+            args = (_no_input,) + args
+
+        # Unpack the arguments
+        # Building from positional arguments
+        if len(args) > 3 and all(isinstance(arg, int) for arg in args[1:4]):
+            year, month, day = args[1:4]
+
+            # Positional or keyword arguments
+            hour = cls._get_list_value(cls, args, 4, kwargs.get("hour"))
+            minute = cls._get_list_value(cls, args, 5, kwargs.get("minute"))
+            second = cls._get_list_value(cls, args, 6, kwargs.get("second"))
+            microsecond = cls._get_list_value(cls, args, 7, kwargs.get("microsecond"))
+            tzinfo = cls._get_list_value(cls, args, 8, kwargs.get("tzinfo"))
+        # Building from ts_input
+        elif len(args) == 1:
+            ts_input = args[0]
+
+            tzinfo = kwargs.get("tzinfo")
+        # Keywords only
+        elif len(args) == 0:
+            pass
+        else:
+            raise ValueError(invalid_args_msg)
+
+        # Unpack keyword-only arguments
+        nanosecond = kwargs.get("nanosecond")
+        tz = kwargs.get("tz")
+        unit = kwargs.get("unit")
+        fold = kwargs.get("fold")
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
