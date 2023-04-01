@@ -1551,7 +1551,11 @@ class Timestamp(_Timestamp):
             tzinfo_type tzinfo, tzobj
 
         invalid_args_msg = "Invalid Timestamp arguments. args: {}, kwargs: {}"
-        invalid_args_msg = invalid_args_msg.format(*args, **kwargs)
+        invalid_args_msg = invalid_args_msg.format(args, kwargs)
+
+        # Set initial defaults
+        year, month, day, hour, minute, second, microsecond, tzinfo = [None] * 8
+        nanosecond, tz, unit, fold = [None] * 4
 
         # Check that kwargs weren't passed as args
         if len(args) > 9:
@@ -1574,12 +1578,24 @@ class Timestamp(_Timestamp):
             tzinfo = cls._get_list_value(cls, args, 8, kwargs.get("tzinfo"))
         # Building from ts_input
         elif len(args) == 1:
-            ts_input = args[0]
+            if ("year" in kwargs or "month" in kwargs or "day" in kwargs or
+                    "hour" in kwargs or "minute" in kwargs or "second" in kwargs or
+                    "microsecond" in kwargs):
+                raise ValueError("Cannot pass a date attribute keyword argument")
 
+            ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")
         # Keywords only
         elif len(args) == 0:
-            pass
+            ts_input = kwargs.get("ts_input", _no_input)
+            year = kwargs.get("year")
+            month = kwargs.get("month")
+            day = kwargs.get("day")
+            hour = kwargs.get("hour")
+            minute = kwargs.get("minute")
+            second = kwargs.get("second")
+            microsecond = kwargs.get("microsecond")
+            tzinfo = kwargs.get("tzinfo")
         else:
             raise ValueError(invalid_args_msg)
 

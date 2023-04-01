@@ -13,10 +13,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import (
-    PY39,
-    PY310,
-)
+from pandas.compat import PY39
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -293,10 +290,7 @@ class TestTimestampConstructors:
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        msg = (
-            "Argument 'tzinfo' has incorrect type "
-            r"\(expected datetime.tzinfo, got str\)"
-        )
+        msg = "Cannot convert str to datetime.tzinfo"
         with pytest.raises(TypeError, match=msg):
             Timestamp("2017-10-22", tzinfo="US/Eastern")
 
@@ -304,7 +298,11 @@ class TestTimestampConstructors:
         with pytest.raises(ValueError, match=msg):
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
-        msg = "Cannot pass a date attribute keyword argument when passing a date string"
+        msg = (
+            "Invalid Timestamp arguments. "
+            "args: \\('2012-01-01', 'US/Pacific'\\), "
+            "kwargs: {}"
+        )
         with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
@@ -352,12 +350,8 @@ class TestTimestampConstructors:
 
     def test_constructor_positional(self):
         # see gh-10758
-        msg = (
-            "'NoneType' object cannot be interpreted as an integer"
-            if PY310
-            else "an integer is required"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = "Invalid Timestamp arguments. args: \\(2000, 1\\), kwargs: {}"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1)
 
         msg = "month must be in 1..12"
