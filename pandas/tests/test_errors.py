@@ -114,6 +114,8 @@ def test_AbstractMethodError_classmethod():
     with pytest.raises(AbstractMethodError, match=xpr):
         Foo().method()
 
-    xpr = r"methodtype must be one of \{[^}]*\}, got 'unknownmethod' instead."
+    xpr = (
+        "methodtype must be one of {'method', 'property', 'staticmethod', "
+        "'classmethod'}, got 'unknownmethod' instead.")
     with pytest.raises(AbstractMethodError, match=xpr):
         Foo().unknownmethod()
