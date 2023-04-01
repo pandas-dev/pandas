@@ -539,7 +539,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions = None,
-        engine_kwargs: None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
