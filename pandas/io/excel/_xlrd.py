@@ -35,7 +35,7 @@ class XlrdReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         {storage_options}
-        engine_kwargs : dict, default None
+        engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"

@@ -289,7 +289,7 @@ dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFr
 
     .. versionadded:: 2.0
 
-engine_kwargs : dict, default None
+engine_kwargs : dict, optional
     Arbitrary keyword arguments passed to excel engine.
 
 Returns
@@ -1472,7 +1472,7 @@ class ExcelFile:
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.
-    engine_kwargs: dict, default None
+    engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
     """
 

@@ -41,7 +41,7 @@ class ODFReader(BaseExcelReader):
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
         {storage_options}
-        engine_kwargs : dict, default None
+        engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("odf")
