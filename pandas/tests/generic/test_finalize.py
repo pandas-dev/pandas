@@ -159,7 +159,7 @@ _all_methods = [
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
+        (pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))
     ),
     pytest.param(
         (
