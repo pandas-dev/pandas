@@ -839,11 +839,12 @@ class Resampler(BaseGroupBy, PandasObject):
         **kwargs,
     ):
         """
-        Interpolate values according to different methods. 
-        
+        Interpolate values according to different methods.
+
         Notes
         -----
-        The original index is first reindexed to new time buckets (anchors), 
+        The original index is first reindexed
+        (see :meth:`pandas.Resampler.asfreq`) to new time buckets (anchors),
         then the interpolation happens. For non-equidistant time-series this
         behaviour may lead to data loss as shown in the last example.
 
@@ -890,7 +891,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Internal reindexing with ``as_freq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
-        Since not all datapoints from original series become anchors, 
+        Since not all datapoints from original series become anchors,
         it can lead to misleading interpolation results as in the following exapmple:
 
         >>> series.resample("400ms").interpolate("linear")
