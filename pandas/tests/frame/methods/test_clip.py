@@ -176,8 +176,8 @@ class TestDataFrameClip:
     @pytest.mark.parametrize(
         "lower,upper,axis",
         [
-            (7, [3, 3], None),
-            ([7, 7], 3, None),
+            (7, [3, 3], 1),
+            ([7, 7], 3, 1),
             (7, 3, None),
             (7, [3] * 10, 0),
             ([7] * 10, 3, 0),
