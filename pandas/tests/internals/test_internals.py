@@ -1364,7 +1364,7 @@ class TestCanHoldElement:
 
     def check_series_setitem(self, elem, index: Index, inplace: bool):
         arr = index._data.copy()
-        ser = Series(arr)
+        ser = Series(arr, copy=False)
 
         self.check_can_hold_element(ser, elem, inplace)
 
