@@ -1596,6 +1596,11 @@ class Timestamp(_Timestamp):
             second = kwargs.get("second")
             microsecond = kwargs.get("microsecond")
             tzinfo = kwargs.get("tzinfo")
+        # kludge for reading legacy pickle with read_pickle in test_pickle
+        elif (args_len == 3 and isinstance(args[0], int) and
+              (not isinstance(args[1], int) or not isinstance(args[2], int))):
+            ts_input = args[0]
+            tzinfo = args[-1]
         else:
             raise ValueError(
                 f"Invalid Timestamp arguments. args: {args}, kwargs: {kwargs}"
