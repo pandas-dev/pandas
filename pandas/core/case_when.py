@@ -174,4 +174,4 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         # keeping track of which row got modified
         modified |= conditions
 
-    return series
+    return series.convert_dtypes()
