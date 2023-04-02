@@ -11,7 +11,6 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Hashable,
     Sequence,
@@ -77,7 +76,7 @@ def describe_ndframe(
     -------
     Dataframe or series description.
     """
-    percentiles = refine_percentiles(percentiles)
+    percentiles = _refine_percentiles(percentiles)
 
     describer: NDFrameDescriberAbstract
     if obj.ndim == 1:
@@ -175,7 +174,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         d.columns = data.columns.copy()
         return d
 
-    def _select_data(self):
+    def _select_data(self) -> DataFrame:
         """Select columns to be described."""
         if (self.include is None) and (self.exclude is None):
             # when some numerics are found, keep only numerics
@@ -193,7 +192,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data
+        return data  # pyright: ignore
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
@@ -229,9 +228,9 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     )
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
-    if is_extension_array_dtype(series):
+    if is_extension_array_dtype(series.dtype):
         dtype = Float64Dtype()
-    elif is_numeric_dtype(series) and not is_complex_dtype(series):
+    elif is_numeric_dtype(series.dtype) and not is_complex_dtype(series.dtype):
         dtype = np.dtype("float")
     else:
         dtype = None
@@ -364,9 +363,9 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(
+def _refine_percentiles(
     percentiles: Sequence[float] | np.ndarray | None,
-) -> np.ndarray[Any, np.dtype[np.float64]]:
+) -> npt.NDArray[np.float64]:
     """
     Ensure that percentiles are unique and sorted.
 

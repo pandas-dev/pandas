@@ -801,6 +801,14 @@ class TestNamePreservation:
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
 
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        warn = None
+        if box in [list, tuple] and is_logical:
+            warn = FutureWarning
+
         right = box(right)
         if flex:
             if is_logical:
@@ -809,7 +817,8 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            result = op(left, right)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

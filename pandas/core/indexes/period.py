@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -175,7 +176,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         other_name="PeriodArray",
         **_shared_doc_kwargs,
     )
-    def asfreq(self, freq=None, how: str = "E") -> PeriodIndex:
+    def asfreq(self, freq=None, how: str = "E") -> Self:
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -211,7 +212,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         copy: bool = False,
         name: Hashable = None,
         **fields,
-    ) -> PeriodIndex:
+    ) -> Self:
         valid_field_set = {
             "year",
             "month",
@@ -272,7 +273,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # Data
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> npt.NDArray[np.object_]:
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
@@ -476,7 +477,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     @doc(DatetimeIndexOpsMixin.shift)
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         if freq is not None:
             raise TypeError(
                 f"`freq` argument is not supported for {type(self).__name__}.shift"
@@ -485,7 +486,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
