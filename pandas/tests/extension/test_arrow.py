@@ -2109,6 +2109,7 @@ def test_unsupported_dt(data):
 @pytest.mark.parametrize(
     "prop, expected",
     [
+        ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
         ["dayofweek", 0],
