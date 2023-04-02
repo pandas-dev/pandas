@@ -121,16 +121,6 @@ Below is how to check if any of the values are ``True``:
     if pd.Series([False, True, False]).any():
         print("I am any")
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 

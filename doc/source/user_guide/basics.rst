@@ -329,16 +329,6 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
    df.empty
    pd.DataFrame(columns=list("ABC")).empty
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 .. warning::
 
    You might be tempted to do the following:
