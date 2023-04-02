@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -167,6 +168,15 @@ def test_dataframe_multiple_numpy_dtypes():
     arr = np.asarray(df)
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
+
+
+def test_values_is_ea(using_copy_on_write):
+    df = DataFrame({"a": date_range("2012-01-01", periods=3)})
+    arr = np.asarray(df)
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
 
 
 def test_empty_dataframe():
