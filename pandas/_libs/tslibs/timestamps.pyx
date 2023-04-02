@@ -1546,7 +1546,10 @@ class Timestamp(_Timestamp):
 
         args_len = len(args)
 
-        # Shortcut in case we've already passed a Timestamp
+        # GH 30543 if pd.Timestamp already passed, return it
+        # check that only ts_input is passed
+        # checking verbosely, because cython doesn't optimize
+        # list comprehensions (as of cython 0.29.x)
         if args_len == 1 and len(kwargs) == 0 and isinstance(args[0], _Timestamp):
             return args[0]
 
@@ -1555,27 +1558,33 @@ class Timestamp(_Timestamp):
         #     raise ValueError(invalid_args_msg)
 
         # Unpack the arguments
-        # Building from positional arguments
-        if 9 > args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
-            args = args + (None,) * (8 - args_len)
-            year, month, day, hour, minute, second, microsecond, tzinfo = args
-
-            # Positional or keyword arguments
-            hour = kwargs.get("hour", hour)
-            minute = kwargs.get("minute", minute)
-            second = kwargs.get("second", second)
-            microsecond = kwargs.get("microsecond", microsecond)
-            tzinfo = kwargs.get("tzinfo", tzinfo)
         # Building from ts_input
-        elif args_len == 1:
-            if ("year" in kwargs or "month" in kwargs or "day" in kwargs or
-                    "hour" in kwargs or "minute" in kwargs or "second" in kwargs or
-                    "microsecond" in kwargs):
-                raise ValueError("Cannot pass a date attribute keyword argument")
+        if args_len == 1:
+            if kwargs:
+                if ("year" in kwargs or "month" in kwargs or "day" in kwargs or
+                        "hour" in kwargs or "minute" in kwargs or "second" in kwargs or
+                        "microsecond" in kwargs):
+                    raise ValueError("Cannot pass a date attribute keyword argument")
+                if isinstance(args[0], str) and "nanosecond" in kwargs:
+                    raise ValueError(
+                        "Cannot pass a date attribute keyword "
+                        "argument when passing a date string; 'tz' is keyword-only"
+                    )
 
             ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")
-            year = month = day = hour = minute = second = microsecond = None
+        # Building from positional arguments
+        elif 9 > args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
+            args = args + (None,) * (8 - args_len)
+            year, month, day, hour, minute, second, microsecond, tzinfo = args
+
+            if kwargs:
+                # Positional or keyword arguments
+                hour = kwargs.get("hour", hour)
+                minute = kwargs.get("minute", minute)
+                second = kwargs.get("second", second)
+                microsecond = kwargs.get("microsecond", microsecond)
+                tzinfo = kwargs.get("tzinfo", tzinfo)
         # Keywords only
         elif args_len == 0:
             ts_input = kwargs.get("ts_input", _no_input)
@@ -1593,13 +1602,10 @@ class Timestamp(_Timestamp):
             )
 
         # Unpack keyword-only arguments
-        nanosecond = kwargs.get("nanosecond")
+        nanosecond = kwargs.get("nanosecond", 0)
         tz = kwargs.get("tz")
         unit = kwargs.get("unit")
         fold = kwargs.get("fold")
-
-        _date_attributes = [year, month, day, hour, minute, second,
-                            microsecond, nanosecond]
 
         if tzinfo is not None:
             # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
@@ -1636,20 +1642,7 @@ class Timestamp(_Timestamp):
             if hasattr(ts_input, "fold"):
                 ts_input = ts_input.replace(fold=fold)
 
-        # GH 30543 if pd.Timestamp already passed, return it
-        # check that only ts_input is passed
-        # checking verbosely, because cython doesn't optimize
-        # list comprehensions (as of cython 0.29.x)
-        if isinstance(ts_input, str):
-            # User passed a date string to parse.
-            # Check that the user didn't also pass a date attribute kwarg.
-            if any(arg is not None for arg in _date_attributes):
-                raise ValueError(
-                    "Cannot pass a date attribute keyword "
-                    "argument when passing a date string; 'tz' is keyword-only"
-                )
-
-        elif ts_input is _no_input:
+        if ts_input is _no_input:
             # GH 31200
             # When year, month or day is not given, we call the datetime
             # constructor to make sure we get the same error message
@@ -1670,14 +1663,6 @@ class Timestamp(_Timestamp):
 
             ts_input = datetime(**datetime_kwargs)
 
-        elif is_integer_object(year):
-            # User passed positional arguments:
-            # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, tzinfo]]]]])
-            ts_input = datetime(year, month, day,
-                                hour or 0, minute or 0, second or 0, fold=fold or 0)
-            unit = None
-
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
@@ -1688,9 +1673,7 @@ class Timestamp(_Timestamp):
             #  wall-time (consistent with DatetimeIndex)
             return cls(ts_input).tz_localize(tzobj)
 
-        if nanosecond is None:
-            nanosecond = 0
-        elif not (999 >= nanosecond >= 0):
+        if not (999 >= nanosecond >= 0):
             raise ValueError("nanosecond must be in 0..999")
 
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
