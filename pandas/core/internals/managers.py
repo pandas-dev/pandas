@@ -273,8 +273,8 @@ class BaseBlockManager(DataManager):
         ref = weakref.ref(self.blocks[blkno])
         return ref in mgr.blocks[blkno].refs.referenced_blocks
 
-    def get_dtypes(self):
-        dtypes = np.array([blk.dtype for blk in self.blocks])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
     @property
@@ -425,7 +425,7 @@ class BaseBlockManager(DataManager):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -2010,8 +2010,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
-    def get_dtypes(self) -> np.ndarray:
-        return np.array([self._block.dtype])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        return np.array([self._block.dtype], dtype=object)
 
     def external_values(self):
         """The array that Series.values returns"""

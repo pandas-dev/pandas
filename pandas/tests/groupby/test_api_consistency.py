@@ -4,6 +4,8 @@ Test the consistency of the groupby API, both internally and with other pandas o
 
 import inspect
 
+import pytest
+
 from pandas import (
     DataFrame,
     Series,
@@ -17,8 +19,8 @@ from pandas.core.groupby.generic import (
 def test_frame_consistency(groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        # first and last are entirely different between frame and groupby
-        return
+        msg = "first and last are entirely different between frame and groupby"
+        pytest.skip(reason=msg)
 
     if groupby_func in ("cumcount", "ngroup"):
         assert not hasattr(DataFrame, groupby_func)

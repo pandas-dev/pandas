@@ -253,11 +253,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         Examples
         --------
         >>> pd.CategoricalDtype._from_values_or_dtype()
-        CategoricalDtype(categories=None, ordered=None)
+        CategoricalDtype(categories=None, ordered=None, categories_dtype=None)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     categories=['a', 'b'], ordered=True
         ... )
-        CategoricalDtype(categories=['a', 'b'], ordered=True)
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
         >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
@@ -272,7 +272,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The supplied dtype takes precedence over values' dtype:
 
         >>> pd.CategoricalDtype._from_values_or_dtype(c, dtype=dtype2)
-        CategoricalDtype(categories=['x', 'y'], ordered=False)
+        CategoricalDtype(categories=['x', 'y'], ordered=False, categories_dtype=object)
         """
 
         if dtype is not None:
@@ -429,13 +429,19 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def __repr__(self) -> str_type:
         if self.categories is None:
             data = "None"
+            dtype = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
             if data is None:
                 # self.categories is RangeIndex
                 data = str(self.categories._range)
             data = data.rstrip(", ")
-        return f"CategoricalDtype(categories={data}, ordered={self.ordered})"
+            dtype = self.categories.dtype
+
+        return (
+            f"CategoricalDtype(categories={data}, ordered={self.ordered}, "
+            f"categories_dtype={dtype})"
+        )
 
     @cache_readonly
     def _hash_categories(self) -> int:
@@ -901,7 +907,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 return freq_offset
 
         raise TypeError(
-            "PeriodDtype argument should be string or BaseOffet, "
+            "PeriodDtype argument should be string or BaseOffset, "
             f"got {type(freq).__name__}"
         )
 
@@ -950,12 +956,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         elif isinstance(other, PeriodDtype):
             # For freqs that can be held by a PeriodDtype, this check is
             # equivalent to (and much faster than) self.freq == other.freq
-            sfreq = self.freq
-            ofreq = other.freq
-            return (
-                sfreq.n == ofreq.n
-                and sfreq._period_dtype_code == ofreq._period_dtype_code
-            )
+            sfreq = self._freq
+            ofreq = other._freq
+            return sfreq.n == ofreq.n and self._dtype_code == other._dtype_code
 
         return False
 
