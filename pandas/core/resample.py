@@ -840,19 +840,24 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Interpolate values according to different methods.
 
-        Notes
-        -----
-        The original index is first reindexed
-        (see :meth:`pandas.core.resample.Resampler.asfreq`) to new time buckets,
-        then the interpolation`of NaNs via `DataFrame.interpolate` happens.
-        For non-equidistant time-series this
-        behaviour may lead to data loss as shown in the last example.
+        Returns
+        -------
+        DataFrame or Series
+            Interpolated values at the specified freq.
 
         See Also
         --------
-        pandas.core.resample.Resampler.asfreq: Return the values at the new freq,
+        core.resample.Resampler.asfreq: Return the values at the new freq,
             essentially a reindex.
         DataFrame.interpolate: Fill NaN values using an interpolation method.
+
+        Notes
+        -----
+        The original index is first reindexed
+        (see :meth:`core.resample.Resampler.asfreq`) to new time buckets,
+        then the interpolation`of NaNs via `DataFrame.interpolate` happens.
+        For non-equidistant time-series this
+        behaviour may lead to data loss as shown in the last example.
 
         Examples
         --------
@@ -902,15 +907,17 @@ class Resampler(BaseGroupBy, PandasObject):
 
         >>> series.resample("400ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.500    0.0
-        2023-03-01 07:00:01.000   -1.0
-        2023-03-01 07:00:01.500    0.5
+        2023-03-01 07:00:00.400    1.2
+        2023-03-01 07:00:00.800    1.4
+        2023-03-01 07:00:01.200    1.6
+        2023-03-01 07:00:01.600    1.8
         2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.500    1.5
-        2023-03-01 07:00:03.000    1.0
-        2023-03-01 07:00:03.500    2.0
+        2023-03-01 07:00:02.400    2.2
+        2023-03-01 07:00:02.800    2.4
+        2023-03-01 07:00:03.200    2.6
+        2023-03-01 07:00:03.600    2.8
         2023-03-01 07:00:04.000    3.0
-        Freq: 1500L, dtype: float64
+        Freq: 400L, dtype: float64
 
         Note that the series erroneously increases between two anchors
         ``07:00:00`` and ``07:00:02``.
