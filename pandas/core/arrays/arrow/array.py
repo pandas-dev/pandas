@@ -1946,6 +1946,10 @@ class ArrowExtensionArray(
         )
 
     @property
+    def _dt_year(self):
+        return type(self)(pc.year(self._pa_array))
+
+    @property
     def _dt_day(self):
         return type(self)(pc.day(self._data))
 
