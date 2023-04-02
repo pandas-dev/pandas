@@ -720,7 +720,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(

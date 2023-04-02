@@ -1570,7 +1570,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
-            ser = Series(values)
+            ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
             # TODO: special case not needed with ArrayManager

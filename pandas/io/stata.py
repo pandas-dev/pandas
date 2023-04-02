@@ -1989,7 +1989,7 @@ the string values returned are correct."""
                     # TODO: if we get a non-copying rename_categories, use that
                     cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
-                    vc = Series(categories).value_counts()
+                    vc = Series(categories, copy=False).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
                     # GH 25772
@@ -2006,7 +2006,7 @@ The repeated labels are:
 """
                     raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
-                cat_series = Series(cat_data, index=data.index)
+                cat_series = Series(cat_data, index=data.index, copy=False)
                 cat_converted_data.append((col, cat_series))
             else:
                 cat_converted_data.append((col, data[col]))
