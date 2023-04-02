@@ -25,6 +25,7 @@ from typing import (
     Any,
     Iterator,
     Literal,
+    Mapping,
     cast,
     overload,
 )
@@ -357,7 +358,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
@@ -372,7 +373,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
@@ -386,7 +387,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    params: list[str] | dict[str, str] | None = None,
+    params: list[Any] | Mapping[str, Any] | None = None,
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
@@ -411,7 +412,7 @@ def read_sql_query(
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Useful for SQL result sets.
-    params : list, tuple or dict, optional, default: None
+    params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
