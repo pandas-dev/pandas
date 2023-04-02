@@ -1513,6 +1513,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [False]}).bool()
         False
         """
+
+        warnings.warn(
+            f"{type(self).__name__}.bool is now deprecated and will be removed "
+            "in future version of pandas",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
             return bool(v)
