@@ -233,11 +233,9 @@ def test_pass_args_kwargs(ts, tsframe):
     for as_index in [True, False]:
         df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
         warn = None if as_index else FutureWarning
-        msg = "grouping is currently excluded from the result"
+        msg = "A grouping .* was excluded from the result"
         with tm.assert_produces_warning(warn, match=msg):
             agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        warn = None if as_index else FutureWarning
-        msg = "grouping is currently excluded from the result"
         with tm.assert_produces_warning(warn, match=msg):
             apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
         with tm.assert_produces_warning(warn, match=msg):
@@ -265,7 +263,7 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
     warn = None if as_index else FutureWarning
-    msg = "grouping is currently excluded from the result"
+    msg = "A grouping .* was excluded from the result"
     with tm.assert_produces_warning(warn, match=msg):
         res = gb.agg(np.percentile, 80, axis=0)
 

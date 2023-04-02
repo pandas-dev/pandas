@@ -578,7 +578,7 @@ def test_categorical_reducers(
         warn = None
     else:
         warn = FutureWarning
-    msg = "grouping is currently excluded from the result"
+    msg = "A grouping .* was excluded from the result"
     with tm.assert_produces_warning(warn, match=msg):
         result = getattr(gb_keepna, reduction_func)(*args)
 
