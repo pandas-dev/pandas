@@ -9827,7 +9827,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
-        >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
+        >>> df_copy.map(lambda x: len(str(x)), na_action='ignore')
              0  1
         0  NaN  4
         1  5.0  5
@@ -9840,7 +9840,7 @@ class DataFrame(NDFrame, OpsMixin):
         0   1.000000   4.494400
         1  11.262736  20.857489
 
-        But it's better to avoid applymap in that case.
+        But it's better to avoid map in that case.
 
         >>> df ** 2
                    0          1
@@ -9860,7 +9860,7 @@ class DataFrame(NDFrame, OpsMixin):
         def infer(x):
             return x._map_values(func, na_action=na_action)
 
-        return self.apply(infer).__finalize__(self, "applymap")
+        return self.apply(infer).__finalize__(self, "map")
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
@@ -9895,6 +9895,19 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.apply : Apply a function along input axis of DataFrame.
         DataFrame.map : Apply a function along input axis of DataFrame.
         DataFrame.replace: Replace values given in `to_replace` with `value`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.map(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
         """
         warnings.warn(
             "DataFrame.applymap has been deprecated. Use DataFrame.map instead.",
