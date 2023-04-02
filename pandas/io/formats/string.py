@@ -166,7 +166,7 @@ class StringFormatter:
         dif = max_len - width
         # '+ 1' to avoid too wide repr (GH PR #17023)
         adj_dif = dif + 1
-        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+        col_lens = Series([Series(ele).str.len().max() for ele in strcols])
         n_cols = len(col_lens)
         counter = 0
         while adj_dif > 0 and n_cols > 1:
