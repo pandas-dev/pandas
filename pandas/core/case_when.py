@@ -25,6 +25,8 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     This is useful when you want to assign a column based on multiple conditions.
     Uses `Series.mask` to perform the assignment.
 
+    If multiple conditions are met, the value of the first condition is taken.
+
     The returned Series have the same index as `obj`.
 
     Parameters
@@ -151,6 +153,11 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
     # construct series on which we will apply `Series.mask`
     series = pd.Series(default, index=obj.index)
 
+    # a series to keep track of which row got modified.
+    # we need this because if a row satisfied multiple conditions,
+    # we set the value of the first condition.
+    modified = pd.Series(False, index=obj.index)
+
     for i in range(0, len_args, 2):
         # get conditions
         if callable(args[i]):
@@ -162,6 +169,9 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
         replacements = args[i + 1]
 
         # `Series.mask` call
-        series = series.mask(conditions, replacements)
+        series = series.mask(~modified & conditions, replacements)
+
+        # keeping track of which row got modified
+        modified |= conditions
 
     return series
