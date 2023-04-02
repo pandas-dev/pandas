@@ -247,6 +247,7 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
+- Bug in :meth:`DataFrame.clip` fixed for arguments ``lower`` > ``higher`` (:issue:`52147`)
 
 .. ***DO NOT USE THIS SECTION***
 
