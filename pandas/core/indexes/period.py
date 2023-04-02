@@ -316,7 +316,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        return dtype == self.dtype
+        return self.dtype == dtype
 
     # ------------------------------------------------------------------------
     # Index Methods
