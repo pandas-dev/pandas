@@ -113,19 +113,20 @@ class BooleanDtype(BaseMaskedDtype):
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
+            length = len(array)
         else:
             # pyarrow.ChunkedArray
             chunks = array.chunks
+            length = array.length
+
+        if pyarrow.types.is_null(array.type):
+            mask = np.ones(length, dtype=bool)
+            # No need to init data, since all null
+            data = np.empty(length, dtype=bool)
+            return BooleanArray(data, mask)
 
         results = []
         for arr in chunks:
-            if pyarrow.types.is_null(arr.type):
-                mask = np.ones(len(arr), dtype=bool)
-                # No need to init data, since all null
-                data = np.empty(len(arr), dtype=bool)
-                bool_arr = BooleanArray(data, mask)
-                results.append(bool_arr)
-                continue
             buflist = arr.buffers()
             data = pyarrow.BooleanArray.from_buffers(
                 arr.type, len(arr), [None, buflist[1]], offset=arr.offset
