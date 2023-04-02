@@ -890,7 +890,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             index = Index(keys)
         else:
             index = keys
-        return Series(counts, index=index)
+        return Series(counts, index=index, copy=False)
 
     # --------
     # Indexing

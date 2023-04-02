@@ -219,6 +219,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             self._parent.array.to_dense(),
             index=self._parent.index,
             name=self._parent.name,
+            copy=False,
         )
 
 

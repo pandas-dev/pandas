@@ -1104,7 +1104,7 @@ class ArrowExtensionArray(
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count")
+        return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
     def _concat_same_type(

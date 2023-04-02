@@ -379,7 +379,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx, dtype=others.dtype)]
+            return [Series(others, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -634,7 +634,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
-                result, dtype=dtype, index=data.index, name=self._orig.name
+                result, dtype=dtype, index=data.index, name=self._orig.name, copy=False
             )
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
