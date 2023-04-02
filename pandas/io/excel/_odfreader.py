@@ -31,7 +31,7 @@ class ODFReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
-        engine_kwargs: None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Read tables out of OpenDocument formatted files.

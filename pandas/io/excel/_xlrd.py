@@ -25,7 +25,7 @@ class XlrdReader(BaseExcelReader):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions = None,
-        engine_kwargs: None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Reader using xlrd engine.
