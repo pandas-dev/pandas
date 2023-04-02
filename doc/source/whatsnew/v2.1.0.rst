@@ -148,6 +148,8 @@ Performance improvements
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
 - Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
+- Performance improvement in :class:`Series` reductions (:issue:`52341`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:

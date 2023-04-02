@@ -4565,8 +4565,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Series.{name} does not allow {kwd_name}={numeric_only} "
                     "with non-numeric dtypes."
                 )
-            with np.errstate(all="ignore"):
-                return op(delegate, skipna=skipna, **kwds)
+            return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
         self,
