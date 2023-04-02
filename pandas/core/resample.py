@@ -898,7 +898,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Internal reindexing with ``as_freq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
         Since not all datapoints from original series become anchors,
-        it can lead to misleading interpolation results as in the following exapmple:
+        it can lead to misleading interpolation results as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0
