@@ -2508,7 +2508,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         """
         from pandas import Series
 
-        return Series(self._parent.codes, index=self._index, copy=False)
+        return Series(self._parent.codes, index=self._index)
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
@@ -2516,7 +2516,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
-            return Series(res, index=self._index, name=self._name, copy=False)
+            return Series(res, index=self._index, name=self._name)
 
 
 # utility routines
