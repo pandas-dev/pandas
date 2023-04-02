@@ -172,13 +172,25 @@ class TestDataFrameClip:
         expected = DataFrame({"a": [1.5, 2.0, 3.0]})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("lower,upper", [(7, [3, 3]), ([7, 7], 3), (7, 3)])
-    def test_lower_higher_than_upper(self, lower, upper):
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize(
+        "lower,upper,axis",
+        [
+            (7, [3, 3], None),
+            ([7, 7], 3, None),
+            (7, 3, None),
+            (7, [3] * 10, 0),
+            ([7] * 10, 3, 0),
+        ],
+    )
+    def test_lower_higher_than_upper(self, lower, upper, axis, inplace):
         # GH52147
         data = {"A": range(10), "B": range(10)}
         df = DataFrame(data)
 
         excepted = DataFrame([[3, 3]] * 10, columns=["A", "B"])
 
-        result = df.clip(lower=lower, upper=upper)
+        result = df.clip(lower=lower, upper=upper, axis=axis, inplace=inplace)
+        if inplace:
+            result = df
         tm.assert_frame_equal(result, excepted)

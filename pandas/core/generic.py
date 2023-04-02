@@ -8264,13 +8264,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self
         if lower is not None:
             result = result._clip_with_one_bound(
-                lower, method=self.ge, axis=axis, inplace=inplace
+                lower, method=result.ge, axis=axis, inplace=inplace
             )
         if upper is not None:
             if inplace:
                 result = self
             result = result._clip_with_one_bound(
-                upper, method=self.le, axis=axis, inplace=inplace
+                upper, method=result.le, axis=axis, inplace=inplace
             )
 
         return result
