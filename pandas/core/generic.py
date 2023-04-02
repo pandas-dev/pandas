@@ -111,7 +111,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -124,6 +123,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -243,10 +243,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         "_item_cache",
         "_cache",
         "_is_copy",
-        "_subtyp",
         "_name",
-        "_default_kind",
-        "_default_fill_value",
         "_metadata",
         "__array_struct__",
         "__array_interface__",
@@ -282,6 +279,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         object.__setattr__(self, "_attrs", attrs)
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
+    @final
     @classmethod
     def _init_mgr(
         cls,
@@ -623,6 +621,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # the block manager shows then reversed
         return [self._get_axis(a) for a in self._AXIS_ORDERS]
 
+    @final
     @property
     def ndim(self) -> int:
         """
@@ -646,6 +645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         return self._mgr.ndim
 
+    @final
     @property
     def size(self) -> int:
         """
@@ -4681,7 +4681,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         result = self._constructor(new_mgr)
         if self.ndim == 1:
-            result.name = self.name
+            result._name = self.name
 
         return result.__finalize__(self)
 
@@ -5405,8 +5405,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
+    @final
     def _reindex_axes(
-        self, axes, level, limit, tolerance, method, fill_value, copy
+        self,
+        axes,
+        level: Level | None,
+        limit: int | None,
+        tolerance,
+        method,
+        fill_value: Scalar | None,
+        copy: bool_t | None,
     ) -> Self:
         """Perform the reindex for all the axes."""
         obj = self
@@ -5432,7 +5440,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return obj
 
-    def _needs_reindex_multi(self, axes, method, level) -> bool_t:
+    def _needs_reindex_multi(self, axes, method, level: Level | None) -> bool_t:
         """Check if we do need a multi reindex."""
         return (
             (common.count_not_none(*axes.values()) == self._AXIS_LEN)
@@ -9535,6 +9543,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if broadcast_axis is not lib.no_default:
             # GH#51856
+            # TODO(3.0): enforcing this deprecation will close GH#13194
             msg = (
                 f"The 'broadcast_axis' keyword in {type(self).__name__}.align is "
                 "deprecated and will be removed in a future version."
@@ -9631,7 +9640,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1 or axis == 0:
             # If we are aligning timezone-aware DatetimeIndexes and the timezones
             #  do not match, convert both to UTC.
-            if is_datetime64tz_dtype(left.index.dtype):
+            if isinstance(left.index.dtype, DatetimeTZDtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
                         # GH#33671 copy to ensure we don't change the index on

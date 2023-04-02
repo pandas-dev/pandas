@@ -109,7 +109,9 @@ def _field_accessor(name: str, docstring: str | None = None):
     return property(f)
 
 
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -263,7 +265,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            return scalars
+            # error: Incompatible return value type
+            # (got "Union[Sequence[Optional[Period]], Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]", expected "PeriodArray")
+            return scalars  # type: ignore[return-value]
 
         periods = np.asarray(scalars, dtype=object)
 
@@ -635,7 +640,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 return self
             else:
                 return self.copy()
-        if is_period_dtype(dtype):
+        if isinstance(dtype, PeriodDtype):
             return self.asfreq(dtype.freq)
 
         if is_datetime64_any_dtype(dtype):
@@ -897,7 +902,7 @@ def period_array(
 
     if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
-    if is_period_dtype(data_dtype):
+    if isinstance(data_dtype, PeriodDtype):
         return PeriodArray(data, freq=freq)
 
     # other iterable of some kind
@@ -966,7 +971,7 @@ def validate_dtype_freq(
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-        if not is_period_dtype(dtype):
+        if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
         if freq is None:
             freq = dtype.freq
