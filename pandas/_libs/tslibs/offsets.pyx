@@ -1347,18 +1347,18 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
     valid date, first it is moved to a valid date.  Thus pseudo code
-    is:
+    is::
 
-    def __add__(date):
-      date = rollback(date) # does nothing if date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollback(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     When a date offset is created for a negative number of periods,
-    the date is first rolled forward.  The pseudo code is:
+    the date is first rolled forward.  The pseudo code is::
 
-    def __add__(date):
-      date = rollforward(date) # does nothing is date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollforward(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     Zero presents a problem.  Should it roll forward or back?  We
     arbitrarily have it rollforward:
