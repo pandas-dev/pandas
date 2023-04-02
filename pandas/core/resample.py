@@ -825,7 +825,6 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
-    @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
         method: QuantileInterpolation = "linear",
@@ -844,9 +843,16 @@ class Resampler(BaseGroupBy, PandasObject):
         Notes
         -----
         The original index is first reindexed
-        (see :meth:`pandas.Resampler.asfreq`) to new time buckets (anchors),
-        then the interpolation happens. For non-equidistant time-series this
+        (see :meth:`pandas.core.resample.Resampler.asfreq`) to new time buckets,
+        then the interpolation`of NaNs via `DataFrame.interpolate` happens.
+        For non-equidistant time-series this
         behaviour may lead to data loss as shown in the last example.
+
+        See Also
+        --------
+        pandas.core.resample.Resampler.asfreq: Return the values at the new freq,
+            essentially a reindex.
+        DataFrame.interpolate: Fill NaN values using an interpolation method.
 
         Examples
         --------
