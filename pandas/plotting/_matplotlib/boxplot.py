@@ -210,7 +210,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: Axes, labels) -> None:
+    def _set_ticklabels(self, ax: Axes, labels: list[str]) -> None:
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -248,7 +248,7 @@ def _grouped_plot_by_column(
     by=None,
     numeric_only: bool = True,
     grid: bool = False,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     ax=None,
     layout=None,
     return_type=None,
@@ -307,10 +307,10 @@ def boxplot(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     **kwds,
@@ -456,10 +456,10 @@ def boxplot_frame(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     **kwds,
@@ -487,11 +487,11 @@ def boxplot_frame_groupby(
     grouped,
     subplots: bool = True,
     column=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
     ax=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = True,

@@ -161,7 +161,7 @@ def get_dummies(
             data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
-        def check_len(item, name):
+        def check_len(item, name: str):
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (

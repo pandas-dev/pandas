@@ -361,6 +361,20 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
+def test_transform_fillna_null():
+    df = DataFrame(
+        dict(
+            price=[10, 10, 20, 20, 30, 30],
+            color=[10, 10, 20, 20, 30, 30],
+            cost=(100, 200, 300, 400, 500, 600),
+        )
+    )
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).transform("fillna")
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).fillna()
+
+
 def test_transform_transformation_func(transformation_func):
     # GH 30918
     df = DataFrame(
@@ -1125,9 +1139,9 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
     g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
-        )
+        # TODO: implement SeriesGroupBy.corrwith
+        assert not hasattr(g, func)
+        return
 
     args = get_groupby_method_args(reduction_func, obj)
     result = g.transform(func, *args)
@@ -1390,14 +1404,14 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
 
 def test_null_group_str_reducer_series(request, dropna, reduction_func):
     # GH 17093
-    if reduction_func == "corrwith":
-        msg = "corrwith not implemented for SeriesGroupBy"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
-    # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     ser = Series([1, 2, 2, 3], index=index)
     gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
+
+    if reduction_func == "corrwith":
+        # corrwith not implemented for SeriesGroupBy
+        assert not hasattr(gb, reduction_func)
+        return
 
     args = get_groupby_method_args(reduction_func, ser)
 
