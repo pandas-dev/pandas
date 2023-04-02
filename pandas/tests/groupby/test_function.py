@@ -17,7 +17,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core import nanops
 from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
@@ -365,7 +364,7 @@ def test_cython_median():
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    exp = df.groupby(labels).agg(nanops.nanmedian)
+    exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
     df = DataFrame(np.random.randn(1000, 5))
