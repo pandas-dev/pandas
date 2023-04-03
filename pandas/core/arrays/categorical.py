@@ -1534,7 +1534,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64", name="count")
+        return Series(
+            count, index=CategoricalIndex(ix), dtype="int64", name="count", copy=False
+        )
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
@@ -1792,7 +1794,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank().values)
+                self.rename_categories(
+                    Series(self.categories, copy=False).rank().values
+                )
             )
         return values
 

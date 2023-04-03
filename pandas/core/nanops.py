@@ -57,8 +57,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.construction import extract_array
-
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
@@ -92,8 +90,7 @@ class disallow:
                     f"reduction operation '{f_name}' not allowed for this dtype"
                 )
             try:
-                with np.errstate(invalid="ignore"):
-                    return f(*args, **kwargs)
+                return f(*args, **kwargs)
             except ValueError as e:
                 # we want to transform an object array
                 # ValueError message to the more typical TypeError
@@ -308,9 +305,6 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  np.where call below
     assert is_scalar(fill_value)
-    # error: Incompatible types in assignment (expression has type "Union[Any,
-    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -522,12 +516,12 @@ def nanany(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2])
-    >>> nanops.nanany(s)
+    >>> nanops.nanany(s.values)
     True
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([np.nan])
-    >>> nanops.nanany(s)
+    >>> nanops.nanany(s.values)
     False
     """
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
@@ -577,12 +571,12 @@ def nanall(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
-    >>> nanops.nanall(s)
+    >>> nanops.nanall(s.values)
     True
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 0])
-    >>> nanops.nanall(s)
+    >>> nanops.nanall(s.values)
     False
     """
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
@@ -637,7 +631,7 @@ def nansum(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
-    >>> nanops.nansum(s)
+    >>> nanops.nansum(s.values)
     3.0
     """
     values, mask, dtype, dtype_max, _ = _get_values(
@@ -705,7 +699,7 @@ def nanmean(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
-    >>> nanops.nanmean(s)
+    >>> nanops.nanmean(s.values)
     1.5
     """
     values, mask, dtype, dtype_max, _ = _get_values(
@@ -761,7 +755,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 2])
-    >>> nanops.nanmedian(s)
+    >>> nanops.nanmedian(s.values)
     2.0
     """
 
@@ -928,7 +922,7 @@ def nanstd(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
-    >>> nanops.nanstd(s)
+    >>> nanops.nanstd(s.values)
     1.0
     """
     if values.dtype == "M8[ns]":
@@ -944,7 +938,7 @@ def nanstd(
 @disallow("M8", "m8")
 @bottleneck_switch(ddof=1)
 def nanvar(
-    values,
+    values: np.ndarray,
     *,
     axis: AxisInt | None = None,
     skipna: bool = True,
@@ -975,10 +969,9 @@ def nanvar(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
-    >>> nanops.nanvar(s)
+    >>> nanops.nanvar(s.values)
     1.0
     """
-    values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if is_any_int_dtype(dtype):
@@ -1050,7 +1043,7 @@ def nansem(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
-    >>> nanops.nansem(s)
+    >>> nanops.nansem(s.values)
      0.5773502691896258
     """
     # This checks if non-numeric-like data is passed with numeric_only=False
@@ -1229,12 +1222,9 @@ def nanskew(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
-    >>> nanops.nanskew(s)
+    >>> nanops.nanskew(s.values)
     1.7320508075688787
     """
-    # error: Incompatible types in assignment (expression has type "Union[Any,
-    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1248,7 +1238,8 @@ def nanskew(
     elif not skipna and mask is not None and mask.any():
         return np.nan
 
-    mean = values.sum(axis, dtype=np.float64) / count
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1319,12 +1310,9 @@ def nankurt(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
-    >>> nanops.nankurt(s)
+    >>> nanops.nankurt(s.values)
     -1.2892561983471076
     """
-    # error: Incompatible types in assignment (expression has type "Union[Any,
-    # Union[ExtensionArray, ndarray]]", variable has type "ndarray")
-    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1338,7 +1326,8 @@ def nankurt(
     elif not skipna and mask is not None and mask.any():
         return np.nan
 
-    mean = values.sum(axis, dtype=np.float64) / count
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1413,7 +1402,7 @@ def nanprod(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, 3, np.nan])
-    >>> nanops.nanprod(s)
+    >>> nanops.nanprod(s.values)
     6.0
     """
     mask = _maybe_get_mask(values, skipna, mask)
@@ -1579,8 +1568,7 @@ def check_below_min_count(
 def _zero_out_fperr(arg):
     # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
-        with np.errstate(invalid="ignore"):
-            return np.where(np.abs(arg) < 1e-14, 0, arg)
+        return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
 
@@ -1715,8 +1703,7 @@ def make_nancomp(op):
         ymask = isna(y)
         mask = xmask | ymask
 
-        with np.errstate(all="ignore"):
-            result = op(x, y)
+        result = op(x, y)
 
         if mask.any():
             if is_bool_dtype(result):

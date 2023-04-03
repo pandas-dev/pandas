@@ -905,10 +905,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # We have to use comp_method_OBJECT_ARRAY instead of numpy
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(
-                    op, np.asarray(self.astype(object)), other
-                )
+            result = ops.comp_method_OBJECT_ARRAY(
+                op, np.asarray(self.astype(object)), other
+            )
             return result
 
         if other is NaT:
