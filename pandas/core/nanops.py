@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import itertools
-import operator
 from typing import (
     Any,
     Callable,
@@ -36,7 +35,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
-    is_bool_dtype,
     is_complex,
     is_float,
     is_float_dtype,
@@ -1686,35 +1684,6 @@ def _ensure_numeric(x):
                 # e.g. "foo"
                 raise TypeError(f"Could not convert {x} to numeric") from err
     return x
-
-
-# NA-friendly array comparisons
-
-
-def make_nancomp(op):
-    def f(x, y):
-        xmask = isna(x)
-        ymask = isna(y)
-        mask = xmask | ymask
-
-        result = op(x, y)
-
-        if mask.any():
-            if is_bool_dtype(result):
-                result = result.astype("O")
-            np.putmask(result, mask, np.nan)
-
-        return result
-
-    return f
-
-
-nangt = make_nancomp(operator.gt)
-nange = make_nancomp(operator.ge)
-nanlt = make_nancomp(operator.lt)
-nanle = make_nancomp(operator.le)
-naneq = make_nancomp(operator.eq)
-nanne = make_nancomp(operator.ne)
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
