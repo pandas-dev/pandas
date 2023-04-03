@@ -25,7 +25,7 @@ enhancement1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`.
-Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of the ``DataFrame``,
+Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of the :class:`DataFrame`,
 while :meth:`Index.map` applies the callable to all elements of the ``Index``.
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
