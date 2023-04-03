@@ -991,12 +991,9 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         elif isinstance(other, PeriodDtype):
             # For freqs that can be held by a PeriodDtype, this check is
             # equivalent to (and much faster than) self.freq == other.freq
-            sfreq = self.freq
-            ofreq = other.freq
-            return (
-                sfreq.n == ofreq.n
-                and sfreq._period_dtype_code == ofreq._period_dtype_code
-            )
+            sfreq = self._freq
+            ofreq = other._freq
+            return sfreq.n == ofreq.n and self._dtype_code == other._dtype_code
 
         return False
 
