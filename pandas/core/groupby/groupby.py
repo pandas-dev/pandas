@@ -95,7 +95,6 @@ from pandas.core import (
 from pandas.core._numba import executor
 from pandas.core.arrays import (
     BaseMaskedArray,
-    BooleanArray,
     Categorical,
     ExtensionArray,
     FloatingArray,
@@ -490,7 +489,93 @@ Examples
 --------
 %(example)s"""
 
-_agg_template = """
+_agg_template_series = """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list, dict or None
+    Function to use for aggregating the data. If a function, must either
+    work when passed a {klass} or when passed to {klass}.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
+
+    .. versionchanged:: 1.1.0
+
+        Can also accept a Numba JIT function with
+        ``engine='numba'`` specified. Only passing a single function is supported
+        with this engine.
+
+        If the ``'numba'`` engine is chosen, the function must be
+        a user defined function with ``values`` and ``index`` as the
+        first and second arguments respectively in the function signature.
+        Each group's index will be passed to the user defined function
+        and optionally available for use.
+
+    .. deprecated:: 2.1.0
+
+        Passing a dictionary is deprecated and will raise in a future version
+        of pandas. Pass a list of aggregations instead.
+*args
+    Positional arguments to pass to func.
+engine : str, default None
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
+
+Returns
+-------
+{klass}
+
+See Also
+--------
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Transforms the Series on each group
+    based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
+
+Notes
+-----
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
+{examples}"""
+
+_agg_template_frame = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -510,17 +595,18 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified. Only passing a single function is supported
-    with this engine.
-
-    If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the
-    first and second arguments respectively in the function signature.
-    Each group's index will be passed to the user defined function
-    and optionally available for use.
-
     .. versionchanged:: 1.1.0
+
+        Can also accept a Numba JIT function with
+        ``engine='numba'`` specified. Only passing a single function is supported
+        with this engine.
+
+        If the ``'numba'`` engine is chosen, the function must be
+        a user defined function with ``values`` and ``index`` as the
+        first and second arguments respectively in the function signature.
+        Each group's index will be passed to the user defined function
+        and optionally available for use.
+
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -1484,7 +1570,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
-            ser = Series(values)
+            ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
             # TODO: special case not needed with ArrayManager
@@ -1501,13 +1587,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
 
-        if isinstance(values, Categorical):
-            # Because we only get here with known dtype-preserving
-            #  reductions, we cast back to Categorical.
-            # TODO: if we ever get "rank" working, exclude it here.
-            res_values = type(values)._from_sequence(res_values, dtype=values.dtype)
-
-        elif ser.dtype == object:
+        if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
@@ -1545,6 +1625,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
+                if how in ["any", "all", "std", "sem"]:
+                    raise  # TODO: re-raise as TypeError?  should not be reached
                 result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
 
             return result
@@ -1695,45 +1777,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self.obj._constructor
 
     @final
-    def _bool_agg(self, val_test: Literal["any", "all"], skipna: bool):
-        """
-        Shared func to call any / all Cython GroupBy implementations.
-        """
-
-        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype) and skipna:
-                # GH#37501: don't raise on pd.NA when skipna=True
-                mask = isna(vals)
-                if mask.any():
-                    # mask on original values computed separately
-                    vals = vals.copy()
-                    vals[mask] = True
-            elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data
-            vals = vals.astype(bool, copy=False)
-            return vals.view(np.int8), bool
-
-        def result_to_bool(
-            result: np.ndarray,
-            inference: type,
-            result_mask,
-        ) -> ArrayLike:
-            if result_mask is not None:
-                return BooleanArray(result.astype(bool, copy=False), result_mask)
-            else:
-                return result.astype(inference, copy=False)
-
-        return self._get_cythonized_result(
-            libgroupby.group_any_all,
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int8),
-            pre_processing=objs_to_bool,
-            post_processing=result_to_bool,
-            val_test=val_test,
-            skipna=skipna,
-        )
-
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def any(self, skipna: bool = True):
@@ -1751,7 +1794,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             DataFrame or Series of boolean values, where a value is True if any element
             is True within its respective group, False otherwise.
         """
-        return self._bool_agg("any", skipna)
+        return self._cython_agg_general(
+            "any",
+            alt=lambda x: Series(x).any(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -1771,7 +1818,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             DataFrame or Series of boolean values, where a value is True if all elements
             are True within its respective group, False otherwise.
         """
-        return self._bool_agg("all", skipna)
+        return self._cython_agg_general(
+            "all",
+            alt=lambda x: Series(x).all(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
@@ -2817,7 +2868,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _fill(self, direction: Literal["ffill", "bfill"], limit=None):
+    def _fill(self, direction: Literal["ffill", "bfill"], limit: int | None = None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -2868,11 +2919,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # We broadcast algorithms.take_nd analogous to
                 #  np.take_along_axis
-
-                # Note: we only get here with backfill/pad,
-                #  so if we have a dtype that cannot hold NAs,
-                #  then there will be no -1s in indexer, so we can use
-                #  the original dtype (no need to ensure_dtype_can_hold_na)
                 if isinstance(values, np.ndarray):
                     dtype = values.dtype
                     if self.grouper.has_dropped_na:
@@ -2880,6 +2926,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         dtype = ensure_dtype_can_hold_na(values.dtype)
                     out = np.empty(values.shape, dtype=dtype)
                 else:
+                    # Note: we only get here with backfill/pad,
+                    #  so if we have a dtype that cannot hold NAs,
+                    #  then there will be no -1s in indexer, so we can use
+                    #  the original dtype (no need to ensure_dtype_can_hold_na)
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
                 for i, value_element in enumerate(values):
@@ -2904,7 +2954,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def ffill(self, limit=None):
+    def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
 
@@ -2929,7 +2979,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def bfill(self, limit=None):
+    def bfill(self, limit: int | None = None):
         """
         Backward fill the values.
 
@@ -3703,116 +3753,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _get_cythonized_result(
-        self,
-        base_func: Callable,
-        cython_dtype: np.dtype,
-        numeric_only: bool = False,
-        pre_processing=None,
-        post_processing=None,
-        how: str = "any_all",
-        **kwargs,
-    ):
-        """
-        Get result for Cythonized functions.
-
-        Parameters
-        ----------
-        base_func : callable, Cythonized function to be called
-        cython_dtype : np.dtype
-            Type of the array that will be modified by the Cython call.
-        numeric_only : bool, default False
-            Whether only numeric datatypes should be computed
-        pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython.
-            Function should return a tuple where the first element is the
-            values to be passed to Cython and the second element is an optional
-            type which the values should be converted to after being returned
-            by the Cython operation. This function is also responsible for
-            raising a TypeError if the values have an invalid type. Raises
-            if `needs_values` is False.
-        post_processing : function, default None
-            Function to be applied to result of Cython function. Should accept
-            an array of values as the first argument and type inferences as its
-            second argument, i.e. the signature should be
-            (ndarray, Type). If `needs_nullable=True`, a third argument should be
-            `nullable`, to allow for processing specific to nullable values.
-        how : str, default any_all
-            Determines if any/all cython interface or std interface is used.
-        **kwargs : dict
-            Extra arguments to be passed back to Cython funcs
-
-        Returns
-        -------
-        `Series` or `DataFrame`  with filled values
-        """
-        if post_processing and not callable(post_processing):
-            raise ValueError("'post_processing' must be a callable!")
-        if pre_processing and not callable(pre_processing):
-            raise ValueError("'pre_processing' must be a callable!")
-
-        grouper = self.grouper
-
-        ids, _, ngroups = grouper.group_info
-
-        base_func = partial(base_func, labels=ids)
-
-        def blk_func(values: ArrayLike) -> ArrayLike:
-            values = values.T
-            ncols = 1 if values.ndim == 1 else values.shape[1]
-
-            result: ArrayLike
-            result = np.zeros(ngroups * ncols, dtype=cython_dtype)
-            result = result.reshape((ngroups, ncols))
-
-            func = partial(base_func, out=result)
-
-            inferences = None
-
-            vals = values
-            if pre_processing:
-                vals, inferences = pre_processing(vals)
-
-            vals = vals.astype(cython_dtype, copy=False)
-            if vals.ndim == 1:
-                vals = vals.reshape((-1, 1))
-            func = partial(func, values=vals)
-
-            mask = isna(values).view(np.uint8)
-            if mask.ndim == 1:
-                mask = mask.reshape(-1, 1)
-            func = partial(func, mask=mask)
-
-            result_mask = None
-            if isinstance(values, BaseMaskedArray):
-                result_mask = np.zeros(result.shape, dtype=np.bool_)
-
-            func = partial(func, result_mask=result_mask)
-
-            # Call func to modify result in place
-            func(**kwargs)
-
-            if values.ndim == 1:
-                assert result.shape[1] == 1, result.shape
-                result = result[:, 0]
-                if result_mask is not None:
-                    assert result_mask.shape[1] == 1, result_mask.shape
-                    result_mask = result_mask[:, 0]
-
-            if post_processing:
-                result = post_processing(result, inferences, result_mask=result_mask)
-
-            return result.T
-
-        # Operate block-wise instead of column-by-column
-        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
-
-        res_mgr = mgr.grouped_reduce(blk_func)
-
-        out = self._wrap_agged_manager(res_mgr)
-        return self._wrap_aggregated_output(out)
-
-    @final
     @Substitution(name="groupby")
     def shift(
         self,
@@ -3935,7 +3875,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         periods: int = 1,
         fill_method: FillnaOptions = "ffill",
-        limit=None,
+        limit: int | None = None,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
     ):
