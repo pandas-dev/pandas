@@ -1674,4 +1674,5 @@ def test_agg_std():
     tm.assert_series_equal(result, expected)    
 
     result = df.agg([np.std])
-    assert isinstance(result, pd.DataFrame)
+    expected = pd.DataFrame({'A': 2.0, 'B': 2.0}, index=['std'])
+    tm.assert_frame_equal(result, expected)
