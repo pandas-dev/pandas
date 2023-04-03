@@ -1126,13 +1126,9 @@ def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
-    if dtype is None:
-        return False
     if isinstance(dtype, np.dtype):
         return dtype.kind in "mM"
-    elif isinstance(dtype, ExtensionDtype):
-        return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
-    return False
+    return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 
 
 def is_numeric_dtype(arr_or_dtype) -> bool:
