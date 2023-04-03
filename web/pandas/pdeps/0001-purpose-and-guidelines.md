@@ -161,7 +161,7 @@ hope can help clarify our meaning here:
   - Value counts rename ([GH-49497][49497]). The scope does not justify a PDEP at first, but later a
     discussion about whether it should be executed as a breaking change or with deprecation
     emerges, which could benefit from a PDEP process.
-- Adding new parameters or methods to an existing method typically will not require a PDEP for
+- Adding new methods or parameters to an existing method typically will not require a PDEP for
   non-core features. For example:
   - Both `dropna(percentage)` ([GH-35299][35299]), and `Timestamp.normalize()` ([GH-8794][8794])
     would not have required a PDEP.
