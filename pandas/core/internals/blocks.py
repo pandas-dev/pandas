@@ -173,7 +173,7 @@ class Block(PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype):
-            return dtype.kind not in ["b", "i", "u"]
+            return dtype.kind not in "iub"
         return dtype._can_hold_na
 
     @final

@@ -740,7 +740,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if not hasattr(values, "dtype"):
             values = np.asarray(values)
 
-        if values.dtype.kind in ["f", "i", "u", "c"]:
+        if values.dtype.kind in "fiuc":
             # TODO: de-duplicate with equals, validate_comparison_value
             return np.zeros(self.shape, dtype=bool)
 
@@ -769,7 +769,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             except ValueError:
                 return isin(self.astype(object), values)
 
-        if self.dtype.kind in ["m", "M"]:
+        if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
             values = values.as_unit(self.unit)
 
@@ -1194,7 +1194,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # For period dtype, timedelta64 is a close-enough return dtype.
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        if self.dtype.kind in ["m", "M"]:
+        if self.dtype.kind in "mM":
             # We can retain unit in dtype
             self = cast("DatetimeArray| TimedeltaArray", self)
             return result.view(f"timedelta64[{self.unit}]")
