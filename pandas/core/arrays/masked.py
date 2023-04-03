@@ -755,9 +755,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 # behavior today, so that should be fine to ignore.
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 warnings.filterwarnings("ignore", "elementwise", DeprecationWarning)
-                with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op.__name__}__")
-                    result = method(other)
+                method = getattr(self._data, f"__{op.__name__}__")
+                result = method(other)
 
                 if result is NotImplemented:
                     result = invalid_comparison(self._data, other, op)

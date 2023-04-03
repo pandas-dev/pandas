@@ -1468,8 +1468,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 @wraps(func)
                 def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
+                    return func(g, *args, **kwargs)
 
             else:
                 raise ValueError(

@@ -3181,10 +3181,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
-            for i, idx in enumerate(new_index):
-                lv = self.get(idx, fill_value)
-                rv = other.get(idx, fill_value)
-                with np.errstate(all="ignore"):
+            with np.errstate(all="ignore"):
+                for i, idx in enumerate(new_index):
+                    lv = self.get(idx, fill_value)
+                    rv = other.get(idx, fill_value)
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
@@ -4564,8 +4564,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Series.{name} does not allow {kwd_name}={numeric_only} "
                     "with non-numeric dtypes."
                 )
-            with np.errstate(all="ignore"):
-                return op(delegate, skipna=skipna, **kwds)
+            return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
         self,
@@ -5772,8 +5771,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
-        with np.errstate(all="ignore"):
-            res_values = ops.comparison_op(lvalues, rvalues, op)
+        res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
