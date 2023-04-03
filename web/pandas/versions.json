@@ -5,9 +5,14 @@
         "url": "/docs/dev/"
     },
     {
-        "name": "1.5 (stable)",
+        "name": "2.0 (stable)",
         "version": "docs",
         "url": "/docs/"
+    },
+    {
+        "name": "1.5",
+        "version": "pandas-docs/version/1.5",
+        "url": "/pandas-docs/version/1.5/"
     },
     {
         "name": "1.4",
