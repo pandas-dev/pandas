@@ -1268,6 +1268,8 @@ cdef class _Timestamp(ABCTimestamp):
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
+
+
 class Timestamp(_Timestamp):
     """
     Pandas replacement for python datetime.datetime object.
