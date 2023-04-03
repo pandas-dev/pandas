@@ -29,7 +29,7 @@ Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of th
 while :meth:`Index.map` applies the callable to all elements of the :class:`Index`.
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
-that, the ``map`` method could be called with ``na_action="ignore"``, e.g. like this: ``ser.map(func, na_action="ignore")``.
+that, the ``map`` method could be called with ``na_action="ignore"``, i.e. ``ser.map(func, na_action="ignore")``.
 However, ``na_action="ignore"`` was not implemented for many ``ExtensionArray`` and ``Index`` types
 and whether ``na_action="ignore"`` worked with a specific data type was quite unpredictable.
 
