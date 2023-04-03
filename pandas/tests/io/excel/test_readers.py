@@ -451,6 +451,10 @@ class TestReaders:
                     reason="Calamine support parsing datetime only in xlsx"
                 )
             )
+        if engine == "calamine":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine can't parse this datetime format")
+            )
 
         expected = DataFrame.from_dict(
             {
@@ -584,10 +588,15 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    def test_dtype_backend(self, read_ext, dtype_backend):
+    def test_dtype_backend(self, request, engine, read_ext, dtype_backend):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine doesn't support invalid ods")
+            )
 
         df = DataFrame(
             {
@@ -629,10 +638,15 @@ class TestReaders:
             expected = df
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_backend_and_dtype(self, read_ext):
+    def test_dtype_backend_and_dtype(self, request, engine, read_ext):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine doesn't support invalid ods")
+            )
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
@@ -646,10 +660,15 @@ class TestReaders:
         tm.assert_frame_equal(result, df)
 
     @td.skip_if_no("pyarrow")
-    def test_dtype_backend_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, request, engine, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine doesn't support invalid ods")
+            )
 
         import pyarrow as pa
 
@@ -694,8 +713,15 @@ class TestReaders:
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
         tm.assert_frame_equal(result, expected)
 
-    def test_reader_spaces(self, read_ext):
+    def test_reader_spaces(self, request, engine, read_ext):
         # see gh-32207
+
+        # https://github.com/tafia/calamine/pull/289
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine doesn't respect spaces in ods")
+            )
+
         basename = "test_spaces"
 
         actual = pd.read_excel(basename + read_ext)
@@ -790,12 +816,6 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
-                )
-            )
 
         expected = DataFrame(
             [
@@ -805,6 +825,11 @@ class TestReaders:
             ],
             columns=["DateColWithBigInt", "StringCol"],
         )
+
+        if engine == "calamine":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Maybe not supported by calamine")
+            )
 
         if engine == "openpyxl":
             request.node.add_marker(
@@ -1008,6 +1033,12 @@ class TestReaders:
                     reason="Calamine support parsing datetime only in xlsx"
                 )
             )
+        if engine == "calamine":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Calamine doesn't support parsing milliseconds in datetime"
+                )
+            )
 
         # Test reading times with and without milliseconds. GH5945.
         expected = DataFrame.from_dict(
@@ -1174,10 +1205,17 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_read_excel_multiindex_header_only(self, read_ext):
+    def test_read_excel_multiindex_header_only(self, request, engine, read_ext):
         # see gh-11733.
         #
         # Don't try to parse a header name if there isn't one.
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Calamine doesn't support 'number-rows-repeated' in ods"
+                )
+            )
+
         mi_file = "testmultiindex" + read_ext
         result = pd.read_excel(mi_file, sheet_name="index_col_none", header=[0, 1])
 
@@ -1418,8 +1456,15 @@ class TestReaders:
         with pytest.raises(TypeError, match="but 3 positional arguments"):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
-    def test_no_header_with_list_index_col(self, read_ext):
+    def test_no_header_with_list_index_col(self, request, engine, read_ext):
         # GH 31783
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Calamine doesn't support 'number-rows-repeated' in ods"
+                )
+            )
+
         file_name = "testmultiindex" + read_ext
         data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
         idx = MultiIndex.from_tuples(
@@ -1439,8 +1484,15 @@ class TestReaders:
         result = pd.read_excel(file_name)
         tm.assert_frame_equal(result, expected)
 
-    def test_multiheader_two_blank_lines(self, read_ext):
+    def test_multiheader_two_blank_lines(self, request, engine, read_ext):
         # GH 40442
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="Calamine doesn't support 'number-rows-repeated' in ods"
+                )
+            )
+
         file_name = "testmultiindex" + read_ext
         columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
         data = [[np.nan, np.nan], [np.nan, np.nan], [1, 3], [2, 4]]
@@ -1703,7 +1755,7 @@ class TestExcelFileRead:
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
         with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
+            result = pd.read_excel(f, engine=engine)
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
 
