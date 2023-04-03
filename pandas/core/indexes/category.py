@@ -4,6 +4,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Literal,
+    cast,
 )
 
 import numpy as np
@@ -14,10 +16,8 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -226,7 +226,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    def _is_dtype_compat(self, other) -> Categorical:
+    def _is_dtype_compat(self, other: Index) -> Categorical:
         """
         *this is an internal non-public method*
 
@@ -245,9 +245,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ------
         TypeError if the dtypes are not compatible
         """
-        if is_categorical_dtype(other):
-            other = extract_array(other)
-            if not other._categories_match_up_to_permutation(self):
+        if isinstance(other.dtype, CategoricalDtype):
+            cat = extract_array(other)
+            cat = cast(Categorical, cat)
+            if not cat._categories_match_up_to_permutation(self._values):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
@@ -264,15 +265,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 raise TypeError(
                     "cannot append a non-category item to a CategoricalIndex"
                 )
-            other = other._values
+            cat = other._values
 
-            if not ((other == values) | (isna(other) & isna(values))).all():
+            if not ((cat == values) | (isna(cat) & isna(values))).all():
                 # GH#37667 see test_equals_non_category
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
 
-        return other
+        return cat
 
     def equals(self, other: object) -> bool:
         """
@@ -342,7 +343,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return contains(self, key, container=self._engine)
 
     def reindex(
-        self, target, method=None, level=None, limit=None, tolerance=None
+        self, target, method=None, level=None, limit: int | None = None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -402,7 +403,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using input an input mapping or function.
 
@@ -469,7 +470,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper)
+        mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name)
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:

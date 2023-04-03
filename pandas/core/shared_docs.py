@@ -39,6 +39,13 @@ scalar, Series or DataFrame
 {see_also}
 Notes
 -----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
 `agg` is an alias for `aggregate`. Use the alias.
 
 Functions that mutate the passed object can produce unexpected
@@ -599,6 +606,8 @@ _shared_docs[
     --------
     {klass}.fillna : Fill NA values.
     {klass}.where : Replace values based on boolean condition.
+    DataFrame.applymap: Apply a function to a Dataframe elementwise.
+    Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
     Notes
