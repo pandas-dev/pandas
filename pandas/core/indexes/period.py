@@ -25,7 +25,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -52,6 +51,9 @@ if TYPE_CHECKING:
         Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import PeriodDtype
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 _shared_doc_kwargs = {
@@ -314,20 +316,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        if not isinstance(dtype, PeriodDtype):
-            return False
-        # For the subset of DateOffsets that can be a dtype.freq, it
-        #  suffices (and is much faster) to compare the dtype_code rather than
-        #  the freq itself.
-        # See also: PeriodDtype.__eq__
-        freq = dtype.freq
-        own_freq = self.freq
-        return (
-            freq._period_dtype_code
-            # error: "BaseOffset" has no attribute "_period_dtype_code"
-            == own_freq._period_dtype_code  # type: ignore[attr-defined]
-            and freq.n == own_freq.n
-        )
+        return self.dtype == dtype
 
     # ------------------------------------------------------------------------
     # Index Methods
