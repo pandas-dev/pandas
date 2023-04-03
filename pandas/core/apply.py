@@ -420,8 +420,10 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
-                results = {key: colg.agg(how) for key, how in arg.items()}
+                result_data = [colg.agg(how) for _, how in arg.items()]
+                result_index = list(arg.keys())
             elif is_non_unique_col:
+                # key used for column selection and output
                 # GH#51099
                 result_data = []
                 result_index = []
@@ -432,32 +434,31 @@ class Apply(metaclass=abc.ABCMeta):
                     for index, label in zip(indices, labels):
                         label_to_indices[label].append(index)
 
-                    for indices in label_to_indices.values():
-                        for indice in indices:
-                            result_index.append(key)
-                            result_data.append(
-                                selected_obj._ixs(indice, axis=1).agg(how)
-                            )
+                    key_data = [
+                        selected_obj._ixs(indice, axis=1).agg(how)
+                        for label, indices in label_to_indices.items()
+                        for indice in indices
+                    ]
+
+                    result_index += [key] * len(key_data)
+                    result_data += key_data
             else:
                 # key used for column selection and output
-                results = {
-                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-                }
-        # set the final keys
-        keys = list(arg.keys())
+                result_data = [
+                    obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                ]
+                result_index = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
-        if is_non_unique_col:
-            is_ndframe = [False]
-        else:
-            is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+        is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
         # combine results
         if all(is_ndframe):
+            results = dict(zip(result_index, result_data))
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k in keys if not results[k].empty]
+            keys_to_use = [k for k in result_index if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else keys
+            keys_to_use = keys_to_use if keys_to_use != [] else result_index
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
@@ -488,10 +489,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            if is_non_unique_col:
-                result = Series(result_data, index=result_index, name=name)
-            else:
-                result = Series(results, name=name)
+            result = Series(result_data, index=result_index, name=name)
 
         return result
 
