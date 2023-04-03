@@ -886,7 +886,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             index = Index(keys)
         else:
             index = keys
-        return Series(counts, index=index)
+        return Series(counts, index=index, copy=False)
 
     # --------
     # Indexing
@@ -1756,10 +1756,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
         else:
             # scalar
-            with np.errstate(all="ignore"):
-                fill_value = op(self.fill_value, other)
-                result = np.full(len(self), fill_value, dtype=np.bool_)
-                result[self.sp_index.indices] = op(self.sp_values, other)
+            fill_value = op(self.fill_value, other)
+            result = np.full(len(self), fill_value, dtype=np.bool_)
+            result[self.sp_index.indices] = op(self.sp_values, other)
 
             return type(self)(
                 result,

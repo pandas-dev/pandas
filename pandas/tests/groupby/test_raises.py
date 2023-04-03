@@ -172,7 +172,7 @@ def test_groupby_raises_string(
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
         "size": (None, ""),
-        "skew": (TypeError, "could not convert string to float"),
+        "skew": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
         "var": (TypeError, "could not convert string to float"),
@@ -265,7 +265,15 @@ def test_groupby_raises_datetime(
         "sem": (None, ""),
         "shift": (None, ""),
         "size": (None, ""),
-        "skew": (TypeError, r"dtype datetime64\[ns\] does not support reduction"),
+        "skew": (
+            TypeError,
+            "|".join(
+                [
+                    r"dtype datetime64\[ns\] does not support reduction",
+                    "datetime64 type does not support skew operations",
+                ]
+            ),
+        ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support sum operations"),
         "var": (TypeError, "datetime64 type does not support var operations"),
@@ -423,7 +431,12 @@ def test_groupby_raises_category(
         "size": (None, ""),
         "skew": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'skew'",
+            "|".join(
+                [
+                    "dtype category does not support reduction 'skew'",
+                    "category type does not support skew operations",
+                ]
+            ),
         ),
         "std": (
             TypeError,
@@ -591,7 +604,12 @@ def test_groupby_raises_category_on_category(
         "size": (None, ""),
         "skew": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'skew'",
+            "|".join(
+                [
+                    "category type does not support skew operations",
+                    "dtype category does not support reduction 'skew'",
+                ]
+            ),
         ),
         "std": (
             TypeError,
