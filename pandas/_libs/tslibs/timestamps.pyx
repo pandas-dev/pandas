@@ -1015,7 +1015,7 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self.year}-" + base.split("-", 1)[1]
+        base = f"{self.year:04d}-" + base.split("-", 1)[1]
 
         if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
@@ -1293,6 +1293,9 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
+
+        For float inputs, the result will be stored in nanoseconds, and
+        the unit attribute will be set as ``'ns'``.
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the

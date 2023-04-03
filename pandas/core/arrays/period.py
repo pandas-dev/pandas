@@ -110,7 +110,9 @@ def _field_accessor(name: str, docstring: str | None = None):
     return property(f)
 
 
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -264,7 +266,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            return scalars
+            # error: Incompatible return value type
+            # (got "Union[Sequence[Optional[Period]], Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]", expected "PeriodArray")
+            return scalars  # type: ignore[return-value]
 
         periods = np.asarray(scalars, dtype=object)
 

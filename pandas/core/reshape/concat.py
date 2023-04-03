@@ -14,13 +14,16 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import is_iterator
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -437,6 +440,19 @@ class _Concatenator:
             # #1649
             clean_keys = []
             clean_objs = []
+            if is_iterator(keys):
+                keys = list(keys)
+            if is_iterator(objs):
+                objs = list(objs)
+            if len(keys) != len(objs):
+                # GH#43485
+                warnings.warn(
+                    "The behavior of pd.concat with len(keys) != len(objs) is "
+                    "deprecated. In a future version this will raise instead of "
+                    "truncating to the smaller of the two sequences",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             for k, v in zip(keys, objs):
                 if v is None:
                     continue
@@ -480,9 +496,7 @@ class _Concatenator:
         else:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
-            non_empties = [
-                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)
-            ]
+            non_empties = [obj for obj in objs if sum(obj.shape) > 0 or obj.ndim == 1]
 
             if len(non_empties) and (
                 keys is None and names is None and levels is None and not self.intersect
@@ -495,19 +509,21 @@ class _Concatenator:
         self.objs = objs
 
         # Standardize axis parameter to int
-        if isinstance(sample, ABCSeries):
+        if sample.ndim == 1:
             from pandas import DataFrame
 
             axis = DataFrame._get_axis_number(axis)
+            self._is_frame = False
+            self._is_series = True
         else:
             axis = sample._get_axis_number(axis)
+            self._is_frame = True
+            self._is_series = False
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = sample._get_block_manager_axis(axis)
 
-        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
                 f"axis must be between 0 and {sample.ndim}, input was {axis}"
@@ -583,7 +599,8 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
-                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                mgr = type(sample._mgr).from_array(res, index=self.new_axes[0])
+                result = cons(mgr, name=name, fastpath=True)
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -666,7 +683,7 @@ class _Concatenator:
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, ABCSeries):
+                    if x.ndim != 1:
                         raise TypeError(
                             f"Cannot concatenate type 'Series' with "
                             f"object of type '{type(x).__name__}'"

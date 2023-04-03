@@ -1203,7 +1203,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def map(self, mapper, na_action=None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None | lib.NoDefault = lib.no_default,
+    ):
         """
         Map categories using an input mapping or function.
 
@@ -1220,6 +1224,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         mapper : function, dict, or Series
             Mapping correspondence.
+        na_action : {None, 'ignore'}, default 'ignore'
+            If 'ignore', propagate NaN values, without passing them to the
+            mapping correspondence.
+
+            .. deprecated:: 2.1.0
+
+               The default value of 'ignore' has been deprecated and will be changed to
+               None in the future.
 
         Returns
         -------
@@ -1243,10 +1255,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> cat.map(lambda x: x.upper())
+        >>> cat.map(lambda x: x.upper(), na_action=None)
         ['A', 'B', 'C']
         Categories (3, object): ['A', 'B', 'C']
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'}, na_action=None)
         ['first', 'second', 'third']
         Categories (3, object): ['first', 'second', 'third']
 
@@ -1257,35 +1269,50 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat
         ['a', 'b', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
-        >>> cat.map({'a': 3, 'b': 2, 'c': 1})
+        >>> cat.map({'a': 3, 'b': 2, 'c': 1}, na_action=None)
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
-        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'}, na_action=None)
         Index(['first', 'second', 'first'], dtype='object')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
-        >>> cat.map({'a': 'first', 'b': 'second'})
+        >>> cat.map({'a': 'first', 'b': 'second'}, na_action=None)
         Index(['first', 'second', nan], dtype='object')
         """
-        if na_action is not None:
-            raise NotImplementedError
+        if na_action is lib.no_default:
+            warnings.warn(
+                "The default value of 'ignore' for the `na_action` parameter in "
+                "pandas.Categorical.map is deprecated and will be "
+                "changed to 'None' in a future version. Please set na_action to the "
+                "desired value to avoid seeing this warning",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            na_action = "ignore"
+
+        assert callable(mapper) or is_dict_like(mapper)
 
         new_categories = self.categories.map(mapper)
-        try:
-            return self.from_codes(
-                self._codes.copy(), categories=new_categories, ordered=self.ordered
-            )
-        except ValueError:
-            # NA values are represented in self._codes with -1
-            # np.take causes NA values to take final element in new_categories
-            if np.any(self._codes == -1):
-                new_categories = new_categories.insert(len(new_categories), np.nan)
-            return np.take(new_categories, self._codes)
+
+        has_nans = np.any(self._codes == -1)
+
+        na_val = np.nan
+        if na_action is None and has_nans:
+            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+
+        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+            new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
+            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+
+        if has_nans:
+            new_categories = new_categories.insert(len(new_categories), na_val)
+
+        return np.take(new_categories, self._codes)
 
     __eq__ = _cat_compare_op(operator.eq)
     __ne__ = _cat_compare_op(operator.ne)
@@ -1508,7 +1535,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64", name="count")
+        return Series(
+            count, index=CategoricalIndex(ix), dtype="int64", name="count", copy=False
+        )
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
@@ -1766,7 +1795,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank().values)
+                self.rename_categories(
+                    Series(self.categories, copy=False).rank().values
+                )
             )
         return values
 

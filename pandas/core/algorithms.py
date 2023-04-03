@@ -838,7 +838,7 @@ def value_counts(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values)
+        values = Series(values, copy=False)
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -861,7 +861,7 @@ def value_counts(
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
+            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
@@ -893,7 +893,7 @@ def value_counts(
                 idx = idx.astype(object)
             idx.name = index_name
 
-            result = Series(counts, index=idx, name=name)
+            result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1666,7 +1666,11 @@ def union_with_duplicates(
             lvals = lvals._values
         if isinstance(rvals, ABCIndex):
             rvals = rvals._values
-        unique_vals = unique(concat_compat([lvals, rvals]))
+        # error: List item 0 has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any], Index]"; expected "Union[ExtensionArray,
+        # ndarray[Any, Any]]"
+        combined = concat_compat([lvals, rvals])  # type: ignore[list-item]
+        unique_vals = unique(combined)
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)

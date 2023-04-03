@@ -151,7 +151,9 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
     return property(f)
 
 
-class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 

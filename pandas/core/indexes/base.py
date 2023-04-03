@@ -960,9 +960,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(cls, str):
                 dtype = pandas_dtype(cls)
 
-            if isinstance(dtype, (np.dtype, ExtensionDtype)) and needs_i8_conversion(
-                dtype
-            ):
+            if needs_i8_conversion(dtype):
                 if dtype.kind == "m" and dtype != "m8[ns]":
                     # e.g. m8[s]
                     return self._data.view(cls)
@@ -6790,20 +6788,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
             # e.g. PeriodArray, Categorical
-            with np.errstate(all="ignore"):
-                result = op(self._values, other)
+            result = op(self._values, other)
 
         elif isinstance(self._values, ExtensionArray):
             result = op(self._values, other)
 
         elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
+            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
         else:
-            with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, other, op)
+            result = ops.comparison_op(self._values, other, op)
 
         return result
 
