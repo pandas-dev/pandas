@@ -14,13 +14,16 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import is_iterator
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -437,6 +440,19 @@ class _Concatenator:
             # #1649
             clean_keys = []
             clean_objs = []
+            if is_iterator(keys):
+                keys = list(keys)
+            if is_iterator(objs):
+                objs = list(objs)
+            if len(keys) != len(objs):
+                # GH#43485
+                warnings.warn(
+                    "The behavior of pd.concat with len(keys) != len(objs) is "
+                    "deprecated. In a future version this will raise instead of "
+                    "truncating to the smaller of the two sequences",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             for k, v in zip(keys, objs):
                 if v is None:
                     continue
