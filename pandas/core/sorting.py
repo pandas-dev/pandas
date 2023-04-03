@@ -153,7 +153,7 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)

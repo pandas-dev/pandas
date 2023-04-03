@@ -2110,6 +2110,7 @@ def test_unsupported_dt(data):
 @pytest.mark.parametrize(
     "prop, expected",
     [
+        ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
         ["dayofweek", 0],
@@ -2156,7 +2157,7 @@ def test_dt_properties(prop, expected):
     result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
-        exp_type = pa.date64()
+        exp_type = pa.date32()
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
@@ -2377,3 +2378,12 @@ def test_pickle_old_arrowextensionarray():
     tm.assert_extension_array_equal(result, expected)
     assert result._pa_array == pa.chunked_array(data)
     assert not hasattr(result, "_data")
+
+
+def test_setitem_boolean_replace_with_mask_segfault():
+    # GH#52059
+    N = 145_000
+    arr = ArrowExtensionArray(pa.chunked_array([np.ones((N,), dtype=np.bool_)]))
+    expected = arr.copy()
+    arr[np.zeros((N,), dtype=np.bool_)] = False
+    assert arr._pa_array == expected._pa_array

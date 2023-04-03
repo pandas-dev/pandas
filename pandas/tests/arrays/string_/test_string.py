@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -406,15 +407,14 @@ def test_fillna_args(dtype, request):
         arr.fillna(value=1)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
-    if dtype.storage == "pyarrow":
+    if dtype.storage == "pyarrow" and Version(pa.__version__) <= Version("11.0.0"):
         expected = pa.chunked_array(expected)
 
     assert arr.equals(expected)

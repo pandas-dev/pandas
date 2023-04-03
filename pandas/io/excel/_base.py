@@ -942,8 +942,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-        * overlay: Write contents to the existing sheet without removing the old
-          contents.
+        * overlay: Write contents to the existing sheet without first removing,
+          but possibly over top of, the existing contents.
 
         .. versionadded:: 1.3.0
 
