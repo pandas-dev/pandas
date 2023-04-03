@@ -31,7 +31,7 @@ while :meth:`Index.map` applies the callable to all elements of the :class:`Inde
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
 that, the ``map`` method could be called with ``na_action="ignore"``, i.e. ``ser.map(func, na_action="ignore")``.
 However, ``na_action="ignore"`` was not implemented for many ``ExtensionArray`` and ``Index`` types
-and whether ``na_action="ignore"`` worked with a specific data type was quite unpredictable.
+and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` subclass except the nullable numeric ones (i.e. with dtype :class:`Int64` etc.).
 
 ``na_action="ignore"`` now works for all array types (:issue:`52219`, :issue:`51645`, :issue:`51809`, :issue:`51936`, :issue:`52033`; :issue:`52096`).
 
@@ -62,6 +62,10 @@ and whether ``na_action="ignore"`` worked with a specific data type was quite un
     df.applymap(str.upper, na_action="ignore")
     idx = pd.Index(ser)
     idx.map(str.upper, na_action="ignore")
+
+Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
+This has been deprecated and will :meth:`Categorical.map` in the future change the default
+to ``na_action=None``, like for all the other array types.
 
 .. _whatsnew_210.enhancements.other:
 
