@@ -90,8 +90,7 @@ class disallow:
                     f"reduction operation '{f_name}' not allowed for this dtype"
                 )
             try:
-                with np.errstate(invalid="ignore"):
-                    return f(*args, **kwargs)
+                return f(*args, **kwargs)
             except ValueError as e:
                 # we want to transform an object array
                 # ValueError message to the more typical TypeError
@@ -1239,7 +1238,8 @@ def nanskew(
     elif not skipna and mask is not None and mask.any():
         return np.nan
 
-    mean = values.sum(axis, dtype=np.float64) / count
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1326,7 +1326,8 @@ def nankurt(
     elif not skipna and mask is not None and mask.any():
         return np.nan
 
-    mean = values.sum(axis, dtype=np.float64) / count
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1567,8 +1568,7 @@ def check_below_min_count(
 def _zero_out_fperr(arg):
     # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
-        with np.errstate(invalid="ignore"):
-            return np.where(np.abs(arg) < 1e-14, 0, arg)
+        return np.where(np.abs(arg) < 1e-14, 0, arg)
     else:
         return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
 
@@ -1703,8 +1703,7 @@ def make_nancomp(op):
         ymask = isna(y)
         mask = xmask | ymask
 
-        with np.errstate(all="ignore"):
-            result = op(x, y)
+        result = op(x, y)
 
         if mask.any():
             if is_bool_dtype(result):
