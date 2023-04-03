@@ -1320,16 +1320,16 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = lk.astype(rk.dtype)  # type: ignore[arg-type]
 
-                        mask = ~np.isnan(lk)
-                        match = lk == casted
-                        if not match[mask].all():
-                            warnings.warn(
-                                "You are merging on int and float "
-                                "columns where the float values "
-                                "are not equal to their int representation.",
-                                UserWarning,
-                                stacklevel=find_stack_level(),
-                            )
+                    mask = ~np.isnan(lk)
+                    match = lk == casted
+                    if not match[mask].all():
+                        warnings.warn(
+                            "You are merging on int and float "
+                            "columns where the float values "
+                            "are not equal to their int representation.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     continue
 
                 if is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
@@ -1340,16 +1340,16 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = rk.astype(lk.dtype)  # type: ignore[arg-type]
 
-                        mask = ~np.isnan(rk)
-                        match = rk == casted
-                        if not match[mask].all():
-                            warnings.warn(
-                                "You are merging on int and float "
-                                "columns where the float values "
-                                "are not equal to their int representation.",
-                                UserWarning,
-                                stacklevel=find_stack_level(),
-                            )
+                    mask = ~np.isnan(rk)
+                    match = rk == casted
+                    if not match[mask].all():
+                        warnings.warn(
+                            "You are merging on int and float "
+                            "columns where the float values "
+                            "are not equal to their int representation.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     continue
 
                 # let's infer and see if we are ok

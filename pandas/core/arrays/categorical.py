@@ -109,7 +109,6 @@ if TYPE_CHECKING:
         Shape,
         SortKind,
         npt,
-        type_t,
     )
 
     from pandas import (
@@ -473,8 +472,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> Categorical:
-        return Categorical(scalars, dtype=dtype, copy=copy)
+    ) -> Self:
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -563,7 +562,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def _from_inferred_categories(
         cls, inferred_categories, inferred_codes, dtype, true_values=None
-    ):
+    ) -> Self:
         """
         Construct a Categorical from inferred values.
 
@@ -632,7 +631,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @classmethod
     def from_codes(
         cls, codes, categories=None, ordered=None, dtype: Dtype | None = None
-    ) -> Categorical:
+    ) -> Self:
         """
         Make a Categorical type from codes and categories or dtype.
 
@@ -792,7 +791,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         super().__init__(self._ndarray, new_dtype)
 
-    def _set_dtype(self, dtype: CategoricalDtype) -> Categorical:
+    def _set_dtype(self, dtype: CategoricalDtype) -> Self:
         """
         Internal method for directly updating the CategoricalDtype
 
@@ -808,7 +807,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         codes = recode_for_categories(self.codes, self.categories, dtype.categories)
         return type(self)(codes, dtype=dtype, fastpath=True)
 
-    def set_ordered(self, value: bool) -> Categorical:
+    def set_ordered(self, value: bool) -> Self:
         """
         Set the ordered attribute to the boolean value.
 
@@ -822,7 +821,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         NDArrayBacked.__init__(cat, cat._ndarray, new_dtype)
         return cat
 
-    def as_ordered(self) -> Categorical:
+    def as_ordered(self) -> Self:
         """
         Set the Categorical to be ordered.
 
@@ -833,7 +832,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.set_ordered(True)
 
-    def as_unordered(self) -> Categorical:
+    def as_unordered(self) -> Self:
         """
         Set the Categorical to be unordered.
 
@@ -912,7 +911,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         NDArrayBacked.__init__(cat, codes, new_dtype)
         return cat
 
-    def rename_categories(self, new_categories) -> Categorical:
+    def rename_categories(self, new_categories) -> Self:
         """
         Rename categories.
 
@@ -984,7 +983,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat._set_categories(new_categories)
         return cat
 
-    def reorder_categories(self, new_categories, ordered=None):
+    def reorder_categories(self, new_categories, ordered=None) -> Self:
         """
         Reorder categories as specified in new_categories.
 
@@ -1027,7 +1026,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         return self.set_categories(new_categories, ordered=ordered)
 
-    def add_categories(self, new_categories) -> Categorical:
+    def add_categories(self, new_categories) -> Self:
         """
         Add new categories.
 
@@ -1096,7 +1095,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         NDArrayBacked.__init__(cat, codes, new_dtype)
         return cat
 
-    def remove_categories(self, removals):
+    def remove_categories(self, removals) -> Self:
         """
         Remove the specified categories.
 
@@ -1152,7 +1151,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return self.set_categories(new_categories, ordered=self.ordered, rename=False)
 
-    def remove_unused_categories(self) -> Categorical:
+    def remove_unused_categories(self) -> Self:
         """
         Remove categories which are not used.
 
@@ -1454,7 +1453,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    def isna(self) -> np.ndarray:
+    def isna(self) -> npt.NDArray[np.bool_]:
         """
         Detect missing values
 
@@ -1475,7 +1474,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     isnull = isna
 
-    def notna(self) -> np.ndarray:
+    def notna(self) -> npt.NDArray[np.bool_]:
         """
         Inverse of isna
 
@@ -1535,15 +1534,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64", name="count")
+        return Series(
+            count, index=CategoricalIndex(ix), dtype="int64", name="count", copy=False
+        )
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as
     # "ExtensionDtype"
     @classmethod
     def _empty(  # type: ignore[override]
-        cls: type_t[Categorical], shape: Shape, dtype: CategoricalDtype
-    ) -> Categorical:
+        cls, shape: Shape, dtype: CategoricalDtype
+    ) -> Self:
         """
         Analogous to np.empty(shape, dtype=dtype)
 
@@ -1649,7 +1650,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace: Literal[False] = ...,
         ascending: bool = ...,
         na_position: str = ...,
-    ) -> Categorical:
+    ) -> Self:
         ...
 
     @overload
@@ -1664,7 +1665,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inplace: bool = False,
         ascending: bool = True,
         na_position: str = "last",
-    ) -> Categorical | None:
+    ) -> Self | None:
         """
         Sort the Categorical by category value returning a new
         Categorical by default.
@@ -1767,7 +1768,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             pct=pct,
         )
 
-    def _values_for_rank(self):
+    def _values_for_rank(self) -> np.ndarray:
         """
         For correctly ranking ordered categorical data. See GH#15420
 
@@ -1793,7 +1794,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             #  reorder the categories (so rank can use the float codes)
             #  instead of passing an object array to rank
             values = np.array(
-                self.rename_categories(Series(self.categories).rank().values)
+                self.rename_categories(
+                    Series(self.categories, copy=False).rank().values
+                )
             )
         return values
 
