@@ -1665,3 +1665,13 @@ def test_agg_list_like_func_with_args():
         columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
     )
     tm.assert_frame_equal(result, expected)
+
+def test_agg_std():
+    df = pd.DataFrame(np.arange(6).reshape(3, 2), columns=['A', 'B'])
+
+    result = df.agg(np.std)
+    expected = pd.Series({'A': 2.0, 'B': 2.0}, dtype=float)
+    tm.assert_series_equal(result, expected)    
+
+    result = df.agg([np.std])
+    assert isinstance(result, pd.DataFrame)

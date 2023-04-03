@@ -1578,8 +1578,3 @@ def test_agg_groupings_selection():
     expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=index)
     tm.assert_frame_equal(result, expected)
 
-def test_agg_std():
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-    std = df.agg(np.std)
-    expected = pd.Series({'A': 1.0, 'B': 1.0}, dtype=float)
-    assert std.equals(expected)
