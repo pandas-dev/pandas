@@ -6013,7 +6013,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _reduce(
         self,
         op,
-        name: str,
+        # error: Variable "pandas.core.series.Series.str" is not valid as a type
+        name: str,  # type: ignore[valid-type]
         *,
         axis: Axis = 0,
         skipna: bool = True,
