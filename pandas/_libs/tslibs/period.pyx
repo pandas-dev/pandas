@@ -49,10 +49,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -1668,7 +1671,7 @@ cdef class _Period(PeriodMixin):
         # Note: this is more performant than PeriodDtype.from_date_offset(freq)
         #  because from_date_offset cannot be made a cdef method (until cython
         #  supported cdef classmethods)
-        self._dtype = PeriodDtypeBase(freq._period_dtype_code)
+        self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -1683,7 +1686,7 @@ cdef class _Period(PeriodMixin):
         """
         if isinstance(freq, int):
             # We already have a dtype code
-            dtype = PeriodDtypeBase(freq)
+            dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
 
         freq = to_offset(freq)

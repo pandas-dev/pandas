@@ -230,14 +230,17 @@ class TestDataFrameValues:
 
 class TestPrivateValues:
     @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz(self):
+    def test_private_values_dt64tz(self, using_copy_on_write):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
         df = DataFrame(dta, columns=["A"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        if using_copy_on_write:
+            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
+        else:
+            # we have a view
+            assert np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
@@ -245,14 +248,17 @@ class TestPrivateValues:
         tm.assert_equal(df2._values, tda)
 
     @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz_multicol(self):
+    def test_private_values_dt64tz_multicol(self, using_copy_on_write):
         dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 
         df = DataFrame(dta, columns=["A", "B"])
         tm.assert_equal(df._values, dta)
 
-        # we have a view
-        assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        if using_copy_on_write:
+            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
+        else:
+            # we have a view
+            assert np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta

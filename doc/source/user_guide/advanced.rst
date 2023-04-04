@@ -322,7 +322,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 .. warning::
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
-   for the **columns**. There are some ambiguous cases where the passed indexer could be mis-interpreted
+   for the **columns**. There are some ambiguous cases where the passed indexer could be misinterpreted
    as indexing *both* axes, rather than into say the ``MultiIndex`` for the rows.
 
    You should do this:
@@ -800,8 +800,8 @@ Groupby operations on the index will preserve the index nature as well.
 
 .. ipython:: python
 
-   df2.groupby(level=0).sum()
-   df2.groupby(level=0).sum().index
+   df2.groupby(level=0, observed=True).sum()
+   df2.groupby(level=0, observed=True).sum().index
 
 Reindexing operations will return a resulting index based on the type of the passed
 indexer. Passing a list will return a plain-old ``Index``; indexing with

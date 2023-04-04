@@ -15,7 +15,6 @@ import pytest
 from pandas.errors import SpecificationError
 
 from pandas import (
-    Categorical,
     DataFrame,
     Series,
     date_range,
@@ -74,20 +73,6 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
     msg = f"na_action must either be 'ignore' or None, {input_na_action} was passed"
     with pytest.raises(ValueError, match=msg):
         s.map({1: 2}, na_action=input_na_action)
-
-
-def test_map_categorical_na_action():
-    values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-    s = Series(values, name="XX", index=list("abcdefg"))
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
 
 
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])

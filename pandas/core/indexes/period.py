@@ -25,7 +25,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -49,8 +48,12 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
+
+    from pandas.core.dtypes.dtypes import PeriodDtype
+
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
 _shared_doc_kwargs = {
@@ -175,7 +178,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         other_name="PeriodArray",
         **_shared_doc_kwargs,
     )
-    def asfreq(self, freq=None, how: str = "E") -> PeriodIndex:
+    def asfreq(self, freq=None, how: str = "E") -> Self:
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -211,7 +214,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         copy: bool = False,
         name: Hashable = None,
         **fields,
-    ) -> PeriodIndex:
+    ) -> Self:
         valid_field_set = {
             "year",
             "month",
@@ -272,7 +275,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # Data
 
     @property
-    def values(self) -> np.ndarray:
+    def values(self) -> npt.NDArray[np.object_]:
         return np.asarray(self, dtype=object)
 
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
@@ -303,9 +306,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             raise raise_on_incompatible(self, other)
         elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
+            assert isinstance(other, int)
             return other
 
         # raise when input doesn't have freq
@@ -315,20 +316,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        if not isinstance(dtype, PeriodDtype):
-            return False
-        # For the subset of DateOffsets that can be a dtype.freq, it
-        #  suffices (and is much faster) to compare the dtype_code rather than
-        #  the freq itself.
-        # See also: PeriodDtype.__eq__
-        freq = dtype.freq
-        own_freq = self.freq
-        return (
-            freq._period_dtype_code
-            # error: "BaseOffset" has no attribute "_period_dtype_code"
-            == own_freq._period_dtype_code  # type: ignore[attr-defined]
-            and freq.n == own_freq.n
-        )
+        return self.dtype == dtype
 
     # ------------------------------------------------------------------------
     # Index Methods
@@ -478,7 +466,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     @doc(DatetimeIndexOpsMixin.shift)
-    def shift(self, periods: int = 1, freq=None):
+    def shift(self, periods: int = 1, freq=None) -> Self:
         if freq is not None:
             raise TypeError(
                 f"`freq` argument is not supported for {type(self).__name__}.shift"
@@ -487,7 +475,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name=None
+    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

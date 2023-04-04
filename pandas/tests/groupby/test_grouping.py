@@ -436,18 +436,16 @@ class TestGrouping:
         dates = date_range("01-Jan-2013", periods=12, freq="MS")
         ts = Series(np.random.randn(12), index=dates)
 
-        # GH3035
-        # index.map is used to apply grouper to the index
-        # if it fails on the elements, map tries it on the entire index as
-        # a sequence. That can yield invalid results that cause trouble
-        # down the line.
-        # the surprise comes from using key[0:6] rather than str(key)[0:6]
-        # when the elements are Timestamp.
-        # the result is Index[0:6], very confusing.
-
-        msg = r"Grouper result violates len\(labels\) == len\(data\)"
-        with pytest.raises(AssertionError, match=msg):
+        # GH51979
+        # simple check that the passed function doesn't operates on the whole index
+        msg = "'Timestamp' object is not subscriptable"
+        with pytest.raises(TypeError, match=msg):
             ts.groupby(lambda key: key[0:6])
+
+        result = ts.groupby(lambda x: x).sum()
+        expected = ts.groupby(ts.index).sum()
+        expected.index.freq = None
+        tm.assert_series_equal(result, expected)
 
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
@@ -488,7 +486,9 @@ class TestGrouping:
         df.columns = np.arange(len(df.columns))
 
         # it works!
-        df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
+        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
