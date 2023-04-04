@@ -92,6 +92,9 @@ jobs:
           path: wheelhouse/
 
 workflows:
+  docs:
+    jobs:
+      - build-docs
   test:
     # Don't run trigger this one when scheduled pipeline runs
     when:
