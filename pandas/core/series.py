@@ -579,7 +579,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
 
-    def __init_subclass__(cls, /, **kwargs):
+    def __init_subclass__(cls, /, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         if cls._constructor is not Series._constructor:
             warnings.warn(

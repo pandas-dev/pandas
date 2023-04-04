@@ -645,7 +645,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     _constructor_sliced: Callable[..., Series] = Series
 
-    def __init_subclass__(cls, /, **kwargs):
+    def __init_subclass__(cls, /, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         if cls._constructor is not DataFrame._constructor:
             warnings.warn(
