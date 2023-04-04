@@ -645,6 +645,23 @@ class DataFrame(NDFrame, OpsMixin):
 
     _constructor_sliced: Callable[..., Series] = Series
 
+    def __init_subclass__(cls, /, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls._constructor is not DataFrame._constructor:
+            warnings.warn(
+                "pandas subclass support is deprecating allowing _constructor "
+                "that does not return a class.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if cls._constructor_sliced is not DataFrame._constructor_sliced:
+            warnings.warn(
+                "pandas subclass support is deprecating allowing "
+                "_constructor_sliced that does not return a class.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     # ----------------------------------------------------------------------
     # Constructors
 

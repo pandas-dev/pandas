@@ -71,10 +71,13 @@ class TestMergeOrdered:
         assert result["group"].notna().all()
 
     def test_merge_type(self, left, right):
-        class NotADataFrame(DataFrame):
-            @property
-            def _constructor(self):
-                return NotADataFrame
+        msg = "pandas subclass support is deprecating"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+
+            class NotADataFrame(DataFrame):
+                @property
+                def _constructor(self):
+                    return NotADataFrame
 
         nad = NotADataFrame(left)
         result = nad.merge(right, on="key")

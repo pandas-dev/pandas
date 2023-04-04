@@ -42,11 +42,13 @@ class TestToFrame:
 
     def test_to_frame_expanddim(self):
         # GH#9762
+        msg = "pandas subclass support is deprecating"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
 
-        class SubclassedSeries(Series):
-            @property
-            def _constructor_expanddim(self):
-                return SubclassedFrame
+            class SubclassedSeries(Series):
+                @property
+                def _constructor_expanddim(self):
+                    return SubclassedFrame
 
         class SubclassedFrame(DataFrame):
             pass

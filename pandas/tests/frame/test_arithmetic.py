@@ -2044,30 +2044,32 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
 
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
+    msg = "pandas subclass support is deprecating"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
 
-    class SubclassedSeries(Series):
-        @property
-        def _constructor(self):
-            return SubclassedSeries
+        class SubclassedSeries(Series):
+            @property
+            def _constructor(self):
+                return SubclassedSeries
 
-        @property
-        def _constructor_expanddim(self):
-            return SubclassedDataFrame
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedDataFrame
 
-    class SubclassedDataFrame(DataFrame):
-        _metadata = ["my_extra_data"]
+        class SubclassedDataFrame(DataFrame):
+            _metadata = ["my_extra_data"]
 
-        def __init__(self, my_extra_data, *args, **kwargs) -> None:
-            self.my_extra_data = my_extra_data
-            super().__init__(*args, **kwargs)
+            def __init__(self, my_extra_data, *args, **kwargs) -> None:
+                self.my_extra_data = my_extra_data
+                super().__init__(*args, **kwargs)
 
-        @property
-        def _constructor(self):
-            return functools.partial(type(self), self.my_extra_data)
+            @property
+            def _constructor(self):
+                return functools.partial(type(self), self.my_extra_data)
 
-        @property
-        def _constructor_sliced(self):
-            return SubclassedSeries
+            @property
+            def _constructor_sliced(self):
+                return SubclassedSeries
 
     sdf = SubclassedDataFrame("some_data", {"A": [1, 2, 3], "B": [4, 5, 6]})
     result = sdf * 2

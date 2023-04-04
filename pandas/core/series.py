@@ -579,6 +579,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
 
+    def __init_subclass__(cls, /, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls._constructor is not Series._constructor:
+            warnings.warn(
+                "pandas subclass support is deprecating allowing _constructor "
+                "that does not return a class.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if cls._constructor_expanddim is not Series._constructor_expanddim:
+            warnings.warn(
+                "pandas subclass support is deprecating allowing "
+                "_constructor_expanddim that does not return a class.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     @property
     def _constructor(self) -> Callable[..., Series]:
         return Series

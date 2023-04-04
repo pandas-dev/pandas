@@ -170,6 +170,7 @@ Deprecations
 - Deprecated passing a dictionary to :meth:`.SeriesGroupBy.agg`; pass a list of aggregations instead (:issue:`50684`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or numpy array before operating instead (:issue:`51521`)
 - Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
+- Deprecated allowing subclasses :meth:`DataFrame._constructor`, :meth:`Series._constructor`, :meth:`DataFrame._constructor_sliced`, and :meth:`Series._constructor_expanddim` to return a function, in a future version these will be expected to return a class (:issue:`51772`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 -

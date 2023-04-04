@@ -664,10 +664,13 @@ class TestMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_type(self, df, df2):
-        class NotADataFrame(DataFrame):
-            @property
-            def _constructor(self):
-                return NotADataFrame
+        msg = "pandas subclass support is deprecating"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+
+            class NotADataFrame(DataFrame):
+                @property
+                def _constructor(self):
+                    return NotADataFrame
 
         nad = NotADataFrame(df)
         result = nad.merge(df2, on="key1")

@@ -79,12 +79,16 @@ class TestSeriesFlexArithmetic:
 
     def test_flex_method_subclass_metadata_preservation(self, all_arithmetic_operators):
         # GH 13208
-        class MySeries(Series):
-            _metadata = ["x"]
 
-            @property
-            def _constructor(self):
-                return MySeries
+        msg = "pandas subclass support is deprecating"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+
+            class MySeries(Series):
+                _metadata = ["x"]
+
+                @property
+                def _constructor(self):
+                    return MySeries
 
         opname = all_arithmetic_operators
         op = getattr(Series, opname)

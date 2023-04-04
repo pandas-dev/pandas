@@ -15,10 +15,13 @@ import pandas._testing as tm
 
 @pytest.fixture()
 def gpd_style_subclass_df():
-    class SubclassedDataFrame(DataFrame):
-        @property
-        def _constructor(self):
-            return SubclassedDataFrame
+    msg = "pandas subclass support is deprecating"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+
+        class SubclassedDataFrame(DataFrame):
+            @property
+            def _constructor(self):
+                return SubclassedDataFrame
 
     return SubclassedDataFrame({"a": [1, 2, 3]})
 
@@ -28,31 +31,34 @@ class TestDataFrameSubclassing:
         # Subclass frame and ensure it returns the right class on slicing it
         # In reference to PR 9632
 
-        class CustomSeries(Series):
-            @property
-            def _constructor(self):
-                return CustomSeries
+        msg = "pandas subclass support is deprecating"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
 
-            def custom_series_function(self):
-                return "OK"
+            class CustomSeries(Series):
+                @property
+                def _constructor(self):
+                    return CustomSeries
 
-        class CustomDataFrame(DataFrame):
-            """
-            Subclasses pandas DF, fills DF with simulation results, adds some
-            custom plotting functions.
-            """
+                def custom_series_function(self):
+                    return "OK"
 
-            def __init__(self, *args, **kw) -> None:
-                super().__init__(*args, **kw)
+            class CustomDataFrame(DataFrame):
+                """
+                Subclasses pandas DF, fills DF with simulation results, adds some
+                custom plotting functions.
+                """
 
-            @property
-            def _constructor(self):
-                return CustomDataFrame
+                def __init__(self, *args, **kw) -> None:
+                    super().__init__(*args, **kw)
 
-            _constructor_sliced = CustomSeries
+                @property
+                def _constructor(self):
+                    return CustomDataFrame
 
-            def custom_frame_function(self):
-                return "OK"
+                _constructor_sliced = CustomSeries
+
+                def custom_frame_function(self):
+                    return "OK"
 
         data = {"col1": range(10), "col2": range(10)}
         cdf = CustomDataFrame(data)
