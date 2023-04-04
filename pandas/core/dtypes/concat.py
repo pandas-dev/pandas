@@ -155,7 +155,7 @@ def concat_compat(
     # "Sequence[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
     # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[Any]]]]"
     result: np.ndarray = np.concatenate(to_concat, axis=axis)  # type: ignore[arg-type]
-    if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
+    if "b" in kinds and result.dtype.kind in "iuf":
         # GH#39817 cast to object instead of casting bools to numeric
         result = result.astype(object, copy=False)
     return result

@@ -132,7 +132,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if not isinstance(other, Index):
             return False
-        elif other.dtype.kind in ["f", "i", "u", "c"]:
+        elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
             should_try = False
