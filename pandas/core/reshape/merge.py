@@ -2378,7 +2378,10 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
-        if not isinstance(lk, BaseMaskedArray) and not isinstance(lk.dtype, ArrowDtype):
+        if not isinstance(lk, BaseMaskedArray) and not (
+            isinstance(lk.dtype, ArrowDtype)
+            and is_numeric_dtype(lk.dtype.numpy_dtype.type)
+        ):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
