@@ -27,8 +27,8 @@ Bug fixes
 
 Other
 ~~~~~
-- :class:'DataFrame' created from empty dicts had :attr:'~DataFrame.columns'  of dtype `object'. It is now a :class'RangeIndex' (:issue:'52404')
-- :class:'Series' created from empty dicts had :attr:'~Series.index'  of dtype `object'. It is now a :class'RangeIndex' (:issue:'52404')
+- :class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
+- :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:
