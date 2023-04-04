@@ -775,7 +775,7 @@ def _binary_op_method_timedeltalike(op, name):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return f(self, item)
 
-            elif other.dtype.kind in ["m", "M"]:
+            elif other.dtype.kind in "mM":
                 return op(self.to_timedelta64(), other)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
@@ -2028,7 +2028,7 @@ class Timedelta(_Timedelta):
                     result[mask] = np.nan
                 return result
 
-            elif other.dtype.kind in ["i", "u", "f"]:
+            elif other.dtype.kind in "iuf":
                 if other.ndim == 0:
                     return self // other.item()
                 else:

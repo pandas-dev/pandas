@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -119,3 +120,66 @@ def test_ravel_read_only(using_copy_on_write, order):
     if using_copy_on_write:
         assert arr.flags.writeable is False
     assert np.shares_memory(get_array(ser), arr)
+
+
+def test_series_array_ea_dtypes(using_copy_on_write):
+    ser = Series([1, 2, 3], dtype="Int64")
+    arr = np.asarray(ser, dtype="int64")
+    assert np.shares_memory(arr, get_array(ser))
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+    arr = np.asarray(ser)
+    assert not np.shares_memory(arr, get_array(ser))
+    assert arr.flags.writeable is True
+
+
+def test_dataframe_array_ea_dtypes(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    arr = np.asarray(df, dtype="int64")
+    # TODO: This should be able to share memory, but we are roundtripping
+    # through object
+    assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
+
+    arr = np.asarray(df)
+    if using_copy_on_write:
+        # TODO(CoW): This should be True
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_dataframe_array_string_dtype(using_copy_on_write, using_array_manager):
+    df = DataFrame({"a": ["a", "b"]}, dtype="string")
+    arr = np.asarray(df)
+    if not using_array_manager:
+        assert np.shares_memory(arr, get_array(df, "a"))
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_dataframe_multiple_numpy_dtypes():
+    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    arr = np.asarray(df)
+    assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
+
+
+def test_values_is_ea(using_copy_on_write):
+    df = DataFrame({"a": date_range("2012-01-01", periods=3)})
+    arr = np.asarray(df)
+    if using_copy_on_write:
+        assert arr.flags.writeable is False
+    else:
+        assert arr.flags.writeable is True
+
+
+def test_empty_dataframe():
+    df = DataFrame()
+    arr = np.asarray(df)
+    assert arr.flags.writeable is True
