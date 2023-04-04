@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 echo "Install Mambaforge"
-MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-$(uname -m).sh"
 echo "Downloading $MAMBA_URL"
 wget -q $MAMBA_URL -O minimamba.sh
 chmod +x minimamba.sh
