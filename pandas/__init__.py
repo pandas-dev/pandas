@@ -115,8 +115,6 @@ from pandas.core.arrays.sparse import SparseDtype
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
 
-from pandas.core.computation.api import eval
-
 from pandas.core.reshape.api import (
     concat,
     lreshape,
@@ -135,43 +133,8 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing
 from pandas.util._print_versions import show_versions
 
-from pandas.io.api import (
-    # excel
-    ExcelFile,
-    ExcelWriter,
-    read_excel,
-    # parsers
-    read_csv,
-    read_fwf,
-    read_table,
-    # pickle
-    read_pickle,
-    to_pickle,
-    # pytables
-    HDFStore,
-    read_hdf,
-    # sql
-    read_sql,
-    read_sql_query,
-    read_sql_table,
-    # misc
-    read_clipboard,
-    read_parquet,
-    read_orc,
-    read_feather,
-    read_gbq,
-    read_html,
-    read_xml,
-    read_json,
-    read_stata,
-    read_sas,
-    read_spss,
-)
-
-from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 
@@ -182,6 +145,89 @@ v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
+
+
+def __getattr__(key: str):
+    # lazy imports to speed up 'import pandas as pd'
+    if key == "eval":
+        from pandas.core.computation.api import eval
+
+        return eval
+    elif key == "testing":
+        import pandas.testing
+
+        return pandas.testing
+
+    elif key in {
+        "ExcelFile",
+        "ExcelWriter",
+        "read_excel",
+        "read_csv",
+        "read_fwf",
+        "read_table",
+        "read_pickle",
+        "to_pickle",
+        "HDFStore",
+        "read_hdf",
+        "read_sql",
+        "read_sql_query",
+        "read_sql_table",
+        "read_clipboard",
+        "read_parquet",
+        "read_orc",
+        "read_feather",
+        "read_gbq",
+        "read_html",
+        "read_xml",
+        "read_json",
+        "read_stata",
+        "read_sas",
+        "read_spss",
+    }:
+        import pandas.io.api
+
+        return getattr(pandas.io.api, key)
+    elif key == "json_normalize":
+        from pandas.io.json._normalize import json_normalize
+
+        return json_normalize
+    raise AttributeError(f"module 'pandas' has no attribute '{key}'")
+
+
+def __dir__() -> list[str]:
+    # include lazy imports defined in __getattr__ in dir()
+    base = list(globals().keys())
+    result = (
+        base
+        + [
+            "ExcelFile",
+            "ExcelWriter",
+            "read_excel",
+            "read_csv",
+            "read_fwf",
+            "read_table",
+            "read_pickle",
+            "to_pickle",
+            "HDFStore",
+            "read_hdf",
+            "read_sql",
+            "read_sql_query",
+            "read_sql_table",
+            "read_clipboard",
+            "read_parquet",
+            "read_orc",
+            "read_feather",
+            "read_gbq",
+            "read_html",
+            "read_xml",
+            "read_json",
+            "read_stata",
+            "read_sas",
+            "read_spss",
+        ]
+        + ["eval", "json_normalize", "testing"]
+    )
+    return result
 
 
 # module level doc-string
