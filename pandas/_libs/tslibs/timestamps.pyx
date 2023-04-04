@@ -1536,8 +1536,8 @@ class Timestamp(_Timestamp):
         #   check that the second argument is an int.
         #
         # - Nones for the first four (legacy) arguments indicate pydatetime
-        #   keyword arguments. year, month, and day are required. As a
-        #   shortcut, we just check that the first argument was not passed.
+        #   keyword arguments. year, month, and day are required. We just
+        #   check that no positional arguments were passed.
 
         cdef:
             object ts_input=_no_input
@@ -1574,7 +1574,7 @@ class Timestamp(_Timestamp):
             ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")
         # Building from positional arguments
-        elif 9 > args_len > 2 and all(isinstance(arg, int) for arg in args[:3]):
+        elif 9 > args_len > 2 and isinstance(args[1], int):
             args = args + (None,) * (8 - args_len)
             year, month, day, hour, minute, second, microsecond, tzinfo = args
 
