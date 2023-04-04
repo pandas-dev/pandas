@@ -142,6 +142,14 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        (
+            ("Flags", "flags", "allows_duplicate_labels"),
+            "DataFrame.flags is deprecated and will be removed in a future version",
+        ),
+        (
+            "set_flags",
+            "DataFrame.set_flags is deprecated and will be removed in a future version",
+        ),
     ]
 
     for item in items:

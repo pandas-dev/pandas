@@ -121,6 +121,7 @@ will be raised.
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    pd.Series([0, 1, 2], index=["a", "b", "b"]).set_flags(allows_duplicate_labels=False)
 
@@ -128,6 +129,7 @@ This applies to both row and column labels for a :class:`DataFrame`
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],).set_flags(
        allows_duplicate_labels=False
@@ -137,6 +139,7 @@ This attribute can be checked or set with :attr:`~DataFrame.flags.allows_duplica
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": [0, 1, 2, 3]}, index=["x", "y", "X", "Y"]).set_flags(
        allows_duplicate_labels=False
@@ -148,6 +151,7 @@ which indicates whether that object can have duplicate labels.
 like ``allows_duplicate_labels`` set to some value
 
 .. ipython:: python
+   :okwarning:
 
    df2 = df.set_flags(allows_duplicate_labels=True)
    df2.flags.allows_duplicate_labels
@@ -157,6 +161,7 @@ Or the property can just be set directly on the same object
 
 
 .. ipython:: python
+   :okwarning:
 
    df2.flags.allows_duplicate_labels = False
    df2.flags.allows_duplicate_labels
@@ -193,6 +198,7 @@ operations.
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    s1 = pd.Series(0, index=["a", "b"]).set_flags(allows_duplicate_labels=False)
    s1
