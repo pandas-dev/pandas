@@ -95,7 +95,7 @@ Below is a possibly non-exhaustive list of changes:
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
-   ``float64`` dtype. It row raises a ``NotImplementedError``:
+   ``float64`` dtype. It now raises a ``NotImplementedError``:
 
    .. ipython:: python
        :okexcept:

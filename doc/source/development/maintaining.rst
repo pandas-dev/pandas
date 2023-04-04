@@ -437,7 +437,7 @@ which will be triggered when the tag is pushed.
     git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
     git push upstream main --follow-tags
 
-3. Build the source distribution (git must be in the tag commit):
+3. Build the source distribution (git must be in the tag commit)::
 
     ./setup.py sdist --formats=gztar --quiet
 
@@ -455,25 +455,13 @@ which will be triggered when the tag is pushed.
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
    Merge it once the CI is green, and it will generate the conda-forge packages.
 
-6. Packages for supported versions in PyPI are built in the
-   `MacPython repo <https://github.com/MacPython/pandas-wheels>`_.
-   Open a PR updating the build commit to the released version, and merge it once the
-   CI is green. To do this type::
+6. Packages for supported versions in PyPI are built automatically from our CI.
+   Once all packages are build download all wheels from the
+   `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\<version\>>`_
+   where our CI published them to the ``dist/`` directory in your local pandas copy.
+   You can use the script ``scripts/download_wheels.sh`` to download all wheels at once.
 
-    git checkout master
-    git pull --ff-only upstream master
-    git checkout -B RLS-<version>
-    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'v<version>'"/' azure/windows.yml azure/posix.yml
-    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'v<version>'"/' .travis.yml
-    git commit -am "RLS <version>"
-    git push -u origin RLS-<version>
-
-7. Download all wheels from the Anaconda repository where MacPython uploads them:
-   https://anaconda.org/multibuild-wheels-staging/pandas/files?version=<version>
-   to the ``dist/`` directory in the local pandas copy. You can use the script
-   ``scripts/download_wheels.sh`` to download all wheels at once.
-
-8. Upload wheels to PyPI:
+7. Upload wheels to PyPI::
 
     twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
