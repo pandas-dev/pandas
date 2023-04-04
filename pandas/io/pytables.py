@@ -5165,7 +5165,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
-    if data.dtype.kind in ["m", "M"]:
+    if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?

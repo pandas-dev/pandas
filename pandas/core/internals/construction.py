@@ -1042,11 +1042,11 @@ def convert_object_array(
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            elif dtype.kind in ["m", "M"]:
+            elif dtype.kind in "mM":
                 # This restriction is harmless bc these are the only cases
                 #  where maybe_cast_to_datetime is not a no-op.
                 # Here we know:
-                #  1) dtype.kind in ["m", "M"] and
+                #  1) dtype.kind in "mM" and
                 #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
 

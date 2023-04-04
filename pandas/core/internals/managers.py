@@ -2225,7 +2225,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
-            is_dtlike = dtype.kind in ["m", "M"]
+            is_dtlike = dtype.kind in "mM"
 
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)

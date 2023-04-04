@@ -568,7 +568,7 @@ def factorize_array(
     uniques : ndarray
     """
     original = values
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
         #  need to do the same to na_value. We are assuming here that the passed
         #  na_value is an appropriately-typed NaT.

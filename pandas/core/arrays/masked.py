@@ -694,7 +694,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             # Make sure we do this before the "pow" mask checks
             #  to get an expected exception message on shape mismatch.
-            if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
+            if self.dtype.kind in "iu" and op_name in ["floordiv", "mod"]:
                 # TODO(GH#30188) ATM we don't match the behavior of non-masked
                 #  types with respect to floordiv-by-zero
                 pd_op = op

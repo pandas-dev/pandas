@@ -86,7 +86,7 @@ def _astype_nansafe(
     elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
-    if arr.dtype.kind in ["m", "M"]:
+    if arr.dtype.kind in "mM":
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
         arr = ensure_wrapped_if_datetimelike(arr)

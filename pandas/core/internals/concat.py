@@ -143,7 +143,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
         target_dtype = np.find_common_type(list(dtypes), [])
     else:
@@ -626,14 +626,14 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return dtype.type("NaT")
-    elif dtype.kind in ["f", "c"]:
+    elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
         # different from missing.na_value_for_dtype
         return None
-    elif dtype.kind in ["i", "u"]:
+    elif dtype.kind in "iu":
         if not has_none_blocks:
             # different from missing.na_value_for_dtype
             return None
@@ -692,7 +692,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
-            or ju.block.dtype.kind in ["b", "i", "u"]
+            or ju.block.dtype.kind in "iub"
             for ju in join_units
         )
         and

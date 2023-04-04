@@ -180,7 +180,7 @@ def _nanpercentile(
     quantiles : scalar or array
     """
 
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
         result = _nanpercentile(
             values.view("i8"),

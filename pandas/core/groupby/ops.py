@@ -220,7 +220,7 @@ class WrappedCythonOp:
             #  should raise in _get_cython_function
             values = ensure_float64(values)
 
-        elif values.dtype.kind in ["i", "u"]:
+        elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):

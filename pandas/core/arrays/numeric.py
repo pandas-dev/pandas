@@ -80,7 +80,7 @@ class NumericDtype(BaseMaskedDtype):
             # test_from_arrow_type_error raise for string, but allow
             #  through itemsize conversion GH#31896
             rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
-            if rt_dtype.kind not in ["i", "u", "f"]:
+            if rt_dtype.kind not in "iuf":
                 # Could allow "c" or potentially disallow float<->int conversion,
                 #  but at the moment we specifically test that uint<->int works
                 raise TypeError(

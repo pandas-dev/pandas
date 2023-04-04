@@ -402,7 +402,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
-        if x.dtype.kind in ["c", "f", "O"]:
+        if x.dtype.kind in "cfO":
             # dtypes that can hold NA
             mask = isna(x)
             if mask.any():

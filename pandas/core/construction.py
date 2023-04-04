@@ -756,7 +756,7 @@ def _try_cast(
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
     elif dtype.kind == "U":
-        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        # TODO: test cases with arr.dtype.kind in "mM"
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             shape = arr.shape
@@ -768,7 +768,7 @@ def _try_cast(
             shape
         )
 
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and

@@ -228,7 +228,7 @@ def _sparse_array_op(
         if (
             name in ["floordiv", "mod"]
             and (right == 0).any()
-            and left.dtype.kind in ["i", "u"]
+            and left.dtype.kind in "iu"
         ):
             # Match the non-Sparse Series behavior
             opname = f"sparse_{name}_float64"
