@@ -1,3 +1,4 @@
+# pylint: disable=undefined-all-variable
 """
 Public API for DataFrame interchange protocol.
 """
@@ -16,4 +17,7 @@ def __getattr__(key: str):
     raise AttributeError(key)
 
 
-__all__ = ["from_dataframe", "DataFrame"]
+__all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
+    "from_dataframe",
+    "DataFrame",
+]

@@ -1,3 +1,4 @@
+# pylint: disable=undefined-all-variable
 from __future__ import annotations
 
 __docformat__ = "restructuredtext"
@@ -154,7 +155,7 @@ def __getattr__(key: str):
 
         return eval
     elif key == "testing":
-        import pandas.testing
+        import pandas.testing  # pylint: disable=redefined-outer-name
 
         return pandas.testing
 
@@ -274,7 +275,7 @@ Here are just a few of the things that pandas does well:
 # Use __all__ to let type checkers know what is part of the public API.
 # Pandas is not (yet) a py.typed library: the public API is determined
 # based on the documentation.
-__all__ = [
+__all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
