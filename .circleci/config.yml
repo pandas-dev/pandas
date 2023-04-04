@@ -9,6 +9,9 @@ jobs:
     steps:
       - checkout
       - run: .circleci/setup_env.sh
+      - run: conda activate pandas-dev
+      - run: which python
+      - run: python --version
       - run: python web/pandas_web.py web/pandas --target-path=web/build
       - run: doc/make.py --warnings-are-errors
       - run: doc/make.py zip_html
