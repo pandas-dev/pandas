@@ -2,8 +2,10 @@
 
 - Created: 3 August 2022
 - Status: Accepted
-- Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444)
-- Author: [Marc Garcia](https://github.com/datapythonista)
+- Discussion: [#47444](https://github.com/pandas-dev/pandas/pull/47444), 
+  [#51417](https://github.com/pandas-dev/pandas/pull/51417)
+- Author: [Marc Garcia](https://github.com/datapythonista), 
+  [Noa Tamir](https://github.com/noatamir)
 - Revision: 2
 
 ## PDEP definition, purpose and scope
