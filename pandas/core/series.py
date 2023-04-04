@@ -5770,7 +5770,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             (technically a multi-set, as it may contain duplicate labels), and is
             used to index and align data in pandas.
 
-             For more information on pandas indexing, see the `indexing user guide
+            For more information on pandas indexing, see the `indexing user guide
             <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
 
             Examples
