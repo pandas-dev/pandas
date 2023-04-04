@@ -19,7 +19,6 @@ from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -174,7 +173,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
     -------
     ndarray or ExtensionArray
     """
-    if is_dtype_equal(values.dtype, dtype):
+    if values.dtype == dtype:
         if copy:
             return values.copy()
         return values

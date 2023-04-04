@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
-    is_dtype_equal,
     is_float_dtype,
     is_object_dtype,
     is_sparse,
@@ -644,7 +643,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         # DatetimeLikeArrayMixin Super handles the rest.
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -2320,7 +2319,7 @@ def _validate_dt64_dtype(dtype):
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, np.dtype("M8")):
+        if dtype == np.dtype("M8"):
             # no precision, disallowed GH#24806
             msg = (
                 "Passing in 'datetime64' dtype with no precision is not allowed. "

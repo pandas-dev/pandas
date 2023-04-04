@@ -1998,7 +1998,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # require identical categories set
         if isinstance(value, Categorical):
-            if not is_dtype_equal(self.dtype, value.dtype):
+            if self.dtype != value.dtype:
                 raise TypeError(
                     "Cannot set a Categorical with another, "
                     "without identical categories"

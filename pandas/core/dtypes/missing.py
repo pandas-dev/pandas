@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_complex_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -526,7 +525,7 @@ def array_equivalent(
 
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # datetime64, timedelta64, Period
-        if not is_dtype_equal(left.dtype, right.dtype):
+        if left.dtype != right.dtype:
             return False
 
         left = left.view("i8")
@@ -584,7 +583,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
     """
     ExtensionArray-compatible implementation of array_equivalent.
     """
-    if not is_dtype_equal(left.dtype, right.dtype):
+    if left.dtype != right.dtype:
         return False
     elif isinstance(left, ABCExtensionArray):
         return left.equals(right)
