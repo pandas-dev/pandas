@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import itertools
-import operator
 from typing import (
     Any,
     Callable,
@@ -36,7 +35,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
-    is_bool_dtype,
     is_complex,
     is_float,
     is_float_dtype,
@@ -401,7 +399,7 @@ def _datetimelike_compat(func: F) -> F:
     ):
         orig_values = values
 
-        datetimelike = values.dtype.kind in ["m", "M"]
+        datetimelike = values.dtype.kind in "mM"
         if datetimelike and mask is None:
             mask = isna(values)
 
@@ -517,6 +515,12 @@ def nanany(
     >>> nanops.nanany(s.values)
     False
     """
+    if values.dtype.kind in "iub" and mask is None:
+        # GH#26032 fastpath
+        # error: Incompatible return value type (got "Union[bool_, ndarray]",
+        # expected "bool")
+        return values.any(axis)  # type: ignore[return-value]
+
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
         # GH#34479
         warnings.warn(
@@ -572,6 +576,12 @@ def nanall(
     >>> nanops.nanall(s.values)
     False
     """
+    if values.dtype.kind in "iub" and mask is None:
+        # GH#26032 fastpath
+        # error: Incompatible return value type (got "Union[bool_, ndarray]",
+        # expected "bool")
+        return values.all(axis)  # type: ignore[return-value]
+
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
         # GH#34479
         warnings.warn(
@@ -1688,35 +1698,6 @@ def _ensure_numeric(x):
     return x
 
 
-# NA-friendly array comparisons
-
-
-def make_nancomp(op):
-    def f(x, y):
-        xmask = isna(x)
-        ymask = isna(y)
-        mask = xmask | ymask
-
-        result = op(x, y)
-
-        if mask.any():
-            if is_bool_dtype(result):
-                result = result.astype("O")
-            np.putmask(result, mask, np.nan)
-
-        return result
-
-    return f
-
-
-nangt = make_nancomp(operator.gt)
-nange = make_nancomp(operator.ge)
-nanlt = make_nancomp(operator.lt)
-nanle = make_nancomp(operator.le)
-naneq = make_nancomp(operator.eq)
-nanne = make_nancomp(operator.ne)
-
-
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
     """
     Cumulative function with skipna support.
@@ -1739,7 +1720,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
     }[accum_func]
 
     # This should go through ea interface
-    assert values.dtype.kind not in ["m", "M"]
+    assert values.dtype.kind not in "mM"
 
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):

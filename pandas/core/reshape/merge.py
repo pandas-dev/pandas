@@ -2107,7 +2107,7 @@ class _AsOfMerge(_OrderedMerge):
 
                 # TODO: we have no test cases with PeriodDtype here; probably
                 #  need to adjust tolerance for that case.
-                if left_values.dtype.kind in ["m", "M"]:
+                if left_values.dtype.kind in "mM":
                     # Make sure the i8 representation for tolerance
                     #  matches that for left_values/right_values.
                     lvs = ensure_wrapped_if_datetimelike(left_values)
