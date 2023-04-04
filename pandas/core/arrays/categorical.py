@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_hashable,
     is_integer_dtype,
@@ -1374,7 +1373,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             categorical.categories.dtype.
         """
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and not is_dtype_equal(dtype, self.categories.dtype):
+        if dtype and np.dtype(dtype) != self.categories.dtype:
             return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an

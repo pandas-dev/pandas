@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
@@ -314,9 +313,7 @@ def array(
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
 
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
+    if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
         # e.g. TimedeltaArray[s], avoid casting to PandasArray
         if copy:
             return data.copy()

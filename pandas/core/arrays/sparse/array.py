@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_dtype_equal,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -181,7 +180,7 @@ def _sparse_array_op(
     ltype = left.dtype.subtype
     rtype = right.dtype.subtype
 
-    if not is_dtype_equal(ltype, rtype):
+    if ltype != rtype:
         subtype = find_common_type([ltype, rtype])
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
