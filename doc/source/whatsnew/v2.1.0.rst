@@ -21,24 +21,73 @@ enhancement1
 
 .. _whatsnew_210.enhancements.enhancement2:
 
-enhancement2
-^^^^^^^^^^^^
+``map(func, na_action="ignore")`` now works for all array types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`.
+Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of the :class:`DataFrame`,
+while :meth:`Index.map` applies the callable to all elements of the :class:`Index`.
+
+Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
+that, the ``map`` method could be called with ``na_action="ignore"``, i.e. ``ser.map(func, na_action="ignore")``.
+However, ``na_action="ignore"`` was not implemented for many ``ExtensionArray`` and ``Index`` types
+and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` subclass except the nullable numeric ones (i.e. with dtype :class:`Int64` etc.).
+
+``na_action="ignore"`` now works for all array types (:issue:`52219`, :issue:`51645`, :issue:`51809`, :issue:`51936`, :issue:`52033`; :issue:`52096`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series(["a", "b", np.nan], dtype="category")
+    In [2]: ser.map(str.upper, na_action="ignore")
+    NotImplementedError
+    In [3]: df = pd.DataFrame(ser)
+    In [4]: df.applymap(str.upper, na_action="ignore")  # worked for DataFrame
+         0
+    0    A
+    1    B
+    2  NaN
+    In [5]: idx = pd.Index(ser)
+    In [6]: idx.map(str.upper, na_action="ignore")
+    TypeError: CategoricalIndex.map() got an unexpected keyword argument 'na_action'
+
+*New behavior*:
+
+.. ipython:: python
+
+    ser = pd.Series(["a", "b", np.nan], dtype="category")
+    ser.map(str.upper, na_action="ignore")
+    df = pd.DataFrame(ser)
+    df.applymap(str.upper, na_action="ignore")
+    idx = pd.Index(ser)
+    idx.map(str.upper, na_action="ignore")
+
+Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
+This has been deprecated and will :meth:`Categorical.map` in the future change the default
+to ``na_action=None``, like for all the other array types.
 
 .. _whatsnew_210.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter.
+  :meth:`Categorical.map` implicitly had a default value of ``"ignore"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future.
+  Also notice that :meth:`Series.map` has default ``na_action=None`` and calls to series with categorical data will now use ``na_action=None`` unless explicitly set otherwise (:issue:`44279`)
 - Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)
 - :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
+- :meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - :class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
+- Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -104,6 +153,7 @@ Deprecations
 - Deprecated :meth:`DataFrame._data` and :meth:`Series._data`, use public APIs instead (:issue:`33333`)
 - Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
 - Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
+- Deprecated the behavior of :func:`concat` with both ``len(keys) != len(objs)``, in a future version this will raise instead of truncating to the shorter of the two sequences (:issue:`43485`)
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)
 - Deprecated explicit support for subclassing :class:`Index` (:issue:`45289`)
 - Deprecated :meth:`DataFrameGroupBy.dtypes`, check ``dtypes`` on the underlying object instead (:issue:`51045`)
@@ -117,9 +167,13 @@ Deprecations
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated the 'axis' keyword in :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.fillna`, :meth:`.GroupBy.take`, :meth:`.GroupBy.skew`, :meth:`.GroupBy.rank`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cummax`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.pct_change`, :meth:`GroupBy.diff`, :meth:`.GroupBy.shift`, and :meth:`DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)
+- Deprecated passing a dictionary to :meth:`.SeriesGroupBy.agg`; pass a list of aggregations instead (:issue:`50684`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or numpy array before operating instead (:issue:`51521`)
+- Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
+- Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 -
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -140,6 +194,8 @@ Performance improvements
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
 - Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
+- Performance improvement in :class:`Series` reductions (:issue:`52341`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -149,13 +205,13 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :meth:`Series.map` , where the value of the ``na_action`` parameter was not used if the series held a :class:`Categorical` (:issue:`22527`).
 -
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
-- :meth:`arrays.DatetimeArray.map` can now take a ``na_action`` argument. :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
+- :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 -
 
@@ -163,7 +219,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
-- :meth:`arrays.TimedeltaArray.map` can now take a ``na_action`` argument. :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
+- :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 -
 
@@ -175,6 +231,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 -
 
 Conversion
@@ -218,7 +275,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
-- :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument. :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
+- :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 -
@@ -265,6 +322,7 @@ Other
 ^^^^^
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
+- Bug in :func:`assert_frame_equal` checks category dtypes even when asked not to check index type (:issue:`52126`)
 
 .. ***DO NOT USE THIS SECTION***
 

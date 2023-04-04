@@ -182,7 +182,11 @@ def _period_dispatch(meth: F) -> F:
     return cast(F, new_meth)
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class DatetimeLikeArrayMixin(  # type: ignore[misc]
+    OpsMixin, NDArrayBackedExtensionArray
+):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -506,42 +510,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return super().view(dtype)
 
     # ------------------------------------------------------------------
-    # ExtensionArray Interface
-
-    @classmethod
-    def _concat_same_type(
-        cls,
-        to_concat: Sequence[Self],
-        axis: AxisInt = 0,
-    ) -> Self:
-        new_obj = super()._concat_same_type(to_concat, axis)
-
-        obj = to_concat[0]
-        dtype = obj.dtype
-
-        new_freq = None
-        if isinstance(dtype, PeriodDtype):
-            new_freq = obj.freq
-        elif axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:])
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-
-        new_obj._freq = new_freq
-        return new_obj
-
-    def copy(self, order: str = "C") -> Self:
-        # error: Unexpected keyword argument "order" for "copy"
-        new_obj = super().copy(order=order)  # type: ignore[call-arg]
-        new_obj._freq = self.freq
-        return new_obj
-
-    # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
 
@@ -772,7 +740,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if not hasattr(values, "dtype"):
             values = np.asarray(values)
 
-        if values.dtype.kind in ["f", "i", "u", "c"]:
+        if values.dtype.kind in "fiuc":
             # TODO: de-duplicate with equals, validate_comparison_value
             return np.zeros(self.shape, dtype=bool)
 
@@ -801,7 +769,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             except ValueError:
                 return isin(self.astype(object), values)
 
-        if self.dtype.kind in ["m", "M"]:
+        if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
             values = values.as_unit(self.unit)
 
@@ -937,10 +905,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # We have to use comp_method_OBJECT_ARRAY instead of numpy
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(
-                    op, np.asarray(self.astype(object)), other
-                )
+            result = ops.comp_method_OBJECT_ARRAY(
+                op, np.asarray(self.astype(object)), other
+            )
             return result
 
         if other is NaT:
@@ -1127,6 +1094,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
         new_freq = self._get_arithmetic_result_freq(other)
+        new_freq = cast("Tick | None", new_freq)
         return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
 
     @final
@@ -1194,7 +1162,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         new_freq = self._get_arithmetic_result_freq(other)
 
-        return type(self)._simple_new(res_values, dtype=self.dtype, freq=new_freq)
+        # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+        # incompatible type "Union[dtype[datetime64], DatetimeTZDtype,
+        # dtype[timedelta64]]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
+        return type(self)._simple_new(
+            res_values, dtype=self.dtype, freq=new_freq  # type: ignore[arg-type]
+        )
 
     @final
     def _add_nat(self):
@@ -1212,7 +1185,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         result = result.view(self._ndarray.dtype)  # preserve reso
-        return type(self)._simple_new(result, dtype=self.dtype, freq=None)
+        # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+        # incompatible type "Union[dtype[timedelta64], dtype[datetime64],
+        # DatetimeTZDtype]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
+        return type(self)._simple_new(
+            result, dtype=self.dtype, freq=None  # type: ignore[arg-type]
+        )
 
     @final
     def _sub_nat(self):
@@ -1227,7 +1205,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # For period dtype, timedelta64 is a close-enough return dtype.
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        if self.dtype.kind in ["m", "M"]:
+        if self.dtype.kind in "mM":
             # We can retain unit in dtype
             self = cast("DatetimeArray| TimedeltaArray", self)
             return result.view(f"timedelta64[{self.unit}]")
@@ -2085,6 +2063,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return arr
 
     # --------------------------------------------------------------
+    # ExtensionArray Interface
 
     def factorize(
         self,
@@ -2101,6 +2080,34 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(use_na_sentinel=use_na_sentinel)
+
+    @classmethod
+    def _concat_same_type(
+        cls,
+        to_concat: Sequence[Self],
+        axis: AxisInt = 0,
+    ) -> Self:
+        new_obj = super()._concat_same_type(to_concat, axis)
+
+        obj = to_concat[0]
+
+        if axis == 0:
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            to_concat = [x for x in to_concat if len(x)]
+
+            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
+                pairs = zip(to_concat[:-1], to_concat[1:])
+                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                    new_freq = obj.freq
+                    new_obj._freq = new_freq
+        return new_obj
+
+    def copy(self, order: str = "C") -> Self:
+        # error: Unexpected keyword argument "order" for "copy"
+        new_obj = super().copy(order=order)  # type: ignore[call-arg]
+        new_obj._freq = self.freq
+        return new_obj
 
 
 # -------------------------------------------------------------------
