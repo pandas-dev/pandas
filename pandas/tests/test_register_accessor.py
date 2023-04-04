@@ -13,7 +13,9 @@ def test_dirname_mixin():
 
     class X(accessor.DirNamesMixin):
         x = 1
-        y: int
+        # note: By default the bodies of untyped functions are not checked,
+        # consider using --check-untyped-defs
+        y: int  # type: ignore[annotation-unchecked]
 
         def __init__(self) -> None:
             self.z = 3
