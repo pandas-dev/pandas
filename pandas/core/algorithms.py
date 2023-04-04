@@ -1746,6 +1746,9 @@ def map_array(
 
         return new_values
 
+    if not len(arr):
+        return arr.copy()
+
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
