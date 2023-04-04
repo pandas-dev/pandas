@@ -9782,6 +9782,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Apply a function to a Dataframe elementwise.
 
+        .. versionadded:: 2.1.0
+
+           DataFrame.applymap was deprecated and renamed to DataFrame.map.
+
         This method applies a function that accepts and returns a scalar
         to every element of a DataFrame.
 
@@ -9809,6 +9813,8 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
         DataFrame.replace: Replace values given in `to_replace` with `value`.
+        DataFrame.applymap : Apply a function elementwise on a DataFrame (deprecated).
+        Series.map : Apply a function elementwise on a Series.
 
         Examples
         --------
