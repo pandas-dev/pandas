@@ -192,13 +192,51 @@ def test_format_escape_html(escape, exp):
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
 
 
-def test_format_escape_latex_math():
-    chars = r"$\frac{1}{2} \$ x^2$ ~%#^"
+@pytest.mark.parametrize(
+    "chars, expected",
+    [
+        (
+            r"$ \$&%#_{}~^\ $ &%#_{}~^\ $",
+            "".join(
+                [
+                    r"$ \$&%#_{}~^\ $ ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \$",
+                ]
+            ),
+        ),
+        (
+            r"\( &%#_{}~^\ \) &%#_{}~^\ \(",
+            "".join(
+                [
+                    r"\( &%#_{}~^\ \) ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \textbackslash (",
+                ]
+            ),
+        ),
+        (
+            r"$\&%#_{}^\$",
+            r"\$\textbackslash \&\%\#\_\{\}\textasciicircum \textbackslash \$",
+        ),
+        (
+            r"$ \frac{1}{2} $ \( \frac{1}{2} \)",
+            "".join(
+                [
+                    r"$ \frac{1}{2} $",
+                    r" \textbackslash ( \textbackslash frac\{1\}\{2\} \textbackslash )",
+                ]
+            ),
+        ),
+    ],
+)
+def test_format_escape_latex_math(chars, expected):
+    # GH 51903
+    # latex-math escape works for each DataFrame cell separately. If we have
+    # a combination of dollar signs and brackets, the dollar sign would apply.
     df = DataFrame([[chars]])
-
-    expected = r"$\frac{1}{2} \$ x^2$ \textasciitilde \%\#\textasciicircum "
     s = df.style.format("{0}", escape="latex-math")
-    assert expected == s._translate(True, True)["body"][0][1]["display_value"]
+    assert s._translate(True, True)["body"][0][1]["display_value"] == expected
 
 
 def test_format_escape_na_rep():

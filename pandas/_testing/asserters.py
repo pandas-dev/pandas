@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Literal,
     cast,
 )
@@ -21,6 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    ExtensionDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -52,6 +54,9 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 def assert_almost_equal(
@@ -295,6 +300,7 @@ def assert_index_equal(
                 exact=exact,
                 check_names=check_names,
                 check_exact=check_exact,
+                check_categorical=check_categorical,
                 rtol=rtol,
                 atol=atol,
                 obj=lobj,
@@ -524,7 +530,7 @@ def assert_interval_array_equal(
     _check_isinstance(left, right, IntervalArray)
 
     kwargs = {}
-    if left._left.dtype.kind in ["m", "M"]:
+    if left._left.dtype.kind in "mM":
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
 
@@ -965,7 +971,9 @@ def assert_series_equal(
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
-    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
+    elif isinstance(left.dtype, ExtensionDtype) and isinstance(
+        right.dtype, ExtensionDtype
+    ):
         assert_extension_array_equal(
             left._values,
             right._values,
@@ -1320,7 +1328,9 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
         assert elem1 is not elem2, msg
 
 
-def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+def is_extension_array_dtype_and_needs_i8_conversion(
+    left_dtype: DtypeObj, right_dtype: DtypeObj
+) -> bool:
     """
     Checks that we have the combination of an ExtensionArraydtype and
     a dtype that should be converted to int64
@@ -1331,7 +1341,7 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
 
     Related to issue #37609
     """
-    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+    return isinstance(left_dtype, ExtensionDtype) and needs_i8_conversion(right_dtype)
 
 
 def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -> None:

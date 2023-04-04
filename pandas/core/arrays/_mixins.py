@@ -224,13 +224,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         to_concat: Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
-        dtypes = {str(x.dtype) for x in to_concat}
-        if len(dtypes) != 1:
-            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+        if not lib.dtypes_all_equal([x.dtype for x in to_concat]):
+            dtypes = {str(x.dtype) for x in to_concat}
+            raise ValueError("to_concat must have the same dtype", dtypes)
 
-        new_values = [x._ndarray for x in to_concat]
-        new_arr = np.concatenate(new_values, axis=axis)
-        return to_concat[0]._from_backing_data(new_arr)
+        return super()._concat_same_type(to_concat, axis=axis)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -447,7 +445,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
-        return Series(result._values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(
         self,
