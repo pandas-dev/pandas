@@ -2256,6 +2256,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
 Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
 
 .. ipython:: python
+   :okwarning:
 
    from io import BytesIO
    df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
@@ -5462,6 +5463,7 @@ Read from an orc file.
 Read only certain columns of an orc file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_orc(
        "example_pa.orc",
