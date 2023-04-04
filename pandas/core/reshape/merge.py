@@ -2395,6 +2395,7 @@ def _factorize_keys(
         rlab = rizer.factorize(rk._data, mask=rk._mask)
     elif isinstance(lk.dtype, ArrowDtype):
         # we can only get here with numeric dtypes
+        # TODO: Remove when we have a Factorizer for Arrow
         llab = rizer.factorize(
             lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
         )
