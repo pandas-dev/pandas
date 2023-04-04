@@ -9,13 +9,14 @@ jobs:
     steps:
       - checkout
       - run: .circleci/setup_env.sh
-      - run: >
-          PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
-          python web/pandas_web.py web/pandas --target-path=web/build
-          cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
-          doc/make.py --warnings-are-errors
-          doc/make.py zip_html
-          mv doc/build/html web/build/docs
+          name: Build website and documentation
+          command: |
+            PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
+            python web/pandas_web.py web/pandas --target-path=web/build
+            cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
+            doc/make.py --warnings-are-errors
+            doc/make.py zip_html
+            mv doc/build/html web/build/docs
 
       - store_artifacts:
           path: web/build
