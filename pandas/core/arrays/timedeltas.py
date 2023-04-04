@@ -87,7 +87,10 @@ def _field_accessor(name: str, alias: str, docstring: str):
         if alias == "days":
             result = get_timedelta_days(values, reso=self._creso)
         else:
-            result = get_timedelta_field(values, alias, reso=self._creso)
+            # error: Incompatible types in assignment (
+            # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
+            # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
