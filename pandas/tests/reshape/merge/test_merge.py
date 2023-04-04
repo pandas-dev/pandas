@@ -2761,3 +2761,16 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_arrow_and_numpy_dtypes():
+    # GH#52406
+    df = DataFrame({"a": [1, 2]}, dtype="int64")
+    df2 = DataFrame({"a": [1, 2]}, dtype="int64[pyarrow]")
+    result = df.merge(df2)
+    expected = df.copy()
+    tm.assert_frame_equal(result, expected)
+
+    result = df2.merge(df)
+    expected = df2.copy()
+    tm.assert_frame_equal(result, expected)

@@ -83,7 +83,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
-    Series,
+    Series, ArrowDtype,
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2377,7 +2377,7 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
-        if not isinstance(lk, BaseMaskedArray):
+        if not isinstance(lk, BaseMaskedArray) and not isinstance(lk.dtype, ArrowDtype):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
@@ -2392,6 +2392,10 @@ def _factorize_keys(
         assert isinstance(rk, BaseMaskedArray)
         llab = rizer.factorize(lk._data, mask=lk._mask)
         rlab = rizer.factorize(rk._data, mask=rk._mask)
+    elif isinstance(lk.dtype, ArrowDtype):
+        # we can only get here with numeric dtypes
+        llab = rizer.factorize(lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna())
+        rlab = rizer.factorize(rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna())
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
@@ -2450,6 +2454,8 @@ def _convert_arrays_and_get_rizer_klass(
             #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
             #  expected type "Type[object]"
             klass = _factorizers[lk.dtype.type]  # type: ignore[index]
+        elif isinstance(lk.dtype, ArrowDtype):
+            klass = _factorizers[lk.dtype.numpy_dtype.type]
         else:
             klass = _factorizers[lk.dtype.type]
 
