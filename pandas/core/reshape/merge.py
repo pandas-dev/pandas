@@ -80,10 +80,11 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas import (
+    ArrowDtype,
     Categorical,
     Index,
     MultiIndex,
-    Series, ArrowDtype,
+    Series,
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
@@ -2394,8 +2395,12 @@ def _factorize_keys(
         rlab = rizer.factorize(rk._data, mask=rk._mask)
     elif isinstance(lk.dtype, ArrowDtype):
         # we can only get here with numeric dtypes
-        llab = rizer.factorize(lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna())
-        rlab = rizer.factorize(rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna())
+        llab = rizer.factorize(
+            lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
+        )
+        rlab = rizer.factorize(
+            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
+        )
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
