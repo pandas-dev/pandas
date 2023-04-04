@@ -1391,9 +1391,9 @@ cdef object _try_infer_map(object dtype):
     return None
 
 
-def infer_dtype(value: object, skipna: bool = True) -> str:
+def infer_dtype(value: object, skipna: bool = True) -> object:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -1403,7 +1403,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Returns
     -------
-    str
+    str or dtype object
         Describing the common type of the input data.
     Results can include:
 
@@ -1426,6 +1426,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - period
     - mixed
     - unknown-array
+
+    Returns a dtype object for non-legacy numpy dtypes
 
     Raises
     ------
@@ -1529,6 +1531,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if inferred is not None:
         # Anything other than object-dtype should return here.
         return inferred
+    elif not getattr(type(values.dtype), "_legacy", True):
+        if issubclass(values.dtype.type, str):
+            return values.dtype
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_

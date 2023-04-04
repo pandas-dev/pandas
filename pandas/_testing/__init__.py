@@ -356,8 +356,8 @@ def getCols(k) -> str:
 
 
 # make index
-def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
+def makeStringIndex(k: int = 10, name=None, dtype: NpDtype = "O") -> Index:
+    return Index(rands_array(nchars=10, size=k, dtype=dtype), name=name)
 
 
 def makeCategoricalIndex(

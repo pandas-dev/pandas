@@ -18,6 +18,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
+    is_legacy_string_dtype,
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
@@ -89,7 +90,7 @@ def _astype_nansafe(
         res = arr.astype(dtype, copy=copy)
         return np.asarray(res)
 
-    if issubclass(dtype.type, str):
+    if issubclass(dtype.type, str) and is_legacy_string_dtype(dtype):
         shape = arr.shape
         if arr.ndim > 1:
             arr = arr.ravel()
@@ -183,7 +184,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         values = _astype_nansafe(values, dtype, copy=copy)
 
     # in pandas we don't store numpy str dtypes, so convert to object
-    if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
+    if isinstance(dtype, np.dtype) and is_legacy_string_dtype(values.dtype):
         values = np.array(values, dtype=object)
 
     return values

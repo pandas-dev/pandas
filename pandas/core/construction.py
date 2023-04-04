@@ -43,6 +43,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
+    is_legacy_string_dtype,
     is_list_like,
     is_object_dtype,
     pandas_dtype,
@@ -708,7 +709,7 @@ def _sanitize_str_dtypes(
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
-    if issubclass(result.dtype.type, str):
+    if is_legacy_string_dtype(result.dtype):
         # GH#16605
         # If not empty convert the data to dtype
         # GH#19853: If data is a scalar, result has already the result

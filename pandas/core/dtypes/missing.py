@@ -11,6 +11,7 @@ from typing import (
 )
 
 import numpy as np
+from stringdtype import StringDType
 
 from pandas._config import get_option
 
@@ -305,6 +306,11 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
+    elif type(dtype) is StringDType:
+        if inf_as_na:
+            result = ~np.isfinite(values)
+        else:
+            result = np.isnan(values)
     else:
         if values.ndim in {1, 2}:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)

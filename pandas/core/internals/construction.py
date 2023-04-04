@@ -28,6 +28,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_integer_dtype,
+    is_legacy_string_dtype,
     is_list_like,
     is_named_tuple,
     is_object_dtype,
@@ -330,7 +331,7 @@ def ndarray_to_mgr(
     _check_values_indices_shape_match(values, index, columns)
 
     if typ == "array":
-        if issubclass(values.dtype.type, str):
+        if is_legacy_string_dtype(values.dtype):
             values = np.array(values, dtype=object)
 
         if dtype is None and is_object_dtype(values.dtype):

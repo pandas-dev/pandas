@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
+    is_legacy_string_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -243,7 +244,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         # has incompatible type "Iterable[Any]"; expected "Sized"
         return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
-    if issubclass(result.dtype.type, str):
+    if is_legacy_string_dtype(result.dtype):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:

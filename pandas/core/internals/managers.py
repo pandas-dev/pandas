@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
+    is_legacy_string_dtype,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
@@ -2268,7 +2269,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
         if isinstance(dtype, np.dtype):
             is_dtlike = dtype.kind in "mM"
 
-            if issubclass(dtype.type, (str, bytes)):
+            if is_legacy_string_dtype(dtype, include_bytes=True):
                 dtype = np.dtype(object)
 
             values, placement = _stack_arrays(list(tup_block), dtype)

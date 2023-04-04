@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from stringdtype import StringDType
 
 from pandas import (
     NA,
@@ -14,12 +15,21 @@ from .pandas_vb_common import tm
 
 
 class Dtypes:
-    params = ["str", "string[python]", "string[pyarrow]"]
+    params = ["str", "string[python]", "string[pyarrow]", StringDType()]
     param_names = ["dtype"]
+    dtype_mapping = {
+        "str": "str",
+        "string[python]": object,
+        "string[pyarrow]": object,
+        StringDType(): StringDType(),
+    }
 
     def setup(self, dtype):
         try:
-            self.s = Series(tm.makeStringIndex(10**5), dtype=dtype)
+            self.s = Series(
+                tm.makeStringIndex(10**5, dtype=self.dtype_mapping[dtype]),
+                dtype=dtype,
+            )
         except ImportError:
             raise NotImplementedError
 
@@ -27,11 +37,16 @@ class Dtypes:
 class Construction:
     params = (
         ["series", "frame", "categorical_series"],
-        ["str", "string[python]", "string[pyarrow]"],
+        ["str", "string[python]", "string[pyarrow]", StringDType()],
     )
     param_names = ["pd_type", "dtype"]
     pd_mapping = {"series": Series, "frame": DataFrame, "categorical_series": Series}
-    dtype_mapping = {"str": "str", "string[python]": object, "string[pyarrow]": object}
+    dtype_mapping = {
+        "str": "str",
+        "string[python]": object,
+        "string[pyarrow]": object,
+        StringDType(): StringDType(),
+    }
 
     def setup(self, pd_type, dtype):
         series_arr = tm.rands_array(

@@ -14,13 +14,20 @@ from typing import (
 import unicodedata
 
 import numpy as np
+from stringdtype import StringDType
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer_dtype,
+    is_scalar,
+)
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.integer import IntegerArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
@@ -63,6 +70,8 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         convert : bool, default True
             Whether to call `maybe_convert_objects` on the resulting ndarray
         """
+        from pandas.arrays import BooleanArray
+
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
@@ -71,9 +80,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if not len(self):
             return np.array([], dtype=dtype)
 
-        arr = np.asarray(self, dtype=object)
+        arr = np.asarray(self)
         mask = isna(arr)
-        map_convert = convert and not np.all(mask)
+        type(arr.dtype)
+        map_convert = (
+            convert and not np.all(mask) and type(arr.dtype) is not StringDType
+        )
         try:
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
         except (TypeError, AttributeError) as err:
@@ -103,6 +115,18 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             np.putmask(result, mask, na_value)
             if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
+
+        result = result.astype(dtype)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: type[IntegerArray] | type[BooleanArray]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            return constructor(result, mask)
+
         return result
 
     def _str_count(self, pat, flags: int = 0):
@@ -258,6 +282,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: getattr(x, method)(sub, start)
         else:
             f = lambda x: getattr(x, method)(sub, start, end)
+
         return self._str_map(f, dtype="int64")
 
     def _str_findall(self, pat, flags: int = 0):

@@ -120,12 +120,14 @@ def forbid_nonstring_types(
 
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            if self._inferred_dtype not in allowed_types:
-                msg = (
-                    f"Cannot use .str.{func_name} with values of "
-                    f"inferred dtype '{self._inferred_dtype}'."
-                )
-                raise TypeError(msg)
+            dtype = self._inferred_dtype
+            if dtype not in allowed_types:
+                if not (isinstance(dtype, np.dtype) and issubclass(dtype.type, str)):
+                    msg = (
+                        f"Cannot use .str.{func_name} with values of "
+                        f"inferred dtype '{self._inferred_dtype}'."
+                    )
+                    raise TypeError(msg)
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name
@@ -229,9 +231,11 @@ class StringMethods(NoNewAttributesMixin):
 
         values = getattr(data, "categories", data)  # categorical / normal
 
-        inferred_dtype = lib.infer_dtype(values, skipna=True)
+        inferred_dtype = lib.infer_dtype(values)
 
-        if inferred_dtype not in allowed_types:
+        if inferred_dtype not in allowed_types and not isinstance(
+            inferred_dtype, np.dtype
+        ):
             raise AttributeError("Can only use .str accessor with string values!")
         return inferred_dtype
 

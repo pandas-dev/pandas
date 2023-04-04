@@ -41,23 +41,30 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
-        "Cython": ["0.29.33"],
-        "matplotlib": [],
-        "sqlalchemy": [],
-        "scipy": [],
-        "numba": [],
-        "numexpr": [],
-        "pytables": [null, ""],  // platform dependent, see excludes below
-        "pyarrow": [],
-        "tables": [null, ""],
-        "openpyxl": [],
-        "xlsxwriter": [],
-        "xlrd": [],
-        "odfpy": [],
-        "jinja2": [],
-        "meson": [],
-        "meson-python": [],
-        "python-build": [],
+        "req": {
+            "pip+/home/nathan/Documents/numpy": [],
+            "Cython": ["0.29.33"],
+            "matplotlib": [],
+            "sqlalchemy": [],
+            "scipy": [],
+            "numba": [],
+            "numexpr": [],
+            "pytables": [null, ""],  // platform dependent, see excludes below
+            "pyarrow": [],
+            "tables": [null, ""],
+            "openpyxl": [],
+            "xlsxwriter": [],
+            "xlrd": [],
+            "odfpy": [],
+            "jinja2": [],
+            "meson": [],
+            "meson-python": [],
+            "python-build": [],
+            "pip+/home/nathan/Documents/numpy-user-dtypes/stringdtype": []
+        },
+        "env": {
+            "NUMPY_EXPERIMENTAL_DTYPE_API": "1"
+        }
     },
     "conda_channels": ["conda-forge"],
     // Combinations of libraries/python versions can be excluded/included

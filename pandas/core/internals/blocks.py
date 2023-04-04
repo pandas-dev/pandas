@@ -57,6 +57,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
+    is_legacy_string_dtype,
     is_list_like,
     is_string_dtype,
 )
@@ -2317,7 +2318,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
 
-        if issubclass(values.dtype.type, str):
+        if is_legacy_string_dtype(values.dtype):
             values = np.array(values, dtype=object)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:
@@ -2347,15 +2348,29 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
         # Note: need to be sure PandasArray is unwrapped before we get here
         return ExtensionBlock
 
-    # We use kind checks because it is much more performant
-    #  than is_foo_dtype
-    kind = dtype.kind
-    if kind in "Mm":
-        return DatetimeLikeBlock
-    elif kind in "fciub":
-        return NumericBlock
+    dtype_class = type(dtype)
 
-    return ObjectBlock
+    # the _is_numeric attribute was added in Numpy 1.25, default to checking
+    # dtype.kind and finally use ObjectBlock if numpy isn't sufficiently new.
+    try:
+        is_numeric = dtype_class._is_numeric
+    except AttributeError:
+        # We use kind checks because it is much more performant
+        #  than is_foo_dtype
+        kind = dtype.kind
+        if kind in "Mm":
+            return DatetimeLikeBlock
+        elif kind in "fciub":
+            return NumericBlock
+        else:
+            return ObjectBlock
+
+    if is_numeric:
+        return NumericBlock
+    else:
+        if is_legacy_string_dtype(dtype):
+            return ObjectBlock
+        return NumpyBlock
 
 
 def new_block_2d(
