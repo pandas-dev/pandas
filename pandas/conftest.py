@@ -137,6 +137,11 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
     ]
 
     for item in items:
@@ -708,7 +713,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {

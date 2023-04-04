@@ -175,11 +175,7 @@ class TestPreserves:
             (
                 [
                     pd.DataFrame({"A": [1, 2]}, index=["a", "b"]),
-                    pd.Series(
-                        [1, 2],
-                        index=["a", "b"],
-                        name="B",
-                    ),
+                    pd.Series([1, 2], index=["a", "b"], name="B"),
                 ],
                 {"axis": 1},
             ),
@@ -193,14 +189,13 @@ class TestPreserves:
             assert result.flags.allows_duplicate_labels is False
 
     @pytest.mark.parametrize(
-        "left, right, should_set, kwargs, expected",
+        "left, right, should_set, expected",
         [
             # false false false
             pytest.param(
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 (True, True),
-                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -209,7 +204,6 @@ class TestPreserves:
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 (True, False),
-                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -218,12 +212,11 @@ class TestPreserves:
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 (False, False),
-                {"left_index": True, "right_index": True},
                 True,
             ),
         ],
     )
-    def test_merge(self, left, right, should_set, kwargs, expected):
+    def test_merge(self, left, right, should_set, expected):
         should_set_left, should_set_right = should_set
         if should_set_left:
             with tm.assert_produces_warning(FutureWarning, match=set_msg):
@@ -231,7 +224,7 @@ class TestPreserves:
         if should_set_right:
             with tm.assert_produces_warning(FutureWarning, match=set_msg):
                 right = right.set_flags(allows_duplicate_labels=False)
-        result = pd.merge(left, right, **kwargs)
+        result = pd.merge(left, right, left_index=True, right_index=True)
         with tm.assert_produces_warning(FutureWarning, match=get_msg):
             assert result.flags.allows_duplicate_labels is expected
 

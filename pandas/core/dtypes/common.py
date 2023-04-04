@@ -66,32 +66,6 @@ INT64_DTYPE = np.dtype(np.int64)
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
-
-
-def ensure_float(arr):
-    """
-    Ensure that an array object has a float dtype if possible.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array whose data type we want to enforce as float.
-
-    Returns
-    -------
-    float_arr : The original array cast to the float dtype if
-                possible. Otherwise, the original array is returned.
-    """
-    if is_extension_array_dtype(arr.dtype):
-        if is_float_dtype(arr.dtype):
-            arr = arr.to_numpy(dtype=arr.dtype.numpy_dtype, na_value=np.nan)
-        else:
-            arr = arr.to_numpy(dtype="float64", na_value=np.nan)
-    elif issubclass(arr.dtype.type, (np.integer, np.bool_)):
-        arr = arr.astype(float)
-    return arr
-
-
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
@@ -1090,22 +1064,20 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     )
 
 
-def needs_i8_conversion(arr_or_dtype) -> bool:
+def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     """
-    Check whether the array or dtype should be converted to int64.
+    Check whether the dtype should be converted to int64.
 
-    An array-like or dtype "needs" such a conversion if the array-like
-    or dtype is of a datetime-like dtype
+    Dtype "needs" such a conversion if the dtype is of a datetime-like dtype
 
     Parameters
     ----------
-    arr_or_dtype : array-like or dtype
-        The array or dtype to check.
+    dtype : np.dtype, ExtensionDtype, or None
 
     Returns
     -------
     boolean
-        Whether or not the array or dtype should be converted to int64.
+        Whether or not the dtype should be converted to int64.
 
     Examples
     --------
@@ -1114,29 +1086,22 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     >>> needs_i8_conversion(np.int64)
     False
     >>> needs_i8_conversion(np.datetime64)
+    False
+    >>> needs_i8_conversion(np.dtype(np.datetime64))
     True
     >>> needs_i8_conversion(np.array(['a', 'b']))
     False
     >>> needs_i8_conversion(pd.Series([1, 2]))
     False
     >>> needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    True
+    False
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+    False
+    >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
-    if arr_or_dtype is None:
-        return False
-    if isinstance(arr_or_dtype, np.dtype):
-        return arr_or_dtype.kind in ["m", "M"]
-    elif isinstance(arr_or_dtype, ExtensionDtype):
-        return isinstance(arr_or_dtype, (PeriodDtype, DatetimeTZDtype))
-
-    try:
-        dtype = get_dtype(arr_or_dtype)
-    except (TypeError, ValueError):
-        return False
     if isinstance(dtype, np.dtype):
-        return dtype.kind in ["m", "M"]
+        return dtype.kind in "mM"
     return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 
 
@@ -1411,7 +1376,7 @@ def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     Checks only for dtype objects, not dtype-castable strings or types.
     """
     return isinstance(dtype, ExtensionDtype) or (
-        isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]
+        isinstance(dtype, np.dtype) and dtype.kind in "mM"
     )
 
 
@@ -1697,7 +1662,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     try:
         with warnings.catch_warnings():
             # GH#51523 - Series.astype(np.integer) doesn't show
-            # numpy deprication warning of np.integer
+            # numpy deprecation warning of np.integer
             # Hence enabling DeprecationWarning
             warnings.simplefilter("always", DeprecationWarning)
             npdtype = np.dtype(dtype)
@@ -1744,7 +1709,6 @@ __all__ = [
     "classes",
     "classes_and_not_datetimelike",
     "DT64NS_DTYPE",
-    "ensure_float",
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",

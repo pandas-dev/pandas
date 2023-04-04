@@ -42,10 +42,10 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -565,7 +565,7 @@ class IndexOpsMixin(OpsMixin):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if is_extension_array_dtype(self.dtype):
+        if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
@@ -801,6 +801,12 @@ class IndexOpsMixin(OpsMixin):
         --------
         numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
             nested list of Python scalars.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.to_list()
+        [1, 2, 3]
         """
         return self._values.tolist()
 
@@ -835,6 +841,18 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, None])
+        >>> s
+        0    1.0
+        1    2.0
+        2    3.0
+        3    NaN
+        dtype: float64
+        >>> s.hasnans
+        True
         """
         # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
         # has no attribute "any"
@@ -889,17 +907,12 @@ class IndexOpsMixin(OpsMixin):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        arr = extract_array(self, extract_numpy=True, extract_range=True)
+        arr = self._values
 
         if isinstance(arr, ExtensionArray):
             return arr.map(mapper, na_action=na_action)
 
-        # Argument 1 to "map_array" has incompatible type
-        # "Union[IndexOpsMixin, ndarray[Any, Any]]";
-        # expected "Union[ExtensionArray, ndarray[Any, Any]]
-        return algorithms.map_array(
-            arr, mapper, na_action=na_action, convert=convert  # type: ignore[arg-type]
-        )
+        return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
 
     @final
     def value_counts(
@@ -1114,7 +1127,7 @@ class IndexOpsMixin(OpsMixin):
             )
 
         v = self.array.nbytes
-        if deep and is_object_dtype(self) and not PYPY:
+        if deep and is_object_dtype(self.dtype) and not PYPY:
             values = cast(np.ndarray, self._values)
             v += lib.memory_usage_of_objects(values)
         return v
