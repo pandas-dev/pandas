@@ -119,8 +119,10 @@ if TYPE_CHECKING:
     from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
-# comparison is faster than is_object_dtype
+# define aliases to numpy dtypes and classes for faster comparisons
 _dtype_obj = np.dtype("object")
+_datetime_dtype_class = type(np.dtype("M"))
+_timedelta_dtype_class = type(np.dtype("m"))
 
 
 def maybe_split(meth: F) -> F:
@@ -2353,15 +2355,31 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
         # Note: need to be sure PandasArray is unwrapped before we get here
         return ExtensionBlock
 
-    # We use kind checks because it is much more performant
-    #  than is_foo_dtype
-    kind = dtype.kind
-    if kind in "Mm":
-        return DatetimeLikeBlock
-    elif kind in "fciub":
-        return NumericBlock
+    dtype_class = type(dtype)
 
-    return ObjectBlock
+    # The _is_numeric attribute was added in Numpy 1.25. For older numpy
+    # versions check dtype.kind. Using `_is_numeric` lets pandas choose the
+    # correct block type for dtypes that live outside Numpy. In the future when
+    # Pandas drops support for Numpy <1.25, the try/except can be deleted.
+    try:
+        is_numeric = dtype_class._is_numeric
+        is_datetime = dtype_class in (_datetime_dtype_class, _timedelta_dtype_class)
+    except AttributeError:
+        # We use kind checks because it is much more performant
+        #  than is_foo_dtype
+        kind = dtype.kind
+        if kind in "Mm":
+            return DatetimeLikeBlock
+        elif kind in "fciub":
+            return NumericBlock
+        return ObjectBlock
+
+    if is_numeric:
+        return NumericBlock
+    elif is_datetime:
+        return DatetimeLikeBlock
+    else:
+        return ObjectBlock
 
 
 def new_block_2d(
