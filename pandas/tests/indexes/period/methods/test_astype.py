@@ -58,15 +58,15 @@ class TestPeriodIndexAsType:
             arr.astype("uint32")
 
     def test_astype_object(self):
-        idx = PeriodIndex([], freq="M")
+        idx = PeriodIndex([], freq="ME")
 
         exp = np.array([], dtype=object)
         tm.assert_numpy_array_equal(idx.astype(object).values, exp)
         tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
-        idx = PeriodIndex(["2011-01", NaT], freq="M")
+        idx = PeriodIndex(["2011-01", NaT], freq="ME")
 
-        exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
+        exp = np.array([Period("2011-01", freq="ME"), NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.astype(object).values, exp)
         tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
@@ -78,12 +78,12 @@ class TestPeriodIndexAsType:
     # TODO: de-duplicate this version (from test_ops) with the one above
     # (from test_period)
     def test_astype_object2(self):
-        idx = period_range(start="2013-01-01", periods=4, freq="M", name="idx")
+        idx = period_range(start="2013-01-01", periods=4, freq="ME", name="idx")
         expected_list = [
-            Period("2013-01-31", freq="M"),
-            Period("2013-02-28", freq="M"),
-            Period("2013-03-31", freq="M"),
-            Period("2013-04-30", freq="M"),
+            Period("2013-01-31", freq="ME"),
+            Period("2013-02-28", freq="ME"),
+            Period("2013-03-31", freq="ME"),
+            Period("2013-04-30", freq="ME"),
         ]
         expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
@@ -140,7 +140,7 @@ class TestPeriodIndexAsType:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_period_astype_to_timestamp(self):
-        pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
+        pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="ME")
 
         exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
         res = pi.astype("datetime64[ns, US/Eastern]")

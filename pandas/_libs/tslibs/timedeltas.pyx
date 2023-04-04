@@ -107,7 +107,7 @@ Components = collections.namedtuple(
 cdef dict timedelta_abbrevs = {
     "Y": "Y",
     "y": "Y",
-    "M": "M",
+    "ME": "ME",
     "W": "W",
     "w": "W",
     "D": "D",
@@ -340,7 +340,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
     Return an ns based int64
     """
-    # Caller is responsible for checking unit not in ["Y", "y", "M"]
+    # Caller is responsible for checking unit not in ["Y", "y", "ME"]
 
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT, "ns")
@@ -377,7 +377,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 cdef _maybe_cast_from_unit(ts, str unit):
     # caller is responsible for checking
-    #  assert unit not in ["Y", "y", "M"]
+    #  assert unit not in ["Y", "y", "ME"]
     try:
         ts = cast_from_unit(ts, unit)
     except OutOfBoundsDatetime as err:
@@ -404,7 +404,7 @@ def array_to_timedelta64(
     np.ndarray[timedelta64ns]
     """
     # Caller is responsible for checking
-    assert unit not in ["Y", "y", "M"]
+    assert unit not in ["Y", "y", "ME"]
 
     cdef:
         Py_ssize_t i, n = values.size
@@ -693,7 +693,7 @@ cdef timedelta_from_spec(object number, object frac, object unit):
         str n
 
     unit = "".join(unit)
-    if unit in ["M", "Y", "y"]:
+    if unit in ["ME", "Y", "y"]:
         raise ValueError(
             "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta "
             "values and are not supported."
@@ -722,7 +722,7 @@ cpdef inline str parse_timedelta_unit(str unit):
     """
     if unit is None:
         return "ns"
-    elif unit == "M":
+    elif unit == "ME":
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
@@ -886,10 +886,10 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                     neg = 1
             elif c == "+":
                 pass
-            elif c in ["W", "D", "H", "M"]:
-                if c in ["H", "M"] and len(number) > 2:
+            elif c in ["W", "D", "H", "ME"]:
+                if c in ["H", "ME"] and len(number) > 2:
                     raise ValueError(err_msg)
-                if c == "M":
+                if c == "ME":
                     c = "min"
                 unit.append(c)
                 r = timedelta_from_spec(number, "0", unit)
@@ -1740,7 +1740,7 @@ class Timedelta(_Timedelta):
                 + seconds
             )
 
-        if unit in {"Y", "y", "M"}:
+        if unit in {"Y", "y", "ME"}:
             raise ValueError(
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."

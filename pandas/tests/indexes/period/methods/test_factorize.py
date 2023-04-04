@@ -10,11 +10,11 @@ import pandas._testing as tm
 class TestFactorize:
     def test_factorize(self):
         idx1 = PeriodIndex(
-            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
+            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="ME"
         )
 
         exp_arr = np.array([0, 0, 1, 1, 2, 2], dtype=np.intp)
-        exp_idx = PeriodIndex(["2014-01", "2014-02", "2014-03"], freq="M")
+        exp_idx = PeriodIndex(["2014-01", "2014-02", "2014-03"], freq="ME")
 
         arr, idx = idx1.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
@@ -25,7 +25,7 @@ class TestFactorize:
         tm.assert_index_equal(idx, exp_idx)
 
         idx2 = PeriodIndex(
-            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
+            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="ME"
         )
 
         exp_arr = np.array([2, 2, 1, 0, 2, 0], dtype=np.intp)
@@ -34,7 +34,7 @@ class TestFactorize:
         tm.assert_index_equal(idx, exp_idx)
 
         exp_arr = np.array([0, 0, 1, 2, 0, 2], dtype=np.intp)
-        exp_idx = PeriodIndex(["2014-03", "2014-02", "2014-01"], freq="M")
+        exp_idx = PeriodIndex(["2014-03", "2014-02", "2014-01"], freq="ME")
         arr, idx = idx2.factorize()
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)

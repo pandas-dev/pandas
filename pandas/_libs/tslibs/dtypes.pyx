@@ -101,7 +101,7 @@ _period_code_map = {
     "Q-OCT": PeriodDtypeCode.Q_OCT,    # Quarterly - October year end
     "Q-NOV": PeriodDtypeCode.Q_NOV,    # Quarterly - November year end
 
-    "M": PeriodDtypeCode.M,        # Monthly
+    "ME": PeriodDtypeCode.M,        # Monthly
 
     "W-SUN": PeriodDtypeCode.W_SUN,    # Weekly - Sunday end of week
     "W-MON": PeriodDtypeCode.W_MON,    # Weekly - Monday end of week
@@ -144,7 +144,7 @@ cdef set _month_names = {
 _attrname_to_abbrevs = {
     "year": "A",
     "quarter": "Q",
-    "month": "M",
+    "month": "ME",
     "day": "D",
     "hour": "H",
     "minute": "T",
@@ -322,7 +322,7 @@ cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     elif unit == NPY_DATETIMEUNIT.NPY_FR_W:
         return "W"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_M:
-        return "M"
+        return "ME"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
         return "Y"
 
@@ -342,7 +342,7 @@ cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
 cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
     if abbrev == "Y":
         return NPY_DATETIMEUNIT.NPY_FR_Y
-    elif abbrev == "M":
+    elif abbrev == "ME":
         return NPY_DATETIMEUNIT.NPY_FR_M
     elif abbrev == "W":
         return NPY_DATETIMEUNIT.NPY_FR_W

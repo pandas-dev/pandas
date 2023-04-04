@@ -9,7 +9,7 @@ class TestResolution:
         [
             ("A", "year"),
             ("Q", "quarter"),
-            ("M", "month"),
+            ("ME", "month"),
             ("D", "day"),
             ("H", "hour"),
             ("T", "minute"),
