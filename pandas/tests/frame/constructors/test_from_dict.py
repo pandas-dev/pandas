@@ -7,6 +7,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
 )
 import pandas._testing as tm
@@ -165,7 +166,7 @@ class TestFromDict:
         df = DataFrame.from_dict(data_dict, orient)
 
         result = df.columns
-        expected = Index(keys, dtype="object", tupleize_cols=False)
+        expected = Index(keys, tupleize_cols=False) if keys else RangeIndex(0)
 
         tm.assert_index_equal(result, expected)
 
