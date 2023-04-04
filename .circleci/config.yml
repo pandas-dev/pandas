@@ -16,6 +16,7 @@ jobs:
           doc/make.py --warnings-are-errors
           doc/make.py zip_html
           mv doc/build/html web/build/docs
+
       - store_artifacts:
           path: web/build
 
