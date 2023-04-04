@@ -39,7 +39,7 @@ class Construction:
         )
         if pd_type == "series":
             self.arr = series_arr
-        if pd_type == "frame":
+        elif pd_type == "frame":
             self.arr = series_arr.reshape((50_000, 2)).copy()
         elif pd_type == "categorical_series":
             # GH37371. Testing construction of string series/frames from ExtensionArrays
