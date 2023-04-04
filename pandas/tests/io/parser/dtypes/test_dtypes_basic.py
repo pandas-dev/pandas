@@ -22,6 +22,10 @@ from pandas.core.arrays import (
     StringArray,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+)
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])

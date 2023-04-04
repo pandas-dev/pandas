@@ -376,6 +376,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name=None,
         copy: bool | None = None,
         fastpath: bool = False,
+        _allow_mgr: bool = False,  # NOT for public use!
     ) -> None:
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
@@ -383,6 +384,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and dtype is None
             and (copy is False or copy is None)
         ):
+            if not _allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
@@ -410,8 +419,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+                _allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
+
+            if not _allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if copy:
                 data = data.copy()
             # skips validation of the name
@@ -421,6 +441,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
+
+            if not _allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -486,6 +515,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`data` argument and a different "
                     "`index` argument. `copy` must be False."
                 )
+
+            if not _allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                _allow_mgr = True
 
         elif isinstance(data, ExtensionArray):
             pass
@@ -964,7 +1003,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         mgr = self._mgr.get_slice(slobj, axis=axis)
-        out = self._constructor(mgr, fastpath=True)
+        out = self._constructor(mgr, fastpath=True, _allow_mgr=True)
         return out.__finalize__(self)
 
     def __getitem__(self, key):
@@ -1071,7 +1110,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.getitem_mgr(indexer)
-        return self._constructor(new_mgr, fastpath=True).__finalize__(self)
+        return self._constructor(new_mgr, fastpath=True, _allow_mgr=True).__finalize__(
+            self
+        )
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1914,7 +1955,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim(mgr, _allow_mgr=True)
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace: bool = False) -> Series:

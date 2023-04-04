@@ -157,7 +157,7 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
 def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
-    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx, _allow_mgr=True)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
@@ -172,7 +172,7 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
 
 def test_series_from_block_manager_different_dtype(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="int64")
-    ser2 = Series(ser._mgr, dtype="int32")
+    ser2 = Series(ser._mgr, dtype="int32", _allow_mgr=True)
     assert not np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert ser2._mgr._has_no_reference(0)
@@ -184,7 +184,7 @@ def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, func):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
-    new_df = DataFrame(func(df))
+    new_df = DataFrame(func(df), _allow_mgr=True)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
     new_df.iloc[0] = 100

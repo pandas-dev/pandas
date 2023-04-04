@@ -17,12 +17,17 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.skipif(
-    is_ci_environment(),
-    reason="This test can hang in our CI min_versions build "
-    "and leads to '##[error]The runner has "
-    "received a shutdown signal...' in GHA. GH 45651",
-)
+pytestmark = [
+    pytest.mark.skipif(
+        is_ci_environment(),
+        reason="This test can hang in our CI min_versions build "
+        "and leads to '##[error]The runner has "
+        "received a shutdown signal...' in GHA. GH 45651",
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    ),
+]
 
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):

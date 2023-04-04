@@ -1967,7 +1967,7 @@ def _take_new_index(
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         # error: Incompatible return value type
         # (got "DataFrame", expected "NDFrameT")
-        return obj._constructor(new_mgr)  # type: ignore[return-value]
+        return obj._constructor(new_mgr, _allow_mgr=True)  # type: ignore[return-value]
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
 

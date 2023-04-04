@@ -655,18 +655,29 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Axes | None = None,
         dtype: Dtype | None = None,
         copy: bool | None = None,
+        _allow_mgr: bool = False,  # NOT for public use!
     ) -> None:
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            _allow_mgr = True
             if not copy:
                 # if not copying data, ensure to still return a shallow copy
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            if not _allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
@@ -2330,7 +2341,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        return cls(mgr, _allow_mgr=True)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2540,7 +2551,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls(mgr, _allow_mgr=True)
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -3676,9 +3687,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # if we are a copy, mark as such
             copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
-            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
-                self
-            )
+            result = self._constructor_sliced(
+                new_mgr, name=self.index[i], _allow_mgr=True
+            ).__finalize__(self)
             result._set_is_copy(self, copy=copy)
             return result
 
@@ -3731,7 +3742,7 @@ class DataFrame(NDFrame, OpsMixin):
             copy=False,
             only_slice=True,
         )
-        return self._constructor(new_mgr)
+        return self._constructor(new_mgr, _allow_mgr=True)
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -4268,7 +4279,9 @@ class DataFrame(NDFrame, OpsMixin):
         name = self.columns[loc]
         klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True).__finalize__(self)
+        return klass(values, name=name, fastpath=True, _allow_mgr=True).__finalize__(
+            self
+        )
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -4741,7 +4754,7 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return type(self)(mgr).__finalize__(self)
+        return type(self)(mgr, _allow_mgr=True).__finalize__(self)
 
     def insert(
         self,
@@ -4915,7 +4928,11 @@ class DataFrame(NDFrame, OpsMixin):
     def _series(self):
         return {
             item: Series(
-                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
+                self._mgr.iget(idx),
+                index=self.index,
+                name=item,
+                fastpath=True,
+                _allow_mgr=True,
             )
             for idx, item in enumerate(self.columns)
         }
@@ -5680,7 +5697,7 @@ class DataFrame(NDFrame, OpsMixin):
                     fill_value=fill_value,
                     allow_dups=True,
                 )
-                res_df = self._constructor(mgr)
+                res_df = self._constructor(mgr, _allow_mgr=True)
                 return res_df.__finalize__(self, method="shift")
 
         return super().shift(
@@ -6208,7 +6225,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._mgr.isna(func=isna))
+        result = self._constructor(self._mgr.isna(func=isna), _allow_mgr=True)
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -6773,7 +6790,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self._get_block_manager_axis(axis), default_index(len(indexer))
             )
 
-        result = self._constructor(new_data)
+        result = self._constructor(new_data, _allow_mgr=True)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7467,7 +7484,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             bm = self._mgr.apply(array_op, right=right)
-            return self._constructor(bm)
+            return self._constructor(bm, _allow_mgr=True)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -7487,7 +7504,7 @@ class DataFrame(NDFrame, OpsMixin):
                 right._mgr,  # type: ignore[arg-type]
                 array_op,
             )
-            return self._constructor(bm)
+            return self._constructor(bm, _allow_mgr=True)
 
         elif isinstance(right, Series) and axis == 1:
             # axis=1 means we want to operate row-by-row
@@ -9469,7 +9486,7 @@ class DataFrame(NDFrame, OpsMixin):
             axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
-        return self._constructor(new_data).__finalize__(self, "diff")
+        return self._constructor(new_data, _allow_mgr=True).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -10325,6 +10342,7 @@ class DataFrame(NDFrame, OpsMixin):
                     decimals=decimals,  # type: ignore[arg-type]
                     using_cow=using_copy_on_write(),
                 ),
+                _allow_mgr=True,
             ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
@@ -10880,7 +10898,7 @@ class DataFrame(NDFrame, OpsMixin):
         # After possibly _get_data and transposing, we are now in the
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
-        out = df._constructor(res).iloc[0]
+        out = df._constructor(res, _allow_mgr=True).iloc[0]
         if out_dtype is not None:
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any():
@@ -11318,7 +11336,7 @@ class DataFrame(NDFrame, OpsMixin):
             res = data._mgr.take(indexer[q_idx], verify=False)
             res.axes[1] = q
 
-        result = self._constructor(res)
+        result = self._constructor(res, _allow_mgr=True)
         return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
@@ -11643,7 +11661,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {
-            k: self._constructor(v).__finalize__(self)
+            k: self._constructor(v, _allow_mgr=True).__finalize__(self)
             for k, v, in mgr.to_dict(copy=copy).items()
         }
 

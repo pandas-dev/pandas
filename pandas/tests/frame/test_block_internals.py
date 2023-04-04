@@ -53,11 +53,11 @@ class TestDataFrameBlockInternals:
         assert dti[1] == ts
 
     def test_cast_internals(self, float_frame):
-        casted = DataFrame(float_frame._mgr, dtype=int)
+        casted = DataFrame(float_frame._mgr, dtype=int, _allow_mgr=True)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
-        casted = DataFrame(float_frame._mgr, dtype=np.int32)
+        casted = DataFrame(float_frame._mgr, dtype=np.int32, _allow_mgr=True)
         expected = DataFrame(float_frame._series, dtype=np.int32)
         tm.assert_frame_equal(casted, expected)
 

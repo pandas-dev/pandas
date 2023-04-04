@@ -172,6 +172,7 @@ Deprecations
 - Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
+- Deprecated allowing passing :class:`BlockManager` objects to :class:`DataFrame` or :class:`SingleBlockManager` objects to :class:`Series` (:issue:`??`)
 -
 
 

@@ -29,6 +29,10 @@ import pandas._testing as tm
 from pandas.io.parsers import TextFileReader
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 

@@ -29,7 +29,7 @@ def df():
     custom_block = CustomBlock(values, placement=bp, ndim=2)
     blocks = blocks + (custom_block,)
     block_manager = BlockManager(blocks, [pd.Index(["a", "b"]), df1.index])
-    return pd.DataFrame(block_manager)
+    return pd.DataFrame(block_manager, _allow_mgr=True)
 
 
 def test_concat_axis1(df):

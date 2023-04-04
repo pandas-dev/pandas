@@ -192,7 +192,9 @@ def test_pandas_datareader():
 def test_pyarrow(df):
     pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
-    result = table.to_pandas()
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 

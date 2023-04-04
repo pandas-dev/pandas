@@ -14,6 +14,10 @@ from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.io.test_compression import _compression_to_extension
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+)
+
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 

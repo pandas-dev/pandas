@@ -11,6 +11,10 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+)
+
 pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 

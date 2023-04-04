@@ -503,7 +503,7 @@ def _unstack_frame(obj: DataFrame, level, fill_value=None):
 
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
-        return obj._constructor(mgr)
+        return obj._constructor(mgr, _allow_mgr=True)
     else:
         return unstacker.get_result(
             obj._values, value_columns=obj.columns, fill_value=fill_value

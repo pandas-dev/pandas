@@ -638,7 +638,7 @@ class _Concatenator:
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
 
-                result = cons(mgr, name=name, fastpath=True)
+                result = cons(mgr, name=name, fastpath=True, _allow_mgr=True)
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -680,7 +680,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            return cons(new_data, _allow_mgr=True).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:

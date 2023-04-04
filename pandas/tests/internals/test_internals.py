@@ -397,7 +397,9 @@ class TestBlockManager:
 
     def test_pickle(self, mgr):
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame(mgr, _allow_mgr=True), DataFrame(mgr2, _allow_mgr=True)
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -411,16 +413,22 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame(mgr, _allow_mgr=True), DataFrame(mgr2, _allow_mgr=True)
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame(mgr, _allow_mgr=True), DataFrame(mgr2, _allow_mgr=True)
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series(smgr, _allow_mgr=True), Series(smgr2, _allow_mgr=True)
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))

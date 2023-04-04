@@ -773,7 +773,7 @@ class _MergeOperation:
                 allow_dups=True,
                 use_na_proxy=True,
             )
-            left = left._constructor(lmgr)
+            left = left._constructor(lmgr, _allow_mgr=True)
         left.index = join_index
 
         if right_indexer is not None and not is_range_indexer(
@@ -788,7 +788,7 @@ class _MergeOperation:
                 allow_dups=True,
                 use_na_proxy=True,
             )
-            right = right._constructor(rmgr)
+            right = right._constructor(rmgr, _allow_mgr=True)
         right.index = join_index
 
         from pandas import concat

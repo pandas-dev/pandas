@@ -35,6 +35,10 @@ from pandas.core.indexes.datetimes import date_range
 
 from pandas.io.parsers import read_csv
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 # GH#43650: Some expected failures with the pyarrow engine can occasionally
@@ -1257,14 +1261,19 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
         # pandas tries to guess the datetime format, triggering
         # the warning. TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
-        warn = UserWarning
+        warn = (UserWarning, FutureWarning)
+        msg = "Could not infer format"
+    elif parser.engine == "pyarrow":
+        warn = FutureWarning
+        msg = "Passing a BlockManager to DataFrame"
     else:
         # Note: warning is not raised if 'cache_dates', because here there is only a
         # single unique date and hence no risk of inconsistent parsing.
         warn = None
+        msg = "Could not infer format"
     parser.read_csv_check_warnings(
         warn,
-        "Could not infer format",
+        msg,
         s,
         header=None,
         names=["foo", "bar"],
@@ -1286,16 +1295,19 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         # pandas doesn't try to guess the datetime format
         # TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
-        warn = None
+        warn = FutureWarning
+        msg = "Passing a BlockManager to DataFrame"
     elif cache_dates:
         # Note: warning is not raised if 'cache_dates', because here there is only a
         # single unique date and hence no risk of inconsistent parsing.
         warn = None
+        msg = None
     else:
         warn = UserWarning
+        msg = "Could not infer format"
     parser.read_csv_check_warnings(
         warn,
-        "Could not infer format",
+        msg,
         s,
         header=None,
         names=["foo", "bar"],
@@ -2140,7 +2152,8 @@ def test_parse_dot_separated_dates(all_parsers):
             dtype="object",
             name="a",
         )
-        warn = None
+        warn = FutureWarning
+        msg = "Passing a BlockManager to DataFrame"
     else:
         expected_index = DatetimeIndex(
             ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
@@ -2148,7 +2161,7 @@ def test_parse_dot_separated_dates(all_parsers):
             name="a",
         )
         warn = UserWarning
-    msg = r"when dayfirst=False \(the default\) was specified"
+        msg = r"when dayfirst=False \(the default\) was specified"
     result = parser.read_csv_check_warnings(
         warn, msg, StringIO(data), parse_dates=True, index_col=0
     )
