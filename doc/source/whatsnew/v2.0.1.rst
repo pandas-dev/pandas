@@ -1,0 +1,38 @@
+.. _whatsnew_201:
+
+What's new in 2.0.1 (May XX, 2023)
+----------------------------------
+
+These are the changes in pandas 2.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.0.0..v2.0.1|HEAD
