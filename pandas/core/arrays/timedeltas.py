@@ -30,7 +30,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.fields import (
+    get_timedelta_field,
+    get_timedelta_days,
+)
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     floordiv_object_array,
@@ -81,7 +84,10 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._creso)
+        if alias == "days":
+            result = get_timedelta_days(values, reso=self._creso)
+        else:    
+            result = get_timedelta_field(values, alias, reso=self._creso)
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
