@@ -1428,6 +1428,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
             mangled_aggfuncs.append(aggfunc)
             continue
 
+        partial_aggfunc = aggfunc
         partial_aggfunc = partial(aggfunc)
         partial_aggfunc.__name__ = f"<lambda_{idx}>"
         mangled_aggfuncs.append(partial_aggfunc)
