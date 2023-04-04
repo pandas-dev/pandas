@@ -747,7 +747,7 @@ cpdef ndarray[object] ensure_string_array(
 
     if hasattr(arr, "to_numpy"):
 
-        if hasattr(arr, "dtype") and arr.dtype.kind in ["m", "M"]:
+        if hasattr(arr, "dtype") and arr.dtype.kind in "mM":
             # dtype check to exclude DataFrame
             # GH#41409 TODO: not a great place for this
             out = arr.astype(str).astype(object)
@@ -2641,7 +2641,7 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = dtype_if_all_nat
             if cnp.PyArray_DescrCheck(dtype):
                 # i.e. isinstance(dtype, np.dtype)
-                if dtype.kind not in ["m", "M"]:
+                if dtype.kind not in "mM":
                     raise ValueError(dtype)
                 else:
                     res = np.empty((<object>objects).shape, dtype=dtype)

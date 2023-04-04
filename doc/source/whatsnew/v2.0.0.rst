@@ -1,7 +1,7 @@
 .. _whatsnew_200:
 
-What's new in 2.0.0 (March XX, 2023)
-------------------------------------
+What's new in 2.0.0 (April 3, 2023)
+-----------------------------------
 
 These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -95,7 +95,7 @@ Below is a possibly non-exhaustive list of changes:
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
-   ``float64`` dtype. It row raises a ``NotImplementedError``:
+   ``float64`` dtype. It now raises a ``NotImplementedError``:
 
    .. ipython:: python
        :okexcept:
@@ -717,7 +717,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 Note that this affects :func:`read_csv` as well.
 
 If you still need to parse dates with inconsistent formats, you can use
-``format='mixed`` (possibly alongside ``dayfirst``) ::
+``format='mixed'`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      pd.to_datetime(ser, format='mixed', dayfirst=True)

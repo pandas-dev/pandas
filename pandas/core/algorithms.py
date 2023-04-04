@@ -568,7 +568,7 @@ def factorize_array(
     uniques : ndarray
     """
     original = values
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
         #  need to do the same to na_value. We are assuming here that the passed
         #  na_value is an appropriately-typed NaT.
@@ -838,7 +838,7 @@ def value_counts(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values)
+        values = Series(values, copy=False)
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -861,7 +861,7 @@ def value_counts(
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
+            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
@@ -893,7 +893,7 @@ def value_counts(
                 idx = idx.astype(object)
             idx.name = index_name
 
-            result = Series(counts, index=idx, name=name)
+            result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
         result = result.sort_values(ascending=ascending)
