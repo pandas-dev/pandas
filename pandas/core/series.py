@@ -5745,7 +5745,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
-        axis=0, 
+        axis=0,
         doc="""
         The index (axis labels) of the Series.
             Get the index (row labels) of the Series.
