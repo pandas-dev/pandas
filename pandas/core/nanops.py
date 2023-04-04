@@ -399,7 +399,7 @@ def _datetimelike_compat(func: F) -> F:
     ):
         orig_values = values
 
-        datetimelike = values.dtype.kind in ["m", "M"]
+        datetimelike = values.dtype.kind in "mM"
         if datetimelike and mask is None:
             mask = isna(values)
 
@@ -1708,7 +1708,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
     }[accum_func]
 
     # This should go through ea interface
-    assert values.dtype.kind not in ["m", "M"]
+    assert values.dtype.kind not in "mM"
 
     # We will be applying this function to block values
     if skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
