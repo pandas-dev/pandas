@@ -385,6 +385,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and (copy is False or copy is None)
         ):
             if not _allow_mgr:
+                # GH#52419
                 warnings.warn(
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
