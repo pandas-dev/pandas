@@ -1520,8 +1520,8 @@ def test_agg_of_mode_list(test, constant):
     tm.assert_frame_equal(result, expected)
 
 
-def test__dataframe_groupy_agg_list_like_func_with_args():
-    # GH 50624
+def test_dataframe_groupy_agg_list_like_func_with_args():
+    # GH#50624
     df = DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]})
     gb = df.groupby("y")
 
@@ -1544,8 +1544,8 @@ def test__dataframe_groupy_agg_list_like_func_with_args():
     tm.assert_frame_equal(result, expected)
 
 
-def test__series_groupy_agg_list_like_func_with_args():
-    # GH 50624
+def test_series_groupy_agg_list_like_func_with_args():
+    # GH#50624
     s = Series([1, 2, 3])
     sgb = s.groupby(s)
 
