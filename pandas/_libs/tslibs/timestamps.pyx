@@ -1538,8 +1538,6 @@ class Timestamp(_Timestamp):
         # - Nones for the first four (legacy) arguments indicate pydatetime
         #   keyword arguments. year, month, and day are required. As a
         #   shortcut, we just check that the first argument was not passed.
-        #
-        # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef:
             object ts_input=_no_input
