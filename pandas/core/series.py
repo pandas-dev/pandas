@@ -5756,11 +5756,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             See Also
             --------
-            Series.reindex: 
+            Series.reindex:
                 Conform Series to new index.
-            Series.set_index: 
+            Series.set_index:
                 Set Series as DataFrame index.
-            Index: 
+            Index:
                 The base pandas index type.
 
             Notes
