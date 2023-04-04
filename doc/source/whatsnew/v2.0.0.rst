@@ -66,7 +66,7 @@ Below is a possibly non-exhaustive list of changes:
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
    for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
-   it previously would have been ``int64``` even on 32-bit systems.
+   it previously would have been ``int64`` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
