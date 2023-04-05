@@ -87,6 +87,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
+- Added :meth:`Series.axis_ops` and :meth:`DataFrame.axis_ops` accessor for methods that operate on the object axes but not the data (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------

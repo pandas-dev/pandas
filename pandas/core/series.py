@@ -110,10 +110,8 @@ from pandas.core.indexers import (
 )
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
-    DatetimeIndex,
     Index,
     MultiIndex,
-    PeriodIndex,
     default_index,
     ensure_index,
 )
@@ -4092,10 +4090,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         {examples}
         """
-        assert isinstance(self.index, MultiIndex)
-        result = self.copy(deep=copy and not using_copy_on_write())
-        result.index = self.index.swaplevel(i, j)
-        return result
+        return self.axis_ops.swaplevel(i, j, copy=copy)
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
         """
@@ -4112,13 +4107,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         type of caller (new object)
         """
-        if not isinstance(self.index, MultiIndex):  # pragma: no cover
-            raise Exception("Can only reorder levels on a hierarchical axis.")
-
-        result = self.copy(deep=None)
-        assert isinstance(result.index, MultiIndex)
-        result.index = result.index.reorder_levels(order)
-        return result
+        return self.axis_ops.reorder_levels(order)
 
     def explode(self, ignore_index: bool = False) -> Series:
         """
@@ -5650,13 +5639,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-31    3
         Freq: A-JAN, dtype: int64
         """
-        if not isinstance(self.index, PeriodIndex):
-            raise TypeError(f"unsupported Type {type(self.index).__name__}")
-
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
-        new_index = self.index.to_timestamp(freq=freq, how=how)
-        setattr(new_obj, "index", new_index)
-        return new_obj
+        return self.axis_ops.to_timestamp(freq=freq, how=how, copy=copy)
 
     def to_period(self, freq: str | None = None, copy: bool | None = None) -> Series:
         """
@@ -5690,13 +5673,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
         """
-        if not isinstance(self.index, DatetimeIndex):
-            raise TypeError(f"unsupported Type {type(self.index).__name__}")
-
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
-        new_index = self.index.to_period(freq=freq)
-        setattr(new_obj, "index", new_index)
-        return new_obj
+        return self.axis_ops.to_period(freq=freq, copy=copy)
 
     # ----------------------------------------------------------------------
     # Add index

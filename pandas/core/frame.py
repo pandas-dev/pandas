@@ -134,6 +134,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.axis_ops import AxisOps
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -146,9 +147,7 @@ from pandas.core.generic import (
 )
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
-    DatetimeIndex,
     Index,
-    PeriodIndex,
     default_index,
     ensure_index,
     ensure_index_from_sequences,
@@ -7282,138 +7281,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
-    @doc(
-        Series.swaplevel,
-        klass=_shared_doc_kwargs["klass"],
-        extra_params=dedent(
-            """axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to swap levels on. 0 or 'index' for row-wise, 1 or
-            'columns' for column-wise."""
-        ),
-        examples=dedent(
-            """\
-        Examples
-        --------
-        >>> df = pd.DataFrame(
-        ...     {"Grade": ["A", "B", "A", "C"]},
-        ...     index=[
-        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
-        ...         ["History", "Geography", "History", "Geography"],
-        ...         ["January", "February", "March", "April"],
-        ...     ],
-        ... )
-        >>> df
-                                            Grade
-        Final exam  History     January      A
-                    Geography   February     B
-        Coursework  History     March        A
-                    Geography   April        C
-
-        In the following example, we will swap the levels of the indices.
-        Here, we will swap the levels column-wise, but levels can be swapped row-wise
-        in a similar manner. Note that column-wise is the default behaviour.
-        By not supplying any arguments for i and j, we swap the last and second to
-        last indices.
-
-        >>> df.swaplevel()
-                                            Grade
-        Final exam  January     History         A
-                    February    Geography       B
-        Coursework  March       History         A
-                    April       Geography       C
-
-        By supplying one argument, we can choose which index to swap the last
-        index with. We can for example swap the first index with the last one as
-        follows.
-
-        >>> df.swaplevel(0)
-                                            Grade
-        January     History     Final exam      A
-        February    Geography   Final exam      B
-        March       History     Coursework      A
-        April       Geography   Coursework      C
-
-        We can also define explicitly which indices we want to swap by supplying values
-        for both i and j. Here, we for example swap the first and second indices.
-
-        >>> df.swaplevel(0, 1)
-                                            Grade
-        History     Final exam  January         A
-        Geography   Final exam  February        B
-        History     Coursework  March           A
-        Geography   Coursework  April           C"""
-        ),
-    )
+    @Appender(AxisOps.swaplevel.__doc__)
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        result = self.copy(deep=None)
+        return self.axis_ops.swaplevel(i, j, axis=axis)
 
-        axis = self._get_axis_number(axis)
-
-        if not isinstance(result._get_axis(axis), MultiIndex):  # pragma: no cover
-            raise TypeError("Can only swap levels on a hierarchical axis.")
-
-        if axis == 0:
-            assert isinstance(result.index, MultiIndex)
-            result.index = result.index.swaplevel(i, j)
-        else:
-            assert isinstance(result.columns, MultiIndex)
-            result.columns = result.columns.swaplevel(i, j)
-        return result
-
+    @Appender(AxisOps.reorder_levels.__doc__)
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
-        """
-        Rearrange index levels using input order. May not drop or duplicate levels.
-
-        Parameters
-        ----------
-        order : list of int or list of str
-            List representing new level order. Reference level by number
-            (position) or by key (label).
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Where to reorder levels.
-
-        Returns
-        -------
-        DataFrame
-
-        Examples
-        --------
-        >>> data = {
-        ...     "class": ["Mammals", "Mammals", "Reptiles"],
-        ...     "diet": ["Omnivore", "Carnivore", "Carnivore"],
-        ...     "species": ["Humans", "Dogs", "Snakes"],
-        ... }
-        >>> df = pd.DataFrame(data, columns=["class", "diet", "species"])
-        >>> df = df.set_index(["class", "diet"])
-        >>> df
-                                          species
-        class      diet
-        Mammals    Omnivore                Humans
-                   Carnivore                 Dogs
-        Reptiles   Carnivore               Snakes
-
-        Let's reorder the levels of the index:
-
-        >>> df.reorder_levels(["diet", "class"])
-                                          species
-        diet      class
-        Omnivore  Mammals                  Humans
-        Carnivore Mammals                    Dogs
-                  Reptiles                 Snakes
-        """
-        axis = self._get_axis_number(axis)
-        if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
-            raise TypeError("Can only reorder levels on a hierarchical axis.")
-
-        result = self.copy(deep=None)
-
-        if axis == 0:
-            assert isinstance(result.index, MultiIndex)
-            result.index = result.index.reorder_levels(order)
-        else:
-            assert isinstance(result.columns, MultiIndex)
-            result.columns = result.columns.reorder_levels(order)
-        return result
+        return self.axis_ops.reorder_levels(order=order, axis=axis)
 
     # ----------------------------------------------------------------------
     # Arithmetic Methods
@@ -11555,17 +11429,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
-
-        axis_name = self._get_axis_name(axis)
-        old_ax = getattr(self, axis_name)
-        if not isinstance(old_ax, PeriodIndex):
-            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
-
-        new_ax = old_ax.to_timestamp(freq=freq, how=how)
-
-        setattr(new_obj, axis_name, new_ax)
-        return new_obj
+        return self.axis_ops.to_timestamp(freq=freq, how=how, axis=axis, copy=copy)
 
     def to_period(
         self, freq: Frequency | None = None, axis: Axis = 0, copy: bool | None = None
@@ -11612,17 +11476,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
-        new_obj = self.copy(deep=copy and not using_copy_on_write())
-
-        axis_name = self._get_axis_name(axis)
-        old_ax = getattr(self, axis_name)
-        if not isinstance(old_ax, DatetimeIndex):
-            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
-
-        new_ax = old_ax.to_period(freq=freq)
-
-        setattr(new_obj, axis_name, new_ax)
-        return new_obj
+        return self.axis_ops.to_period(freq=freq, axis=axis, copy=copy)
 
     def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
         """
