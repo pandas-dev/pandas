@@ -295,6 +295,7 @@ Groupby/resample/rolling
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64 or :class:`PeriodDtype` values (:issue:`52128`)
+- Bug in :meth:`DataFrameGroupBy.apply` when the supplied callable unstacked the grouped :class:`DataFrame` and returned a :class:`Series`, an attempt was made to set a list as the name of the result ``Series``, causing an error to be raised (:issue:`52444`)
 -
 
 Reshaping
