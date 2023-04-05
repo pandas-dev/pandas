@@ -68,7 +68,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -101,7 +100,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.generic import NDFrame
+from pandas.core.generic import (
+    NDFrame,
+    make_doc,
+)
 from pandas.core.indexers import (
     disallow_ndim_indexing,
     unpack_1tuple,
@@ -921,8 +923,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if arr is values and using_copy_on_write():
-            # TODO(CoW) also properly handle extension dtypes
+        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -3182,10 +3183,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
-            for i, idx in enumerate(new_index):
-                lv = self.get(idx, fill_value)
-                rv = other.get(idx, fill_value)
-                with np.errstate(all="ignore"):
+            with np.errstate(all="ignore"):
+                for i, idx in enumerate(new_index):
+                    lv = self.get(idx, fill_value)
+                    rv = other.get(idx, fill_value)
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
@@ -4528,46 +4529,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
         return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
-    def _reduce(
-        self,
-        op,
-        name: str,
-        *,
-        axis: Axis = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        filter_type=None,
-        **kwds,
-    ):
-        """
-        Perform a reduction operation.
-
-        If we have an ndarray as a value, then simply perform the operation,
-        otherwise delegate to the object.
-        """
-        delegate = self._values
-
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(delegate, ExtensionArray):
-            # dispatch to ExtensionArray interface
-            return delegate._reduce(name, skipna=skipna, **kwds)
-
-        else:
-            # dispatch to numpy arrays
-            if numeric_only and not is_numeric_dtype(self.dtype):
-                kwd_name = "numeric_only"
-                if name in ["any", "all"]:
-                    kwd_name = "bool_only"
-                # GH#47500 - change to TypeError to match other methods
-                raise TypeError(
-                    f"Series.{name} does not allow {kwd_name}={numeric_only} "
-                    "with non-numeric dtypes."
-                )
-            with np.errstate(all="ignore"):
-                return op(delegate, skipna=skipna, **kwds)
-
     def _reindex_indexer(
         self,
         new_index: Index | None,
@@ -5773,8 +5734,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
-        with np.errstate(all="ignore"):
-            res_values = ops.comparison_op(lvalues, rvalues, op)
+        res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
@@ -6047,5 +6007,222 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, roperator.rdivmod, level=level, fill_value=fill_value, axis=axis
         )
 
+    # ----------------------------------------------------------------------
+    # Reductions
 
-Series._add_numeric_operations()
+    def _reduce(
+        self,
+        op,
+        # error: Variable "pandas.core.series.Series.str" is not valid as a type
+        name: str,  # type: ignore[valid-type]
+        *,
+        axis: Axis = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        filter_type=None,
+        **kwds,
+    ):
+        """
+        Perform a reduction operation.
+
+        If we have an ndarray as a value, then simply perform the operation,
+        otherwise delegate to the object.
+        """
+        delegate = self._values
+
+        if axis is not None:
+            self._get_axis_number(axis)
+
+        if isinstance(delegate, ExtensionArray):
+            # dispatch to ExtensionArray interface
+            return delegate._reduce(name, skipna=skipna, **kwds)
+
+        else:
+            # dispatch to numpy arrays
+            if numeric_only and self.dtype.kind not in "iufcb":
+                # i.e. not is_numeric_dtype(self.dtype)
+                kwd_name = "numeric_only"
+                if name in ["any", "all"]:
+                    kwd_name = "bool_only"
+                # GH#47500 - change to TypeError to match other methods
+                raise TypeError(
+                    f"Series.{name} does not allow {kwd_name}={numeric_only} "
+                    "with non-numeric dtypes."
+                )
+            return op(delegate, skipna=skipna, **kwds)
+
+    @Appender(make_doc("any", ndim=1))
+    # error: Signature of "any" incompatible with supertype "NDFrame"
+    def any(  # type: ignore[override]
+        self,
+        *,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
+        nv.validate_logical_func((), kwargs, fname="any")
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        return self._reduce(
+            nanops.nanany,
+            name="any",
+            axis=axis,
+            numeric_only=bool_only,
+            skipna=skipna,
+            filter_type="bool",
+        )
+
+    @Appender(make_doc("all", ndim=1))
+    def all(
+        self,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> bool:
+        nv.validate_logical_func((), kwargs, fname="all")
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        return self._reduce(
+            nanops.nanall,
+            name="all",
+            axis=axis,
+            numeric_only=bool_only,
+            skipna=skipna,
+            filter_type="bool",
+        )
+
+    @doc(make_doc("min", ndim=1))
+    # error: Signature of "min" incompatible with supertype "IndexOpsMixin"
+    def min(  # type: ignore[override]
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("max", ndim=1))
+    # error: Signature of "max" incompatible with supertype "IndexOpsMixin"
+    def max(  # type: ignore[override]
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.max(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sum", ndim=1))
+    def sum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("prod", ndim=1))
+    def prod(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return NDFrame.prod(self, axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("mean", ndim=1))
+    def mean(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("median", ndim=1))
+    def median(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.median(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sem", ndim=1))
+    def sem(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.sem(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("var", ndim=1))
+    def var(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.var(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("std", ndim=1))
+    def std(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.std(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("skew", ndim=1))
+    def skew(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.skew(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("kurt", ndim=1))
+    def kurt(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.kurt(self, axis, skipna, numeric_only, **kwargs)
+
+    kurtosis = kurt
+    product = prod
+
+    @doc(make_doc("cummin", ndim=1))
+    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cummax", ndim=1))
+    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumsum", ndim=1))
+    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumprod", 1))
+    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)

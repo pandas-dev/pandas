@@ -140,7 +140,10 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import NDFrame
+from pandas.core.generic import (
+    NDFrame,
+    make_doc,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -7433,7 +7436,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         self, other = self._align_for_op(other, axis, flex=True, level=None)
 
-        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        with np.errstate(all="ignore"):
+            new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
     _logical_method = _arith_method
@@ -7454,6 +7458,10 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Notes
+        -----
+        Caller is responsible for setting np.errstate where relevant.
         """
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(func)
@@ -7461,8 +7469,7 @@ class DataFrame(NDFrame, OpsMixin):
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            with np.errstate(all="ignore"):
-                bm = self._mgr.apply(array_op, right=right)
+            bm = self._mgr.apply(array_op, right=right)
             return self._constructor(bm)
 
         elif isinstance(right, DataFrame):
@@ -7473,17 +7480,16 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             # TODO operate_blockwise expects a manager of the same type
-            with np.errstate(all="ignore"):
-                bm = self._mgr.operate_blockwise(
-                    # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                    # "ArrayManager"
-                    # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                    # "BlockManager"
-                    right._mgr,  # type: ignore[arg-type]
-                    array_op,
-                )
+            bm = self._mgr.operate_blockwise(
+                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "ArrayManager"
+                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "BlockManager"
+                right._mgr,  # type: ignore[arg-type]
+                array_op,
+            )
             return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -7494,18 +7500,16 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            with np.errstate(all="ignore"):
-                arrays = [
-                    array_op(_left, _right)
-                    for _left, _right in zip(self._iter_column_arrays(), right)
-                ]
+            arrays = [
+                array_op(_left, _right)
+                for _left, _right in zip(self._iter_column_arrays(), right)
+            ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)
             right = right._values
 
-            with np.errstate(all="ignore"):
-                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             raise NotImplementedError(right)
@@ -7784,18 +7788,19 @@ class DataFrame(NDFrame, OpsMixin):
         )
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
-        if isinstance(other, DataFrame):
-            # Another DataFrame
-            new_data = self._combine_frame(other, op, fill_value)
+        with np.errstate(all="ignore"):
+            if isinstance(other, DataFrame):
+                # Another DataFrame
+                new_data = self._combine_frame(other, op, fill_value)
 
-        elif isinstance(other, Series):
-            new_data = self._dispatch_frame_op(other, op, axis=axis)
-        else:
-            # in this case we always have `np.ndim(other) == 0`
-            if fill_value is not None:
-                self = self.fillna(fill_value)
+            elif isinstance(other, Series):
+                new_data = self._dispatch_frame_op(other, op, axis=axis)
+            else:
+                # in this case we always have `np.ndim(other) == 0`
+                if fill_value is not None:
+                    self = self.fillna(fill_value)
 
-            new_data = self._dispatch_frame_op(other, op)
+                new_data = self._dispatch_frame_op(other, op)
 
         return self._construct_result(new_data)
 
@@ -8477,8 +8482,7 @@ class DataFrame(NDFrame, OpsMixin):
             that = other[col]._values
 
             if filter_func is not None:
-                with np.errstate(all="ignore"):
-                    mask = ~filter_func(this) | isna(that)
+                mask = ~filter_func(this) | isna(that)
             else:
                 if errors == "raise":
                     mask_this = notna(that)
@@ -9590,43 +9594,6 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     agg = aggregate
-
-    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
-    @overload  # type: ignore[override]
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        **kwargs,
-    ) -> Series:
-        ...
-
-    @overload
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: Level,
-        **kwargs,
-    ) -> DataFrame | Series:
-        ...
-
-    # error: Missing return statement
-    @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(  # type: ignore[empty-body]
-        self,
-        axis: Axis = 0,
-        bool_only: bool | None = None,
-        skipna: bool = True,
-        level: Level = None,
-        **kwargs,
-    ) -> DataFrame | Series:
-        ...
 
     @doc(
         _shared_docs["transform"],
@@ -10919,6 +10886,170 @@ class DataFrame(NDFrame, OpsMixin):
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
+    @doc(make_doc("any", ndim=2))
+    # error: Signature of "any" incompatible with supertype "NDFrame"
+    def any(  # type: ignore[override]
+        self,
+        *,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Series:
+        # error: Incompatible return value type (got "Union[Series, bool]",
+        # expected "Series")
+        return self._logical_func(  # type: ignore[return-value]
+            "any", nanops.nanany, axis, bool_only, skipna, **kwargs
+        )
+
+    @doc(make_doc("all", ndim=2))
+    def all(
+        self,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Series:
+        # error: Incompatible return value type (got "Union[Series, bool]",
+        # expected "Series")
+        return self._logical_func(  # type: ignore[return-value]
+            "all", nanops.nanall, axis, bool_only, skipna, **kwargs
+        )
+
+    @doc(make_doc("min", ndim=2))
+    def min(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().min(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("max", ndim=2))
+    def max(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().max(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sum", ndim=2))
+    def sum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("prod", ndim=2))
+    def prod(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("mean", ndim=2))
+    def mean(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().mean(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("median", ndim=2))
+    def median(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().median(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sem", ndim=2))
+    def sem(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("var", ndim=2))
+    def var(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().var(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("std", ndim=2))
+    def std(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().std(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("skew", ndim=2))
+    def skew(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().skew(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("kurt", ndim=2))
+    def kurt(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().kurt(axis, skipna, numeric_only, **kwargs)
+
+    kurtosis = kurt
+    product = prod
+
+    @doc(make_doc("cummin", ndim=2))
+    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cummax", ndim=2))
+    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumsum", ndim=2))
+    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumprod", 2))
+    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
         Count number of distinct elements in specified axis.
@@ -11721,9 +11852,6 @@ class DataFrame(NDFrame, OpsMixin):
                ['monkey', nan, None]], dtype=object)
         """
         return self._mgr.as_array()
-
-
-DataFrame._add_numeric_operations()
 
 
 def _from_nested_dict(data) -> collections.defaultdict:
