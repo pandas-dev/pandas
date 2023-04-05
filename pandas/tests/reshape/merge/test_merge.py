@@ -8,8 +8,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
@@ -2765,10 +2763,10 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="need pyarrow")
 @pytest.mark.parametrize("dtype", ["int64", "int64[pyarrow]"])
 def test_merge_arrow_and_numpy_dtypes(dtype):
     # GH#52406
+    pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2]}, dtype=dtype)
     df2 = DataFrame({"a": [1, 2]}, dtype="int64[pyarrow]")
     result = df.merge(df2)

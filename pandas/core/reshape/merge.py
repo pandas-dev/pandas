@@ -2380,8 +2380,7 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
         if not isinstance(lk, BaseMaskedArray) and not (
-            isinstance(lk.dtype, ArrowDtype)
-            and lk.dtype._is_numeric
+            isinstance(lk.dtype, ArrowDtype) and lk.dtype._is_numeric
         ):
             lk, _ = lk._values_for_factorize()
 
