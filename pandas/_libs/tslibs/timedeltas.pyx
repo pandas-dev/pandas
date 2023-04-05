@@ -886,10 +886,10 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                     neg = 1
             elif c == "+":
                 pass
-            elif c in ["W", "D", "H", "ME"]:
-                if c in ["H", "ME"] and len(number) > 2:
+            elif c in ["W", "D", "H", "M"]:
+                if c in ["H", "M"] and len(number) > 2:
                     raise ValueError(err_msg)
-                if c == "ME":
+                if c == "M":
                     c = "min"
                 unit.append(c)
                 r = timedelta_from_spec(number, "0", unit)
