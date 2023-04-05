@@ -267,7 +267,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 data = PeriodArray(ordinal, dtype=dtype)
             else:
                 # don't pass copy here, since we copy later.
-                data = period_array(data=data, freq=freq, warn=False)
+                data = period_array(data=data, freq=freq)
 
         if copy:
             data = data.copy()
