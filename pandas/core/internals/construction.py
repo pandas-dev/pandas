@@ -312,6 +312,7 @@ def ndarray_to_mgr(
             if (dtype is None or astype_is_view(values.dtype, dtype))
             else False
         )
+        # require order="F" if copy in order to ensure good performance (GH52440)
         values = np.array(values, copy=_copy, order=("F" if _copy else "K"))
         values = _ensure_2d(values)
 
