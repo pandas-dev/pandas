@@ -73,6 +73,8 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
   :meth:`Categorical.map` implicitly had a default value of ``"ignore"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future.
   Also notice that :meth:`Series.map` has default ``na_action=None`` and calls to series with categorical data will now use ``na_action=None`` unless explicitly set otherwise (:issue:`44279`)
+- :meth:`pandas.read_excel` now supports ``engine_kwargs`` to pass keyword args to Excel engines. (:issue:`40274`)
+- :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter (:issue:`44279`)
 - Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)
 - :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
@@ -83,11 +85,8 @@ Other enhancements
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
-- :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
-- :meth:`pandas.read_excel` now supports ``engine_kwargs`` to pass keyword args to Excel engines. (:issue:`40274`)
-- :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter (:issue:`44279`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
