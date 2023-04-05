@@ -25,7 +25,9 @@ from pandas.core.indexes.api import (
 if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
+        Frequency,
         IndexLabel,
+        Level,
         TimeAmbiguous,
         TimeNonexistent,
     )
@@ -37,10 +39,10 @@ class AxisOps(Generic[NDFrameT]):
     index/columns and not the data itself.
     """
 
-    def __init__(self, obj: NDFrameT):
+    def __init__(self, obj: NDFrameT) -> None:
         self.obj = obj
 
-    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> NDFrameT:
+    def reorder_levels(self, order: Sequence[Level], axis: Axis = 0) -> NDFrameT:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -163,7 +165,7 @@ class AxisOps(Generic[NDFrameT]):
         return obj.set_axis(new_labels, axis=axis, copy=None)
 
     def swaplevel(
-        self, i: Axis = -2, j: Axis = -1, *, axis: Axis = 0, copy: bool | None = None
+        self, i: Level = -2, j: Level = -1, *, axis: Axis = 0, copy: bool | None = None
     ) -> NDFrameT:
         """
         Swap levels i and j in a :class:`MultiIndex`.
@@ -582,7 +584,7 @@ class AxisOps(Generic[NDFrameT]):
         return new_obj
 
     def to_period(
-        self, freq: str | None = None, *, axis: Axis = 0, copy: bool | None = None
+        self, freq: Frequency | None = None, *, axis: Axis = 0, copy: bool | None = None
     ) -> NDFrameT:
         """
         Convert Series/DataFrame from DatetimeIndex to PeriodIndex.

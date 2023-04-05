@@ -5641,7 +5641,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.axis_ops.to_timestamp(freq=freq, how=how, copy=copy)
 
-    def to_period(self, freq: str | None = None, copy: bool | None = None) -> Series:
+    def to_period(
+        self, freq: Frequency | None = None, copy: bool | None = None
+    ) -> Series:
         """
         Convert Series from DatetimeIndex to PeriodIndex.
 

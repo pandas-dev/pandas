@@ -11374,7 +11374,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_timestamp(
         self,
         freq: Frequency | None = None,
-        how: str = "start",
+        how: Literal["s", "e", "start", "end"] = "start",
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
