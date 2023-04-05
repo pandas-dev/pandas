@@ -195,6 +195,7 @@ Performance improvements
 - Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
+- Constructing :class:`DataFrame` instances from a 2d ``ndarray`` using ``copy=True`` now ensures the copied array is contiguous, giving performance improvements for many operations (:issue:`52438`)
 -
 
 .. ---------------------------------------------------------------------------

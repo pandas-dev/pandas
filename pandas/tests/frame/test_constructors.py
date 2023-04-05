@@ -2123,6 +2123,7 @@ class TestDataFrameConstructors:
             df = DataFrame(arr, copy=True)
             arr[6] = 6
             assert not (df.values[6] == 6).all()
+            assert df._mgr.arrays[0].flags.c_contiguous
         else:
             arr = float_frame.values.copy()
             # default: copy to ensure contiguous arrays
