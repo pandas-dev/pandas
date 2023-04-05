@@ -844,7 +844,6 @@ def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
     freq: str | Tick | None = None,
     copy: bool = False,
-    warn=True,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.
