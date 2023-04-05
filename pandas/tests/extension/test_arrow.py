@@ -2391,6 +2391,7 @@ def test_setitem_boolean_replace_with_mask_segfault():
 
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
 def test_describe_numeric_data(pa_type):
+    # GH 52470
     data = pd.Series([1, 2, 3], dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(
