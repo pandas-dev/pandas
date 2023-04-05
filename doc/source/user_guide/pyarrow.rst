@@ -155,6 +155,7 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
 
 .. ipython:: python
    :ignore:
+   :okwarning:
 
    import io
    data = io.StringIO("""a,b,c
