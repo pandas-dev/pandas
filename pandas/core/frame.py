@@ -9813,7 +9813,6 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
         DataFrame.replace: Replace values given in `to_replace` with `value`.
-        DataFrame.applymap : Apply a function elementwise on a DataFrame (deprecated).
         Series.map : Apply a function elementwise on a Series.
 
         Examples
