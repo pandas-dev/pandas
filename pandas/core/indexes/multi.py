@@ -36,6 +36,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    Level,
     Scalar,
     Shape,
     npt,
@@ -2272,7 +2273,7 @@ class MultiIndex(Index):
 
         return self[mask]
 
-    def swaplevel(self, i=-2, j=-1) -> MultiIndex:
+    def swaplevel(self, i: Level = -2, j: Level = -1) -> MultiIndex:
         """
         Swap level i with level j.
 
