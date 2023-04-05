@@ -158,6 +158,14 @@ def pytest_collection_modifyitems(items, config) -> None:
             "set_flags",
             "DataFrame.set_flags is deprecated and will be removed in a future version",
         ),
+        (
+            "DuplicateLabelError",
+            "Series.set_flags is deprecated and will be removed in a future version",
+        ),
+        (
+            "DuplicateLabelError",
+            "Series.flags is deprecated and will be removed in a future version",
+        ),
     ]
 
     for item in items:
