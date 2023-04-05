@@ -1432,3 +1432,11 @@ def test_make_block_no_pandas_array(block_maker):
         )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
+
+
+def test_concat_value():
+    data=[{'A':None}]
+    df=DataFrame(data)
+    data_2= [{'A': pd.to_datetime("1990-12-20 00:00:00+00:00")}]
+    df_2=DataFrame(data_2)
+    pd.concat([df,df_2])
