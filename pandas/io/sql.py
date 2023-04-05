@@ -964,7 +964,10 @@ class SQLTable(PandasObject):
 
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
-                d = ser._values.to_pydatetime()
+                if isinstance(ser._values, ArrowExtensionArray):
+                    d = ser.dt.to_pydatetime()
+                else:
+                    d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
                 vals = ser._values
                 if isinstance(vals, ArrowExtensionArray):
