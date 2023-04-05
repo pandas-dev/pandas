@@ -172,7 +172,7 @@ Deprecations
 - Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
-- Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series`.
+- Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`.
   This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 -
 
