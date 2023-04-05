@@ -17,7 +17,7 @@ def __getattr__(key: str):
     raise AttributeError(key)
 
 
-__all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
-    "from_dataframe",
-    "DataFrame",
+__all__ = [
+    "from_dataframe",  # pyright: ignore[reportUnsupportedDunderAll]
+    "DataFrame",  # pyright: ignore[reportUnsupportedDunderAll]
 ]

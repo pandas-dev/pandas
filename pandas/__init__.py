@@ -185,9 +185,12 @@ def __getattr__(key: str):
         "read_sas",
         "read_spss",
     }:
-        import pandas.io.api
+        # Workaround to avoid false-positive in "inconsistent-namespace-usage"
+        #  complaining "Found both 'pandas.io' and 'io' "
+        import importlib
 
-        return getattr(pandas.io.api, key)
+        namespace = importlib.import_module(".io.api", package="pandas")
+        return getattr(namespace, key)
     elif key == "json_normalize":
         from pandas.io.json._normalize import json_normalize
 
@@ -285,13 +288,13 @@ __all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
     "DateOffset",
     "DatetimeIndex",
     "DatetimeTZDtype",
-    "ExcelFile",
-    "ExcelWriter",
+    "ExcelFile",  # pyright: ignore[reportUnsupportedDunderAll]
+    "ExcelWriter",  # pyright: ignore[reportUnsupportedDunderAll]
     "Flags",
     "Float32Dtype",
     "Float64Dtype",
     "Grouper",
-    "HDFStore",
+    "HDFStore",  # pyright: ignore[reportUnsupportedDunderAll]
     "Index",
     "IndexSlice",
     "Int16Dtype",
@@ -329,7 +332,7 @@ __all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
     "date_range",
     "describe_option",
     "errors",
-    "eval",
+    "eval",  # pyright: ignore[reportUnsupportedDunderAll]
     "factorize",
     "get_dummies",
     "from_dummies",
@@ -339,7 +342,7 @@ __all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
     "io",
     "isna",
     "isnull",
-    "json_normalize",
+    "json_normalize",  # pyright: ignore[reportUnsupportedDunderAll]
     "lreshape",
     "melt",
     "merge",
@@ -355,36 +358,36 @@ __all__ = [  # pyright: ignore[reportUnsupportedDunderAll]
     "pivot_table",
     "plotting",
     "qcut",
-    "read_clipboard",
-    "read_csv",
-    "read_excel",
-    "read_feather",
-    "read_fwf",
-    "read_gbq",
-    "read_hdf",
-    "read_html",
-    "read_json",
-    "read_orc",
-    "read_parquet",
-    "read_pickle",
-    "read_sas",
-    "read_spss",
-    "read_sql",
-    "read_sql_query",
-    "read_sql_table",
-    "read_stata",
-    "read_table",
-    "read_xml",
+    "read_clipboard",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_csv",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_excel",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_feather",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_fwf",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_gbq",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_hdf",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_html",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_json",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_orc",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_parquet",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_pickle",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_sas",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_spss",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_sql",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_sql_query",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_sql_table",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_stata",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_table",  # pyright: ignore[reportUnsupportedDunderAll]
+    "read_xml",  # pyright: ignore[reportUnsupportedDunderAll]
     "reset_option",
     "set_eng_float_format",
     "set_option",
     "show_versions",
     "test",
-    "testing",
+    "testing",  # pyright: ignore[reportUnsupportedDunderAll]
     "timedelta_range",
     "to_datetime",
     "to_numeric",
-    "to_pickle",
+    "to_pickle",  # pyright: ignore[reportUnsupportedDunderAll]
     "to_timedelta",
     "tseries",
     "unique",
