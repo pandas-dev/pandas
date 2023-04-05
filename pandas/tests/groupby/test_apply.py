@@ -1205,7 +1205,7 @@ def test_groupby_apply_shape_cache_safety():
 
 def test_groupby_apply_to_series_name():
     # GH52444
-    df = pd.DataFrame.from_dict(
+    df = DataFrame.from_dict(
         {
             "a": ["a", "b", "a", "b"],
             "b1": ["aa", "ac", "ac", "ad"],
@@ -1215,11 +1215,11 @@ def test_groupby_apply_to_series_name():
     grp = df.groupby("a")[["b1", "b2"]]
     result = grp.apply(lambda x: x.unstack().value_counts())
 
-    expected_idx = pd.MultiIndex.from_arrays(
+    expected_idx = MultiIndex.from_arrays(
         arrays=[["a", "a", "b", "b", "b"], ["aa", "ac", "ac", "ad", "aa"]],
         names=["a", None],
     )
-    expected = pd.Series([3, 1, 2, 1, 1], index=expected_idx, name="count")
+    expected = Series([3, 1, 2, 1, 1], index=expected_idx, name="count")
     tm.assert_series_equal(result, expected)
 
 
