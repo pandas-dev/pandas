@@ -1435,8 +1435,8 @@ def test_make_block_no_pandas_array(block_maker):
 
 
 def test_concat_value():
-    data = [{'A':None}]
+    data = [{'A': None}]
     df = DataFrame(data)
-    data_2 = [{'A': pd.to_datetime("1990-12-20 00:00:00+00:00")}]
+    data_2 = [{"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}]
     df_2 = DataFrame(data_2)
     pd.concat([df, df_2])
