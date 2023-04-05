@@ -20,6 +20,7 @@ Thus, good style is a requirement for submitting code to pandas.
 
 There are a couple of tools in pandas to help contributors verify their changes
 before contributing to the project
+
 - ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
   and imported modules. It is possible to run the checks independently by using the
   parameters ``docstrings``, ``code``, and ``doctests``
