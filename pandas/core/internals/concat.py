@@ -143,7 +143,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
         target_dtype = np.find_common_type(list(dtypes), [])
     else:
@@ -230,10 +230,12 @@ def concatenate_managers(
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
                 values = np.concatenate(vals, axis=1)
-            else:
+            elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
+            else:
+                values = concat_compat(vals, axis=1)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -541,6 +543,9 @@ class JoinUnit:
                     #  if we did, the missing_arr.fill would cast to gibberish
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
+
+                    if empty_dtype.kind in "mM":
+                        missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
                     return missing_arr
 
             if (not self.indexers) and (not self.block._can_consolidate):
@@ -621,14 +626,14 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return dtype.type("NaT")
-    elif dtype.kind in ["f", "c"]:
+    elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
         # different from missing.na_value_for_dtype
         return None
-    elif dtype.kind in ["i", "u"]:
+    elif dtype.kind in "iu":
         if not has_none_blocks:
             # different from missing.na_value_for_dtype
             return None
@@ -687,7 +692,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
-            or ju.block.dtype.kind in ["b", "i", "u"]
+            or ju.block.dtype.kind in "iub"
             for ju in join_units
         )
         and
