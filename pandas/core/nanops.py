@@ -515,6 +515,12 @@ def nanany(
     >>> nanops.nanany(s.values)
     False
     """
+    if values.dtype.kind in "iub" and mask is None:
+        # GH#26032 fastpath
+        # error: Incompatible return value type (got "Union[bool_, ndarray]",
+        # expected "bool")
+        return values.any(axis)  # type: ignore[return-value]
+
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
         # GH#34479
         warnings.warn(
@@ -570,6 +576,12 @@ def nanall(
     >>> nanops.nanall(s.values)
     False
     """
+    if values.dtype.kind in "iub" and mask is None:
+        # GH#26032 fastpath
+        # error: Incompatible return value type (got "Union[bool_, ndarray]",
+        # expected "bool")
+        return values.all(axis)  # type: ignore[return-value]
+
     if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
         # GH#34479
         warnings.warn(
