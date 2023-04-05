@@ -7433,7 +7433,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         self, other = self._align_for_op(other, axis, flex=True, level=None)
 
-        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        with np.errstate(all="ignore"):
+            new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
     _logical_method = _arith_method
@@ -7454,6 +7455,10 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Notes
+        -----
+        Caller is responsible for setting np.errstate where relevant.
         """
         # Get the appropriate array-op to apply to each column/block's values.
         array_op = ops.get_array_op(func)
@@ -7461,8 +7466,7 @@ class DataFrame(NDFrame, OpsMixin):
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            with np.errstate(all="ignore"):
-                bm = self._mgr.apply(array_op, right=right)
+            bm = self._mgr.apply(array_op, right=right)
             return self._constructor(bm)
 
         elif isinstance(right, DataFrame):
@@ -7473,17 +7477,16 @@ class DataFrame(NDFrame, OpsMixin):
             #  _frame_arith_method_with_reindex
 
             # TODO operate_blockwise expects a manager of the same type
-            with np.errstate(all="ignore"):
-                bm = self._mgr.operate_blockwise(
-                    # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
-                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                    # "ArrayManager"
-                    # error: Argument 1 to "operate_blockwise" of "BlockManager" has
-                    # incompatible type "Union[ArrayManager, BlockManager]"; expected
-                    # "BlockManager"
-                    right._mgr,  # type: ignore[arg-type]
-                    array_op,
-                )
+            bm = self._mgr.operate_blockwise(
+                # error: Argument 1 to "operate_blockwise" of "ArrayManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "ArrayManager"
+                # error: Argument 1 to "operate_blockwise" of "BlockManager" has
+                # incompatible type "Union[ArrayManager, BlockManager]"; expected
+                # "BlockManager"
+                right._mgr,  # type: ignore[arg-type]
+                array_op,
+            )
             return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:
@@ -7494,18 +7497,16 @@ class DataFrame(NDFrame, OpsMixin):
             # maybe_align_as_frame ensures we do not have an ndarray here
             assert not isinstance(right, np.ndarray)
 
-            with np.errstate(all="ignore"):
-                arrays = [
-                    array_op(_left, _right)
-                    for _left, _right in zip(self._iter_column_arrays(), right)
-                ]
+            arrays = [
+                array_op(_left, _right)
+                for _left, _right in zip(self._iter_column_arrays(), right)
+            ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)
             right = right._values
 
-            with np.errstate(all="ignore"):
-                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
+            arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             raise NotImplementedError(right)
@@ -7784,18 +7785,19 @@ class DataFrame(NDFrame, OpsMixin):
         )
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
-        if isinstance(other, DataFrame):
-            # Another DataFrame
-            new_data = self._combine_frame(other, op, fill_value)
+        with np.errstate(all="ignore"):
+            if isinstance(other, DataFrame):
+                # Another DataFrame
+                new_data = self._combine_frame(other, op, fill_value)
 
-        elif isinstance(other, Series):
-            new_data = self._dispatch_frame_op(other, op, axis=axis)
-        else:
-            # in this case we always have `np.ndim(other) == 0`
-            if fill_value is not None:
-                self = self.fillna(fill_value)
+            elif isinstance(other, Series):
+                new_data = self._dispatch_frame_op(other, op, axis=axis)
+            else:
+                # in this case we always have `np.ndim(other) == 0`
+                if fill_value is not None:
+                    self = self.fillna(fill_value)
 
-            new_data = self._dispatch_frame_op(other, op)
+                new_data = self._dispatch_frame_op(other, op)
 
         return self._construct_result(new_data)
 
@@ -8477,8 +8479,7 @@ class DataFrame(NDFrame, OpsMixin):
             that = other[col]._values
 
             if filter_func is not None:
-                with np.errstate(all="ignore"):
-                    mask = ~filter_func(this) | isna(that)
+                mask = ~filter_func(this) | isna(that)
             else:
                 if errors == "raise":
                     mask_this = notna(that)

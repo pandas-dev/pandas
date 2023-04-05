@@ -1468,8 +1468,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 @wraps(func)
                 def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
+                    return func(g, *args, **kwargs)
 
             else:
                 raise ValueError(
@@ -1570,7 +1569,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
-            ser = Series(values)
+            ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
             # TODO: special case not needed with ArrayManager

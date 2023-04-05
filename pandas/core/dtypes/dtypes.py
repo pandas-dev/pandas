@@ -862,6 +862,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    __hash__ = PeriodDtypeBase.__hash__
 
     def __new__(cls, freq):
         """
@@ -879,7 +880,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = PeriodDtypeBase.__new__(cls, dtype_code)
+            u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
             u._freq = freq
             cls._cache_dtypes[freq.freqstr] = u
             return u
@@ -945,22 +946,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def na_value(self) -> NaTType:
         return NaT
 
-    def __hash__(self) -> int:
-        # make myself hashable
-        return hash(str(self))
-
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
-        elif isinstance(other, PeriodDtype):
-            # For freqs that can be held by a PeriodDtype, this check is
-            # equivalent to (and much faster than) self.freq == other.freq
-            sfreq = self._freq
-            ofreq = other._freq
-            return sfreq.n == ofreq.n and self._dtype_code == other._dtype_code
-
-        return False
+        return super().__eq__(other)
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
@@ -1148,7 +1138,7 @@ class IntervalDtype(PandasExtensionDtype):
             raise NotImplementedError(
                 "_can_hold_na is not defined for partially-initialized IntervalDtype"
             )
-        if subtype.kind in ["i", "u"]:
+        if subtype.kind in "iu":
             return False
         return True
 
@@ -1447,7 +1437,7 @@ class BaseMaskedDtype(ExtensionDtype):
             from pandas.core.arrays.boolean import BooleanDtype
 
             return BooleanDtype()
-        elif dtype.kind in ["i", "u"]:
+        elif dtype.kind in "iu":
             from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
             return INT_STR_TO_DTYPE[dtype.name]
