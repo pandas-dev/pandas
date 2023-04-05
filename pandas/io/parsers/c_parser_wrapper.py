@@ -64,10 +64,7 @@ class CParserWrapper(ParserBase):
         self.low_memory = kwds.pop("low_memory", False)
 
         # #2442
-        # error: Cannot determine type of 'index_col'
-        kwds["allow_leading_cols"] = (
-            self.index_col is not False  # type: ignore[has-type]
-        )
+        kwds["allow_leading_cols"] = self.index_col is not False
 
         # GH20529, validate usecol arg before TextReader
         kwds["usecols"] = self.usecols
@@ -93,27 +90,23 @@ class CParserWrapper(ParserBase):
 
         self.unnamed_cols = self._reader.unnamed_cols
 
-        # error: Cannot determine type of 'names'
-        passed_names = self.names is None  # type: ignore[has-type]
+        passed_names = self.names is None
 
         if self._reader.header is None:
             self.names = None
         else:
-            # error: Cannot determine type of 'names'
-            # error: Cannot determine type of 'index_names'
             (
-                self.names,  # type: ignore[has-type]
+                self.names,
                 self.index_names,
                 self.col_names,
                 passed_names,
             ) = self._extract_multi_indexer_columns(
                 self._reader.header,
-                self.index_names,  # type: ignore[has-type]
+                self.index_names,
                 passed_names,
             )
 
-        # error: Cannot determine type of 'names'
-        if self.names is None:  # type: ignore[has-type]
+        if self.names is None:
             self.names = list(range(self._reader.table_width))
 
         # gh-9755
@@ -124,8 +117,7 @@ class CParserWrapper(ParserBase):
         #
         # once names has been filtered, we will
         # then set orig_names again to names
-        # error: Cannot determine type of 'names'
-        self.orig_names = self.names[:]  # type: ignore[has-type]
+        self.orig_names = self.names[:]
 
         if self.usecols:
             usecols = self._evaluate_usecols(self.usecols, self.orig_names)
@@ -138,47 +130,34 @@ class CParserWrapper(ParserBase):
             ):
                 self._validate_usecols_names(usecols, self.orig_names)
 
-            # error: Cannot determine type of 'names'
-            if len(self.names) > len(usecols):  # type: ignore[has-type]
-                # error: Cannot determine type of 'names'
-                self.names = [  # type: ignore[has-type]
+            if len(self.names) > len(usecols):
+                self.names = [
                     n
-                    # error: Cannot determine type of 'names'
-                    for i, n in enumerate(self.names)  # type: ignore[has-type]
+                    for i, n in enumerate(self.names)
                     if (i in usecols or n in usecols)
                 ]
 
-            # error: Cannot determine type of 'names'
-            if len(self.names) < len(usecols):  # type: ignore[has-type]
-                # error: Cannot determine type of 'names'
+            if len(self.names) < len(usecols):
                 self._validate_usecols_names(
                     usecols,
-                    self.names,  # type: ignore[has-type]
+                    self.names,
                 )
 
-        # error: Cannot determine type of 'names'
-        self._validate_parse_dates_presence(self.names)  # type: ignore[has-type]
+        self._validate_parse_dates_presence(self.names)
         self._set_noconvert_columns()
 
-        # error: Cannot determine type of 'names'
-        self.orig_names = self.names  # type: ignore[has-type]
+        self.orig_names = self.names
 
         if not self._has_complex_date_col:
-            # error: Cannot determine type of 'index_col'
-            if self._reader.leading_cols == 0 and is_index_col(
-                self.index_col  # type: ignore[has-type]
-            ):
+            if self._reader.leading_cols == 0 and is_index_col(self.index_col):
                 self._name_processed = True
                 (
                     index_names,
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
+                    self.names,
                     self.index_col,
                 ) = self._clean_index_names(
-                    # error: Cannot determine type of 'names'
-                    self.names,  # type: ignore[has-type]
-                    # error: Cannot determine type of 'index_col'
-                    self.index_col,  # type: ignore[has-type]
+                    self.names,
+                    self.index_col,
                 )
 
                 if self.index_names is None:
@@ -205,15 +184,13 @@ class CParserWrapper(ParserBase):
         undergo such conversions.
         """
         assert self.orig_names is not None
-        # error: Cannot determine type of 'names'
 
         # much faster than using orig_names.index(x) xref GH#44106
         names_dict = {x: i for i, x in enumerate(self.orig_names)}
-        col_indices = [names_dict[x] for x in self.names]  # type: ignore[has-type]
-        # error: Cannot determine type of 'names'
+        col_indices = [names_dict[x] for x in self.names]
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
-            self.names,  # type: ignore[has-type]
+            self.names,
         )
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
@@ -239,9 +216,19 @@ class CParserWrapper(ParserBase):
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
+
+                # error: Argument 1 to "is_potential_multi_index" has incompatible
+                # type "Optional[Sequence[Hashable]]"; expected
+                # "Union[Sequence[Hashable], MultiIndex]"
+                may_be_mi = is_potential_multi_index(
+                    self.orig_names, self.index_col  # type: ignore[arg-type]
+                )
+
+                # error: Argument 1 to "dedup_names" has incompatible type
+                # "Optional[Sequence[Hashable]]"; expected "Sequence[Hashable]"
                 names = dedup_names(
-                    self.orig_names,
-                    is_potential_multi_index(self.orig_names, self.index_col),
+                    self.orig_names,  # type: ignore[arg-type]
+                    may_be_mi,
                 )
                 index, columns, col_dict = self._get_empty_meta(
                     names,
@@ -265,8 +252,7 @@ class CParserWrapper(ParserBase):
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        # error: Cannot determine type of 'names'
-        names = self.names  # type: ignore[has-type]
+        names = self.names
 
         if self._reader.leading_cols:
             if self._has_complex_date_col:
