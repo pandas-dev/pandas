@@ -79,7 +79,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
