@@ -154,7 +154,6 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
 * :func:`read_feather`
 
 .. ipython:: python
-   :ignore:
    :okwarning:
 
    import io
