@@ -2451,7 +2451,9 @@ def _convert_arrays_and_get_rizer_klass(
             #  expected type "Type[object]"
             klass = _factorizers[lk.dtype.type]  # type: ignore[index]
         else:
-            klass = _factorizers[lk.dtype.type]
+            klass = libhashtable.ObjectFactorizer
+            lk = ensure_object(lk)
+            rk = ensure_object(rk)
 
     else:
         klass = libhashtable.ObjectFactorizer
