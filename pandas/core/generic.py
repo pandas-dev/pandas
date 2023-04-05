@@ -40,7 +40,9 @@ from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
     Period,
     Tick,
+    Timedelta,
     Timestamp,
+    offsets,
     to_offset,
 )
 from pandas._typing import (
@@ -9078,7 +9080,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         offset = to_offset(offset)
-        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+
+        if type(offset) is offsets.DateOffset and offset.is_on_offset(self.index[0]):
+            end_date = self.index[0] - Timedelta(1, unit="d") + offset
+
+            return self.loc[:end_date]
+
+        # if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+        if (
+            not isinstance(offset, Tick)
+            and offset.is_on_offset(self.index[0])
+            and type(offset) is not offsets.DateOffset
+        ):
             # GH#29623 if first value is end of period, remove offset with n = 1
             #  before adding the real offset
             end_date = end = self.index[0] - offset.base + offset
