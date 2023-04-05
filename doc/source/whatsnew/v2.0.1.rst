@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:

@@ -6,6 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under7p0
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -287,3 +288,16 @@ class TestTimedeltas:
         result = to_timedelta(ser)
         expected = Series([pd.Timedelta(1, unit="ns"), pd.NaT])
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(pa_version_under7p0, reason="Requires Pyarrow")
+@pytest.mark.parametrize(
+    "pa_str_dtype",
+    tm.ALL_INT_PYARROW_DTYPES_STR_REPR + tm.FLOAT_PYARROW_DTYPES_STR_REPR,
+)
+def test_from_numeric_arrow_dtype(pa_str_dtype):
+    # GH 52425
+    ser = Series([1, 2], dtype=pa_str_dtype)
+    result = to_timedelta(ser)
+    expected = Series([1, 2], dtype="timedelta64[ns]")
+    tm.assert_series_equal(result, expected)
