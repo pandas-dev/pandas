@@ -52,14 +52,15 @@ from pandas.core.internals.blocks import NumericBlock
 
 
 class TestSeriesConstructors:
-    def test_from_ints_with_non_nano_dt64_dtype(self, index_or_series):
+    @pytest.mark.parametrize("dtype", ["m8", "m8"])
+    def test_from_ints_with_non_nano_dt64_dtype(self, index_or_series, dtype):
         values = np.arange(10)
 
-        res = index_or_series(values, dtype="M8[s]")
-        expected = index_or_series(values.astype("M8[s]"))
+        res = index_or_series(values, dtype=f"{dtype}[s]")
+        expected = index_or_series(values.astype(f"{dtype}[s]"))
         tm.assert_equal(res, expected)
 
-        res = index_or_series(list(values), dtype="M8[s]")
+        res = index_or_series(list(values), dtype=f"{dtype}[s]")
         tm.assert_equal(res, expected)
 
     def test_from_na_value_and_interval_of_datetime_dtype(self):
@@ -1525,12 +1526,7 @@ class TestSeriesConstructors:
             td.astype("int32")
 
         # this is an invalid casting
-        msg = "|".join(
-            [
-                "Could not convert object to NumPy timedelta",
-                "Could not convert 'foo' to NumPy timedelta",
-            ]
-        )
+        msg = "unit must not be specified if the input contains a str"
         with pytest.raises(ValueError, match=msg):
             Series([timedelta(days=1), "foo"], dtype="m8[ns]")
 
@@ -1958,21 +1954,6 @@ class TestSeriesConstructors:
         expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="Not clear what the correct expected behavior should be with "
-        "integers now that we support non-nano. ATM (2022-10-08) we treat ints "
-        "as nanoseconds, then cast to the requested dtype. xref #48312"
-    )
-    def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
-        # GH#35465
-        result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
-            "int64"
-        )
-        expected = Series([1000000, 200000, 3000000], dtype="timedelta64[s]").astype(
-            "int64"
-        )
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.filterwarnings(
         "ignore:elementwise comparison failed:DeprecationWarning"
     )
@@ -2096,7 +2077,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
-        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        result = Series(pd.array([1, 2], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
@@ -2104,7 +2085,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
-        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        result = Series([1, 2], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(["2015"], dtype="datetime64[ns]")

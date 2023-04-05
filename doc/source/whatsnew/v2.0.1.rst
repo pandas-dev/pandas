@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :class:`Series` constructor when passing ``timedelta64`` dtype with non-nanosecond unit would not respect the unit (:issue:`48312`, :issue:`52457`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
