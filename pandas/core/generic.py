@@ -6715,13 +6715,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.
 
-        .. versionadded:: 2.0
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
-
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -11555,15 +11548,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             **kwargs,
         ):
-            return NDFrame.any(
-                self,
-                axis=axis,
-                bool_only=bool_only,
-                skipna=skipna,
-                **kwargs,
+            return self._logical_func(
+                "any", nanops.nanany, axis, bool_only, skipna, **kwargs
             )
 
-        setattr(cls, "any", any)
+        if cls._typ == "dataframe":
+            setattr(cls, "any", any)
 
         @doc(
             _bool_doc,
@@ -11582,9 +11572,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna: bool_t = True,
             **kwargs,
         ):
-            return NDFrame.all(self, axis, bool_only, skipna, **kwargs)
+            return self._logical_func(
+                "all", nanops.nanall, axis, bool_only, skipna, **kwargs
+            )
 
-        setattr(cls, "all", all)
+        if cls._typ == "dataframe":
+            setattr(cls, "all", all)
 
         @doc(
             _num_ddof_doc,
@@ -13054,3 +13047,41 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
+
+
+def make_doc(name: str, ndim: int) -> str:
+    """
+    Generate the docstring for a Series/DataFrame reduction.
+    """
+    if ndim == 1:
+        name1 = "scalar"
+        name2 = "Series"
+        axis_descr = "{index (0)}"
+    else:
+        name1 = "Series"
+        name2 = "DataFrame"
+        axis_descr = "{index (0), columns (1)}"
+
+    if name == "any":
+        desc = _any_desc
+        see_also = _any_see_also
+        examples = _any_examples
+        empty_value = False
+    elif name == "all":
+        desc = _all_desc
+        see_also = _all_see_also
+        examples = _all_examples
+        empty_value = True
+    else:
+        raise NotImplementedError
+
+    docstr = _bool_doc.format(
+        desc=desc,
+        name1=name1,
+        name2=name2,
+        axis_descr=axis_descr,
+        see_also=see_also,
+        examples=examples,
+        empty_value=empty_value,
+    )
+    return docstr
