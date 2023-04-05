@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`Series.describe` not returning :class:`ArrowDtype` with ``pyarrow.float64`` type with numeric data (:issue:`52427`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
