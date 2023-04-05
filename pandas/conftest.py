@@ -143,7 +143,15 @@ def pytest_collection_modifyitems(items, config) -> None:
             "in future version of pandas",
         ),
         (
-            ("Flags", "flags", "allows_duplicate_labels"),
+            "Flags",
+            "DataFrame.flags is deprecated and will be removed in a future version",
+        ),
+        (
+            "flags",
+            "DataFrame.flags is deprecated and will be removed in a future version",
+        ),
+        (
+            "allows_duplicate_labels",
             "DataFrame.flags is deprecated and will be removed in a future version",
         ),
         (
