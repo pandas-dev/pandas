@@ -2380,7 +2380,9 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
         if not isinstance(lk, BaseMaskedArray) and not (
-            isinstance(lk.dtype, ArrowDtype) and lk.dtype._is_numeric
+            # exclude arrow dtypes that would get casted to object
+            isinstance(lk.dtype, ArrowDtype)
+            and is_numeric_dtype(lk.dtype.numpy_dtype)
         ):
             lk, _ = lk._values_for_factorize()
 
@@ -2396,7 +2398,8 @@ def _factorize_keys(
         assert isinstance(rk, BaseMaskedArray)
         llab = rizer.factorize(lk._data, mask=lk._mask)
         rlab = rizer.factorize(rk._data, mask=rk._mask)
-    elif isinstance(lk, ArrowExtensionArray) or isinstance(rk, ArrowExtensionArray):
+    elif isinstance(lk, ArrowExtensionArray):
+        assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
         llab = rizer.factorize(
