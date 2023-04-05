@@ -88,6 +88,7 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     ExtensionArray,
 )
@@ -2396,7 +2397,7 @@ def _factorize_keys(
         assert isinstance(rk, BaseMaskedArray)
         llab = rizer.factorize(lk._data, mask=lk._mask)
         rlab = rizer.factorize(rk._data, mask=rk._mask)
-    elif isinstance(lk.dtype, ArrowDtype):
+    elif isinstance(lk, ArrowExtensionArray) or isinstance(rk, ArrowExtensionArray):
         # we can only get here with numeric dtypes
         # TODO: Remove when we have a Factorizer for Arrow
         llab = rizer.factorize(
