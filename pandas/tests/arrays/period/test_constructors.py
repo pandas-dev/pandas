@@ -75,16 +75,17 @@ def test_period_array_raises(data, freq, msg):
 def test_period_array_non_period_series_raies():
     ser = pd.Series([1, 2, 3])
     with pytest.raises(TypeError, match="dtype"):
-        PeriodArray(ser, freq="D")
+        PeriodArray(ser, dtype="period[D]")
 
 
 def test_period_array_freq_mismatch():
     arr = period_array(["2000", "2001"], freq="D")
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, freq="M")
+        PeriodArray(arr, dtype="period[M]")
 
+    dtype = pd.PeriodDtype(pd.tseries.offsets.MonthEnd())
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
+        PeriodArray(arr, dtype=dtype)
 
 
 def test_from_sequence_disallows_i8():
