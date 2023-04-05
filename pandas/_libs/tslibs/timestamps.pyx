@@ -1556,11 +1556,6 @@ class Timestamp(_Timestamp):
         if args_len == 1 and len(kwargs) == 0 and isinstance(args[0], _Timestamp):
             return args[0]
 
-        # Check that kwargs weren't passed as args
-        # if args_len > 9:
-        #     raise ValueError(invalid_args_msg)
-
-        # Unpack the arguments
         # Building from ts_input
         if args_len == 1:
             if kwargs:
