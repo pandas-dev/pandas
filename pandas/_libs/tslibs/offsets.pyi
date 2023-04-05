@@ -6,6 +6,7 @@ from typing import (
     Any,
     Collection,
     Literal,
+    TypeAlias,
     TypeVar,
     overload,
 )
@@ -20,9 +21,9 @@ from pandas._typing import (
 
 from .timedeltas import Timedelta
 
-_BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
-_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
-_TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
+_BaseOffsetT: TypeAlias = TypeVar("_BaseOffsetT", bound=BaseOffset)
+_DatetimeT: TypeAlias = TypeVar("_DatetimeT", bound=datetime)
+_TimedeltaT: TypeAlias = TypeVar("_TimedeltaT", bound=timedelta)
 
 _relativedelta_kwds: set[str]
 prefix_mapping: dict[str, type]
@@ -262,12 +263,12 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth): ...
 class OffsetMeta(type): ...
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta): ...
 
-BDay = BusinessDay
-BMonthEnd = BusinessMonthEnd
-BMonthBegin = BusinessMonthBegin
-CBMonthEnd = CustomBusinessMonthEnd
-CBMonthBegin = CustomBusinessMonthBegin
-CDay = CustomBusinessDay
+BDay: TypeAlias = BusinessDay
+BMonthEnd: TypeAlias = BusinessMonthEnd
+BMonthBegin: TypeAlias = BusinessMonthBegin
+CBMonthEnd: TypeAlias = CustomBusinessMonthEnd
+CBMonthBegin: TypeAlias = CustomBusinessMonthBegin
+CDay: TypeAlias = CustomBusinessDay
 
 def roll_qtrday(
     other: datetime, n: int, month: int, day_opt: str, modby: int

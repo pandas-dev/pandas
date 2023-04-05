@@ -4,6 +4,7 @@ from typing import (
     Any,
     Callable,
     Literal,
+    TypeAlias,
     overload,
 )
 
@@ -39,5 +40,5 @@ def jit(
     parallel: bool = ...,
 ) -> Callable[[F], F]: ...
 
-njit = jit
-generated_jit = jit
+njit: TypeAlias = jit
+generated_jit: TypeAlias = jit

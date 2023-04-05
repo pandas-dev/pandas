@@ -1,11 +1,12 @@
 from typing import (
     Generic,
+    TypeAlias,
     TypeVar,
 )
 
 from pandas.core.indexing import IndexingMixin
 
-_IndexingMixinT = TypeVar("_IndexingMixinT", bound=IndexingMixin)
+_IndexingMixinT: TypeAlias = TypeVar("_IndexingMixinT", bound=IndexingMixin)
 
 class NDFrameIndexerBase(Generic[_IndexingMixinT]):
     name: str
