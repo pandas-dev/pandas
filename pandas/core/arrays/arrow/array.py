@@ -1044,6 +1044,11 @@ class ArrowExtensionArray(
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._pa_array)
+        elif pa.types.is_null(self._pa_array.type):
+            data = np.asarray(self._pa_array, dtype=dtype)
+            if not isna(na_value):
+                data[:] = na_value
+            return data
         elif self._hasna:
             data = self.copy()
             data[self.isna()] = na_value
@@ -1634,7 +1639,9 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
-        if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
+        if isinstance(values, pa.ChunkedArray) and (
+            pa.types.is_boolean(values.type) or pa.types.is_null(values.type)
+        ):
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()

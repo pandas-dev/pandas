@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
