@@ -2274,7 +2274,9 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is datetime for res in result)
 
-    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
 
 
