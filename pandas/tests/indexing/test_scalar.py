@@ -90,7 +90,10 @@ class TestAtAndiAT:
                 Timestamp("2014-02-02"),
             ],
             [
-                Series(["1 days", "2 days"], dtype="timedelta64[ns]"),
+                Series(
+                    [86_400_000_000_000, 2 * 86_400_000_000_000],
+                    dtype="timedelta64[ns]",
+                ),
                 Timedelta("2 days"),
             ],
         ],
