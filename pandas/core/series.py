@@ -6091,8 +6091,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @doc(make_doc("min", ndim=1))
-    # error: Signature of "min" incompatible with supertype "IndexOpsMixin"
-    def min(  # type: ignore[override]
+    def min(
         self,
         axis: Axis | None = 0,
         skipna: bool = True,
@@ -6102,8 +6101,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("max", ndim=1))
-    # error: Signature of "max" incompatible with supertype "IndexOpsMixin"
-    def max(  # type: ignore[override]
+    def max(
         self,
         axis: Axis | None = 0,
         skipna: bool = True,

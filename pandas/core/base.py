@@ -582,7 +582,7 @@ class IndexOpsMixin(OpsMixin):
             else:
                 values = values.copy()
 
-            values[np.asanyarray(self.isna())] = na_value
+            values[np.asanyarray(isna(self))] = na_value
         else:
             values = self._values
 
