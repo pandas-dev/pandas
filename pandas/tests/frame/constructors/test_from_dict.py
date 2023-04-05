@@ -156,9 +156,13 @@ class TestFromDict:
         "data_dict, orient, expected",
         [
             ({}, "index", RangeIndex(0)),
-            ([{("a",): 1}, {("a",): 2}], "columns", Index(("a",), tupleize_cols=False)),
             (
-                [{("a",): 1, ("b",): 2}],
+                [{("a",): 1}, {("a",): 2}],
+                "columns",
+                Index([("a",)], tupleize_cols=False),
+            ),
+            (
+                [OrderedDict([(("a",), 1), (("b",), 2)])],
                 "columns",
                 Index([("a",), ("b",)], tupleize_cols=False),
             ),
