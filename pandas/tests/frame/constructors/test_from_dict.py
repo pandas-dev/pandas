@@ -162,7 +162,7 @@ class TestFromDict:
                 "columns",
                 Index([("a",), ("b",)], tupleize_cols=False),
             ),
-            ([{("a", "b"): 1}], Index([("a", "b")], "columns", tupleize_cols=False)),
+            ([{("a", "b"): 1}], "columns", Index([("a", "b")], tupleize_cols=False)),
         ],
     )
     def test_constructor_from_dict_tuples(self, data_dict, orient, expected):
