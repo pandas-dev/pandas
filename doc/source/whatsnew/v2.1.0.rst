@@ -166,6 +166,7 @@ Datetimelike
 - :meth:`arrays.DatetimeArray.map` can now take a ``na_action`` argument. :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in :class:`Timestamp` raising an error when passing fold when constructing from positional arguments.
+- Bug in :class:`Timestamp` leading to inconsistent timestamps when passing arguments as positional versus as a keyword.
 -
 
 Timedelta
