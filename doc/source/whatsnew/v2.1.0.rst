@@ -173,7 +173,8 @@ Deprecations
 - Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
-
+- Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:52462`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:

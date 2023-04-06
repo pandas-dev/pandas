@@ -12,6 +12,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -50,6 +51,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -209,7 +211,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype: Dtype | None = None, copy: bool = False) -> None:
+    def __init__(
+        self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
+    ) -> None:
+        if freq is not None:
+            # GH#52462
+            warnings.warn(
+                "The 'freq' keyword in the PeriodArray constructor is deprecated "
+                "and will be removed in a future version. Pass 'dtype' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            freq = validate_dtype_freq(dtype, freq)
+            dtype = PeriodDtype(freq)
+
         if dtype is not None:
             dtype = pandas_dtype(dtype)
             if not isinstance(dtype, PeriodDtype):

@@ -122,3 +122,14 @@ def test_from_td64nat_sequence_raises():
         pd.Series(arr, dtype=dtype)
     with pytest.raises(ValueError, match=msg):
         pd.DataFrame(arr, dtype=dtype)
+
+
+def test_freq_deprecated():
+    # GH#52462
+    data = np.arange(5).astype(np.int64)
+    msg = "The 'freq' keyword in the PeriodArray constructor is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = PeriodArray(data, freq="M")
+
+    expected = PeriodArray(data, dtype="period[M]")
+    tm.assert_equal(res, expected)
