@@ -156,6 +156,7 @@ There are several downsides to option ``3``:
 
 Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
 consistent with the current behaviour of nullable dtypes, and in being simple to teach.
+Therefore, the option chosen by this PDEP is option 1.
 
 ## Usage and Impact
 
