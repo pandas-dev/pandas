@@ -20,7 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`Series.concat`, Attribute Error raised with a None and Timestamp (:issue:`52093`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:

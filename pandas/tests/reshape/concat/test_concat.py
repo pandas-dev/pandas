@@ -802,3 +802,14 @@ def test_concat_mismatched_keys_length():
         concat((x for x in sers), keys=(y for y in keys), axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=0)
+
+
+def test_concat_none_to_dttz():
+    # GH-52093
+    data = [{"A": None}]
+    df = DataFrame(data)
+    data_2 = [{"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}]
+    df_2 = DataFrame(data_2)
+    result = pd.concat([df, df_2])
+    expexted = DataFrame(...)
+    tm.assert_frame_equal(result, expexted)
