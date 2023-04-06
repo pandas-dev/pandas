@@ -1657,26 +1657,35 @@ class ArrowExtensionArray(
     def _to_masked(self):
         pa_dtype = self._pa_array.type
         na_value = 1
+        from pandas.core.arrays import (
+            BooleanArray,
+            FloatingArray,
+            IntegerArray,
+        )
+
+        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
         if pa.types.is_floating(pa_dtype):
             nbits = pa_dtype.bit_width
             dtype = f"Float{nbits}"
             np_dtype = dtype.lower()
-            from pandas.core.arrays import FloatingArray as arr_cls
+            arr_cls = FloatingArray
         elif pa.types.is_unsigned_integer(pa_dtype):
             nbits = pa_dtype.bit_width
             dtype = f"UInt{nbits}"
             np_dtype = dtype.lower()
-            from pandas.core.arrays import IntegerArray as arr_cls
+            arr_cls = IntegerArray
+
         elif pa.types.is_signed_integer(pa_dtype):
             nbits = pa_dtype.bit_width
             dtype = f"Int{nbits}"
             np_dtype = dtype.lower()
-            from pandas.core.arrays import IntegerArray as arr_cls
+            arr_cls = IntegerArray
+
         elif pa.types.is_boolean(pa_dtype):
             dtype = "boolean"
             np_dtype = "bool"
             na_value = True
-            from pandas.core.arrays import BooleanArray as arr_cls
+            arr_cls = BooleanArray
         else:
             raise NotImplementedError
 
