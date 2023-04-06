@@ -146,21 +146,18 @@ def to_json(
     storage_options: StorageOptions = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
-    if index is None and orient in ["records", "values"]:
-        index = False
-    elif index is None:
-        index = True
-
-    if not index and orient in ["index", "columns"]:
-        raise ValueError(
-            "'index=False' is only valid when 'orient' is 'split', 'table', "
-            "'records', or 'values'."
-        )
-    elif index and orient in ["records", "values"]:
+    if orient in ["records", "values"] and index is True:
         raise ValueError(
             "'index=True' is only valid when 'orient' is 'split', 'table', "
             "'index', or 'columns'. Convert index to column for other orients."
         )
+    elif orient in ["index", "columns"] and index is False:
+        raise ValueError(
+            "'index=False' is only valid when 'orient' is 'split', 'table', "
+            "'records', or 'values'. Convert index to column for other orients."
+        )
+    elif index is None:
+        index = True
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
