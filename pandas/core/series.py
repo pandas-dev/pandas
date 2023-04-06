@@ -6133,5 +6133,138 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
+    @doc(make_doc("min", ndim=1))
+    # error: Signature of "min" incompatible with supertype "IndexOpsMixin"
+    def min(  # type: ignore[override]
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
 
-Series._add_numeric_operations()
+    @doc(make_doc("max", ndim=1))
+    # error: Signature of "max" incompatible with supertype "IndexOpsMixin"
+    def max(  # type: ignore[override]
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.max(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sum", ndim=1))
+    def sum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("prod", ndim=1))
+    def prod(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return NDFrame.prod(self, axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("mean", ndim=1))
+    def mean(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("median", ndim=1))
+    def median(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.median(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sem", ndim=1))
+    def sem(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.sem(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("var", ndim=1))
+    def var(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.var(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("std", ndim=1))
+    def std(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.std(self, axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("skew", ndim=1))
+    def skew(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.skew(self, axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("kurt", ndim=1))
+    def kurt(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return NDFrame.kurt(self, axis, skipna, numeric_only, **kwargs)
+
+    kurtosis = kurt
+    product = prod
+
+    @doc(make_doc("cummin", ndim=1))
+    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cummax", ndim=1))
+    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumsum", ndim=1))
+    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumprod", 1))
+    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
