@@ -22,7 +22,6 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
-from pandas.compat.pyarrow import pa_version_under7p0
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -3589,14 +3588,10 @@ def test_ignoring_unknown_tz_deprecated():
     tm.assert_index_equal(res, to_datetime([dtstr[:-5]]))
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="Requires Pyarrow")
-@pytest.mark.parametrize(
-    "pa_str_dtype",
-    tm.ALL_INT_PYARROW_DTYPES_STR_REPR + tm.FLOAT_PYARROW_DTYPES_STR_REPR,
-)
-def test_from_numeric_arrow_dtype(pa_str_dtype):
+def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425
-    ser = Series([1, 2], dtype=pa_str_dtype)
+    pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
     result = to_datetime(ser)
     expected = Series([1, 2], dtype="datetime64[ns]")
     tm.assert_series_equal(result, expected)
