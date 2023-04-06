@@ -317,7 +317,7 @@ class _FrequencyInferer:
 
     @cache_readonly
     def mdiffs(self) -> npt.NDArray[np.int64]:
-        nmonths = self.fields["Y"] * 12 + self.fields["ME"]
+        nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
@@ -371,7 +371,7 @@ class _FrequencyInferer:
         if len(self.ydiffs) > 1:
             return None
 
-        if len(unique(self.fields["ME"])) > 1:
+        if len(unique(self.fields["M"])) > 1:
             return None
 
         pos_check = self.month_position_check()
