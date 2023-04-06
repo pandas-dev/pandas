@@ -1430,13 +1430,13 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 
     mangled_aggfuncs = []
     for idx, aggfunc in enumerate(aggfuncs):
-        if not com.get_callable_name(aggfunc) == "<lambda>":
+        if com.get_callable_name(aggfunc) == "<lambda>":
             mangled_aggfuncs.append(aggfunc)
             continue
 
-        partial_aggfunc = aggfunc
         partial_aggfunc = partial(aggfunc)
-        partial_aggfunc.__name__ = f"<lambda_{idx}>"
+        # "partial[Any]" has no attribute "__name__"
+        partial_aggfunc.__name__ = f"<lambda_{idx}>"  # type: ignore[attr-defined]
         mangled_aggfuncs.append(partial_aggfunc)
 
     return mangled_aggfuncs
