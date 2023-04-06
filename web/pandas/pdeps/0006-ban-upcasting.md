@@ -130,7 +130,7 @@ numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just wha
 
 Possible options could be:
 1. only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``);
-2. convert the float value to ``int`` before setting it;
+2. convert the float value to ``int`` before setting it (i.e. silently round all float values);
 3. limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64) .
 
 Let us compare with what other libraries do:
