@@ -6555,10 +6555,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    @Substitution(
-        optional_by=_shared_doc_kwargs["optional_by"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
     def sort_values(
         self,
         by: IndexLabel,
@@ -6575,8 +6571,15 @@ class DataFrame(NDFrame, OpsMixin):
         Sort by the values along either axis.
 
         Parameters
-        ----------%(optional_by)s
-        axis : %(axes_single_arg)s, default 0
+        ----------
+        by : str or list of str
+            Name or list of names to sort by.
+
+            - if `axis` is 0 or `'index'` then `by` may contain index
+              levels and/or column labels.
+            - if `axis` is 1 or `'columns'` then `by` may contain column
+              levels and/or index labels.
+        axis : "{0 or 'index', 1 or 'columns'}", default 0
              Axis to be sorted.
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
