@@ -120,6 +120,7 @@ The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
+* :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
 * :func:`read_spss`
