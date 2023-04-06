@@ -280,9 +280,9 @@ class StringMethods(NoNewAttributesMixin):
                     result._pa_array.combine_chunks().value_lengths()
                 ).as_py()
                 if result.isna().any():
-                    result = result.fill_null([None] * max_len)
+                    result._pa_array = result._pa_array.fill_null([None] * max_len)
                 result = {
-                    i: ArrowExtensionArray(pa.array(list(res)))
+                    i: ArrowExtensionArray(pa.array(res))
                     for i, res in enumerate(zip(*result.tolist()))
                 }
             elif is_object_dtype(result):

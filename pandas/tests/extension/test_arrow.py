@@ -2126,11 +2126,11 @@ def test_str_rsplit():
     result = ser.str.rsplit("c", n=1, expand=True)
     expected = pd.DataFrame(
         {
-            0: ArrowExtensionArray(pa.array(["a", "a", None])),
-            1: ArrowExtensionArray(pa.array(["cbcb", "cbcb", None])),
+            0: ArrowExtensionArray(pa.array(["a1cb", "a2cb", None])),
+            1: ArrowExtensionArray(pa.array(["b", "b", None])),
         }
     )
-    tm.assert_series_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
