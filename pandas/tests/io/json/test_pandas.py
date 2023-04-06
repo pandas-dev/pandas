@@ -1867,8 +1867,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "orient", ["split", "records", "values", "index", "columns"]
     )
-    @pytest.mark.parametrize("option", [True, False])
-    def test_read_json_nullable(self, string_storage, dtype_backend, orient, option):
+    def test_read_json_dtype_backend(self, string_storage, dtype_backend, orient):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
         df = DataFrame(
@@ -1894,12 +1893,7 @@ class TestPandasContainer:
 
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", option):
-                        result = read_json(out, orient=orient)
-                else:
-                    result = read_json(out, use_nullable_dtypes=True, orient=orient)
+            result = read_json(out, dtype_backend=dtype_backend, orient=orient)
 
         expected = DataFrame(
             {
@@ -1937,10 +1931,9 @@ class TestPandasContainer:
 
         out = ser.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_json(
-                    out, use_nullable_dtypes=True, orient=orient, typ="series"
-                )
+            result = read_json(
+                out, dtype_backend=dtype_backend, orient=orient, typ="series"
+            )
 
         expected = Series([1, np.nan, 3], dtype="Int64")
 
@@ -1950,6 +1943,14 @@ class TestPandasContainer:
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 
         tm.assert_series_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_json("test", dtype_backend="numpy")
 
 
 def test_invalid_engine():

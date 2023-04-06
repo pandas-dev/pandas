@@ -41,7 +41,7 @@ dependencies:
   - psycopg2>=2.8.6
   - pymysql>=1.0.2
   - pytables>=3.6.1
-  - pyarrow
+  - pyarrow>=7.0.0
   - pyreadstat>=1.1.2
   - python-snappy>=0.6.0
   - pyxlsb>=1.0.8
@@ -49,8 +49,10 @@ dependencies:
   - scipy>=1.7.1
   - sqlalchemy>=1.4.16
   - tabulate>=0.8.9
-  - tzdata>=2022a
   - xarray>=0.21.0
   - xlrd>=2.0.1
   - xlsxwriter>=1.4.3
   - zstandard>=0.15.2
+
+  - pip:
+    - tzdata>=2022.1

@@ -55,17 +55,19 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_string_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -119,6 +121,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        Self,
         Shape,
         npt,
     )
@@ -631,7 +634,7 @@ class HDFStore:
         pstr = pprint_thing(self._path)
         return f"{type(self)}\nFile path: {pstr}\n"
 
-    def __enter__(self) -> HDFStore:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -799,7 +802,7 @@ class HDFStore:
         stop=None,
         columns=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -947,7 +950,7 @@ class HDFStore:
         start=None,
         stop=None,
         iterator: bool = False,
-        chunksize=None,
+        chunksize: int | None = None,
         auto_close: bool = False,
     ):
         """
@@ -1201,7 +1204,7 @@ class HDFStore:
         columns=None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool | None = None,
         data_columns: Literal[True] | list[str] | None = None,
@@ -1733,7 +1736,7 @@ class HDFStore:
         complevel: int | None = None,
         fletcher32=None,
         min_itemsize: int | dict[str, int] | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,
@@ -2069,7 +2072,9 @@ class IndexCol:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
         factory: type[Index] | type[DatetimeIndex] = Index
-        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+        if is_datetime64_dtype(values.dtype) or isinstance(
+            values.dtype, DatetimeTZDtype
+        ):
             factory = DatetimeIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
@@ -2197,9 +2202,8 @@ class IndexCol:
                         f"existing_value [{existing_value}] conflicts with "
                         f"new value [{value}]"
                     )
-            else:
-                if value is not None or existing_value is not None:
-                    idx[key] = value
+            elif value is not None or existing_value is not None:
+                idx[key] = value
 
     def set_info(self, info) -> None:
         """set my state from the passed info"""
@@ -2371,7 +2375,7 @@ class DataCol(IndexCol):
         if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
-        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
         elif is_timedelta64_dtype(dtype):
             atom = cls.get_atom_timedelta64(shape)
@@ -2924,7 +2928,7 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names)
         ):
             # write the level
-            if is_extension_array_dtype(lev):
+            if isinstance(lev.dtype, ExtensionDtype):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -3028,7 +3032,7 @@ class GenericFixed(Fixed):
         empty_array = value.size == 0
         transposed = False
 
-        if is_categorical_dtype(value.dtype):
+        if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
                 "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
@@ -3077,7 +3081,7 @@ class GenericFixed(Fixed):
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
-        elif is_datetime64tz_dtype(value.dtype):
+        elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
 
@@ -3126,7 +3130,7 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name)
+        return Series(values, index=index, name=self.name, copy=False)
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3193,7 +3197,7 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
 
             columns = items[items.get_indexer(blk_items)]
-            df = DataFrame(values.T, columns=columns, index=axes[1])
+            df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3400,7 +3404,7 @@ class Table(Fixed):
         return self.table.description
 
     @property
-    def axes(self):
+    def axes(self) -> itertools.chain[IndexCol]:
         return itertools.chain(self.index_axes, self.values_axes)
 
     @property
@@ -3461,7 +3465,7 @@ class Table(Fixed):
         """
         self.parent.put(
             self._get_metadata_path(key),
-            Series(values),
+            Series(values, copy=False),
             format="table",
             encoding=self.encoding,
             errors=self.errors,
@@ -3695,7 +3699,7 @@ class Table(Fixed):
 
     def _read_axes(
         self, where, start: int | None = None, stop: int | None = None
-    ) -> list[tuple[ArrayLike, ArrayLike]]:
+    ) -> list[tuple[np.ndarray, np.ndarray] | tuple[Index, Index]]:
         """
         Create the axes sniffed from the table.
 
@@ -3950,7 +3954,7 @@ class Table(Fixed):
                 tz = _get_tz(data_converted.tz)
 
             meta = metadata = ordered = None
-            if is_categorical_dtype(data_converted.dtype):
+            if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
@@ -4221,7 +4225,7 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(col_values[1], a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column, copy=False)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4271,7 +4275,7 @@ class AppendableTable(Table):
         complevel=None,
         fletcher32=None,
         min_itemsize=None,
-        chunksize=None,
+        chunksize: int | None = None,
         expectedrows=None,
         dropna: bool = False,
         nan_rep=None,
@@ -4448,7 +4452,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values).sort_values()
+        sorted_series = Series(values, copy=False).sort_values()
         ln = len(sorted_series)
 
         if ln:
@@ -4561,7 +4565,7 @@ class AppendableFrameTable(AppendableTable):
                 values = values.reshape((1, values.shape[0]))
 
             if isinstance(values, np.ndarray):
-                df = DataFrame(values.T, columns=cols_, index=index_)
+                df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
@@ -5017,7 +5021,7 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel())
+            Series(data.ravel(), copy=False)
             .str.encode(encoding, errors)
             ._values.reshape(data.shape)
         )
@@ -5057,7 +5061,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors)._values
+            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -5161,7 +5165,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
-    if data.dtype.kind in ["m", "M"]:
+    if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?

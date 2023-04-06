@@ -59,8 +59,12 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for arr in result._mgr.arrays:
-            assert arr.base is None
+        if not using_copy_on_write:
+            for arr in result._mgr.arrays:
+                assert arr.base is None
+        else:
+            for arr in result._mgr.arrays:
+                assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -334,7 +338,7 @@ class TestConcatenate:
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_coerceion(self):
+    def test_dtype_coercion(self):
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 
@@ -781,3 +785,20 @@ def test_concat_ignore_empty_from_reindex():
     result = concat([df1, df2.reindex(columns=df1.columns)], ignore_index=True)
     expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_mismatched_keys_length():
+    # GH#43485
+    ser = Series(range(5))
+    sers = [ser + n for n in range(4)]
+    keys = ["A", "B", "C"]
+
+    msg = r"The behavior of pd.concat with len\(keys\) != len\(objs\) is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat(sers, keys=keys, axis=1)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat(sers, keys=keys, axis=0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=1)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=0)

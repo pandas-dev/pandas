@@ -576,7 +576,7 @@ def test_getitem_dataframe_raises():
         ser[df > 5]
 
 
-def test_getitem_assignment_series_aligment():
+def test_getitem_assignment_series_alignment():
     # https://github.com/pandas-dev/pandas/issues/37427
     # with getitem, when assigning with a Series, it is not first aligned
     ser = Series(range(10))

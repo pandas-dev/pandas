@@ -45,12 +45,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._typing import (
-    AnyArrayLike,
-    Dtype,
-    NpDtype,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -81,8 +75,13 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        AnyArrayLike,
+        Dtype,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Self,
+        npt,
     )
 
     from pandas.core.arrays import (
@@ -100,7 +99,7 @@ _shared_doc_kwargs = {
 }
 
 
-def _field_accessor(name: str, docstring=None):
+def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
         base = self.freq._period_dtype_code
         result = get_period_field_arr(name, self.asi8, base)
@@ -111,7 +110,9 @@ def _field_accessor(name: str, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -239,10 +240,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @classmethod
     def _simple_new(  # type: ignore[override]
         cls,
-        values: np.ndarray,
+        values: npt.NDArray[np.int64],
         freq: BaseOffset | None = None,
         dtype: Dtype | None = None,
-    ) -> PeriodArray:
+    ) -> Self:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
@@ -250,12 +251,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     @classmethod
     def _from_sequence(
-        cls: type[PeriodArray],
+        cls,
         scalars: Sequence[Period | None] | AnyArrayLike,
         *,
         dtype: Dtype | None = None,
         copy: bool = False,
-    ) -> PeriodArray:
+    ) -> Self:
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -265,7 +266,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            return scalars
+            # error: Incompatible return value type
+            # (got "Union[Sequence[Optional[Period]], Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]", expected "PeriodArray")
+            return scalars  # type: ignore[return-value]
 
         periods = np.asarray(scalars, dtype=object)
 
@@ -276,11 +280,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> PeriodArray:
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:
+    def _from_datetime64(cls, data, freq, tz=None) -> Self:
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -472,7 +476,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     daysinmonth = days_in_month
 
     @property
-    def is_leap_year(self) -> np.ndarray:
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
         """
@@ -541,7 +545,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
-    def asfreq(self, freq=None, how: str = "E") -> PeriodArray:
+    def asfreq(self, freq=None, how: str = "E") -> Self:
         """
         Convert the {klass} to the specified frequency `freq`.
 
@@ -616,31 +620,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return str
         return "'{}'".format
 
-    @dtl.ravel_compat
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         """
         actually format my specific types
         """
-        values = self.astype(object)
-
-        # Create the formatter function
-        if date_format:
-            formatter = lambda per: per.strftime(date_format)
-        else:
-            # Uses `_Period.str` which in turn uses `format_period`
-            formatter = lambda per: str(per)
-
-        # Apply the formatter to all values in the array, possibly with a mask
-        if self._hasna:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(per) for per in values[imask]])
-        else:
-            values = np.array([formatter(per) for per in values])
-        return values
+        return libperiod.period_array_strftime(
+            self.asi8, self.dtype._dtype_code, na_rep, date_format
+        )
 
     # ------------------------------------------------------------------
 
@@ -653,7 +641,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 return self
             else:
                 return self.copy()
-        if is_period_dtype(dtype):
+        if isinstance(dtype, PeriodDtype):
             return self.asfreq(dtype.freq)
 
         if is_datetime64_any_dtype(dtype):
@@ -676,7 +664,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
@@ -692,7 +680,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     def _addsub_int_array_or_scalar(
         self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
-    ) -> PeriodArray:
+    ) -> Self:
         """
         Add or subtract array of integers.
 
@@ -741,7 +729,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     def _add_timedelta_arraylike(
         self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
-    ) -> PeriodArray:
+    ) -> Self:
         """
         Parameters
         ----------
@@ -760,6 +748,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         dtype = np.dtype(f"m8[{freq._td64_unit}]")
 
+        # Similar to _check_timedeltalike_freq_compat, but we raise with a
+        #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
                 np.asarray(other), dtype=dtype, copy=False, round_ok=False
@@ -913,7 +903,7 @@ def period_array(
 
     if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
-    if is_period_dtype(data_dtype):
+    if isinstance(data_dtype, PeriodDtype):
         return PeriodArray(data, freq=freq)
 
     # other iterable of some kind
@@ -982,7 +972,7 @@ def validate_dtype_freq(
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-        if not is_period_dtype(dtype):
+        if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
         if freq is None:
             freq = dtype.freq

@@ -154,7 +154,7 @@ def ensure_safe_environment_variables() -> Generator[None, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -211,9 +211,9 @@ def raises_chained_assignment_error():
 
         return nullcontext()
     else:
-        import pytest
+        from pandas._testing import assert_produces_warning
 
-        return pytest.raises(
+        return assert_produces_warning(
             ChainedAssignmentError,
             match=(
                 "A value is trying to be set on a copy of a DataFrame or Series "

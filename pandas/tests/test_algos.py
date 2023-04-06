@@ -327,7 +327,7 @@ class TestFactorize:
 
     def test_datetime64_factorize(self, writable):
         # GH35650 Verify whether read-only datetime64 array can be factorized
-        data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
+        data = np.array([np.datetime64("2020-01-01T00:00:00.000")], dtype="M8[ns]")
         data.setflags(write=writable)
         expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
@@ -620,13 +620,13 @@ class TestUnique:
     def test_datetime_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
         result = pd.unique(a)
-        expected = np.array(["2000", "2001"], dtype="datetime64[ns]")
+        expected = np.array(["2000", "2001"], dtype="datetime64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="timedelta64[s]")
         result = pd.unique(a)
-        expected = np.array([2000000000000, 2001000000000], dtype="timedelta64[ns]")
+        expected = np.array([2000, 2001], dtype="timedelta64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta64_dtype_array_returned(self):
@@ -1231,8 +1231,7 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
@@ -1307,7 +1306,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-    def test_dropna(self):
+    def test_value_counts_dropna(self):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(

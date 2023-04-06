@@ -29,7 +29,7 @@ import pandas._testing as tm
 
 class TestTimestampUnaryOps:
     # --------------------------------------------------------------
-    def test_round_divison_by_zero_raises(self):
+    def test_round_division_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
 
         msg = "Division by zero in rounding"
@@ -345,17 +345,15 @@ class TestTimestampUnaryOps:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                else:
-                    if mod >= diff:
-                        if ub > cls.max._value:
-                            with pytest.raises(err_cls, match=msg):
-                                method(ts, unit)
-                            return
-                    else:
-                        if lb < cls.min._value:
-                            with pytest.raises(err_cls, match=msg):
-                                method(ts, unit)
-                            return
+                elif mod >= diff:
+                    if ub > cls.max._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif lb < cls.min._value:
+                    with pytest.raises(err_cls, match=msg):
+                        method(ts, unit)
+                    return
 
             res = method(ts, unit)
 

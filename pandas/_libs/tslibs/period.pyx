@@ -49,10 +49,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     astype_overflowsafe,
     check_dts_bounds,
     get_timedelta64_value,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.timestamps import Timestamp
 
@@ -1268,6 +1271,54 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     return result
 
 
+def period_array_strftime(
+    ndarray values, int dtype_code, object na_rep, str date_format
+):
+    """
+    Vectorized Period.strftime used for PeriodArray._format_native_types.
+
+    Parameters
+    ----------
+    values : ndarray[int64_t], ndim unrestricted
+    dtype_code : int
+        Corresponds to PeriodDtype._dtype_code
+    na_rep : any
+    date_format : str or None
+    """
+    cdef:
+        Py_ssize_t i, n = values.size
+        int64_t ordinal
+        object item_repr
+        ndarray out = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_OBJECT, 0
+        )
+        object[::1] out_flat = out.ravel()
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
+
+    for i in range(n):
+        # Analogous to: ordinal = values[i]
+        ordinal = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        if ordinal == NPY_NAT:
+            item_repr = na_rep
+        else:
+            # This is equivalent to
+            # freq = frequency_corresponding_to_dtype_code(dtype_code)
+            # per = Period(ordinal, freq=freq)
+            # if date_format:
+            #     item_repr = per.strftime(date_format)
+            # else:
+            #     item_repr = str(per)
+            item_repr = period_format(ordinal, dtype_code, date_format)
+
+        # Analogous to: ordinals[i] = ordinal
+        out_flat[i] = item_repr
+
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return out
+
+
 # ----------------------------------------------------------------------
 # period accessors
 
@@ -1620,7 +1671,7 @@ cdef class _Period(PeriodMixin):
         # Note: this is more performant than PeriodDtype.from_date_offset(freq)
         #  because from_date_offset cannot be made a cdef method (until cython
         #  supported cdef classmethods)
-        self._dtype = PeriodDtypeBase(freq._period_dtype_code)
+        self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -1635,7 +1686,7 @@ cdef class _Period(PeriodMixin):
         """
         if isinstance(freq, int):
             # We already have a dtype code
-            dtype = PeriodDtypeBase(freq)
+            dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
 
         freq = to_offset(freq)
