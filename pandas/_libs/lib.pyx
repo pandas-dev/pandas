@@ -2500,6 +2500,10 @@ def maybe_convert_numeric(
     # of seeing ints that were never seen. So then, we return float
     if allow_null_in_int and seen.null_ and not seen.int_ and not seen.bool_:
         seen.float_ = True
+        if floats is None:
+            # If we didn't previously astype to float, that means everything
+            # is null
+            floats = np.full(n, fill_value=NaN, dtype=np.float64)
 
     if seen.complex_:
         return (complexes, None)
