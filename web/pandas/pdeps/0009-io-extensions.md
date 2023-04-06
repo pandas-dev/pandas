@@ -10,16 +10,20 @@
 
 This document proposes that third-party projects implementing I/O or memory
 connectors can register them using Python's entrypoint system, and make them
-available to pandas users with a standard interface in a dedicated namespace
-`DataFrame.io`. For example:
+available to pandas users with the existing I/O interface. For example:
 
 ```python
 import pandas
 
-df = pandas.DataFrame.io.from_duckdb("SELECT * FROM 'dataset.parquet';")
+df = pandas.DataFrame.read_duckdb("SELECT * FROM 'my_dataset.parquet';")
 
-df.io.to_hive(hive_conn, "hive_table")
+df.to_deltalake('/delta/my_dataset')
 ```
+
+This would allow to easily extend the existing number of connectors, adding
+support to new formats and database engines, data lake technologies,
+out-of-core connectors, the new ADBC interface and at the same time reduce the
+maintenance cost of the pandas core.
 
 ## Current state
 
@@ -131,8 +135,8 @@ there are some limitations to it:
 - Given the large number of formats supported by pandas itself, third-party
   connectors are likely seen as second class citizens, not important enough
   to be used, or not well supported.
-- There is no standard API for I/O connectors, and users of them need to learn
-  each of them individually.
+- There is no standard API for external I/O connectors, and users need
+  to learn each of them individually.
 - Method chaining is not possible with third-party I/O connectors to export
   data, unless authors monkey patch the `DataFrame` class, which should not
   be encouraged.
@@ -147,31 +151,36 @@ the API defined next would be used.
 
 #### User API
 
-A new `.io` accessor would be created for the `DataFrame` class, where all
-I/O connector methods from third-parties would be loaded. Nothing else would
-live under that namespace. All methods in the `DataFrame.io` namespace would
-be consistently named `from_*` to import data from other sources to pandas
-and `to_*` to export data from pandas to other formats. For example:
+Users will be able to install third-party packages implementing pandas
+connectors using the standard packaging tools (pip, conda, etc.). These
+connectors should implement an entrypoint that pandas will use to
+automatically create the corresponding methods `pandas.read_*` and
+`pandas.DataFrame.to_*`. Arbitrary function or method names will not
+be created by this interface, only the `read_*` and `to_*` pattern will
+be allowed. By simply installing the appropriate packages users will
+be able to use code like this:
 
 ```python
 import pandas
 
-df = pandas.DataFrame.io.from_duckdb("SELECT * FROM 'dataset.parquet';")
+df = pandas.read_duckdb("SELECT * FROM 'dataset.parquet';")
 
-df.io.to_hive(hive_conn, "hive_table")
+df.to_hive(hive_conn, "hive_table")
 ```
 
 This API allows for method chaining:
 
 ```python
-(pandas.DataFrame.io.from_duckdb("SELECT * FROM 'dataset.parquet';")
-                 .io.to_hive(hive_conn, "hive_table"))
+(pandas.read_duckdb("SELECT * FROM 'dataset.parquet';")
+       .to_hive(hive_conn, "hive_table"))
 ```
 
-By using a dedicated `.io` namespace, the amount of functions and methods in
-the already big namespaces of the `pandas` module and the `pandas.DataFrame`
-class will not be increased, and core pandas functionality would not be mixed
-with functionality registered via third-party plugins.
+The total number of I/O functions and methods is expected to be small, as users
+in general use only a small subset of formats. The number could actually be
+reduced from the current state if the less popular formats (such as SAS, SPSS,
+BigQuery, etc.) are removed from the pandas core into third-party packages.
+Moving these connectors is not part of this proposal, and will be discussed
+later in a separate proposal.
 
 #### Plugin registration
 
@@ -179,92 +188,71 @@ Third-party packages would implement an
 [entrypoint](https://setuptools.pypa.io/en/latest/userguide/entry_point.html#entry-points-for-plugins)
 to define the connectors that they implement, under a group `dataframe.io`.
 
-For example, a hypothetical project `pandas_duckdb` implementing a `from_duckdb`
+For example, a hypothetical project `pandas_duckdb` implementing a `read_duckdb`
 function, could use `pyproject.toml` to define the next entry point:
 
 ```toml
 [project.entry-points."dataframe.io"]
-from_duckdb = "pandas_duckdb:from_duckdb"
+from_duckdb = "pandas_duckdb:read_duckdb"
 ```
 
 On import of the pandas module, it would read the entrypoint registry for the
-`dataframe.io` group, and would dynamically create methods in the `DataFrame.io`
-namespace for them. Method not starting with `from_` or `to_` would make pandas
-raise an exception. This would guarantee a reasonably consistent API among
-third-party connectors.
+`dataframe.io` group, and would dynamically create methods in the `pandas` and
+`pandas.DataFrame` namespace for them. Method not starting with `read_` or `to_`
+would make pandas raise an exception. This would guarantee a reasonably
+consistent API among third-party connectors.
 
 #### Internal API
 
-Connectors would use Apache Arrow as the only interface to interact with pandas
-or any other project using them. In case an internal representation other than
-Arrow is used, like pandas using NumPy-backed data, the data will be converted to it
-while creating the dataframe object in pandas, not in the connector. Consider the
-next example (only for illustration, it does not use the exact proposed API,
-which would be created dynamically):
+Connectors would use one of two different interface options: a pandas `DataFrame`
+or an Apache Arrow table.
 
-```python
-class DataFrame:
-    class io:
-        @classmethod
-        def from_myformat(cls, *args, **kwargs):
-            arrow_table = third_party_connector.from_myformat(*args, **kwargs)
+The Apache Arrow format would allow that connectors do not need to use pandas to
+create the data, making them more robust and less likely to break when changes to
+pandas internals happen. It would also allow other possible consumers of the
+connectors to not have pandas as a dependency. Testing also becomes simpler by
+using Apache Arrow, since connectors can be tested independently, and pandas does
+not need to be tested for each connector. If the Apache Arrow specification is
+respected in both sides, the communication between connectors and pandas is
+guaranteed to work. If pandas eventually has a hard dependency on an Apache
+Arrow implementation, this should be the preferred interface.
 
-            # Final objects do not necessarily need to use Arrow
-            return convert_arrow_table_to_pandas_dataframe(arrow_table)
-```
+Allowing connectors to use pandas dataframes directly makes users not have to
+depend on PyArrow for connectors that do not use an Apache Arrow object. It also
+helps move existing connectors to this new API, since they are using pandas
+dataframes as an exchange object now. It has the disadvantages stated in the
+previous paragraph, and a future proposal may be created to discuss deprecating
+pandas dataframes as a possible interface for connectors.
 
-By standardizing the exchange format to Apache Arrow, there are some advantages:
-
-- The connectors can be reused by a wider variety of projects. Other dataframe
-  libraries could use them (e.g. Polars, Vaex, etc.), or other projects in the ecosystem
-  that could consume data as Arrow objects (e.g. matplotlib, scikit-learn, etc.)
-- Connectors don't need to use internal pandas APIs (like extension array objects).
-  If they used them changes to those internal APIs would cause connectors to break.
-  By using Arrow as the exchange format, connectors shouldn't be affected by any
-  change to pandas, and pandas development can be executed without worrying about
-  any impact to the connectors ecosystem.
-- The previous point would also simplify testing of both pandas and the connectors.
-  When implementations are very coupled, it's easy that changes to one project impact
-  the other, and it's common that a project tests another downstream project in its
-  test suite. This is the currently the case in pandas with the xarray, and Google
-  Big Query connectors, as well as other downstream libraries such as Dask or
-  scikit-learn. By using Arrow and fully decoupling the implementations,
-  testing of connectors would not be needed in pandas, and connectors wouldn not
-  need to test compatibility with pandas or other consumers either.
-
-In case a `from_` method returned something different than a PyArrow table,
+In case a `read` method returned something different than a PyArrow table,
 pandas would raise an exception. pandas would expect all `to_` methods to have
-`table: pyarrow.Table` as the first parameter, and it would raise an exception
-otherwise. The `table` parameter would be exposed as the `self` parameter in
-pandas, when the original function is registered as a method of the `.io`
-accessor.
+`table: pyarrow.Table | pandas.DataFrame` as the first parameter, and it would
+raise an exception otherwise. The `table` parameter would be exposed as the
+`self` parameter of the `to_*` method in pandas.
 
-Metadata not supported by Apache Arrow may be provided by users. For example the
-column to use for row indices or the data type backend to use in the object being
-created. This would be managed independently from the connectors. Given the previous
-example, a new argument `index_col` could be added directly into pandas:
+In case the Apache Arrow interface is used, metadata not supported by Apache
+Arrow may be provided by users. For example the column to use for row indices
+or the data type backend to use in the object being created. This would be
+managed independently from the connectors. Given the previous example, a new
+argument `index_col` could be added directly into pandas to the function or
+method automatically generated from the entrypoint. Since this would apply to
+all functions and methods automatically generated, it would also improve the
+consistency of pandas connectors. For example:
 
 ```python
-class DataFrame:
-    class io:
-        @classmethod
-        def from_myformat(cls, index_col=None, *args, **kwargs):
-            # The third-party connector doesn't need to know about functionality
-            # specific to pandas like the row index
-            arrow_table = third_party_connector.from_myformat(*args, **kwargs)
+def read_myformat(index_col=None, *args, **kwargs):
+    # The third-party connector doesn't need to know about functionality
+    # specific to pandas like the row index
+    arrow_table = third_party_connector.from_myformat(*args, **kwargs)
 
-            df = convert_arrow_table_to_pandas_dataframe(arrow_table)
+    df = convert_arrow_table_to_pandas_dataframe(arrow_table)
 
-            # Transformations to the dataframe with custom parameters is possible
-            if index_col is not None:
-                df = df.set_index(index_col)
+    # Transformations to the dataframe with custom parameters is possible
+    if index_col is not None:
+        df = df.set_index(index_col)
 
-            return df
+    return df
 ```
-
-Since the methods of `pandas.DataFrame` would be dynamically created, those custom
-arguments would be generic and added to all `from_` and/or `to_` connectors at once,
-avoiding code duplication and creating a more consistent API.
 
 #### Connector guidelines
 
@@ -373,6 +361,10 @@ pandas.DataFrame.io.from_duckdb("SELECT *
                                  WHERE my_col > 0")
 ```
 
+**Out-of-core algorithms** push some operations like filtering or grouping
+to the loading of the data. While this is not currently possible, connectors
+implementing out-of-core algorithms could be developed using this interface.
+
 **Big data** systems such as Hive, Iceberg, Presto, etc. could benefit
 from a standard way to load data to pandas. Also regular **SQL databases**
 that can return their query results as Arrow, would benefit from better
@@ -384,20 +376,17 @@ implement pandas connectors with a clear an intuitive API.
 
 ## Proposal extensions
 
-The scope of the current proposal is limited to the addition of the
-`DataFrame.io` namespace, and the automatic registration of functions defined
-by third-party projects, if an entrypoint is defined.
+The scope of the current proposal is limited to the registration of functions
+defined by third-party projects, if an entrypoint is defined.
 
 Any changes to the current connectors of pandas (e.g. `read_csv`,
 `from_records`, etc.) or their migration to the new system are out of scope for
 this proposal, but the next tasks can be considered for future work and proposals:
 
-- Migrate connectors currently implemented in pandas to the new interface.
-  This would require a transition period where users would be warned that
-  existing `DataFrame.read_*` may have been moved to `DataFrame.io.from_*`,
-  and that the old API will stop working in a future version.
 - Move out of the pandas repository and into their own third-party projects
-  some of the existing I/O connectors.
+  some of the existing I/O connectors. This would require a transition period
+  to let users know that future versions of pandas will require a dependency
+  installed for a particular connector to exist.
 - Implement with the new interface some of the data structures that the
   `DataFrame` constructor accepts.
 
