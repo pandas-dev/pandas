@@ -11,6 +11,7 @@ jobs:
       - run: .circleci/setup_env.sh
       - run:
           name: Build website and documentation
+          no_output_timeout: 90m
           command: |
             PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
             python web/pandas_web.py web/pandas --target-path=web/build
