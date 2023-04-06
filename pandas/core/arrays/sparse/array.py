@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -54,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -228,7 +228,7 @@ def _sparse_array_op(
         if (
             name in ["floordiv", "mod"]
             and (right == 0).any()
-            and left.dtype.kind in ["i", "u"]
+            and left.dtype.kind in "iu"
         ):
             # Match the non-Sparse Series behavior
             opname = f"sparse_{name}_float64"
@@ -458,7 +458,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             data = extract_array(data, extract_numpy=True)
             if not isinstance(data, np.ndarray):
                 # EA
-                if is_datetime64tz_dtype(data.dtype):
+                if isinstance(data.dtype, DatetimeTZDtype):
                     warnings.warn(
                         f"Creating SparseArray from {data.dtype} data "
                         "loses timezone information. Cast to object before "
@@ -886,7 +886,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             index = Index(keys)
         else:
             index = keys
-        return Series(counts, index=index)
+        return Series(counts, index=index, copy=False)
 
     # --------
     # Indexing
@@ -1756,10 +1756,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
         else:
             # scalar
-            with np.errstate(all="ignore"):
-                fill_value = op(self.fill_value, other)
-                result = np.full(len(self), fill_value, dtype=np.bool_)
-                result[self.sp_index.indices] = op(self.sp_values, other)
+            fill_value = op(self.fill_value, other)
+            result = np.full(len(self), fill_value, dtype=np.bool_)
+            result[self.sp_index.indices] = op(self.sp_values, other)
 
             return type(self)(
                 result,
@@ -1805,6 +1804,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None
+
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        raise NotImplementedError(f"{self.dtype} dtype not supported")
 
 
 def _make_sparse(

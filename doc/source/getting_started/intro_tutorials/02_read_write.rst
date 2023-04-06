@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -198,7 +198,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
 
 .. raw:: html
 
-    <div class="d-flex flex-row bg-light gs-torefguide">
+    <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
 For a complete overview of the input and output possibilities from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.
