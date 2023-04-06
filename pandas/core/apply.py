@@ -1430,7 +1430,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 
     mangled_aggfuncs = []
     for idx, aggfunc in enumerate(aggfuncs):
-        if com.get_callable_name(aggfunc) == "<lambda>":
+        if not com.get_callable_name(aggfunc) == "<lambda>":
             mangled_aggfuncs.append(aggfunc)
             continue
 
