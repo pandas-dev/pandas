@@ -123,7 +123,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -4670,7 +4673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if errors == "raise" and labels_missing:
                     raise KeyError(f"{labels} not found in axis")
 
-            if is_extension_array_dtype(mask.dtype):
+            if isinstance(mask.dtype, ExtensionDtype):
                 # GH#45860
                 mask = mask.to_numpy(dtype=bool)
 
@@ -5457,7 +5460,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not (
                 self.ndim == 2
                 and len(self.dtypes) == 1
-                and is_extension_array_dtype(self.dtypes.iloc[0])
+                and isinstance(self.dtypes.iloc[0], ExtensionDtype)
             )
         )
 

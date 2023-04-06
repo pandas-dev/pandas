@@ -94,7 +94,6 @@ from pandas.core.dtypes.common import (
     is_dataclass,
     is_dict_like,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -3603,7 +3602,9 @@ class DataFrame(NDFrame, OpsMixin):
                 result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
         elif (
-            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+            self._is_homogeneous_type
+            and dtypes
+            and isinstance(dtypes[0], ExtensionDtype)
         ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
@@ -4184,7 +4185,7 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not is_extension_array_dtype(value)
+            and not isinstance(value.dtype, ExtensionDtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
