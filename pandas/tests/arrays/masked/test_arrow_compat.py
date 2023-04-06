@@ -184,8 +184,10 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
 
 
-def test_from_arrow_null(data):
-    arr = pa.nulls(10)
+@pytest.mark.parametrize(
+    "arr", [pa.nulls(10), pa.chunked_array([pa.nulls(4), pa.nulls(6)])]
+)
+def test_from_arrow_null(data, arr):
     res = data.dtype.__from_arrow__(arr)
     assert res.isna().all()
     assert len(res) == 10

@@ -117,7 +117,7 @@ class BooleanDtype(BaseMaskedDtype):
         else:
             # pyarrow.ChunkedArray
             chunks = array.chunks
-            length = array.length
+            length = array.length()
 
         if pyarrow.types.is_null(array.type):
             mask = np.ones(length, dtype=bool)
