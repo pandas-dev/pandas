@@ -217,7 +217,9 @@ class TestDatetimeConcat:
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
     @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
-    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
+    def test_concat_NaT_dataframes_all_NaT_axis_0(
+        self, tz1, tz2, item, using_array_manager
+    ):
         # GH 12396
 
         # tz-naive
@@ -229,7 +231,7 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT:
+            if item is pd.NaT and not using_array_manager:
                 # GH#18463
                 # TODO: setting nan here is to keep the test passing as we
                 #  make assert_frame_equal stricter, but is nan really the
