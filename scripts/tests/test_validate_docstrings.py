@@ -157,13 +157,16 @@ class TestValidator:
             (
                 "BadDocstrings",
                 "unused_import",
-                ("flake8 error: F401 'pandas as pdf' imported but unused",),
+                (
+                    "flake8 error: line 1, col 1: F401 'pandas as pdf' "
+                    "imported but unused",
+                ),
             ),
             (
                 "BadDocstrings",
                 "missing_whitespace_around_arithmetic_operator",
                 (
-                    "flake8 error: "
+                    "flake8 error: line 1, col 2: "
                     "E226 missing whitespace around arithmetic operator",
                 ),
             ),
@@ -172,12 +175,15 @@ class TestValidator:
                 "indentation_is_not_a_multiple_of_four",
                 # with flake8 3.9.0, the message ends with four spaces,
                 #  whereas in earlier versions, it ended with "four"
-                ("flake8 error: E111 indentation is not a multiple of 4",),
+                (
+                    "flake8 error: line 2, col 3: E111 indentation is not a "
+                    "multiple of 4",
+                ),
             ),
             (
                 "BadDocstrings",
                 "missing_whitespace_after_comma",
-                ("flake8 error: E231 missing whitespace after ',' (3 times)",),
+                ("flake8 error: line 1, col 33: E231 missing whitespace after ','",),
             ),
             (
                 "BadDocstrings",

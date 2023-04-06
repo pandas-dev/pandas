@@ -1005,11 +1005,11 @@ class Window(BaseWindow):
     Rolling sum with a window span of 2 seconds.
 
     >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ...                        index = [pd.Timestamp('20130101 09:00:00'),
-    ...                                 pd.Timestamp('20130101 09:00:02'),
-    ...                                 pd.Timestamp('20130101 09:00:03'),
-    ...                                 pd.Timestamp('20130101 09:00:05'),
-    ...                                 pd.Timestamp('20130101 09:00:06')])
+    ...                        index=[pd.Timestamp('20130101 09:00:00'),
+    ...                               pd.Timestamp('20130101 09:00:02'),
+    ...                               pd.Timestamp('20130101 09:00:03'),
+    ...                               pd.Timestamp('20130101 09:00:05'),
+    ...                               pd.Timestamp('20130101 09:00:06')])
 
     >>> df_time
                            B
