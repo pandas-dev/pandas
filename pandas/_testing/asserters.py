@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -749,10 +750,12 @@ def assert_extension_array_equal(
         # GH 52449
         if not check_dtype and left.dtype.kind in "mM":
             if not isinstance(left.dtype, np.dtype):
+                left = cast(DatetimeTZDtype, left)
                 l_unit = left.dtype.unit
             else:
                 l_unit = np.datetime_data(left.dtype)[0]
             if not isinstance(right.dtype, np.dtype):
+                right = cast(DatetimeTZDtype, right)
                 r_unit = right.dtype.unit
             else:
                 r_unit = np.datetime_data(right.dtype)[0]
