@@ -260,7 +260,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
-        >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
+        >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     c, ['x', 'y'], ordered=True, dtype=dtype2
         ... )

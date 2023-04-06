@@ -20,6 +20,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -323,7 +324,8 @@ def union_categoricals(
     if ignore_order:
         ordered = False
 
-    return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
+    dtype = CategoricalDtype(categories=categories, ordered=ordered)
+    return Categorical._simple_new(new_codes, dtype=dtype)
 
 
 def _concatenate_2d(to_concat: Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:

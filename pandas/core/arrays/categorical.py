@@ -355,15 +355,38 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     _dtype: CategoricalDtype
 
+    @classmethod
+    # error: Argument 2 of "_simple_new" is incompatible with supertype
+    # "NDArrayBacked"; supertype defines the argument type as
+    # "Union[dtype[Any], ExtensionDtype]"
+    def _simple_new(  # type: ignore[override]
+        cls, codes: np.ndarray, dtype: CategoricalDtype
+    ) -> Self:
+        # NB: This is not _quite_ as simple as the "usual" _simple_new
+        codes = coerce_indexer_dtype(codes, dtype.categories)
+        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        return super()._simple_new(codes, dtype)
+
     def __init__(
         self,
         values,
         categories=None,
         ordered=None,
         dtype: Dtype | None = None,
-        fastpath: bool = False,
+        fastpath: bool | lib.NoDefault = lib.no_default,
         copy: bool = True,
     ) -> None:
+        if fastpath is not lib.no_default:
+            # GH#20110
+            warnings.warn(
+                "The 'fastpath' keyword in Categorical is deprecated and will "
+                "be removed in a future version. Use Categorical.from_codes instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            fastpath = False
+
         dtype = CategoricalDtype._from_values_or_dtype(
             values, categories, ordered, dtype
         )
@@ -626,7 +649,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(cats, ordered=False)
             codes = inferred_codes
 
-        return cls(codes, dtype=dtype, fastpath=True)
+        return cls._simple_new(codes, dtype=dtype)
 
     @classmethod
     def from_codes(
@@ -693,7 +716,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and len(categories)-1")
 
-        return cls(codes, dtype=dtype, fastpath=True)
+        return cls._simple_new(codes, dtype=dtype)
 
     # ------------------------------------------------------------------
     # Categories/Codes/Ordered
@@ -805,7 +828,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         a (valid) instance of `CategoricalDtype`.
         """
         codes = recode_for_categories(self.codes, self.categories, dtype.categories)
-        return type(self)(codes, dtype=dtype, fastpath=True)
+        return type(self)._simple_new(codes, dtype=dtype)
 
     def set_ordered(self, value: bool) -> Self:
         """
