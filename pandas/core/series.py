@@ -2701,8 +2701,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if len(this) == 0:
             return np.nan
 
-        this_values = np.asarray(this._values)
-        other_values = np.asarray(other._values)
+        this_values = this.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        other_values = other.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method in ["pearson", "spearman", "kendall"] or callable(method):
             return nanops.nancorr(
@@ -2759,8 +2759,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
-        this_values = np.asarray(this._values)
-        other_values = np.asarray(other._values)
+        this_values = this.to_numpy(dtype=float, na_value=np.nan, copy=False)
+        other_values = other.to_numpy(dtype=float, na_value=np.nan, copy=False)
         return nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
