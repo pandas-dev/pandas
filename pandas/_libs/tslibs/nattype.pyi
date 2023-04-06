@@ -3,9 +3,9 @@ from datetime import (
     timedelta,
     tzinfo as _tzinfo,
 )
-from typing import TypeAlias
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.tslibs.period import Period
 

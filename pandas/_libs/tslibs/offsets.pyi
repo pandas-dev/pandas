@@ -6,12 +6,12 @@ from typing import (
     Any,
     Collection,
     Literal,
-    TypeAlias,
     TypeVar,
     overload,
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
@@ -21,9 +21,9 @@ from pandas._typing import (
 
 from .timedeltas import Timedelta
 
-_BaseOffsetT: TypeAlias = TypeVar("_BaseOffsetT", bound=BaseOffset)
-_DatetimeT: TypeAlias = TypeVar("_DatetimeT", bound=datetime)
-_TimedeltaT: TypeAlias = TypeVar("_TimedeltaT", bound=timedelta)
+_BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
+_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
+_TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
 
 _relativedelta_kwds: set[str]
 prefix_mapping: dict[str, type]

@@ -8,7 +8,6 @@ from datetime import (
 from time import struct_time
 from typing import (
     ClassVar,
-    TypeAlias,
     TypeVar,
     overload,
 )
@@ -24,7 +23,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import Self
 
-_DatetimeT: TypeAlias = TypeVar("_DatetimeT", bound=datetime)
+_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
 

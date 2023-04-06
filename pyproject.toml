@@ -278,14 +278,14 @@ ignore = [
   # "PYI041",  # not yet implemented
 
   # Additional checks that don't pass yet
-  # Useless statement
-  "B018",
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
+  # Useless statement
+  "B018",
 ]
 
 exclude = [

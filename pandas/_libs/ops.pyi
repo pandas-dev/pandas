@@ -3,11 +3,11 @@ from typing import (
     Callable,
     Iterable,
     Literal,
-    TypeAlias,
     overload,
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._typing import npt
 

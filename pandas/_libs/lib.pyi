@@ -8,11 +8,11 @@ from typing import (
     Generator,
     Hashable,
     Literal,
-    TypeAlias,
     overload,
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import Period
@@ -31,8 +31,8 @@ from enum import Enum
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = ...
-NoDefault = ...
+no_default: Final[TypeAlias] = ...
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int

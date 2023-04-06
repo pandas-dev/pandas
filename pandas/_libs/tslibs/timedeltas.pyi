@@ -2,12 +2,12 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
-    TypeAlias,
     TypeVar,
     overload,
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.tslibs import (
     NaTType,
@@ -63,7 +63,7 @@ UnitChoices: TypeAlias = Literal[
     "nanosecond",
     "n",
 ]
-_S: TypeAlias = TypeVar("_S", bound=timedelta)
+_S = TypeVar("_S", bound=timedelta)
 
 def ints_to_pytimedelta(
     arr: npt.NDArray[np.timedelta64],
