@@ -612,7 +612,7 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(grouping_vector, np.ndarray):
-            if grouping_vector.dtype.kind in ["m", "M"]:
+            if grouping_vector.dtype.kind in "mM":
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and

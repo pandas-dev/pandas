@@ -80,6 +80,7 @@ if TYPE_CHECKING:
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Self,
         npt,
     )
 
@@ -239,10 +240,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     @classmethod
     def _simple_new(  # type: ignore[override]
         cls,
-        values: np.ndarray,
+        values: npt.NDArray[np.int64],
         freq: BaseOffset | None = None,
         dtype: Dtype | None = None,
-    ) -> PeriodArray:
+    ) -> Self:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
@@ -250,12 +251,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence(
-        cls: type[PeriodArray],
+        cls,
         scalars: Sequence[Period | None] | AnyArrayLike,
         *,
         dtype: Dtype | None = None,
         copy: bool = False,
-    ) -> PeriodArray:
+    ) -> Self:
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -279,11 +280,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> PeriodArray:
+    ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None) -> PeriodArray:
+    def _from_datetime64(cls, data, freq, tz=None) -> Self:
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -475,7 +476,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     daysinmonth = days_in_month
 
     @property
-    def is_leap_year(self) -> np.ndarray:
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
         """
@@ -544,7 +545,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     @doc(**_shared_doc_kwargs, other="PeriodIndex", other_name="PeriodIndex")
-    def asfreq(self, freq=None, how: str = "E") -> PeriodArray:
+    def asfreq(self, freq=None, how: str = "E") -> Self:
         """
         Convert the {klass} to the specified frequency `freq`.
 
@@ -663,7 +664,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> PeriodArray:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
@@ -679,7 +680,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     def _addsub_int_array_or_scalar(
         self, other: np.ndarray | int, op: Callable[[Any, Any], Any]
-    ) -> PeriodArray:
+    ) -> Self:
         """
         Add or subtract array of integers.
 
@@ -728,7 +729,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     def _add_timedelta_arraylike(
         self, other: TimedeltaArray | npt.NDArray[np.timedelta64]
-    ) -> PeriodArray:
+    ) -> Self:
         """
         Parameters
         ----------

@@ -1173,7 +1173,7 @@ class IntervalDtype(PandasExtensionDtype):
             raise NotImplementedError(
                 "_can_hold_na is not defined for partially-initialized IntervalDtype"
             )
-        if subtype.kind in ["i", "u"]:
+        if subtype.kind in "iu":
             return False
         return True
 
@@ -1472,7 +1472,7 @@ class BaseMaskedDtype(ExtensionDtype):
             from pandas.core.arrays.boolean import BooleanDtype
 
             return BooleanDtype()
-        elif dtype.kind in ["i", "u"]:
+        elif dtype.kind in "iu":
             from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
             return INT_STR_TO_DTYPE[dtype.name]
