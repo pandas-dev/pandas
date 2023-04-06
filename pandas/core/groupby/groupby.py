@@ -673,14 +673,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby.apply(f)
+        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby.apply(f)
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
         return attr
 
@@ -1117,7 +1117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self.apply(curried)
+            return self._python_apply_general(curried, self._selected_obj)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
