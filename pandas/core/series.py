@@ -148,7 +148,6 @@ if TYPE_CHECKING:
     from pandas._libs.internals import BlockValuesRefs
     from pandas._typing import (
         AggFuncType,
-        AlignJoin,
         AnyAll,
         AnyArrayLike,
         ArrayLike,
@@ -160,14 +159,11 @@ if TYPE_CHECKING:
         DtypeBackend,
         DtypeObj,
         FilePath,
-        FillnaOptions,
-        Frequency,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
         Level,
         NaPosition,
-        NDFrameT,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -178,8 +174,6 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
         ValueKeyFunc,
         WriteBuffer,
         npt,
@@ -187,7 +181,6 @@ if TYPE_CHECKING:
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
-    from pandas.core.resample import Resampler
 
 __all__ = ["Series"]
 
@@ -4558,38 +4551,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return False
 
-    # error: Cannot determine type of 'align'
-    @doc(
-        NDFrame.align,  # type: ignore[has-type]
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-    )
-    def align(
-        self,
-        other: NDFrameT,
-        join: AlignJoin = "outer",
-        axis: Axis | None = None,
-        level: Level = None,
-        copy: bool | None = None,
-        fill_value: Hashable = None,
-        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
-        fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
-    ) -> tuple[Self, NDFrameT]:
-        return super().align(
-            other,
-            join=join,
-            axis=axis,
-            level=level,
-            copy=copy,
-            fill_value=fill_value,
-            method=method,
-            limit=limit,
-            fill_axis=fill_axis,
-            broadcast_axis=broadcast_axis,
-        )
-
     @overload
     def rename(
         self,
@@ -4742,7 +4703,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     )
     @Substitution(
-        **_shared_doc_kwargs,
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
         extended_summary_sub="",
         axis_description_sub="",
         see_also_sub="",
@@ -4952,65 +4914,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             errors=errors,
         )
 
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> Series | None:
-        ...
-
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = None,
-        *,
-        method: FillnaOptions | None = None,
-        axis: Axis | None = None,
-        inplace: bool = False,
-        limit: int | None = None,
-        downcast: dict | None = None,
-    ) -> Series | None:
-        return super().fillna(
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
-        )
-
     def pop(self, item: Hashable) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.
@@ -5037,57 +4940,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         """
         return super().pop(item=item)
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> Series:
-        ...
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[True],
-        limit: int | None = ...,
-        regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> None:
-        ...
-
-    @doc(
-        NDFrame.replace,
-        klass=_shared_doc_kwargs["klass"],
-        inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=_shared_doc_kwargs["replace_iloc"],
-    )
-    def replace(
-        self,
-        to_replace=None,
-        value=lib.no_default,
-        *,
-        inplace: bool = False,
-        limit: int | None = None,
-        regex: bool = False,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
-    ) -> Series | None:
-        return super().replace(
-            to_replace=to_replace,
-            value=value,
-            inplace=inplace,
-            limit=limit,
-            regex=regex,
-            method=method,
-        )
 
     @doc(INFO_DOCSTRING, **series_sub_kwargs)
     def info(
@@ -5126,15 +4978,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if inplace:
             return
         return result
-
-    # error: Cannot determine type of 'shift'
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
-    def shift(
-        self, periods: int = 1, freq=None, axis: Axis = 0, fill_value: Hashable = None
-    ) -> Series:
-        return super().shift(
-            periods=periods, freq=freq, axis=axis, fill_value=fill_value
-        )
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> int:
         """
@@ -5541,62 +5384,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # Time series-oriented methods
-
-    # error: Cannot determine type of 'asfreq'
-    @doc(NDFrame.asfreq, **_shared_doc_kwargs)  # type: ignore[has-type]
-    def asfreq(
-        self,
-        freq: Frequency,
-        method: FillnaOptions | None = None,
-        how: str | None = None,
-        normalize: bool = False,
-        fill_value: Hashable = None,
-    ) -> Series:
-        return super().asfreq(
-            freq=freq,
-            method=method,
-            how=how,
-            normalize=normalize,
-            fill_value=fill_value,
-        )
-
-    # error: Cannot determine type of 'resample'
-    @doc(NDFrame.resample, **_shared_doc_kwargs)  # type: ignore[has-type]
-    def resample(
-        self,
-        rule,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        closed: str | None = None,
-        label: str | None = None,
-        convention: str = "start",
-        kind: str | None = None,
-        on: Level = None,
-        level: Level = None,
-        origin: str | TimestampConvertibleTypes = "start_day",
-        offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool = False,
-    ) -> Resampler:
-        if axis is not lib.no_default:
-            warnings.warn(
-                "Series resample axis keyword is deprecated and will be removed in a "
-                "future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        return super().resample(
-            rule=rule,
-            axis=axis,
-            closed=closed,
-            label=label,
-            convention=convention,
-            kind=kind,
-            on=on,
-            level=level,
-            origin=origin,
-            offset=offset,
-            group_keys=group_keys,
-        )
 
     def to_timestamp(
         self,
