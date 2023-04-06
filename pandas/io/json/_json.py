@@ -157,6 +157,7 @@ def to_json(
             "'records', or 'values'. Convert index to column for other orients."
         )
     elif index is None:
+        # will be ignored for orient='records' and 'values'
         index = True
 
     if lines and orient != "records":
