@@ -8,14 +8,12 @@ import pandas._testing as tm
 from pandas.core import accessor
 
 
-def test_dirname_mixin():
+def test_dirname_mixin() -> None:
     # GH37173
 
     class X(accessor.DirNamesMixin):
         x = 1
-        # note: By default the bodies of untyped functions are not checked,
-        # consider using --check-untyped-defs
-        y: int  # type: ignore[annotation-unchecked]
+        y: int
 
         def __init__(self) -> None:
             self.z = 3
