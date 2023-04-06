@@ -27,6 +27,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -1672,6 +1673,23 @@ def test_to_numpy_int_with_na():
     result = arr.to_numpy()
     expected = np.array([1, pd.NA], dtype=object)
     assert isinstance(result[0], int)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_val, exp", [(lib.no_default, np.nan), (1, 1)])
+def test_to_numpy_null_array(na_val, exp):
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype="float64", na_value=na_val)
+    expected = np.array([exp] * 2, dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_null_array_no_dtype():
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype=None)
+    expected = np.array([pd.NA] * 2, dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
 
