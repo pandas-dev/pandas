@@ -9,6 +9,7 @@ jobs:
     steps:
       - checkout
       - run: .circleci/setup_env.sh
+      - run:
           name: Build website and documentation
           command: |
             PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
