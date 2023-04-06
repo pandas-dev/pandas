@@ -2061,22 +2061,22 @@ def test_str_removesuffix(val):
 
 def test_str_split():
     # GH 52401
-    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.split("c")
     expected = pd.Series(
-        ArrowExtensionArray(pa.array([["a1" "b" "b"], ["a2" "b" "b"], None]))
+        ArrowExtensionArray(pa.array([["a1", "b", "b"], ["a2", "b", "b"], None]))
     )
     tm.assert_series_equal(result, expected)
 
     result = ser.str.split("c", n=1)
     expected = pd.Series(
-        ArrowExtensionArray(pa.array([["a1" "bcb"], ["a2" "bcb"], None]))
+        ArrowExtensionArray(pa.array([["a1", "bcb"], ["a2", "bcb"], None]))
     )
     tm.assert_series_equal(result, expected)
 
     result = ser.str.split("[1-2]", regex=True)
     expected = pd.Series(
-        ArrowExtensionArray(pa.array([["a" "cbcb"], ["a" "cbcb"], None]))
+        ArrowExtensionArray(pa.array([["a", "cbcb"], ["a", "cbcb"], None]))
     )
     tm.assert_series_equal(result, expected)
 
@@ -2092,16 +2092,16 @@ def test_str_split():
 
 def test_str_rsplit():
     # GH 52401
-    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.rsplit("c")
     expected = pd.Series(
-        ArrowExtensionArray(pa.array([["a1" "b" "b"], ["a2" "b" "b"], None]))
+        ArrowExtensionArray(pa.array([["a1", "b", "b"], ["a2", "b", "b"], None]))
     )
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rsplit("c", n=1)
     expected = pd.Series(
-        ArrowExtensionArray(pa.array([["a1cb" "b"], ["a2cb" "b"], None]))
+        ArrowExtensionArray(pa.array([["a1cb", "b"], ["a2cb", "b"], None]))
     )
     tm.assert_series_equal(result, expected)
 
