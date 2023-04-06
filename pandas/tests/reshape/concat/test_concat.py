@@ -810,6 +810,6 @@ def test_concat_none_to_dttz():
     df = DataFrame(data)
     data_2 = [{"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}]
     df_2 = DataFrame(data_2)
-    result = pd.concat([df, df_2])
-    expected = DataFrame(...)
+    result = concat([df, df_2])
+    expected = DataFrame({"A":pd.to_datetime("1990-12-20 00:00:00+00:00")})
     tm.assert_frame_equal(result, expected)
