@@ -21,6 +21,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
+- Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
