@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import operator
 import re
 from typing import (
@@ -14,6 +15,8 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs.fields import get_date_field
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -1999,6 +2002,62 @@ class ArrowExtensionArray(
         return type(self)(pc.is_leap_year(self._pa_array))
 
     @property
+    def _dt_is_month_start(self):
+        return type(self)(pc.equal(pc.day(self._pa_array), 1))
+
+    @property
+    def _dt_is_month_end(self):
+        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
+        return type(self)(pc.equal(pc.day(plus_one_day), 1))
+
+    @property
+    def _dt_is_year_start(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 1),
+                pc.equal(pc.day(self._pa_array), 1),
+            )
+        )
+
+    @property
+    def _dt_is_year_end(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 12),
+                pc.equal(pc.day(self._pa_array), 31),
+            )
+        )
+
+    @property
+    def _dt_is_quarter_start(self):
+        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([1, 4, 7, 10]))
+        is_first_day = pc.equal(pc.day(self._pa_array), 1)
+        return type(self)(pc.and_(is_correct_month, is_first_day))
+
+    @property
+    def _dt_is_quarter_end(self):
+        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([3, 6, 9, 12]))
+        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
+        is_first_day = pc.equal(pc.day(plus_one_day), 1)
+        return type(self)(pc.and_(is_correct_month, is_first_day))
+
+    @property
+    def _dt_days_in_month(self):
+        pa_array = self._pa_array
+        if self.dtype.pyarrow_dtype.unit != "ns":
+            pa_array = self._pa_array.cast(
+                pa.timestamp("ns", tz=self.dtype.pyarrow_dtype.tz)
+            )
+        pa_array_int = pa_array.cast(pa.int64())
+        if self._hasna:
+            pa_array_int = pa_array_int.fill_null(iNaT)
+        np_result = get_date_field(pa_array_int.to_numpy(), "dim")
+        mask = np_result == -1
+        return type(self)(pa.array(np_result, mask=mask))
+
+    _dt_daysinmonth = _dt_days_in_month
+
+    @property
     def _dt_microsecond(self):
         return type(self)(pc.microsecond(self._pa_array))
 
@@ -2038,6 +2097,13 @@ class ArrowExtensionArray(
     @property
     def _dt_tz(self):
         return self.dtype.pyarrow_dtype.tz
+
+    @property
+    def _dt_unit(self):
+        return self.dtype.pyarrow_dtype.unit
+
+    def _dt_normalize(self):
+        return type(self)(pc.floor_temporal(self._pa_array, 1, "day"))
 
     def _dt_strftime(self, format: str):
         return type(self)(pc.strftime(self._pa_array, format=format))
@@ -2102,6 +2168,16 @@ class ArrowExtensionArray(
         nonexistent: TimeNonexistent = "raise",
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
+
+    def _dt_day_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%A", locale=locale))
+
+    def _dt_month_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
     def _dt_to_pydatetime(self):
         data = self._pa_array.to_pylist()

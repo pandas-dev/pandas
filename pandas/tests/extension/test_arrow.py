@@ -2182,12 +2182,110 @@ def test_dt_properties(prop, expected):
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_is_month_start_end():
+    ser = pd.Series(
+        [
+            datetime(year=2023, month=12, day=2, hour=3),
+            datetime(year=2023, month=1, day=1, hour=3),
+            datetime(year=2023, month=3, day=31, hour=3),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    result = ser.dt.is_month_start
+    expected = pd.Series([False, True, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.dt.is_month_end
+    expected = pd.Series([False, False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_is_year_start_end():
+    ser = pd.Series(
+        [
+            datetime(year=2023, month=12, day=31, hour=3),
+            datetime(year=2023, month=1, day=1, hour=3),
+            datetime(year=2023, month=3, day=31, hour=3),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    result = ser.dt.is_year_start
+    expected = pd.Series([False, True, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.dt.is_year_end
+    expected = pd.Series([True, False, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_is_quarter_start_end():
+    ser = pd.Series(
+        [
+            datetime(year=2023, month=11, day=30, hour=3),
+            datetime(year=2023, month=1, day=1, hour=3),
+            datetime(year=2023, month=3, day=31, hour=3),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    result = ser.dt.is_quarter_start
+    expected = pd.Series([False, True, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.dt.is_quarter_end
+    expected = pd.Series([False, False, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["days_in_month", "daysinmonth"])
+def test_dt_days_in_month(method):
+    ser = pd.Series(
+        [
+            datetime(year=2023, month=3, day=30, hour=3),
+            datetime(year=2023, month=4, day=1, hour=3),
+            datetime(year=2023, month=2, day=3, hour=3),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    result = getattr(ser.dt, method)
+    expected = pd.Series([31, 30, 28, None], dtype=ArrowDtype(pa.int32()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_normalize():
+    ser = pd.Series(
+        [
+            datetime(year=2023, month=3, day=30),
+            datetime(year=2023, month=4, day=1, hour=3),
+            datetime(year=2023, month=2, day=3, hour=23, minute=59, second=59),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    result = ser.dt.normalize()
+    expected = pd.Series(
+        [
+            datetime(year=2023, month=3, day=30),
+            datetime(year=2023, month=4, day=1),
+            datetime(year=2023, month=2, day=3),
+            None,
+        ],
+        dtype=ArrowDtype(pa.timestamp("us")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("unit", ["us", "ns"])
 def test_dt_time_preserve_unit(unit):
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit)),
     )
+    assert ser.dt.unit == unit
+
     result = ser.dt.time
     expected = pd.Series(
         ArrowExtensionArray(pa.array([time(3, 0), None], type=pa.time64(unit)))
@@ -2217,6 +2315,17 @@ def test_dt_isocalendar():
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, exp", [["day_name", "Sunday"], ["month_name", "January"]]
+)
+def test_dt_day_month_name(method, exp):
+    # GH 52388
+    ser = pd.Series([datetime(2023, 1, 1), None], dtype=ArrowDtype(pa.timestamp("ms")))
+    result = getattr(ser.dt, method)()
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_dt_strftime(request):
