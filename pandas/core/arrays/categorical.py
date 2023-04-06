@@ -356,7 +356,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     _dtype: CategoricalDtype
 
     @classmethod
-    def _simple_new(cls, codes: np.ndarray, dtype: CategoricalDtype) -> Self:
+    # error: Argument 2 of "_simple_new" is incompatible with supertype
+    # "NDArrayBacked"; supertype defines the argument type as
+    # "Union[dtype[Any], ExtensionDtype]"
+    def _simple_new(
+        cls, codes: np.ndarray, dtype: CategoricalDtype  # type: ignore[override]
+    ) -> Self:
         # NB: This is not _quite_ as simple as the "usual" _simple_new
         codes = coerce_indexer_dtype(codes, dtype.categories)
         dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
