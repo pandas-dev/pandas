@@ -342,7 +342,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         elif is_array(other):
             # avoid recursion error GH#15183
-            if other.dtype.kind == "ME":
+            if other.dtype.kind == "M":
                 if self.tz is None:
                     return PyObject_RichCompare(self.asm8, other, op)
                 elif op == Py_NE:

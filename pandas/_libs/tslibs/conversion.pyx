@@ -108,10 +108,10 @@ cdef int64_t cast_from_unit(
         int64_t m
         int p
 
-    if unit in ["Y", "M"]:
+    if unit in ["Y", "ME"]:
         if is_float_object(ts) and not ts.is_integer():
-            # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
-            #  but not clear what 2.5 "M" corresponds to, so we will
+            # GH#47267 it is clear that 2 "ME" corresponds to 1970-02-01,
+            #  but not clear what 2.5 "ME" corresponds to, so we will
             #  disallow that case.
             raise ValueError(
                 f"Conversion of non-round float with unit={unit} "

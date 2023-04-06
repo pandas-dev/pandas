@@ -57,15 +57,15 @@ if TYPE_CHECKING:
 
 _offset_to_period_map = {
     "WEEKDAY": "D",
-    "EOM": "M",
-    "BM": "M",
+    "EOM": "ME",
+    "BM": "ME",
     "BQS": "Q",
     "QS": "Q",
     "BQ": "Q",
     "BA": "A",
     "AS": "A",
     "BAS": "A",
-    "MS": "M",
+    "MS": "ME",
     "D": "D",
     "C": "C",
     "B": "B",
@@ -78,7 +78,7 @@ _offset_to_period_map = {
     "Q": "Q",
     "A": "A",
     "W": "W",
-    "M": "M",
+    "ME": "ME",
     "Y": "A",
     "BY": "A",
     "YS": "A",
@@ -317,7 +317,7 @@ class _FrequencyInferer:
 
     @cache_readonly
     def mdiffs(self) -> npt.NDArray[np.int64]:
-        nmonths = self.fields["Y"] * 12 + self.fields["M"]
+        nmonths = self.fields["Y"] * 12 + self.fields["ME"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
@@ -371,7 +371,7 @@ class _FrequencyInferer:
         if len(self.ydiffs) > 1:
             return None
 
-        if len(unique(self.fields["M"])) > 1:
+        if len(unique(self.fields["ME"])) > 1:
             return None
 
         pos_check = self.month_position_check()
@@ -403,7 +403,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BM"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
@@ -492,9 +492,9 @@ def is_subperiod(source, target) -> bool:
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
-        return source in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_quarterly(target):
-        return source in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_monthly(target):
         return source in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
     elif _is_weekly(target):
@@ -550,9 +550,9 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_monthly(source):
         return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
     elif _is_weekly(source):
@@ -616,7 +616,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule in ("M", "BM")
+    return rule in ("ME", "BM")
 
 
 def _is_weekly(rule: str) -> bool:

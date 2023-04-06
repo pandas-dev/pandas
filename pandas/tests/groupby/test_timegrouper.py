@@ -149,7 +149,7 @@ class TestGroupBy:
             df = df.sort_values(by="Quantity", ascending=False)
 
         df = df.set_index("Date", drop=False)
-        g = df.groupby(Grouper(freq="6M"))
+        g = df.groupby(Grouper(freq="6ME"))
         assert g.group_keys
 
         assert isinstance(g.grouper, BinGrouper)
@@ -333,7 +333,9 @@ class TestGroupBy:
             result = df.groupby(Grouper(freq="1ME", key="Date")).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1ME", key="Date")]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="1ME", key="Date")]).sum(
+                numeric_only=True
+            )
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["D", "ME", "A", "Q-APR"])

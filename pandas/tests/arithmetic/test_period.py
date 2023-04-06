@@ -551,8 +551,8 @@ class TestPeriodFrameArithmetic:
                 "B": [Period("2014-01", freq="ME"), Period("2014-02", freq="ME")],
             }
         )
-        assert df["A"].dtype == "Period[ME]"
-        assert df["B"].dtype == "Period[ME]"
+        assert df["A"].dtype == "period[ME]"
+        assert df["B"].dtype == "period[ME]"
 
         p = Period("2015-03", freq="ME")
         off = p.freq
@@ -572,8 +572,8 @@ class TestPeriodFrameArithmetic:
                 "B": [Period("2015-05", freq="ME"), Period("2015-06", freq="ME")],
             }
         )
-        assert df2["A"].dtype == "Period[ME]"
-        assert df2["B"].dtype == "Period[ME]"
+        assert df2["A"].dtype == "period[ME]"
+        assert df2["B"].dtype == "period[ME]"
 
         exp = pd.DataFrame(
             {

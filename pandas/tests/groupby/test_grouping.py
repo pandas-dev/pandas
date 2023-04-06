@@ -260,7 +260,7 @@ class TestGrouping:
                 names=["one", "two", "three"],
             ),
         )
-        result = s.groupby(Grouper(level="three", freq="M")).sum()
+        result = s.groupby(Grouper(level="three", freq="ME")).sum()
         expected = Series(
             [28],
             index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="ME", name="three"),
@@ -370,7 +370,7 @@ class TestGrouping:
             ),
         )
         result = df.groupby(
-            [Grouper(level="one"), Grouper(level="two", freq="M")]
+            [Grouper(level="one"), Grouper(level="two", freq="ME")]
         ).sum()
         expected = DataFrame(
             {"A": [31, 28, 21, 31, 28, 21]},
@@ -995,7 +995,7 @@ class TestIteration:
             {"event": ["start", "start"], "change": [1234, 5678]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1010,7 +1010,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-09-15"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1026,7 +1026,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-08-05"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
         assert (Timestamp("2014-09-30"), "start") in grouped.groups

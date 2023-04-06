@@ -285,7 +285,9 @@ class TestPeriodIndex:
         msg = "Input has different freq=D from PeriodIndex\\(freq=ME\\)"
 
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex([Period("2011-01", freq="ME"), NaT, Period("2011-01", freq="D")])
+            PeriodIndex(
+                [Period("2011-01", freq="ME"), NaT, Period("2011-01", freq="D")]
+            )
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(
@@ -296,7 +298,9 @@ class TestPeriodIndex:
 
         # first element is NaT
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex([NaT, Period("2011-01", freq="ME"), Period("2011-01", freq="D")])
+            PeriodIndex(
+                [NaT, Period("2011-01", freq="ME"), Period("2011-01", freq="D")]
+            )
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(
