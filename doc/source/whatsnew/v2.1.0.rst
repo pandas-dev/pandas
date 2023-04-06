@@ -87,7 +87,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
-- Implemented :attr:`Series.dt.is_month_start`, :attr:`Series.dt.is_month_end`, :attr:`Series.dt.is_year_start`, :attr:`Series.dt.is_year_end`, :attr:`Series.dt.is_quarter_start`, :attr:`Series.dt.is_quarter_end`, :attr:`Series.dt.is_days_in_month`, :attr:`Series.dt.unit`, :meth:`Series.dt.is_normalize`, :meth:`Series.dt.day_name`, :meth:`Series.dt.month_name` for :class:`ArrowDtype` with ``pyarrow.timestamp`` (:issue:`?`)
+- Implemented :attr:`Series.dt.is_month_start`, :attr:`Series.dt.is_month_end`, :attr:`Series.dt.is_year_start`, :attr:`Series.dt.is_year_end`, :attr:`Series.dt.is_quarter_start`, :attr:`Series.dt.is_quarter_end`, :attr:`Series.dt.is_days_in_month`, :attr:`Series.dt.unit`, :meth:`Series.dt.is_normalize`, :meth:`Series.dt.day_name`, :meth:`Series.dt.month_name` for :class:`ArrowDtype` with ``pyarrow.timestamp`` (:issue:`52388`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
