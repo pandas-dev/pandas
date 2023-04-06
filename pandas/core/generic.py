@@ -9078,8 +9078,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if len(self.index) == 0:
             return self.copy(deep=False)
-
-        offset = to_offset(offset)
+        if type(offset) is not offsets.DateOffset:
+            offset = to_offset(offset)
 
         if type(offset) is offsets.DateOffset and offset.is_on_offset(self.index[0]):
             end_date = self.index[0] - Timedelta(1, unit="d") + offset
