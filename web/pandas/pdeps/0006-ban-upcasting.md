@@ -162,7 +162,7 @@ Therefore, the option chosen by this PDEP is option 1.
 
 This would make pandas stricter, so there should not be any risk of introducing bugs. If anything, this would help prevent bugs.
 
-Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
+Unfortunately, it would also risk annoying users who might have been intentionally upcasting.
 
 Given that users could still get the current behaviour by first explicitly casting the Series
 to float, it would be more beneficial to the community at large to err on the side
