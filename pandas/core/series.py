@@ -5748,14 +5748,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis=0,
         doc="""
         The index (axis labels) of the Series.
-        
-        Get the index (row labels) of the Series.
 
+        Get the index (row labels) of the Series.
+        
         Returns
         -------
         Index
             The index labels of the Series.
-
+            
         See Also
         --------
             Series.reindex:
@@ -5764,29 +5764,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 Set Series as DataFrame index.
             Index:
                 The base pandas index type.
-
+                
         Notes
         -----
         The index of a Series is used to label and identify each element of the
         underlying data. The index can be thought of as an immutable ordered set
         (technically a multi-set, as it may contain duplicate labels), and is
         used to index and align data in pandas.
-
+        
         For more information on pandas indexing, see the `indexing user guide
         <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
 
         Examples
         --------
         To create a Series with a custom index and view the index labels:
-
+        
         >>> cities = ['Kolkata', 'Chicago', 'Toronto', 'Lisbon']
         >>> populations = [14.85, 2.71, 2.93, 0.51]
         >>> city_series = pd.Series(populations, index=cities)
         >>> city_series.index
         Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
-
+        
         To change the index labels of an existing Series:
-
         >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
         >>> city_series.index
         Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
