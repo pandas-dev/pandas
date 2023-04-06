@@ -974,7 +974,8 @@ class TestPandasContainer:
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)])
         assert frame[0].dtype == "timedelta64[ns]"
-        tm.assert_frame_equal(frame, read_json(frame.to_json()).apply(converter))
+        result = read_json(frame.to_json()).apply(converter)
+        tm.assert_frame_equal(frame.astype("m8[ms]"), result)
 
     def test_timedelta2(self):
         frame = DataFrame(

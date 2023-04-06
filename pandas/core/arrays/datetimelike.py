@@ -676,6 +676,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
                 value = extract_array(value, extract_numpy=True)
+            elif self.dtype.kind == "m" and value.categories.dtype.kind == "m":
+                # e.g. Categorical[timedelta64[ns]] and we are timedelta64[s]
+                value = value._internal_get_values()
+                value = extract_array(value, extract_numpy=True)
+                value = value.as_unit(self.unit)
+                # TODO: for e.g. searchsorted should we be able to do this
+                #  without cast?
 
         if allow_object and is_object_dtype(value.dtype):
             pass
@@ -1981,8 +1988,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        nanos = to_offset(freq).nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed frequencies
+        nanos = delta_to_nanoseconds(freq, self._creso)
+        if freq.nanos != 0 and nanos == 0:
+            # e.g. we have unit="s" and freq="ms"
+            return self.copy()
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)

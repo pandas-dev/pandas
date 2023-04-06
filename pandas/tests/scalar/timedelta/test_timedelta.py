@@ -568,21 +568,30 @@ class TestTimedeltas:
     def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
+        if np_unit in ["s", "ms", "us", "ns"]:
+            # Supported unit, we retain
+            pd_unit = np_unit
+        else:
+            # closest supported unit
+            pd_unit = "s"
         expected = TimedeltaIndex(
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
-            dtype="m8[ns]",
+            dtype=f"m8[{pd_unit}]",
         )
-        # TODO(2.0): the desired output dtype may have non-nano resolution
         result = to_timedelta(wrapper(range(5)), unit=unit)
-        tm.assert_index_equal(result, expected)
+        if wrapper is list:
+            # TODO: should not depend on this -> need inference in array_to_timedelta64
+            tm.assert_index_equal(result, expected.astype("m8[ns]"))
+        else:
+            tm.assert_index_equal(result, expected)
         result = TimedeltaIndex(wrapper(range(5)), unit=unit)
         tm.assert_index_equal(result, expected)
 
         str_repr = [f"{x}{unit}" for x in np.arange(5)]
         result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected.astype("m8[ns]", copy=False))
         result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected.astype("m8[ns]", copy=False))
 
         # scalar
         expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))

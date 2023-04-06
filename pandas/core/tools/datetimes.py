@@ -502,12 +502,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     else:
         arg = np.asarray(arg)
 
+        if unit in ["ns", "us", "ms", "s"]:
+            out_unit = unit
+        else:
+            # closest supported unit is seconds
+            out_unit = "s"
+
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
+            out_dtype = np.dtype(f"M8[{out_unit}]")
             try:
-                arr = astype_overflowsafe(arr, np.dtype("M8[ns]"), copy=False)
+                arr = astype_overflowsafe(arr, out_dtype, copy=False)
             except OutOfBoundsDatetime:
                 if errors == "raise":
                     raise

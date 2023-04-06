@@ -156,16 +156,19 @@ class TestTimedeltaIndex:
 
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]
-        )
-        tm.assert_index_equal(TimedeltaIndex(range(3), unit="s"), expected)
+        ).astype("m8[s]")
+        result = TimedeltaIndex(range(3), unit="s")
+        tm.assert_index_equal(result, expected)
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:05", "0 days 00:00:09"]
-        )
-        tm.assert_index_equal(TimedeltaIndex([0, 5, 9], unit="s"), expected)
+        ).astype("m8[s]")
+        result = TimedeltaIndex([0, 5, 9], unit="s")
+        tm.assert_index_equal(result, expected)
         expected = TimedeltaIndex(
             ["0 days 00:00:00.400", "0 days 00:00:00.450", "0 days 00:00:01.200"]
-        )
-        tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit="ms"), expected)
+        ).astype("m8[ms]")
+        result = TimedeltaIndex([400, 450, 1200], unit="ms")
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_iso(self):
         # GH #21877

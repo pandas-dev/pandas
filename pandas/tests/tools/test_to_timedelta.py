@@ -57,6 +57,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize(
         "dtype, unit",
         [
+            ["int64", "ms"],
             ["int64", "s"],
             ["int64", "m"],
             ["int64", "h"],
@@ -68,7 +69,9 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
+        # With int64 dtype, we retain the unit if it is supported, otherwise
+        #  get the nearest supported unit, i.e. "s"
+        exp_dtype = "m8[s]" if unit != "ms" else "m8[ms]"
         expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
@@ -242,7 +245,9 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val])
+        # passing unit="days" to to_timedelta results in closest-supported
+        #  reso, i.e. "s"
+        expected = Series([timedelta(days=1), expected_val]).astype("m8[s]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)

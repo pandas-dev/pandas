@@ -1060,7 +1060,7 @@ def test_value_counts_time_grouper(utc):
     result = gb.value_counts()
     dates = to_datetime(
         ["2019-08-06", "2019-08-07", "2019-08-09", "2019-08-10"], utc=utc
-    )
+    ).as_unit("s")
     timestamps = df["Timestamp"].unique()
     index = MultiIndex(
         levels=[dates, timestamps, ["apple", "banana", "orange", "pear"]],

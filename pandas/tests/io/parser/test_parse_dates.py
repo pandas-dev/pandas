@@ -70,6 +70,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
     )
     time = [41047, 41048, 41049, 41050, 41051]
     time = pd.TimedeltaIndex([pd.to_timedelta(i, unit="s") for i in time], name="time")
+    time = time.astype("m8[s]")
     expected = DataFrame(
         {
             "e": [-98573.7297, -98573.7299, -98573.7300, -98573.7299, -98573.7302],

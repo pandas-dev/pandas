@@ -67,7 +67,9 @@ class TestDatetimeLikeStatReductions:
 
     @pytest.mark.parametrize("box", [Series, pd.Index, TimedeltaArray])
     def test_td64_mean(self, box):
-        tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D")
+        tdi = pd.TimedeltaIndex(
+            [0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D"
+        ).as_unit("ns")
 
         tdarr = tdi._data
         obj = box(tdarr, copy=False)

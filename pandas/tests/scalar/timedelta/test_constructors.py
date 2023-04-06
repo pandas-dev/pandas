@@ -471,7 +471,13 @@ def test_timedelta_pass_td_and_kwargs_raises():
     [
         (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
         (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+        pytest.param(
+            to_timedelta,
+            ["1", 2, 3],
+            "s",
+            (ValueError, "unit must not be specified"),
+            marks=pytest.mark.xfail(reason="Reconsidering API"),
+        ),
     ],
 )
 def test_string_with_unit(constructor, value, unit, expectation):

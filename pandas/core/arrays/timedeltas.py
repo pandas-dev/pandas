@@ -215,6 +215,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
         if dtype:
             dtype = _validate_td64_dtype(dtype)
+            np.datetime_data(dtype)[0]
+        else:
+            pass
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
@@ -242,6 +245,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
+        if unit is None and dtype is not None:
+            unit = np.datetime_data(dtype)[0]
 
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
@@ -991,10 +996,15 @@ def _ints_to_td64ns(data, unit: str = "ns"):
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        data_unit = get_unit_from_dtype(data.dtype)
+        if not is_supported_unit(data_unit):
+            new_reso = get_supported_reso(data_unit)
+            new_unit = npy_unit_to_abbrev(new_reso)
+            new_dtype = np.dtype(f"m8[{new_unit}]")
+            data = astype_overflowsafe(data, dtype=new_dtype)
 
-        # the astype conversion makes a copy, so we can avoid re-copying later
-        copy_made = True
+            # the astype conversion makes a copy, so we can avoid re-copying later
+            copy_made = True
 
     else:
         data = data.view("timedelta64[ns]")

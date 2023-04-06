@@ -412,7 +412,6 @@ def array_to_timedelta64(
         object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        cnp.flatiter it
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -420,17 +419,6 @@ def array_to_timedelta64(
 
     if errors not in {"ignore", "raise", "coerce"}:
         raise ValueError("errors must be one of {'ignore', 'raise', or 'coerce'}")
-
-    if unit is not None and errors != "coerce":
-        it = cnp.PyArray_IterNew(values)
-        for i in range(n):
-            # Analogous to: item = values[i]
-            item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
-            if isinstance(item, str):
-                raise ValueError(
-                    "unit must not be specified if the input contains a str"
-                )
-            cnp.PyArray_ITER_NEXT(it)
 
     # Usually, we have all strings. If so, we hit the fast path.
     # If this path fails, we try conversion a different way, and
@@ -1847,8 +1835,12 @@ class Timedelta(_Timedelta):
 
         from pandas._libs.tslibs.offsets import to_offset
 
-        to_offset(freq).nanos  # raises on non-fixed freq
-        unit = delta_to_nanoseconds(to_offset(freq), self._creso)
+        freq = to_offset(freq)
+        freq.nanos  # raises on non-fixed freq
+        unit = delta_to_nanoseconds(freq, self._creso)
+        if unit == 0 and freq.nanos != 0:
+            # e.g. we have unit="s" and freq="ms"
+            return self
 
         arr = np.array([self._value], dtype="i8")
         try:

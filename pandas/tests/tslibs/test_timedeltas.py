@@ -94,6 +94,7 @@ def test_kwarg_assertion(kwargs):
 
 
 class TestArrayToTimedelta64:
+    @pytest.mark.xfail(reason="Reconsidering API")
     def test_array_to_timedelta64_string_with_unit_2d_raises(self):
         # check the 'unit is not None and errors != "coerce"' path
         #  in array_to_timedelta64 raises correctly with 2D values

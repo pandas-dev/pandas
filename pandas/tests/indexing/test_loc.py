@@ -714,7 +714,9 @@ class TestLocBaseIndependent:
         )
 
         columns = ["date_dt", "date_dt_cp"]
-        expected[columns] = expected[columns].apply(to_datetime)
+        expected[columns] = expected[columns].apply(
+            lambda x: to_datetime(x).dt.as_unit("ms")
+        )
 
         tm.assert_frame_equal(df, expected)
 
