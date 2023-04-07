@@ -229,7 +229,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
 -
 
 Numeric
