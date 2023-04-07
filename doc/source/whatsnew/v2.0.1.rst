@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:

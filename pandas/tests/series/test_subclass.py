@@ -58,3 +58,21 @@ class TestSeriesSubclassing:
         s2 = tm.SubclassedSeries([1, 2, 3])
         assert s1.equals(s2)
         assert s2.equals(s1)
+
+
+class SubclassedSeries(pd.Series):
+    @property
+    def _constructor(self):
+        def _new(*args, **kwargs):
+            # some constructor logic that accesses the Series' name
+            if self.name == "test":
+                return pd.Series(*args, **kwargs)
+            return SubclassedSeries(*args, **kwargs)
+
+        return _new
+
+
+def test_constructor_from_dict():
+    # https://github.com/pandas-dev/pandas/issues/52445
+    result = SubclassedSeries({"a": 1, "b": 2, "c": 3})
+    assert isinstance(result, SubclassedSeries)
