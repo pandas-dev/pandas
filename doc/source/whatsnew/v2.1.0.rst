@@ -315,7 +315,9 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
+-
 
 Styler
 ^^^^^^
