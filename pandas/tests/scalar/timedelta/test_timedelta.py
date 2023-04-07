@@ -596,9 +596,9 @@ class TestTimedeltas:
         result = Timedelta(f"2{unit}")
         assert result == expected
 
-    @pytest.mark.parametrize("unit", ["Y", "y", "M"])
+    @pytest.mark.parametrize("unit", ["Y", "y", "ME"])
     def test_unit_m_y_raises(self, unit):
-        msg = "Units 'M', 'Y', and 'y' are no longer supported"
+        msg = "Units 'ME', 'Y', and 'y' are no longer supported"
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 
@@ -681,7 +681,7 @@ class TestTimedeltas:
 
         for freq, msg in [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ]:
             with pytest.raises(ValueError, match=msg):

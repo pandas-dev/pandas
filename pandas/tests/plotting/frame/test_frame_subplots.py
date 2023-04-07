@@ -64,7 +64,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
                 assert ax.get_legend() is None
 
     def test_subplots_timeseries(self):
-        idx = date_range(start="2014-07-01", freq="M", periods=10)
+        idx = date_range(start="2014-07-01", freq="ME", periods=10)
         df = DataFrame(np.random.rand(10, 3), index=idx)
 
         for kind in ["line", "area"]:
@@ -314,7 +314,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self.plt.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
         df = DataFrame(
             np.random.randn(10, 9),
-            index=date_range(start="2014-07-01", freq="M", periods=10),
+            index=date_range(start="2014-07-01", freq="ME", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):
             df[i].plot(ax=ax, fontsize=5)

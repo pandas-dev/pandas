@@ -46,7 +46,7 @@ class TestAsFreq:
         monthly_ts = daily_ts.asfreq(offsets.BMonthEnd())
         tm.assert_equal(monthly_ts, ts)
 
-        result = ts[:0].asfreq("M")
+        result = ts[:0].asfreq("ME")
         assert len(result) == 0
         assert result is not ts
 

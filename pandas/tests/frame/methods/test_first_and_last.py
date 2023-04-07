@@ -23,7 +23,7 @@ class TestFirst:
         result = ts.first("10d")
         assert len(result) == 10
 
-        result = ts.first("3M")
+        result = ts.first("3ME")
         expected = ts[:"3/31/2000"]
         tm.assert_equal(result, expected)
 
@@ -31,7 +31,7 @@ class TestFirst:
         expected = ts[:21]
         tm.assert_equal(result, expected)
 
-        result = ts[:0].first("3M")
+        result = ts[:0].first("3ME")
         tm.assert_equal(result, ts[:0])
 
     def test_first_last_raises(self, frame_or_series):
@@ -66,14 +66,14 @@ class TestFirst:
         expected = ts[-21:]
         tm.assert_equal(result, expected)
 
-        result = ts[:0].last("3M")
+        result = ts[:0].last("3ME")
         tm.assert_equal(result, ts[:0])
 
     @pytest.mark.parametrize("start, periods", [("2010-03-31", 1), ("2010-03-30", 2)])
     def test_first_with_first_day_last_of_month(self, frame_or_series, start, periods):
         # GH#29623
         x = frame_or_series([1] * 100, index=bdate_range(start, periods=100))
-        result = x.first("1M")
+        result = x.first("1ME")
         expected = frame_or_series(
             [1] * periods, index=bdate_range(start, periods=periods)
         )
@@ -82,7 +82,7 @@ class TestFirst:
     def test_first_with_first_day_end_of_frq_n_greater_one(self, frame_or_series):
         # GH#29623
         x = frame_or_series([1] * 100, index=bdate_range("2010-03-31", periods=100))
-        result = x.first("2M")
+        result = x.first("2ME")
         expected = frame_or_series(
             [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
         )

@@ -1110,9 +1110,9 @@ def test_is_dtype_no_warning(check):
 
 def test_period_dtype_compare_to_string():
     # https://github.com/pandas-dev/pandas/issues/37265
-    dtype = PeriodDtype(freq="M")
-    assert (dtype == "period[M]") is True
-    assert (dtype != "period[M]") is False
+    dtype = PeriodDtype(freq="ME")
+    assert (dtype == "period[ME]") is True
+    assert (dtype != "period[ME]") is False
 
 
 def test_compare_complex_dtypes():

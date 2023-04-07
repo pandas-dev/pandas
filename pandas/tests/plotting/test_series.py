@@ -603,7 +603,7 @@ class TestSeriesPlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=1, yerr=0)
 
         # test time series plotting
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         ts = Series(np.arange(12), index=ix, name="x")
         ts_err = Series(np.abs(np.random.randn(12)), index=ix)
         td_err = DataFrame(np.abs(np.random.randn(12, 2)), index=ix, columns=["x", "y"])

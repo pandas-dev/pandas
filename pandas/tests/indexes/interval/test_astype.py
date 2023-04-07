@@ -58,7 +58,7 @@ class AstypeTests:
             "uint64",
             "float64",
             "complex128",
-            "period[M]",
+            "period[ME]",
             "timedelta64",
             "timedelta64[ns]",
             "datetime64",

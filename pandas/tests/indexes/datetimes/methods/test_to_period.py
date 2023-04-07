@@ -21,25 +21,25 @@ import pandas._testing as tm
 
 class TestToPeriod:
     def test_dti_to_period(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq="D")
         pi3 = dti.to_period(freq="3D")
 
-        assert pi1[0] == Period("Jan 2005", freq="M")
+        assert pi1[0] == Period("Jan 2005", freq="ME")
         assert pi2[0] == Period("1/31/2005", freq="D")
         assert pi3[0] == Period("1/31/2005", freq="3D")
 
-        assert pi1[-1] == Period("Nov 2005", freq="M")
+        assert pi1[-1] == Period("Nov 2005", freq="ME")
         assert pi2[-1] == Period("11/30/2005", freq="D")
         assert pi3[-1], Period("11/30/2005", freq="3D")
 
-        tm.assert_index_equal(pi1, period_range("1/1/2005", "11/1/2005", freq="M"))
+        tm.assert_index_equal(pi1, period_range("1/1/2005", "11/1/2005", freq="ME"))
         tm.assert_index_equal(
-            pi2, period_range("1/1/2005", "11/1/2005", freq="M").asfreq("D")
+            pi2, period_range("1/1/2005", "11/1/2005", freq="ME").asfreq("D")
         )
         tm.assert_index_equal(
-            pi3, period_range("1/1/2005", "11/1/2005", freq="M").asfreq("3D")
+            pi3, period_range("1/1/2005", "11/1/2005", freq="ME").asfreq("3D")
         )
 
     @pytest.mark.parametrize("month", MONTHS)
@@ -68,11 +68,11 @@ class TestToPeriod:
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
-            assert prng.freq == "M"
+            assert prng.freq == "ME"
 
-        rng = date_range("01-Jan-2012", periods=8, freq="M")
+        rng = date_range("01-Jan-2012", periods=8, freq="ME")
         prng = rng.to_period()
-        assert prng.freq == "M"
+        assert prng.freq == "ME"
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")

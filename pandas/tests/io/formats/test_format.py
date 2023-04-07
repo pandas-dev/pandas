@@ -2051,12 +2051,12 @@ c  10  11  12  13  14\
         # GH 12615
         df = DataFrame(
             {
-                "A": pd.period_range("2013-01", periods=4, freq="M"),
+                "A": pd.period_range("2013-01", periods=4, freq="ME"),
                 "B": [
-                    pd.Period("2011-01", freq="M"),
+                    pd.Period("2011-01", freq="ME"),
                     pd.Period("2011-02-01", freq="D"),
                     pd.Period("2011-03-01 09:00", freq="H"),
-                    pd.Period("2011-04", freq="M"),
+                    pd.Period("2011-04", freq="ME"),
                 ],
                 "C": list("abcd"),
             }
@@ -2512,7 +2512,7 @@ class TestSeriesFormatting:
 
     def test_period(self):
         # GH 12615
-        index = pd.period_range("2013-01", periods=6, freq="M")
+        index = pd.period_range("2013-01", periods=6, freq="ME")
         s = Series(np.arange(6, dtype="int64"), index=index)
         exp = (
             "2013-01    0\n"
@@ -2521,7 +2521,7 @@ class TestSeriesFormatting:
             "2013-04    3\n"
             "2013-05    4\n"
             "2013-06    5\n"
-            "Freq: M, dtype: int64"
+            "Freq: ME, dtype: int64"
         )
         assert str(s) == exp
 
@@ -2533,14 +2533,14 @@ class TestSeriesFormatting:
             "3    2013-04\n"
             "4    2013-05\n"
             "5    2013-06\n"
-            "dtype: period[M]"
+            "dtype: period[ME]"
         )
         assert str(s) == exp
 
         # periods with mixed freq
         s = Series(
             [
-                pd.Period("2011-01", freq="M"),
+                pd.Period("2011-01", freq="ME"),
                 pd.Period("2011-02-01", freq="D"),
                 pd.Period("2011-03-01 09:00", freq="H"),
             ]

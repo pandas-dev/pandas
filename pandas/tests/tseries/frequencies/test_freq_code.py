@@ -11,7 +11,7 @@ from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("M", "D"), ("S", "S"), ("T", "S"), ("H", "S")],
+    [("D", "D"), ("W", "D"), ("ME", "D"), ("S", "S"), ("T", "S"), ("H", "S")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -27,7 +27,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     [
         ("A", "year"),
         ("Q", "quarter"),
-        ("M", "month"),
+        ("ME", "month"),
         ("D", "day"),
         ("H", "hour"),
         ("T", "minute"),
@@ -87,7 +87,7 @@ def test_cat(args):
         ("1H", "2021-01-01T09:00:00"),
         ("1D", "2021-01-02T08:00:00"),
         ("1W", "2021-01-03T08:00:00"),
-        ("1M", "2021-01-31T08:00:00"),
+        ("1ME", "2021-01-31T08:00:00"),
         ("1Y", "2021-12-31T08:00:00"),
     ],
 )

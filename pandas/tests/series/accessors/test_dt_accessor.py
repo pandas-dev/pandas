@@ -482,7 +482,7 @@ class TestSeriesDatetimeValues:
         ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.day_name(locale=time_locale).iloc[-1])
 
-        ser = Series(date_range(freq="M", start="2012", end="2013"))
+        ser = Series(date_range(freq="ME", start="2012", end="2013"))
         result = ser.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 
@@ -751,15 +751,15 @@ class TestSeriesPeriodValuesDtAccessor:
     @pytest.mark.parametrize(
         "input_vals",
         [
-            [Period("2016-01", freq="M"), Period("2016-02", freq="M")],
+            [Period("2016-01", freq="ME"), Period("2016-02", freq="ME")],
             [Period("2016-01-01", freq="D"), Period("2016-01-02", freq="D")],
             [
                 Period("2016-01-01 00:00:00", freq="H"),
                 Period("2016-01-01 01:00:00", freq="H"),
             ],
             [
-                Period("2016-01-01 00:00:00", freq="M"),
-                Period("2016-01-01 00:01:00", freq="M"),
+                Period("2016-01-01 00:00:00", freq="ME"),
+                Period("2016-01-01 00:01:00", freq="ME"),
             ],
             [
                 Period("2016-01-01 00:00:00", freq="S"),

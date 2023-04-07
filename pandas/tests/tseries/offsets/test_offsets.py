@@ -818,7 +818,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["M", "MS", "BM", "BMS", "D", "B", "H", "T", "S", "L", "U"]
+        lst = ["ME", "MS", "BM", "BMS", "D", "B", "H", "T", "S", "L", "U"]
         for k in lst:
             assert k == _get_offset(k).rule_code
             # should be cached - this is kind of an internals test...

@@ -887,7 +887,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_period_dict(self):
         # PeriodIndex
-        a = pd.PeriodIndex(["2012-01", "NaT", "2012-04"], freq="M")
+        a = pd.PeriodIndex(["2012-01", "NaT", "2012-04"], freq="ME")
         b = pd.PeriodIndex(["2012-02-01", "2012-03-01", "NaT"], freq="D")
         df = DataFrame({"a": a, "b": b})
         assert df["a"].dtype == a.dtype
@@ -910,7 +910,7 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "data,dtype",
         [
-            (Period("2020-01"), PeriodDtype("M")),
+            (Period("2020-01"), PeriodDtype("ME")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
@@ -2336,7 +2336,7 @@ class TestDataFrameConstructors:
             Categorical(list("aabbc")),
             SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([Interval(0, 1), Interval(1, 5)]),
-            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
+            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="ME")),
         ],
     )
     def test_constructor_with_extension_array(self, extension_arr):
@@ -2642,14 +2642,14 @@ class TestDataFrameConstructors:
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
-        rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")
+        rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="ME")
         s1 = Series(np.random.randn(len(rng1)), rng1)
 
-        rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="M")
+        rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="ME")
         s2 = Series(np.random.randn(len(rng2)), rng2)
         df = DataFrame({"s1": s1, "s2": s2})
 
-        exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
+        exp = pd.period_range("1/1/1980", "1/1/2012", freq="ME")
         tm.assert_index_equal(df.index, exp)
 
     def test_frame_from_dict_with_mixed_tzaware_indexes(self):

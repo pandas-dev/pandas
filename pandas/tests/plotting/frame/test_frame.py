@@ -1537,7 +1537,7 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-        ix = date_range("1/1/2000", periods=10, freq="M")
+        ix = date_range("1/1/2000", periods=10, freq="ME")
         df.set_index(ix, inplace=True)
         df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
@@ -1557,7 +1557,7 @@ class TestDataFramePlots(TestPlotBase):
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
 
         # check time-series plots
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         tdf = DataFrame(d, index=ix)
         tdf_err = DataFrame(d_err, index=ix)
 

@@ -101,7 +101,7 @@ class TestGetItem:
             rng[:, None]
 
     def test_getitem_int_list(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         dti2 = dti[[1, 3, 5]]
 
         v1 = dti2[0]

@@ -92,10 +92,10 @@ class TestPandasDtype:
         "dtype",
         [
             "period[D]",
-            "period[3M]",
+            "period[3ME]",
             "period[U]",
             "Period[D]",
-            "Period[3M]",
+            "period[3ME]",
             "Period[U]",
         ],
     )

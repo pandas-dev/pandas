@@ -669,7 +669,7 @@ def test_resample_reresample(unit):
     [
         ["A-DEC", {"start": "1990", "end": "2000", "freq": "a-dec"}],
         ["A-JUN", {"start": "1990", "end": "2000", "freq": "a-jun"}],
-        ["M", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
+        ["ME", {"start": "1990-01", "end": "2000-01", "freq": "ME"}],
     ],
 )
 def test_resample_timestamp_to_period(

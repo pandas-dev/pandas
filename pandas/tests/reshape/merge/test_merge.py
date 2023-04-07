@@ -902,7 +902,7 @@ class TestMerge:
 
     def test_merge_non_unique_period_index(self):
         # GH #16871
-        index = pd.period_range("2016-01-01", periods=16, freq="M")
+        index = pd.period_range("2016-01-01", periods=16, freq="ME")
         df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
         result = df.merge(df2, left_index=True, right_index=True, how="inner")

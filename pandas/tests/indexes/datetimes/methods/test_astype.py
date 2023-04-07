@@ -168,7 +168,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = date_range(start="2013-01-01", periods=4, freq="M", name="idx", tz=tz)
+        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
         expected_list = [
             Timestamp("2013-01-31", tz=tz),
             Timestamp("2013-02-28", tz=tz),
@@ -274,12 +274,12 @@ class TestDatetimeIndex:
     def test_dti_astype_period(self):
         idx = DatetimeIndex([NaT, "2011-01-01", "2011-02-01"], name="idx")
 
-        res = idx.astype("period[M]")
-        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
+        res = idx.astype("period[ME]")
+        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="ME", name="idx")
         tm.assert_index_equal(res, exp)
 
-        res = idx.astype("period[3M]")
-        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
+        res = idx.astype("period[3ME]")
+        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3ME", name="idx")
         tm.assert_index_equal(res, exp)
 
 

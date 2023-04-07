@@ -424,7 +424,7 @@ class TestPivotTable:
             },
             index=idx,
         )
-        res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="M"))
+        res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="ME"))
         exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
         exp = DataFrame(
@@ -433,7 +433,7 @@ class TestPivotTable:
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
-            index=Grouper(freq="A"), columns=Grouper(key="dt", freq="M")
+            index=Grouper(freq="A"), columns=Grouper(key="dt", freq="ME")
         )
         exp = DataFrame(
             [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
@@ -656,10 +656,10 @@ class TestPivotTable:
                     pd.Period("2013-01-02", "D"),
                 ],
                 "p2": [
-                    pd.Period("2013-01", "M"),
-                    pd.Period("2013-01", "M"),
-                    pd.Period("2013-02", "M"),
-                    pd.Period("2013-02", "M"),
+                    pd.Period("2013-01", "ME"),
+                    pd.Period("2013-01", "ME"),
+                    pd.Period("2013-02", "ME"),
+                    pd.Period("2013-02", "ME"),
                 ],
                 "data1": np.arange(4, dtype="int64"),
                 "data2": np.arange(4, dtype="int64"),
@@ -667,7 +667,7 @@ class TestPivotTable:
         )
 
         exp_col1 = Index(["data1", "data1", "data2", "data2"])
-        exp_col2 = pd.PeriodIndex(["2013-01", "2013-02"] * 2, name="p2", freq="M")
+        exp_col2 = pd.PeriodIndex(["2013-01", "2013-02"] * 2, name="p2", freq="ME")
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
         expected = DataFrame(
             [[0, 2, 0, 2], [1, 3, 1, 3]],
@@ -683,7 +683,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[0, 2], [1, 3]],
             index=pd.PeriodIndex(["2013-01-01", "2013-01-02"], name="p1", freq="D"),
-            columns=pd.PeriodIndex(["2013-01", "2013-02"], name="p2", freq="M"),
+            columns=pd.PeriodIndex(["2013-01", "2013-02"], name="p2", freq="ME"),
         )
         if method:
             pv = df.pivot(index="p1", columns="p2", values="data1")
@@ -1416,8 +1416,8 @@ class TestPivotTable:
 
         result = pivot_table(
             df,
-            index=Grouper(freq="M", key="Date"),
-            columns=Grouper(freq="M", key="PayDay"),
+            index=Grouper(freq="ME", key="Date"),
+            columns=Grouper(freq="ME", key="PayDay"),
             values="Quantity",
             aggfunc=np.sum,
         )
@@ -1449,7 +1449,7 @@ class TestPivotTable:
                     datetime(2013, 11, 30),
                     datetime(2013, 12, 31),
                 ],
-                freq="M",
+                freq="ME",
             ),
             columns=pd.DatetimeIndex(
                 [
@@ -1458,7 +1458,7 @@ class TestPivotTable:
                     datetime(2013, 11, 30),
                     datetime(2013, 12, 31),
                 ],
-                freq="M",
+                freq="ME",
             ),
         )
         expected.index.name = "Date"
@@ -1468,8 +1468,8 @@ class TestPivotTable:
 
         result = pivot_table(
             df,
-            index=Grouper(freq="M", key="PayDay"),
-            columns=Grouper(freq="M", key="Date"),
+            index=Grouper(freq="ME", key="PayDay"),
+            columns=Grouper(freq="ME", key="Date"),
             values="Quantity",
             aggfunc=np.sum,
         )
@@ -1495,7 +1495,7 @@ class TestPivotTable:
 
         result = pivot_table(
             df,
-            index=[Grouper(freq="M", key="Date"), Grouper(freq="M", key="PayDay")],
+            index=[Grouper(freq="ME", key="Date"), Grouper(freq="ME", key="PayDay")],
             columns=["Branch"],
             values="Quantity",
             aggfunc=np.sum,
@@ -1505,7 +1505,7 @@ class TestPivotTable:
         result = pivot_table(
             df,
             index=["Branch"],
-            columns=[Grouper(freq="M", key="Date"), Grouper(freq="M", key="PayDay")],
+            columns=[Grouper(freq="ME", key="Date"), Grouper(freq="ME", key="PayDay")],
             values="Quantity",
             aggfunc=np.sum,
         )
@@ -1692,7 +1692,7 @@ class TestPivotTable:
 
     @pytest.mark.parametrize("i", range(1, 13))
     def test_monthly(self, i):
-        rng = date_range("1/1/2000", "12/31/2004", freq="M")
+        rng = date_range("1/1/2000", "12/31/2004", freq="ME")
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         annual = pivot_table(DataFrame(ts), index=ts.index.year, columns=ts.index.month)
@@ -1731,7 +1731,7 @@ class TestPivotTable:
             {
                 "item": ["bacon", "cheese", "bacon", "cheese"],
                 "cost": [2.5, 4.5, 3.2, 3.3],
-                "day": ["M", "M", "T", "T"],
+                "day": ["ME", "ME", "T", "T"],
             }
         )
         table = costs.pivot_table(
@@ -1743,10 +1743,10 @@ class TestPivotTable:
         )
         ix = Index(["bacon", "cheese", margins_name], dtype="object", name="item")
         tups = [
-            ("mean", "cost", "M"),
+            ("mean", "cost", "ME"),
             ("mean", "cost", "T"),
             ("mean", "cost", margins_name),
-            ("max", "cost", "M"),
+            ("max", "cost", "ME"),
             ("max", "cost", "T"),
             ("max", "cost", margins_name),
         ]

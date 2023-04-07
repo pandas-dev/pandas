@@ -262,7 +262,7 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-        idx = PeriodIndex(["2011-01", "2011-01", "2011-01", NaT, NaT], freq="M")
+        idx = PeriodIndex(["2011-01", "2011-01", "2011-01", NaT, NaT], freq="ME")
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
