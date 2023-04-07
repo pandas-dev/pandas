@@ -2182,6 +2182,7 @@ def test_dt_properties(prop, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(pa_version_under8p0, reason="datetime + timedelta arith unavailable")
 def test_dt_is_month_start_end():
     ser = pd.Series(
         [
@@ -2220,6 +2221,7 @@ def test_dt_is_year_start_end():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(pa_version_under8p0, reason="datetime + timedelta arith unavailable")
 def test_dt_is_quarter_start_end():
     ser = pd.Series(
         [
@@ -2320,8 +2322,18 @@ def test_dt_isocalendar():
 @pytest.mark.parametrize(
     "method, exp", [["day_name", "Sunday"], ["month_name", "January"]]
 )
-def test_dt_day_month_name(method, exp):
+def test_dt_day_month_name(method, exp, request):
     # GH 52388
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
     ser = pd.Series([datetime(2023, 1, 1), None], dtype=ArrowDtype(pa.timestamp("ms")))
     result = getattr(ser.dt, method)()
     expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
