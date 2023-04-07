@@ -15,7 +15,6 @@ import pytest
 from pandas.errors import SpecificationError
 
 from pandas import (
-    Categorical,
     DataFrame,
     Series,
     date_range,
@@ -76,20 +75,6 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
         s.map({1: 2}, na_action=input_na_action)
 
 
-def test_map_categorical_na_action():
-    values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-    s = Series(values, name="XX", index=list("abcdefg"))
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
@@ -112,7 +97,6 @@ def test_series_nested_renamer(renamer):
 
 
 def test_apply_dict_depr():
-
     tsdf = DataFrame(
         np.random.randn(10, 3),
         columns=["A", "B", "C"],
@@ -125,7 +109,6 @@ def test_apply_dict_depr():
 
 @pytest.mark.parametrize("method", ["agg", "transform"])
 def test_dict_nested_renaming_depr(method):
-
     df = DataFrame({"A": range(5), "B": 5})
 
     # nested renaming
@@ -277,7 +260,7 @@ def test_agg_none_to_type():
     df = DataFrame({"a": [None]})
     msg = re.escape("int() argument must be a string")
     with pytest.raises(TypeError, match=msg):
-        df.agg({"a": int})
+        df.agg({"a": lambda x: int(x.iloc[0])})
 
 
 def test_transform_none_to_type():
@@ -285,7 +268,7 @@ def test_transform_none_to_type():
     df = DataFrame({"a": [None]})
     msg = "argument must be a"
     with pytest.raises(TypeError, match=msg):
-        df.transform({"a": int})
+        df.transform({"a": lambda x: int(x.iloc[0])})
 
 
 @pytest.mark.parametrize(

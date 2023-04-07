@@ -182,7 +182,6 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
     def test_quantile_axis_mixed(self, interp_method, request, using_array_manager):
-
         # mixed on axis=1
         interpolation, method = interp_method
         df = DataFrame(
@@ -767,7 +766,9 @@ class TestDataFrameQuantile:
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_item_cache(self, using_array_manager, interp_method):
+    def test_quantile_item_cache(
+        self, using_array_manager, interp_method, using_copy_on_write
+    ):
         # previous behavior incorrect retained an invalid _item_cache entry
         interpolation, method = interp_method
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
@@ -777,9 +778,15 @@ class TestDataFrameQuantile:
             assert len(df._mgr.blocks) == 2
 
         df.quantile(numeric_only=False, interpolation=interpolation, method=method)
-        ser.values[0] = 99
 
-        assert df.iloc[0, 0] == df["A"][0]
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] != 99
+        else:
+            ser.values[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] == 99
 
     def test_invalid_method(self):
         with pytest.raises(ValueError, match="Invalid method: foo"):
@@ -833,7 +840,6 @@ class TestQuantileExtensionDtype:
         return result
 
     def test_quantile_ea(self, request, obj, index):
-
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
         np.random.shuffle(indexer)
@@ -861,7 +867,6 @@ class TestQuantileExtensionDtype:
         tm.assert_equal(result, expected)
 
     def test_quantile_ea_with_na(self, obj, index):
-
         obj.iloc[0] = index._na_value
         obj.iloc[-1] = index._na_value
 

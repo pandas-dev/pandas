@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Literal,
     cast,
 )
@@ -13,16 +14,15 @@ import pandas._libs.testing as _testing
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_categorical_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
-    is_interval_dtype,
     is_number,
     is_numeric_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    ExtensionDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -33,6 +33,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    IntervalDtype,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
@@ -53,6 +54,9 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 def assert_almost_equal(
@@ -170,7 +174,6 @@ def _check_isinstance(left, right, cls):
 
 
 def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
-
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -239,7 +242,9 @@ def assert_index_equal(
         assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
-        if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+        if isinstance(left.dtype, CategoricalDtype) and isinstance(
+            right.dtype, CategoricalDtype
+        ):
             if check_categorical:
                 assert_attr_equal("dtype", left, right, obj=obj)
                 assert_index_equal(left.categories, right.categories, exact=exact)
@@ -280,8 +285,7 @@ def assert_index_equal(
         right = safe_sort_index(right)
 
     # MultiIndex special comparison for little-friendly error messages
-    if left.nlevels > 1:
-        left = cast(MultiIndex, left)
+    if isinstance(left, MultiIndex):
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
@@ -296,6 +300,7 @@ def assert_index_equal(
                 exact=exact,
                 check_names=check_names,
                 check_exact=check_exact,
+                check_categorical=check_categorical,
                 rtol=rtol,
                 atol=atol,
                 obj=lobj,
@@ -304,7 +309,7 @@ def assert_index_equal(
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
     # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    elif check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
 
@@ -315,7 +320,6 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
-
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(
@@ -338,7 +342,9 @@ def assert_index_equal(
         assert_interval_array_equal(left._values, right._values)
 
     if check_categorical:
-        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+        if isinstance(left.dtype, CategoricalDtype) or isinstance(
+            right.dtype, CategoricalDtype
+        ):
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
@@ -363,14 +369,7 @@ def assert_class_equal(
         This only checks class equivalence. There is a separate check that the
         dtype is int64.
         """
-        from pandas.core.indexes.numeric import NumericIndex
-
-        if isinstance(idx, RangeIndex):
-            return True
-        elif type(idx) is Index or type(idx) is NumericIndex:
-            return True
-        else:
-            return False
+        return type(idx) is Index or isinstance(idx, RangeIndex)
 
     if type(left) == type(right):
         return
@@ -531,7 +530,7 @@ def assert_interval_array_equal(
     _check_isinstance(left, right, IntervalArray)
 
     kwargs = {}
-    if left._left.dtype.kind in ["m", "M"]:
+    if left._left.dtype.kind in "mM":
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
 
@@ -956,7 +955,9 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
+    elif isinstance(left.dtype, IntervalDtype) and isinstance(
+        right.dtype, IntervalDtype
+    ):
         assert_interval_array_equal(left.array, right.array)
     elif isinstance(left.dtype, CategoricalDtype) or isinstance(
         right.dtype, CategoricalDtype
@@ -970,7 +971,9 @@ def assert_series_equal(
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
-    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
+    elif isinstance(left.dtype, ExtensionDtype) and isinstance(
+        right.dtype, ExtensionDtype
+    ):
         assert_extension_array_equal(
             left._values,
             right._values,
@@ -1189,8 +1192,8 @@ def assert_frame_equal(
 
     # compare by blocks
     if by_blocks:
-        rblocks = right._to_dict_of_blocks()
-        lblocks = left._to_dict_of_blocks()
+        rblocks = right._to_dict_of_blocks(copy=False)
+        lblocks = left._to_dict_of_blocks(copy=False)
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
@@ -1325,7 +1328,9 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
         assert elem1 is not elem2, msg
 
 
-def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+def is_extension_array_dtype_and_needs_i8_conversion(
+    left_dtype: DtypeObj, right_dtype: DtypeObj
+) -> bool:
     """
     Checks that we have the combination of an ExtensionArraydtype and
     a dtype that should be converted to int64
@@ -1336,7 +1341,7 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
 
     Related to issue #37609
     """
-    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+    return isinstance(left_dtype, ExtensionDtype) and needs_i8_conversion(right_dtype)
 
 
 def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -> None:

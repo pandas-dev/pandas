@@ -210,13 +210,6 @@ pc_ambiguous_as_wide_doc = """
     (default: False)
 """
 
-pc_latex_repr_doc = """
-: boolean
-    Whether to produce a latex DataFrame representation for jupyter
-    environments that support it.
-    (default: False)
-"""
-
 pc_table_schema_doc = """
 : boolean
     Whether to publish a Table Schema representation for frontends
@@ -290,41 +283,6 @@ pc_memory_usage_doc = """
 : bool, string or None
     This specifies if the memory usage of a DataFrame should be displayed when
     df.info() is called. Valid values True,False,'deep'
-"""
-
-pc_latex_escape = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses escapes special
-    characters.
-    Valid values: False,True
-"""
-
-pc_latex_longtable = """
-:bool
-    This specifies if the to_latex method of a Dataframe uses the longtable
-    format.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multicolumns
-    to pretty-print MultiIndex columns.
-    Valid values: False,True
-"""
-
-pc_latex_multicolumn_format = """
-: string
-    This specifies the format for multicolumn headers.
-    Can be surrounded with '|'.
-    Valid values: 'l', 'c', 'r', 'p{<width>}'
-"""
-
-pc_latex_multirow = """
-: bool
-    This specifies if the to_latex method of a Dataframe uses multirows
-    to pretty-print MultiIndex rows.
-    Valid values: False,True
 """
 
 
@@ -425,16 +383,6 @@ with cf.config_prefix("display"):
     cf.register_option(
         "unicode.ambiguous_as_wide", False, pc_east_asian_width_doc, validator=is_bool
     )
-    cf.register_option("latex.repr", False, pc_latex_repr_doc, validator=is_bool)
-    cf.register_option("latex.escape", True, pc_latex_escape, validator=is_bool)
-    cf.register_option("latex.longtable", False, pc_latex_longtable, validator=is_bool)
-    cf.register_option(
-        "latex.multicolumn", True, pc_latex_multicolumn, validator=is_bool
-    )
-    cf.register_option(
-        "latex.multicolumn_format", "l", pc_latex_multicolumn, validator=is_text
-    )
-    cf.register_option("latex.multirow", False, pc_latex_multirow, validator=is_bool)
     cf.register_option(
         "html.table_schema",
         False,
@@ -539,40 +487,12 @@ string_storage_doc = """
     The default storage for StringDtype.
 """
 
-dtype_backend_doc = """
-: string
-    The nullable dtype implementation to return. Only applicable to certain
-    operations where documented. Available options: 'pandas', 'pyarrow',
-    the default is 'pandas'.
-"""
-
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
         "python",
         string_storage_doc,
         validator=is_one_of_factory(["python", "pyarrow"]),
-    )
-    cf.register_option(
-        "dtype_backend",
-        "pandas",
-        dtype_backend_doc,
-        validator=is_one_of_factory(["pandas", "pyarrow"]),
-    )
-
-
-nullable_dtypes_doc = """
-: bool
-    If nullable dtypes should be returned. This is only applicable to functions
-    where the ``use_nullable_dtypes`` keyword is implemented.
-"""
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "nullable_dtypes",
-        False,
-        nullable_dtypes_doc,
-        validator=is_bool,
     )
 
 
@@ -791,13 +711,13 @@ styler_max_elements = """
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_precision = """
@@ -925,7 +845,7 @@ with cf.config_prefix("styler"):
         "format.escape",
         None,
         styler_escape,
-        validator=is_one_of_factory([None, "html", "latex"]),
+        validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
     cf.register_option(

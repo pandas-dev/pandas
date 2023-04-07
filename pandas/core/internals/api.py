@@ -8,15 +8,16 @@ authors
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
-from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_period_dtype,
-    pandas_dtype,
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
 )
 
 from pandas.core.arrays import DatetimeArray
@@ -31,6 +32,9 @@ from pandas.core.internals.blocks import (
     get_block_type,
     maybe_coerce_values,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import Dtype
 
 
 def make_block(
@@ -52,7 +56,7 @@ def make_block(
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
 
-    if klass is ExtensionBlock and is_period_dtype(values.dtype):
+    if klass is ExtensionBlock and isinstance(values.dtype, PeriodDtype):
         # GH-44681 changed PeriodArray to be stored in the 2D
         # NDArrayBackedExtensionBlock instead of ExtensionBlock
         # -> still allow ExtensionBlock to be passed in this case for back compat
@@ -62,15 +66,21 @@ def make_block(
         dtype = dtype or values.dtype
         klass = get_block_type(dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
+    elif klass is DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
         # pyarrow calls get here
-        values = DatetimeArray._simple_new(values, dtype=dtype)
+        values = DatetimeArray._simple_new(
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
+            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
+            values,
+            dtype=dtype,  # type: ignore[arg-type]
+        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
     ndim = maybe_infer_ndim(values, placement, ndim)
-    if is_datetime64tz_dtype(values.dtype) or is_period_dtype(values.dtype):
+    if isinstance(values.dtype, (PeriodDtype, DatetimeTZDtype)):
         # GH#41168 ensure we can pass 1D dt64tz values
         # More generally, any EA dtype that isn't is_1d_only_ea_dtype
         values = extract_array(values, extract_numpy=True)

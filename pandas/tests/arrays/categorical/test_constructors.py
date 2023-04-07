@@ -32,6 +32,13 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    def test_fastpath_deprecated(self):
+        codes = np.array([1, 2, 3])
+        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
+        msg = "The 'fastpath' keyword in Categorical is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Categorical(codes, dtype=dtype, fastpath=True)
+
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
@@ -110,7 +117,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, expected)
 
     def test_constructor_unsortable(self):
-
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype="O")
         factor = Categorical(arr, ordered=False)
@@ -134,7 +140,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, ii)
 
     def test_constructor(self):
-
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
         c1 = Categorical(exp_arr)
         tm.assert_numpy_array_equal(c1.__array__(), exp_arr)
@@ -263,7 +268,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], categories="a")
 
     def test_constructor_with_null(self):
-
         # Cannot have NaN in categories
         msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):

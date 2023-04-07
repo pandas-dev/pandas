@@ -76,11 +76,15 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
     # explicitly test the allowlist methods
     if axis == 0:
         frame = raw_frame
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
     else:
         frame = raw_frame.T
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
         expected = frame.groupby(level=0).apply(
             lambda h: getattr(h, op)(axis=axis, skipna=skipna)
@@ -89,7 +93,6 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
             expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
         result = getattr(grouped, op)()
         expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
         if sort:
@@ -271,7 +274,9 @@ def test_groupby_selection_other_methods(df):
 
     # methods which aren't just .foo()
     tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
-    tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
+    msg = "DataFrameGroupBy.dtypes is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
     tm.assert_frame_equal(g.apply(lambda x: x.sum()), g_exp.apply(lambda x: x.sum()))
 
     tm.assert_frame_equal(g.resample("D").mean(), g_exp.resample("D").mean())
@@ -314,8 +319,6 @@ how to fix this test.
 
     # removed a public method?
     all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
-    print(names)
-    print(all_categorized)
     if names != all_categorized:
         msg = f"""
 Some methods which are supposed to be on the Grouper class

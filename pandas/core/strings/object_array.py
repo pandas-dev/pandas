@@ -16,10 +16,6 @@ import numpy as np
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import (
-    NpDtype,
-    Scalar,
-)
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
@@ -27,6 +23,11 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        NpDtype,
+        Scalar,
+    )
+
     from pandas import Series
 
 
@@ -110,7 +111,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_pad(
         self,
-        width,
+        width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ):
@@ -282,14 +283,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             f = lambda x: x.rindex(sub, start, end)
         return self._str_map(f, dtype="int64")
 
-    def _str_join(self, sep):
+    def _str_join(self, sep: str):
         return self._str_map(sep.join)
 
-    def _str_partition(self, sep, expand):
+    def _str_partition(self, sep: str, expand):
         result = self._str_map(lambda x: x.partition(sep), dtype="object")
         return result
 
-    def _str_rpartition(self, sep, expand):
+    def _str_rpartition(self, sep: str, expand):
         return self._str_map(lambda x: x.rpartition(sep), dtype="object")
 
     def _str_len(self):
@@ -361,7 +362,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_translate(self, table):
         return self._str_map(lambda x: x.translate(table))
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
         return self._str_map(lambda s: "\n".join(tw.wrap(s)))
@@ -376,7 +377,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
-        for ts in Series(arr).str.split(sep):
+        for ts in Series(arr, copy=False).str.split(sep):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 

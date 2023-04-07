@@ -1,18 +1,22 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-)
+from typing import TYPE_CHECKING
+
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+    )
 
 
 class PyxlsbReader(BaseExcelReader):
@@ -85,7 +89,7 @@ class PyxlsbReader(BaseExcelReader):
         file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
-        prevous_row_number = -1
+        previous_row_number = -1
         # When sparse=True the rows can have different lengths and empty rows are
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
         for row in sheet.rows(sparse=True):
@@ -95,9 +99,9 @@ class PyxlsbReader(BaseExcelReader):
                 # trim trailing empty elements
                 converted_row.pop()
             if converted_row:
-                data.extend([[]] * (row_number - prevous_row_number - 1))
+                data.extend([[]] * (row_number - previous_row_number - 1))
                 data.append(converted_row)
-                prevous_row_number = row_number
+                previous_row_number = row_number
             if file_rows_needed is not None and len(data) >= file_rows_needed:
                 break
         if data:

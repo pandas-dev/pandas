@@ -65,7 +65,7 @@ def test_show_versions_console(capsys):
     assert re.search(r"numpy\s*:\s[0-9]+\..*\n", result)
 
     # check optional dependency
-    assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)
+    assert re.search(r"pyarrow\s*:\s([0-9]+.*|None)\n", result)
 
 
 def test_json_output_match(capsys, tmpdir):

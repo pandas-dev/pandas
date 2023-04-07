@@ -25,41 +25,31 @@ class Dtypes:
 
 
 class Construction:
+    params = (
+        ["series", "frame", "categorical_series"],
+        ["str", "string[python]", "string[pyarrow]"],
+    )
+    param_names = ["pd_type", "dtype"]
+    pd_mapping = {"series": Series, "frame": DataFrame, "categorical_series": Series}
+    dtype_mapping = {"str": "str", "string[python]": object, "string[pyarrow]": object}
 
-    params = ["str", "string"]
-    param_names = ["dtype"]
+    def setup(self, pd_type, dtype):
+        series_arr = tm.rands_array(
+            nchars=10, size=10**5, dtype=self.dtype_mapping[dtype]
+        )
+        if pd_type == "series":
+            self.arr = series_arr
+        elif pd_type == "frame":
+            self.arr = series_arr.reshape((50_000, 2)).copy()
+        elif pd_type == "categorical_series":
+            # GH37371. Testing construction of string series/frames from ExtensionArrays
+            self.arr = Categorical(series_arr)
 
-    def setup(self, dtype):
-        self.series_arr = tm.rands_array(nchars=10, size=10**5)
-        self.frame_arr = self.series_arr.reshape((50_000, 2)).copy()
+    def time_construction(self, pd_type, dtype):
+        self.pd_mapping[pd_type](self.arr, dtype=dtype)
 
-        # GH37371. Testing construction of string series/frames from ExtensionArrays
-        self.series_cat_arr = Categorical(self.series_arr)
-        self.frame_cat_arr = Categorical(self.frame_arr)
-
-    def time_series_construction(self, dtype):
-        Series(self.series_arr, dtype=dtype)
-
-    def peakmem_series_construction(self, dtype):
-        Series(self.series_arr, dtype=dtype)
-
-    def time_frame_construction(self, dtype):
-        DataFrame(self.frame_arr, dtype=dtype)
-
-    def peakmem_frame_construction(self, dtype):
-        DataFrame(self.frame_arr, dtype=dtype)
-
-    def time_cat_series_construction(self, dtype):
-        Series(self.series_cat_arr, dtype=dtype)
-
-    def peakmem_cat_series_construction(self, dtype):
-        Series(self.series_cat_arr, dtype=dtype)
-
-    def time_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
-
-    def peakmem_cat_frame_construction(self, dtype):
-        DataFrame(self.frame_cat_arr, dtype=dtype)
+    def peakmem_construction(self, pd_type, dtype):
+        self.pd_mapping[pd_type](self.arr, dtype=dtype)
 
 
 class Methods(Dtypes):
@@ -177,7 +167,6 @@ class Methods(Dtypes):
 
 
 class Repeat:
-
     params = ["int", "array"]
     param_names = ["repeats"]
 
@@ -192,7 +181,6 @@ class Repeat:
 
 
 class Cat:
-
     params = ([0, 3], [None, ","], [None, "-"], [0.0, 0.001, 0.15])
     param_names = ["other_cols", "sep", "na_rep", "na_frac"]
 
@@ -217,7 +205,6 @@ class Cat:
 
 
 class Contains(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
@@ -229,7 +216,6 @@ class Contains(Dtypes):
 
 
 class Split(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
@@ -245,7 +231,6 @@ class Split(Dtypes):
 
 
 class Extract(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 

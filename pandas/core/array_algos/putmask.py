@@ -11,10 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    npt,
-)
 from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from
@@ -23,6 +19,11 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.arrays import ExtensionArray
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
     from pandas import MultiIndex
 
 
@@ -141,7 +142,7 @@ def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
     if values.dtype == object:
         dtype, _ = infer_dtype_from(other, pandas_dtype=True)
 
-        if isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]:
+        if isinstance(dtype, np.dtype) and dtype.kind in "mM":
             # https://github.com/numpy/numpy/issues/12550
             #  timedelta64 will incorrectly cast to int
             if not is_list_like(other):

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 import numpy as np
 import pytest
 
@@ -37,7 +35,6 @@ def to_numpy_dtypes(dtypes):
 
 
 class TestPandasDtype:
-
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -124,7 +121,6 @@ dtypes = {
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))
 @pytest.mark.parametrize("name2,dtype2", list(dtypes.items()), ids=lambda x: str(x))
 def test_dtype_equal(name1, dtype1, name2, dtype2):
-
     # match equal to self, but not equal to other
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
@@ -498,7 +494,6 @@ def test_is_datetime_or_timedelta_dtype():
     assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
     assert not com.is_datetime_or_timedelta_dtype(np.array(["a", "b"]))
 
-    # TODO(jreback), this is slightly suspect
     assert not com.is_datetime_or_timedelta_dtype(DatetimeTZDtype("ns", "US/Eastern"))
 
     assert com.is_datetime_or_timedelta_dtype(np.datetime64)
@@ -517,30 +512,18 @@ def test_is_numeric_v_string_like():
     assert com.is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
 
 
-def test_is_datetimelike_v_numeric():
-    dt = np.datetime64(datetime(2017, 1, 1))
-
-    assert not com.is_datetimelike_v_numeric(1, 1)
-    assert not com.is_datetimelike_v_numeric(dt, dt)
-    assert not com.is_datetimelike_v_numeric(np.array([1]), np.array([2]))
-    assert not com.is_datetimelike_v_numeric(np.array([dt]), np.array([dt]))
-
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(1, dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), 1)
-    assert com.is_datetimelike_v_numeric(np.array([1]), dt)
-    assert com.is_datetimelike_v_numeric(np.array([dt]), np.array([1]))
-
-
 def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(str)
     assert not com.needs_i8_conversion(np.int64)
     assert not com.needs_i8_conversion(pd.Series([1, 2]))
     assert not com.needs_i8_conversion(np.array(["a", "b"]))
 
-    assert com.needs_i8_conversion(np.datetime64)
-    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert not com.needs_i8_conversion(np.datetime64)
+    assert com.needs_i8_conversion(np.dtype(np.datetime64))
+    assert not com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]").dtype)
+    assert not com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern").dtype)
 
 
 def test_is_numeric_dtype():
@@ -573,6 +556,20 @@ def test_is_numeric_dtype():
             return True
 
     assert com.is_numeric_dtype(MyNumericDType())
+
+
+def test_is_any_real_numeric_dtype():
+    assert not com.is_any_real_numeric_dtype(str)
+    assert not com.is_any_real_numeric_dtype(bool)
+    assert not com.is_any_real_numeric_dtype(complex)
+    assert not com.is_any_real_numeric_dtype(object)
+    assert not com.is_any_real_numeric_dtype(np.datetime64)
+    assert not com.is_any_real_numeric_dtype(np.array(["a", "b", complex(1, 2)]))
+    assert not com.is_any_real_numeric_dtype(pd.DataFrame([complex(1, 2), True]))
+
+    assert com.is_any_real_numeric_dtype(int)
+    assert com.is_any_real_numeric_dtype(float)
+    assert com.is_any_real_numeric_dtype(np.array([1, 2.5]))
 
 
 def test_is_float_dtype():
@@ -760,3 +757,13 @@ def test_validate_allhashable():
 
     with pytest.raises(TypeError, match="list must be a hashable type"):
         com.validate_all_hashable([], error_name="list")
+
+
+def test_pandas_dtype_numpy_warning():
+    # GH#51523
+    with tm.assert_produces_warning(
+        DeprecationWarning,
+        check_stacklevel=False,
+        match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
+    ):
+        pandas_dtype(np.integer)

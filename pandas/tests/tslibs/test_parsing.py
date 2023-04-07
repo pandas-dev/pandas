@@ -246,6 +246,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "13/2019",
         "202001",  # YYYYMM isn't ISO8601
         "2020/01",  # YYYY/MM isn't ISO8601 either
+        "87156549591102612381000001219H5",
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):

@@ -42,7 +42,8 @@ class Constructor:
         pd.Categorical(self.values, self.categories)
 
     def time_fastpath(self):
-        pd.Categorical(self.codes, self.cat_idx, fastpath=True)
+        dtype = pd.CategoricalDtype(categories=self.cat_idx)
+        pd.Categorical._simple_new(self.codes, dtype)
 
     def time_datetimes(self):
         pd.Categorical(self.datetimes)
@@ -143,7 +144,6 @@ class Concat:
 
 
 class ValueCounts:
-
     params = [True, False]
     param_names = ["dropna"]
 
@@ -254,7 +254,6 @@ class Contains:
 
 
 class CategoricalSlicing:
-
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
     param_names = ["index"]
 

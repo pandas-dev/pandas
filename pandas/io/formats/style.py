@@ -21,17 +21,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    FilePath,
-    IndexLabel,
-    Level,
-    QuantileInterpolation,
-    Scalar,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import (
     Substitution,
@@ -70,6 +59,21 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
+
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        FilePath,
+        IndexLabel,
+        Level,
+        QuantileInterpolation,
+        Scalar,
+        StorageOptions,
+        WriteBuffer,
+        WriteExcelBuffer,
+    )
+
+    from pandas import ExcelWriter
 
 try:
     import matplotlib as mpl
@@ -148,8 +152,6 @@ class Styler(StylerRenderer):
         If ``na_rep`` is None, no special formatting is applied, and falls back to
         ``pandas.options.styler.format.na_rep``.
 
-        .. versionadded:: 1.0.0
-
     uuid_len : int, default 5
         If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
         expressed in hex characters, in range [0, 32].
@@ -173,7 +175,11 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
+        LaTeX-safe sequences. Use 'latex-math' to replace the characters
+        the same way as in 'latex' mode, except for math substrings,
+        which either are surrounded by two characters ``$`` or start with
+        the character ``\(`` and end with ``\)``.
+        If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
@@ -332,9 +338,9 @@ class Styler(StylerRenderer):
         A common use case is adding totals rows, or otherwise, via methods calculated
         in ``DataFrame.agg``.
 
-        >>> df = DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9,6]],
-        ...                columns=["Mike", "Jim"],
-        ...                index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
+        >>> df = pd.DataFrame([[4, 6], [1, 9], [3, 4], [5, 5], [9, 6]],
+        ...                   columns=["Mike", "Jim"],
+        ...                   index=["Mon", "Tue", "Wed", "Thurs", "Fri"])
         >>> styler = df.style.concat(df.agg(["sum"]).style)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/footer_simple.png
@@ -359,7 +365,8 @@ class Styler(StylerRenderer):
         When ``other`` has fewer index levels than the original Styler it is possible
         to extend the index in ``other``, with placeholder levels.
 
-        >>> df = DataFrame([[1], [2]], index=pd.MultiIndex.from_product([[0], [1, 2]]))
+        >>> df = pd.DataFrame([[1], [2]],
+        ...                   index=pd.MultiIndex.from_product([[0], [1, 2]]))
         >>> descriptors = df.agg(["sum"])
         >>> descriptors.index = pd.MultiIndex.from_product([[""], descriptors.index])
         >>> df.style.concat(descriptors.style)  # doctest: +SKIP
@@ -494,7 +501,7 @@ class Styler(StylerRenderer):
     )
     def to_excel(
         self,
-        excel_writer,
+        excel_writer: FilePath | WriteExcelBuffer | ExcelWriter,
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
@@ -512,7 +519,6 @@ class Styler(StylerRenderer):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
     ) -> None:
-
         from pandas.io.formats.excel import ExcelFormatter
 
         formatter = ExcelFormatter(
@@ -962,12 +968,12 @@ class Styler(StylerRenderer):
         Second we will format the display and, since our table is quite wide, will
         hide the repeated level-0 of the index:
 
-        >>> styler.format(subset="Equity", precision=2)
+        >>> (styler.format(subset="Equity", precision=2)
         ...       .format(subset="Stats", precision=1, thousands=",")
         ...       .format(subset="Rating", formatter=str.upper)
         ...       .format_index(escape="latex", axis=1)
         ...       .format_index(escape="latex", axis=0)
-        ...       .hide(level=0, axis=0)  # doctest: +SKIP
+        ...       .hide(level=0, axis=0))  # doctest: +SKIP
 
         Note that one of the string entries of the index and column headers is "H&M".
         Without applying the `escape="latex"` option to the `format_index` method the
@@ -983,8 +989,8 @@ class Styler(StylerRenderer):
         ...     elif v == "Sell": color = "#ff5933"
         ...     else: color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
-        >>> styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .applymap(rating_color, subset="Rating")  # doctest: +SKIP
+        >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
+        ...       .applymap(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -1328,7 +1334,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1342,7 +1348,7 @@ class Styler(StylerRenderer):
         self,
         buf: None = ...,
         *,
-        encoding=...,
+        encoding: str | None = ...,
         sparse_index: bool | None = ...,
         sparse_columns: bool | None = ...,
         max_rows: int | None = ...,
@@ -1356,7 +1362,7 @@ class Styler(StylerRenderer):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        encoding=None,
+        encoding: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_rows: int | None = None,
@@ -1464,6 +1470,7 @@ class Styler(StylerRenderer):
 
         Form of the output with new additional css classes,
 
+        >>> from pandas.io.formats.style import Styler
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
@@ -1763,16 +1770,16 @@ class Styler(StylerRenderer):
         Using ``subset`` to restrict application to a single column or multiple columns
 
         >>> df.style.apply(highlight_max, color='red', subset="A")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None)))
-        ...  # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=([0, 1, 2], slice(None)))
+        ... # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=(slice(0, 5, 2), "A"))
+        ... # doctest: +SKIP
 
         Using a function which returns a Series / DataFrame of unequal length but
         containing valid index labels
@@ -2068,8 +2075,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler = DataFrame([[1, 2], [3, 4]]).style
-        >>> styler2 = DataFrame([[9, 9, 9]]).style
+        >>> styler = pd.DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = pd.DataFrame([[9, 9, 9]]).style
         >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
@@ -2120,8 +2127,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler = DataFrame([[1, 2], [3, 4]]).style
-        >>> styler2 = DataFrame([[9, 9, 9]]).style
+        >>> styler = pd.DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = pd.DataFrame([[9, 9, 9]]).style
         >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
@@ -2732,15 +2739,9 @@ class Styler(StylerRenderer):
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         vmax : float, optional
             Maximum data value that corresponds to colormap maximum value.
             If not specified the maximum value of the data (or gmap) will be used.
-
-            .. versionadded:: 1.0.0
-
         gmap : array-like, optional
             Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
@@ -3391,8 +3392,11 @@ class Styler(StylerRenderer):
 
     @classmethod
     def from_custom_template(
-        cls, searchpath, html_table: str | None = None, html_style: str | None = None
-    ):
+        cls,
+        searchpath: Sequence[str],
+        html_table: str | None = None,
+        html_style: str | None = None,
+    ) -> type[Styler]:
         """
         Factory function for creating a subclass of ``Styler``.
 
@@ -3504,9 +3508,9 @@ class Styler(StylerRenderer):
         Since the method returns a ``Styler`` object it can be chained with other
         methods as if applying the underlying highlighters directly.
 
-        >>> df.style.format("{:.1f}")
+        >>> (df.style.format("{:.1f}")
         ...         .pipe(some_highlights, min_color="green")
-        ...         .highlight_between(left=2, right=5)  # doctest: +SKIP
+        ...         .highlight_between(left=2, right=5))  # doctest: +SKIP
 
         .. figure:: ../../_static/style/df_pipe_hl2.png
 
@@ -3665,7 +3669,7 @@ def _background_gradient(
                 text_color = "#f1f1f1" if dark else "#000000"
                 return (
                     f"background-color: {_matplotlib.colors.rgb2hex(rgba)};"
-                    + f"color: {text_color};"
+                    f"color: {text_color};"
                 )
             else:
                 return f"color: {_matplotlib.colors.rgb2hex(rgba)};"

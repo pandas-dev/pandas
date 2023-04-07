@@ -21,11 +21,11 @@ def test_rank_unordered_categorical_typeerror():
 
     msg = "Cannot perform rank with non-ordered Categorical"
 
-    gb = ser.groupby(cat)
+    gb = ser.groupby(cat, observed=False)
     with pytest.raises(TypeError, match=msg):
         gb.rank()
 
-    gb2 = df.groupby(cat)
+    gb2 = df.groupby(cat, observed=False)
     with pytest.raises(TypeError, match=msg):
         gb2.rank()
 
@@ -619,8 +619,12 @@ def test_rank_multiindex():
         axis=1,
     )
 
-    gb = df.groupby(level=0, axis=1)
-    result = gb.rank(axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=1)
+    msg = "DataFrameGroupBy.rank with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.rank(axis=1)
 
     expected = concat(
         [
@@ -639,9 +643,13 @@ def test_groupby_axis0_rank_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
-    res = gb.rank(axis=1)
+    msg = "DataFrameGroupBy.rank with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = gb.rank(axis=1)
 
     # This should match what we get when "manually" operating group-by-group
     expected = concat([df.loc["a"].rank(axis=1), df.loc["b"].rank(axis=1)], axis=0)
@@ -649,7 +657,9 @@ def test_groupby_axis0_rank_axis1():
 
     # check that we haven't accidentally written a case that coincidentally
     # matches rank(axis=0)
-    alt = gb.rank(axis=0)
+    msg = "The 'axis' keyword in DataFrameGroupBy.rank"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        alt = gb.rank(axis=0)
     assert not alt.equals(expected)
 
 
@@ -661,9 +671,13 @@ def test_groupby_axis0_cummax_axis1():
         {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
         index=["a", "a", "b", "b"],
     )
-    gb = df.groupby(level=0, axis=0)
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(level=0, axis=0)
 
-    cmax = gb.cummax(axis=1)
+    msg = "DataFrameGroupBy.cummax with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        cmax = gb.cummax(axis=1)
     expected = df[[0, 1]].astype(np.float64)
     expected[2] = expected[1]
     tm.assert_frame_equal(cmax, expected)

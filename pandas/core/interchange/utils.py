@@ -9,10 +9,12 @@ import typing
 
 import numpy as np
 
-from pandas._typing import DtypeObj
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
-import pandas as pd
 from pandas.api.types import is_datetime64_dtype
+
+if typing.TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 class ArrowCTypes:
@@ -71,7 +73,7 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     str
         Format string in Apache Arrow C notation of the given `dtype`.
     """
-    if isinstance(dtype, pd.CategoricalDtype):
+    if isinstance(dtype, CategoricalDtype):
         return ArrowCTypes.INT64
     elif dtype == np.dtype("O"):
         return ArrowCTypes.STRING

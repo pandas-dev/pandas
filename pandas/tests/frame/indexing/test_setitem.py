@@ -61,7 +61,8 @@ class TestDataFrameSetItem:
         "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
     )
     def test_setitem_dtype(self, dtype, float_frame):
-        arr = np.random.randn(len(float_frame))
+        # Use randint since casting negative floats to uints is undefined
+        arr = np.random.randint(1, 10, len(float_frame))
 
         float_frame[dtype] = np.array(arr, dtype=dtype)
         assert float_frame[dtype].dtype.name == dtype
@@ -72,7 +73,6 @@ class TestDataFrameSetItem:
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
     def test_setitem_error_msmgs(self):
-
         # GH 7432
         df = DataFrame(
             {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
@@ -321,7 +321,6 @@ class TestDataFrameSetItem:
         assert (df["dates"].values == ex_vals).all()
 
     def test_setitem_dt64tz(self, timezone_frame):
-
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -472,7 +471,6 @@ class TestDataFrameSetItem:
             df[["a", "b"]] = rhs
 
     def test_setitem_intervals(self):
-
         df = DataFrame({"A": range(10)})
         ser = cut(df["A"], 5)
         assert isinstance(ser.cat.categories, IntervalIndex)
@@ -997,7 +995,6 @@ class TestDataFrameSetItemBooleanMask:
         ids=["dataframe", "array"],
     )
     def test_setitem_boolean_mask(self, mask_type, float_frame):
-
         # Test for issue #18582
         df = float_frame.copy()
         mask = mask_type(df)
@@ -1006,8 +1003,9 @@ class TestDataFrameSetItemBooleanMask:
         result = df.copy()
         result[mask] = np.nan
 
-        expected = df.copy()
-        expected.values[np.array(mask)] = np.nan
+        expected = df.values.copy()
+        expected[np.array(mask)] = np.nan
+        expected = DataFrame(expected, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")

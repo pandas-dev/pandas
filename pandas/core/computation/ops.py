@@ -601,8 +601,7 @@ class MathCall(Op):
     def __call__(self, env):
         # error: "Op" not callable
         operands = [op(env) for op in self.operands]  # type: ignore[operator]
-        with np.errstate(all="ignore"):
-            return self.func.func(*operands)
+        return self.func.func(*operands)
 
     def __repr__(self) -> str:
         operands = map(str, self.operands)

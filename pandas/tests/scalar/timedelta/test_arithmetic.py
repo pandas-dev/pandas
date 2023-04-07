@@ -393,8 +393,8 @@ class TestTimedeltaMultiplicationDivision:
 
         assert op(td, np.nan) is NaT
 
-        assert op(-1, td).value == -1 * td.value
-        assert op(-1.0, td).value == -1.0 * td.value
+        assert op(-1, td)._value == -1 * td._value
+        assert op(-1.0, td)._value == -1.0 * td._value
 
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):
@@ -459,15 +459,14 @@ class TestTimedeltaMultiplicationDivision:
         assert np.isnan(td / NaT)
 
     def test_td_div_td64_non_nano(self):
-
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / (86400 * 10**9)
+        assert result == td._value / (86400 * 10**9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / 10**9
+        assert result == td._value / 10**9
         result = td / np.timedelta64(1, "ns")
-        assert result == td.value
+        assert result == td._value
 
         # floordiv
         td = Timedelta("1 days 2 hours 3 ns")
@@ -476,7 +475,7 @@ class TestTimedeltaMultiplicationDivision:
         result = td // np.timedelta64(1, "s")
         assert result == 93600
         result = td // np.timedelta64(1, "ns")
-        assert result == td.value
+        assert result == td._value
 
     def test_td_div_numeric_scalar(self):
         # GH#19738
@@ -967,6 +966,70 @@ class TestTimedeltaMultiplicationDivision:
 
 
 class TestTimedeltaComparison:
+    def test_compare_pytimedelta_bounds(self):
+        # GH#49021 don't overflow on comparison with very large pytimedeltas
+
+        for unit in ["ns", "us"]:
+            tdmax = Timedelta.max.as_unit(unit).max
+            tdmin = Timedelta.min.as_unit(unit).min
+
+            assert tdmax < timedelta.max
+            assert tdmax <= timedelta.max
+            assert not tdmax > timedelta.max
+            assert not tdmax >= timedelta.max
+            assert tdmax != timedelta.max
+            assert not tdmax == timedelta.max
+
+            assert tdmin > timedelta.min
+            assert tdmin >= timedelta.min
+            assert not tdmin < timedelta.min
+            assert not tdmin <= timedelta.min
+            assert tdmin != timedelta.min
+            assert not tdmin == timedelta.min
+
+        # But the "ms" and "s"-reso bounds extend pass pytimedelta
+        for unit in ["ms", "s"]:
+            tdmax = Timedelta.max.as_unit(unit).max
+            tdmin = Timedelta.min.as_unit(unit).min
+
+            assert tdmax > timedelta.max
+            assert tdmax >= timedelta.max
+            assert not tdmax < timedelta.max
+            assert not tdmax <= timedelta.max
+            assert tdmax != timedelta.max
+            assert not tdmax == timedelta.max
+
+            assert tdmin < timedelta.min
+            assert tdmin <= timedelta.min
+            assert not tdmin > timedelta.min
+            assert not tdmin >= timedelta.min
+            assert tdmin != timedelta.min
+            assert not tdmin == timedelta.min
+
+    def test_compare_pytimedelta_bounds2(self):
+        # a pytimedelta outside the microsecond bounds
+        pytd = timedelta(days=999999999, seconds=86399)
+        # NB: np.timedelta64(td, "s"") incorrectly overflows
+        td64 = np.timedelta64(pytd.days, "D") + np.timedelta64(pytd.seconds, "s")
+        td = Timedelta(td64)
+        assert td.days == pytd.days
+        assert td.seconds == pytd.seconds
+
+        assert td == pytd
+        assert not td != pytd
+        assert not td < pytd
+        assert not td > pytd
+        assert td <= pytd
+        assert td >= pytd
+
+        td2 = td - Timedelta(seconds=1).as_unit("s")
+        assert td2 != pytd
+        assert not td2 == pytd
+        assert td2 < pytd
+        assert td2 <= pytd
+        assert not td2 > pytd
+        assert not td2 >= pytd
+
     def test_compare_tick(self, tick_classes):
         cls = tick_classes
 
@@ -1100,7 +1163,6 @@ def test_ops_error_str():
     td = Timedelta("1 day")
 
     for left, right in [(td, "a"), ("a", td)]:
-
         msg = "|".join(
             [
                 "unsupported operand type",

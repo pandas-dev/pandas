@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+from __future__ import annotations
 
 from collections import abc
 from datetime import (
@@ -31,6 +32,7 @@ import operator
 import os
 from typing import (
     Callable,
+    Hashable,
     Iterator,
 )
 
@@ -100,13 +102,6 @@ if compat.PY39:
 
 
 def pytest_addoption(parser) -> None:
-    parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
-    parser.addoption("--skip-network", action="store_true", help="skip network tests")
-    parser.addoption("--skip-db", action="store_true", help="skip db tests")
-    parser.addoption(
-        "--run-high-memory", action="store_true", help="run high memory tests"
-    )
-    parser.addoption("--only-slow", action="store_true", help="run only slow tests")
     parser.addoption(
         "--strict-data-files",
         action="store_true",
@@ -133,28 +128,24 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
 
 
 def pytest_collection_modifyitems(items, config) -> None:
-    skip_slow = config.getoption("--skip-slow")
-    only_slow = config.getoption("--only-slow")
-    skip_network = config.getoption("--skip-network")
-    skip_db = config.getoption("--skip-db")
-
-    marks = [
-        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
-        (pytest.mark.network, "network", skip_network, "--network"),
-        (pytest.mark.db, "db", skip_db, "--skip-db"),
-    ]
+    is_doctest = config.getoption("--doctest-modules") or config.getoption(
+        "--doctest-cython", default=False
+    )
 
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
     ]
 
     for item in items:
-        if config.getoption("--doctest-modules") or config.getoption(
-            "--doctest-cython", default=False
-        ):
+        if is_doctest:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
@@ -165,19 +156,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-
-        for (mark, kwd, skip_if_found, arg_name) in marks:
-            if kwd in item.keywords:
-                # If we're skipping, no need to actually add the marker or look for
-                # other markers
-                if skip_if_found:
-                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
-                    break
-
-                item.add_marker(mark)
-
-        if only_slow and "slow" not in item.keywords:
-            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
 
 
 # Hypothesis
@@ -287,6 +265,14 @@ def observed(request):
 def ordered(request):
     """
     Boolean 'ordered' parameter for Categorical.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
     """
     return request.param
 
@@ -658,9 +644,7 @@ index_flat2 = index_flat
         key
         for key, value in indices_dict.items()
         if not (
-            key.startswith("int")
-            or key.startswith("uint")
-            or key.startswith("float")
+            key.startswith(("int", "uint", "float"))
             or key in ["range", "empty", "repeats", "bool-dtype"]
         )
         and not isinstance(value, MultiIndex)
@@ -729,7 +713,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -779,6 +763,29 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=True)
+
+
+_typ_objects_series = {
+    f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
+}
+
+
+_index_or_series_memory_objs = {
+    **indices_dict,
+    **_series,
+    **_narrow_series,
+    **_typ_objects_series,
+}
+
+
+@pytest.fixture(params=_index_or_series_memory_objs.keys())
+def index_or_series_memory_obj(request):
+    """
+    Fixture for tests on indexes, series, series with a narrow dtype and
+    series with empty objects type
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_memory_objs[request.param].copy(deep=True)
 
 
 # ----------------------------------------------------------------
@@ -1293,6 +1300,22 @@ def string_storage(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        "numpy_nullable",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def dtype_backend(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
 
@@ -1391,7 +1414,7 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+@pytest.fixture(params=tm.ALL_FLOAT_DTYPES)
 def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -1596,9 +1619,7 @@ def any_real_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_REAL_DTYPES)
 def any_real_numeric_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
@@ -1658,12 +1679,7 @@ def any_numpy_dtype(request):
     return request.param
 
 
-@pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES
-    + tm.COMPLEX_DTYPES
-    + tm.ALL_INT_EA_DTYPES
-    + tm.FLOAT_EA_DTYPES
-)
+@pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
     Parameterized fixture for all numeric dtypes.
@@ -1865,7 +1881,7 @@ def fsspectest():
         (pd.NA, pd.NA, pd.NA),
     ]
 )
-def names(request):
+def names(request) -> tuple[Hashable, Hashable, Hashable]:
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """
@@ -1921,7 +1937,7 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager():
+def using_array_manager() -> bool:
     """
     Fixture to check if the array manager is being used.
     """
@@ -1944,7 +1960,7 @@ if zoneinfo is not None:
 
 
 @pytest.fixture(params=warsaws)
-def warsaw(request):
+def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
