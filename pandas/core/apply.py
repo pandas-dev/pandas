@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -36,6 +37,7 @@ from pandas._typing import (
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -1091,6 +1093,14 @@ class SeriesApply(NDFrameApply):
         mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
+            warnings.warn(
+                "Returning a DataFrame from Series.apply when the supplied function"
+                "returns a Series is deprecated and will be removed in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )  # GH52116
+
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)

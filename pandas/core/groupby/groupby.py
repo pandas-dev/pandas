@@ -1192,7 +1192,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = concat(values, axis=self.axis)
 
-        name = self.obj.name if self.obj.ndim == 1 else self._selection
+        if self.obj.ndim == 1:
+            name = self.obj.name
+        elif is_hashable(self._selection):
+            name = self._selection
+        else:
+            name = None
+
         if isinstance(result, Series) and name is not None:
             result.name = name
 
@@ -3129,6 +3135,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
+        grouper: np.ndarray | Index | ops.BaseGrouper
         if self.keys is None and self.level is None:
             # we don't have the grouper info available
             # (e.g. we have selected out
