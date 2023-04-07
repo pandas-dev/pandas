@@ -208,7 +208,7 @@ Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Series.map` , where the value of the ``na_action`` parameter was not used if the series held a :class:`Categorical` (:issue:`22527`).
 - Bug in :meth:`pd.concat` where an ``AttributeError`` raised with a None and Timestamp (:issue:`52093`)
-- 
+-
 
 Datetimelike
 ^^^^^^^^^^^^
