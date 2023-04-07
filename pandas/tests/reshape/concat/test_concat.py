@@ -747,7 +747,15 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
-    result = concat([empty, df])
+
+    msg = "The behavior of DataFrame concatenation with empty entries is deprecated"
+    warn = None
+    if df_dtype == "datetime64[ns]" or (
+        df_dtype == "float64" and empty_dtype != "float64"
+    ):
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
+        result = concat([empty, df])
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?

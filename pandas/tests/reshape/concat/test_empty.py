@@ -58,7 +58,9 @@ class TestEmptyConcat:
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        res = concat([s1, s2], axis=0)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = concat([s1, s2], axis=0)
         # name will be reset
         exp = Series([1, 2, 3])
         tm.assert_series_equal(res, exp)
@@ -238,9 +240,11 @@ class TestEmptyConcat:
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
         df_expected = DataFrame({"a": []}, index=RangeIndex(0), dtype="int64")
 
-        for how, expected in [("inner", df_expected), ("outer", df_a)]:
-            result = concat([df_a, df_empty], axis=1, join=how)
-            tm.assert_frame_equal(result, expected)
+        result = concat([df_a, df_empty], axis=1, join="inner")
+        tm.assert_frame_equal(result, df_expected)
+
+        result = concat([df_a, df_empty], axis=1, join="outer")
+        tm.assert_frame_equal(result, df_a)
 
     def test_empty_dtype_coerce(self):
         # xref to #12411

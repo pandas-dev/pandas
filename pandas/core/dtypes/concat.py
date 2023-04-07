@@ -8,10 +8,12 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -40,6 +42,9 @@ if TYPE_CHECKING:
         Categorical,
         ExtensionArray,
     )
+
+
+_dtype_obj = np.dtype(object)
 
 
 def _is_nonempty(x, axis) -> bool:
@@ -104,6 +109,23 @@ def concat_compat(
     non_empties = [x for x in to_concat if _is_nonempty(x, axis)]
     if non_empties and axis == 0 and not ea_compat_axis:
         # ea_compat_axis see GH#39574
+        if len(non_empties) < len(to_concat) and not any(
+            obj.dtype == _dtype_obj for obj in non_empties
+        ):
+            # Check for object dtype is an imperfect proxy for checking if
+            #  the result dtype is going to change once the deprecation is
+            #  enforced.
+            # GH#39122
+            warnings.warn(
+                "The behavior of array concatenation with empty entries is "
+                "deprecated. In a future version, this will no longer exclude "
+                "empty items when determining the result dtype. To opt in to "
+                "the future behavior, set pd.set_option('future.concat_empty', True). "
+                "To retain the old behavior, exclude the empty entries before "
+                "the concat operation.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         to_concat = non_empties
 
     dtypes = {obj.dtype for obj in to_concat}
