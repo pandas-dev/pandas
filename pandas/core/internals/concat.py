@@ -15,13 +15,6 @@ from pandas._libs import (
     internals as libinternals,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Manager,
-    Shape,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.astype import astype_array
@@ -64,6 +57,14 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Manager,
+        Shape,
+    )
+
     from pandas import Index
     from pandas.core.internals.blocks import Block
 
@@ -142,7 +143,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
         target_dtype = np.find_common_type(list(dtypes), [])
     else:
@@ -229,10 +230,12 @@ def concatenate_managers(
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
                 values = np.concatenate(vals, axis=1)
-            else:
+            elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
+            else:
+                values = concat_compat(vals, axis=1)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -284,7 +287,9 @@ def _concat_managers_axis0(
             blocks.append(nb)
 
         offset += len(mgr.items)
-    return BlockManager(tuple(blocks), axes)
+
+    result = BlockManager(tuple(blocks), axes)
+    return result
 
 
 def _maybe_reindex_columns_na_proxy(
@@ -350,7 +355,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
-
         assert placements.is_slice_like
         assert blkno != -1
 
@@ -508,7 +512,7 @@ class JoinUnit:
 
                 if isinstance(empty_dtype, DatetimeTZDtype):
                     # NB: exclude e.g. pyarrow[dt64tz] dtypes
-                    i8values = np.full(self.shape, fill_value.value)
+                    i8values = np.full(self.shape, fill_value._value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_1d_only_ea_dtype(empty_dtype):
@@ -539,6 +543,9 @@ class JoinUnit:
                     #  if we did, the missing_arr.fill would cast to gibberish
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
+
+                    if empty_dtype.kind in "mM":
+                        missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
                     return missing_arr
 
             if (not self.indexers) and (not self.block._can_consolidate):
@@ -595,9 +602,6 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
 
     elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
-        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
-        # concatting with at least one EA means we are concatting a single column
-        # the non-EA values are 2D arrays with shape (1, n)
 
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
@@ -622,14 +626,14 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return dtype.type("NaT")
-    elif dtype.kind in ["f", "c"]:
+    elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
         # different from missing.na_value_for_dtype
         return None
-    elif dtype.kind in ["i", "u"]:
+    elif dtype.kind in "iu":
         if not has_none_blocks:
             # different from missing.na_value_for_dtype
             return None
@@ -688,7 +692,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
-            or ju.block.dtype.kind in ["b", "i", "u"]
+            or ju.block.dtype.kind in "iub"
             for ju in join_units
         )
         and

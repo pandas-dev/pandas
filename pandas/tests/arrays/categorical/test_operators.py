@@ -86,11 +86,11 @@ class TestCategoricalOpsWithFactor:
             cat_rev > cat_rev_base2
 
         # Only categories with same ordering information can be compared
-        cat_unorderd = cat.set_ordered(False)
+        cat_unordered = cat.set_ordered(False)
         assert not (cat > cat).any()
 
         with pytest.raises(TypeError, match=msg):
-            cat > cat_unorderd
+            cat > cat_unordered
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
@@ -345,7 +345,6 @@ class TestCategoricalOps:
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
-
         df = DataFrame({"value": np.random.randint(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)

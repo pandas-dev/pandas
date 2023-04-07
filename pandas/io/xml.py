@@ -6,28 +6,20 @@ from __future__ import annotations
 
 import io
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
 )
 
-from pandas._typing import (
-    TYPE_CHECKING,
-    CompressionOptions,
-    ConvertersArg,
-    DtypeArg,
-    FilePath,
-    ParseDatesArg,
-    ReadBuffer,
-    StorageOptions,
-    XMLParsers,
-)
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -47,6 +39,18 @@ if TYPE_CHECKING:
     from xml.etree.ElementTree import Element
 
     from lxml import etree
+
+    from pandas._typing import (
+        CompressionOptions,
+        ConvertersArg,
+        DtypeArg,
+        DtypeBackend,
+        FilePath,
+        ParseDatesArg,
+        ReadBuffer,
+        StorageOptions,
+        XMLParsers,
+    )
 
     from pandas import DataFrame
 
@@ -237,40 +241,39 @@ class _XMLFrameParser:
                 for el in elems
             ]
 
-        else:
-            if self.names:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            nm: ch.text.strip() if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
-                        },
-                    }
-                    for el in elems
-                ]
+        elif self.names:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        nm: ch.text.strip() if ch.text else None
+                        for nm, ch in zip(self.names, el.findall("*"))
+                    },
+                }
+                for el in elems
+            ]
 
-            else:
-                dicts = [
-                    {
-                        **el.attrib,
-                        **(
-                            {el.tag: el.text.strip()}
-                            if el.text and not el.text.isspace()
-                            else {}
-                        ),
-                        **{
-                            ch.tag: ch.text.strip() if ch.text else None
-                            for ch in el.findall("*")
-                        },
-                    }
-                    for el in elems
-                ]
+        else:
+            dicts = [
+                {
+                    **el.attrib,
+                    **(
+                        {el.tag: el.text.strip()}
+                        if el.text and not el.text.isspace()
+                        else {}
+                    ),
+                    **{
+                        ch.tag: ch.text.strip() if ch.text else None
+                        for ch in el.findall("*")
+                    },
+                }
+                for el in elems
+            ]
 
         dicts = [
             {k.split("}")[1] if "}" in k else k: v for k, v in d.items()} for d in dicts
@@ -297,7 +300,7 @@ class _XMLFrameParser:
         TypeError
             * If `iterparse` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical, decompressed file on disk.
+            * If `path_or_buffer` is not a physical file on disk or file-like object.
             * If no data is returned from selected items in `iterparse`.
 
         Notes
@@ -322,7 +325,7 @@ class _XMLFrameParser:
                 "for value in iterparse"
             )
 
-        if (
+        if (not hasattr(self.path_or_buffer, "read")) and (
             not isinstance(self.path_or_buffer, str)
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)
@@ -334,6 +337,10 @@ class _XMLFrameParser:
                 "local disk and not as compressed files or online sources."
             )
 
+        iterparse_repeats = len(self.iterparse[row_node]) != len(
+            set(self.iterparse[row_node])
+        )
+
         for event, elem in iterparse(self.path_or_buffer, events=("start", "end")):
             curr_elem = elem.tag.split("}")[1] if "}" in elem.tag else elem.tag
 
@@ -342,12 +349,13 @@ class _XMLFrameParser:
                     row = {}
 
             if row is not None:
-                if self.names:
+                if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
                             elem_val = elem.text.strip() if elem.text else None
-                            if row.get(nm) != elem_val and nm not in row:
+                            if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
+
                         if col in elem.attrib:
                             if elem.attrib[col] not in row.values() and nm not in row:
                                 row[nm] = elem.attrib[col]
@@ -572,7 +580,6 @@ class _LxmlFrameParser(_XMLFrameParser):
         return xml_dicts
 
     def _validate_path(self) -> list[Any]:
-
         msg = (
             "xpath does not return any nodes or attributes. "
             "Be sure to specify in `xpath` the parent nodes of "
@@ -771,7 +778,7 @@ def _parse(
     iterparse: dict[str, list[str]] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     **kwargs,
 ) -> DataFrame:
     """
@@ -841,7 +848,7 @@ def _parse(
         dtype=dtype,
         converters=converters,
         parse_dates=parse_dates,
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
         **kwargs,
     )
 
@@ -868,7 +875,7 @@ def read_xml(
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
     Read XML document into a ``DataFrame`` object.
@@ -980,16 +987,13 @@ def read_xml(
 
     {storage_options}
 
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -1109,6 +1113,7 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
     """
+    check_dtype_backend(dtype_backend)
 
     return _parse(
         path_or_buffer=path_or_buffer,
@@ -1126,5 +1131,5 @@ def read_xml(
         iterparse=iterparse,
         compression=compression,
         storage_options=storage_options,
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
     )

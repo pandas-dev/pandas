@@ -27,11 +27,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -287,8 +285,21 @@ class TestSeriesArithmetic:
         assert ser.index is dti
         assert ser_utc.index is dti_utc
 
-    def test_arithmetic_with_duplicate_index(self):
+    def test_alignment_categorical(self):
+        # GH13365
+        cat = Categorical(["3z53", "3z53", "LoJG", "LoJG", "LoJG", "N503"])
+        ser1 = Series(2, index=cat)
+        ser2 = Series(2, index=cat[:-1])
+        result = ser1 * ser2
 
+        exp_index = ["3z53"] * 4 + ["LoJG"] * 9 + ["N503"]
+        exp_index = pd.CategoricalIndex(exp_index, categories=cat.categories)
+        exp_values = [4.0] * 13 + [np.nan]
+        expected = Series(exp_values, exp_index)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_arithmetic_with_duplicate_index(self):
         # GH#8363
         # integer ops with a non-unique index
         index = [2, 2, 3, 3, 4]
@@ -323,6 +334,34 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
         result = ser2 / ser1
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
+    def test_add_list_to_masked_array(self, val, dtype):
+        # GH#22962
+        ser = Series([1, None, 3], dtype="Int64")
+        result = ser + [1, None, val]
+        expected = Series([2, None, 3 + val], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = [1, None, val] + ser
+        tm.assert_series_equal(result, expected)
+
+    def test_add_list_to_masked_array_boolean(self, request):
+        # GH#22962
+        warning = (
+            UserWarning
+            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            else None
+        )
+        ser = Series([True, None, False], dtype="boolean")
+        with tm.assert_produces_warning(warning):
+            result = ser + [True, None, True]
+        expected = Series([True, None, True], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(warning):
+            result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 
@@ -457,17 +496,6 @@ class TestSeriesComparison:
             assert result.name == names[2]
 
     def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid="ignore"):
-            expected = (left > right).astype("O")
-        expected[:3] = np.nan
-
-        tm.assert_almost_equal(result, expected)
-
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
@@ -759,6 +787,14 @@ class TestNamePreservation:
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
 
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        warn = None
+        if box in [list, tuple] and is_logical:
+            warn = FutureWarning
+
         right = box(right)
         if flex:
             if is_logical:
@@ -767,7 +803,8 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            result = op(left, right)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

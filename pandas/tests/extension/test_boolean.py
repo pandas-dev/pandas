@@ -176,6 +176,8 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    _combine_le_expected_dtype = "boolean"
+
     def test_factorize(self, data_for_grouping):
         # override because we only have 2 unique values
         labels, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
@@ -184,23 +186,6 @@ class TestMethods(base.BaseMethodsTests):
 
         tm.assert_numpy_array_equal(labels, expected_labels)
         self.assert_extension_array_equal(uniques, expected_uniques)
-
-    def test_combine_le(self, data_repeated):
-        # override because expected needs to be boolean instead of bool dtype
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-            dtype="boolean",
-        )
-        self.assert_series_equal(result, expected)
-
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)], dtype="boolean")
-        self.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         # override because we only have 2 unique values

@@ -3,13 +3,10 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     date_range,
-)
-from pandas.core.api import (
-    Float64Index,
-    UInt64Index,
 )
 
 
@@ -27,15 +24,15 @@ def frame_ints():
 
 @pytest.fixture
 def series_uints():
-    return Series(np.random.rand(4), index=UInt64Index(np.arange(0, 8, 2)))
+    return Series(np.random.rand(4), index=Index(np.arange(0, 8, 2, dtype=np.uint64)))
 
 
 @pytest.fixture
 def frame_uints():
     return DataFrame(
         np.random.randn(4, 4),
-        index=UInt64Index(range(0, 8, 2)),
-        columns=UInt64Index(range(0, 12, 3)),
+        index=Index(range(0, 8, 2), dtype=np.uint64),
+        columns=Index(range(0, 12, 3), dtype=np.uint64),
     )
 
 
@@ -61,15 +58,15 @@ def frame_ts():
 
 @pytest.fixture
 def series_floats():
-    return Series(np.random.rand(4), index=Float64Index(range(0, 8, 2)))
+    return Series(np.random.rand(4), index=Index(range(0, 8, 2), dtype=np.float64))
 
 
 @pytest.fixture
 def frame_floats():
     return DataFrame(
         np.random.randn(4, 4),
-        index=Float64Index(range(0, 8, 2)),
-        columns=Float64Index(range(0, 12, 3)),
+        index=Index(range(0, 8, 2), dtype=np.float64),
+        columns=Index(range(0, 12, 3), dtype=np.float64),
     )
 
 

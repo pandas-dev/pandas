@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -26,6 +25,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
@@ -36,7 +36,6 @@ from pandas.core.arrays import (
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -138,9 +137,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-    @pytest.mark.parametrize("storage", ["python", "pyarrow"])
-    def test_use_nullable_dtypes(self, storage, dtype_backend):
+    def test_dtype_backend(self, string_storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -155,7 +152,7 @@ class TestReadHtml:
             }
         )
 
-        if storage == "python":
+        if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
 
@@ -165,9 +162,8 @@ class TestReadHtml:
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
 
         out = df.to_html(index=False)
-        with pd.option_context("mode.string_storage", storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = self.read_html(out, use_nullable_dtypes=True)[0]
+        with pd.option_context("mode.string_storage", string_storage):
+            result = self.read_html(out, dtype_backend=dtype_backend)[0]
 
         expected = DataFrame(
             {
@@ -335,7 +331,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)
@@ -1243,6 +1238,28 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.parametrize("displayed_only", [True, False])
+    def test_displayed_only_with_many_elements(self, displayed_only):
+        html_table = """
+        <table>
+            <tr>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td><span style="display:none"></span>4</td>
+                <td>5</td>
+            </tr>
+        </table>
+        """
+        result = read_html(html_table, displayed_only=displayed_only)[0]
+        expected = DataFrame({"A": [1, 4], "B": [2, 5]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
         "from_encoding.*:UserWarning"
@@ -1341,9 +1358,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
@@ -1472,4 +1486,37 @@ class TestReadHtml:
         """
         result = self.read_html(data, extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(data)[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)

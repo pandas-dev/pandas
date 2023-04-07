@@ -112,7 +112,7 @@ class TestCrosstab:
         # GH 17005
         a = Series([0, 1, 1], index=["a", "b", "c"])
         b = Series([3, 4, 3, 4, 3], index=["a", "b", "c", "d", "f"])
-        c = np.array([3, 4, 3])
+        c = np.array([3, 4, 3], dtype=np.int64)
 
         expected = DataFrame(
             [[1, 0], [1, 1]],
@@ -264,7 +264,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna2(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -275,7 +274,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna3(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
         )

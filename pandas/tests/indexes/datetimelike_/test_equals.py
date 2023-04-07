@@ -24,7 +24,6 @@ import pandas._testing as tm
 
 class EqualsTests:
     def test_not_equals_numeric(self, index):
-
         assert not index.equals(Index(index.asi8))
         assert not index.equals(Index(index.asi8.astype("u8")))
         assert not index.equals(Index(index.asi8).astype("f8"))
@@ -39,7 +38,6 @@ class EqualsTests:
         assert not index.equals(list(index))
 
     def test_not_equals_strings(self, index):
-
         other = Index([str(x) for x in index], dtype=object)
         assert not index.equals(other)
         assert not index.equals(CategoricalIndex(other))
@@ -77,7 +75,7 @@ class TestPeriodIndexEquals(EqualsTests):
 
         # same internal, different tz
         idx3 = PeriodIndex._simple_new(
-            idx._values._simple_new(idx._values.asi8, freq="H")
+            idx._values._simple_new(idx._values.asi8, dtype=pd.PeriodDtype("H"))
         )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)

@@ -21,8 +21,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
         height = Series(np.random.normal(60, 10, size=n))
-        with tm.RNGContext(42):
-            gender = np.random.choice(["male", "female"], size=n)
+        gender = np.random.RandomState(42).choice(["male", "female"], size=n)
 
         weight.groupby(gender).plot()
         tm.close()
@@ -60,7 +59,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.close()
 
     def test_plot_kwargs(self):
-
         df = DataFrame({"x": [1, 2, 3, 4, 5], "y": [1, 2, 3, 2, 1], "z": list("ababa")})
 
         res = df.groupby("z").plot(kind="scatter", x="x", y="y")

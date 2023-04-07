@@ -26,9 +26,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
-    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -284,7 +282,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
-        if inf_as_na and is_categorical_dtype(dtype):
+        if inf_as_na and isinstance(dtype, CategoricalDtype):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             # error: Incompatible types in assignment (expression has type
@@ -312,11 +310,8 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
-
-        if values.ndim == 1:
+        if values.ndim in {1, 2}:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
-        elif values.ndim == 2:
-            result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
         else:
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
@@ -505,10 +500,8 @@ def array_equivalent(
 
     if dtype_equal:
         # fastpath when we require that the dtypes match (Block.equals)
-        if left.dtype.kind in ["f", "c"]:
+        if left.dtype.kind in "fc":
             return _array_equivalent_float(left, right)
-        elif is_datetimelike_v_numeric(left.dtype, right.dtype):
-            return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
         elif is_string_or_object_np_dtype(left.dtype):
@@ -530,10 +523,6 @@ def array_equivalent(
         if not (left.size and right.size):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
-
-    elif is_datetimelike_v_numeric(left, right):
-        # GH#29553 avoid numpy deprecation warning
-        return False
 
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # datetime64, timedelta64, Period
@@ -584,6 +573,10 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
                 if "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
+            except ValueError:
+                # numpy can raise a ValueError if left and right cannot be
+                # compared (e.g. nested arrays)
+                return False
     return True
 
 
@@ -705,7 +698,7 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         return not isinstance(obj, (np.timedelta64, np.datetime64, Decimal))
     elif dtype.kind == "m":
         return not isinstance(obj, (np.datetime64, Decimal))
-    elif dtype.kind in ["i", "u", "f", "c"]:
+    elif dtype.kind in "iufc":
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
     elif dtype.kind == "b":
@@ -748,7 +741,7 @@ def isna_all(arr: ArrayLike) -> bool:
     if dtype.kind == "f" and isinstance(dtype, np.dtype):
         checker = nan_checker
 
-    elif (isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]) or isinstance(
+    elif (isinstance(dtype, np.dtype) and dtype.kind in "mM") or isinstance(
         dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type

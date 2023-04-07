@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas.core.ops import roperator
+from pandas.core import roperator
 
 
 def _fill_zeros(result, x, y):
@@ -59,10 +59,8 @@ def _fill_zeros(result, x, y):
         y = np.array(y)
 
     if is_integer_dtype(y.dtype):
-
         ymask = y == 0
         if ymask.any():
-
             # GH#7325, mask and nans must be broadcastable
             mask = ymask & ~np.isnan(result)
 
@@ -114,7 +112,6 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     zmask = y == 0
 
     if zmask.any():
-
         # Flip sign if necessary for -0.0
         zneg_mask = zmask & np.signbit(y)
         zpos_mask = zmask & ~zneg_mask
@@ -122,9 +119,8 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
         x_lt0 = x < 0
         x_gt0 = x > 0
         nan_mask = zmask & (x == 0)
-        with np.errstate(invalid="ignore"):
-            neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
-            posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
+        neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
+        posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN

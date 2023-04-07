@@ -20,6 +20,7 @@ from cpython.object cimport (
 )
 
 import_datetime()
+PandasDateTime_IMPORT
 
 import numpy as np
 
@@ -35,7 +36,7 @@ from numpy cimport (
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
-cdef extern from "src/datetime/np_datetime.h":
+cdef extern from "src/datetime/pd_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -48,14 +49,12 @@ cdef extern from "src/datetime/np_datetime.h":
 
     PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
-cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
                                 const char *format, int format_len,
                                 FormatRequirement exact)
-
 
 # ----------------------------------------------------------------------
 # numpy object inspection
@@ -420,7 +419,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:
@@ -571,6 +570,8 @@ cdef int64_t get_conversion_factor(
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
         return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+    else:
+        raise ValueError("Converting from M or Y units is not supported.")
 
 
 cdef int64_t convert_reso(

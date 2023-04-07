@@ -1,4 +1,5 @@
 cimport cython
+
 import numpy as np
 
 cimport numpy as cnp
@@ -10,15 +11,13 @@ from numpy cimport (
     ndarray,
     uint8_t,
 )
+from numpy.math cimport (
+    INFINITY as INF,
+    NAN as NaN,
+)
 
 cnp.import_array()
 
-
-# -----------------------------------------------------------------------------
-# Preamble stuff
-
-cdef float64_t NaN = <float64_t>np.NaN
-cdef float64_t INF = <float64_t>np.inf
 
 # -----------------------------------------------------------------------------
 
@@ -300,9 +299,6 @@ cdef class BlockIndex(SparseIndex):
         self.length = length
         self.nblocks = np.int32(len(self.blocs))
         self.npoints = self.blengths.sum()
-
-        # self.block_start = blocs
-        # self.block_end = blocs + blengths
 
         self.check_integrity()
 

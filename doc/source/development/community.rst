@@ -22,7 +22,7 @@ The pandas Community Meeting is a regular sync meeting for the project's
 maintainers which is open to the community. Everyone is welcome to attend and
 contribute to conversations.
 
-The meetings take place on the second Wednesday of each month at 18:00 UTC.
+The meetings take place on the second and fourth Wednesdays of each month at 18:00 UTC.
 
 The minutes of past meetings are available in `this Google Document <https://docs.google.com/document/d/1tGbTiYORHiSPgVMXawiweGJlBw5dOkVJLY-licoBmBU/edit?usp=sharing>`__.
 
@@ -111,9 +111,11 @@ contributing to pandas. The slack is a private space, specifically meant for
 people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
-If this sounds like the right place for you, you are welcome to join! Email us
-at `slack@pandas.pydata.org <mailto://slack@pandas.pydata.org>`_ and let us
-know that you read and agree to our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_
-😉 to get an invite. And please remember that slack is not meant to replace the
-mailing list or issue tracker - all important announcements and conversations
-should still happen there.
+If this sounds like the right place for you, you are welcome to join using
+`this link <https://join.slack.com/t/pandas-dev-community/shared_invite/zt-1e2qgy1r6-PLCN8UOLEUAYoLdAsaJilw>`_!
+Please remember to follow our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_,
+and be aware that our admins are monitoring for irrelevant messages and will remove folks who use
+our
+slack for spam, advertisements and messages not related to the pandas contributing community. And
+please remember that slack is not meant to replace the mailing list or issue tracker - all important
+announcements and conversations should still happen there.

@@ -10,11 +10,6 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -36,6 +31,12 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        type_t,
+    )
+
     from pandas.core.arrays.sparse.array import SparseArray
 
 
@@ -82,7 +83,6 @@ class SparseDtype(ExtensionDtype):
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
     def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
-
         if isinstance(dtype, type(self)):
             if fill_value is None:
                 fill_value = dtype.fill_value

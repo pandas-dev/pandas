@@ -18,7 +18,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
@@ -47,9 +46,9 @@ class TestIntervalIndex:
         assert index.size == 10
         assert index.shape == (10,)
 
-        tm.assert_index_equal(index.left, Index(np.arange(10)))
-        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
-        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
+        tm.assert_index_equal(index.left, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11, dtype=np.int64)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5, dtype=np.float64)))
 
         assert index.closed == closed
 
@@ -160,7 +159,8 @@ class TestIntervalIndex:
         )
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
+        breaks = np.arange(1, 11, dtype=np.int64)
+        expected = IntervalIndex.from_breaks(breaks, closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
@@ -378,7 +378,7 @@ class TestIntervalIndex:
         # interval
         interval = Interval(breaks[0], breaks[1])
         result = index._maybe_convert_i8(interval)
-        expected = Interval(breaks[0].value, breaks[1].value)
+        expected = Interval(breaks[0]._value, breaks[1]._value)
         assert result == expected
 
         # datetimelike index
@@ -388,7 +388,7 @@ class TestIntervalIndex:
 
         # datetimelike scalar
         result = index._maybe_convert_i8(breaks[0])
-        expected = breaks[0].value
+        expected = breaks[0]._value
         assert result == expected
 
         # list-like of datetimelike scalars
@@ -405,12 +405,12 @@ class TestIntervalIndex:
         index = IntervalIndex.from_breaks(breaks)
 
         to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = Float64Index([np.nan] * 3)
+        expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
         to_convert = to_convert.insert(0, breaks[0])
-        expected = expected.insert(0, float(breaks[0].value))
+        expected = expected.insert(0, float(breaks[0]._value))
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
@@ -426,7 +426,9 @@ class TestIntervalIndex:
         key = make_key(breaks)
 
         result = index._maybe_convert_i8(key)
-        expected = Index(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -508,7 +510,6 @@ class TestIntervalIndex:
             i.contains(Interval(0, 1))
 
     def test_dropna(self, closed):
-
         expected = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], closed=closed)
 
         ii = IntervalIndex.from_tuples([(0, 1), (1, 2), np.nan], closed=closed)
@@ -700,7 +701,6 @@ class TestIntervalIndex:
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self, closed):
-
         index1 = IntervalIndex.from_arrays([0, 1], [1, 2], closed=closed)
         index2 = IntervalIndex.from_arrays([1, 2], [2, 3], closed=closed)
 

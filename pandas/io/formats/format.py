@@ -49,25 +49,10 @@ from pandas._libs.tslibs import (
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -77,7 +62,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -109,6 +98,20 @@ from pandas.io.common import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axes,
+        ColspaceArgType,
+        ColspaceType,
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        FormattersType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -120,7 +123,7 @@ common_docstring: Final = """
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
-        columns : sequence, optional, default None
+        columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
             %(col_space)s.
@@ -354,7 +357,7 @@ class SeriesFormatter:
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if is_categorical_dtype(self.tr_series.dtype):
+        if isinstance(self.tr_series.dtype, CategoricalDtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -564,9 +567,9 @@ class DataFrameFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -686,11 +689,9 @@ class DataFrameFormatter:
         else:
             return justify
 
-    def _initialize_columns(self, columns: Sequence[Hashable] | None) -> Index:
+    def _initialize_columns(self, columns: Axes | None) -> Index:
         if columns is not None:
-            # GH 47231 - columns doesn't have to be `Sequence[str]`
-            # Will fix in later PR
-            cols = ensure_index(cast(Axes, columns))
+            cols = ensure_index(columns)
             self.frame = self.frame[cols]
             return cols
         else:
@@ -739,7 +740,7 @@ class DataFrameFormatter:
             _, height = get_terminal_size()
             if self.max_rows == 0:
                 # rows available to fill with actual data
-                return height - self._get_number_of_auxillary_rows()
+                return height - self._get_number_of_auxiliary_rows()
 
             if self._is_screen_short(height):
                 max_rows = height
@@ -774,7 +775,7 @@ class DataFrameFormatter:
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
-    def _get_number_of_auxillary_rows(self) -> int:
+    def _get_number_of_auxiliary_rows(self) -> int:
         """Get number of rows occupied by prompt, dots and dimension info."""
         dot_row = 1
         prompt_row = 1
@@ -1229,7 +1230,9 @@ def get_buffer(
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
-        yield buf
+        # Incompatible types in "yield" (actual type "Union[str, WriteBuffer[str],
+        # StringIO]", expected type "Union[WriteBuffer[str], StringIO]")
+        yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
@@ -1293,7 +1296,7 @@ def format_array(
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = ExtensionArrayFormatter
     elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
@@ -1588,15 +1591,12 @@ class FloatArrayFormatter(GenericArrayFormatter):
         else:
             too_long = False
 
-        with np.errstate(invalid="ignore"):
-            abs_vals = np.abs(self.values)
-            # this is pretty arbitrary for now
-            # large values: more that 8 characters including decimal symbol
-            # and first digit, hence > 1e6
-            has_large_values = (abs_vals > 1e6).any()
-            has_small_values = (
-                (abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)
-            ).any()
+        abs_vals = np.abs(self.values)
+        # this is pretty arbitrary for now
+        # large values: more that 8 characters including decimal symbol
+        # and first digit, hence > 1e6
+        has_large_values = (abs_vals > 1e6).any()
+        has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
             if self.leading_space is True:
@@ -1719,13 +1719,12 @@ def format_percentiles(
     percentiles = np.asarray(percentiles)
 
     # It checks for np.NaN as well
-    with np.errstate(invalid="ignore"):
-        if (
-            not is_numeric_dtype(percentiles)
-            or not np.all(percentiles >= 0)
-            or not np.all(percentiles <= 1)
-        ):
-            raise ValueError("percentiles should all be in the interval [0,1]")
+    if (
+        not is_numeric_dtype(percentiles)
+        or not np.all(percentiles >= 0)
+        or not np.all(percentiles <= 1)
+    ):
+        raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
     percentiles_round_type = percentiles.round().astype(int)
@@ -1916,7 +1915,6 @@ def _make_fixed_width(
     minimum: int | None = None,
     adj: TextAdjustment | None = None,
 ) -> list[str]:
-
     if len(strings) == 0 or justify == "all":
         return strings
 
@@ -2104,11 +2102,10 @@ class EngFormatter:
 
         if self.use_eng_prefix:
             prefix = self.ENG_PREFIXES[int_pow10]
+        elif int_pow10 < 0:
+            prefix = f"E-{-int_pow10:02d}"
         else:
-            if int_pow10 < 0:
-                prefix = f"E-{-int_pow10:02d}"
-            else:
-                prefix = f"E+{int_pow10:02d}"
+            prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10**pow10)
 
@@ -2174,6 +2171,8 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     2   1.0
     3  1.0k
     4  1.0M
+
+    >>> pd.set_option("display.float_format", None)  # unset option
     """
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 

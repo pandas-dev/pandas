@@ -18,7 +18,6 @@ from ..pandas_vb_common import (
 
 
 class ReadJSON(BaseIO):
-
     fname = "__test__.json"
     params = (["split", "index", "records"], ["int", "datetime"])
     param_names = ["orient", "index"]
@@ -41,7 +40,6 @@ class ReadJSON(BaseIO):
 
 
 class ReadJSONLines(BaseIO):
-
     fname = "__test_lines__.json"
     params = ["int", "datetime"]
     param_names = ["index"]
@@ -100,7 +98,6 @@ class NormalizeJSON(BaseIO):
 
 
 class ToJSON(BaseIO):
-
     fname = "__test__.json"
     params = [
         ["split", "columns", "index", "values", "records"],
@@ -212,7 +209,6 @@ class ToJSONISO(BaseIO):
 
 
 class ToJSONLines(BaseIO):
-
     fname = "__test__.json"
 
     def setup(self):
@@ -294,7 +290,8 @@ class ToJSONLines(BaseIO):
 class ToJSONMem:
     def setup_cache(self):
         df = DataFrame([[1]])
-        frames = {"int": df, "float": df.astype(float)}
+        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="T"))
+        frames = {"int": df, "float": df.astype(float), "datetime": df2}
 
         return frames
 
@@ -307,6 +304,11 @@ class ToJSONMem:
         df = frames["float"]
         for _ in range(100_000):
             df.to_json()
+
+    def peakmem_time(self, frames):
+        df = frames["datetime"]
+        for _ in range(10_000):
+            df.to_json(orient="table")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

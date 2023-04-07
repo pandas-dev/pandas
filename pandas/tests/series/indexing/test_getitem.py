@@ -88,8 +88,9 @@ class TestSeriesGetitemScalars:
         with pytest.raises(KeyError, match="-1"):
             ser[-1]
 
-    def test_getitem_keyerror_with_int64index(self):
-        ser = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
+    def test_getitem_keyerror_with_integer_index(self, any_int_numpy_dtype):
+        dtype = any_int_numpy_dtype
+        ser = Series(np.random.randn(6), index=Index([0, 0, 1, 1, 2, 2], dtype=dtype))
 
         with pytest.raises(KeyError, match=r"^5$"):
             ser[5]
@@ -575,7 +576,7 @@ def test_getitem_dataframe_raises():
         ser[df > 5]
 
 
-def test_getitem_assignment_series_aligment():
+def test_getitem_assignment_series_alignment():
     # https://github.com/pandas-dev/pandas/issues/37427
     # with getitem, when assigning with a Series, it is not first aligned
     ser = Series(range(10))

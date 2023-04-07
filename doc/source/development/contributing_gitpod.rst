@@ -145,7 +145,7 @@ docs you need to run the following command in the docs directory::
 
 Alternatively you can build a single page with::
 
-    python make.py html python make.py --single development/contributing_gitpod.rst
+    python make.py --single development/contributing_gitpod.rst
 
 You have two main options to render the documentation in Gitpod.
 

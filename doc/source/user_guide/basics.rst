@@ -329,16 +329,6 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
    df.empty
    pd.DataFrame(columns=list("ABC")).empty
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 .. warning::
 
    You might be tempted to do the following:
@@ -1479,11 +1469,6 @@ you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
    df.rename({"one": "foo", "two": "bar"}, axis="columns")
    df.rename({"a": "apple", "b": "banana", "d": "durian"}, axis="index")
 
-
-The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
-parameter that is by default ``False`` and copies the underlying data. Pass
-``inplace=True`` to rename the data in place.
-
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
 
@@ -2072,6 +2057,8 @@ documentation sections for more on each type.
 | :ref:`nullable integer <integer_na>`            | :class:`Int64Dtype`, ...  | (none)             | :class:`arrays.IntegerArray`  | ``'Int8'``, ``'Int16'``, ``'Int32'``,  |
 |                                                 |                           |                    |                               | ``'Int64'``, ``'UInt8'``, ``'UInt16'``,|
 |                                                 |                           |                    |                               | ``'UInt32'``, ``'UInt64'``             |
++-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
+| ``nullable float``                              | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
 | :ref:`Strings <text>`                           | :class:`StringDtype`      | :class:`str`       | :class:`arrays.StringArray`   | ``'string'``                           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+

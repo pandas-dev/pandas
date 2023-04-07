@@ -20,10 +20,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -223,7 +219,6 @@ class TestGetItem:
             "2013/02/01 09:00",
         ]
         for val in values:
-
             # GH7116
             # these show deprecations as we are trying
             # to slice with non-integer indexers
@@ -574,7 +569,7 @@ class TestWhere:
         mask = notna(i2)
 
         result = pi.where(mask, i2.asi8)
-        expected = pd.Index([NaT.value, NaT.value] + tail, dtype=object)
+        expected = pd.Index([NaT._value, NaT._value] + tail, dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 
@@ -806,10 +801,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(Int64Index(pi.asi8), mask)
+            pi.asof_locs(pd.Index(pi.asi8, dtype=np.int64), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(Float64Index(pi.asi8), mask)
+            pi.asof_locs(pd.Index(pi.asi8, dtype=np.float64), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

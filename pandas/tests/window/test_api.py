@@ -48,7 +48,6 @@ def test_select_bad_cols():
 
 
 def test_attribute_access():
-
     df = DataFrame([[1, 2]], columns=["A", "B"])
     r = df.rolling(window=5)
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
@@ -58,7 +57,6 @@ def test_attribute_access():
 
 
 def tests_skip_nuisance(step):
-
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3, step=step)
     result = r[["A", "B"]].sum()
@@ -131,13 +129,14 @@ def test_agg(step):
 def test_multi_axis_1_raises(func):
     # GH#46904
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5], "c": [6, 7, 8]})
-    r = df.rolling(window=3, axis=1)
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        r = df.rolling(window=3, axis=1)
     with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
         r.agg(func)
 
 
 def test_agg_apply(raw):
-
     # passed lambda
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
 
@@ -151,7 +150,6 @@ def test_agg_apply(raw):
 
 
 def test_agg_consistency(step):
-
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3, step=step)
 
@@ -169,7 +167,6 @@ def test_agg_consistency(step):
 
 
 def test_agg_nested_dicts():
-
     # API change for disallowing these types of nested dicts
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3)
@@ -348,9 +345,10 @@ def test_dont_modify_attributes_after_methods(
 
 
 def test_centered_axis_validation(step):
-
     # ok
-    Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
+    msg = "The 'axis' keyword in Series.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        Series(np.ones(10)).rolling(window=3, center=True, axis=0, step=step).mean()
 
     # bad axis
     msg = "No axis named 1 for object type Series"
@@ -358,21 +356,18 @@ def test_centered_axis_validation(step):
         Series(np.ones(10)).rolling(window=3, center=True, axis=1, step=step).mean()
 
     # ok ok
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=0, step=step
-    ).mean()
-    DataFrame(np.ones((10, 10))).rolling(
-        window=3, center=True, axis=1, step=step
-    ).mean()
+    df = DataFrame(np.ones((10, 10)))
+    msg = "The 'axis' keyword in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.rolling(window=3, center=True, axis=0, step=step).mean()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.rolling(window=3, center=True, axis=1, step=step).mean()
 
     # bad axis
     msg = "No axis named 2 for object type DataFrame"
     with pytest.raises(ValueError, match=msg):
-        (
-            DataFrame(np.ones((10, 10)))
-            .rolling(window=3, center=True, axis=2, step=step)
-            .mean()
-        )
+        (df.rolling(window=3, center=True, axis=2, step=step).mean())
 
 
 def test_rolling_min_min_periods(step):

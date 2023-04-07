@@ -42,6 +42,12 @@ def extract_ordinals(
 def extract_freq(
     values: npt.NDArray[np.object_],
 ) -> BaseOffset: ...
+def period_array_strftime(
+    values: npt.NDArray[np.int64],
+    dtype_code: int,
+    na_rep,
+    date_format: str | None,
+) -> npt.NDArray[np.object_]: ...
 
 # exposed for tests
 def period_asfreq(ordinal: int, freq1: int, freq2: int, end: bool) -> int: ...
