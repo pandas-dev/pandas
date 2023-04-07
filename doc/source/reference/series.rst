@@ -14,8 +14,6 @@ Constructor
 
    Series
 
-.. autoaccessorattribute:: Series.dt
-
 Attributes
 ----------
 **Axes**
