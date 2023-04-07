@@ -233,9 +233,10 @@ def _coerce_method(converter):
 # Series class
 
 
-# error: Definition of "max" in base class "IndexOpsMixin" is incompatible with
-# definition in base class "NDFrame"
-# error: Definition of "min" in base class "IndexOpsMixin" is incompatible with
+# error: Cannot override final attribute "ndim" (previously declared in base
+# class "NDFrame")
+# error: Cannot override final attribute "size" (previously declared in base
+# class "NDFrame")
 # definition in base class "NDFrame"
 class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
@@ -5238,10 +5239,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return result
 
     # error: Cannot determine type of 'isna'
-    # error: Return type "Series" of "isna" incompatible with return type "ndarray
-    # [Any, dtype[bool_]]" in supertype "IndexOpsMixin"
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
-    def isna(self) -> Series:  # type: ignore[override]
+    def isna(self) -> Series:
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
@@ -5879,8 +5878,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @doc(make_doc("min", ndim=1))
-    # error: Signature of "min" incompatible with supertype "IndexOpsMixin"
-    def min(  # type: ignore[override]
+    def min(
         self,
         axis: Axis | None = 0,
         skipna: bool = True,
@@ -5890,8 +5888,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("max", ndim=1))
-    # error: Signature of "max" incompatible with supertype "IndexOpsMixin"
-    def max(  # type: ignore[override]
+    def max(
         self,
         axis: Axis | None = 0,
         skipna: bool = True,
