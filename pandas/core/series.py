@@ -562,12 +562,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             keys, values = (), []
 
         # Input is now list-like, so rely on "standard" construction:
-
-        s = self._constructor(
-            values,
-            index=keys,
-            dtype=dtype,
-        )
+        s = Series(values, index=keys, dtype=dtype)
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
