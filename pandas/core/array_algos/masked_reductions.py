@@ -168,7 +168,7 @@ def var(
     axis: AxisInt | None = None,
     ddof: int = 1,
 ):
-    if not values.size or mask.all():
+    if not values.size or mask.all() or len(values) == 1:
         return libmissing.NA
 
     return _reductions(
@@ -184,7 +184,7 @@ def std(
     axis: AxisInt | None = None,
     ddof: int = 1,
 ):
-    if not values.size or mask.all():
+    if not values.size or mask.all() or len(values) == 1:
         return libmissing.NA
 
     return _reductions(

@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
