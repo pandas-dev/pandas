@@ -166,16 +166,18 @@ class TestCategoricalDtype(Base):
         assert not CategoricalDtype.is_dtype(np.float64)
 
     def test_basic(self, dtype):
-        assert is_categorical_dtype(dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(dtype)
 
-        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
+            factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
 
-        s = Series(factor, name="A")
+            s = Series(factor, name="A")
 
-        # dtypes
-        assert is_categorical_dtype(s.dtype)
-        assert is_categorical_dtype(s)
-        assert not is_categorical_dtype(np.dtype("float64"))
+            # dtypes
+            assert is_categorical_dtype(s.dtype)
+            assert is_categorical_dtype(s)
+            assert not is_categorical_dtype(np.dtype("float64"))
 
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
@@ -1101,10 +1103,15 @@ def test_is_bool_dtype_sparse():
 )
 def test_is_dtype_no_warning(check):
     data = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(None):
+
+    warn = None
+    msg = "is_categorical_dtype is deprecated"
+    if check is is_categorical_dtype:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
         check(data)
 
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         check(data["A"])
 
 

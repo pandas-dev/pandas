@@ -163,6 +163,7 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
+@pytest.mark.filterwarnings("ignore:is_categorical_dtype is deprecated:FutureWarning")
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
@@ -268,12 +269,14 @@ def test_is_interval_dtype():
 
 
 def test_is_categorical_dtype():
-    assert not com.is_categorical_dtype(object)
-    assert not com.is_categorical_dtype([1, 2, 3])
+    msg = "is_categorical_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_categorical_dtype(object)
+        assert not com.is_categorical_dtype([1, 2, 3])
 
-    assert com.is_categorical_dtype(CategoricalDtype())
-    assert com.is_categorical_dtype(pd.Categorical([1, 2, 3]))
-    assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
+        assert com.is_categorical_dtype(CategoricalDtype())
+        assert com.is_categorical_dtype(pd.Categorical([1, 2, 3]))
+        assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
 
 
 def test_is_string_dtype():

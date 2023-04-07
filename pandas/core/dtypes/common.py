@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -468,6 +469,12 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     >>> is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    warnings.warn(
+        "is_categorical_dtype is deprecated and will be removed in a future "
+        "version. Use isinstance(dtype, CategoricalDtype) instead",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.name == "category"

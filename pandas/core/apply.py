@@ -41,12 +41,14 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dict_like,
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -1089,7 +1091,7 @@ class SeriesApply(NDFrameApply):
         # we need to give `na_action="ignore"` for categorical data.
         # TODO: remove the `na_action="ignore"` when that default has been changed in
         #  Categorical (GH51645).
-        action = "ignore" if is_categorical_dtype(obj) else None
+        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
         mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
