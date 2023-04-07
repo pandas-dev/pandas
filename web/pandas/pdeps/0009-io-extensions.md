@@ -204,8 +204,8 @@ consistent API among third-party connectors.
 
 #### Internal API
 
-Connectors would use one of two different interface options: a pandas `DataFrame`
-or an Apache Arrow table.
+Connectors would use one of two different interface options: an Apache Arrow table
+or a pandas `DataFrame`.
 
 The Apache Arrow format would allow that connectors do not need to use pandas to
 create the data, making them more robust and less likely to break when changes to
