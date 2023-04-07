@@ -140,7 +140,10 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import NDFrame
+from pandas.core.generic import (
+    NDFrame,
+    make_doc,
+)
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -201,7 +204,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         AggFuncType,
-        AlignJoin,
         AnyAll,
         AnyArrayLike,
         ArrayLike,
@@ -215,7 +217,6 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         FilePath,
-        FillnaOptions,
         FloatFormatType,
         FormattersType,
         Frequency,
@@ -225,7 +226,6 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         NaPosition,
-        NDFrameT,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
@@ -235,8 +235,6 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
         ValueKeyFunc,
         WriteBuffer,
         npt,
@@ -245,7 +243,6 @@ if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
-    from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
 
@@ -4951,33 +4948,6 @@ class DataFrame(NDFrame, OpsMixin):
                 fill_value=fill_value,
             )
 
-    @doc(NDFrame.align, **_shared_doc_kwargs)
-    def align(
-        self,
-        other: NDFrameT,
-        join: AlignJoin = "outer",
-        axis: Axis | None = None,
-        level: Level = None,
-        copy: bool | None = None,
-        fill_value=None,
-        method: FillnaOptions | None | lib.NoDefault = lib.no_default,
-        limit: int | None | lib.NoDefault = lib.no_default,
-        fill_axis: Axis | lib.NoDefault = lib.no_default,
-        broadcast_axis: Axis | None | lib.NoDefault = lib.no_default,
-    ) -> tuple[Self, NDFrameT]:
-        return super().align(
-            other,
-            join=join,
-            axis=axis,
-            level=level,
-            copy=copy,
-            fill_value=fill_value,
-            method=method,
-            limit=limit,
-            fill_axis=fill_axis,
-            broadcast_axis=broadcast_axis,
-        )
-
     @Appender(
         """
         Examples
@@ -5002,7 +4972,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
     )
     @Substitution(
-        **_shared_doc_kwargs,
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
         extended_summary_sub=" column or",
         axis_description_sub=", and 1 identifies the columns",
         see_also_sub=" or columns",
@@ -5022,7 +4993,7 @@ class DataFrame(NDFrame, OpsMixin):
         klass=_shared_doc_kwargs["klass"],
         optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
-    def reindex(  # type: ignore[override]
+    def reindex(
         self,
         labels=None,
         *,
@@ -5424,65 +5395,6 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: Literal[True],
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
-        *,
-        method: FillnaOptions | None = ...,
-        axis: Axis | None = ...,
-        inplace: bool = ...,
-        limit: int | None = ...,
-        downcast: dict | None = ...,
-    ) -> DataFrame | None:
-        ...
-
-    @doc(NDFrame.fillna, **_shared_doc_kwargs)
-    def fillna(
-        self,
-        value: Hashable | Mapping | Series | DataFrame = None,
-        *,
-        method: FillnaOptions | None = None,
-        axis: Axis | None = None,
-        inplace: bool = False,
-        limit: int | None = None,
-        downcast: dict | None = None,
-    ) -> DataFrame | None:
-        return super().fillna(
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
-        )
-
     def pop(self, item: Hashable) -> Series:
         """
         Return item and drop from frame. Raise KeyError if not found.
@@ -5525,52 +5437,6 @@ class DataFrame(NDFrame, OpsMixin):
         3  monkey        NaN
         """
         return super().pop(item=item)
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[False] = ...,
-        limit: int | None = ...,
-        regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def replace(
-        self,
-        to_replace=...,
-        value=...,
-        *,
-        inplace: Literal[True],
-        limit: int | None = ...,
-        regex: bool = ...,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = ...,
-    ) -> None:
-        ...
-
-    @doc(NDFrame.replace, **_shared_doc_kwargs)
-    def replace(
-        self,
-        to_replace=None,
-        value=lib.no_default,
-        *,
-        inplace: bool = False,
-        limit: int | None = None,
-        regex: bool = False,
-        method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
-    ) -> DataFrame | None:
-        return super().replace(
-            to_replace=to_replace,
-            value=value,
-            inplace=inplace,
-            limit=limit,
-            regex=regex,
-            method=method,
-        )
 
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
@@ -6689,9 +6555,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
-    # TODO: Just move the sort_values doc here.
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.sort_values.__doc__)
     def sort_values(
         self,
         by: IndexLabel,
@@ -6704,6 +6567,154 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> DataFrame | None:
+        """
+        Sort by the values along either axis.
+
+        Parameters
+        ----------
+        by : str or list of str
+            Name or list of names to sort by.
+
+            - if `axis` is 0 or `'index'` then `by` may contain index
+              levels and/or column labels.
+            - if `axis` is 1 or `'columns'` then `by` may contain column
+              levels and/or index labels.
+        axis : "{0 or 'index', 1 or 'columns'}", default 0
+             Axis to be sorted.
+        ascending : bool or list of bool, default True
+             Sort ascending vs. descending. Specify list for multiple sort
+             orders.  If this is a list of bools, must match the length of
+             the by.
+        inplace : bool, default False
+             If True, perform operation in-place.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+             Choice of sorting algorithm. See also :func:`numpy.sort` for more
+             information. `mergesort` and `stable` are the only stable algorithms. For
+             DataFrames, this option is only applied when sorting on a single
+             column or label.
+        na_position : {'first', 'last'}, default 'last'
+             Puts NaNs at the beginning if `first`; `last` puts NaNs at the
+             end.
+        ignore_index : bool, default False
+             If True, the resulting axis will be labeled 0, 1, …, n - 1.
+        key : callable, optional
+            Apply the key function to the values
+            before sorting. This is similar to the `key` argument in the
+            builtin :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect a
+            ``Series`` and return a Series with the same shape as the input.
+            It will be applied to each column in `by` independently.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        DataFrame or None
+            DataFrame with sorted values or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.sort_index : Sort a DataFrame by the index.
+        Series.sort_values : Similar method for a Series.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2': [2, 1, 9, 8, 7, 4],
+        ...     'col3': [0, 1, 9, 4, 2, 3],
+        ...     'col4': ['a', 'B', 'c', 'D', 'e', 'F']
+        ... })
+        >>> df
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
+
+        Sort by col1
+
+        >>> df.sort_values(by=['col1'])
+          col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
+
+        Sort by multiple columns
+
+        >>> df.sort_values(by=['col1', 'col2'])
+          col1  col2  col3 col4
+        1    A     1     1    B
+        0    A     2     0    a
+        2    B     9     9    c
+        5    C     4     3    F
+        4    D     7     2    e
+        3  NaN     8     4    D
+
+        Sort Descending
+
+        >>> df.sort_values(by='col1', ascending=False)
+          col1  col2  col3 col4
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+        3  NaN     8     4    D
+
+        Putting NAs first
+
+        >>> df.sort_values(by='col1', ascending=False, na_position='first')
+          col1  col2  col3 col4
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
+        2    B     9     9    c
+        0    A     2     0    a
+        1    A     1     1    B
+
+        Sorting with a key function
+
+        >>> df.sort_values(by='col4', key=lambda col: col.str.lower())
+           col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
+
+        Natural sort with the key argument,
+        using the `natsort <https://github.com/SethMMorton/natsort>` package.
+
+        >>> df = pd.DataFrame({
+        ...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
+        ...    "value": [10, 20, 30, 40, 50]
+        ... })
+        >>> df
+            time  value
+        0    0hr     10
+        1  128hr     20
+        2   72hr     30
+        3   48hr     40
+        4   96hr     50
+        >>> from natsort import index_natsorted
+        >>> df.sort_values(
+        ...     by="time",
+        ...     key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ... )
+            time  value
+        0    0hr     10
+        3   48hr     40
+        2   72hr     30
+        4   96hr     50
+        1  128hr     20
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         ascending = validate_ascending(ascending)
@@ -8674,8 +8685,7 @@ class DataFrame(NDFrame, OpsMixin):
                Also accept list of columns names.
 
         index : str or object or a list of str, optional
-            Column to use to make new frame's index. If None, uses
-            existing index.
+            Column to use to make new frame's index. If not given, uses existing index.
 
             .. versionchanged:: 1.1.0
                Also accept list of index names.
@@ -9591,43 +9601,6 @@ class DataFrame(NDFrame, OpsMixin):
         return result
 
     agg = aggregate
-
-    # error: Signature of "any" incompatible with supertype "NDFrame"  [override]
-    @overload  # type: ignore[override]
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        **kwargs,
-    ) -> Series:
-        ...
-
-    @overload
-    def any(
-        self,
-        *,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: Level,
-        **kwargs,
-    ) -> DataFrame | Series:
-        ...
-
-    # error: Missing return statement
-    @doc(NDFrame.any, **_shared_doc_kwargs)
-    def any(  # type: ignore[empty-body]
-        self,
-        axis: Axis = 0,
-        bool_only: bool | None = None,
-        skipna: bool = True,
-        level: Level = None,
-        **kwargs,
-    ) -> DataFrame | Series:
-        ...
 
     @doc(
         _shared_docs["transform"],
@@ -10920,6 +10893,170 @@ class DataFrame(NDFrame, OpsMixin):
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
         return res_ser
 
+    @doc(make_doc("any", ndim=2))
+    # error: Signature of "any" incompatible with supertype "NDFrame"
+    def any(  # type: ignore[override]
+        self,
+        *,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Series:
+        # error: Incompatible return value type (got "Union[Series, bool]",
+        # expected "Series")
+        return self._logical_func(  # type: ignore[return-value]
+            "any", nanops.nanany, axis, bool_only, skipna, **kwargs
+        )
+
+    @doc(make_doc("all", ndim=2))
+    def all(
+        self,
+        axis: Axis = 0,
+        bool_only=None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Series:
+        # error: Incompatible return value type (got "Union[Series, bool]",
+        # expected "Series")
+        return self._logical_func(  # type: ignore[return-value]
+            "all", nanops.nanall, axis, bool_only, skipna, **kwargs
+        )
+
+    @doc(make_doc("min", ndim=2))
+    def min(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().min(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("max", ndim=2))
+    def max(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().max(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sum", ndim=2))
+    def sum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("prod", ndim=2))
+    def prod(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        return super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+
+    @doc(make_doc("mean", ndim=2))
+    def mean(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().mean(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("median", ndim=2))
+    def median(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().median(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("sem", ndim=2))
+    def sem(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("var", ndim=2))
+    def var(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().var(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("std", ndim=2))
+    def std(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().std(axis, skipna, ddof, numeric_only, **kwargs)
+
+    @doc(make_doc("skew", ndim=2))
+    def skew(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().skew(axis, skipna, numeric_only, **kwargs)
+
+    @doc(make_doc("kurt", ndim=2))
+    def kurt(
+        self,
+        axis: Axis | None = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        **kwargs,
+    ):
+        return super().kurt(axis, skipna, numeric_only, **kwargs)
+
+    kurtosis = kurt
+    product = prod
+
+    @doc(make_doc("cummin", ndim=2))
+    def cummin(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cummax", ndim=2))
+    def cummax(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumsum", ndim=2))
+    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+
+    @doc(make_doc("cumprod", 2))
+    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
         Count number of distinct elements in specified axis.
@@ -11321,52 +11458,6 @@ class DataFrame(NDFrame, OpsMixin):
         result = self._constructor(res)
         return result.__finalize__(self, method="quantile")
 
-    @doc(NDFrame.asfreq, **_shared_doc_kwargs)
-    def asfreq(
-        self,
-        freq: Frequency,
-        method: FillnaOptions | None = None,
-        how: str | None = None,
-        normalize: bool = False,
-        fill_value: Hashable = None,
-    ) -> DataFrame:
-        return super().asfreq(
-            freq=freq,
-            method=method,
-            how=how,
-            normalize=normalize,
-            fill_value=fill_value,
-        )
-
-    @doc(NDFrame.resample, **_shared_doc_kwargs)
-    def resample(
-        self,
-        rule,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        closed: str | None = None,
-        label: str | None = None,
-        convention: str = "start",
-        kind: str | None = None,
-        on: Level = None,
-        level: Level = None,
-        origin: str | TimestampConvertibleTypes = "start_day",
-        offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool = False,
-    ) -> Resampler:
-        return super().resample(
-            rule=rule,
-            axis=axis,
-            closed=closed,
-            label=label,
-            convention=convention,
-            kind=kind,
-            on=on,
-            level=level,
-            origin=origin,
-            offset=offset,
-            group_keys=group_keys,
-        )
-
     def to_timestamp(
         self,
         freq: Frequency | None = None,
@@ -11722,9 +11813,6 @@ class DataFrame(NDFrame, OpsMixin):
                ['monkey', nan, None]], dtype=object)
         """
         return self._mgr.as_array()
-
-
-DataFrame._add_numeric_operations()
 
 
 def _from_nested_dict(data) -> collections.defaultdict:

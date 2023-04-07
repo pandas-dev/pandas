@@ -260,7 +260,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
-        >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
+        >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     c, ['x', 'y'], ordered=True, dtype=dtype2
         ... )
@@ -1013,14 +1013,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         results = []
         for arr in chunks:
             data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
-            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr = PeriodArray(data.copy(), dtype=self, copy=False)
             # error: Invalid index type "ndarray[Any, dtype[bool_]]" for "PeriodArray";
             # expected type "Union[int, Sequence[int], Sequence[bool], slice]"
             parr[~mask] = NaT  # type: ignore[index]
             results.append(parr)
 
         if not results:
-            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
+            return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
