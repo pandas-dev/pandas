@@ -3570,3 +3570,12 @@ def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):
     # https://github.com/pandas-dev/pandas/issues/50411
     result = to_datetime(["2020-01-01", "01-01-2000"], format="ISO8601", errors=errors)
     tm.assert_index_equal(result, expected)
+
+
+def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
+    # GH 52425
+    pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
+    result = to_datetime(ser)
+    expected = Series([1, 2], dtype="datetime64[ns]")
+    tm.assert_series_equal(result, expected)
