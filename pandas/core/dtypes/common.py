@@ -469,6 +469,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     >>> is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
     True
     """
+    # GH#52527
     warnings.warn(
         "is_categorical_dtype is deprecated and will be removed in a future "
         "version. Use isinstance(dtype, CategoricalDtype) instead",
