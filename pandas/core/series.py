@@ -5770,6 +5770,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         For more information on pandas indexing, see the `indexing user guide
         <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
+
         Examples
         --------
         To create a Series with a custom index and view the index labels:
