@@ -79,6 +79,7 @@ generated/pandas.api.extensions.ExtensionArray.factorize,../reference/api/pandas
 generated/pandas.api.extensions.ExtensionArray.fillna,../reference/api/pandas.api.extensions.ExtensionArray.fillna
 generated/pandas.api.extensions.ExtensionArray,../reference/api/pandas.api.extensions.ExtensionArray
 generated/pandas.api.extensions.ExtensionArray.isna,../reference/api/pandas.api.extensions.ExtensionArray.isna
+generated/pandas.api.extensions.ExtensionArray.map,../reference/api/pandas.api.extensions.ExtensionArray.map
 generated/pandas.api.extensions.ExtensionArray.nbytes,../reference/api/pandas.api.extensions.ExtensionArray.nbytes
 generated/pandas.api.extensions.ExtensionArray.ndim,../reference/api/pandas.api.extensions.ExtensionArray.ndim
 generated/pandas.api.extensions.ExtensionArray.shape,../reference/api/pandas.api.extensions.ExtensionArray.shape
