@@ -37,10 +37,10 @@ which is similar to a NumPy array. To construct these from the main pandas data 
 
 .. note::
 
-    The string alias ``"string[pyarrow]"`` maps to ``pd.StringDtype("pyarrow")`` which is not equivalent to
-    specifying ``dtype=pd.ArrowDtype(pa.string())``. Generally, operations on the data will behave similarly
-    except ``pd.StringDtype("pyarrow")`` can return NumPy-backed nullable types while ``pd.ArrowDtype(pa.string())``
-    will return :class:`ArrowDtype`.
+   The string alias ``"string[pyarrow]"`` maps to ``pd.StringDtype("pyarrow")`` which is not equivalent to
+   specifying ``dtype=pd.ArrowDtype(pa.string())``. Generally, operations on the data will behave similarly
+   except ``pd.StringDtype("pyarrow")`` can return NumPy-backed nullable types while ``pd.ArrowDtype(pa.string())``
+   will return :class:`ArrowDtype`.
 
    .. ipython:: python
 
@@ -62,9 +62,13 @@ into :class:`ArrowDtype` to use in the ``dtype`` parameter.
    ser = pd.Series([["hello"], ["there"]], dtype=pd.ArrowDtype(list_str_type))
    ser
 
+.. ipython:: python
+
    from datetime import time
    idx = pd.Index([time(12, 30), None], dtype=pd.ArrowDtype(pa.time64("us")))
    idx
+
+.. ipython:: python
 
    from decimal import Decimal
    decimal_type = pd.ArrowDtype(pa.decimal128(3, scale=2))
@@ -78,7 +82,10 @@ or :class:`DataFrame` object.
 
 .. ipython:: python
 
-   pa_array = pa.array([{"1": "2"}, {"10": "20"}, None])
+   pa_array = pa.array(
+       [{"1": "2"}, {"10": "20"}, None],
+       type=pa.map_(pa.string(), pa.string()),
+   )
    ser = pd.Series(pd.arrays.ArrowExtensionArray(pa_array))
    ser
 
@@ -133,8 +140,12 @@ The following are just some examples of operations that are accelerated by nativ
    ser.isna()
    ser.fillna(0)
 
+.. ipython:: python
+
    ser_str = pd.Series(["a", "b", None], dtype=pd.ArrowDtype(pa.string()))
    ser_str.str.startswith("a")
+
+.. ipython:: python
 
    from datetime import datetime
    pa_type = pd.ArrowDtype(pa.timestamp("ns"))
