@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from typing import (
     Literal,
     cast,
@@ -10,6 +11,7 @@ import numpy as np
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
+from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -23,6 +25,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -736,6 +739,23 @@ def assert_extension_array_equal(
         and isinstance(right, DatetimeLikeArrayMixin)
         and type(right) == type(left)
     ):
+        # GH 52449
+        if not check_dtype and left.dtype.kind in "mM":
+            if not isinstance(left.dtype, np.dtype):
+                l_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                l_unit = np.datetime_data(left.dtype)[0]
+            if not isinstance(right.dtype, np.dtype):
+                r_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                r_unit = np.datetime_data(right.dtype)[0]
+            if (
+                l_unit != r_unit
+                and compare_mismatched_resolutions(
+                    left._ndarray, right._ndarray, operator.eq
+                ).all()
+            ):
+                return
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
         assert_numpy_array_equal(
