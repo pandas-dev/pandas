@@ -1947,7 +1947,7 @@ class ArrowExtensionArray(
     def _str_split(
         self,
         pat: str | None = None,
-        n: int = -1,
+        n: int | None = -1,
         expand: bool = False,
         regex: bool | None = None,
     ):
@@ -1959,7 +1959,7 @@ class ArrowExtensionArray(
             split_func = pc.split_pattern
         return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat: str | None = None, n: int = -1):
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
         if n in {-1, 0}:
             n = None
         return type(self)(
