@@ -1221,19 +1221,6 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
-``apply`` on a Series can operate on a returned value from the applied function
-that is itself a series, and possibly upcast the result to a DataFrame:
-
-.. ipython:: python
-
-    def f(x):
-        return pd.Series([x, x ** 2], index=["x", "x^2"])
-
-
-    s = pd.Series(np.random.rand(5))
-    s
-    s.apply(f)
-
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
