@@ -739,7 +739,7 @@ def test_categorical_series(series, data):
     # Group the given series by a series with categorical data type such that group A
     # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
     # the given data.
-    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"), observed=False)
     result = groupby.aggregate(list)
     expected = Series(data, index=CategoricalIndex(data.keys()))
     tm.assert_series_equal(result, expected)
@@ -1115,7 +1115,7 @@ def test_groupby_multiindex_categorical_datetime():
             "values": np.arange(9),
         }
     )
-    result = df.groupby(["key1", "key2"]).mean()
+    result = df.groupby(["key1", "key2"], observed=False).mean()
 
     idx = MultiIndex.from_product(
         [
@@ -1291,8 +1291,8 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
 
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
-    expected = df_cat.groupby(["A", "B"])["C"].mean()
-    result = df_cat.groupby(["A", "B"]).mean()["C"]
+    expected = df_cat.groupby(["A", "B"], observed=False)["C"].mean()
+    result = df_cat.groupby(["A", "B"], observed=False).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 
@@ -1303,11 +1303,11 @@ def test_groupby_categorical_axis_1(code):
     cat = Categorical.from_codes(code, categories=list("abc"))
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(cat, axis=1)
+        gb = df.groupby(cat, axis=1, observed=False)
     result = gb.mean()
     msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = df.T.groupby(cat, axis=0)
+        gb2 = df.T.groupby(cat, axis=0, observed=False)
     expected = gb2.mean().T
     tm.assert_frame_equal(result, expected)
 
@@ -1340,16 +1340,10 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
-
-    if reduction_func == "corrwith":  # GH 32293
-        mark = pytest.mark.xfail(
-            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
-        )
-        request.node.add_marker(mark)
 
     df = DataFrame(
         {
@@ -1363,6 +1357,12 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
     expected_length = 4 if observed else 16
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+
+    if reduction_func == "corrwith":
+        # TODO: implemented SeriesGroupBy.corrwith. See GH 32293
+        assert not hasattr(series_groupby, reduction_func)
+        return
+
     agg = getattr(series_groupby, reduction_func)
     result = agg(*args)
 
@@ -1478,7 +1478,7 @@ def test_series_groupby_categorical_aggregation_getitem():
     df = DataFrame(d)
     cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
     df["range"] = cat
-    groups = df.groupby(["range", "baz"], as_index=True, sort=True)
+    groups = df.groupby(["range", "baz"], as_index=True, sort=True, observed=False)
     result = groups["foo"].agg("mean")
     expected = groups.agg("mean")["foo"]
     tm.assert_series_equal(result, expected)
@@ -1539,7 +1539,7 @@ def test_read_only_category_no_sort():
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
     expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex(cats, name="b"))
-    result = df.groupby("b", sort=False).mean()
+    result = df.groupby("b", sort=False, observed=False).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -1583,7 +1583,7 @@ def test_sorted_missing_category_values():
         dtype="category",
     )
 
-    result = df.groupby(["bar", "foo"]).size().unstack()
+    result = df.groupby(["bar", "foo"], observed=False).size().unstack()
 
     tm.assert_frame_equal(result, expected)
 
@@ -1748,7 +1748,7 @@ def test_groupby_categorical_indices_unused_categories():
             "col": range(3),
         }
     )
-    grouped = df.groupby("key", sort=False)
+    grouped = df.groupby("key", sort=False, observed=False)
     result = grouped.indices
     expected = {
         "b": np.array([0, 1], dtype="intp"),
@@ -2013,3 +2013,15 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
+@pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
+def test_groupby_default_depr(cat_columns, keys):
+    # GH#43999
+    df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
+    df[cat_columns] = df[cat_columns].astype("category")
+    msg = "The default of observed=False is deprecated"
+    klass = FutureWarning if set(cat_columns) & set(keys) else None
+    with tm.assert_produces_warning(klass, match=msg):
+        df.groupby(keys)

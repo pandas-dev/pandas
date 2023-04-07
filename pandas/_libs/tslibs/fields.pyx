@@ -43,11 +43,14 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+import_pandas_datetime()
 
 
 @cython.wraparound(False)
@@ -147,12 +150,13 @@ def get_date_name_field(
     name based on requested field (e.g. day_name)
     """
     cdef:
-        Py_ssize_t i, count = dtindex.shape[0]
+        Py_ssize_t i
+        cnp.npy_intp count = dtindex.shape[0]
         ndarray[object] out, names
         npy_datetimestruct dts
         int dow
 
-    out = np.empty(count, dtype=object)
+    out = cnp.PyArray_EMPTY(1, &count, cnp.NPY_OBJECT, 0)
 
     if field == "day_name":
         if locale is None:

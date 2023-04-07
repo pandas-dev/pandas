@@ -75,7 +75,7 @@ class TestPeriodIndexEquals(EqualsTests):
 
         # same internal, different tz
         idx3 = PeriodIndex._simple_new(
-            idx._values._simple_new(idx._values.asi8, freq="H")
+            idx._values._simple_new(idx._values.asi8, dtype=pd.PeriodDtype("H"))
         )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)

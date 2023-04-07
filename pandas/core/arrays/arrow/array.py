@@ -56,6 +56,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -217,7 +218,7 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
-    _data: pa.ChunkedArray
+    _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
@@ -251,7 +252,7 @@ class ArrowExtensionArray(
             except pa.ArrowInvalid:
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
-        if pa_dtype:
+        if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
         return cls(scalars)
 
@@ -433,11 +434,15 @@ class ArrowExtensionArray(
     # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["_data"] = self._pa_array.combine_chunks()
+        state["_pa_array"] = self._pa_array.combine_chunks()
         return state
 
     def __setstate__(self, state) -> None:
-        state["_pa_array"] = pa.chunked_array(state["_data"])
+        if "_data" in state:
+            data = state.pop("_data")
+        else:
+            data = state["_pa_array"]
+        state["_pa_array"] = pa.chunked_array(data)
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
@@ -762,6 +767,10 @@ class ArrowExtensionArray(
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
+
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
 
@@ -1036,6 +1045,11 @@ class ArrowExtensionArray(
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._pa_array)
+        elif pa.types.is_null(self._pa_array.type):
+            result = np.asarray(self._pa_array, dtype=dtype)
+            if not isna(na_value):
+                result[:] = na_value
+            return result
         elif self._hasna:
             data = self.copy()
             data[self.isna()] = na_value
@@ -1116,7 +1130,7 @@ class ArrowExtensionArray(
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count")
+        return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> Self:
@@ -1626,6 +1640,10 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
+        if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
+            # GH#52059 replace_with_mask segfaults for chunked array
+            # https://github.com/apache/arrow/issues/34634
+            values = values.combine_chunks()
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
@@ -1637,6 +1655,82 @@ class ArrowExtensionArray(
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
+
+    # ------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _to_masked(self):
+        pa_dtype = self._pa_array.type
+        na_value = 1
+        from pandas.core.arrays import (
+            BooleanArray,
+            FloatingArray,
+            IntegerArray,
+        )
+
+        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
+        if pa.types.is_floating(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Float{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = FloatingArray
+        elif pa.types.is_unsigned_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"UInt{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_signed_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Int{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_boolean(pa_dtype):
+            dtype = "boolean"
+            np_dtype = "bool"
+            na_value = True
+            arr_cls = BooleanArray
+        else:
+            raise NotImplementedError
+
+        mask = self.isna()
+        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
+        return arr_cls(arr, mask)
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        if isinstance(self.dtype, StringDtype):
+            return super()._groupby_op(
+                how=how,
+                has_dropped_na=has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                **kwargs,
+            )
+
+        masked = self._to_masked()
+
+        result = masked._groupby_op(
+            how=how,
+            has_dropped_na=has_dropped_na,
+            min_count=min_count,
+            ngroups=ngroups,
+            ids=ids,
+            **kwargs,
+        )
+        if isinstance(result, np.ndarray):
+            return result
+        return type(self)._from_sequence(result, copy=False)
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
@@ -1944,10 +2038,14 @@ class ArrowExtensionArray(
             "str.translate not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         raise NotImplementedError(
             "str.wrap not supported with pd.ArrowDtype(pa.string())."
         )
+
+    @property
+    def _dt_year(self):
+        return type(self)(pc.year(self._pa_array))
 
     @property
     def _dt_day(self):
@@ -2003,7 +2101,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_date(self):
-        return type(self)(self._pa_array.cast(pa.date64()))
+        return type(self)(self._pa_array.cast(pa.date32()))
 
     @property
     def _dt_time(self):
@@ -2083,7 +2181,10 @@ class ArrowExtensionArray(
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
     def _dt_to_pydatetime(self):
-        return np.array(self._pa_array.to_pylist(), dtype=object)
+        data = self._pa_array.to_pylist()
+        if self._dtype.pyarrow_dtype.unit == "ns":
+            data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
+        return np.array(data, dtype=object)
 
     def _dt_tz_localize(
         self,
