@@ -808,7 +808,7 @@ def test_concat_none_to_dttz():
     # GH-52093
     data = [{"A": None}]
     df = DataFrame(data)
-    data_2 = [{"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}]
+    data_2 = [{"A": [pd.to_datetime("1990-12-20 00:00:00+00:00")]}]
     df_2 = DataFrame(data_2)
     result = concat([df, df_2])
     expected = DataFrame({"A": [pd.to_datetime("1990-12-20 00:00:00+00:00")]})
