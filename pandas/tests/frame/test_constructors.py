@@ -2698,6 +2698,14 @@ class TestDataFrameConstructorIndexInference:
 
 
 class TestDataFrameConstructorWithDtypeCoercion:
+    def test_none_values_on_string_columns(self):
+        # Creating DataFrame with column "a" as string and a None value
+        data = {"a": ["1", "2", None]}
+        df = DataFrame(data=data, dtype="str")
+
+        # Checking that the value of the third row in column "a" is actually None
+        assert isna(df.loc[2, "a"])
+
     def test_floating_values_integer_dtype(self):
         # GH#40110 make DataFrame behavior with arraylike floating data and
         #  inty dtype match Series behavior
