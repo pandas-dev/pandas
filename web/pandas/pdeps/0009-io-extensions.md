@@ -1,7 +1,7 @@
 # PDEP-9: Allow third-party projects to register pandas connectors with a standard API
 
 - Created: 5 March 2023
-- Status: Under discussion
+- Status: Rejected
 - Discussion: [#51799](https://github.com/pandas-dev/pandas/pull/51799)
 - Author: [Marc Garcia](https://github.com/datapythonista)
 - Revision: 1
