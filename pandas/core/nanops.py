@@ -34,7 +34,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_any_int_dtype,
     is_complex,
     is_float,
     is_float_dtype,
@@ -247,7 +246,7 @@ def _maybe_get_mask(
             # Boolean data cannot contain nulls, so signal via mask being None
             return None
 
-        if skipna or needs_i8_conversion(values.dtype):
+        if skipna or values.dtype.kind in "mM":
             mask = isna(values)
 
     return mask
@@ -300,7 +299,7 @@ def _get_values(
     dtype = values.dtype
 
     datetimelike = False
-    if needs_i8_conversion(values.dtype):
+    if values.dtype.kind in "mM":
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
         values = np.asarray(values.view("i8"))
@@ -433,7 +432,7 @@ def _na_for_min_count(values: np.ndarray, axis: AxisInt | None) -> Scalar | np.n
         For 2-D values, returns a 1-D array where each element is missing.
     """
     # we either return np.nan or pd.NaT
-    if is_numeric_dtype(values.dtype):
+    if values.dtype.kind in "iufcb":
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
 
@@ -521,7 +520,7 @@ def nanany(
         # expected "bool")
         return values.any(axis)  # type: ignore[return-value]
 
-    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+    if values.dtype.kind == "M":
         # GH#34479
         warnings.warn(
             "'any' with datetime64 dtypes is deprecated and will raise in a "
@@ -582,7 +581,7 @@ def nanall(
         # expected "bool")
         return values.all(axis)  # type: ignore[return-value]
 
-    if needs_i8_conversion(values.dtype) and values.dtype.kind != "m":
+    if values.dtype.kind == "M":
         # GH#34479
         warnings.warn(
             "'all' with datetime64 dtypes is deprecated and will raise in a "
@@ -976,12 +975,12 @@ def nanvar(
     """
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
-    if is_any_int_dtype(dtype):
+    if dtype.kind in "iu":
         values = values.astype("f8")
         if mask is not None:
             values[mask] = np.nan
 
-    if is_float_dtype(values.dtype):
+    if values.dtype.kind == "f":
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
@@ -1007,7 +1006,7 @@ def nanvar(
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
     # precision as the original values array.
-    if is_float_dtype(dtype):
+    if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
     return result
 
