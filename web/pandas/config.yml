@@ -156,9 +156,9 @@ sponsors:
     logo: static/img/partners/voltron_data.svg
     kind: partner
     description: "Joris Van den Bossche"
-  - name: "d-fine GmbH"
-    url: https://www.d-fine.com/en/
-    logo: static/img/partners/dfine.svg
+  - name: "Coiled"
+    url: https://www.coiled.io
+    logo: static/img/partners/coiled.svg
     kind: partner
     description: "Patrick Hoefler"
   - name: "Quansight"
@@ -213,6 +213,9 @@ sponsors:
     kind: partner
   - name: "Gousto"
     url: https://www.gousto.co.uk/
+    kind: partner
+  - name: "d-fine GmbH"
+    url: https://www.d-fine.com/en/
     kind: partner
 roadmap:
   pdeps_path: pdeps
