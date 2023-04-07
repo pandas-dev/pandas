@@ -79,7 +79,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -1026,7 +1026,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         left = self._data[~self._mask]
         right = other._data[~other._mask]
-        return array_equivalent(left, right, dtype_equal=True)
+        return array_equivalent(left, right, strict_nan=True, dtype_equal=True)
 
     def _quantile(
         self, qs: npt.NDArray[np.float64], interpolation: str

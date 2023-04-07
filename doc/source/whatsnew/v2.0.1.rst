@@ -20,7 +20,10 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
+- Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)
+- Bug in :meth:`Series.describe` not returning :class:`ArrowDtype` with ``pyarrow.float64`` type with numeric data (:issue:`52427`)
+- Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
