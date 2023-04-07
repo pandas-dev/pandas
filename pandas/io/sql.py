@@ -968,7 +968,7 @@ class SQLTable(PandasObject):
                     with warnings.catch_warnings():
                         warnings.filterwarnings("ignore")
                         # GH#52459 to_pydatetime will return Index[object]
-                        d = ser.dt.to_pydatetime()
+                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
