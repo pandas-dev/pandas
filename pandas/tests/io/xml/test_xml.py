@@ -1170,7 +1170,9 @@ def test_stylesheet_io(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    xsl_obj: BytesIO | StringIO
+    # note: By default the bodies of untyped functions are not checked,
+    # consider using --check-untyped-defs
+    xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
     with open(xsl, mode) as f:
         if mode == "rb":
@@ -1349,7 +1351,9 @@ def test_stylesheet_file_close(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    xsl_obj: BytesIO | StringIO
+    # note: By default the bodies of untyped functions are not checked,
+    # consider using --check-untyped-defs
+    xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
     with open(xsl, mode) as f:
         if mode == "rb":

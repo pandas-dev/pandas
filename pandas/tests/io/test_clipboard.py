@@ -4,7 +4,10 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas.compat import is_ci_environment
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -401,7 +404,8 @@ class TestClipboard:
     @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        os.environ.get("DISPLAY") is None or is_ci_environment(),
+        (os.environ.get("DISPLAY") is None and not is_platform_mac())
+        or is_ci_environment(),
         reason="Cannot pass if a headless system is not put in place with Xvfb",
         strict=not is_ci_environment(),  # Flaky failures in the CI
     )
