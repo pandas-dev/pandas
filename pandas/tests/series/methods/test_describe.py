@@ -192,7 +192,8 @@ class TestSeriesDescribe:
     def test_describe_one_element_ea(self):
         # GH#52515
         ser = Series([0.0], dtype="Float64")
-        result = ser.describe()
+        with tm.assert_produces_warning(None):
+            result = ser.describe()
         expected = Series(
             [1, 0, NA, 0, 0, 0, 0, 0],
             dtype="Float64",
