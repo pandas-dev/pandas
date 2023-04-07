@@ -23,7 +23,6 @@ from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
 from pandas._typing import (
-    Axis,
     AxisInt,
     DtypeObj,
     IndexLabel,
@@ -588,7 +587,8 @@ class IndexOpsMixin(OpsMixin):
                 values = np.asarray(values, dtype=dtype)
             else:
                 values = values.copy()
-            values[np.asanyarray(self.isna())] = na_value
+
+            values[np.asanyarray(isna(self))] = na_value
 
         result = np.asarray(values, dtype=dtype)
 
@@ -607,50 +607,6 @@ class IndexOpsMixin(OpsMixin):
     @property
     def empty(self) -> bool:
         return not self.size
-
-    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
-        """
-        Return the maximum value of the Index.
-
-        Parameters
-        ----------
-        axis : int, optional
-            For compatibility with NumPy. Only 0 or None are allowed.
-        skipna : bool, default True
-            Exclude NA/null values when showing the result.
-        *args, **kwargs
-            Additional arguments and keywords for compatibility with NumPy.
-
-        Returns
-        -------
-        scalar
-            Maximum value.
-
-        See Also
-        --------
-        Index.min : Return the minimum value in an Index.
-        Series.max : Return the maximum value in a Series.
-        DataFrame.max : Return the maximum values in a DataFrame.
-
-        Examples
-        --------
-        >>> idx = pd.Index([3, 2, 1])
-        >>> idx.max()
-        3
-
-        >>> idx = pd.Index(['c', 'b', 'a'])
-        >>> idx.max()
-        'c'
-
-        For a MultiIndex, the maximum is determined lexicographically.
-
-        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
-        >>> idx.max()
-        ('b', 2)
-        """
-        nv.validate_minmax_axis(axis)
-        nv.validate_max(args, kwargs)
-        return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
     def argmax(
@@ -721,50 +677,6 @@ class IndexOpsMixin(OpsMixin):
             return nanops.nanargmax(  # type: ignore[return-value]
                 delegate, skipna=skipna
             )
-
-    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
-        """
-        Return the minimum value of the Index.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series.
-        skipna : bool, default True
-            Exclude NA/null values when showing the result.
-        *args, **kwargs
-            Additional arguments and keywords for compatibility with NumPy.
-
-        Returns
-        -------
-        scalar
-            Minimum value.
-
-        See Also
-        --------
-        Index.max : Return the maximum value of the object.
-        Series.min : Return the minimum value in a Series.
-        DataFrame.min : Return the minimum values in a DataFrame.
-
-        Examples
-        --------
-        >>> idx = pd.Index([3, 2, 1])
-        >>> idx.min()
-        1
-
-        >>> idx = pd.Index(['c', 'b', 'a'])
-        >>> idx.min()
-        'a'
-
-        For a MultiIndex, the minimum is determined lexicographically.
-
-        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
-        >>> idx.min()
-        ('a', 1)
-        """
-        nv.validate_minmax_axis(axis)
-        nv.validate_min(args, kwargs)
-        return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
@@ -858,30 +770,6 @@ class IndexOpsMixin(OpsMixin):
         # error: Item "bool" of "Union[bool, ndarray[Any, dtype[bool_]], NDFrame]"
         # has no attribute "any"
         return bool(isna(self).any())  # type: ignore[union-attr]
-
-    def isna(self) -> npt.NDArray[np.bool_]:
-        return isna(self._values)
-
-    def _reduce(
-        self,
-        op,
-        name: str,
-        *,
-        axis: Axis = 0,
-        skipna: bool = True,
-        numeric_only=None,
-        filter_type=None,
-        **kwds,
-    ):
-        """
-        Perform the reduction type operation if we can.
-        """
-        func = getattr(self, name, None)
-        if func is None:
-            raise TypeError(
-                f"{type(self).__name__} cannot perform the operation {name}"
-            )
-        return func(skipna=skipna, **kwds)
 
     @final
     def _map_values(self, mapper, na_action=None, convert: bool = True):
