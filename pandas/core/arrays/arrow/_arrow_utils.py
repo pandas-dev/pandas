@@ -42,6 +42,11 @@ def pyarrow_array_to_numpy_and_mask(
     """
     dtype = np.dtype(dtype)
 
+    if pyarrow.types.is_null(arr.type):
+        # No initialization of data is needed since everything is null
+        data = np.empty(len(arr), dtype=dtype)
+        mask = np.zeros(len(arr), dtype=bool)
+        return data, mask
     buflist = arr.buffers()
     # Since Arrow buffers might contain padding and the data might be offset,
     # the buffer gets sliced here before handing it to numpy.
