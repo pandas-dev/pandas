@@ -127,6 +127,7 @@ from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
     ravel_compat,
 )
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
@@ -1106,7 +1107,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         from pandas.core.arrays.period import PeriodArray
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
-        parr = PeriodArray(i8vals, freq=other.freq)
+        dtype = PeriodDtype(other.freq)
+        parr = PeriodArray(i8vals, dtype=dtype)
         return parr + self
 
     def _add_offset(self, offset):
@@ -1282,9 +1284,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         op = getattr(datetimelike_accumulations, name)
         result = op(self.copy(), skipna=skipna, **kwargs)
 
-        return type(self)._simple_new(
-            result, freq=None, dtype=self.dtype  # type: ignore[call-arg]
-        )
+        return type(self)._simple_new(result, dtype=self.dtype)
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
@@ -2209,10 +2209,14 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     else:
         data = extract_array(data, extract_numpy=True)
 
-    if isinstance(data, IntegerArray):
+    if isinstance(data, IntegerArray) or (
+        isinstance(data, ArrowExtensionArray) and data.dtype.kind in "iu"
+    ):
         data = data.to_numpy("int64", na_value=iNaT)
         copy = False
-    elif not isinstance(data, (np.ndarray, ExtensionArray)):
+    elif not isinstance(data, (np.ndarray, ExtensionArray)) or isinstance(
+        data, ArrowExtensionArray
+    ):
         # GH#24539 e.g. xarray, dask object
         data = np.asarray(data)
 
