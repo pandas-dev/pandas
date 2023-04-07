@@ -174,7 +174,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return False
         if not is_dtype_equal(self.dtype, other.dtype):
             return False
-        return bool(array_equivalent(self._ndarray, other._ndarray))
+        return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 
     @classmethod
     def _from_factorized(cls, values, original):
