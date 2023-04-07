@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import operator
 import re
+import sys
+import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -10,6 +12,7 @@ from typing import (
     Sequence,
     cast,
 )
+import unicodedata
 
 import numpy as np
 
@@ -1961,14 +1964,26 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_removeprefix(self, prefix: str):
-        raise NotImplementedError(
-            "str.removeprefix not supported with pd.ArrowDtype(pa.string())."
-        )
         # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
         # starts_with = pc.starts_with(self._pa_array, pattern=prefix)
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
+        if sys.version_info < (3, 9):
+            # NOTE pyupgrade will remove this when we run it with --py39-plus
+            # so don't remove the unnecessary `else` statement below
+            from pandas.util._str_methods import removeprefix
+
+        else:
+            removeprefix = lambda arg, prefix: arg.remove_prefix(prefix)
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [val if val is None else removeprefix(val, prefix) for val in chunk]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
+        )
 
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
@@ -1977,13 +1992,26 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_casefold(self):
-        raise NotImplementedError(
-            "str.casefold not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [val if val is None else val.casefold() for val in chunk]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
-    def _str_encode(self, encoding, errors: str = "strict"):
-        raise NotImplementedError(
-            "str.encode not supported with pd.ArrowDtype(pa.string())."
+    def _str_encode(self, encoding: str, errors: str = "strict"):
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        val if val is None else val.encode(encoding, errors)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
@@ -1991,34 +2019,75 @@ class ArrowExtensionArray(
             "str.extract not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_findall(self, pat, flags: int = 0):
-        raise NotImplementedError(
-            "str.findall not supported with pd.ArrowDtype(pa.string())."
+    def _str_findall(self, pat: str, flags: int = 0):
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        val if val is None else re.findall(pat, val, flags=flags)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_get_dummies(self, sep: str = "|"):
-        raise NotImplementedError(
-            "str.get_dummies not supported with pd.ArrowDtype(pa.string())."
-        )
+        split = pc.split_pattern(self._pa_array, sep).combine_chunks()
+        uniques = split.flatten().unique()
+        uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
+        result_data = []
+        # for unique in uniques_sorted:
+        for lst in split.to_pylist():
+            if lst is None:
+                arr = pa.array([False] * len(uniques_sorted))
+            else:
+                arr = pc.is_in(lst, uniques_sorted)
+            result_data.append(arr.to_pylist())
+        result = type(self)(pa.array(result_data))
+        return result, uniques_sorted.to_numpy()
 
     def _str_index(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.index not supported with pd.ArrowDtype(pa.string())."
-        )
+        result = self._str_find(sub, start, end)
+        if pc.any(pc.is_in(result._pa_array, [-1])).as_py():
+            # Same error as stdlib
+            raise ValueError("substring not found")
+        return result
 
     def _str_rindex(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.rindex not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        val if val is None else val.rindex(sub, start, end)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_normalize(self, form):
-        raise NotImplementedError(
-            "str.normalize not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        val if val is None else unicodedata.normalize(form, val)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_rfind(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.rfind not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [val if val is None else val.find(sub, start, end) for val in chunk]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_split(
@@ -2034,13 +2103,25 @@ class ArrowExtensionArray(
         )
 
     def _str_translate(self, table):
-        raise NotImplementedError(
-            "str.translate not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [val if val is None else val.translate(table) for val in chunk]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_wrap(self, width: int, **kwargs):
-        raise NotImplementedError(
-            "str.wrap not supported with pd.ArrowDtype(pa.string())."
+        kwargs["width"] = width
+        tw = textwrap.TextWrapper(**kwargs)
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [val if val is None else "\n".join(tw.wrap(val)) for val in chunk]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     @property
