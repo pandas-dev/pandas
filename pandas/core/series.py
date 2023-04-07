@@ -5781,7 +5781,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> city_series.index
         Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
 
-
         To change the index labels of an existing Series:
         >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
         >>> city_series.index
