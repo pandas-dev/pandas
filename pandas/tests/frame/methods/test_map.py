@@ -24,7 +24,7 @@ def test_map(float_frame):
 
 
 @pytest.mark.parametrize("val", [1, 1.0])
-def test_applymap_float_object_conversion(val):
+def test_map_float_object_conversion(val):
     # GH 2909: object conversion to float in constructor?
     df = DataFrame(data=[val, "a"])
     result = df.map(lambda x: x).dtypes[0]
@@ -32,7 +32,7 @@ def test_applymap_float_object_conversion(val):
 
 
 @pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_applymap_keeps_dtype(na_action):
+def test_map_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])
     sparse_arr = arr.astype(pd.SparseDtype(object))
@@ -54,7 +54,7 @@ def test_applymap_keeps_dtype(na_action):
     tm.assert_frame_equal(result_empty, expected_empty)
 
 
-def test_applymap_str():
+def test_map_str():
     # GH 2786
     df = DataFrame(np.random.random((3, 4)))
     df2 = df.copy()
@@ -71,7 +71,7 @@ def test_applymap_str():
     "col, val",
     [["datetime", Timestamp("20130101")], ["timedelta", pd.Timedelta("1 min")]],
 )
-def test_applymap_datetimelike(col, val):
+def test_map_datetimelike(col, val):
     # datetime/timedelta
     df = DataFrame(np.random.random((3, 4)))
     df[col] = val
@@ -89,20 +89,20 @@ def test_applymap_datetimelike(col, val):
     ],
 )
 @pytest.mark.parametrize("func", [round, lambda x: x])
-def test_applymap_empty(expected, func):
+def test_map_empty(expected, func):
     # GH 8222
     result = expected.map(func)
     tm.assert_frame_equal(result, expected)
 
 
-def test_applymap_kwargs():
+def test_map_kwargs():
     # GH 40652
     result = DataFrame([[1, 2], [3, 4]]).map(lambda x, y: x + y, y=2)
     expected = DataFrame([[3, 4], [5, 6]])
     tm.assert_frame_equal(result, expected)
 
 
-def test_applymap_na_ignore(float_frame):
+def test_map_na_ignore(float_frame):
     # GH 23803
     strlen_frame = float_frame.map(lambda x: len(str(x)))
     float_frame_with_na = float_frame.copy()
@@ -116,7 +116,7 @@ def test_applymap_na_ignore(float_frame):
     tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
 
 
-def test_applymap_box_timestamps():
+def test_map_box_timestamps():
     # GH 2689, GH 2627
     ser = Series(date_range("1/1/2000", periods=10))
 
@@ -127,7 +127,7 @@ def test_applymap_box_timestamps():
     DataFrame(ser).map(func)
 
 
-def test_applymap_box():
+def test_map_box():
     # ufunc will not be boxed. Same test cases as the test_map_box
     df = DataFrame(
         {
@@ -156,7 +156,7 @@ def test_applymap_box():
     tm.assert_frame_equal(result, expected)
 
 
-def test_frame_applymap_dont_convert_datetime64():
+def test_frame_map_dont_convert_datetime64():
     from pandas.tseries.offsets import BDay
 
     df = DataFrame({"x1": [datetime(1996, 1, 1)]})
@@ -168,7 +168,7 @@ def test_frame_applymap_dont_convert_datetime64():
     assert result == "M8[ns]"
 
 
-def test_applymap_function_runs_once():
+def test_map_function_runs_once():
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save values function is applied to
 
@@ -186,7 +186,7 @@ def test_applymap_function_runs_once():
         assert values == df.a.to_list()
 
 
-def test_applymap_type():
+def test_map_type():
     # GH 46719
     df = DataFrame(
         {"col1": [3, "string", float], "col2": [0.25, datetime(2020, 1, 1), np.nan]},
