@@ -14,6 +14,7 @@ from pandas.compat import is_numpy_dev
 from pandas.core.dtypes.common import (
     is_float,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -709,7 +710,7 @@ def test_array_equivalent_index_with_tuples():
     ],
 )
 def test_na_value_for_dtype(dtype, na_value):
-    result = na_value_for_dtype(dtype)
+    result = na_value_for_dtype(pandas_dtype(dtype))
     # identify check doesn't work for datetime64/timedelta64("NaT") bc they
     #  are not singletons
     assert result is na_value or (

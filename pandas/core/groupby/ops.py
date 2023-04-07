@@ -47,12 +47,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -248,7 +242,7 @@ class WrappedCythonOp:
         if how == "rank":
             out_dtype = "float64"
         else:
-            if is_numeric_dtype(dtype):
+            if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
             else:
                 out_dtype = "object"
@@ -274,9 +268,9 @@ class WrappedCythonOp:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var", "std", "sem"]:
-            if is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if dtype.kind in "fc":
                 return dtype
-            elif is_numeric_dtype(dtype):
+            elif dtype.kind in "iub":
                 return np.dtype(np.float64)
         return dtype
 
@@ -339,14 +333,14 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        is_numeric = dtype.kind in "iufcb"
 
-        is_datetimelike = needs_i8_conversion(dtype)
+        is_datetimelike = dtype.kind in "mM"
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             values = values.view("uint8")
         if values.dtype == "float16":
             values = values.astype(np.float32)
@@ -446,7 +440,7 @@ class WrappedCythonOp:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
-            if is_integer_dtype(result.dtype) and not is_datetimelike:
+            if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
