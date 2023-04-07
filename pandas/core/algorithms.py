@@ -220,7 +220,7 @@ def _ensure_arraylike(values) -> ArrayLike:
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer"]:
+        if inferred in [InferredType.MIXED, InferredType.STRING, InferredType.MIXED_INTEGER]:
             # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
             if isinstance(values, tuple):
                 values = list(values)
@@ -1535,7 +1535,7 @@ def safe_sort(
 
     if (
         not isinstance(values.dtype, ExtensionDtype)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
+        and lib.infer_dtype(values, skipna=False) == InferredType.MIXED_INTEGER
     ):
         ordered = _sort_mixed(values)
     else:

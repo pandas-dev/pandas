@@ -120,6 +120,6 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_infer_dtype(self, data, data_missing, skipna):
         # only testing that this works without raising an error
         res = infer_dtype(data, skipna=skipna)
-        assert isinstance(res, str)
+        assert isinstance(res, InferredType)
         res = infer_dtype(data_missing, skipna=skipna)
-        assert isinstance(res, str)
+        assert isinstance(res, InferredType)

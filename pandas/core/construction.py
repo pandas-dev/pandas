@@ -328,14 +328,14 @@ def array(
 
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
-        if inferred_dtype == "period":
+        if inferred_dtype == InferredType.PERIOD:
             period_data = cast(Union[Sequence[Optional[Period]], AnyArrayLike], data)
             return PeriodArray._from_sequence(period_data, copy=copy)
 
-        elif inferred_dtype == "interval":
+        elif inferred_dtype == InferredType.INTERVAL:
             return IntervalArray(data, copy=copy)
 
-        elif inferred_dtype.startswith("datetime"):
+        elif inferred_dtype in [InferredType.DATETIME, InferredType.DATETIME64]:
             # datetime, datetime64
             try:
                 return DatetimeArray._from_sequence(data, copy=copy)
@@ -343,26 +343,26 @@ def array(
                 # Mixture of timezones, fall back to PandasArray
                 pass
 
-        elif inferred_dtype.startswith("timedelta"):
+        elif inferred_dtype in [InferredType.TIMEDELTA, InferredType.TIMEDELTA64]:
             # timedelta, timedelta64
             return TimedeltaArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype == "string":
+        elif inferred_dtype == InferredType.STRING:
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
             return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
 
-        elif inferred_dtype == "integer":
+        elif inferred_dtype == InferredType.INTEGER:
             return IntegerArray._from_sequence(data, copy=copy)
 
         elif (
-            inferred_dtype in ("floating", "mixed-integer-float")
+            inferred_dtype in [InferredType.FLOATING, InferredType.MIXED_INTEGER_FLOAT]
             and getattr(data, "dtype", None) != np.float16
         ):
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
             #  we will fall back to PandasArray.
             return FloatingArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype == "boolean":
+        elif inferred_dtype == InferredType.BOOLEAN:
             return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for

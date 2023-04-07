@@ -747,20 +747,20 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if not isinstance(values, type(self)):
             inferable = [
-                "timedelta",
-                "timedelta64",
-                "datetime",
-                "datetime64",
-                "date",
-                "period",
+                InferredType.TIMEDELTA,
+                InferredType.TIMEDELTA64,
+                InferredType.DATETIME,
+                InferredType.DATETIME64,
+                InferredType.DATE,
+                InferredType.PERIOD,
             ]
             if values.dtype == object:
                 inferred = lib.infer_dtype(values, skipna=False)
                 if inferred not in inferable:
-                    if inferred == "string":
+                    if inferred == InferredType.STRING:
                         pass
 
-                    elif "mixed" in inferred:
+                    elif InferredType.MIXED in inferred:
                         return isin(self.astype(object), values)
                     else:
                         return np.zeros(self.shape, dtype=bool)

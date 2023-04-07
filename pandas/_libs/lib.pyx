@@ -1380,9 +1380,34 @@ cdef object _try_infer_map(object dtype):
     return None
 
 
-def infer_dtype(value: object, skipna: bool = True) -> str:
+class InferredType(Enum):
+    EMPTY ="empty"
+    STRING = "string"
+    BYTES = "bytes"
+    FLOATING = "floating"
+    INFERRED = "inferred"
+    INTEGER = "integer"
+    INTEGER_NA = "integer-na"
+    MIXED_INTEGER = "mixed-integer"
+    MIXED_INTEGER_FLOAT = "mixed-integer-float"
+    DECIMAL = "decimal"
+    COMPLEX = "complex"
+    CATEGORICAL = "categorical"
+    BOOLEAN = "boolean"
+    DATETIME64 = "datetime64"
+    DATETIME = "datetime"
+    DATE = "date"
+    TIMEDELTA64 = "timedelta64"
+    TIMEDELTA = "timedelta"
+    TIME = "time"
+    PERIOD = "period"
+    MIXED = "mixed"
+    UKNOWN_ARRAY = "unknown-array"
+
+
+def infer_dtype(value: object, skipna: bool = True) -> InferredType:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return a InferredType label of the type of a scalar or list-like of values.
 
     Parameters
     ----------
@@ -1392,7 +1417,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Returns
     -------
-    str
+    InferredType
         Describing the common type of the input data.
     Results can include:
 
@@ -1494,22 +1519,22 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(type(value), "inferred_type") and skipna is False:
-        # Index, use the cached attribute if possible, populate the cache otherwise
-        return value.inferred_type
+    #elif hasattr(type(value), "inferred_type") and skipna is False:
+    #    # Index, use the cached attribute if possible, populate the cache otherwise
+    #    return value.inferred_type
     elif hasattr(value, "dtype"):
         inferred = _try_infer_map(value.dtype)
         if inferred is not None:
-            return inferred
+            return InferredType.INFERRED
         elif not cnp.PyArray_DescrCheck(value.dtype):
-            return "unknown-array"
+            return  InferredType.UKNOWN_ARRAY
         # Unwrap Series/Index
         values = np.asarray(value)
     else:
         if not isinstance(value, list):
             value = list(value)
         if not value:
-            return "empty"
+            return InferredType.EMPTY
 
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
@@ -1517,7 +1542,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     inferred = _try_infer_map(values.dtype)
     if inferred is not None:
         # Anything other than object-dtype should return here.
-        return inferred
+        return InferredType.INFERRED
 
     if values.descr.type_num != NPY_OBJECT:
         # i.e. values.dtype != np.object_
@@ -1526,7 +1551,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     n = cnp.PyArray_SIZE(values)
     if n == 0:
-        return "empty"
+        return InferredType.EMPTY
 
     # Iterate until we find our first valid value. We will use this
     #  value to decide which of the is_foo_array functions to call.
@@ -1549,82 +1574,82 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     # if all values are nan/NaT
     if seen_val is False and seen_pdnat is True:
-        return "datetime"
+        return InferredType.DATETIME
         # float/object nan is handled in latter logic
     if seen_val is False and skipna:
-        return "empty"
+        return InferredType.EMPTY
 
     if util.is_datetime64_object(val):
         if is_datetime64_array(values, skipna=skipna):
-            return "datetime64"
+            return InferredType.DATETIME64
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values, skipna=skipna):
-            return "timedelta"
+            return InferredType.TIMEDELTA
 
     elif util.is_integer_object(val):
         # ordering matters here; this check must come after the is_timedelta
         #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values, skipna=skipna):
-            return "integer"
+            return  InferredType.INTEGER
         elif is_integer_float_array(values, skipna=skipna):
             if is_integer_na_array(values, skipna=skipna):
-                return "integer-na"
+                return InferredType.INTEGER_NA
             else:
-                return "mixed-integer-float"
-        return "mixed-integer"
+                return InferredType.MIXED_INTEGER_FLOAT
+        return InferredType.MIXED_INTEGER
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values, skipna=skipna):
-            return "datetime"
+            return InferredType.DATETIME
         elif is_date_array(values, skipna=skipna):
-            return "date"
+            return InferredType.DATE
 
     elif PyDate_Check(val):
         if is_date_array(values, skipna=skipna):
-            return "date"
+            return InferredType.DATE
 
     elif PyTime_Check(val):
         if is_time_array(values, skipna=skipna):
-            return "time"
+            return InferredType.TIME
 
     elif is_decimal(val):
         if is_decimal_array(values, skipna=skipna):
-            return "decimal"
+            return InferredType.DECIMAL
 
     elif util.is_complex_object(val):
         if is_complex_array(values):
-            return "complex"
+            return InferredType.COMPLEX
 
     elif util.is_float_object(val):
         if is_float_array(values):
-            return "floating"
+            return InferredType.FLOATING
         elif is_integer_float_array(values, skipna=skipna):
             if is_integer_na_array(values, skipna=skipna):
-                return "integer-na"
+                return InferredType.INTEGER_NA
             else:
-                return "mixed-integer-float"
+                return InferredType.MIXED_INTEGER_FLOAT
 
     elif util.is_bool_object(val):
         if is_bool_array(values, skipna=skipna):
-            return "boolean"
+            return InferredType.BOOLEAN
 
     elif isinstance(val, str):
         if is_string_array(values, skipna=skipna):
-            return "string"
+            return InferredType.STRING
 
     elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
-            return "bytes"
+            return InferredType.BYTES
 
     elif is_period_object(val):
         if is_period_array(values, skipna=skipna):
-            return "period"
+            return InferredType.PERIOD
 
     elif is_interval(val):
         if is_interval_array(values):
-            return "interval"
+            return InferredType.INTERVAL
 
     cnp.PyArray_ITER_RESET(it)
     for i in range(n):
@@ -1632,9 +1657,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         PyArray_ITER_NEXT(it)
 
         if util.is_integer_object(val):
-            return "mixed-integer"
+            return InferredType.MIXED_INTEGER
 
-    return "mixed"
+    return InferredType.MIXED
 
 
 cdef bint is_timedelta(object o):
