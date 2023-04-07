@@ -4,6 +4,7 @@ jobs:
   build-docs:
     machine:
       image: ubuntu-2004:202101-01
+    resource_class: large
     environment:
       ENV_FILE: environment.yml
     steps:
