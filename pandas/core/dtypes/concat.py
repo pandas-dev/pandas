@@ -20,6 +20,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -155,7 +156,7 @@ def concat_compat(
     # "Sequence[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
     # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[Any]]]]"
     result: np.ndarray = np.concatenate(to_concat, axis=axis)  # type: ignore[arg-type]
-    if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
+    if "b" in kinds and result.dtype.kind in "iuf":
         # GH#39817 cast to object instead of casting bools to numeric
         result = result.astype(object, copy=False)
     return result
@@ -323,7 +324,8 @@ def union_categoricals(
     if ignore_order:
         ordered = False
 
-    return Categorical(new_codes, categories=categories, ordered=ordered, fastpath=True)
+    dtype = CategoricalDtype(categories=categories, ordered=ordered)
+    return Categorical._simple_new(new_codes, dtype=dtype)
 
 
 def _concatenate_2d(to_concat: Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:
