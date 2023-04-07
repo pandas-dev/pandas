@@ -1049,8 +1049,8 @@ class ArrowExtensionArray(
             fill_value = None if isna(na_value) else na_value
             return np.full(len(self), fill_value=fill_value, dtype=dtype)
         elif self._hasna:
-            result = self.fillna(na_value)
-            result = result._pa_array.to_numpy()
+            data = self.fillna(na_value)
+            result = data._pa_array.to_numpy()
             if dtype is not None:
                 result = result.astype(dtype, copy=False)
             return result
