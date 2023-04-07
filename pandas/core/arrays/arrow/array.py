@@ -1024,6 +1024,11 @@ class ArrowExtensionArray(
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._data)
+        elif pa.types.is_null(self._data.type):
+            result = np.asarray(self._data, dtype=dtype)
+            if not isna(na_value):
+                result[:] = na_value
+            return result
         elif self._hasna:
             data = self.copy()
             data[self.isna()] = na_value
