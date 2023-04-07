@@ -62,7 +62,7 @@ def test_arrow_array(data, freq):
 def test_arrow_array_missing():
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
-    arr = PeriodArray([1, 2, 3], freq="D")
+    arr = PeriodArray([1, 2, 3], dtype="period[D]")
     arr[1] = pd.NaT
 
     result = pa.array(arr)
@@ -75,7 +75,7 @@ def test_arrow_array_missing():
 def test_arrow_table_roundtrip():
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
-    arr = PeriodArray([1, 2, 3], freq="D")
+    arr = PeriodArray([1, 2, 3], dtype="period[D]")
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})
 
@@ -96,7 +96,7 @@ def test_arrow_load_from_zero_chunks():
 
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
-    arr = PeriodArray([], freq="D")
+    arr = PeriodArray([], dtype="period[D]")
     df = pd.DataFrame({"a": arr})
 
     table = pa.table(df)
@@ -110,7 +110,7 @@ def test_arrow_load_from_zero_chunks():
 
 
 def test_arrow_table_roundtrip_without_metadata():
-    arr = PeriodArray([1, 2, 3], freq="H")
+    arr = PeriodArray([1, 2, 3], dtype="period[H]")
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})
 

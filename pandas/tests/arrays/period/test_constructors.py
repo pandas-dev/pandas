@@ -75,16 +75,17 @@ def test_period_array_raises(data, freq, msg):
 def test_period_array_non_period_series_raies():
     ser = pd.Series([1, 2, 3])
     with pytest.raises(TypeError, match="dtype"):
-        PeriodArray(ser, freq="D")
+        PeriodArray(ser, dtype="period[D]")
 
 
 def test_period_array_freq_mismatch():
     arr = period_array(["2000", "2001"], freq="D")
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, freq="M")
+        PeriodArray(arr, dtype="period[M]")
 
+    dtype = pd.PeriodDtype(pd.tseries.offsets.MonthEnd())
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
+        PeriodArray(arr, dtype=dtype)
 
 
 def test_from_sequence_disallows_i8():
@@ -121,3 +122,14 @@ def test_from_td64nat_sequence_raises():
         pd.Series(arr, dtype=dtype)
     with pytest.raises(ValueError, match=msg):
         pd.DataFrame(arr, dtype=dtype)
+
+
+def test_freq_deprecated():
+    # GH#52462
+    data = np.arange(5).astype(np.int64)
+    msg = "The 'freq' keyword in the PeriodArray constructor is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = PeriodArray(data, freq="M")
+
+    expected = PeriodArray(data, dtype="period[M]")
+    tm.assert_equal(res, expected)

@@ -25,6 +25,7 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.dtypes.dtypes import PeriodDtype
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "PeriodIndex or list of Periods"})
@@ -68,7 +68,8 @@ def _new_PeriodIndex(cls, **d):
     values = d.pop("data")
     if values.dtype == "int64":
         freq = d.pop("freq", None)
-        values = PeriodArray(values, freq=freq)
+        dtype = PeriodDtype(freq)
+        values = PeriodArray(values, dtype=dtype)
         return cls._simple_new(values, **d)
     else:
         return cls(values, **d)
@@ -246,7 +247,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # empty when really using the range-based constructor.
             freq = freq2
 
-            data = PeriodArray(data, freq=freq)
+            dtype = PeriodDtype(freq)
+            data = PeriodArray(data, dtype=dtype)
         else:
             freq = validate_dtype_freq(dtype, freq)
 
@@ -261,7 +263,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             if data is None and ordinal is not None:
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
-                data = PeriodArray(ordinal, freq=freq)
+                dtype = PeriodDtype(freq)
+                data = PeriodArray(ordinal, dtype=dtype)
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)
@@ -535,5 +538,6 @@ def period_range(
         freq = "D"
 
     data, freq = PeriodArray._generate_range(start, end, periods, freq, fields={})
-    data = PeriodArray(data, freq=freq)
+    dtype = PeriodDtype(freq)
+    data = PeriodArray(data, dtype=dtype)
     return PeriodIndex(data, name=name)

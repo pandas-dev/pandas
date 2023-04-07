@@ -245,7 +245,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
-        (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_ndarray"),
+        (PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]"), "_ndarray"),
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),

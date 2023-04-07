@@ -392,7 +392,7 @@ def test_quarterly_finder(year_span):
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
     result = converter._quarterly_finder(vmin, vmax, "Q")
     quarters = PeriodIndex(
-        arrays.PeriodArray(np.array([x[0] for x in result]), freq="Q")
+        arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )
     majors = np.array([x[1] for x in result])
     minors = np.array([x[2] for x in result])

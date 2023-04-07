@@ -9,8 +9,10 @@ from typing import (
     Literal,
     Sequence,
     TypeVar,
+    cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -49,6 +51,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -116,9 +119,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     """
     Pandas ExtensionArray for storing Period data.
 
-    Users should use :func:`~pandas.period_array` to create new instances.
-    Alternatively, :func:`~pandas.array` can be used to create new instances
-    from a sequence of Period scalars.
+    Users should use :func:`~pandas.array` to create new instances.
 
     Parameters
     ----------
@@ -213,10 +214,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def __init__(
         self, values, dtype: Dtype | None = None, freq=None, copy: bool = False
     ) -> None:
-        freq = validate_dtype_freq(dtype, freq)
-
         if freq is not None:
-            freq = Period._maybe_convert_freq(freq)
+            # GH#52462
+            warnings.warn(
+                "The 'freq' keyword in the PeriodArray constructor is deprecated "
+                "and will be removed in a future version. Pass 'dtype' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            freq = validate_dtype_freq(dtype, freq)
+            dtype = PeriodDtype(freq)
+
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+            if not isinstance(dtype, PeriodDtype):
+                raise ValueError(f"Invalid dtype {dtype} for PeriodArray")
 
         if isinstance(values, ABCSeries):
             values = values._values
@@ -227,36 +239,38 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             values = values._values
 
         if isinstance(values, type(self)):
-            if freq is not None and freq != values.freq:
-                raise raise_on_incompatible(values, freq)
-            values, freq = values._ndarray, values.freq
+            if dtype is not None and dtype != values.dtype:
+                raise raise_on_incompatible(values, dtype.freq)
+            values, dtype = values._ndarray, values.dtype
 
         values = np.array(values, dtype="int64", copy=copy)
-        if freq is None:
-            raise ValueError("freq is not specified and cannot be inferred")
-        NDArrayBacked.__init__(self, values, PeriodDtype(freq))
+        if dtype is None:
+            raise ValueError("dtype is not specified and cannot be inferred")
+        dtype = cast(PeriodDtype, dtype)
+        NDArrayBacked.__init__(self, values, dtype)
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.int64],
-        freq: BaseOffset | None = None,
-        dtype: Dtype | None = None,
+        dtype: PeriodDtype,
     ) -> Self:
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
-        return cls(values, freq=freq, dtype=dtype)
+        return cls(values, dtype=dtype)
 
     @classmethod
     def _from_sequence(
         cls,
-        scalars: Sequence[Period | None] | AnyArrayLike,
+        scalars,
         *,
         dtype: Dtype | None = None,
         copy: bool = False,
     ) -> Self:
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
             freq = dtype.freq
         else:
@@ -266,16 +280,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
-            # error: Incompatible return value type
-            # (got "Union[Sequence[Optional[Period]], Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]", expected "PeriodArray")
-            return scalars  # type: ignore[return-value]
+            return scalars
 
         periods = np.asarray(scalars, dtype=object)
 
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
-        return cls(ordinals, freq=freq)
+        dtype = PeriodDtype(freq)
+        return cls(ordinals, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -299,7 +311,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodArray[freq]
         """
         data, freq = dt64arr_to_periodarr(data, freq, tz)
-        return cls(data, freq=freq)
+        dtype = PeriodDtype(freq)
+        return cls(data, dtype=dtype)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -610,7 +623,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if self._hasna:
             new_data[self._isnan] = iNaT
 
-        return type(self)(new_data, freq=freq)
+        dtype = PeriodDtype(freq)
+        return type(self)(new_data, dtype=dtype)
 
     # ------------------------------------------------------------------
     # Rendering Methods
@@ -697,7 +711,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if op is operator.sub:
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
-        return type(self)(res_values, freq=self.freq)
+        return type(self)(res_values, dtype=self.dtype)
 
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
@@ -768,7 +782,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             self.asi8, delta.view("i8"), arr_mask=self._isnan, b_mask=b_mask
         )
         np.putmask(res_values, self._isnan | b_mask, iNaT)
-        return type(self)(res_values, freq=self.freq)
+        return type(self)(res_values, dtype=self.dtype)
 
     def _check_timedeltalike_freq_compat(self, other):
         """
@@ -904,7 +918,12 @@ def period_array(
     if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
     if isinstance(data_dtype, PeriodDtype):
-        return PeriodArray(data, freq=freq)
+        out = PeriodArray(data)
+        if freq is not None:
+            if freq == data_dtype.freq:
+                return out
+            return out.asfreq(freq)
+        return out
 
     # other iterable of some kind
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):

@@ -68,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -2792,7 +2793,8 @@ class GenericFixed(Fixed):
         elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                parr = PeriodArray._simple_new(values, freq=freq)
+                dtype = PeriodDtype(freq)
+                parr = PeriodArray._simple_new(values, dtype=dtype)
                 return PeriodIndex._simple_new(parr, name=None)
 
             factory = f
