@@ -90,13 +90,17 @@ Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://do
 
 ```sh
 # conda
-conda install pandas
+conda install -c conda-forge pandas
 ```
 
 ```sh
 # or PyPI
 pip install pandas
 ```
+
+The list of changes to pandas between each release can be found
+[here](https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html). For full
+details, see the commit logs at https://github.com/pandas-dev/pandas.
 
 ## Dependencies
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
