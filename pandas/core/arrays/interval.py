@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Sequence,
     Union,
-    cast,
     overload,
 )
 
@@ -55,7 +54,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -63,7 +61,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -317,8 +318,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
-            if is_interval_dtype(dtype):
-                dtype = cast(IntervalDtype, dtype)
+            if isinstance(dtype, IntervalDtype):
                 if dtype.subtype is not None:
                     left = left.astype(dtype.subtype)
                     right = right.astype(dtype.subtype)
@@ -344,7 +344,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"right [{type(right).__name__}] types"
             )
             raise ValueError(msg)
-        if is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
+        if isinstance(left.dtype, CategoricalDtype) or is_string_dtype(left.dtype):
             # GH 19016
             msg = (
                 "category, object, and string subtypes are not supported "
@@ -752,14 +752,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # determine the dtype of the elements we want to compare
         if isinstance(other, Interval):
             other_dtype = pandas_dtype("interval")
-        elif not is_categorical_dtype(other.dtype):
+        elif not isinstance(other.dtype, CategoricalDtype):
             other_dtype = other.dtype
         else:
             # for categorical defer to categories for dtype
             other_dtype = other.categories.dtype
 
             # extract intervals if we have interval categories with matching closed
-            if is_interval_dtype(other_dtype):
+            if isinstance(other_dtype, IntervalDtype):
                 if self.closed != other.categories.closed:
                     return invalid_comparison(self, other, op)
 
@@ -768,7 +768,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 )
 
         # interval-like -> need same closed and matching endpoints
-        if is_interval_dtype(other_dtype):
+        if isinstance(other_dtype, IntervalDtype):
             if self.closed != other.closed:
                 return invalid_comparison(self, other, op)
             elif not isinstance(other, Interval):
@@ -889,7 +889,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, method=None, limit=None) -> Self:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -951,7 +951,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        if is_interval_dtype(dtype):
+        if isinstance(dtype, IntervalDtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
@@ -1683,7 +1683,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)
 
-        if is_interval_dtype(values.dtype):
+        if isinstance(values.dtype, IntervalDtype):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)

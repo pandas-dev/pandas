@@ -733,7 +733,7 @@ class ExponentialMovingWindow(BaseWindow):
                 self.ignore_na,
                 bias,
             )
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, cov_func, numeric_only
@@ -810,7 +810,7 @@ class ExponentialMovingWindow(BaseWindow):
                 x_var = _cov(x_array, x_array)
                 y_var = _cov(y_array, y_array)
                 result = cov / zsqrt(x_var * y_var)
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, cov_func, numeric_only

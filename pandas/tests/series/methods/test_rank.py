@@ -394,6 +394,16 @@ class TestSeriesRank:
         result = s
         tm.assert_series_equal(result, expected)
 
+    def test_rank_ea_small_values(self):
+        # GH#52471
+        ser = Series(
+            [5.4954145e29, -9.791984e-21, 9.3715776e-26, NA, 1.8790257e-28],
+            dtype="Float64",
+        )
+        result = ser.rank(method="min")
+        expected = Series([4, 1, 3, np.nan, 2])
+        tm.assert_series_equal(result, expected)
+
 
 # GH15630, pct should be on 100% basis when method='dense'
 

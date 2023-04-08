@@ -883,7 +883,7 @@ def test_apply_multi_level_name(category):
     df = DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
-    result = df.groupby("B").apply(lambda x: x.sum())
+    result = df.groupby("B", observed=False).apply(lambda x: x.sum())
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 
@@ -1201,6 +1201,26 @@ def test_groupby_apply_shape_cache_safety():
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_apply_to_series_name():
+    # GH52444
+    df = DataFrame.from_dict(
+        {
+            "a": ["a", "b", "a", "b"],
+            "b1": ["aa", "ac", "ac", "ad"],
+            "b2": ["aa", "aa", "aa", "ac"],
+        }
+    )
+    grp = df.groupby("a")[["b1", "b2"]]
+    result = grp.apply(lambda x: x.unstack().value_counts())
+
+    expected_idx = MultiIndex.from_arrays(
+        arrays=[["a", "a", "b", "b", "b"], ["aa", "ac", "ac", "ad", "aa"]],
+        names=["a", None],
+    )
+    expected = Series([3, 1, 2, 1, 1], index=expected_idx, name="count")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("dropna", [True, False])

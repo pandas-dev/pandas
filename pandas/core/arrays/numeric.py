@@ -76,11 +76,13 @@ class NumericDtype(BaseMaskedDtype):
         array_class = self.construct_array_type()
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
+        if not array.type.equals(pyarrow_type) and not pyarrow.types.is_null(
+            array.type
+        ):
             # test_from_arrow_type_error raise for string, but allow
             #  through itemsize conversion GH#31896
             rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
-            if rt_dtype.kind not in ["i", "u", "f"]:
+            if rt_dtype.kind not in "iuf":
                 # Could allow "c" or potentially disallow float<->int conversion,
                 #  but at the moment we specifically test that uint<->int works
                 raise TypeError(

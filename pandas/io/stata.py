@@ -49,10 +49,10 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import (
     Categorical,
@@ -1780,7 +1780,7 @@ the string values returned are correct."""
         # Decode strings
         for col, typ in zip(data, self._typlist):
             if type(typ) is int:
-                data[col] = data[col].apply(self._decode, convert_dtype=True)
+                data[col] = data[col].apply(self._decode)
 
         data = self._insert_strls(data)
 
@@ -1989,7 +1989,7 @@ the string values returned are correct."""
                     # TODO: if we get a non-copying rename_categories, use that
                     cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
-                    vc = Series(categories).value_counts()
+                    vc = Series(categories, copy=False).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
                     # GH 25772
@@ -2006,7 +2006,7 @@ The repeated labels are:
 """
                     raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
-                cat_series = Series(cat_data, index=data.index)
+                cat_series = Series(cat_data, index=data.index, copy=False)
                 cat_converted_data.append((col, cat_series))
             else:
                 cat_converted_data.append((col, data[col]))
@@ -2407,7 +2407,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
+        is_cat = [isinstance(data[col].dtype, CategoricalDtype) for col in data]
         if not any(is_cat):
             return data
 
