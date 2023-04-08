@@ -68,7 +68,13 @@ def make_block(
 
     elif klass is DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
         # pyarrow calls get here
-        values = DatetimeArray._simple_new(values, dtype=dtype)
+        values = DatetimeArray._simple_new(
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
+            # expected "Union[dtype[datetime64], DatetimeTZDtype]"
+            values,
+            dtype=dtype,  # type: ignore[arg-type]
+        )
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
