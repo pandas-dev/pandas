@@ -673,14 +673,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby.apply(f)
+        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby.apply(f)
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
         return attr
 
@@ -1117,7 +1117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self.apply(curried)
+            return self._python_apply_general(curried, self._selected_obj)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1192,7 +1192,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = concat(values, axis=self.axis)
 
-        name = self.obj.name if self.obj.ndim == 1 else self._selection
+        if self.obj.ndim == 1:
+            name = self.obj.name
+        elif is_hashable(self._selection):
+            name = self._selection
+        else:
+            name = None
+
         if isinstance(result, Series) and name is not None:
             result.name = name
 
@@ -3129,6 +3135,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
+        grouper: np.ndarray | Index | ops.BaseGrouper
         if self.keys is None and self.level is None:
             # we don't have the grouper info available
             # (e.g. we have selected out
