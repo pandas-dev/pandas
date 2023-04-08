@@ -2972,6 +2972,7 @@ def test_loc_periodindex_3_levels():
 
 def test_loc_setitem_pyarrow_strings():
     # GH#52319
+    pytest.importorskip("pyarrow")
     df = DataFrame(
         {
             "strings": Series(["A", "B", "C"], dtype="string[pyarrow]"),
