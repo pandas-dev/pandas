@@ -4726,6 +4726,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
+            # since _set_name supports only inplace and not copy param
+            # we determine inplace based on copy (if inplace is False)
+            # 1) If inplace is True, the value of copy is ignored
+            # 2) If inplace is False/not supplied(default case), then
+            #    inplace is determined based on copy (opposite of copy)
+            if not inplace:
+                inplace = not copy
             return self._set_name(index, inplace=inplace)
 
     @Appender(

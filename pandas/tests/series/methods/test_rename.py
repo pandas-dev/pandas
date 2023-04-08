@@ -174,3 +174,9 @@ class TestRename:
         else:
             assert ser[0] == shallow_copy[0]
             assert ser[1] == shallow_copy[9]
+
+    def test_rename_scalar_copy_false(self):
+        # GH 52450
+        ser = Series([1])
+        shallow_copy = ser.rename("series_a", copy=False)
+        assert id(ser) == id(shallow_copy)
