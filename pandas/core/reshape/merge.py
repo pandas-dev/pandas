@@ -1004,7 +1004,7 @@ class _MergeOperation:
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
                 if result._is_label_reference(name):
-                    result[name] = Series(
+                    result[name] = result._constructor_sliced(
                         key_col, dtype=result_dtype, index=result.index
                     )
                 elif result._is_level_reference(name):
