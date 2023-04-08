@@ -138,8 +138,8 @@ def test_applymap_box():
             ],
             "c": [pd.Timedelta("1 days"), pd.Timedelta("2 days")],
             "d": [
-                pd.Period("2011-01-01", freq="M"),
-                pd.Period("2011-01-02", freq="M"),
+                pd.Period("2011-01-01", freq="ME"),
+                pd.Period("2011-01-02", freq="ME"),
             ],
         }
     )

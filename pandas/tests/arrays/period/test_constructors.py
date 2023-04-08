@@ -129,7 +129,7 @@ def test_freq_deprecated():
     data = np.arange(5).astype(np.int64)
     msg = "The 'freq' keyword in the PeriodArray constructor is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = PeriodArray(data, freq="M")
+        res = PeriodArray(data, freq="ME")
 
-    expected = PeriodArray(data, dtype="period[M]")
+    expected = PeriodArray(data, dtype="period[ME]")
     tm.assert_equal(res, expected)
