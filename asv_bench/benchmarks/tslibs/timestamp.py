@@ -51,6 +51,9 @@ class TimestampConstruction:
     def time_from_positional(self):
         Timestamp(2020, 1, 1, 0, 0, 0)
 
+    def time_from_positional_tz(self):
+        Timestamp(2020, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
+
 
 class TimestampProperties:
     params = [_tzs]

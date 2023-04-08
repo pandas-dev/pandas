@@ -1584,6 +1584,19 @@ class Timestamp(_Timestamp):
 
             if kwargs:
                 # Positional or keyword arguments
+                err_msg = (
+                    "argument for function given by name ('{}') and position ({})"
+                )
+
+                datetime_components = ["year", "month", "day", "hour", "minute",
+                                       "second", "microsecond", "tzinfo"]
+                for i, key in enumerate(datetime_components):
+                    if args_len > i:
+                        if key in kwargs:
+                            raise TypeError(err_msg.format(key, i))
+                    else:
+                        break
+
                 hour = kwargs.get("hour", hour)
                 minute = kwargs.get("minute", minute)
                 second = kwargs.get("second", second)

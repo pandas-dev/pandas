@@ -909,3 +909,21 @@ def test_timestamp_constructor_str_invalid_kwargs():
     )
     with pytest.raises(ValueError, match=msg):
         Timestamp("2020-01-01", foo="bar")
+
+
+@pytest.mark.parametrize(
+    "kwargs,pos_offset",
+    [
+        ({"day": 1}, 2),
+        ({"hour": 1}, 3),
+    ],
+)
+def test_timestamp_constructor_positional_arg_kwarg_conflict(kwargs, pos_offset):
+    # Check that we didn't pass anything except
+    # tz, tzinfo, unit with a string
+    msg = (
+        f"argument for function given by name \\('{next(iter(kwargs.keys()))}'\\) "
+        f"and position \\({pos_offset}\\)"
+    )
+    with pytest.raises(TypeError, match=msg):
+        Timestamp(2020, 1, 1, 1, **kwargs)
