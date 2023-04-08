@@ -464,7 +464,7 @@ cdef class _Timestamp(ABCTimestamp):
             raise integer_op_not_supported(self)
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -496,7 +496,7 @@ cdef class _Timestamp(ABCTimestamp):
             return self + neg_other
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -1293,6 +1293,9 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
+
+        For float inputs, the result will be stored in nanoseconds, and
+        the unit attribute will be set as ``'ns'``.
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the

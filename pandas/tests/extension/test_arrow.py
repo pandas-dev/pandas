@@ -27,6 +27,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -1676,6 +1677,23 @@ def test_to_numpy_int_with_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_val, exp", [(lib.no_default, np.nan), (1, 1)])
+def test_to_numpy_null_array(na_val, exp):
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype="float64", na_value=na_val)
+    expected = np.array([exp] * 2, dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_null_array_no_dtype():
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype=None)
+    expected = np.array([pd.NA] * 2, dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_setitem_null_slice(data):
     # GH50248
     orig = data.copy()
@@ -2110,6 +2128,7 @@ def test_unsupported_dt(data):
 @pytest.mark.parametrize(
     "prop, expected",
     [
+        ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
         ["dayofweek", 0],
@@ -2268,12 +2287,16 @@ def test_dt_to_pydatetime():
     data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
     ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
 
-    result = ser.dt.to_pydatetime()
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is datetime for res in result)
 
-    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2386,3 +2409,16 @@ def test_setitem_boolean_replace_with_mask_segfault():
     expected = arr.copy()
     arr[np.zeros((N,), dtype=np.bool_)] = False
     assert arr._pa_array == expected._pa_array
+
+
+@pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
+def test_describe_numeric_data(pa_type):
+    # GH 52470
+    data = pd.Series([1, 2, 3], dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
+        dtype=ArrowDtype(pa.float64()),
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
