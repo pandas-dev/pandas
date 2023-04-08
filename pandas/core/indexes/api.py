@@ -240,7 +240,10 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         """
         if all(isinstance(ind, Index) for ind in inds):
             result = inds[0].append(inds[1:]).unique()
-            return result.astype(dtype, copy=False)
+            result = result.astype(dtype, copy=False)
+            if sort:
+                result = result.sort_values()
+            return result
 
         def conv(i):
             if isinstance(i, Index):
