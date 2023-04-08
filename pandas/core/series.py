@@ -64,7 +64,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -73,6 +72,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -1861,7 +1861,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self) or is_extension_array_dtype(self):
+        if is_object_dtype(self.dtype) or isinstance(self.dtype, ExtensionDtype):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -4164,7 +4164,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self):
+        if not len(self) or not is_object_dtype(self.dtype):
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
 
@@ -5220,7 +5220,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         input_series = self
         if infer_objects:
             input_series = input_series.infer_objects()
-            if is_object_dtype(input_series):
+            if is_object_dtype(input_series.dtype):
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
