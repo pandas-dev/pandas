@@ -1236,7 +1236,7 @@ def _process_date_conversion(
 
                     dtype = data_dict[colspec].dtype
                     if isinstance(dtype, pd.ArrowDtype) and pa.types.is_timestamp(
-                        dtype
+                        dtype.pyarrow_dtype
                     ):
                         continue
 
