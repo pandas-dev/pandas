@@ -178,6 +178,18 @@ ser[len(ser)] = 4.5
 There is arguably a larger conversation to be had about whether that should be allowed
 at all. To keep this proposal focused, it is intentionally excluded from the scope.
 
+## F.A.Q.
+
+**Q: What happens if setting ``1.0`` in an ``int8`` Series?**
+
+**A**: The current behavior would be to insert ``1.0`` as ``1`` and keep the dtype
+  as ``int8``. So, this would not change.
+
+**Q: What happens if setting ``1_000_000.0`` in an ``int8`` Series?**
+
+**A**: The current behavior would be to upcast to ``int32``. So under this PDEP,
+  it would instead raise.
+
 ## Timeline
 
 Deprecate sometime in the 2.x releases (after 2.0.0 has already been released), and enforce in 3.0.0.
