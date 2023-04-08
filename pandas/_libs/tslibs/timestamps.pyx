@@ -1563,11 +1563,17 @@ class Timestamp(_Timestamp):
                         "hour" in kwargs or "minute" in kwargs or "second" in kwargs or
                         "microsecond" in kwargs):
                     raise ValueError("Cannot pass a date attribute keyword argument")
-                if isinstance(args[0], str) and "nanosecond" in kwargs:
-                    raise ValueError(
-                        "Cannot pass a date attribute keyword "
-                        "argument when passing a date string; 'tz' is keyword-only"
-                    )
+                if isinstance(args[0], str):
+                    if "nanosecond" in kwargs:
+                        raise ValueError(
+                            "Cannot pass a date attribute keyword "
+                            "argument when passing a date string; 'tz' is keyword-only"
+                        )
+                    if any(k not in ["tz", "tzinfo", "unit"] for k in kwargs.keys()):
+                        raise ValueError(
+                            "When passing a date string "
+                            "can only pass unit and tz or tzinfo as a keyword argument."
+                        )
 
             ts_input = args[0]
             tzinfo = kwargs.get("tzinfo")

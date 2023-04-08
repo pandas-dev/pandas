@@ -898,3 +898,14 @@ def test_timestamp_constructor_arg_shift():
     result = Timestamp(2019, 10, 27, minute=30)
     expected = Timestamp(2019, 10, 27, 0, 30)
     assert result == expected
+
+
+def test_timestamp_constructor_str_invalid_kwargs():
+    # Check that we didn't pass anything except
+    # tz, tzinfo, unit with a string
+    msg = (
+        "When passing a date string "
+        "can only pass unit and tz or tzinfo as a keyword argument."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timestamp("2020-01-01", foo="bar")
