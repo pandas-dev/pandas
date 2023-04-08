@@ -27,6 +27,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 if not pa_version_under7p0:
     import pyarrow as pa
+    import pyarrow.compute as pc
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -319,4 +320,5 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        return array_class(array)
+        arr = pc.cast(array, self.pyarrow_dtype, safe=True)
+        return array_class(arr)
