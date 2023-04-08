@@ -60,6 +60,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
+import pandas as pd
 from pandas import (
     DatetimeIndex,
     StringDtype,
@@ -1233,8 +1234,12 @@ def _process_date_conversion(
                 elif dtype_backend == "pyarrow":
                     import pyarrow as pa
 
-                    if pa.types.is_timestamp(data_dict[colspec].dtype.pyarrow_dtype):
+                    dtype = data_dict[colspec].dtype
+                    if isinstance(dtype, pd.ArrowDtype) and pa.types.is_timestamp(
+                        dtype
+                    ):
                         continue
+
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
                 data_dict[colspec] = converter(
