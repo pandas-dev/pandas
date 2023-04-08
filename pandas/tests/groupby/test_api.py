@@ -1,5 +1,8 @@
 """
 Tests of the groupby API, including internal consistency and with other pandas objects.
+
+Tests in this file should only check the existence, names, and arguments of groupby
+methods. It should not test the results of any groupby operation.
 """
 
 import inspect
