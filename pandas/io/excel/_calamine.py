@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 _CellValueT = Union[int, float, str, bool, time, date, datetime]
 
 
-class CalamineExcelReader(BaseExcelReader):
+class CalamineReader(BaseExcelReader):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
