@@ -64,8 +64,7 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 class TestLoc:
     def test_none_values_on_string_columns(self):
         # Issue #32218
-        data = {"a": ["1", "2", None]}
-        df = DataFrame(data=data, dtype="str")
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
 
         assert df.loc[2, "a"] is None
 
