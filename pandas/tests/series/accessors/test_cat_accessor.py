@@ -203,6 +203,9 @@ class TestCatAccessor:
                 if func == "to_period":
                     # dropping TZ
                     warnings.simplefilter("ignore", UserWarning)
+                if func == "to_pydatetime":
+                    # deprecated to return Index[object]
+                    warnings.simplefilter("ignore", FutureWarning)
                 res = getattr(cat.dt, func)(*args, **kwargs)
                 exp = getattr(ser.dt, func)(*args, **kwargs)
 

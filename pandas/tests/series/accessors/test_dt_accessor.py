@@ -115,7 +115,9 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
@@ -152,7 +154,9 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 

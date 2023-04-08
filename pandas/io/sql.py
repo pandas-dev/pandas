@@ -964,7 +964,13 @@ class SQLTable(PandasObject):
 
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
-                d = ser.dt.to_pydatetime()
+                if isinstance(ser._values, ArrowExtensionArray):
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=FutureWarning)
+                        # GH#52459 to_pydatetime will return Index[object]
+                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                else:
+                    d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
                 vals = ser._values
                 if isinstance(vals, ArrowExtensionArray):
