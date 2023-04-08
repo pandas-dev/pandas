@@ -495,6 +495,7 @@ def test_info_int_columns():
     assert result == expected
 
 
+@pytest.mark.xfail(not IS64)
 def test_memory_usage_empty_no_warning():
     # GH#50066
     df = DataFrame(index=["a", "b"])

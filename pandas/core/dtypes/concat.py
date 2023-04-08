@@ -119,8 +119,7 @@ def concat_compat(
             warnings.warn(
                 "The behavior of array concatenation with empty entries is "
                 "deprecated. In a future version, this will no longer exclude "
-                "empty items when determining the result dtype. To opt in to "
-                "the future behavior, set pd.set_option('future.concat_empty', True). "
+                "empty items when determining the result dtype. "
                 "To retain the old behavior, exclude the empty entries before "
                 "the concat operation.",
                 FutureWarning,
