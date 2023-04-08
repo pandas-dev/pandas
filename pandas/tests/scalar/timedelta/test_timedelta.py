@@ -596,9 +596,10 @@ class TestTimedeltas:
         result = Timedelta(f"2{unit}")
         assert result == expected
 
-    @pytest.mark.parametrize("unit", ["Y", "y", "ME"])
+    @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
-        msg = "Units 'ME', 'Y', and 'y' are no longer supported"
+        msg = "Units 'M', 'Y', and 'y' are no longer supported"
+
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 

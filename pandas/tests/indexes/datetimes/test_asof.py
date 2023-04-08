@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 class TestAsOf:
     def test_asof_partial(self):
-        index = date_range("2010-01-01", periods=2, freq="m")
+        index = date_range("2010-01-01", periods=2, freq="ME")
         expected = Timestamp("2010-02-28")
         result = index.asof("2010-02")
         assert result == expected

@@ -327,7 +327,7 @@ cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     elif unit == NPY_DATETIMEUNIT.NPY_FR_W:
         return "W"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_M:
-        return "ME"
+        return "M"
     elif unit == NPY_DATETIMEUNIT.NPY_FR_Y:
         return "Y"
 

@@ -103,7 +103,7 @@ class TestTimestampConstructors:
         expected = Timestamp("2120-01-01")
         assert ts == expected
 
-        ts = Timestamp(val, unit="ME")
+        ts = Timestamp(val, unit="M")
         expected = Timestamp("1982-07-01")
         assert ts == expected
 
@@ -115,7 +115,7 @@ class TestTimestampConstructors:
             Timestamp(150.5, unit="Y")
 
         with pytest.raises(ValueError, match=msg):
-            Timestamp(150.5, unit="ME")
+            Timestamp(150.5, unit="M")
 
     def test_constructor_datetime64_with_tz(self):
         # GH#42288, GH#24559
