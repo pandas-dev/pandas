@@ -966,7 +966,7 @@ class SQLTable(PandasObject):
             if ser.dtype.kind == "M":
                 if isinstance(ser._values, ArrowExtensionArray):
                     with warnings.catch_warnings():
-                        warnings.filterwarnings("ignore")
+                        warnings.filterwarnings("ignore", category=FutureWarning)
                         # GH#52459 to_pydatetime will return Index[object]
                         d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
