@@ -68,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -2223,7 +2224,9 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(new_metadata, cur_metadata)
+                and not array_equivalent(
+                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
+                )
             ):
                 raise ValueError(
                     "cannot append a categorical with "
@@ -2790,7 +2793,8 @@ class GenericFixed(Fixed):
         elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                parr = PeriodArray._simple_new(values, freq=freq)
+                dtype = PeriodDtype(freq)
+                parr = PeriodArray._simple_new(values, dtype=dtype)
                 return PeriodIndex._simple_new(parr, name=None)
 
             factory = f
@@ -3855,10 +3859,18 @@ class Table(Fixed):
         if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
             exist_axis = self.non_index_axes[indexer][1]
-            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
+            if not array_equivalent(
+                np.array(append_axis),
+                np.array(exist_axis),
+                strict_nan=True,
+                dtype_equal=True,
+            ):
                 # ahah! -> reindex
                 if array_equivalent(
-                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                    np.array(sorted(append_axis)),
+                    np.array(sorted(exist_axis)),
+                    strict_nan=True,
+                    dtype_equal=True,
                 ):
                     append_axis = exist_axis
 

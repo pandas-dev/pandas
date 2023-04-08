@@ -1603,7 +1603,7 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self,
+            self._values_for_argsort(),
             axis=axis,
             method=method,
             na_option=na_option,
