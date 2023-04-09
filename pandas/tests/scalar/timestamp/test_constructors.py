@@ -848,9 +848,9 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 _tzs = ["dateutil/Europe/London"]
 if PY39:
     try:
-        _tzs = [  # type: ignore[list-item]
+        _tzs = [
             "dateutil/Europe/London",
-            zoneinfo.ZoneInfo("Europe/London"),
+            zoneinfo.ZoneInfo("Europe/London"),  # type: ignore[list-item]
         ]
     except zoneinfo.ZoneInfoNotFoundError:
         pass
