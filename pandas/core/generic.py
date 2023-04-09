@@ -8642,11 +8642,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -8850,7 +8850,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018Q3    3
         2018Q4    4
         Freq: Q-DEC, dtype: int64
-        >>> q.resample('M', convention='end').asfreq()
+        >>> q.resample('ME', convention='end').asfreq()
         2018-03    1.0
         2018-04    NaN
         2018-05    NaN
@@ -8861,7 +8861,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-10    NaN
         2018-11    NaN
         2018-12    4.0
-        Freq: M, dtype: float64
+        Freq: ME, dtype: float64
 
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
@@ -8882,7 +8882,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5     18     100    2018-02-11
         6     17      40    2018-02-18
         7     19      50    2018-02-25
-        >>> df.resample('M', on='week_starting').mean()
+        >>> df.resample('ME', on='week_starting').mean()
                        price  volume
         week_starting
         2018-01-31     10.75    62.5
@@ -9042,7 +9042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         offset : str, DateOffset or dateutil.relativedelta
             The offset length of the data that will be selected. For instance,
-            '1M' will display all the rows having their index within the first month.
+            '1ME' will display all the rows having their index within the first month.
 
         Returns
         -------
@@ -11060,7 +11060,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
-            Increment to use from time series API (e.g. 'M' or BDay()).
+            Increment to use from time series API (e.g. 'ME' or BDay()).
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.

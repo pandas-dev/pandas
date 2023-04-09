@@ -851,7 +851,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     period[D]
 
     >>> pd.PeriodDtype(freq=pd.offsets.MonthEnd())
-    period[M]
+    period[ME]
     """
 
     type: type[Period] = Period
