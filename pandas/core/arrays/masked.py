@@ -79,7 +79,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
@@ -162,7 +162,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @doc(ExtensionArray.fillna)
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit=None) -> Self:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
@@ -694,7 +694,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             # Make sure we do this before the "pow" mask checks
             #  to get an expected exception message on shape mismatch.
-            if self.dtype.kind in ["i", "u"] and op_name in ["floordiv", "mod"]:
+            if self.dtype.kind in "iu" and op_name in ["floordiv", "mod"]:
                 # TODO(GH#30188) ATM we don't match the behavior of non-masked
                 #  types with respect to floordiv-by-zero
                 pd_op = op
@@ -755,9 +755,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 # behavior today, so that should be fine to ignore.
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 warnings.filterwarnings("ignore", "elementwise", DeprecationWarning)
-                with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op.__name__}__")
-                    result = method(other)
+                method = getattr(self._data, f"__{op.__name__}__")
+                result = method(other)
 
                 if result is NotImplemented:
                     result = invalid_comparison(self._data, other, op)
@@ -951,9 +950,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if na_index == 0:
                 na_code = np.intp(0)
             else:
-                # mypy error: Slice index must be an integer or None
-                # https://github.com/python/mypy/issues/2410
-                na_code = codes[:na_index].max() + 1  # type: ignore[misc]
+                na_code = codes[:na_index].max() + 1
             codes[codes >= na_code] += 1
             codes[codes == -1] = na_code
             # dummy value for uniques; not used since uniques_mask will be True
@@ -995,7 +992,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         if dropna:
-            res = Series(value_counts, index=keys, name="count")
+            res = Series(value_counts, index=keys, name="count", copy=False)
             res.index = res.index.astype(self.dtype)
             res = res.astype("Int64")
             return res
@@ -1011,7 +1008,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.zeros(len(counts), dtype="bool")
         counts_array = IntegerArray(counts, mask)
 
-        return Series(counts_array, index=index, name="count")
+        return Series(counts_array, index=index, name="count", copy=False)
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1027,7 +1024,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         left = self._data[~self._mask]
         right = other._data[~other._mask]
-        return array_equivalent(left, right, dtype_equal=True)
+        return array_equivalent(left, right, strict_nan=True, dtype_equal=True)
 
     def _quantile(
         self, qs: npt.NDArray[np.float64], interpolation: str
@@ -1382,3 +1379,46 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data, mask = op(data, mask, skipna=skipna, **kwargs)
 
         return type(self)(data, mask, copy=False)
+
+    # ------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
+        # libgroupby functions are responsible for NOT altering mask
+        mask = self._mask
+        if op.kind != "aggregate":
+            result_mask = mask.copy()
+        else:
+            result_mask = np.zeros(ngroups, dtype=bool)
+
+        res_values = op._cython_op_ndim_compat(
+            self._data,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=mask,
+            result_mask=result_mask,
+            **kwargs,
+        )
+
+        if op.how == "ohlc":
+            arity = op._cython_arity.get(op.how, 1)
+            result_mask = np.tile(result_mask, (arity, 1)).T
+
+        # res_values should already have the correct dtype, we just need to
+        #  wrap in a MaskedArray
+        return self._maybe_mask_result(res_values, result_mask)

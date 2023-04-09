@@ -222,7 +222,10 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed: bool = True, int_allowed: bool = False
+    value: BoolishNoneT,
+    arg_name: str,
+    none_allowed: bool = True,
+    int_allowed: bool = False,
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -326,12 +329,13 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     q_arr = np.asarray(q)
     # Don't change this to an f-string. The string formatting
     # is too expensive for cases where we don't need it.
-    msg = "percentiles should all be in the interval [0, 1]. Try {} instead."
+    msg = "percentiles should all be in the interval [0, 1]"
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
-            raise ValueError(msg.format(q_arr / 100.0))
-    elif not all(0 <= qs <= 1 for qs in q_arr):
-        raise ValueError(msg.format(q_arr / 100.0))
+            raise ValueError(msg)
+    else:
+        if not all(0 <= qs <= 1 for qs in q_arr):
+            raise ValueError(msg)
     return q_arr
 
 

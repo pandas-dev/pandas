@@ -42,7 +42,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_array_like,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -59,6 +58,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -141,7 +141,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             return _ensure_data(values._data)
         return np.asarray(values)
 
-    elif is_categorical_dtype(values.dtype):
+    elif isinstance(values.dtype, CategoricalDtype):
         # NB: cases that go through here should NOT be using _reconstruct_data
         #  on the back-end.
         values = cast("Categorical", values)
@@ -417,7 +417,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values.dtype):
+    if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -568,7 +568,7 @@ def factorize_array(
     uniques : ndarray
     """
     original = values
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
         #  need to do the same to na_value. We are assuming here that the passed
         #  na_value is an appropriately-typed NaT.
@@ -838,7 +838,7 @@ def value_counts(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values)
+        values = Series(values, copy=False)
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -861,7 +861,7 @@ def value_counts(
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
+            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
@@ -893,7 +893,7 @@ def value_counts(
                 idx = idx.astype(object)
             idx.name = index_name
 
-            result = Series(counts, index=idx, name=name)
+            result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1534,7 +1534,7 @@ def safe_sort(
     ordered: AnyArrayLike
 
     if (
-        not is_extension_array_dtype(values)
+        not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
         ordered = _sort_mixed(values)
@@ -1666,7 +1666,11 @@ def union_with_duplicates(
             lvals = lvals._values
         if isinstance(rvals, ABCIndex):
             rvals = rvals._values
-        unique_vals = unique(concat_compat([lvals, rvals]))
+        # error: List item 0 has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any], Index]"; expected "Union[ExtensionArray,
+        # ndarray[Any, Any]]"
+        combined = concat_compat([lvals, rvals])  # type: ignore[list-item]
+        unique_vals = unique(combined)
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
@@ -1741,6 +1745,9 @@ def map_array(
         new_values = take_nd(mapper._values, indexer)
 
         return new_values
+
+    if not len(arr):
+        return arr.copy()
 
     # we must convert to python types
     values = arr.astype(object, copy=False)

@@ -921,7 +921,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
    df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 0, 1, 2])})
    df.dtypes
 
-The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
+The memory usage of the two approaches is identical (:issue:`19239`).
 
 msgpack format
 ^^^^^^^^^^^^^^

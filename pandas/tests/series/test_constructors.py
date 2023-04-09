@@ -82,7 +82,7 @@ class TestSeriesConstructors:
         expected = Index(vals, dtype=object)
         tm.assert_index_equal(idx, expected)
 
-    def test_unparseable_strings_with_dt64_dtype(self):
+    def test_unparsable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
         msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
@@ -385,7 +385,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -527,7 +527,7 @@ class TestSeriesConstructors:
         # however, copy is False by default
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
-        s = Series(cat)
+        s = Series(cat, copy=False)
         assert s.values is cat
         s = s.cat.rename_categories([1, 2, 3])
         assert s.values is not cat

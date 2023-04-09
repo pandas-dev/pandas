@@ -26,12 +26,15 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
-    is_extension_array_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
     is_timedelta64_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -47,7 +50,10 @@ from pandas.core import nanops
 import pandas.core.algorithms as algos
 
 if TYPE_CHECKING:
-    from pandas._typing import IntervalLeftRight
+    from pandas._typing import (
+        DtypeObj,
+        IntervalLeftRight,
+    )
 
 
 def cut(
@@ -399,7 +405,7 @@ def _bins_to_cuts(
     labels=None,
     precision: int = 3,
     include_lowest: bool = False,
-    dtype=None,
+    dtype: DtypeObj | None = None,
     duplicates: str = "raise",
     ordered: bool = True,
 ):
@@ -481,7 +487,7 @@ def _coerce_to_type(x):
     this method converts it to numeric so that cut or qcut method can
     handle it
     """
-    dtype = None
+    dtype: DtypeObj | None = None
 
     if is_datetime64tz_dtype(x.dtype):
         dtype = x.dtype
@@ -498,7 +504,7 @@ def _coerce_to_type(x):
     # Will properly support in the future.
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
-    elif is_extension_array_dtype(x.dtype) and is_numeric_dtype(x.dtype):
+    elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:
@@ -508,7 +514,7 @@ def _coerce_to_type(x):
     return x, dtype
 
 
-def _convert_bin_to_numeric_type(bins, dtype):
+def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
     """
     if the passed bin is of datetime/timedelta type,
     this method converts it to integer
@@ -542,7 +548,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
     return bins
 
 
-def _convert_bin_to_datelike_type(bins, dtype):
+def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
     """
     Convert bins to a DatetimeIndex or TimedeltaIndex if the original dtype is
     datelike
@@ -557,7 +563,7 @@ def _convert_bin_to_datelike_type(bins, dtype):
     bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
            datelike
     """
-    if is_datetime64tz_dtype(dtype):
+    if isinstance(dtype, DatetimeTZDtype):
         bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
     elif is_datetime_or_timedelta_dtype(dtype):
         bins = Index(bins.astype(np.int64), dtype=dtype)
@@ -565,14 +571,18 @@ def _convert_bin_to_datelike_type(bins, dtype):
 
 
 def _format_labels(
-    bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
+    bins,
+    precision: int,
+    right: bool = True,
+    include_lowest: bool = False,
+    dtype: DtypeObj | None = None,
 ):
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
-    if is_datetime64tz_dtype(dtype):
+    if isinstance(dtype, DatetimeTZDtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
     elif is_datetime64_dtype(dtype):
