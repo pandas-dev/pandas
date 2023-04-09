@@ -1782,7 +1782,7 @@ cdef class _Period(PeriodMixin):
             return NaT
         elif util.is_integer_object(other):
             ordinal = self.ordinal + other * self._dtype._n
-            return Period(ordinal=ordinal, freq=self._dtype._n)
+            return Period(ordinal=ordinal, freq=self.freq)
 
         elif is_period_object(other):
             # can't add datetime-like
