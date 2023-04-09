@@ -1739,6 +1739,7 @@ def test_setitem_invalid_dtype(data):
         data[:] = fill_value
 
 
+@pytest.mark.skipif(pa_version_under8p0, reason="returns object with 7.0")
 def test_from_arrow_respecting_given_dtype():
     date_array = pa.array(
         [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")], type=pa.date32()
