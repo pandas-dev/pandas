@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 
+from subprocess import CalledProcessError
+
 try:
     if len(sys.argv) != 3:
         raise ValueError(
