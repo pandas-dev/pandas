@@ -1115,6 +1115,19 @@ class TestExcelWriter:
             reread_df = pd.read_excel(bio, index_col=0)
             tm.assert_frame_equal(df, reread_df)
 
+    def test_engine_kwargs(self, engine, path):
+        df = DataFrame([{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+        msgs = {
+            "odf": r"OpenDocumentSpreadsheet() got an unexpected keyword argument 'foo'",
+            "openpyxl": r"load_workbook() got an unexpected keyword argument 'foo'",
+            "xlsxwriter": r"Workbook.__init__() got an unexpected keyword argument 'foo'",
+        }
+
+        df.to_excel(path,
+                    engine_kwargs={"foo": "bar"}
+                    )
+
+
     def test_write_lists_dict(self, path):
         # see gh-8188.
         df = DataFrame(
