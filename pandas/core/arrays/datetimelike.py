@@ -1885,7 +1885,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             values = values._ndarray
 
         elif dtype is None:
-            dtype = self._default_dtype
+            if isinstance(values, np.ndarray) and values.dtype.kind in "Mm":
+                dtype = values.dtype
+            else:
+                dtype = self._default_dtype
 
         if not isinstance(values, np.ndarray):
             raise ValueError(
