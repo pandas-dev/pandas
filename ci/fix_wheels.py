@@ -36,24 +36,24 @@ success = True
 repaired_wheel_path = os.path.join(dest_dir, wheel_name)
 
 try:
-# Use the wheel CLI instead of manipulating zipfiles, since the CLI will
-# take care of rebuilding the hashes found in the record file
-tmp_dir = os.path.join(dest_dir, "tmp")
-subprocess.run(["wheel", "unpack", f"-d {tmp_dir}", wheel_path], check=True)
-base_redist_dir = (
-    f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
-    f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
-    f"Microsoft.VC142.CRT/"
-)
-required_dlls = ["msvcp140.dll", "concrt140.dll"]
-if not is_32:
-    required_dlls += "vcruntime140_1.dll"
-for dll in required_dlls:
-    src = os.path.join(base_redist_dir, dll)
-    shutil.copy(src, tmp_dir)
-subprocess.run(["wheel", "pack", tmp_dir, f"-d {dest_dir}"], check=True)
-
-if not success:
+    # Use the wheel CLI instead of manipulating zipfiles, since the CLI will
+    # take care of rebuilding the hashes found in the record file
+    tmp_dir = os.path.join(dest_dir, "tmp")
+    subprocess.run(["wheel", "unpack", f"-d {tmp_dir}", wheel_path], check=True)
+    base_redist_dir = (
+        f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
+        f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
+        f"Microsoft.VC142.CRT/"
+    )
+    required_dlls = ["msvcp140.dll", "concrt140.dll"]
+    if not is_32:
+        required_dlls += "vcruntime140_1.dll"
+    for dll in required_dlls:
+        src = os.path.join(base_redist_dir, dll)
+        shutil.copy(src, tmp_dir)
+    subprocess.run(["wheel", "pack", tmp_dir, f"-d {dest_dir}"], check=True)
+except CalledProcessError:
+    print("Failed to add DLLS to wheel.")
     os.remove(repaired_wheel_path)
     sys.exit(1)
 print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
