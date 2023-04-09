@@ -430,6 +430,12 @@ This is mainly syntactic sugar for the alternative, which is much more verbose:
 Additionally, this method avoids recomputing the internal grouping information
 derived from the passed key.
 
+You can also include the grouping columns if you want to operate on them.
+
+.. ipython:: python
+
+   grouped[["A", "B"]].sum()
+
 .. _groupby.iterating-label:
 
 Iterating through groups
