@@ -1,7 +1,14 @@
+"""
+This file "repairs" our Windows wheels by copying the necessary DLLs for pandas to run
+on a barebones Windows installation() into the wheel.
+
+NOTE: The paths for the DLLs are hard-coded to the location of the Visual Studio
+redistributables 
+"""
 import os
 import shutil
+import subprocess
 import sys
-import zipfile
 
 try:
     if len(sys.argv) != 3:
@@ -25,34 +32,25 @@ if not os.path.isdir(dest_dir):
 shutil.copy(wheel_path, dest_dir)  # Remember to delete if process fails
 wheel_name = os.path.basename(wheel_path)
 success = True
-exception = None
 repaired_wheel_path = os.path.join(dest_dir, wheel_name)
-with zipfile.ZipFile(repaired_wheel_path, "a") as zipf:
-    try:
-        # TODO: figure out how licensing works for the redistributables
-        base_redist_dir = (
-            f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
-            f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
-            f"Microsoft.VC142.CRT/"
-        )
-        zipf.write(
-            os.path.join(base_redist_dir, "msvcp140.dll"),
-            "pandas/_libs/window/msvcp140.dll",
-        )
-        zipf.write(
-            os.path.join(base_redist_dir, "concrt140.dll"),
-            "pandas/_libs/window/concrt140.dll",
-        )
-        if not is_32:
-            zipf.write(
-                os.path.join(base_redist_dir, "vcruntime140_1.dll"),
-                "pandas/_libs/window/vcruntime140_1.dll",
-            )
-    except Exception as e:
-        success = False
-        exception = e
+# Use the wheel CLI instead of manipulating zipfiles, since the CLI will
+# take care of rebuilding the hashes found in the record file
+tmp_dir = os.path.join(dest_dir, "tmp")
+subprocess.run(["wheel", "unpack", f"-d {tmp_dir}", wheel_path])
+base_redist_dir = (
+    f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
+    f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
+    f"Microsoft.VC142.CRT/"
+)
+required_dlls = ["msvcp140.dll", "concrt140.dll"]
+if not is_32:
+    required_dlls += "vcruntime140_1.dll"
+for dll in required_dlls:
+    src = os.path.join(base_redist_dir, dll)
+    shutil.copy(src, dst)
+subprocess.run(["wheel", "pack", tmp_dir, f"-d {dest_dir}"])
 
 if not success:
     os.remove(repaired_wheel_path)
-    raise exception
+    sys.exit(1)
 print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
