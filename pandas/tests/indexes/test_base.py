@@ -1270,6 +1270,24 @@ class TestIndex(Base):
         expected = Index([np.nan, 1])
         tm.assert_index_equal(result, expected)
 
+    def test_index_diff(self):
+        # GH#19708
+        idx = Index([10, 20, 30, 40, 50])
+        diffs = idx.diff()
+        diffs_period2 = idx.diff(periods=2)
+
+        assert diffs.equals(Index([np.nan, 10, 10, 10, 10]))
+        assert diffs_period2.equals(Index([np.nan, np.nan, 20, 20, 20]))
+
+    def test_index_round(self):
+        # GH#19708
+        idx = Index([1.234, 2.345, 3.456])
+        rounded = idx.round()
+        rounded_2decimals = idx.round(2)
+
+        assert rounded.equals(Index([1, 2, 3]))
+        assert rounded_2decimals.equals(Index([1.23, 2.35, 3.46]))
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
