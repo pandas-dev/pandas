@@ -130,8 +130,8 @@ numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just wha
 
 Possible options could be:
 1. only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``);
-2. convert the float value to ``int`` before setting it;
-3. limit "banning upcasting" to when the upcasted dtype is ``object``.
+2. convert the float value to ``int`` before setting it (i.e. silently round all float values);
+3. limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64) .
 
 Let us compare with what other libraries do:
 - ``numpy``: option 2
@@ -162,7 +162,7 @@ Therefore, the option chosen by this PDEP is option 1.
 
 This would make pandas stricter, so there should not be any risk of introducing bugs. If anything, this would help prevent bugs.
 
-Unfortunately, it would also risk annoy users who might have been intentionally upcasting.
+Unfortunately, it would also risk annoying users who might have been intentionally upcasting.
 
 Given that users could still get the current behaviour by first explicitly casting the Series
 to float, it would be more beneficial to the community at large to err on the side
