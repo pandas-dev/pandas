@@ -1154,9 +1154,9 @@ default 'raise'
         ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
         ...                                         "2000-05-31 00:00:00",
         ...                                         "2000-08-31 00:00:00"]))
-        >>> df.index.to_period("M")
+        >>> df.index.to_period("ME")
         PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]')
+                    dtype='period[ME]')
 
         Infer the daily frequency
 
@@ -1215,7 +1215,7 @@ default 'raise'
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range(start='2018-01', freq='M', periods=3))
+        >>> s = pd.Series(pd.date_range(start='2018-01', freq='ME', periods=3))
         >>> s
         0   2018-01-31
         1   2018-02-28
@@ -1227,10 +1227,10 @@ default 'raise'
         2       March
         dtype: object
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
+                      dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='object')
 
@@ -1238,10 +1238,10 @@ default 'raise'
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
         names in Brazilian Portuguese language.
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
+                      dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name(locale='pt_BR.utf8') # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
         """
@@ -1425,7 +1425,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="M")
+        ...     pd.date_range("2000-01-01", periods=3, freq="ME")
         ... )
         >>> datetime_series
         0   2000-01-31

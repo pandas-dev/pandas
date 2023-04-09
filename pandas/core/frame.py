@@ -11509,7 +11509,7 @@ class DataFrame(NDFrame, OpsMixin):
         Using `freq` which is the offset that the Timestamps will have
 
         >>> df2 = pd.DataFrame(data=d, index=idx)
-        >>> df2 = df2.to_timestamp(freq='M')
+        >>> df2 = df2.to_timestamp(freq='ME')
         >>> df2
                     col1   col2
         2023-01-31     1      3
@@ -11567,7 +11567,7 @@ class DataFrame(NDFrame, OpsMixin):
         dtype='datetime64[ns]', freq=None)
 
         >>> idx.to_period("M")
-        PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
+        PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[ME]')
 
         For the yearly frequency
 

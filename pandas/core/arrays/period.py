@@ -595,13 +595,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
         dtype='period[A-DEC]')
 
-        >>> pidx.asfreq('M')
+        >>> pidx.asfreq('ME')
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
-        '2015-12'], dtype='period[M]')
+        '2015-12'], dtype='period[ME]')
 
-        >>> pidx.asfreq('M', how='S')
+        >>> pidx.asfreq('ME', how='S')
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
-        '2015-01'], dtype='period[M]')
+        '2015-01'], dtype='period[ME]')
         """
         how = libperiod.validate_end_alias(how)
 
