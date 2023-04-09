@@ -84,7 +84,7 @@ else:
 zoneinfo = None
 if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+    import zoneinfo  # type: ignore[assignment]
 
     # Although zoneinfo can be imported in Py39, it is effectively
     # "not available" without tzdata/IANA tz data.
