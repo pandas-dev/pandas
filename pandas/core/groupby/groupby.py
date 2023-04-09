@@ -1492,15 +1492,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     and self._selection is None
                     and self._selected_obj.shape != self._obj_with_exclusions.shape
                 ):
-                    msg = (
-                        f"{type(self).__name__}.apply operated on the grouping "
-                        f"columns. This behavior is deprecated, and in a future "
-                        f"version of pandas the grouping columns will be excluded "
-                        f"from the operation. Subset the data to exclude the "
-                        f"groupings and silence this warning."
-                    )
                     warnings.warn(
-                        message=msg,
+                        message=_apply_groupings_depr.format(type(self).__name__),
                         category=FutureWarning,
                         stacklevel=find_stack_level(),
                     )
@@ -4330,3 +4323,12 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
+
+
+# GH#7155
+_apply_groupings_depr = (
+    "{}.apply operated on the grouping columns. This behavior is deprecated, "
+    "and in a future version of pandas the grouping columns will be excluded "
+    "from the operation. Subset the data to exclude the groupings and silence "
+    "this warning."
+)

@@ -55,6 +55,7 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
+    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -424,12 +425,7 @@ class Resampler(BaseGroupBy, PandasObject):
         )
 
         target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-        new_message = (
-            "DataFrame.resample operated on the grouping columns. "
-            "This behavior is deprecated, and in a future version of "
-            "pandas the grouping columns will be excluded from the operation. "
-            "Subset the data to exclude the groupings and silence this warning."
-        )
+        new_message = _apply_groupings_depr.format(type(self).__name__)
 
         try:
             if callable(how):

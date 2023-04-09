@@ -15,7 +15,6 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
-from pandas.util._exceptions import rewrite_warning
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -458,19 +457,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-            new_message = (
-                "DataFrame.pivot_table operated on the grouping columns. "
-                "This behavior is deprecated, and in a future version of "
-                "pandas the grouping columns will be excluded from the operation. "
-                "Can the user do something here?"
-            )
-            with rewrite_warning(
-                target_message=target_message,
-                target_category=FutureWarning,
-                new_message=new_message,
-            ):
-                margin = data[rows].groupby(rows, observed=observed).apply(aggfunc)
+            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -488,7 +475,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
+        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
