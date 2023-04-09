@@ -1,7 +1,7 @@
 .. _whatsnew_200:
 
-What's new in 2.0.0 (March XX, 2023)
-------------------------------------
+What's new in 2.0.0 (April 3, 2023)
+-----------------------------------
 
 These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -66,7 +66,7 @@ Below is a possibly non-exhaustive list of changes:
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
    for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
-   it previously would have been ``int64``` even on 32-bit systems.
+   it previously would have been ``int64`` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
@@ -95,7 +95,7 @@ Below is a possibly non-exhaustive list of changes:
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
-   ``float64`` dtype. It row raises a ``NotImplementedError``:
+   ``float64`` dtype. It now raises a ``NotImplementedError``:
 
    .. ipython:: python
        :okexcept:
@@ -120,6 +120,7 @@ The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
+* :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
 * :func:`read_spss`
@@ -190,12 +191,17 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
-- The :class:`DataFrame` constructor, when constructing from a NumPy array,
-  will now copy the array by default to avoid mutating the :class:`DataFrame`
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a
+  :class:`Series` or :class:`Index` and specifying ``copy=False``, will
+  now respect Copy-on-Write.
+
+- The :class:`DataFrame` and :class:`Series` constructors, when constructing from
+  a NumPy array, will now copy the array by default to avoid mutating
+  the :class:`DataFrame` / :class:`Series`
   when mutating the array. Specify ``copy=False`` to get the old behavior.
   When setting ``copy=False`` pandas does not guarantee correct Copy-on-Write
   behavior when the NumPy array is modified after creation of the
-  :class:`DataFrame`.
+  :class:`DataFrame` / :class:`Series`.
 
 - The :meth:`DataFrame.from_records` will now respect Copy-on-Write when called
   with a :class:`DataFrame`.
@@ -712,7 +718,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 Note that this affects :func:`read_csv` as well.
 
 If you still need to parse dates with inconsistent formats, you can use
-``format='mixed`` (possibly alongside ``dayfirst``) ::
+``format='mixed'`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      pd.to_datetime(ser, format='mixed', dayfirst=True)
@@ -1190,6 +1196,7 @@ Timedelta
 - Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
 - Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`48898`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`48898`)
+- Bug in :class:`Timedelta` comparisons with very large ``datetime.timedelta`` objects incorrect raising ``OutOfBoundsTimedelta`` (:issue:`49021`)
 
 Timezones
 ^^^^^^^^^

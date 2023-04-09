@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -36,14 +37,16 @@ from pandas._typing import (
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_dict_like,
-    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -656,10 +659,6 @@ class FrameApply(NDFrameApply):
     def values(self):
         return self.obj.values
 
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
-
     def apply(self) -> DataFrame | Series:
         """compute the results"""
         # dispatch to agg
@@ -944,7 +943,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        if is_extension_array_dtype(ser.dtype):
+        if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -1086,9 +1085,22 @@ class SeriesApply(NDFrameApply):
                 return f(obj)
 
         # row-wise access
-        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
+        # apply doesn't have a `na_action` keyword and for backward compat reasons
+        # we need to give `na_action="ignore"` for categorical data.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
+        action = "ignore" if is_categorical_dtype(obj) else None
+        mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
+            warnings.warn(
+                "Returning a DataFrame from Series.apply when the supplied function"
+                "returns a Series is deprecated and will be removed in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )  # GH52116
+
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)
@@ -1495,7 +1507,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 

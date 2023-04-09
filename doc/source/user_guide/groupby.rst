@@ -149,7 +149,7 @@ the columns except the one we specify:
    grouped.sum()
 
 The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
-a tranpose:
+a transpose:
 
 .. ipython::
 
@@ -1220,19 +1220,6 @@ The dimension of the returned result can also change:
                              'demeaned': group - group.mean()})
 
     grouped.apply(f)
-
-``apply`` on a Series can operate on a returned value from the applied function
-that is itself a series, and possibly upcast the result to a DataFrame:
-
-.. ipython:: python
-
-    def f(x):
-        return pd.Series([x, x ** 2], index=["x", "x^2"])
-
-
-    s = pd.Series(np.random.rand(5))
-    s
-    s.apply(f)
 
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then

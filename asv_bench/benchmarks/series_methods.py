@@ -385,6 +385,9 @@ class ToNumpy:
     def time_to_numpy_copy(self):
         self.ser.to_numpy(copy=True)
 
+    def time_to_numpy_float_with_nan(self):
+        self.ser.to_numpy(dtype="float64", na_value=np.nan)
+
 
 class Replace:
     param_names = ["num_to_replace"]

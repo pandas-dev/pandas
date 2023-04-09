@@ -1019,7 +1019,10 @@ class TestParquetPyArrow(Base):
             {"a": [1, 2]}, index=pd.Index([3, 4], name="test"), dtype="int64[pyarrow]"
         )
         expected = df.copy()
+        import pyarrow
 
+        if Version(pyarrow.__version__) > Version("11.0.0"):
+            expected.index = expected.index.astype("int64[pyarrow]")
         check_round_trip(
             df,
             engine=pa,

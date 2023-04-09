@@ -14,11 +14,11 @@ from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+    PeriodDtype,
 )
 
 import pandas as pd
@@ -213,12 +213,9 @@ def to_orc(
     # In Pyarrow 8.0.0 this check will no longer be needed
     if pa_version_under8p0:
         for dtype in df.dtypes:
-            if (
-                is_categorical_dtype(dtype)
-                or is_interval_dtype(dtype)
-                or is_period_dtype(dtype)
-                or is_unsigned_integer_dtype(dtype)
-            ):
+            if isinstance(
+                dtype, (IntervalDtype, CategoricalDtype, PeriodDtype)
+            ) or is_unsigned_integer_dtype(dtype):
                 raise NotImplementedError(
                     "The dtype of one or more columns is not supported yet."
                 )
