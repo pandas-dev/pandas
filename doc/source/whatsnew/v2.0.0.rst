@@ -1406,7 +1406,6 @@ Other
 - Bug in incorrectly accepting dtype strings containing "[pyarrow]" more than once (:issue:`51548`)
 - Bug in :meth:`Series.searchsorted` inconsistent behavior when accepting :class:`DataFrame` as parameter ``value`` (:issue:`49620`)
 - Bug in :func:`array` failing to raise on :class:`DataFrame` inputs (:issue:`51167`)
-- Bug in :class:`Index` when created or converted to the numpy dtype S3 would raise ``NotImplementedError`` (:issue:`50127`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.contributors:
