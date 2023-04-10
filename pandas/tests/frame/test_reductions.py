@@ -1508,6 +1508,7 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @td.skip_array_manager_invalid_test
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -1526,6 +1527,7 @@ class TestDataFrameReductions:
         )
         tm.assert_series_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_reduction_timedelta_smallest_unit(self):
         # GH#52524
         df = DataFrame(
