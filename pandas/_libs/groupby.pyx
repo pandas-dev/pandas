@@ -3,7 +3,10 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
-from libc.math cimport sqrt
+from libc.math cimport (
+    NAN,
+    sqrt,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -24,7 +27,6 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
-from numpy.math cimport NAN
 
 cnp.import_array()
 
