@@ -206,3 +206,8 @@ class TestMultiIndexBasic:
         )
         with pytest.raises(KeyError, match="missing_key"):
             df[[("missing_key",)]]
+
+    def test_multiindex_from_tuples_with_nan(self):
+        # GH#23578
+        multi_idx = MultiIndex.from_tuples([("a", "b", "c"), np.nan, ("d", "", "")])
+        assert isinstance(multi_idx, MultiIndex)
