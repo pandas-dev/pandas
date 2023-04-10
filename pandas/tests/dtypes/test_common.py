@@ -172,7 +172,7 @@ def test_get_dtype_error_catch(func):
 
     msg = f"{func.__name__} is deprecated"
     warn = None
-    if func is com.is_int64_dtype:
+    if func is com.is_int64_dtype or func is com.is_categorical_dtype:
         warn = FutureWarning
 
     with tm.assert_produces_warning(warn, match=msg):
