@@ -1270,23 +1270,35 @@ class TestIndex(Base):
         expected = Index([np.nan, 1])
         tm.assert_index_equal(result, expected)
 
-    def test_index_diff(self):
+    @pytest.mark.parametrize(
+        "periods, expected",
+        [
+            (1, Index([np.nan, 10, 10, 10, 10])),
+            (2, Index([np.nan, np.nan, 20, 20, 20])),
+            (3, Index([np.nan, np.nan, np.nan, 30, 30])),
+        ],
+    )
+    def test_index_diff(self, periods, expected):
         # GH#19708
         idx = Index([10, 20, 30, 40, 50])
-        diffs = idx.diff()
-        diffs_period2 = idx.diff(periods=2)
+        result = idx.diff()
 
-        assert diffs.equals(Index([np.nan, 10, 10, 10, 10]))
-        assert diffs_period2.equals(Index([np.nan, np.nan, 20, 20, 20]))
+        tm.assert_index_equal(result, expected)
 
-    def test_index_round(self):
+    @pytest.mark.parametrize(
+        "decimals, expected",
+        [
+            (0, Index([1, 2, 3])),
+            (1, Index([1.2, 2.3, 3.5])),
+            (2, Index([1.23, 2.35, 3.46])),
+        ],
+    )
+    def test_index_round(self, decimals, expected):
         # GH#19708
         idx = Index([1.234, 2.345, 3.456])
-        rounded = idx.round()
-        rounded_2decimals = idx.round(2)
+        result = idx.round()
 
-        assert rounded.equals(Index([1, 2, 3]))
-        assert rounded_2decimals.equals(Index([1.23, 2.35, 3.46]))
+        tm.assert_index_equal(result, expected)
 
 
 class TestMixedIntIndex(Base):
