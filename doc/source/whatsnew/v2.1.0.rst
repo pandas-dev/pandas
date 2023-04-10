@@ -284,6 +284,7 @@ Period
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+- Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
 -
 
 Plotting
