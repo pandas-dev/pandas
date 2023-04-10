@@ -465,7 +465,7 @@ def dict_to_mgr(
 
     else:
         keys = list(data.keys())
-        columns = Index(keys)
+        columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
 

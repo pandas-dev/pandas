@@ -27,6 +27,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -38,7 +39,6 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_any_int_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
@@ -1583,15 +1583,6 @@ def test_is_integer_dtype(data):
         assert not is_integer_dtype(data)
 
 
-def test_is_any_integer_dtype(data):
-    # GH 50667
-    pa_type = data.dtype.pyarrow_dtype
-    if pa.types.is_integer(pa_type):
-        assert is_any_int_dtype(data)
-    else:
-        assert not is_any_int_dtype(data)
-
-
 def test_is_signed_integer_dtype(data):
     pa_type = data.dtype.pyarrow_dtype
     if pa.types.is_signed_integer(pa_type):
@@ -1673,6 +1664,23 @@ def test_to_numpy_int_with_na():
     result = arr.to_numpy()
     expected = np.array([1, pd.NA], dtype=object)
     assert isinstance(result[0], int)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_val, exp", [(lib.no_default, np.nan), (1, 1)])
+def test_to_numpy_null_array(na_val, exp):
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype="float64", na_value=na_val)
+    expected = np.array([exp] * 2, dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_null_array_no_dtype():
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype=None)
+    expected = np.array([pd.NA] * 2, dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2269,12 +2277,16 @@ def test_dt_to_pydatetime():
     data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
     ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
 
-    result = ser.dt.to_pydatetime()
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is datetime for res in result)
 
-    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2387,3 +2399,16 @@ def test_setitem_boolean_replace_with_mask_segfault():
     expected = arr.copy()
     arr[np.zeros((N,), dtype=np.bool_)] = False
     assert arr._pa_array == expected._pa_array
+
+
+@pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
+def test_describe_numeric_data(pa_type):
+    # GH 52470
+    data = pd.Series([1, 2, 3], dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
+        dtype=ArrowDtype(pa.float64()),
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
