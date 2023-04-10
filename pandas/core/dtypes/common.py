@@ -848,6 +848,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
+    # GH#52564
     warnings.warn(
         "is_int64_dtype is deprecated and will be removed in a future "
         "version. Use dtype == np.int64 instead.",
