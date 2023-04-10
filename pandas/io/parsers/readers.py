@@ -1515,6 +1515,12 @@ class TextFileReader(abc.Iterator):
             if engine == "c" and sep == r"\s+":
                 result["delim_whitespace"] = True
                 del result["delimiter"]
+            elif sep == r"\s+":
+                fallback_reason = (
+                    f"the '{engine}' engine does not support separators "
+                    "with more than one character, except for '\\t'. "
+                    "Please use a supported separator or a different engine."
+                )
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
