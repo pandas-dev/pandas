@@ -1982,7 +1982,12 @@ class ArrowExtensionArray(
         return type(self)(
             pa.chunked_array(
                 [
-                    [val if val is None else removeprefix(val, prefix) for val in chunk]
+                    [
+                        None
+                        if val.as_py() is None
+                        else removeprefix(val.as_py(), prefix)
+                        for val in chunk
+                    ]
                     for chunk in self._pa_array.iterchunks()
                 ]
             )
@@ -1998,7 +2003,10 @@ class ArrowExtensionArray(
         return type(self)(
             pa.chunked_array(
                 [
-                    [val if val is None else val.casefold() for val in chunk]
+                    [
+                        None if val.as_py() is None else val.as_py().casefold()
+                        for val in chunk
+                    ]
                     for chunk in self._pa_array.iterchunks()
                 ]
             )
@@ -2009,7 +2017,9 @@ class ArrowExtensionArray(
             pa.chunked_array(
                 [
                     [
-                        val if val is None else val.encode(encoding, errors)
+                        None
+                        if val.as_py() is None
+                        else val.as_py().encode(encoding, errors)
                         for val in chunk
                     ]
                     for chunk in self._pa_array.iterchunks()
@@ -2023,10 +2033,10 @@ class ArrowExtensionArray(
         for chunk in self._pa_array.iterchunks():
             result_chunk = []
             for val in chunk:
-                if val is None:
+                if val.as_py() is None:
                     result_chunk.append(None)
                     continue
-                found = regex.search(val)
+                found = regex.search(val.as_py())
                 if found:
                     result_chunk.append(found.groups())
                 else:
@@ -2040,7 +2050,7 @@ class ArrowExtensionArray(
             pa.chunked_array(
                 [
                     [
-                        val if val is None else regex.findall(pat, val, flags=flags)
+                        None if val.as_py() is None else regex.findall(val.as_py())
                         for val in chunk
                     ]
                     for chunk in self._pa_array.iterchunks()
@@ -2063,19 +2073,14 @@ class ArrowExtensionArray(
         result = type(self)(pa.array(result_data))
         return result, uniques_sorted.to_pylist()
 
-    def _str_index(self, sub, start: int = 0, end=None):
-        result = self._str_find(sub, start, end)
-        if pc.any(pc.is_in(result._pa_array, [-1])).as_py():
-            # Same error as stdlib
-            raise ValueError("substring not found")
-        return result
-
-    def _str_rindex(self, sub, start: int = 0, end=None):
+    def _str_index(self, sub: str, start: int = 0, end: int | None = None):
         return type(self)(
             pa.chunked_array(
                 [
                     [
-                        val if val is None else val.rindex(sub, start, end)
+                        None
+                        if val.as_py() is None
+                        else val.as_py().index(sub, start, end)
                         for val in chunk
                     ]
                     for chunk in self._pa_array.iterchunks()
@@ -2083,12 +2088,14 @@ class ArrowExtensionArray(
             )
         )
 
-    def _str_normalize(self, form):
+    def _str_rindex(self, sub: str, start: int = 0, end: int | None = None):
         return type(self)(
             pa.chunked_array(
                 [
                     [
-                        val if val is None else unicodedata.normalize(form, val)
+                        None
+                        if val.as_py() is None
+                        else val.as_py().rindex(sub, start, end)
                         for val in chunk
                     ]
                     for chunk in self._pa_array.iterchunks()
@@ -2096,11 +2103,31 @@ class ArrowExtensionArray(
             )
         )
 
-    def _str_rfind(self, sub, start: int = 0, end=None):
+    def _str_normalize(self, form: str):
         return type(self)(
             pa.chunked_array(
                 [
-                    [val if val is None else val.find(sub, start, end) for val in chunk]
+                    [
+                        None
+                        if val.as_py() is None
+                        else unicodedata.normalize(form, val.as_py())
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
+        )
+
+    def _str_rfind(self, sub: str, start: int = 0, end=None):
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        None
+                        if val.as_py() is None
+                        else val.as_py().rfind(sub, start, end)
+                        for val in chunk
+                    ]
                     for chunk in self._pa_array.iterchunks()
                 ]
             )
@@ -2118,11 +2145,14 @@ class ArrowExtensionArray(
             "str.rsplit not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_translate(self, table):
+    def _str_translate(self, table: dict[int, str]):
         return type(self)(
             pa.chunked_array(
                 [
-                    [val if val is None else val.translate(table) for val in chunk]
+                    [
+                        None if val.as_py() is None else val.as_py().translate(table)
+                        for val in chunk
+                    ]
                     for chunk in self._pa_array.iterchunks()
                 ]
             )
@@ -2134,7 +2164,10 @@ class ArrowExtensionArray(
         return type(self)(
             pa.chunked_array(
                 [
-                    [val if val is None else "\n".join(tw.wrap(val)) for val in chunk]
+                    [
+                        None if val.as_py() is None else "\n".join(tw.wrap(val.as_py()))
+                        for val in chunk
+                    ]
                     for chunk in self._pa_array.iterchunks()
                 ]
             )
