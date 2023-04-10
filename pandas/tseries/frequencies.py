@@ -32,6 +32,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_numeric_dtype,
     is_timedelta64_dtype,
 )
@@ -120,7 +121,7 @@ def infer_freq(
 
     Parameters
     ----------
-    index : DatetimeIndex or TimedeltaIndex
+    index : DatetimeIndex, TimedeltaIndex, Series or array-like
       If passed a Series will use the values of the series (NOT THE INDEX).
 
     Returns
@@ -150,6 +151,7 @@ def infer_freq(
         values = index._values
         if not (
             is_datetime64_dtype(values)
+            or is_datetime64tz_dtype(values)
             or is_timedelta64_dtype(values)
             or values.dtype == object
         ):
