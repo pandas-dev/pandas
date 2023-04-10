@@ -385,7 +385,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 

@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import (
     NaT,
     internals as libinternals,
+    lib,
 )
 from pandas._libs.missing import NA
 from pandas.util._decorators import cache_readonly
@@ -143,7 +144,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
         target_dtype = np.find_common_type(list(dtypes), [])
     else:
@@ -403,31 +404,14 @@ class JoinUnit:
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
             indexers = {}
+        # Otherwise we may have only {0: np.array(...)} and only non-negative
+        #  entries.
         self.block = block
         self.indexers = indexers
         self.shape = shape
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
-
-    @cache_readonly
-    def needs_filling(self) -> bool:
-        for indexer in self.indexers.values():
-            # FIXME: cache results of indexer == -1 checks.
-            if (indexer == -1).any():
-                return True
-
-        return False
-
-    @cache_readonly
-    def dtype(self) -> DtypeObj:
-        blk = self.block
-        if blk.values.dtype.kind == "V":
-            raise AssertionError("Block is None, no dtype")
-
-        if not self.needs_filling:
-            return blk.dtype
-        return ensure_dtype_can_hold_na(blk.dtype)
 
     def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
@@ -436,23 +420,25 @@ class JoinUnit:
         """
         if not self.is_na:
             return False
-        if self.block.dtype.kind == "V":
+
+        blk = self.block
+        if blk.dtype.kind == "V":
             return True
 
-        if self.dtype == object:
-            values = self.block.values
+        if blk.dtype == object:
+            values = blk.values
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
-        na_value = self.block.fill_value
-        if na_value is NaT and not is_dtype_equal(self.dtype, dtype):
+        na_value = blk.fill_value
+        if na_value is NaT and not is_dtype_equal(blk.dtype, dtype):
             # e.g. we are dt64 and other is td64
-            # fill_values match but we should not cast self.block.values to dtype
+            # fill_values match but we should not cast blk.values to dtype
             # TODO: this will need updating if we ever have non-nano dt64/td64
             return False
 
         if na_value is NA and needs_i8_conversion(dtype):
             # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
-            #  e.g. self.dtype == "Int64" and dtype is td64, we dont want
+            #  e.g. blk.dtype == "Int64" and dtype is td64, we dont want
             #  to consider these as matching
             return False
 
@@ -626,14 +612,14 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return dtype.type("NaT")
-    elif dtype.kind in ["f", "c"]:
+    elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
         # different from missing.na_value_for_dtype
         return None
-    elif dtype.kind in ["i", "u"]:
+    elif dtype.kind in "iu":
         if not has_none_blocks:
             # different from missing.na_value_for_dtype
             return None
@@ -663,9 +649,11 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
-    dtypes = [unit.dtype for unit in join_units if not unit.is_na]
+    dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
     if not len(dtypes):
-        dtypes = [unit.dtype for unit in join_units if unit.block.dtype.kind != "V"]
+        dtypes = [
+            unit.block.dtype for unit in join_units if unit.block.dtype.kind != "V"
+        ]
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
@@ -692,7 +680,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
-            or ju.block.dtype.kind in ["b", "i", "u"]
+            or ju.block.dtype.kind in "iub"
             for ju in join_units
         )
         and
@@ -712,7 +700,7 @@ def _is_uniform_reindex(join_units) -> bool:
     return (
         # TODO: should this be ju.block._can_hold_na?
         all(ju.block.is_extension for ju in join_units)
-        and len({ju.block.dtype.name for ju in join_units}) == 1
+        and lib.dtypes_all_equal([ju.block.dtype for ju in join_units])
     )
 
 

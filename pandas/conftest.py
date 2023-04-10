@@ -137,6 +137,15 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "to_pydatetime",
+            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
+        ),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
     ]
 
     for item in items:

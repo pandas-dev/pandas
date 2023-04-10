@@ -66,32 +66,6 @@ INT64_DTYPE = np.dtype(np.int64)
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
-
-
-def ensure_float(arr):
-    """
-    Ensure that an array object has a float dtype if possible.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array whose data type we want to enforce as float.
-
-    Returns
-    -------
-    float_arr : The original array cast to the float dtype if
-                possible. Otherwise, the original array is returned.
-    """
-    if is_extension_array_dtype(arr.dtype):
-        if is_float_dtype(arr.dtype):
-            arr = arr.to_numpy(dtype=arr.dtype.numpy_dtype, na_value=np.nan)
-        else:
-            arr = arr.to_numpy(dtype="float64", na_value=np.nan)
-    elif issubclass(arr.dtype.type, (np.integer, np.bool_)):
-        arr = arr.astype(float)
-    return arr
-
-
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
@@ -1126,13 +1100,9 @@ def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
-    if dtype is None:
-        return False
     if isinstance(dtype, np.dtype):
         return dtype.kind in "mM"
-    elif isinstance(dtype, ExtensionDtype):
-        return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
-    return False
+    return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 
 
 def is_numeric_dtype(arr_or_dtype) -> bool:
@@ -1406,7 +1376,7 @@ def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     Checks only for dtype objects, not dtype-castable strings or types.
     """
     return isinstance(dtype, ExtensionDtype) or (
-        isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]
+        isinstance(dtype, np.dtype) and dtype.kind in "mM"
     )
 
 
@@ -1739,7 +1709,6 @@ __all__ = [
     "classes",
     "classes_and_not_datetimelike",
     "DT64NS_DTYPE",
-    "ensure_float",
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",

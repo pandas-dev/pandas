@@ -720,7 +720,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(
@@ -2685,7 +2685,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
+        return self._python_apply_general(  # type: ignore[return-value]
+            lambda df: df.dtypes, self._selected_obj
+        )
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(
