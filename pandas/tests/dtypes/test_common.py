@@ -169,7 +169,13 @@ def test_get_dtype_error_catch(func):
     #
     # No exception should be raised.
 
-    assert not func(None)
+    msg = f"{func.__name__} is deprecated"
+    warn = None
+    if func is com.is_int64_dtype:
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        assert not func(None)
 
 
 def test_is_object():
@@ -407,7 +413,9 @@ def test_is_not_unsigned_integer_dtype(dtype):
     "dtype", [np.int64, np.array([1, 2], dtype=np.int64), "Int64", pd.Int64Dtype]
 )
 def test_is_int64_dtype(dtype):
-    assert com.is_int64_dtype(dtype)
+    msg = "is_int64_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert com.is_int64_dtype(dtype)
 
 
 def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
@@ -443,7 +451,9 @@ def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
     ],
 )
 def test_is_not_int64_dtype(dtype):
-    assert not com.is_int64_dtype(dtype)
+    msg = "is_int64_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_int64_dtype(dtype)
 
 
 def test_is_datetime64_any_dtype():
@@ -518,9 +528,12 @@ def test_needs_i8_conversion():
     assert not com.needs_i8_conversion(pd.Series([1, 2]))
     assert not com.needs_i8_conversion(np.array(["a", "b"]))
 
-    assert com.needs_i8_conversion(np.datetime64)
-    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
-    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert not com.needs_i8_conversion(np.datetime64)
+    assert com.needs_i8_conversion(np.dtype(np.datetime64))
+    assert not com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]").dtype)
+    assert not com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    assert com.needs_i8_conversion(pd.DatetimeIndex(["2000"], tz="US/Eastern").dtype)
 
 
 def test_is_numeric_dtype():

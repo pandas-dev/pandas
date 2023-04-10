@@ -21,7 +21,7 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform. If you choose to use ``Docker``
+How to do this will depend on your platform. If you choose to use ``Docker`` or ``GitPod``
 in the next step, then you can skip this step.
 
 **Windows**
@@ -223,6 +223,7 @@ Because the meson build system is newer, you may find bugs/minor issues as it ma
 To compile pandas with meson, run::
 
    # Build and install pandas
+<<<<<<< HEAD
    python -m pip install -ve . --no-build-isolation
 
 ** Build options **
@@ -250,8 +251,8 @@ To compile pandas with setuptools, run::
    python setup.py develop
 
 .. note::
-   You will also need to repeat this step each time the C extensions change,
-   for example if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
+   You will need to repeat this step each time the C extensions change, for example
+   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
 At this point you should be able to import pandas from your locally built version::
 

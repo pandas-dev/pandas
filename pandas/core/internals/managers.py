@@ -72,6 +72,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
     new_block_2d,
 )
@@ -273,8 +274,8 @@ class BaseBlockManager(DataManager):
         ref = weakref.ref(self.blocks[blkno])
         return ref in mgr.blocks[blkno].refs.referenced_blocks
 
-    def get_dtypes(self):
-        dtypes = np.array([blk.dtype for blk in self.blocks])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
     @property
@@ -425,7 +426,7 @@ class BaseBlockManager(DataManager):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -1033,9 +1034,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  is this ruled out in the general case?
             result = self.blocks[0].iget((slice(None), loc))
             # in the case of a single block, the new block is a view
+            bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
                 result,
-                placement=slice(0, len(result)),
+                placement=bp,
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
@@ -1070,7 +1072,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = cast(ExtensionDtype, dtype)
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        block = new_block(result, placement=slice(0, len(result)), ndim=1)
+        bp = BlockPlacement(slice(0, len(result)))
+        block = new_block(result, placement=bp, ndim=1)
         return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
@@ -1886,7 +1889,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Constructor for if we have an array that is not yet a Block.
         """
-        block = new_block(array, placement=slice(0, len(index)), ndim=1, refs=refs)
+        array = maybe_coerce_values(array)
+        bp = BlockPlacement(slice(0, len(index)))
+        block = new_block(array, placement=bp, ndim=1, refs=refs)
         return cls(block, index)
 
     def to_2d_mgr(self, columns: Index) -> BlockManager:
@@ -1932,6 +1937,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
             values = extract_array(values, extract_numpy=True)
+            if not isinstance(mgr_locs, BlockPlacement):
+                mgr_locs = BlockPlacement(mgr_locs)
+
+            values = maybe_coerce_values(values)
             return new_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
@@ -2010,8 +2019,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
-    def get_dtypes(self) -> np.ndarray:
-        return np.array([self._block.dtype])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        return np.array([self._block.dtype], dtype=object)
 
     def external_values(self):
         """The array that Series.values returns"""
@@ -2216,7 +2225,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
-            is_dtlike = dtype.kind in ["m", "M"]
+            is_dtlike = dtype.kind in "mM"
 
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)

@@ -15,7 +15,6 @@ import pytest
 from pandas.errors import SpecificationError
 
 from pandas import (
-    Categorical,
     DataFrame,
     Series,
     date_range,
@@ -44,12 +43,6 @@ def test_apply_invalid_axis_value():
         df.apply(lambda x: x, 2)
 
 
-def test_applymap_invalid_na_action(float_frame):
-    # GH 23803
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame.applymap(lambda x: len(str(x)), na_action="abc")
-
-
 def test_agg_raises():
     # GH 26513
     df = DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -74,13 +67,6 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
     msg = f"na_action must either be 'ignore' or None, {input_na_action} was passed"
     with pytest.raises(ValueError, match=msg):
         s.map({1: 2}, na_action=input_na_action)
-
-
-def test_map_categorical_na_action():
-    values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-    s = Series(values, name="XX", index=list("abcdefg"))
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
 
 
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])

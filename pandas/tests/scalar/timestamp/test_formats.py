@@ -11,6 +11,15 @@ ts_no_ns = Timestamp(
     second=8,
     microsecond=132263,
 )
+ts_no_ns_year1 = Timestamp(
+    year=1,
+    month=5,
+    day=18,
+    hour=15,
+    minute=17,
+    second=8,
+    microsecond=132263,
+)
 ts_ns = Timestamp(
     year=2019,
     month=5,
@@ -50,6 +59,8 @@ ts_no_us = Timestamp(
         (ts_no_ns, "auto", "2019-05-18T15:17:08.132263"),
         (ts_no_ns, "seconds", "2019-05-18T15:17:08"),
         (ts_no_ns, "nanoseconds", "2019-05-18T15:17:08.132263000"),
+        (ts_no_ns_year1, "seconds", "0001-05-18T15:17:08"),
+        (ts_no_ns_year1, "nanoseconds", "0001-05-18T15:17:08.132263000"),
         (ts_ns, "auto", "2019-05-18T15:17:08.132263123"),
         (ts_ns, "hours", "2019-05-18T15"),
         (ts_ns, "minutes", "2019-05-18T15:17"),

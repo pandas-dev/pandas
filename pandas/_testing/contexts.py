@@ -154,7 +154,7 @@ def ensure_safe_environment_variables() -> Generator[None, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 

@@ -82,7 +82,7 @@ class TestSeriesConstructors:
         expected = Index(vals, dtype=object)
         tm.assert_index_equal(idx, expected)
 
-    def test_unparseable_strings_with_dt64_dtype(self):
+    def test_unparsable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
         msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
@@ -93,35 +93,34 @@ class TestSeriesConstructors:
             Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
 
     @pytest.mark.parametrize(
-        "constructor,check_index_type",
+        "constructor",
         [
             # NOTE: some overlap with test_constructor_empty but that test does not
             # test for None or an empty generator.
             # test_constructor_pass_none tests None but only with the index also
             # passed.
-            (lambda idx: Series(index=idx), True),
-            (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series((), index=idx), True),
-            (lambda idx: Series([], index=idx), True),
-            (lambda idx: Series((_ for _ in []), index=idx), True),
-            (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series(data=(), index=idx), True),
-            (lambda idx: Series(data=[], index=idx), True),
-            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
+            (lambda idx: Series(index=idx)),
+            (lambda idx: Series(None, index=idx)),
+            (lambda idx: Series({}, index=idx)),
+            (lambda idx: Series((), index=idx)),
+            (lambda idx: Series([], index=idx)),
+            (lambda idx: Series((_ for _ in []), index=idx)),
+            (lambda idx: Series(data=None, index=idx)),
+            (lambda idx: Series(data={}, index=idx)),
+            (lambda idx: Series(data=(), index=idx)),
+            (lambda idx: Series(data=[], index=idx)),
+            (lambda idx: Series(data=(_ for _ in []), index=idx)),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])
-    def test_empty_constructor(self, constructor, check_index_type, empty_index):
-        # TODO: share with frame test of the same name
+    def test_empty_constructor(self, constructor, empty_index):
         # GH 49573 (addition of empty_index parameter)
         expected = Series(index=empty_index)
         result = constructor(empty_index)
 
         assert result.dtype == object
         assert len(result.index) == 0
-        tm.assert_series_equal(result, expected, check_index_type=check_index_type)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_invalid_dtype(self):
         # GH15520
@@ -385,7 +384,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -527,7 +526,7 @@ class TestSeriesConstructors:
         # however, copy is False by default
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
-        s = Series(cat)
+        s = Series(cat, copy=False)
         assert s.values is cat
         s = s.cat.rename_categories([1, 2, 3])
         assert s.values is not cat
