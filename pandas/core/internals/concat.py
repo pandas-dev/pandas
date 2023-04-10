@@ -282,8 +282,7 @@ def _concat_managers_axis0(
                 # by slicing instead of copy(deep=False), we get a new array
                 #  object, see test_concat_copy
                 nb = blk.getitem_block(slice(None))
-            # "BlockPlacement" has no attribute "add"; maybe "append"?
-            nb._mgr_locs = nb._mgr_locs.add(offset)  # type: ignore[attr-defined]
+            nb._mgr_locs = nb._mgr_locs.add(offset)
             blocks.append(nb)
 
         offset += len(mgr.items)
