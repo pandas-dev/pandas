@@ -226,6 +226,7 @@ Deprecations
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -252,6 +253,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
+- Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -282,7 +284,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
 -
 
 Numeric
@@ -335,7 +337,8 @@ Period
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
--
+- Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
+- Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
 
 Plotting
 ^^^^^^^^
