@@ -630,6 +630,13 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(df, expected)
         assert result is None
 
+    def test_sort_values_no_op_reset_index(self):
+        # GH#52553
+        df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
+        result = df.sort_values(by="A", ignore_index=True)
+        expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
