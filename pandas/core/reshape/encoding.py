@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Hashable,
     Iterable,
 )
@@ -10,7 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs.sparse import IntIndex
-from pandas._typing import NpDtype
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -27,6 +27,9 @@ from pandas.core.indexes.api import (
     default_index,
 )
 from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas._typing import NpDtype
 
 
 def get_dummies(
@@ -158,7 +161,7 @@ def get_dummies(
             data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
-        def check_len(item, name):
+        def check_len(item, name: str):
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (
@@ -236,7 +239,7 @@ def _get_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     # Series avoids inconsistent NaN handling
-    codes, levels = factorize_from_iterable(Series(data))
+    codes, levels = factorize_from_iterable(Series(data, copy=False))
 
     if dtype is None:
         dtype = np.dtype(bool)
@@ -310,7 +313,7 @@ def _get_dummies_1d(
                 fill_value=fill_value,
                 dtype=dtype,
             )
-            sparse_series.append(Series(data=sarr, index=index, name=col))
+            sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
         return concat(sparse_series, axis=1, copy=False)
 

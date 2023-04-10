@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
     Literal,
     Sequence,
-    TypeVar,
     cast,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -21,15 +22,9 @@ from pandas._libs import (
     internals as libinternals,
     lib,
 )
-from pandas._libs.internals import BlockPlacement
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    QuantileInterpolation,
-    Shape,
-    npt,
-    type_t,
+from pandas._libs.internals import (
+    BlockPlacement,
+    BlockValuesRefs,
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -77,6 +72,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
     new_block_2d,
 )
@@ -85,7 +81,16 @@ from pandas.core.internals.ops import (
     operate_blockwise,
 )
 
-T = TypeVar("T", bound="BaseBlockManager")
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        QuantileInterpolation,
+        Self,
+        Shape,
+        npt,
+    )
 
 
 class BaseBlockManager(DataManager):
@@ -157,7 +162,7 @@ class BaseBlockManager(DataManager):
         raise NotImplementedError
 
     @classmethod
-    def from_blocks(cls: type_t[T], blocks: list[Block], axes: list[Index]) -> T:
+    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> Self:
         raise NotImplementedError
 
     @property
@@ -187,7 +192,7 @@ class BaseBlockManager(DataManager):
 
         return self._blklocs
 
-    def make_empty(self: T, axes=None) -> T:
+    def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
             axes = [Index([])] + self.axes[1:]
@@ -247,8 +252,30 @@ class BaseBlockManager(DataManager):
         """
         return not self.blocks[blkno].refs.has_reference()
 
-    def get_dtypes(self):
-        dtypes = np.array([blk.dtype for blk in self.blocks])
+    def add_references(self, mgr: BaseBlockManager) -> None:
+        """
+        Adds the references from one manager to another. We assume that both
+        managers have the same block structure.
+        """
+        if len(self.blocks) != len(mgr.blocks):
+            # If block structure changes, then we made a copy
+            return
+        for i, blk in enumerate(self.blocks):
+            blk.refs = mgr.blocks[i].refs
+            # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
+            # "Block"; expected "SharedBlock"
+            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+
+    def references_same_values(self, mgr: BaseBlockManager, blkno: int) -> bool:
+        """
+        Checks if two blocks from two different block managers reference the
+        same underlying values.
+        """
+        ref = weakref.ref(self.blocks[blkno])
+        return ref in mgr.blocks[blkno].refs.referenced_blocks
+
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
     @property
@@ -278,11 +305,11 @@ class BaseBlockManager(DataManager):
         return output
 
     def apply(
-        self: T,
+        self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
-    ) -> T:
+    ) -> Self:
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -329,7 +356,7 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self: T, other, cond, align: bool) -> T:
+    def where(self, other, cond, align: bool) -> Self:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -341,9 +368,17 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
+            using_cow=using_copy_on_write(),
         )
 
-    def setitem(self: T, indexer, value) -> T:
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
+        return self.apply(
+            "round",
+            decimals=decimals,
+            using_cow=using_cow,
+        )
+
+    def setitem(self, indexer, value) -> Self:
         """
         Set values with indexer.
 
@@ -359,7 +394,7 @@ class BaseBlockManager(DataManager):
 
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True):
+    def putmask(self, mask, new, align: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -374,24 +409,24 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
-    def diff(self: T, n: int, axis: AxisInt) -> T:
+    def diff(self, n: int, axis: AxisInt) -> Self:
         # only reached with self.ndim == 2 and axis == 1
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
-    def interpolate(self: T, inplace: bool, **kwargs) -> T:
+    def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply(
             "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
         )
 
-    def shift(self: T, periods: int, axis: AxisInt, fill_value) -> T:
+    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
         axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -405,12 +440,14 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
-    def astype(self: T, dtype, copy: bool | None = False, errors: str = "raise") -> T:
+    def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
             if using_copy_on_write():
                 copy = False
             else:
                 copy = True
+        elif using_copy_on_write():
+            copy = False
 
         return self.apply(
             "astype",
@@ -420,34 +457,40 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
-    def convert(self: T, copy: bool | None) -> T:
+    def convert(self, copy: bool | None) -> Self:
         if copy is None:
             if using_copy_on_write():
                 copy = False
             else:
                 copy = True
+        elif using_copy_on_write():
+            copy = False
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
-    def replace(self: T, to_replace, value, inplace: bool) -> T:
+    def replace(self, to_replace, value, inplace: bool) -> Self:
         inplace = validate_bool_kwarg(inplace, "inplace")
         # NDFrame.replace ensures the not-is_list_likes here
         assert not is_list_like(to_replace)
         assert not is_list_like(value)
         return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            using_cow=using_copy_on_write(),
         )
 
-    def replace_regex(self, **kwargs):
-        return self.apply("_replace_regex", **kwargs)
+    def replace_regex(self, **kwargs) -> Self:
+        return self.apply("_replace_regex", **kwargs, using_cow=using_copy_on_write())
 
     def replace_list(
-        self: T,
+        self,
         src_list: list[Any],
         dest_list: list[Any],
         inplace: bool = False,
         regex: bool = False,
-    ) -> T:
+    ) -> Self:
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -462,7 +505,7 @@ class BaseBlockManager(DataManager):
         bm._consolidate_inplace()
         return bm
 
-    def to_native_types(self: T, **kwargs) -> T:
+    def to_native_types(self, **kwargs) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
@@ -493,11 +536,11 @@ class BaseBlockManager(DataManager):
 
         return False
 
-    def _get_data_subset(self: T, predicate: Callable) -> T:
+    def _get_data_subset(self, predicate: Callable) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks, copy=False)
 
-    def get_bool_data(self: T, copy: bool = False) -> T:
+    def get_bool_data(self, copy: bool = False) -> Self:
         """
         Select blocks that are bool-dtype and columns from object-dtype blocks
         that are all-bool.
@@ -522,7 +565,7 @@ class BaseBlockManager(DataManager):
 
         return self._combine(new_blocks, copy)
 
-    def get_numeric_data(self: T, copy: bool = False) -> T:
+    def get_numeric_data(self, copy: bool = False) -> Self:
         """
         Parameters
         ----------
@@ -538,8 +581,8 @@ class BaseBlockManager(DataManager):
         return self._combine(numeric_blocks, copy)
 
     def _combine(
-        self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
-    ) -> T:
+        self, blocks: list[Block], copy: bool = True, index: Index | None = None
+    ) -> Self:
         """return a new manager with the blocks"""
         if len(blocks) == 0:
             if self.ndim == 2:
@@ -575,7 +618,7 @@ class BaseBlockManager(DataManager):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self: T, deep: bool | None | Literal["all"] = True) -> T:
+    def copy(self, deep: bool | None | Literal["all"] = True) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
@@ -622,7 +665,7 @@ class BaseBlockManager(DataManager):
             res._consolidate_inplace()
         return res
 
-    def consolidate(self: T) -> T:
+    def consolidate(self) -> Self:
         """
         Join together blocks having same dtype
 
@@ -639,7 +682,7 @@ class BaseBlockManager(DataManager):
         return bm
 
     def reindex_indexer(
-        self: T,
+        self,
         new_axis: Index,
         indexer: npt.NDArray[np.intp] | None,
         axis: AxisInt,
@@ -649,7 +692,7 @@ class BaseBlockManager(DataManager):
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
-    ) -> T:
+    ) -> Self:
         """
         Parameters
         ----------
@@ -826,8 +869,9 @@ class BaseBlockManager(DataManager):
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
+                    deep = not (only_slice or using_copy_on_write())
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=not only_slice)
+                        newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
                         blocks.append(newblk)
 
@@ -884,37 +928,29 @@ class BaseBlockManager(DataManager):
         return new_block_2d(block_values, placement=placement)
 
     def take(
-        self: T,
-        indexer,
+        self,
+        indexer: npt.NDArray[np.intp],
         axis: AxisInt = 1,
         verify: bool = True,
-        convert_indices: bool = True,
-    ) -> T:
+    ) -> Self:
         """
         Take items along any axis.
 
-        indexer : np.ndarray or slice
+        indexer : np.ndarray[np.intp]
         axis : int, default 1
         verify : bool, default True
             Check that all entries are between 0 and len(self) - 1, inclusive.
             Pass verify=False if this check has been done by the caller.
-        convert_indices : bool, default True
-            Whether to attempt to convert indices to positive values.
 
         Returns
         -------
         BlockManager
         """
-        # We have 6 tests that get here with a slice
-        indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
-            if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype=np.intp)
-        )
+        assert isinstance(indexer, np.ndarray), type(indexer)
+        assert indexer.dtype == np.intp, indexer.dtype
 
         n = self.shape[axis]
-        if convert_indices:
-            indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=verify)
 
         new_labels = self.axes[axis].take(indexer)
         return self.reindex_indexer(
@@ -972,7 +1008,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
 
     @classmethod
-    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> BlockManager:
+    def from_blocks(cls, blocks: list[Block], axes: list[Index]) -> Self:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
@@ -994,11 +1030,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np.ndarray or ExtensionArray
         """
         if len(self.blocks) == 1:
+            # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
+            #  is this ruled out in the general case?
             result = self.blocks[0].iget((slice(None), loc))
             # in the case of a single block, the new block is a view
+            bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
                 result,
-                placement=slice(0, len(result)),
+                placement=bp,
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
@@ -1033,7 +1072,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = cast(ExtensionDtype, dtype)
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        block = new_block(result, placement=slice(0, len(result)), ndim=1)
+        bp = BlockPlacement(slice(0, len(result)))
+        block = new_block(result, placement=bp, ndim=1)
         return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
@@ -1436,7 +1476,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self: T, func: Callable) -> T:
+    def grouped_reduce(self, func: Callable) -> Self:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
@@ -1469,7 +1509,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
-    def reduce(self: T, func: Callable) -> T:
+    def reduce(self, func: Callable) -> Self:
         """
         Apply reduction function blockwise, returning a single-row BlockManager.
 
@@ -1507,12 +1547,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return blockwise_all(self, other, array_equals)
 
     def quantile(
-        self: T,
+        self,
         *,
         qs: Index,  # with dtype float 64
         axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
-    ) -> T:
+    ) -> Self:
         """
         Iterate over blocks applying quantile reduction.
         This routine is intended for reduction type operations and
@@ -1609,7 +1649,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_dict(self, copy: bool = True):
+    def to_dict(self, copy: bool = True) -> dict[str, Self]:
         """
         Return a dict of str(dtype) -> BlockManager
 
@@ -1653,17 +1693,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         -------
         arr : ndarray
         """
+        passed_nan = lib.is_float(na_value) and isna(na_value)
+
         # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
 
-        # We want to copy when na_value is provided to avoid
-        # mutating the original object
-        copy = copy or na_value is not lib.no_default
-
         if self.is_single_block:
             blk = self.blocks[0]
+
+            if na_value is not lib.no_default:
+                # We want to copy when na_value is provided to avoid
+                # mutating the original object
+                if (
+                    isinstance(blk.dtype, np.dtype)
+                    and blk.dtype.kind == "f"
+                    and passed_nan
+                ):
+                    # We are already numpy-float and na_value=np.nan
+                    pass
+                else:
+                    copy = True
+
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
 
@@ -1676,16 +1728,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    arr = arr.astype(dtype, copy=False)
+                    arr = arr.astype(dtype, copy=copy)
+                    copy = False
+
+            if copy:
+                arr = arr.copy()
+            elif using_copy_on_write():
+                arr = arr.view()
+                arr.flags.writeable = False
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
-            # The underlying data was copied within _interleave
-            copy = False
+            # The underlying data was copied within _interleave, so no need
+            # to further copy if copy=True or setting na_value
 
-        if copy:
-            arr = arr.copy()
-
-        if na_value is not lib.no_default:
+        if na_value is lib.no_default:
+            pass
+        elif arr.dtype.kind == "f" and passed_nan:
+            pass
+        else:
             arr[isna(arr)] = na_value
 
         return arr.transpose()
@@ -1814,7 +1874,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         cls,
         blocks: list[Block],
         axes: list[Index],
-    ) -> SingleBlockManager:
+    ) -> Self:
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
@@ -1823,11 +1883,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return cls(blocks[0], axes[0], verify_integrity=False)
 
     @classmethod
-    def from_array(cls, array: ArrayLike, index: Index) -> SingleBlockManager:
+    def from_array(
+        cls, array: ArrayLike, index: Index, refs: BlockValuesRefs | None = None
+    ) -> SingleBlockManager:
         """
         Constructor for if we have an array that is not yet a Block.
         """
-        block = new_block(array, placement=slice(0, len(index)), ndim=1)
+        array = maybe_coerce_values(array)
+        bp = BlockPlacement(slice(0, len(index)))
+        block = new_block(array, placement=bp, ndim=1, refs=refs)
         return cls(block, index)
 
     def to_2d_mgr(self, columns: Index) -> BlockManager:
@@ -1873,6 +1937,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
             values = extract_array(values, extract_numpy=True)
+            if not isinstance(mgr_locs, BlockPlacement):
+                mgr_locs = BlockPlacement(mgr_locs)
+
+            values = maybe_coerce_values(values)
             return new_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
@@ -1951,8 +2019,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
-    def get_dtypes(self) -> np.ndarray:
-        return np.array([self._block.dtype])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        return np.array([self._block.dtype], dtype=object)
 
     def external_values(self):
         """The array that Series.values returns"""
@@ -1966,7 +2034,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
-    def get_numeric_data(self, copy: bool = False):
+    def get_numeric_data(self, copy: bool = False) -> Self:
         if self._block.is_numeric:
             return self.copy(deep=copy)
         return self.make_empty()
@@ -2023,7 +2091,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
-    def _equal_values(self: T, other: T) -> bool:
+    def _equal_values(self, other: Self) -> bool:
         """
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
@@ -2157,7 +2225,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
-            is_dtlike = dtype.kind in ["m", "M"]
+            is_dtlike = dtype.kind in "mM"
 
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)

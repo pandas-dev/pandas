@@ -1630,9 +1630,8 @@ class TestMergeDtypes:
         df2 = DataFrame({"A": df2_vals})
 
         msg = (
-            f"You are trying to merge on {df1['A'].dtype} and "
-            f"{df2['A'].dtype} columns. If you wish to proceed "
-            "you should use pd.concat"
+            f"You are trying to merge on {df1['A'].dtype} and {df2['A'].dtype} "
+            "columns for key 'A'. If you wish to proceed you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
@@ -1640,13 +1639,40 @@ class TestMergeDtypes:
 
         # Check that error still raised when swapping order of dataframes
         msg = (
-            f"You are trying to merge on {df2['A'].dtype} and "
-            f"{df1['A'].dtype} columns. If you wish to proceed "
-            "you should use pd.concat"
+            f"You are trying to merge on {df2['A'].dtype} and {df1['A'].dtype} "
+            "columns for key 'A'. If you wish to proceed you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             merge(df2, df1, on=["A"])
+
+        # Check that error still raised when merging on multiple columns
+        # The error message should mention the first incompatible column
+        if len(df1_vals) == len(df2_vals):
+            # Column A in df1 and df2 is of compatible (the same) dtype
+            # Columns B and C in df1 and df2 are of incompatible dtypes
+            df3 = DataFrame({"A": df2_vals, "B": df1_vals, "C": df1_vals})
+            df4 = DataFrame({"A": df2_vals, "B": df2_vals, "C": df2_vals})
+
+            # Check that error raised correctly when merging all columns A, B, and C
+            # The error message should mention key 'B'
+            msg = (
+                f"You are trying to merge on {df3['B'].dtype} and {df4['B'].dtype} "
+                "columns for key 'B'. If you wish to proceed you should use pd.concat"
+            )
+            msg = re.escape(msg)
+            with pytest.raises(ValueError, match=msg):
+                merge(df3, df4)
+
+            # Check that error raised correctly when merging columns A and C
+            # The error message should mention key 'C'
+            msg = (
+                f"You are trying to merge on {df3['C'].dtype} and {df4['C'].dtype} "
+                "columns for key 'C'. If you wish to proceed you should use pd.concat"
+            )
+            msg = re.escape(msg)
+            with pytest.raises(ValueError, match=msg):
+                merge(df3, df4, on=["A", "C"])
 
     @pytest.mark.parametrize(
         "expected_data, how",
@@ -2734,4 +2760,19 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
             "c": Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "int64[pyarrow]"])
+def test_merge_arrow_and_numpy_dtypes(dtype):
+    # GH#52406
+    pytest.importorskip("pyarrow")
+    df = DataFrame({"a": [1, 2]}, dtype=dtype)
+    df2 = DataFrame({"a": [1, 2]}, dtype="int64[pyarrow]")
+    result = df.merge(df2)
+    expected = df.copy()
+    tm.assert_frame_equal(result, expected)
+
+    result = df2.merge(df)
+    expected = df2.copy()
     tm.assert_frame_equal(result, expected)

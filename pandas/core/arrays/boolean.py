@@ -12,11 +12,6 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -35,15 +30,18 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._typing import npt
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        npt,
+        type_t,
+    )
 
 
 @register_extension_dtype
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -110,14 +108,22 @@ class BooleanDtype(BaseMaskedDtype):
         """
         import pyarrow
 
-        if array.type != pyarrow.bool_():
+        if array.type != pyarrow.bool_() and not pyarrow.types.is_null(array.type):
             raise TypeError(f"Expected array of boolean type, got {array.type} instead")
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
+            length = len(array)
         else:
             # pyarrow.ChunkedArray
             chunks = array.chunks
+            length = array.length()
+
+        if pyarrow.types.is_null(array.type):
+            mask = np.ones(length, dtype=bool)
+            # No need to init data, since all null
+            data = np.empty(length, dtype=bool)
+            return BooleanArray(data, mask)
 
         results = []
         for arr in chunks:
@@ -245,8 +251,6 @@ class BooleanArray(BaseMaskedArray):
     To construct an BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 

@@ -7,6 +7,7 @@ from cython cimport Py_ssize_t
 
 
 cdef extern from "Python.h":
+    # TODO(cython3): from cpython.pyport cimport PY_SSIZE_T_MAX
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
@@ -568,8 +569,14 @@ cpdef update_blklocs_and_blknos(
 def _unpickle_block(values, placement, ndim):
     # We have to do some gymnastics b/c "ndim" is keyword-only
 
-    from pandas.core.internals.blocks import new_block
+    from pandas.core.internals.blocks import (
+        maybe_coerce_values,
+        new_block,
+    )
+    values = maybe_coerce_values(values)
 
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
     return new_block(values, placement, ndim=ndim)
 
 
@@ -794,6 +801,7 @@ cdef class BlockManager:
         from pandas.core.construction import extract_array
         from pandas.core.internals.blocks import (
             ensure_block_shape,
+            maybe_coerce_values,
             new_block,
         )
         from pandas.core.internals.managers import ensure_index
@@ -807,7 +815,10 @@ cdef class BlockManager:
                 vals = blk["values"]
                 # older versions may hold e.g. DatetimeIndex instead of DTA
                 vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+                blk["values"] = maybe_coerce_values(ensure_block_shape(vals, ndim=ndim))
+
+                if not isinstance(blk["mgr_locs"], BlockPlacement):
+                    blk["mgr_locs"] = BlockPlacement(blk["mgr_locs"])
 
             nbs = [
                 new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
@@ -830,7 +841,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _get_index_slice(self, slobj):
+    cdef BlockManager _get_index_slice(self, slice slobj):
         cdef:
             SharedBlock blk, nb
             BlockManager mgr
@@ -874,10 +885,13 @@ cdef class BlockValuesRefs:
     data.
     """
     cdef:
-        public object referenced_blocks
+        public list referenced_blocks
 
-    def __cinit__(self, blk: SharedBlock) -> None:
-        self.referenced_blocks = weakref.WeakSet([blk])
+    def __cinit__(self, blk: SharedBlock | None = None) -> None:
+        if blk is not None:
+            self.referenced_blocks = [weakref.ref(blk)]
+        else:
+            self.referenced_blocks = []
 
     def add_reference(self, blk: SharedBlock) -> None:
         """Adds a new reference to our reference collection.
@@ -887,7 +901,17 @@ cdef class BlockValuesRefs:
         blk: SharedBlock
             The block that the new references should point to.
         """
-        self.referenced_blocks.add(blk)
+        self.referenced_blocks.append(weakref.ref(blk))
+
+    def add_index_reference(self, index: object) -> None:
+        """Adds a new reference to our reference collection when creating an index.
+
+        Parameters
+        ----------
+        index: object
+            The index that the new reference should point to.
+        """
+        self.referenced_blocks.append(weakref.ref(index))
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -899,5 +923,8 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
+        self.referenced_blocks = [
+            ref for ref in self.referenced_blocks if ref() is not None
+        ]
         # Checking for more references than block pointing to itself
         return len(self.referenced_blocks) > 1

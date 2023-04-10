@@ -12,15 +12,17 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - hypothesis>=6.34.2
-  - pytest-asyncio>=0.17
+  - pytest-asyncio>=0.17.0
 
   # pandas dependencies
   - python-dateutil
   - pytz
   - pip
+
   - pip:
     - "cython"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"
     - "scipy"
+    - "tzdata>=2022.1"

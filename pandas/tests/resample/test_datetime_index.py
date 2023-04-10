@@ -641,8 +641,13 @@ def test_resample_dup_index():
         columns=[Period(year=2000, month=i + 1, freq="M") for i in range(12)],
     )
     df.iloc[3, :] = np.nan
-    result = df.resample("Q", axis=1).mean()
-    expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = df.resample("Q", axis=1).mean()
+
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
     expected.columns = [Period(year=2000, quarter=i + 1, freq="Q") for i in range(4)]
     tm.assert_frame_equal(result, expected)
 
@@ -727,7 +732,9 @@ def test_resample_axis1(unit):
     rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     df = DataFrame(np.random.randn(3, len(rng)), columns=rng, index=["a", "b", "c"])
 
-    result = df.resample("M", axis=1).mean()
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = df.resample("M", axis=1).mean()
     expected = df.T.resample("M").mean().T
     tm.assert_frame_equal(result, expected)
 
@@ -1796,14 +1803,11 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = Series(
-        0,
-        index=date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit),
-    )
-    s = s + range(len(s))
+    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    ser = Series(range(len(dti)), index=dti)
 
-    result1 = s.resample(str(n1_) + freq1).mean()
-    result2 = s.resample(str(n2_) + freq2).mean()
+    result1 = ser.resample(str(n1_) + freq1).mean()
+    result2 = ser.resample(str(n2_) + freq2).mean()
     tm.assert_series_equal(result1, result2)
 
 
@@ -1843,7 +1847,7 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.product)
+    result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(

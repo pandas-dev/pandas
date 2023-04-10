@@ -13,7 +13,6 @@ from typing import (
     Hashable,
     Iterable,
     List,
-    Literal,
     Mapping,
     Sequence,
     Tuple,
@@ -25,8 +24,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
-
 from pandas._libs import (
     lib,
     parsers,
@@ -34,12 +31,6 @@ from pandas._libs import (
 import pandas._libs.ops as libops
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import (
-    ArrayLike,
-    DtypeArg,
-    DtypeObj,
-    Scalar,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     ParserError,
@@ -69,7 +60,10 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas import StringDtype
+from pandas import (
+    DatetimeIndex,
+    StringDtype,
+)
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
@@ -91,6 +85,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        DtypeArg,
+        DtypeObj,
+        Scalar,
+    )
+
     from pandas import DataFrame
 
 
@@ -114,7 +115,8 @@ class ParserBase:
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
         self._parse_date_cols: Iterable = []
-        self.date_parser = kwds.pop("date_parser", None)
+        self.date_parser = kwds.pop("date_parser", lib.no_default)
+        self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
 
@@ -125,7 +127,7 @@ class ParserBase:
 
         self.dtype = copy(kwds.get("dtype", None))
         self.converters = kwds.get("converters")
-        self.use_nullable_dtypes = kwds.get("use_nullable_dtypes", False)
+        self.dtype_backend = kwds.get("dtype_backend")
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -133,6 +135,7 @@ class ParserBase:
 
         self._date_conv = _make_date_converter(
             date_parser=self.date_parser,
+            date_format=self.date_format,
             dayfirst=self.dayfirst,
             cache_dates=self.cache_dates,
         )
@@ -453,7 +456,10 @@ class ParserBase:
 
         for i, arr in enumerate(index):
             if try_parse_dates and self._should_parse_dates(i):
-                arr = self._date_conv(arr)
+                arr = self._date_conv(
+                    arr,
+                    col=self.index_names[i] if self.index_names is not None else None,
+                )
 
             if self.na_filter:
                 col_na_values = self.na_values
@@ -685,10 +691,10 @@ class ParserBase:
                 np.putmask(values, mask, np.nan)
             return values, na_count
 
-        use_nullable_dtypes: Literal[True] | Literal[False] = (
-            self.use_nullable_dtypes and no_dtype_specified
+        dtype_backend = self.dtype_backend
+        non_default_dtype_backend = (
+            no_dtype_specified and dtype_backend is not lib.no_default
         )
-        dtype_backend = get_option("mode.dtype_backend")
         result: ArrayLike
 
         if try_num_bool and is_object_dtype(values.dtype):
@@ -698,7 +704,7 @@ class ParserBase:
                     values,
                     na_values,
                     False,
-                    convert_to_masked_nullable=use_nullable_dtypes,
+                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
                 )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
@@ -706,7 +712,7 @@ class ParserBase:
                 na_count = parsers.sanitize_objects(values, na_values)
                 result = values
             else:
-                if use_nullable_dtypes:
+                if non_default_dtype_backend:
                     if result_mask is None:
                         result_mask = np.zeros(result.shape, dtype=np.bool_)
 
@@ -734,19 +740,19 @@ class ParserBase:
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
-                convert_to_masked_nullable=use_nullable_dtypes,
+                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
             )
-            if result.dtype == np.bool_ and use_nullable_dtypes:
+            if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
                     bool_mask = np.zeros(result.shape, dtype=np.bool_)
                 result = BooleanArray(result, bool_mask)
-            elif result.dtype == np.object_ and use_nullable_dtypes:
+            elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
                 inferred_type = lib.infer_dtype(result)
                 if inferred_type != "datetime":
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
-        if use_nullable_dtypes and dtype_backend == "pyarrow":
+        if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
@@ -924,7 +930,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
-    def _validate_usecols_names(self, usecols, names):
+    def _validate_usecols_names(self, usecols, names: Sequence):
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that
@@ -1089,21 +1095,43 @@ class ParserBase:
 
 
 def _make_date_converter(
-    date_parser=None,
+    date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
+    date_format: dict[Hashable, str] | str | None = None,
 ):
-    def converter(*date_cols):
-        if date_parser is None:
-            strs = parsing.concat_date_cols(date_cols)
+    if date_parser is not lib.no_default:
+        warnings.warn(
+            "The argument 'date_parser' is deprecated and will "
+            "be removed in a future version. "
+            "Please use 'date_format' instead, or read your data in as 'object' dtype "
+            "and then call 'to_datetime'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if date_parser is not lib.no_default and date_format is not None:
+        raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
-            return tools.to_datetime(
+    def converter(*date_cols, col: Hashable):
+        if date_parser is lib.no_default:
+            strs = parsing.concat_date_cols(date_cols)
+            date_fmt = (
+                date_format.get(col) if isinstance(date_format, dict) else date_format
+            )
+
+            result = tools.to_datetime(
                 ensure_object(strs),
+                format=date_fmt,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",
                 cache=cache_dates,
-            ).to_numpy()
+            )
+            if isinstance(result, DatetimeIndex):
+                arr = result.to_numpy()
+                arr.flags.writeable = True
+                return arr
+            return result._values
         else:
             try:
                 result = tools.to_datetime(
@@ -1152,7 +1180,8 @@ parser_defaults = {
     "parse_dates": False,
     "keep_date_col": False,
     "dayfirst": False,
-    "date_parser": None,
+    "date_parser": lib.no_default,
+    "date_format": None,
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
@@ -1162,7 +1191,7 @@ parser_defaults = {
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
-    "use_nullable_dtypes": False,
+    "dtype_backend": lib.no_default,
 }
 
 
@@ -1201,7 +1230,9 @@ def _process_date_conversion(
                     continue
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
-                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
+                data_dict[colspec] = converter(
+                    np.asarray(data_dict[colspec]), col=colspec
+                )
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -1219,7 +1250,11 @@ def _process_date_conversion(
                 raise ValueError(f"Date column {new_name} already in dict")
 
             _, col, old_names = _try_convert_dates(
-                converter, colspec, data_dict, orig_names
+                converter,
+                colspec,
+                data_dict,
+                orig_names,
+                target_name=new_name,
             )
 
             new_data[new_name] = col
@@ -1243,7 +1278,9 @@ def _process_date_conversion(
     return data_dict, new_cols
 
 
-def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
+def _try_convert_dates(
+    parser: Callable, colspec, data_dict, columns, target_name: str | None = None
+):
     colset = set(columns)
     colnames = []
 
@@ -1262,7 +1299,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
-    new_col = parser(*to_parse)
+    new_col = parser(*to_parse, col=new_name if target_name is None else target_name)
     return new_name, new_col, colnames
 
 

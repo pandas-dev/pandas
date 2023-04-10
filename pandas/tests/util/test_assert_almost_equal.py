@@ -45,7 +45,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
     try:
         tm.assert_almost_equal(a, b, **kwargs)
         msg = f"{a} and {b} were approximately equal when they shouldn't have been"
-        pytest.fail(msg=msg)
+        pytest.fail(reason=msg)
     except AssertionError:
         pass
 
@@ -200,6 +200,18 @@ def test_assert_almost_equal_edge_case_ndarrays(left_dtype, right_dtype):
         np.array([], dtype=right_dtype),
         check_dtype=False,
     )
+
+
+def test_assert_almost_equal_sets():
+    # GH#51727
+    _assert_almost_equal_both({1, 2, 3}, {1, 2, 3})
+
+
+def test_assert_almost_not_equal_sets():
+    # GH#51727
+    msg = r"{1, 2, 3} != {1, 2, 4}"
+    with pytest.raises(AssertionError, match=msg):
+        _assert_almost_equal_both({1, 2, 3}, {1, 2, 4})
 
 
 def test_assert_almost_equal_dicts():

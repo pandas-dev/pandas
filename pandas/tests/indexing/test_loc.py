@@ -1105,9 +1105,12 @@ class TestLocBaseIndependent:
         else:
             assert all(sliced_series[:3] == [7, 8, 9])
 
-    @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-    def test_loc_copy_vs_view(self):
+    def test_loc_copy_vs_view(self, request, using_copy_on_write):
         # GH 15631
+
+        if not using_copy_on_write:
+            mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
+            request.node.add_marker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()
@@ -2563,8 +2566,10 @@ class TestLocBooleanMask:
         mask = float_frame["A"] > 0
 
         float_frame.loc[mask, "B"] = 0
-        expected.values[mask.values, 1] = 0
 
+        values = expected.values.copy()
+        values[mask.values, 1] = 0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
     def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
@@ -2595,6 +2600,20 @@ class TestLocBooleanMask:
             tm.assert_frame_equal(df, df_orig)
         else:
             tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_empty_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": [], "b": []}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_all_false_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:
@@ -2949,6 +2968,28 @@ def test_loc_periodindex_3_levels():
     )
     mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
+
+
+def test_loc_setitem_pyarrow_strings():
+    # GH#52319
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "strings": Series(["A", "B", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+    new_value = Series(["X", "Y"])
+    df.loc[df.ids, "strings"] = new_value
+
+    expected_df = DataFrame(
+        {
+            "strings": Series(["X", "Y", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+
+    tm.assert_frame_equal(df, expected_df)
 
 
 class TestLocSeries:

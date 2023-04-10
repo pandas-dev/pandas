@@ -63,7 +63,7 @@ def recode_for_groupby(
         # return a new categorical that maps our new codes
         # and categories
         dtype = CategoricalDtype(categories, ordered=c.ordered)
-        return Categorical(codes, dtype=dtype, fastpath=True), c
+        return Categorical._simple_new(codes, dtype=dtype), c
 
     # Already sorted according to c.categories; all is fine
     if sort:

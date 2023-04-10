@@ -20,7 +20,12 @@ from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -230,6 +235,16 @@ cdef class IndexEngine:
     def __sizeof__(self) -> int:
         return self.sizeof()
 
+    cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+
     @property
     def is_unique(self) -> bool:
         if self.need_unique_check:
@@ -256,24 +271,24 @@ cdef class IndexEngine:
 
     cdef _do_monotonic_check(self):
         cdef:
-            bint is_unique
+            bint is_strict_monotonic
         if self.mask is not None and np.any(self.mask):
             self.monotonic_inc = 0
             self.monotonic_dec = 0
         else:
             try:
                 values = self.values
-                self.monotonic_inc, self.monotonic_dec, is_unique = \
+                self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
             except TypeError:
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
-                is_unique = 0
+                is_strict_monotonic = 0
 
             self.need_monotonic_check = 0
 
-            # we can only be sure of uniqueness if is_unique=1
-            if is_unique:
+            # we can only be sure of uniqueness if is_strict_monotonic=1
+            if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
 
@@ -892,6 +907,16 @@ cdef class SharedEngine:
         # for compat with IndexEngine
         pass
 
+    cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+
     @property
     def is_unique(self) -> bool:
         if self.need_unique_check:
@@ -1141,12 +1166,26 @@ cdef class ExtensionEngine(SharedEngine):
 
 cdef class MaskedIndexEngine(IndexEngine):
     def __init__(self, object values):
-        super().__init__(values._data)
-        self.mask = values._mask
+        super().__init__(self._get_data(values))
+        self.mask = self._get_mask(values)
+
+    def _get_data(self, object values) -> np.ndarray:
+        if hasattr(values, "_mask"):
+            return values._data
+        # We are an ArrowExtensionArray
+        # Set 1 as na_value to avoid ending up with NA and an object array
+        # TODO: Remove when arrow engine is implemented
+        return values.to_numpy(na_value=1, dtype=values.dtype.numpy_dtype)
+
+    def _get_mask(self, object values) -> np.ndarray:
+        if hasattr(values, "_mask"):
+            return values._mask
+        # We are an ArrowExtensionArray
+        return values.isna()
 
     def get_indexer(self, object values) -> np.ndarray:
         self._ensure_mapping_populated()
-        return self.mapping.lookup(values._data, values._mask)
+        return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
     def get_indexer_non_unique(self, object targets):
         """
@@ -1171,8 +1210,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end, na_idx
 
-        target_vals = targets._data
-        target_mask = targets._mask
+        target_vals = self._get_data(targets)
+        target_mask = self._get_mask(targets)
 
         values = self.values
         assert not values.dtype == object  # go through object path instead

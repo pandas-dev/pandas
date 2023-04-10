@@ -753,8 +753,6 @@ Experimental ``NA`` scalar to denote missing values
 
    Experimental: the behaviour of ``pd.NA`` can still change without warning.
 
-.. versionadded:: 1.0.0
-
 Starting from pandas 1.0, an experimental ``pd.NA`` value (singleton) is
 available to represent scalar missing values. At this moment, it is used in
 the nullable :doc:`integer <integer_na>`, boolean and

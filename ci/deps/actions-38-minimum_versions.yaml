@@ -8,14 +8,13 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.32
+  - cython>=0.29.33
 
   # test dependencies
   - pytest>=7.0.0
   - pytest-cov
   - pytest-xdist>=2.2.0
-  - psutil
-  - pytest-asyncio>=0.17
+  - pytest-asyncio>=0.17.0
   - boto3
 
   # required dependencies
@@ -53,7 +52,6 @@ dependencies:
   - scipy=1.7.1
   - sqlalchemy=1.4.16
   - tabulate=0.8.9
-  - tzdata=2022a
   - xarray=0.21.0
   - xlrd=2.0.1
   - xlsxwriter=1.4.3
@@ -61,3 +59,4 @@ dependencies:
 
   - pip:
     - pyqt5==5.15.1
+    - tzdata==2022.1

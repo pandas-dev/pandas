@@ -19,12 +19,12 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
 from pandas._config import option_context
 
-from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -37,14 +37,16 @@ from pandas._typing import (
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_dict_like,
-    is_extension_array_dtype,
     is_list_like,
     is_sequence,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -358,7 +360,7 @@ class Apply(metaclass=abc.ABCMeta):
                 keys = selected_obj.columns.take(indices)
 
         try:
-            concatenated = concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -370,16 +372,6 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
-        else:
-            # Concat uses the first index to determine the final indexing order.
-            # The union of a shorter first index with the other indices causes
-            # the index sorting to be different from the order of the aggregating
-            # functions. Reindex if this is the case.
-            index_size = concatenated.index.size
-            full_ordered_index = next(
-                result.index for result in results if result.index.size == index_size
-            )
-            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> DataFrame | Series:
         """
@@ -490,6 +482,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
@@ -502,7 +499,21 @@ class Apply(metaclass=abc.ABCMeta):
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             if "axis" in arg_names:
-                self.kwargs["axis"] = self.axis
+                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
+                    # Try to avoid FutureWarning for deprecated axis keyword;
+                    # If self.axis matches the axis we would get by not passing
+                    #  axis, we safely exclude the keyword.
+
+                    default_axis = 0
+                    if f in ["idxmax", "idxmin"]:
+                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
+                        # whereas other axis keywords default to 0
+                        default_axis = self.obj.axis
+
+                    if default_axis != self.axis:
+                        self.kwargs["axis"] = self.axis
+                else:
+                    self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -647,10 +658,6 @@ class FrameApply(NDFrameApply):
     @cache_readonly
     def values(self):
         return self.obj.values
-
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
@@ -936,7 +943,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        if is_extension_array_dtype(ser.dtype):
+        if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -1073,23 +1080,27 @@ class SeriesApply(NDFrameApply):
         f = cast(Callable, self.f)
         obj = self.obj
 
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
+        if isinstance(f, np.ufunc):
+            with np.errstate(all="ignore"):
                 return f(obj)
 
-            # row-wise access
-            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
-                # GH#23179 some EAs do not have `map`
-                mapped = obj._values.map(f)
-            else:
-                values = obj.astype(object)._values
-                mapped = lib.map_infer(
-                    values,
-                    f,
-                    convert=self.convert_dtype,
-                )
+        # row-wise access
+        # apply doesn't have a `na_action` keyword and for backward compat reasons
+        # we need to give `na_action="ignore"` for categorical data.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
+        action = "ignore" if is_categorical_dtype(obj) else None
+        mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
+            warnings.warn(
+                "Returning a DataFrame from Series.apply when the supplied function"
+                "returns a Series is deprecated and will be removed in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )  # GH52116
+
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)
@@ -1333,17 +1344,23 @@ def relabel_result(
     columns: New columns name for relabelling
     order: New order for relabelling
 
-    Examples:
-    ---------
-    >>> result = DataFrame({"A": [np.nan, 2, np.nan],
-    ...       "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]})  # doctest: +SKIP
+    Examples
+    --------
+    >>> from pandas.core.apply import relabel_result
+    >>> result = pd.DataFrame(
+    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
+    ...     index=["max", "mean", "min"]
+    ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> _relabel_result(result, func, columns, order)  # doctest: +SKIP
-    dict(A=Series([2.0, NaN, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         C=Series([NaN, 6.0, NaN, NaN], index=["foo", "aab", "bar", "dat"]),
-         B=Series([NaN, NaN, 2.5, 4.0], index=["foo", "aab", "bar", "dat"]))
+    >>> result_in_dict = relabel_result(result, funcs, columns, order)
+    >>> pd.DataFrame(result_in_dict, index=columns)
+           A    C    B
+    foo  2.0  NaN  NaN
+    aab  NaN  6.0  NaN
+    bar  NaN  NaN  4.0
+    dat  NaN  NaN  2.5
     """
     from pandas.core.indexes.base import Index
 
@@ -1490,7 +1507,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 

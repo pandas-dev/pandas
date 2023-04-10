@@ -3,7 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -24,7 +23,6 @@ test_frame = DataFrame(
 
 
 @async_mark()
-@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
@@ -282,7 +280,7 @@ def test_apply_with_mutated_index():
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
 
