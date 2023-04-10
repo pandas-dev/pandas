@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
-    Index,
+    RangeIndex,
     Series,
     concat,
     date_range,
@@ -52,7 +52,7 @@ class TestEmptyConcat:
         res = concat([s1, s2], axis=1)
         exp = DataFrame(
             {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -70,7 +70,7 @@ class TestEmptyConcat:
         exp = DataFrame(
             {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
             columns=["x", 0],
-            index=Index([0, 1, 2], dtype="O"),
+            index=RangeIndex(3),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -96,7 +96,7 @@ class TestEmptyConcat:
         "left,right,expected",
         [
             # booleans
-            (np.bool_, np.int32, np.int32),
+            (np.bool_, np.int32, np.object_),  # changed from int32 in 2.0 GH#39817
             (np.bool_, np.float32, np.object_),
             # datetime-like
             ("m8[ns]", np.bool_, np.object_),
@@ -109,12 +109,8 @@ class TestEmptyConcat:
         ],
     )
     def test_concat_empty_series_dtypes(self, left, right, expected):
-        warn = None
-        if (left is np.bool_ or right is np.bool_) and expected is not np.object_:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
-            # GH#39817
-            result = concat([Series(dtype=left), Series(dtype=right)])
+        # GH#39817, GH#45101
+        result = concat([Series(dtype=left), Series(dtype=right)])
         assert result.dtype == expected
 
     @pytest.mark.parametrize(
@@ -135,7 +131,6 @@ class TestEmptyConcat:
         ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"],
     )
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
-
         # round-tripping with self & like self
         if dtype == dtype2:
             return
@@ -176,7 +171,6 @@ class TestEmptyConcat:
         assert result.kind == expected
 
     def test_concat_empty_series_dtypes_triple(self):
-
         assert (
             concat(
                 [Series(dtype="M8[ns]"), Series(dtype=np.bool_), Series(dtype=np.int64)]
@@ -242,14 +236,13 @@ class TestEmptyConcat:
         # GH 15328
         df_empty = DataFrame()
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
-        df_expected = DataFrame({"a": []}, index=[], dtype="int64")
+        df_expected = DataFrame({"a": []}, index=RangeIndex(0), dtype="int64")
 
         for how, expected in [("inner", df_expected), ("outer", df_a)]:
             result = concat([df_a, df_empty], axis=1, join=how)
             tm.assert_frame_equal(result, expected)
 
     def test_empty_dtype_coerce(self):
-
         # xref to #12411
         # xref to #12045
         # xref to #11594

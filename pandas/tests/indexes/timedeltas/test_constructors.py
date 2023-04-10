@@ -47,7 +47,7 @@ class TestTimedeltaIndex:
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data._data.base is arr
+        assert tdi._data._ndarray.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539
@@ -153,17 +153,6 @@ class TestTimedeltaIndex:
             ]
         )
         tm.assert_index_equal(result, expected)
-
-        # unicode
-        result = TimedeltaIndex(
-            [
-                "1 days",
-                "1 days, 00:00:05",
-                np.timedelta64(2, "D"),
-                timedelta(days=2, seconds=2),
-                pd.offsets.Second(3),
-            ]
-        )
 
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]

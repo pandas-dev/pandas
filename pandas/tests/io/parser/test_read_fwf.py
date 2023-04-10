@@ -16,13 +16,19 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 from pandas.tests.io.test_compression import _compression_to_extension
 
+from pandas.io.common import urlopen
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -279,15 +285,16 @@ def test_fwf_regression():
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
 
-    result = read_fwf(
-        StringIO(data),
-        index_col=0,
-        header=None,
-        names=names,
-        widths=widths,
-        parse_dates=True,
-        date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
-    )
+    with tm.assert_produces_warning(FutureWarning, match="use 'date_format' instead"):
+        result = read_fwf(
+            StringIO(data),
+            index_col=0,
+            header=None,
+            names=names,
+            widths=widths,
+            parse_dates=True,
+            date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
+        )
     expected = DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
@@ -306,6 +313,16 @@ def test_fwf_regression():
             ]
         ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
+    )
+    tm.assert_frame_equal(result, expected)
+    result = read_fwf(
+        StringIO(data),
+        index_col=0,
+        header=None,
+        names=names,
+        widths=widths,
+        parse_dates=True,
+        date_format="%Y%j%H%M%S",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -904,7 +921,7 @@ def test_skiprows_with_iterator():
     expected_frames = [
         DataFrame({"a": [3, 4]}),
         DataFrame({"a": [5, 7, 8]}, index=[2, 3, 4]),
-        DataFrame({"a": []}, index=[], dtype="object"),
+        DataFrame({"a": []}, dtype="object"),
     ]
     for i, result in enumerate(df_iter):
         tm.assert_frame_equal(result, expected_frames[i])
@@ -941,3 +958,103 @@ def test_widths_and_usecols():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_backend(string_storage, dtype_backend):
+    # GH#50289
+    if string_storage == "python":
+        arr = StringArray(np.array(["a", "b"], dtype=np.object_))
+        arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
+    else:
+        pa = pytest.importorskip("pyarrow")
+        arr = ArrowStringArray(pa.array(["a", "b"]))
+        arr_na = ArrowStringArray(pa.array([None, "a"]))
+
+    data = """a  b    c      d  e     f  g    h  i
+1  2.5  True  a
+3  4.5  False b  True  6  7.5  a"""
+    with pd.option_context("mode.string_storage", string_storage):
+        result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
+
+    expected = DataFrame(
+        {
+            "a": pd.Series([1, 3], dtype="Int64"),
+            "b": pd.Series([2.5, 4.5], dtype="Float64"),
+            "c": pd.Series([True, False], dtype="boolean"),
+            "d": arr,
+            "e": pd.Series([pd.NA, True], dtype="boolean"),
+            "f": pd.Series([pd.NA, 6], dtype="Int64"),
+            "g": pd.Series([pd.NA, 7.5], dtype="Float64"),
+            "h": arr_na,
+            "i": pd.Series([pd.NA, pd.NA], dtype="Int64"),
+        }
+    )
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        expected = DataFrame(
+            {
+                col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                for col in expected.columns
+            }
+        )
+        expected["i"] = ArrowExtensionArray(pa.array([None, None]))
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        read_fwf("test", dtype_backend="numpy")
+
+
+@pytest.mark.network
+@tm.network(
+    url="ftp://ftp.ncdc.noaa.gov/pub/data/igra/igra2-station-list.txt",
+    check_before_test=True,
+)
+def test_url_urlopen():
+    expected = pd.Index(
+        [
+            "CC",
+            "Network",
+            "Code",
+            "StationId",
+            "Latitude",
+            "Longitude",
+            "Elev",
+            "dummy",
+            "StationName",
+            "From",
+            "To",
+            "Nrec",
+        ],
+        dtype="object",
+    )
+    url = "ftp://ftp.ncdc.noaa.gov/pub/data/igra/igra2-station-list.txt"
+    with urlopen(url) as f:
+        result = read_fwf(
+            f,
+            widths=(2, 1, 3, 5, 9, 10, 7, 4, 30, 5, 5, 7),
+            names=(
+                "CC",
+                "Network",
+                "Code",
+                "StationId",
+                "Latitude",
+                "Longitude",
+                "Elev",
+                "dummy",
+                "StationName",
+                "From",
+                "To",
+                "Nrec",
+            ),
+        ).columns
+
+    tm.assert_index_equal(result, expected)

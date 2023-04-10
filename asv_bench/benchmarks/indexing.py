@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -24,7 +25,6 @@ from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -83,8 +83,37 @@ class NumericSeriesIndexing:
         self.data.loc[:800000]
 
 
-class NonNumericSeriesIndexing:
+class NumericMaskedIndexing:
+    monotonic_list = list(range(10**6))
+    non_monotonic_list = (
+        list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
+    )
 
+    params = [
+        ("Int64", "UInt64", "Float64"),
+        (True, False),
+    ]
+    param_names = ["dtype", "monotonic"]
+
+    def setup(self, dtype, monotonic):
+        indices = {
+            True: Index(self.monotonic_list, dtype=dtype),
+            False: Index(self.non_monotonic_list, dtype=dtype).append(
+                Index([NA], dtype=dtype)
+            ),
+        }
+        self.data = indices[monotonic]
+        self.indexer = np.arange(300, 1_000)
+        self.data_dups = self.data.append(self.data)
+
+    def time_get_indexer(self, dtype, monotonic):
+        self.data.get_indexer(self.indexer)
+
+    def time_get_indexer_dups(self, dtype, monotonic):
+        self.data.get_indexer_for(self.indexer)
+
+
+class NonNumericSeriesIndexing:
     params = [
         ("string", "datetime", "period"),
         ("unique_monotonic_inc", "nonunique_monotonic_inc", "non_monotonic"),
@@ -139,6 +168,12 @@ class DataFrameStringIndexing:
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
 
+    def time_at(self):
+        self.df.at[self.idx_scalar, self.col_scalar]
+
+    def time_at_setitem(self):
+        self.df.at[self.idx_scalar, self.col_scalar] = 0.0
+
     def time_getitem_scalar(self):
         self.df[self.col_scalar][self.idx_scalar]
 
@@ -153,7 +188,6 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -190,7 +224,6 @@ class DataFrameNumericIndexing:
 
 
 class Take:
-
     params = ["int", "datetime"]
     param_names = ["index"]
 
@@ -209,7 +242,6 @@ class Take:
 
 
 class MultiIndexing:
-
     params = [True, False]
     param_names = ["unique_levels"]
 
@@ -338,7 +370,6 @@ class SortedAndUnsortedDatetimeIndexLoc:
 
 
 class CategoricalIndexIndexing:
-
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
     param_names = ["index"]
 
@@ -470,8 +501,20 @@ class InsertColumns:
         concat([self.df, df], axis=1)
 
 
-class ChainIndexing:
+class Setitem:
+    def setup(self):
+        N = 500_000
+        cols = 500
+        self.df = DataFrame(np.random.rand(N, cols))
 
+    def time_setitem(self):
+        self.df[100] = 100
+
+    def time_setitem_list(self):
+        self.df[[100, 200, 300]] = 100
+
+
+class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
 

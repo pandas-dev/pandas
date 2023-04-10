@@ -100,7 +100,7 @@ In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read
 .. ipython:: python
 
    url = (
-       "https://raw.github.com/pandas-dev"
+       "https://raw.githubusercontent.com/pandas-dev"
        "/pandas/main/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)

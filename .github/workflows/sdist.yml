@@ -4,14 +4,15 @@ on:
   push:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
   pull_request:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
+      - "web/**"
 
 permissions:
   contents: read
@@ -19,7 +20,7 @@ permissions:
 jobs:
   build:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     defaults:
       run:
@@ -92,5 +93,4 @@ jobs:
     - name: Import pandas
       run: |
         cd ..
-        conda list
         python -c "import pandas; pandas.show_versions();"

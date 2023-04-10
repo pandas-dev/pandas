@@ -218,7 +218,6 @@ def test_maybe_promote_int_with_float(any_int_numpy_dtype, float_numpy_dtype):
 
 
 def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
-
     dtype = np.dtype(float_numpy_dtype)
     fill_dtype = np.dtype(any_int_numpy_dtype)
 
@@ -260,7 +259,6 @@ def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
     ],
 )
 def test_maybe_promote_float_with_float(dtype, fill_value, expected_dtype):
-
     dtype = np.dtype(dtype)
     expected_dtype = np.dtype(expected_dtype)
 
@@ -376,10 +374,10 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
 @pytest.mark.parametrize(
     "fill_value",
     [
-        pd.Timestamp("now"),
-        np.datetime64("now"),
-        datetime.datetime.now(),
-        datetime.date.today(),
+        pd.Timestamp(2023, 1, 1),
+        np.datetime64("2023-01-01"),
+        datetime.datetime(2023, 1, 1),
+        datetime.date(2023, 1, 1),
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
@@ -422,7 +420,7 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value, request):
+def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value):
     dtype = np.dtype(any_numpy_dtype)
 
     # filling anything but timedelta with timedelta casts to object
@@ -430,19 +428,6 @@ def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value, request
         expected_dtype = dtype
         # for timedelta dtypes, scalar values get cast to pd.Timedelta.value
         exp_val_for_scalar = pd.Timedelta(fill_value).to_timedelta64()
-
-        if isinstance(fill_value, np.timedelta64) and fill_value.dtype != "m8[ns]":
-            mark = pytest.mark.xfail(
-                reason="maybe_promote not yet updated to handle non-nano "
-                "Timedelta scalar"
-            )
-            request.node.add_marker(mark)
-        elif type(fill_value) is datetime.timedelta:
-            mark = pytest.mark.xfail(
-                reason="maybe_promote not yet updated to handle non-nano "
-                "Timedelta scalar"
-            )
-            request.node.add_marker(mark)
     else:
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value

@@ -60,11 +60,43 @@ is an :class:`ArrowDtype`.
 `Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
+The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas.
+Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``
+
+=============================================== ========================== ===================
+PyArrow type                                    pandas extension type      NumPy type
+=============================================== ========================== ===================
+:external+pyarrow:py:func:`pyarrow.bool_`       :class:`BooleanDtype`      ``np.bool_``
+:external+pyarrow:py:func:`pyarrow.int8`        :class:`Int8Dtype`         ``np.int8``
+:external+pyarrow:py:func:`pyarrow.int16`       :class:`Int16Dtype`        ``np.int16``
+:external+pyarrow:py:func:`pyarrow.int32`       :class:`Int32Dtype`        ``np.int32``
+:external+pyarrow:py:func:`pyarrow.int64`       :class:`Int64Dtype`        ``np.int64``
+:external+pyarrow:py:func:`pyarrow.uint8`       :class:`UInt8Dtype`        ``np.uint8``
+:external+pyarrow:py:func:`pyarrow.uint16`      :class:`UInt16Dtype`       ``np.uint16``
+:external+pyarrow:py:func:`pyarrow.uint32`      :class:`UInt32Dtype`       ``np.uint32``
+:external+pyarrow:py:func:`pyarrow.uint64`      :class:`UInt64Dtype`       ``np.uint64``
+:external+pyarrow:py:func:`pyarrow.float32`     :class:`Float32Dtype`      ``np.float32``
+:external+pyarrow:py:func:`pyarrow.float64`     :class:`Float64Dtype`      ``np.float64``
+:external+pyarrow:py:func:`pyarrow.time32`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.time64`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.timestamp`   :class:`DatetimeTZDtype`   ``np.datetime64``
+:external+pyarrow:py:func:`pyarrow.date32`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.date64`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.duration`    (none)                     ``np.timedelta64``
+:external+pyarrow:py:func:`pyarrow.binary`      (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.string`      :class:`StringDtype`       ``np.str_``
+:external+pyarrow:py:func:`pyarrow.decimal128`  (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.list_`       (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.map_`        (none)                     (none)
+:external+pyarrow:py:func:`pyarrow.dictionary`  :class:`CategoricalDtype`  (none)
+=============================================== ========================== ===================
+
 .. note::
 
-    For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
-    by :class:`arrays.ArrowStringArray` and ``StringDtype("pyarrow")``. See the :ref:`string section <api.arrays.string>`
-    below.
+    Pyarrow-backed string support is provided by both ``pd.StringDtype("pyarrow")`` and ``pd.ArrowDtype(pa.string())``.
+    ``pd.StringDtype("pyarrow")`` is described below in the :ref:`string section <api.arrays.string>`
+    and will be returned if the string alias ``"string[pyarrow]"`` is specified. ``pd.ArrowDtype(pa.string())``
+    generally has better interoperability with :class:`ArrowDtype` of different types.
 
 While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned**
 as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing
@@ -81,6 +113,8 @@ values.
    :template: autosummary/class_without_autosummary.rst
 
    ArrowDtype
+
+For more information, please see the :ref:`PyArrow user guide <pyarrow>`
 
 .. _api.arrays.datetime:
 
@@ -622,6 +656,7 @@ Data type introspection
 .. autosummary::
    :toctree: api/
 
+    api.types.is_any_real_numeric_dtype
     api.types.is_bool_dtype
     api.types.is_categorical_dtype
     api.types.is_complex_dtype

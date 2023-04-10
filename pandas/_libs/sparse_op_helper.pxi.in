@@ -13,7 +13,7 @@ ctypedef fused sparse_t:
     int64_t
 
 
-cdef inline float64_t __div__(sparse_t a, sparse_t b):
+cdef float64_t __div__(sparse_t a, sparse_t b):
     if b == 0:
         if a > 0:
             return INF
@@ -25,11 +25,11 @@ cdef inline float64_t __div__(sparse_t a, sparse_t b):
         return float(a) / b
 
 
-cdef inline float64_t __truediv__(sparse_t a, sparse_t b):
+cdef float64_t __truediv__(sparse_t a, sparse_t b):
     return __div__(a, b)
 
 
-cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
+cdef sparse_t __mod__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             return NaN
@@ -39,7 +39,7 @@ cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
         return a % b
 
 
-cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
+cdef sparse_t __floordiv__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             # Match non-sparse Series behavior implemented in mask_zero_div_zero
@@ -128,25 +128,27 @@ def get_dispatch(dtypes):
 
 {{for opname, dtype, rdtype in get_dispatch(dtypes)}}
 
-
+{{if opname == "pow"}}
+@cython.cpow(True) # Cython 3 matches Python pow, which isn't what we want here
+{{endif}}
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
+cdef tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                                 BlockIndex xindex,
                                                 {{dtype}}_t xfill,
                                                 {{dtype}}_t[:] y_,
                                                 BlockIndex yindex,
                                                 {{dtype}}_t yfill):
-    '''
+    """
     Binary operator on BlockIndex objects with fill values
-    '''
+    """
 
     cdef:
         BlockIndex out_index
-        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
-        int32_t xbp = 0, ybp = 0 # block positions
+        Py_ssize_t xi = 0, yi = 0, out_i = 0  # fp buf indices
+        int32_t xbp = 0, ybp = 0  # block positions
         int32_t xloc, yloc
-        Py_ssize_t xblock = 0, yblock = 0 # block numbers
+        Py_ssize_t xblock = 0, yblock = 0  # block numbers
 
         {{dtype}}_t[:] x, y
         ndarray[{{rdtype}}_t, ndim=1] out
@@ -229,10 +231,12 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
 
     return out, out_index, {{(opname, 'xfill', 'yfill', dtype) | get_op}}
 
-
+{{if opname == "pow"}}
+@cython.cpow(True) # Cython 3 matches Python pow, which isn't what we want here
+{{endif}}
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
+cdef tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                               IntIndex xindex,
                                               {{dtype}}_t xfill,
                                               {{dtype}}_t[:] y_,

@@ -14,17 +14,19 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import get_option
+import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    WriteBuffer,
-)
+from pandas._config import get_option
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -165,7 +167,7 @@ series_examples_sub = dedent(
     >>> s = pd.Series(text_values, index=int_values)
     >>> s.info()
     <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
+    Index: 5 entries, 1 to 5
     Series name: None
     Non-Null Count  Dtype
     --------------  -----
@@ -177,7 +179,7 @@ series_examples_sub = dedent(
 
     >>> s.info(verbose=False)
     <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
+    Index: 5 entries, 1 to 5
     dtypes: object(1)
     memory usage: 80.0+ bytes
 
@@ -254,7 +256,7 @@ INFO_DOCSTRING = dedent(
     buf : writable buffer, defaults to sys.stdout
         Where to send the output. By default, the output is printed to
         sys.stdout. Pass a writable buffer if you need to further process
-        the output.\
+        the output.
     {max_cols_sub}
     memory_usage : bool, str, optional
         Specifies whether total memory usage of the {klass}
@@ -660,14 +662,13 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
             )
         elif self.verbose is False:  # specifically set to False, not necessarily None
             return DataFrameTableBuilderNonVerbose(info=self.info)
+        elif self.exceeds_info_cols:
+            return DataFrameTableBuilderNonVerbose(info=self.info)
         else:
-            if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose(info=self.info)
-            else:
-                return DataFrameTableBuilderVerbose(
-                    info=self.info,
-                    with_counts=self.show_counts,
-                )
+            return DataFrameTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
 
 
 class SeriesInfoPrinter(InfoPrinterAbstract):
@@ -1098,4 +1099,4 @@ def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     Create mapping between datatypes and their number of occurrences.
     """
     # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    return df.dtypes.value_counts().groupby(lambda x: x.name).sum().astype(np.intp)

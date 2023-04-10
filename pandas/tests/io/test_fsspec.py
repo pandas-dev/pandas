@@ -50,10 +50,8 @@ def test_read_csv(cleared_fs, df1):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec import registry
     from fsspec.registry import known_implementations
 
-    registry.target.clear()
     with pytest.raises(ValueError, match="nosuchprotocol"):
         read_csv("nosuchprotocol://test/test.csv")
     err_msg = "test error message"
@@ -150,7 +148,7 @@ def test_to_parquet_new_file(cleared_fs, df1):
     )
 
 
-@td.skip_if_no("pyarrow", min_version="2")
+@td.skip_if_no("pyarrow")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df = DataFrame({"a": [0]})

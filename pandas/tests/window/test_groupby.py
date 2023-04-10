@@ -46,20 +46,14 @@ def roll_frame():
 
 
 class TestRolling:
-    def test_mutated(self, roll_frame):
-
+    def test_groupby_unsupported_argument(self, roll_frame):
         msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             roll_frame.groupby("A", foo=1)
 
-        g = roll_frame.groupby("A")
-        assert not g.mutated
-        g = get_groupby(roll_frame, by="A", mutated=True)
-        assert g.mutated
-
     def test_getitem(self, roll_frame):
         g = roll_frame.groupby("A")
-        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
+        g_mutated = get_groupby(roll_frame, by="A")
 
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
@@ -76,11 +70,10 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     def test_getitem_multiple(self, roll_frame):
-
         # GH 13174
         g = roll_frame.groupby("A")
         r = g.rolling(2, min_periods=0)
-        g_mutated = get_groupby(roll_frame, by="A", mutated=True)
+        g_mutated = get_groupby(roll_frame, by="A")
         expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
@@ -789,8 +782,6 @@ class TestRolling:
         _ = g.rolling(window=4)
         result = g.apply(lambda x: x.rolling(4).sum()).index
         tm.assert_index_equal(result, expected)
-        assert not g.mutated
-        assert not g.grouper.mutated
 
     @pytest.mark.parametrize(
         ("window", "min_periods", "closed", "expected"),
@@ -811,7 +802,7 @@ class TestRolling:
         expected_result = DataFrame(
             np.array(expected, dtype="float64"),
             index=MultiIndex(
-                levels=[[1, 2], [0, 1, 2, 3, 4, 5, 6, 7]],
+                levels=[np.array([1, 2]), [0, 1, 2, 3, 4, 5, 6, 7]],
                 codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 2, 4, 6, 1, 3, 5, 7]],
             ),
         )
@@ -897,10 +888,11 @@ class TestRolling:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_nan_and_zero_endpoints(self):
+    def test_nan_and_zero_endpoints(self, any_int_numpy_dtype):
         # https://github.com/twosigma/pandas/issues/53
+        typ = np.dtype(any_int_numpy_dtype).type
         size = 1000
-        idx = np.repeat(0, size)
+        idx = np.repeat(typ(0), size)
         idx[-1] = 1
 
         val = 5e25
@@ -919,7 +911,10 @@ class TestRolling:
             arr,
             name="adl2",
             index=MultiIndex.from_arrays(
-                [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
+                [
+                    Index([0] * 999 + [1], dtype=typ, name="index"),
+                    Index([0] * 999 + [1], dtype=typ, name="index"),
+                ],
             ),
         )
         tm.assert_series_equal(result, expected)
@@ -936,7 +931,6 @@ class TestRolling:
             df.groupby("c").rolling(on="t", window="3s")
 
     def test_groupby_monotonic(self):
-
         # GH 15130
         # we don't need to validate monotonicity when grouping
 
@@ -1125,13 +1119,6 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            expected = df.groupby("A", group_keys=True).apply(
-                lambda x: getattr(x.ewm(com=1.0), method)()
-            )
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize(
         "method, expected_data",
         [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],
@@ -1160,13 +1147,9 @@ class TestEWM:
     def test_times(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = (
-                times_frame.groupby("A")
-                .ewm(halflife=halflife, times=times_frame["C"])
-                .mean()
-            )
+        # GH#42738
+        times = times_frame.pop("C")
+        result = times_frame.groupby("A").ewm(halflife=halflife, times=times).mean()
         expected = DataFrame(
             {
                 "B": [
@@ -1200,29 +1183,13 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_times_vs_apply(self, times_frame):
-        # GH 40951
-        halflife = "23 days"
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = (
-                times_frame.groupby("A")
-                .ewm(halflife=halflife, times=times_frame["C"])
-                .mean()
-            )
-            expected = times_frame.groupby("A", group_keys=True).apply(
-                lambda x: x.ewm(halflife=halflife, times=x["C"]).mean()
-            )
-        tm.assert_frame_equal(result, expected)
-
     def test_times_array(self, times_frame):
         # GH 40951
         halflife = "23 days"
+        times = times_frame.pop("C")
         gb = times_frame.groupby("A")
-        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
-            # GH#42738
-            result = gb.ewm(halflife=halflife, times=times_frame["C"]).mean()
-            expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
+        result = gb.ewm(halflife=halflife, times=times).mean()
+        expected = gb.ewm(halflife=halflife, times=times.values).mean()
         tm.assert_frame_equal(result, expected)
 
     def test_dont_mutate_obj_after_slicing(self):

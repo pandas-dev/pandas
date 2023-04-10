@@ -13,10 +13,6 @@ from typing import (
 )
 import zipfile
 
-from pandas._typing import (
-    FilePath,
-    ReadPickleBuffer,
-)
 from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 
@@ -27,6 +23,11 @@ from pandas._testing.contexts import ensure_clean
 from pandas.io.common import urlopen
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        ReadPickleBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -225,7 +226,7 @@ def network(
             )
         try:
             return t(*args, **kwargs)
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
                 # error: "Exception" has no attribute "reason"
@@ -270,7 +271,10 @@ def can_connect(url, error_classes=None) -> bool:
     try:
         with urlopen(url, timeout=20) as response:
             # Timeout just in case rate-limiting is applied
-            if response.status != 200:
+            if (
+                response.info().get("Content-type") == "text/html"
+                and response.status != 200
+            ):
                 return False
     except error_classes:
         return False

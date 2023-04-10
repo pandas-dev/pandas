@@ -565,14 +565,10 @@ class TestGetLoc:
     def test_get_loc(self, idx):
         assert idx.get_loc(("foo", "two")) == 1
         assert idx.get_loc(("baz", "two")) == 3
-        with pytest.raises(KeyError, match=r"^15$"):
+        with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
             idx.get_loc(("bar", "two"))
         with pytest.raises(KeyError, match=r"^'quux'$"):
             idx.get_loc("quux")
-
-        msg = "only the default get_loc method is currently supported for MultiIndex"
-        with pytest.raises(NotImplementedError, match=msg):
-            idx.get_loc("foo", method="nearest")
 
         # 3 levels
         index = MultiIndex(

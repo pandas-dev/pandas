@@ -4,42 +4,51 @@ from __future__ import annotations
 import io
 from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
 )
 
-from pandas._config import get_option
-
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    WriteBuffer,
-)
+from pandas._libs import lib
+from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+    PeriodDtype,
 )
 
-from pandas.core.arrays import ArrowExtensionArray
-from pandas.core.frame import DataFrame
+import pandas as pd
+from pandas.core.indexes.api import default_index
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+    is_fsspec_url,
+)
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeBackend,
+        FilePath,
+        ReadBuffer,
+        WriteBuffer,
+    )
+
+    from pandas.core.frame import DataFrame
 
 
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    filesystem=None,
     **kwargs,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
-
-    .. versionadded:: 1.0.0
 
     Parameters
     ----------
@@ -54,20 +63,20 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    use_nullable_dtypes : bool, default False
-        If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        The nullable dtype implementation can be configured by setting the global
-        ``io.nullable_backend`` configuration option to ``"pandas"`` to use
-        numpy-backed nullable dtypes or ``"pyarrow"`` to use pyarrow-backed
-        nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
-        .. versionadded:: 2.0.0
+        .. versionadded:: 2.0
 
-        .. note
+    filesystem : fsspec or pyarrow filesystem, default None
+        Filesystem object to use when reading the parquet file.
 
-            Currently only ``io.nullable_backend`` set to ``"pyarrow"`` is supported.
+        .. versionadded:: 2.1.0
 
     **kwargs
         Any additional kwargs are passed to pyarrow.
@@ -80,28 +89,39 @@ def read_orc(
     -----
     Before using this function you should read the :ref:`user guide about ORC <io.orc>`
     and :ref:`install optional dependencies <install.warn_orc>`.
+
+    If ``path`` is a URI scheme pointing to a local or remote file (e.g. "s3://"),
+    a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
+    pyarrow or fsspec filesystem object into the filesystem keyword to override this
+    behavior.
     """
     # we require a newer version of pyarrow than we support for parquet
 
     orc = import_optional_dependency("pyarrow.orc")
 
+    check_dtype_backend(dtype_backend)
+
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = orc.ORCFile(handles.handle)
-        pa_table = orc_file.read(columns=columns, **kwargs)
-    if use_nullable_dtypes:
-        nullable_backend = get_option("io.nullable_backend")
-        if nullable_backend != "pyarrow":
-            raise NotImplementedError(
-                f"io.nullable_backend set to {nullable_backend} is not implemented."
-            )
-        df = DataFrame(
-            {
-                col_name: ArrowExtensionArray(pa_col)
-                for col_name, pa_col in zip(
-                    pa_table.column_names, pa_table.itercolumns()
-                )
-            }
+        source = handles.handle
+        if is_fsspec_url(path) and filesystem is None:
+            pa = import_optional_dependency("pyarrow")
+            pa_fs = import_optional_dependency("pyarrow.fs")
+            try:
+                filesystem, source = pa_fs.FileSystem.from_uri(path)
+            except (TypeError, pa.ArrowInvalid):
+                pass
+
+        pa_table = orc.read_table(
+            source=source, columns=columns, filesystem=filesystem, **kwargs
         )
+    if dtype_backend is not lib.no_default:
+        if dtype_backend == "pyarrow":
+            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
+        else:
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping()
+            df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
         return pa_table.to_pandas()
@@ -174,22 +194,36 @@ def to_orc(
     if engine_kwargs is None:
         engine_kwargs = {}
 
+    # validate index
+    # --------------
+
+    # validate that we have only a default index
+    # raise on anything else as we don't serialize the index
+
+    if not df.index.equals(default_index(len(df))):
+        raise ValueError(
+            "orc does not support serializing a non-default index for the index; "
+            "you can .reset_index() to make the index into column(s)"
+        )
+
+    if df.index.name is not None:
+        raise ValueError("orc does not serialize index meta-data on a default index")
+
     # If unsupported dtypes are found raise NotImplementedError
-    # In Pyarrow 9.0.0 this check will no longer be needed
-    for dtype in df.dtypes:
-        if (
-            is_categorical_dtype(dtype)
-            or is_interval_dtype(dtype)
-            or is_period_dtype(dtype)
-            or is_unsigned_integer_dtype(dtype)
-        ):
-            raise NotImplementedError(
-                "The dtype of one or more columns is not supported yet."
-            )
+    # In Pyarrow 8.0.0 this check will no longer be needed
+    if pa_version_under8p0:
+        for dtype in df.dtypes:
+            if isinstance(
+                dtype, (IntervalDtype, CategoricalDtype, PeriodDtype)
+            ) or is_unsigned_integer_dtype(dtype):
+                raise NotImplementedError(
+                    "The dtype of one or more columns is not supported yet."
+                )
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
     engine = import_optional_dependency(engine, min_version="7.0.0")
+    pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
     was_none = path is None
@@ -204,7 +238,7 @@ def to_orc(
                 handles.handle,
                 **engine_kwargs,
             )
-        except TypeError as e:
+        except (TypeError, pa.ArrowNotImplementedError) as e:
             raise NotImplementedError(
                 "The dtype of one or more columns is not supported yet."
             ) from e

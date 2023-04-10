@@ -251,6 +251,7 @@ def test_index_col_multiindex_columns_no_data(all_parsers):
     )
     expected = DataFrame(
         [],
+        index=Index([]),
         columns=MultiIndex.from_arrays(
             [["a1", "a2"], ["b1", "b2"]], names=["a0", "b0"]
         ),

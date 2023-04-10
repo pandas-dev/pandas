@@ -34,43 +34,6 @@ def _assert_frame_equal_both(a, b, **kwargs):
     tm.assert_frame_equal(b, a, **kwargs)
 
 
-def _assert_not_frame_equal(a, b, **kwargs):
-    """
-    Check that two DataFrame are not equal.
-
-    Parameters
-    ----------
-    a : DataFrame
-        The first DataFrame to compare.
-    b : DataFrame
-        The second DataFrame to compare.
-    kwargs : dict
-        The arguments passed to `tm.assert_frame_equal`.
-    """
-    msg = "The two DataFrames were equal when they shouldn't have been"
-    with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(a, b, **kwargs)
-
-
-def _assert_not_frame_equal_both(a, b, **kwargs):
-    """
-    Check that two DataFrame are not equal.
-
-    This check is performed commutatively.
-
-    Parameters
-    ----------
-    a : DataFrame
-        The first DataFrame to compare.
-    b : DataFrame
-        The second DataFrame to compare.
-    kwargs : dict
-        The arguments passed to `tm.assert_frame_equal`.
-    """
-    _assert_not_frame_equal(a, b, **kwargs)
-    _assert_not_frame_equal(b, a, **kwargs)
-
-
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     df1 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "c"])
@@ -366,3 +329,53 @@ def test_assert_frame_equal_check_like_categorical_midx():
         ),
     )
     tm.assert_frame_equal(left, right, check_like=True)
+
+
+def test_assert_frame_equal_ea_column_definition_in_exception_mask():
+    # GH#50323
+    df1 = DataFrame({"a": pd.Series([pd.NA, 1], dtype="Int64")})
+    df2 = DataFrame({"a": pd.Series([1, 1], dtype="Int64")})
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) NA mask values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_ea_column_definition_in_exception():
+    # GH#50323
+    df1 = DataFrame({"a": pd.Series([pd.NA, 1], dtype="Int64")})
+    df2 = DataFrame({"a": pd.Series([pd.NA, 2], dtype="Int64")})
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_exact=True)
+
+
+def test_assert_frame_equal_ts_column():
+    # GH#50323
+    df1 = DataFrame({"a": [pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")]})
+    df2 = DataFrame({"a": [pd.Timestamp("2020-12-31"), pd.Timestamp("2020-12-31")]})
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_set():
+    # GH#51727
+    df1 = DataFrame({"set_column": [{1, 2, 3}, {4, 5, 6}]})
+    df2 = DataFrame({"set_column": [{1, 2, 3}, {4, 5, 6}]})
+    tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_set_mismatch():
+    # GH#51727
+    df1 = DataFrame({"set_column": [{1, 2, 3}, {4, 5, 6}]})
+    df2 = DataFrame({"set_column": [{1, 2, 3}, {4, 5, 7}]})
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="set_column"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)

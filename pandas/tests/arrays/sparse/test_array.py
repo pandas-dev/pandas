@@ -1,5 +1,4 @@
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -9,7 +8,6 @@ from pandas._libs.sparse import IntIndex
 import pandas as pd
 from pandas import isna
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
@@ -138,12 +136,9 @@ class TestSparseArray:
 
     def test_generator_warnings(self):
         sp_arr = SparseArray([1, 2, 3])
-        with warnings.catch_warnings(record=True) as w:
-            warnings.filterwarnings(action="always", category=DeprecationWarning)
-            warnings.filterwarnings(action="always", category=PendingDeprecationWarning)
+        with tm.assert_produces_warning(None):
             for _ in sp_arr:
                 pass
-            assert len(w) == 0
 
     def test_where_retain_fill_value(self):
         # GH#45691 don't lose fill_value on _where
@@ -473,7 +468,7 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=Int64Index([1]))
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
 
 

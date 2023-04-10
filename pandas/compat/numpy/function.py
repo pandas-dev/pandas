@@ -18,20 +18,19 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
     overload,
 )
 
+import numpy as np
 from numpy import ndarray
 
 from pandas._libs.lib import (
     is_bool,
     is_integer,
-)
-from pandas._typing import (
-    Axis,
-    AxisInt,
 )
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util._validators import (
@@ -40,7 +39,13 @@ from pandas.util._validators import (
     validate_kwargs,
 )
 
-AxisNoneT = TypeVar("AxisNoneT", Axis, None)
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+    )
+
+    AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 
 
 class CompatValidator:
@@ -159,8 +164,8 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    # error: Incompatible return value type (got "int", expected "bool")
-    return ascending  # type: ignore[return-value]
+    ascending = cast(bool, ascending)
+    return ascending
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}
@@ -211,7 +216,7 @@ validate_cumsum = CompatValidator(
 )
 
 
-def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
+def validate_cum_func_with_skipna(skipna: bool, args, kwargs, name) -> bool:
     """
     If this function is called via the 'numpy' library, the third parameter in
     its signature is 'dtype', which takes either a 'numpy' dtype or 'None', so
@@ -220,6 +225,8 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name) -> bool:
     if not is_bool(skipna):
         args = (skipna,) + args
         skipna = True
+    elif isinstance(skipna, np.bool_):
+        skipna = bool(skipna)
 
     validate_cum_func(args, kwargs, fname=name)
     return skipna
@@ -335,52 +342,7 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_window_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .{name}() directly instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_rolling_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .rolling(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_expanding_func(name, args, kwargs) -> None:
-    numpy_args = ("axis", "dtype", "out")
-    msg = (
-        f"numpy operations are not valid with window objects. "
-        f"Use .expanding(...).{name}() instead "
-    )
-
-    if len(args) > 0:
-        raise UnsupportedFunctionCall(msg)
-
-    for arg in numpy_args:
-        if arg in kwargs:
-            raise UnsupportedFunctionCall(msg)
-
-
-def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
+def validate_groupby_func(name: str, args, kwargs, allowed=None) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed kwargs because all
     of their necessary parameters are explicitly listed in the function

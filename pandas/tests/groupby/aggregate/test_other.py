@@ -25,7 +25,6 @@ import pandas._testing as tm
 from pandas.io.formats.printing import pprint_thing
 
 
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 def test_agg_partial_failure_raises():
     # GH#43741
 
@@ -518,6 +517,7 @@ def test_sum_uint64_overflow():
     expected = DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
         index=index,
+        dtype=object,
     )
 
     expected.index.name = 0

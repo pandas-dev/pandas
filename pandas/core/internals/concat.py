@@ -13,15 +13,9 @@ import numpy as np
 from pandas._libs import (
     NaT,
     internals as libinternals,
+    lib,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Manager,
-    Shape,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.astype import astype_array
@@ -64,6 +58,14 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Manager,
+        Shape,
+    )
+
     from pandas import Index
     from pandas.core.internals.blocks import Block
 
@@ -142,7 +144,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
         target_dtype = np.find_common_type(list(dtypes), [])
     else:
@@ -193,12 +195,21 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
+    # Assertions disabled for performance
+    # for tup in mgrs_indexers:
+    #    # caller is responsible for ensuring this
+    #    indexers = tup[1]
+    #    assert concat_axis not in indexers
+
+    if concat_axis == 0:
+        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]
-    concat_plan = _combine_concat_plans(concat_plans, concat_axis)
+    concat_plan = _combine_concat_plans(concat_plans)
     blocks = []
 
     for placement, join_units in concat_plan:
@@ -220,16 +231,18 @@ def concatenate_managers(
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
                 values = np.concatenate(vals, axis=1)
-            else:
+            elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, ea_compat_axis=True)
                 values = ensure_block_shape(values, ndim=2)
+            else:
+                values = concat_compat(vals, axis=1)
 
             values = ensure_wrapped_if_datetimelike(values)
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, concat_axis, copy=copy)
+            values = _concatenate_join_units(join_units, copy=copy)
             fastpath = False
 
         if fastpath:
@@ -242,6 +255,44 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
+def _concat_managers_axis0(
+    mgrs_indexers, axes: list[Index], copy: bool
+) -> BlockManager:
+    """
+    concat_managers specialized to concat_axis=0, with reindexing already
+    having been done in _maybe_reindex_columns_na_proxy.
+    """
+    had_reindexers = {
+        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
+    }
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
+
+    mgrs = [x[0] for x in mgrs_indexers]
+
+    offset = 0
+    blocks = []
+    for i, mgr in enumerate(mgrs):
+        # If we already reindexed, then we definitely don't need another copy
+        made_copy = had_reindexers[i]
+
+        for blk in mgr.blocks:
+            if made_copy:
+                nb = blk.copy(deep=False)
+            elif copy:
+                nb = blk.copy()
+            else:
+                # by slicing instead of copy(deep=False), we get a new array
+                #  object, see test_concat_copy
+                nb = blk.getitem_block(slice(None))
+            nb._mgr_locs = nb._mgr_locs.add(offset)
+            blocks.append(nb)
+
+        offset += len(mgr.items)
+
+    result = BlockManager(tuple(blocks), axes)
+    return result
+
+
 def _maybe_reindex_columns_na_proxy(
     axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
 ) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
@@ -252,25 +303,22 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers = []
-    for mgr, indexers in mgrs_indexers:
-        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
-        if 0 in indexers:
-            new_mgr = mgr.reindex_indexer(
-                axes[0],
-                indexers[0],
-                axis=0,
-                copy=False,
-                only_slice=True,
-                allow_dups=True,
-                use_na_proxy=True,
-            )
-            new_indexers = indexers.copy()
-            del new_indexers[0]
-            new_mgrs_indexers.append((new_mgr, new_indexers))
-        else:
-            new_mgrs_indexers.append((mgr, indexers))
+    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
 
+    for mgr, indexers in mgrs_indexers:
+        # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
+        #  is a cheap reindexing.
+        for i, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(
+                axes[i],
+                indexers[i],
+                axis=i,
+                copy=False,
+                only_slice=True,  # only relevant for i==0
+                allow_dups=True,
+                use_na_proxy=True,  # only relevant for i==0
+            )
+        new_mgrs_indexers.append((mgr, {}))
     return new_mgrs_indexers
 
 
@@ -288,7 +336,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
     plan : list of (BlockPlacement, JoinUnit) tuples
 
     """
-    # Calculate post-reindex shape , save for item axis which will be separate
+    assert len(indexers) == 0
+
+    # Calculate post-reindex shape, save for item axis which will be separate
     # for each block anyway.
     mgr_shape_list = list(mgr.shape)
     for ax, indexer in indexers.items():
@@ -306,7 +356,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
-
         assert placements.is_slice_like
         assert blkno != -1
 
@@ -355,31 +404,14 @@ class JoinUnit:
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
             indexers = {}
+        # Otherwise we may have only {0: np.array(...)} and only non-negative
+        #  entries.
         self.block = block
         self.indexers = indexers
         self.shape = shape
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
-
-    @cache_readonly
-    def needs_filling(self) -> bool:
-        for indexer in self.indexers.values():
-            # FIXME: cache results of indexer == -1 checks.
-            if (indexer == -1).any():
-                return True
-
-        return False
-
-    @cache_readonly
-    def dtype(self) -> DtypeObj:
-        blk = self.block
-        if blk.values.dtype.kind == "V":
-            raise AssertionError("Block is None, no dtype")
-
-        if not self.needs_filling:
-            return blk.dtype
-        return ensure_dtype_can_hold_na(blk.dtype)
 
     def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
@@ -388,23 +420,25 @@ class JoinUnit:
         """
         if not self.is_na:
             return False
-        if self.block.dtype.kind == "V":
+
+        blk = self.block
+        if blk.dtype.kind == "V":
             return True
 
-        if self.dtype == object:
-            values = self.block.values
+        if blk.dtype == object:
+            values = blk.values
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
-        na_value = self.block.fill_value
-        if na_value is NaT and not is_dtype_equal(self.dtype, dtype):
+        na_value = blk.fill_value
+        if na_value is NaT and not is_dtype_equal(blk.dtype, dtype):
             # e.g. we are dt64 and other is td64
-            # fill_values match but we should not cast self.block.values to dtype
+            # fill_values match but we should not cast blk.values to dtype
             # TODO: this will need updating if we ever have non-nano dt64/td64
             return False
 
         if na_value is NA and needs_i8_conversion(dtype):
             # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
-            #  e.g. self.dtype == "Int64" and dtype is td64, we dont want
+            #  e.g. blk.dtype == "Int64" and dtype is td64, we dont want
             #  to consider these as matching
             return False
 
@@ -464,7 +498,7 @@ class JoinUnit:
 
                 if isinstance(empty_dtype, DatetimeTZDtype):
                     # NB: exclude e.g. pyarrow[dt64tz] dtypes
-                    i8values = np.full(self.shape, fill_value.value)
+                    i8values = np.full(self.shape, fill_value._value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
                 elif is_1d_only_ea_dtype(empty_dtype):
@@ -495,6 +529,9 @@ class JoinUnit:
                     #  if we did, the missing_arr.fill would cast to gibberish
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
+
+                    if empty_dtype.kind in "mM":
+                        missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
                     return missing_arr
 
             if (not self.indexers) and (not self.block._can_consolidate):
@@ -523,16 +560,10 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(
-    join_units: list[JoinUnit], concat_axis: AxisInt, copy: bool
-) -> ArrayLike:
+def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
     """
-    Concatenate values from several join units along selected axis.
+    Concatenate values from several join units along axis=1.
     """
-    if concat_axis == 0 and len(join_units) > 1:
-        # Concatenating join units along ax0 is handled in _merge_blocks.
-        raise AssertionError("Concatenating join units along axis0")
-
     empty_dtype = _get_empty_dtype(join_units)
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
@@ -557,9 +588,6 @@ def _concatenate_join_units(
 
     elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
-        # NB: we are still assuming here that Hybrid blocks have shape (1, N)
-        # concatting with at least one EA means we are concatting a single column
-        # the non-EA values are 2D arrays with shape (1, n)
 
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
         # argument type "Tuple[int, slice]"
@@ -573,7 +601,7 @@ def _concatenate_join_units(
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=1)
 
     return concat_values
 
@@ -584,14 +612,14 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     """
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return dtype.type("NaT")
-    elif dtype.kind in ["f", "c"]:
+    elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
         # different from missing.na_value_for_dtype
         return None
-    elif dtype.kind in ["i", "u"]:
+    elif dtype.kind in "iu":
         if not has_none_blocks:
             # different from missing.na_value_for_dtype
             return None
@@ -621,9 +649,11 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
 
     has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
 
-    dtypes = [unit.dtype for unit in join_units if not unit.is_na]
+    dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
     if not len(dtypes):
-        dtypes = [unit.dtype for unit in join_units if unit.block.dtype.kind != "V"]
+        dtypes = [
+            unit.block.dtype for unit in join_units if unit.block.dtype.kind != "V"
+        ]
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
@@ -650,7 +680,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
             is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
-            or ju.block.dtype.kind in ["b", "i", "u"]
+            or ju.block.dtype.kind in "iub"
             for ju in join_units
         )
         and
@@ -670,7 +700,7 @@ def _is_uniform_reindex(join_units) -> bool:
     return (
         # TODO: should this be ju.block._can_hold_na?
         all(ju.block.is_extension for ju in join_units)
-        and len({ju.block.dtype.name for ju in join_units}) == 1
+        and lib.dtypes_all_equal([ju.block.dtype for ju in join_units])
     )
 
 
@@ -701,27 +731,17 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
 
 
-def _combine_concat_plans(plans, concat_axis: AxisInt):
+def _combine_concat_plans(plans):
     """
     Combine multiple concatenation plans into one.
 
     existing_plan is updated in-place.
+
+    We only get here with concat_axis == 1.
     """
     if len(plans) == 1:
         for p in plans[0]:
             yield p[0], [p[1]]
-
-    elif concat_axis == 0:
-        offset = 0
-        for plan in plans:
-            last_plc = None
-
-            for plc, unit in plan:
-                yield plc.add(offset), [unit]
-                last_plc = plc
-
-            if last_plc is not None:
-                offset += last_plc.as_slice.stop
 
     else:
         # singleton list so we can modify it as a side-effect within _next_or_none

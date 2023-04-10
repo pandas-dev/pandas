@@ -51,9 +51,11 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
+from pandas._libs.missing cimport (
+    checknull,
+    isnaobj,
+)
 from pandas._libs.util cimport get_nat
-
-import pandas._libs.missing as missing
 
 cdef:
     float64_t FP_ERR = 1e-13
@@ -70,7 +72,7 @@ tiebreakers = {
 }
 
 
-cdef inline bint are_diff(object left, object right):
+cdef bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
@@ -95,10 +97,10 @@ class Infinity:
 
     def __gt__(self, other):
         return (not isinstance(other, Infinity) and
-                not missing.checknull(other))
+                not checknull(other))
 
     def __ge__(self, other):
-        return not missing.checknull(other)
+        return not checknull(other)
 
 
 class NegInfinity:
@@ -107,10 +109,10 @@ class NegInfinity:
     """
     def __lt__(self, other):
         return  (not isinstance(other, NegInfinity) and
-                 not missing.checknull(other))
+                 not checknull(other))
 
     def __le__(self, other):
-        return not missing.checknull(other)
+        return not checknull(other)
 
     def __eq__(self, other):
         return isinstance(other, NegInfinity)
@@ -166,7 +168,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_lexsorted(list_of_arrays: list) -> bint:
+def is_lexsorted(list_of_arrays: list) -> bool:
     cdef:
         Py_ssize_t i
         Py_ssize_t n, nlevels
@@ -257,7 +259,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     cdef:
         numeric_t t
 
@@ -268,7 +270,7 @@ cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
@@ -647,40 +649,37 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
                 val = values[j, i]
 
 
-"""
-Backfilling logic for generating fill vector
-
-Diagram of what's going on
-
-Old      New    Fill vector    Mask
-         .        0               1
-         .        0               1
-         .        0               1
-A        A        0               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-B        B        1               1
-         .        2               1
-         .        2               1
-         .        2               1
-C        C        2               1
-         .                        0
-         .                        0
-D
-"""
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
     ndarray[numeric_object_t] old,
     ndarray[numeric_object_t] new,
     limit=None
-) -> ndarray:
-    # -> ndarray[intp_t, ndim=1]
+) -> ndarray:  # -> ndarray[intp_t, ndim=1]
+    """
+    Backfilling logic for generating fill vector
+
+    Diagram of what's going on
+
+    Old      New    Fill vector    Mask
+            .        0               1
+            .        0               1
+            .        0               1
+    A        A        0               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+            .        1               1
+    B        B        1               1
+            .        2               1
+            .        2               1
+            .        2               1
+    C        C        2               1
+            .                        0
+            .                        0
+    D
+    """
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t, ndim=1] indexer
@@ -755,7 +754,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     tuple
         is_monotonic_inc : bool
         is_monotonic_dec : bool
-        is_unique : bool
+        is_strict_monotonic : bool
     """
     cdef:
         Py_ssize_t i, n
@@ -991,7 +990,7 @@ def rank_1d(
     if mask is not None:
         pass
     elif numeric_object_t is object:
-        mask = missing.isnaobj(masked_vals)
+        mask = isnaobj(masked_vals)
     elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
     elif numeric_object_t is float64_t or numeric_object_t is float32_t:
@@ -1369,7 +1368,7 @@ def rank_2d(
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
-            mask = missing.isnaobj2d(values).view(np.uint8)
+            mask = isnaobj(values).view(np.uint8)
         elif numeric_object_t is float64_t or numeric_object_t is float32_t:
             mask = np.isnan(values).view(np.uint8)
         else:

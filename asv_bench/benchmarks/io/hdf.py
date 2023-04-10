@@ -112,7 +112,6 @@ class HDFStoreDataFrame(BaseIO):
 
 
 class HDF(BaseIO):
-
     params = ["table", "fixed"]
     param_names = ["format"]
 
@@ -128,7 +127,15 @@ class HDF(BaseIO):
         self.df["object"] = tm.makeStringIndex(N)
         self.df.to_hdf(self.fname, "df", format=format)
 
+        # Numeric df
+        self.df1 = self.df.copy()
+        self.df1 = self.df1.reset_index()
+        self.df1.to_hdf(self.fname, "df1", format=format)
+
     def time_read_hdf(self, format):
+        read_hdf(self.fname, "df")
+
+    def peakmem_read_hdf(self, format):
         read_hdf(self.fname, "df")
 
     def time_write_hdf(self, format):

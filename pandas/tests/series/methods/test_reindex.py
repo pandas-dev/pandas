@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     NA,
     Categorical,
@@ -97,7 +99,7 @@ def test_reindex_with_datetimes():
 
 def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    empty = Series(dtype=object)
+    empty = Series(index=[])
     empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series
@@ -126,7 +128,7 @@ def test_reindex_pad():
     reindexed2 = s2.reindex(s.index, method="ffill")
     tm.assert_series_equal(reindexed, reindexed2)
 
-    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8], index=np.arange(10))
+    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
     # GH4604
@@ -300,13 +302,11 @@ def test_reindex_fill_value():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_array_manager_not_yet_implemented
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
 def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
     # https://github.com/pandas-dev/pandas/issues/42921
-    if using_array_manager:
-        pytest.skip("Array manager does not promote dtype, hence we fail")
-
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
         fill_value = Timestamp(0)
@@ -369,16 +369,15 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
 def test_reindex_too_many_args():
     # GH 40980
     ser = Series([1, 2])
-    with pytest.raises(
-        TypeError, match=r"Only one positional argument \('index'\) is allowed"
-    ):
+    msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+    with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], False)
 
 
 def test_reindex_double_index():
     # GH 40980
     ser = Series([1, 2])
-    msg = r"'index' passed as both positional and keyword argument"
+    msg = r"reindex\(\) got multiple values for argument 'index'"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], index=[3, 4])
 

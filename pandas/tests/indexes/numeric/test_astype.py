@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 class TestAstype:
     def test_astype_float64_to_uint64(self):
-        # GH#45309 used to incorrectly return Int64Index
+        # GH#45309 used to incorrectly return Index with int64 dtype
         idx = Index([0.0, 5.0, 10.0, 15.0, 20.0], dtype=np.float64)
         result = idx.astype("u8")
         expected = Index([0, 5, 10, 15, 20], dtype=np.uint64)
@@ -43,7 +43,7 @@ class TestAstype:
         # a float astype int
         idx = Index([0, 1, 2], dtype=np.float64)
         result = idx.astype(dtype)
-        expected = Index([0, 1, 2], dtype=np.int64)
+        expected = Index([0, 1, 2], dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         idx = Index([0, 1.1, 2], dtype=np.float64)
@@ -57,13 +57,7 @@ class TestAstype:
         # a float astype int
         idx = Index([0, 1, 2], dtype=np.float64)
         result = idx.astype(dtype)
-        expected = idx
-        tm.assert_index_equal(result, expected, exact=True)
-
-        idx = Index([0, 1.1, 2], dtype=np.float64)
-        result = idx.astype(dtype)
-        expected = Index(idx.values.astype(dtype))
-        tm.assert_index_equal(result, expected, exact=True)
+        assert isinstance(result, Index) and result.dtype == dtype
 
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_astype_float_to_datetimelike(self, dtype):

@@ -31,8 +31,8 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 def test_usecols_with_parse_dates(all_parsers, usecols):
     # see gh-9755
     data = """a,b,c,d,e
-0,1,20140101,0900,4
-0,1,20140102,1000,4"""
+0,1,2014-01-01,09:00,4
+0,1,2014-01-02,10:00,4"""
     parser = all_parsers
     parse_dates = [[1, 2]]
 
@@ -124,7 +124,11 @@ def test_usecols_with_parse_dates4(all_parsers):
     }
     expected = DataFrame(cols, columns=["a_b"] + list("cdefghij"))
 
-    result = parser.read_csv(StringIO(data), usecols=usecols, parse_dates=parse_dates)
+    result = parser.read_csv(
+        StringIO(data),
+        usecols=usecols,
+        parse_dates=parse_dates,
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -138,8 +142,8 @@ def test_usecols_with_parse_dates4(all_parsers):
 )
 def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names):
     # see gh-9755
-    s = """0,1,20140101,0900,4
-0,1,20140102,1000,4"""
+    s = """0,1,2014-01-01,09:00,4
+0,1,2014-01-02,10:00,4"""
     parse_dates = [[1, 2]]
     parser = all_parsers
 

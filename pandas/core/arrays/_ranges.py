@@ -4,6 +4,8 @@ Helper functions to generate range-like data for DatetimeArray
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.lib import i8max
@@ -14,7 +16,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
-from pandas._typing import npt
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 def generate_regular_range(
@@ -46,8 +50,8 @@ def generate_regular_range(
     ndarray[np.int64]
         Representing the given resolution.
     """
-    istart = start.value if start is not None else None
-    iend = end.value if end is not None else None
+    istart = start._value if start is not None else None
+    iend = end._value if end is not None else None
     freq.nanos  # raises if non-fixed frequency
     td = Timedelta(freq)
     try:
@@ -59,7 +63,7 @@ def generate_regular_range(
             f"freq={freq} is incompatible with unit={unit}. "
             "Use a lower freq or a higher unit instead."
         ) from err
-    stride = int(td.value)
+    stride = int(td._value)
 
     if periods is None and istart is not None and iend is not None:
         b = istart

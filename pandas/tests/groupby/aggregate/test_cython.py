@@ -92,18 +92,16 @@ def test_cython_agg_boolean():
 def test_cython_agg_nothing_to_agg():
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("a")["b"].mean(numeric_only=True)
-
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
-        frame.groupby("a")["b"].mean()
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    with pytest.raises(TypeError, match="Could not convert"):
-        frame[["b"]].groupby(frame["a"]).mean()
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
-    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    expected = DataFrame(
+        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -115,7 +113,8 @@ def test_cython_agg_nothing_to_agg_with_dates():
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
     )
-    with pytest.raises(TypeError, match="Cannot use numeric_only=True"):
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
         frame.groupby("b").dates.mean(numeric_only=True)
 
 
@@ -123,10 +122,15 @@ def test_cython_agg_frame_columns():
     # #2113
     df = DataFrame({"x": [1, 2, 3], "y": [3, 4, 5]})
 
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
-    df.groupby(level=0, axis="columns").mean()
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(level=0, axis="columns").mean()
 
 
 def test_cython_agg_return_dict():
@@ -210,7 +214,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = DataFrame([11, 12, 13], columns=["a"])
-    grps = range(0, 25, 5)
+    grps = np.arange(0, 25, 5, dtype=np.int_)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "sum", alt=None, numeric_only=True

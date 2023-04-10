@@ -4,32 +4,30 @@ on:
   push:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
   pull_request:
     branches:
       - main
-      - 1.5.x
+      - 2.0.x
     paths-ignore:
       - "doc/**"
-
-env:
-  PANDAS_CI: 1
+      - "web/**"
 
 permissions:
   contents: read
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash -el {0}
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml]
-        pattern: ["not single_cpu", "single_cpu"]
-        pyarrow_version: ["7", "8", "9"]
+        env_file: [actions-38.yaml, actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        # Prevent the include jobs from overriding other jobs
+        pattern: [""]
         include:
           - name: "Downstream Compat"
             env_file: actions-38-downstream_compat.yaml
@@ -73,18 +71,15 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-310-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning:numpy -W error::FutureWarning:numpy"
-        exclude:
-          - env_file: actions-39.yaml
-            pyarrow_version: "6"
-          - env_file: actions-39.yaml
-            pyarrow_version: "7"
-          - env_file: actions-310.yaml
-            pyarrow_version: "6"
-          - env_file: actions-310.yaml
-            pyarrow_version: "7"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
+            # There are some warnings failing the build with -werror
+            pandas_ci: "0"
+          - name: "Pyarrow Nightly"
+            env_file: actions-311-pyarrownightly.yaml
+            pattern: "not slow and not network and not single_cpu"
       fail-fast: false
-    name: ${{ matrix.name || format('{0} pyarrow={1} {2}', matrix.env_file, matrix.pyarrow_version, matrix.pattern) }}
+    name: ${{ matrix.name || matrix.env_file }}
     env:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
@@ -93,15 +88,16 @@ jobs:
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_DATA_MANAGER: ${{ matrix.pandas_data_manager || 'block' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
+      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ contains(matrix.pattern, 'not single_cpu') && 'auto' || '1' }}
+      PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
       COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.pyarrow_version || '' }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_data_manager || '' }}
       cancel-in-progress: true
 
     services:
@@ -133,7 +129,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto
+        image: motoserver/moto:4.1.4
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -160,12 +156,24 @@ jobs:
       uses: ./.github/actions/setup-conda
       with:
         environment-file: ${{ env.ENV_FILE }}
-        pyarrow-version: ${{ matrix.pyarrow_version }}
 
     - name: Build Pandas
+      id: build
       uses: ./.github/actions/build_pandas
 
-    - name: Test
+    - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       # TODO: Don't continue on error for PyPy
       continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      env:
+        # Set pattern to not single_cpu if not already set
+        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      env:
+        PATTERN: 'single_cpu'
+        PYTEST_WORKERS: 1
+      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}

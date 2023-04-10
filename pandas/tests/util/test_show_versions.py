@@ -2,8 +2,6 @@ import json
 import os
 import re
 
-import pytest
-
 from pandas.util._print_versions import (
     _get_dependency_info,
     _get_sys_info,
@@ -12,27 +10,6 @@ from pandas.util._print_versions import (
 import pandas as pd
 
 
-@pytest.mark.filterwarnings(
-    # openpyxl
-    "ignore:defusedxml.lxml is no longer supported:DeprecationWarning"
-)
-@pytest.mark.filterwarnings(
-    # html5lib
-    "ignore:Using or importing the ABCs from:DeprecationWarning"
-)
-@pytest.mark.filterwarnings(
-    # fastparquet
-    "ignore:pandas.core.index is deprecated:FutureWarning"
-)
-@pytest.mark.filterwarnings(
-    # pandas_datareader
-    "ignore:pandas.util.testing is deprecated:FutureWarning"
-)
-@pytest.mark.filterwarnings(
-    # https://github.com/pandas-dev/pandas/issues/35252
-    "ignore:Distutils:UserWarning"
-)
-@pytest.mark.filterwarnings("ignore:Setuptools is replacing distutils:UserWarning")
 def test_show_versions(tmpdir):
     # GH39701
     as_json = os.path.join(tmpdir, "test_output.json")
@@ -88,7 +65,7 @@ def test_show_versions_console(capsys):
     assert re.search(r"numpy\s*:\s[0-9]+\..*\n", result)
 
     # check optional dependency
-    assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)
+    assert re.search(r"pyarrow\s*:\s([0-9]+.*|None)\n", result)
 
 
 def test_json_output_match(capsys, tmpdir):

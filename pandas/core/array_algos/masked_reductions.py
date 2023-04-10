@@ -4,17 +4,23 @@ for missing values.
 """
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
+import warnings
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._typing import (
-    AxisInt,
-    npt,
-)
 
 from pandas.core.nanops import check_below_min_count
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        npt,
+    )
 
 
 def _reductions(
@@ -166,6 +172,26 @@ def var(
     if not values.size or mask.all():
         return libmissing.NA
 
-    return _reductions(
-        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )
+
+
+def std(
+    values: np.ndarray,
+    mask: npt.NDArray[np.bool_],
+    *,
+    skipna: bool = True,
+    axis: AxisInt | None = None,
+    ddof: int = 1,
+):
+    if not values.size or mask.all():
+        return libmissing.NA
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )

@@ -201,6 +201,22 @@ Installing from source
 
 See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment.
 
+Installing the development version of pandas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installing a nightly build is the quickest way to:
+
+* Try a new feature that will be shipped in the next release (that is, a feature from a pull-request that was recently merged to the main branch).
+* Check whether a bug you encountered has been fixed since the last release.
+
+You can install the nightly build of pandas using the scipy-wheels-nightly index from the PyPI registry of anaconda.org with the following command::
+
+    pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas
+
+Note that first uninstalling pandas might be required to be able to install nightly builds::
+
+    pip uninstall pandas -y
+
 Running the test suite
 ----------------------
 
@@ -208,13 +224,13 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
-<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.13.0, then run:
+<https://docs.pytest.org/en/latest/>`__ >= 7.0 and `Hypothesis
+<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.34.2, then run:
 
 ::
 
     >>> pd.test()
-    running: pytest --skip-slow --skip-network --skip-db /home/user/anaconda3/lib/python3.9/site-packages/pandas
+    running: pytest -m "not slow and not network and not db" /home/user/anaconda3/lib/python3.9/site-packages/pandas
 
     ============================= test session starts ==============================
     platform linux -- Python 3.9.7, pytest-6.2.5, py-1.11.0, pluggy-1.0.0
@@ -292,25 +308,6 @@ Dependency                                            Minimum Version    pip ext
 `numba <https://github.com/numba/numba>`__            0.53.1             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================
 
-Timezones
-^^^^^^^^^
-
-Installable with ``pip install "pandas[timezone]"``
-
-========================= ========================= =============== =============================================================
-Dependency                Minimum Version           pip extra       Notes
-========================= ========================= =============== =============================================================
-tzdata                    2022.1(pypi)/             timezone        Allows the use of ``zoneinfo`` timezones with pandas.
-                          2022a(for system tzdata)                  **Note**: You only need to install the pypi package if your
-                                                                    system does not already provide the IANA tz database.
-                                                                    However, the minimum tzdata version still applies, even if it
-                                                                    is not enforced through an error.
-
-                                                                    If you would like to keep your system tzdata version updated,
-                                                                    it is recommended to use the ``tzdata`` package from
-                                                                    conda-forge.
-========================= ========================= =============== =============================================================
-
 Visualization
 ^^^^^^^^^^^^^
 
@@ -333,7 +330,7 @@ Installable with ``pip install "pandas[computation]"``.
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 SciPy                     1.7.1              computation     Miscellaneous statistical functions
-xarray                    0.19.0             computation     pandas-like API for N-dimensional data
+xarray                    0.21.0             computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
 Excel files
@@ -425,7 +422,7 @@ PyTables                  3.6.1              hdf5             HDF5-based reading
 blosc                     1.21.0             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
 fastparquet               0.6.3              -                Parquet reading / writing (pyarrow is default)
-pyarrow                   6.0.0              parquet, feather Parquet, ORC, and feather reading / writing
+pyarrow                   7.0.0              parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.1.2              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ========================= ================== ================ =============================================================

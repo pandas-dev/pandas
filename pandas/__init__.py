@@ -9,10 +9,10 @@ _missing_dependencies = []
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
-    except ImportError as _e:
+    except ImportError as _e:  # pragma: no cover
         _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if _missing_dependencies:
+if _missing_dependencies:  # pragma: no cover
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
@@ -135,7 +135,7 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing  # noqa:PDF015
+from pandas import testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -171,7 +171,7 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
+from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 
