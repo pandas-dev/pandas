@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -847,6 +848,12 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
+    warnings.warn(
+        "is_int64_dtype is deprecated and will be removed in a future "
+        "version. Use dtype == np.int64 instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return _is_dtype_type(arr_or_dtype, classes(np.int64))
 
 
