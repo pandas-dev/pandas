@@ -1400,17 +1400,13 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
-        import matplotlib as mpl
-
         df = DataFrame(np.random.rand(4, 4))
         for i in range(4):
             df.iloc[i, i] = np.nan
         fig, axes = self.plt.subplots(ncols=4)
 
         # GH 37668
-        kwargs = {}
-        if mpl.__version__ >= "3.3":
-            kwargs = {"normalize": True}
+        kwargs = {"normalize": True}
 
         with tm.assert_produces_warning(None):
             df.plot.pie(subplots=True, ax=axes, legend=True, **kwargs)

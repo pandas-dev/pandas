@@ -4,6 +4,6 @@ pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not networ
 
 python --version
 pip install pytz six numpy python-dateutil tzdata>=2022.1
-pip install hypothesis>=6.34.2 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
+pip install hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
 pip install --find-links=pandas/dist --no-index pandas
 python -c "%test_command%"
