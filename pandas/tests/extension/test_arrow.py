@@ -1729,6 +1729,28 @@ def test_setitem_invalid_dtype(data):
         data[:] = fill_value
 
 
+@pytest.mark.skipif(pa_version_under8p0, reason="returns object with 7.0")
+def test_from_arrow_respecting_given_dtype():
+    date_array = pa.array(
+        [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")], type=pa.date32()
+    )
+    result = date_array.to_pandas(
+        types_mapper={pa.date32(): ArrowDtype(pa.date64())}.get
+    )
+    expected = pd.Series(
+        [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")],
+        dtype=ArrowDtype(pa.date64()),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(pa_version_under8p0, reason="doesn't raise with 7")
+def test_from_arrow_respecting_given_dtype_unsafe():
+    array = pa.array([1.5, 2.5], type=pa.float64())
+    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+        array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
+
+
 def test_round():
     dtype = "float64[pyarrow]"
 
