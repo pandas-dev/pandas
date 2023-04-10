@@ -215,9 +215,7 @@ class TestPandasContainer:
             idx = pd.Index([], dtype=(float if convert_axes else object))
             expected = DataFrame(index=idx, columns=idx)
         elif orient in ["index", "columns"]:
-            # TODO: this condition is probably a bug
-            idx = pd.Index([], dtype=(float if convert_axes else object))
-            expected = DataFrame(columns=idx)
+            expected = DataFrame()
         else:
             expected = empty_frame.copy()
 
@@ -651,11 +649,9 @@ class TestPandasContainer:
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient)
 
-        expected = empty_series
-        if orient in ("values", "records"):
-            expected = expected.reset_index(drop=True)
-        else:
-            expected.index = expected.index.astype(float)
+        expected = empty_series.reset_index(drop=True)
+        if orient in ("split"):
+            expected.index = expected.index.astype(np.float64)
 
         tm.assert_series_equal(result, expected)
 
