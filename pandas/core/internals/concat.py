@@ -653,11 +653,13 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj
     dtype_future = dtype
     if len(dtypes) != len(join_units):
         dtypes_future = [
-            unit.dtype for unit in join_units if not unit.is_na_after_size_deprecation
+            unit.block.dtype
+            for unit in join_units
+            if not unit.is_na_after_size_deprecation
         ]
         if not len(dtypes_future):
             dtypes_future = [
-                unit.dtype for unit in join_units if unit.block.dtype.kind != "V"
+                unit.block.dtype for unit in join_units if unit.block.dtype.kind != "V"
             ]
 
         if len(dtypes) != len(dtypes_future):
