@@ -6771,7 +6771,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return self.copy(deep=None)
 
         if is_range_indexer(indexer, len(indexer)):
-            result = self.copy(deep=False)
+            result = self.copy(deep=not inplace)
             if ignore_index:
                 result.index = default_index(len(result))
 
