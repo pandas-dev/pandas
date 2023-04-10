@@ -471,7 +471,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
         if (
             len(values) > 0
-            and is_numeric_dtype(values)
+            and is_numeric_dtype(values.dtype)
             and not is_signed_integer_dtype(comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later

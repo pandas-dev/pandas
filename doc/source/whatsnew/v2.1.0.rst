@@ -248,6 +248,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
 - Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
+- Performance improvement in :func:`concat` (:issue:`52291`, :issue:`52290`)
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)

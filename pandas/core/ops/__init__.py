@@ -62,13 +62,9 @@ ARITHMETIC_BINOPS: set[str] = {
 }
 
 
-COMPARISON_BINOPS: set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
-
-
 __all__ = [
     "ARITHMETIC_BINOPS",
     "arithmetic_op",
-    "COMPARISON_BINOPS",
     "comparison_op",
     "comp_method_OBJECT_ARRAY",
     "invalid_comparison",
