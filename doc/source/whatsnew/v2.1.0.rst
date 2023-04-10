@@ -125,6 +125,56 @@ If installed, we now require:
 +=================+=================+==========+=========+
 | mypy (dev)      | 1.2             |          |    X    |
 +-----------------+-----------------+----------+---------+
+| beautifulsoup4  | 4.11.1          |          |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.3.4           |          |    X    |
++-----------------+-----------------+----------+---------+
+| fastparquet     | 0.8.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| fsspec          | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| hypothesis      | 6.46.1          |          |    X    |
++-----------------+-----------------+----------+---------+
+| gcsfs           | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| jinja2          | 3.1.2           |          |    X    |
++-----------------+-----------------+----------+---------+
+| lxml            | 4.8.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| numba           | 0.55.2          |          |    X    |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.8.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| openpyxl        | 3.0.10          |          |    X    |
++-----------------+-----------------+----------+---------+
+| pandas-gbq      | 0.17.5          |          |    X    |
++-----------------+-----------------+----------+---------+
+| psycopg2        | 2.9.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyreadstat      | 1.1.5           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyqt5           | 5.15.6          |          |    X    |
++-----------------+-----------------+----------+---------+
+| pytables        | 3.7.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| python-snappy   | 0.6.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyxlsb          | 1.0.9           |          |    X    |
++-----------------+-----------------+----------+---------+
+| s3fs            | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| scipy           | 1.8.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| sqlalchemy      | 1.4.36          |          |    X    |
++-----------------+-----------------+----------+---------+
+| tabulate        | 0.8.10          |          |    X    |
++-----------------+-----------------+----------+---------+
+| xarray          | 2022.03.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| xlsxwriter      | 3.0.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| zstandard       | 0.17.0          |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -176,6 +226,7 @@ Deprecations
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -284,6 +335,8 @@ Period
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+- Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
+- Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
 -
 

@@ -1460,7 +1460,10 @@ class TextFileReader(abc.Iterator):
                 value = kwds[argname]
 
                 if engine != "c" and value != default:
+                    # TODO: Refactor this logic, its pretty convoluted
                     if "python" in engine and argname not in _python_unsupported:
+                        pass
+                    elif "pyarrow" in engine and argname not in _pyarrow_unsupported:
                         pass
                     else:
                         raise ValueError(
