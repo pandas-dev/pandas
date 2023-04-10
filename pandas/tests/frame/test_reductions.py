@@ -1527,7 +1527,7 @@ class TestDataFrameReductions:
         )
         tm.assert_series_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test
+    @td.skip_array_manager_not_yet_implemented
     def test_reduction_timedelta_smallest_unit(self):
         # GH#52524
         df = DataFrame(
