@@ -67,7 +67,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import Index
-    from pandas.core.internals.blocks import Block
+    from pandas.core.internals.blocks import (
+        Block,
+        BlockPlacement,
+    )
 
 
 def _concatenate_array_managers(
@@ -322,7 +325,9 @@ def _maybe_reindex_columns_na_proxy(
     return new_mgrs_indexers
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
+def _get_mgr_concatenation_plan(
+    mgr: BlockManager, indexers: dict[int, np.ndarray]
+) -> list[tuple[BlockPlacement, JoinUnit]]:
     """
     Construct concatenation plan for given block manager and indexers.
 
@@ -504,7 +509,7 @@ class JoinUnit:
                 elif is_1d_only_ea_dtype(empty_dtype):
                     if is_dtype_equal(blk_dtype, empty_dtype) and self.indexers:
                         # avoid creating new empty array if we already have an array
-                        # with correct dtype that can be reindexed
+                        # with correct dtype that can be reindexed GH#47762
                         pass
                     else:
                         empty_dtype = cast(ExtensionDtype, empty_dtype)
