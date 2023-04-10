@@ -1499,6 +1499,8 @@ def infer_dtype_from_object(dtype) -> type:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
+        if hasattr(dtype, "numpy_dtype"):
+            return dtype.numpy_dtype.type
         return dtype.type
 
     try:
