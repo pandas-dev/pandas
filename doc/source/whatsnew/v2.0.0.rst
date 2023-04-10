@@ -207,7 +207,7 @@ Copy-on-Write improvements
   with a :class:`DataFrame`.
 
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
-  will now always raise an warning when Copy-on-Write is enabled. In this mode,
+  will now always raise a warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
   object that is the result of an indexing operation (getitem), which under
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
