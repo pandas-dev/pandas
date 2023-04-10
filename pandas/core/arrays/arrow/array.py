@@ -2018,16 +2018,29 @@ class ArrowExtensionArray(
         )
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        raise NotImplementedError(
-            "str.extract not supported with pd.ArrowDtype(pa.string())."
-        )
+        regex = re.compile(pat, flags=flags)
+        result = []
+        for chunk in self._pa_array.iterchunks():
+            result_chunk = []
+            for val in chunk:
+                if val is None:
+                    result_chunk.append(None)
+                    continue
+                found = regex.search(val)
+                if found:
+                    result_chunk.append(found.groups())
+                else:
+                    result_chunk.append(None)
+            result.append(result_chunk)
+        return type(self)(pa.chunked_array(result))
 
     def _str_findall(self, pat: str, flags: int = 0):
+        regex = re.compile(pat, flags=flags)
         return type(self)(
             pa.chunked_array(
                 [
                     [
-                        val if val is None else re.findall(pat, val, flags=flags)
+                        val if val is None else regex.findall(pat, val, flags=flags)
                         for val in chunk
                     ]
                     for chunk in self._pa_array.iterchunks()
@@ -2045,10 +2058,10 @@ class ArrowExtensionArray(
             if lst is None:
                 arr = pa.array([False] * len(uniques_sorted))
             else:
-                arr = pc.is_in(lst, uniques_sorted)
+                arr = pc.is_in(uniques_sorted, pa.array(set(lst)))
             result_data.append(arr.to_pylist())
         result = type(self)(pa.array(result_data))
-        return result, uniques_sorted.to_numpy()
+        return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub, start: int = 0, end=None):
         result = self._str_find(sub, start, end)
