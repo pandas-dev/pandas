@@ -71,10 +71,9 @@ to ``na_action=None``, like for all the other array types.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :meth:`Categorical.map` implicitly had a default value of ``"ignore"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future.
+- :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter.
+  :meth:`Categorical.map` implicitly had a default value of ``"ignore"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future.
   Also notice that :meth:`Series.map` has default ``na_action=None`` and calls to series with categorical data will now use ``na_action=None`` unless explicitly set otherwise (:issue:`44279`)
-- :meth:`pandas.read_excel` now supports ``engine_kwargs`` to pass keyword args to Excel engines. (:issue:`40274`)
-- :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter (:issue:`44279`)
 - Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)
 - :meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
@@ -85,9 +84,10 @@ Other enhancements
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
-- :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`)
-- Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
+- :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
+- Adding ``engine_kwargs`` parameter to :meth:`DataFrame.read_excel` (:issue:`52214`).
+- Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -125,6 +125,56 @@ If installed, we now require:
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
 | mypy (dev)      | 1.2             |          |    X    |
++-----------------+-----------------+----------+---------+
+| beautifulsoup4  | 4.11.1          |          |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.3.4           |          |    X    |
++-----------------+-----------------+----------+---------+
+| fastparquet     | 0.8.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| fsspec          | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| hypothesis      | 6.46.1          |          |    X    |
++-----------------+-----------------+----------+---------+
+| gcsfs           | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| jinja2          | 3.1.2           |          |    X    |
++-----------------+-----------------+----------+---------+
+| lxml            | 4.8.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| numba           | 0.55.2          |          |    X    |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.8.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| openpyxl        | 3.0.10          |          |    X    |
++-----------------+-----------------+----------+---------+
+| pandas-gbq      | 0.17.5          |          |    X    |
++-----------------+-----------------+----------+---------+
+| psycopg2        | 2.9.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyreadstat      | 1.1.5           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyqt5           | 5.15.6          |          |    X    |
++-----------------+-----------------+----------+---------+
+| pytables        | 3.7.0           |          |    X    |
++-----------------+-----------------+----------+---------+
+| python-snappy   | 0.6.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pyxlsb          | 1.0.9           |          |    X    |
++-----------------+-----------------+----------+---------+
+| s3fs            | 2022.05.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| scipy           | 1.8.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| sqlalchemy      | 1.4.36          |          |    X    |
++-----------------+-----------------+----------+---------+
+| tabulate        | 0.8.10          |          |    X    |
++-----------------+-----------------+----------+---------+
+| xarray          | 2022.03.0       |          |    X    |
++-----------------+-----------------+----------+---------+
+| xlsxwriter      | 3.0.3           |          |    X    |
++-----------------+-----------------+----------+---------+
+| zstandard       | 0.17.0          |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -177,6 +227,7 @@ Deprecations
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -202,6 +253,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
+- Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -232,7 +284,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
 -
 
 Numeric
@@ -285,7 +337,8 @@ Period
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
--
+- Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
+- Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
 
 Plotting
 ^^^^^^^^
