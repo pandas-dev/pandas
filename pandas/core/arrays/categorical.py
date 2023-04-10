@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool_dtype,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -47,7 +46,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -622,9 +620,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # Convert to a specialized type with `dtype` if specified.
             if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
-            elif is_datetime64_dtype(dtype.categories):
+            elif lib.is_np_dtype(dtype.categories.dtype, "M"):
                 cats = to_datetime(inferred_categories, errors="coerce")
-            elif is_timedelta64_dtype(dtype.categories):
+            elif lib.is_np_dtype(dtype.categories.dtype, "m"):
                 cats = to_timedelta(inferred_categories, errors="coerce")
             elif is_bool_dtype(dtype.categories):
                 if true_values is None:

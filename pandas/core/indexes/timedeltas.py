@@ -16,7 +16,6 @@ from pandas._libs.tslibs import (
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -185,7 +184,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        return is_timedelta64_dtype(dtype)  # aka self._data._is_recognized_dtype
+        return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
     # Indexing Methods
