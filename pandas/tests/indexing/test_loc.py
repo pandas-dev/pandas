@@ -62,6 +62,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
+    def test_none_values_on_string_columns(self):
+        # Issue #32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+
+        assert df.loc[2, "a"] is None
+
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
         # int label
