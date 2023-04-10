@@ -15,7 +15,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
-
+- Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
 
