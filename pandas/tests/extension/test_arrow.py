@@ -39,7 +39,6 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_any_int_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
@@ -1582,15 +1581,6 @@ def test_is_integer_dtype(data):
         assert is_integer_dtype(data)
     else:
         assert not is_integer_dtype(data)
-
-
-def test_is_any_integer_dtype(data):
-    # GH 50667
-    pa_type = data.dtype.pyarrow_dtype
-    if pa.types.is_integer(pa_type):
-        assert is_any_int_dtype(data)
-    else:
-        assert not is_any_int_dtype(data)
 
 
 def test_is_signed_integer_dtype(data):
