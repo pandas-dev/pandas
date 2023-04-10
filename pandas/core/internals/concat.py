@@ -64,7 +64,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import Index
-    from pandas.core.internals.blocks import Block
+    from pandas.core.internals.blocks import (
+        Block,
+        BlockPlacement,
+    )
 
 
 def _concatenate_array_managers(
@@ -317,7 +320,9 @@ def _maybe_reindex_columns_na_proxy(
     return new_mgrs_indexers
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager):
+def _get_mgr_concatenation_plan(
+    mgr: BlockManager,
+) -> list[tuple[BlockPlacement, JoinUnit]]:
     """
     Construct concatenation plan for given block manager.
 

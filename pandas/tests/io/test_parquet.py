@@ -46,6 +46,10 @@ except ImportError:
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:DataFrame._data is deprecated:FutureWarning"
+)
+
 
 # setup engines & skips
 @pytest.fixture(
