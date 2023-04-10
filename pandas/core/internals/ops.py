@@ -58,10 +58,13 @@ def operate_blockwise(
     #  assert rframe._indexed_same(lframe)
 
     res_blks: list[Block] = []
+    all_inplace = type(left) == type(right)
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
         if left_ea and not right_ea and hasattr(res_values, "reshape"):
             res_values = res_values.reshape(1, -1)
+        if res_values is not lvals:
+            all_inplace = False
         nbs = rblk._split_op_result(res_values)
 
         # Assertions are disabled for performance, but should hold:
@@ -80,6 +83,14 @@ def operate_blockwise(
     #  assert nlocs == len(left.items), (nlocs, len(left.items))
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
+
+    if all_inplace:
+        # Reinitialize left with res_blks
+        # TODO: Is this even necessary?
+        # res_blks should be the same as the original manager blocks modified inplace
+        # only thing to consider is the axes? If they are indexed
+        left.__init__(res_blks, right.axes, verify_integrity=False)
+        return left
 
     new_mgr = type(right)(tuple(res_blks), axes=right.axes, verify_integrity=False)
     return new_mgr

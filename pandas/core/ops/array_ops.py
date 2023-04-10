@@ -50,6 +50,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import roperator
 from pandas.core.computation import expressions
+from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
@@ -513,7 +514,7 @@ def get_array_op(op):
         "divmod",
         "pow",
     }:
-        return partial(arithmetic_op, op=op)
+        return partial(arithmetic_op, op=op, inplace=op in _inplace_ops)
     else:
         raise NotImplementedError(op_name)
 

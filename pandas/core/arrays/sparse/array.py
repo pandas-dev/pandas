@@ -71,6 +71,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -1704,7 +1705,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Ops
     # ------------------------------------------------------------------------
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op, inplace=False):
+        if op in _inplace_ops:
+            # TODO: Do ops actually inplace on SparseArray
+            # Replace the inplace op with the normal op
+            op = _inplace_ops[op]
+
         op_name = op.__name__
 
         if isinstance(other, SparseArray):

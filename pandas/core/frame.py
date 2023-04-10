@@ -7432,19 +7432,21 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Literal[1] = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
 
-        if op in _inplace_ops and isinstance(other, DataFrame):
-            # TODO: Do this actually inplace, instead of dispatching
-            # to non-inplace version of operator
-            # Alignment is tricky to get right though
-            return self._inplace_method(other, _inplace_ops[op])
+        left, other = self._align_for_op(other, axis, flex=True, level=None)
 
-        self, other = self._align_for_op(other, axis, flex=True, level=None)
-
-        new_data = self._dispatch_frame_op(other, op, axis=axis)
-        if new_data is self:
-            # TODO: copy what _construct_result does(just the finalize call?)
+        new_data = left._dispatch_frame_op(other, op, axis=axis)
+        if inplace:
+            # Need to reindex if not aligned correctly, if inplace requested
+            # even if we were not able to operate on the underlying arrays inplace
+            is_inplace = new_data is left
+            if not new_data._indexed_same(self):
+                print("uh oh")
+                new_data = new_data.reindex_like(self, copy=False)
+                if is_inplace:
+                    self._update_inplace(new_data, verify_is_copy=False)
             return self
-        return self._construct_result(new_data)
+
+        return left._construct_result(new_data)
 
     _logical_method = _arith_method
 
@@ -7497,9 +7499,12 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
+            if bm is self._mgr:
+                return self
             return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:
+            # TODO: Do arithmetic inplace here?
             # axis=1 means we want to operate row-by-row
             assert right.index.equals(self.columns)
 
@@ -7508,31 +7513,17 @@ class DataFrame(NDFrame, OpsMixin):
             assert not isinstance(right, np.ndarray)
 
             with np.errstate(all="ignore"):
-                if func in _inplace_ops:
-                    # TODO: _iter_column_arrays does not handle CoW
-                    for _left, _right in zip(self._iter_column_arrays(), right):
-                        array_op(_left, _right)
-                    arrays = None
-                else:
-                    arrays = [
-                        array_op(_left, _right)
-                        for _left, _right in zip(self._iter_column_arrays(), right)
-                    ]
+                arrays = [
+                    array_op(_left, _right)
+                    for _left, _right in zip(self._iter_column_arrays(), right)
+                ]
 
         elif isinstance(right, Series):
             assert right.index.equals(self.index)
             right = right._values
 
             with np.errstate(all="ignore"):
-                if func in _inplace_ops:
-                    # TODO: _iter_column_arrays does not handle CoW
-                    for left in self._iter_column_arrays():
-                        array_op(left, right)
-                    arrays = None
-                else:
-                    arrays = [
-                        array_op(left, right) for left in self._iter_column_arrays()
-                    ]
+                arrays = [array_op(left, right) for left in self._iter_column_arrays()]
 
         else:
             raise NotImplementedError(right)
