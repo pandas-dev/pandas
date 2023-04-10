@@ -123,7 +123,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -208,7 +211,7 @@ _shared_docs = {**_shared_docs}
 _shared_doc_kwargs = {
     "axes": "keywords for axes",
     "klass": "Series/DataFrame",
-    "axes_single_arg": "int or labels for object",
+    "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa:E501
     "args_transpose": "axes to permute (int or label for object)",
     "inplace": """
     inplace : bool, default False
@@ -4120,7 +4123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not drop_level:
                 if lib.is_integer(loc):
                     # Slice index must be an integer or None
-                    new_index = index[loc : loc + 1]  # type: ignore[misc]
+                    new_index = index[loc : loc + 1]
                 else:
                     new_index = index[loc]
         else:
@@ -4670,7 +4673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if errors == "raise" and labels_missing:
                     raise KeyError(f"{labels} not found in axis")
 
-            if is_extension_array_dtype(mask.dtype):
+            if isinstance(mask.dtype, ExtensionDtype):
                 # GH#45860
                 mask = mask.to_numpy(dtype=bool)
 
@@ -5161,6 +5164,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def reindex(
         self,
         labels=None,
+        *,
         index=None,
         columns=None,
         axis: Axis | None = None,
@@ -5457,7 +5461,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not (
                 self.ndim == 2
                 and len(self.dtypes) == 1
-                and is_extension_array_dtype(self.dtypes.iloc[0])
+                and isinstance(self.dtypes.iloc[0], ExtensionDtype)
             )
         )
 
@@ -6834,7 +6838,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
@@ -7301,6 +7309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
+    @final
     @doc(
         _shared_docs["replace"],
         klass=_shared_doc_kwargs["klass"],
@@ -8328,7 +8337,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return result
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def asfreq(
         self,
         freq: Frequency,
@@ -8595,7 +8605,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def resample(
         self,
         rule,
@@ -8996,8 +9007,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             else:
                 warnings.warn(
-                    "The 'axis' keyword in DataFrame.resample is deprecated and "
-                    "will be removed in a future version.",
+                    f"The 'axis' keyword in {type(self).__name__}.resample is "
+                    "deprecated and will be removed in a future version.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -9392,7 +9403,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return diff
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def align(
         self,
         other: NDFrameT,
