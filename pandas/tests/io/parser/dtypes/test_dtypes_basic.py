@@ -423,13 +423,9 @@ def test_dtype_backend(all_parsers):
             "e": pd.Series([pd.NA, 6], dtype="Int64"),
             "f": pd.Series([pd.NA, 7.5], dtype="Float64"),
             "g": pd.Series([pd.NA, True], dtype="boolean"),
-            "h": pd.Series(
-                [pd.NA if parser.engine != "pyarrow" else "", "a"], dtype="string"
-            ),
+            "h": pd.Series([pd.NA, "a"], dtype="string"),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),
-            "j": pd.Series(
-                [pd.NA, pd.NA], dtype="Int64" if parser.engine != "pyarrow" else object
-            ),
+            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
@@ -451,7 +447,6 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
@@ -499,7 +494,6 @@ def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
-    engine = parser.engine
 
     data = """a,b,c,d,e,f,g,h,i,j
 1,2.5,True,a,,,,,12-31-2019,
@@ -516,7 +510,7 @@ def test_dtype_backend_pyarrow(all_parsers, request):
             "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
             "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
             "h": pd.Series(
-                [pd.NA if engine != "pyarrow" else "", "a"],
+                [pd.NA, "a"],
                 dtype=pd.ArrowDtype(pa.string()),
             ),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),

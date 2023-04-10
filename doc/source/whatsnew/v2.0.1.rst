@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
+- Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
@@ -32,6 +33,8 @@ Bug fixes
 Other
 ~~~~~
 - Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- :class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
+- :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:

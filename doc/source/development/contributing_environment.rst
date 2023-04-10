@@ -210,6 +210,8 @@ Step 3: build and install pandas
 You can now run::
 
    # Build and install pandas
+   # The number after -j is the number of compiling jobs run in parallel
+   # Change it according to your machine's hardware spec
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 

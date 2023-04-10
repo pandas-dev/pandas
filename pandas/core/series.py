@@ -558,7 +558,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 values = []
             keys = index
         else:
-            keys, values = (), []
+            keys, values = default_index(0), []
 
         # Input is now list-like, so rely on "standard" construction:
         s = Series(values, index=keys, dtype=dtype)
