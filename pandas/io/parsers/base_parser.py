@@ -60,8 +60,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-import pandas as pd
 from pandas import (
+    ArrowDtype,
     DatetimeIndex,
     StringDtype,
 )
@@ -1235,8 +1235,9 @@ def _process_date_conversion(
                     import pyarrow as pa
 
                     dtype = data_dict[colspec].dtype
-                    if isinstance(dtype, pd.ArrowDtype) and pa.types.is_timestamp(
-                        dtype.pyarrow_dtype
+                    if isinstance(dtype, ArrowDtype) and (
+                        pa.types.is_timestamp(dtype.pyarrow_dtype)
+                        or pa.types.is_date(dtype.pyarrow_dtype)
                     ):
                         continue
 
