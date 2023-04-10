@@ -6761,6 +6761,7 @@ class Index(IndexOpsMixin, PandasObject):
     def diff(self, periods: int = 1):
         """
         Computes the difference between consecutive values in the Index object.
+
         If periods is greater than 1, computes the difference between values that
         are `periods` number of positions apart.
 
