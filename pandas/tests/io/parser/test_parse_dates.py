@@ -1252,19 +1252,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    if parser.engine == "pyarrow" and not cache_dates:
-        # None in input gets converted to 'None', for which
-        # pandas tries to guess the datetime format, triggering
-        # the warning. TODO: parse dates directly in pyarrow, see
-        # https://github.com/pandas-dev/pandas/issues/48017
-        warn = UserWarning
-    else:
-        # Note: warning is not raised if 'cache_dates', because here there is only a
-        # single unique date and hence no risk of inconsistent parsing.
-        warn = None
-    parser.read_csv_check_warnings(
-        warn,
-        "Could not infer format",
+    parser.read_csv(
         s,
         header=None,
         names=["foo", "bar"],
