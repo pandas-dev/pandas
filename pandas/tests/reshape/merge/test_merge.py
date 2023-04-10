@@ -683,7 +683,10 @@ class TestMerge:
         )
         df = DataFrame(columns=list("dt"))
         msg = "The behavior of DataFrame concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warn = FutureWarning
+        if using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
             df = concat([df, d], ignore_index=True)
             result = concat([df, d], ignore_index=True)
         expected = DataFrame(
