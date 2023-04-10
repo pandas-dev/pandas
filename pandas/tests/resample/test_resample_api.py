@@ -1000,8 +1000,8 @@ def test_df_axis_param_depr():
 
 def test_series_axis_param_depr():
     warning_msg = (
-        "Series resample axis keyword is deprecated and will be removed in a "
-        "future version."
+        "The 'axis' keyword in Series.resample is "
+        "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         test_series.resample("H", axis=0)
