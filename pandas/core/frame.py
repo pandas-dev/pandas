@@ -6771,10 +6771,14 @@ class DataFrame(NDFrame, OpsMixin):
                 return self.copy(deep=None)
 
         if is_range_indexer(indexer, len(indexer)):
+            result = self.copy(deep=None)
+            if ignore_index:
+                result.index = default_index(len(result))
+
             if inplace:
-                return self._update_inplace(self)
+                return self._update_inplace(result)
             else:
-                return self.copy(deep=None)
+                return result
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
