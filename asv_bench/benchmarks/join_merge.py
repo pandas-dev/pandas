@@ -73,7 +73,14 @@ class ConcatDataFrames:
 
 class ConcatIndexDtype:
     params = (
-        ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
+        [
+            "datetime64[ns]",
+            "int64",
+            "Int64",
+            "int64[pyarrow]",
+            "string[python]",
+            "string[pyarrow]",
+        ],
         ["monotonic", "non_monotonic", "has_na"],
         [0, 1],
         [True, False],
@@ -84,7 +91,7 @@ class ConcatIndexDtype:
         N = 10_000
         if dtype == "datetime64[ns]":
             vals = date_range("1970-01-01", periods=N)
-        elif dtype in ("int64", "Int64"):
+        elif dtype in ("int64", "Int64", "int64[pyarrow]"):
             vals = np.arange(N, dtype=np.int64)
         elif dtype in ("string[python]", "string[pyarrow]"):
             vals = tm.makeStringIndex(N)
