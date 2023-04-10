@@ -1754,6 +1754,13 @@ def test_from_arrow_respecting_given_dtype():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(pa_version_under8p0, reason="returns object with 7.0")
+def test_from_arrow_respecting_given_dtype_unsafe():
+    array = pa.array([1.5, 2.5], type=pa.float64())
+    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+        array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
+
+
 def test_round():
     dtype = "float64[pyarrow]"
 
