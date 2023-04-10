@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
@@ -164,14 +165,10 @@ class ArrowParserWrapper(ParserBase):
         dtype_backend = self.kwds["dtype_backend"]
 
         # Convert all pa.null() cols -> float64 (non nullable)
-        # else Int64 (nullable case)
-        # TODO: There has to be a better way... right?
-        if dtype_backend != "pyarrow":
+        # else Int64 (nullable case, see below)
+        if dtype_backend is lib.no_default:
             new_schema = table.schema
-            if dtype_backend == "numpy_nullable":
-                new_type = pa.int64()
-            else:
-                new_type = pa.float64()
+            new_type = pa.float64()
             for i, arrow_type in enumerate(table.schema.types):
                 if pa.types.is_null(arrow_type):
                     new_schema = new_schema.set(
@@ -183,7 +180,11 @@ class ArrowParserWrapper(ParserBase):
         if dtype_backend == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         elif dtype_backend == "numpy_nullable":
-            frame = table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
+            # Modify the default mapping to also
+            # map null to Int64 (to match other engines)
+            dtype_mapping = _arrow_dtype_mapping()
+            dtype_mapping[pa.null()] = pd.Int64Dtype()
+            frame = table.to_pandas(types_mapper=dtype_mapping.get)
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
