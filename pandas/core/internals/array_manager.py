@@ -14,7 +14,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
-    NaT,
     algos as libalgos,
     lib,
 )
@@ -981,13 +980,8 @@ class ArrayManager(BaseArrayManager):
         result_arrays: list[np.ndarray] = []
         for i, arr in enumerate(self.arrays):
             res = func(arr, axis=0)
-
-            # TODO NaT doesn't preserve dtype, so we need to ensure to create
-            # a timedelta result array if original was timedelta
-            # what if datetime results in timedelta? (eg std)
-            dtype = arr.dtype if res is NaT else None
             result_arrays.append(
-                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+                sanitize_array([res], None, dtype=arr.dtype)  # type: ignore[arg-type]
             )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
