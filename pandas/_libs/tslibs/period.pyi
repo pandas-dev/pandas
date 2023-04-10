@@ -3,6 +3,7 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -67,6 +68,7 @@ class PeriodMixin:
 class Period(PeriodMixin):
     ordinal: int  # int64_t
     freq: BaseOffset
+    _dtype: PeriodDtypeBase
 
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
