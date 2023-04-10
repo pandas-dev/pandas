@@ -1271,32 +1271,34 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "periods, expected",
+        "periods, expected_results",
         [
-            (1, Index([np.nan, 10, 10, 10, 10])),
-            (2, Index([np.nan, np.nan, 20, 20, 20])),
-            (3, Index([np.nan, np.nan, np.nan, 30, 30])),
+            (1, [np.nan, 10, 10, 10, 10]),
+            (2, [np.nan, np.nan, 20, 20, 20]),
+            (3, [np.nan, np.nan, np.nan, 30, 30]),
         ],
     )
-    def test_index_diff(self, periods, expected):
+    def test_index_diff(self, periods, expected_results):
         # GH#19708
         idx = Index([10, 20, 30, 40, 50])
         result = idx.diff()
+        expected = Index(expected_results)
 
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "decimals, expected",
+        "decimals, expected_results",
         [
-            (0, Index([1, 2, 3])),
-            (1, Index([1.2, 2.3, 3.5])),
-            (2, Index([1.23, 2.35, 3.46])),
+            (0, [1, 2, 3]),
+            (1, [1.2, 2.3, 3.5]),
+            (2, [1.23, 2.35, 3.46]),
         ],
     )
-    def test_index_round(self, decimals, expected):
+    def test_index_round(self, decimals, expected_results):
         # GH#19708
         idx = Index([1.234, 2.345, 3.456])
         result = idx.round()
+        expected = Index(expected_results)
 
         tm.assert_index_equal(result, expected)
 
