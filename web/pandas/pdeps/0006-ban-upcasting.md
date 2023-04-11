@@ -50,7 +50,7 @@ In[10]: ser[2] = "2000-01-04"  # works, is converted to datetime64
 In[11]: ser[2] = "2000-01-04x"  # typo - but pandas does not error, it upcasts to object
 ```
 
-The scope of this PDEP is limited to setitem-like operations on Series.
+The scope of this PDEP is limited to setitem-like operations on Series (and DataFrame columns).
 For example, starting with
 ```python
 df = DataFrame({"a": [1, 2, np.nan], "b": [4, 5, 6]})
@@ -71,7 +71,7 @@ then the following would all raise:
   - ``df.loc[indexer, 'a'] = 'foo'``
   - ``ser[indexer] = 'foo'``
 
-It may be desirable to expand the top list to ``replace`` and ``update``,
+It may be desirable to expand the top list to ``Series.replace`` and ``Series.update``,
 but to keep the scope of the PDEP down, they are excluded for now.
 
 Examples of operations which would not raise are:
@@ -122,7 +122,24 @@ The trickiest part of this proposal concerns what to do when setting a float in 
 ```python
 In[1]: ser = pd.Series([1, 2, 3])
 
-In[2]: ser[0] = 1.5
+In [2]: ser
+Out[2]:
+0    1
+1    2
+2    3
+dtype: int64
+
+In[3]: ser[0] = 1.5  # what should this do?
+```
+
+The current behaviour is to upcast to 'float64':
+```python
+In [4]: ser
+Out[4]:
+0    1.5
+1    2.0
+2    3.0
+dtype: float64
 ```
 
 This is not necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
@@ -189,6 +206,12 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
 
 **A**: The current behavior would be to upcast to ``int32``. So under this PDEP,
   it would instead raise.
+
+**Q: What happens in setting ``16.000000000000001`` in an `int8`` Series?**
+
+**A**: As far as Python is concerned, ``16.000000000000001`` and ``16.0`` are the
+  same number. So, it would be inserted as ``1`` and the dtype would not change
+  (just like what happens now, there would be no change here).
 
 ## Timeline
 
