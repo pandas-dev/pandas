@@ -1941,7 +1941,7 @@ class ArrowExtensionArray(
             split_func = pc.split_pattern_regex
         else:
             split_func = pc.split_pattern
-        return type(self)(split_func(self._pa_array, pat, max_splits=n))
+        return type(self)(split_func(self._data, pat, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
         if n in {-1, 0}:
