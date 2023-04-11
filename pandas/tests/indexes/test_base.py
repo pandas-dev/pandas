@@ -1281,7 +1281,7 @@ class TestIndex(Base):
     def test_index_diff(self, periods, expected_results):
         # GH#19708
         idx = Index([10, 20, 30, 40, 50])
-        result = idx.diff()
+        result = idx.diff(periods)
         expected = Index(expected_results)
 
         tm.assert_index_equal(result, expected)
@@ -1297,7 +1297,7 @@ class TestIndex(Base):
     def test_index_round(self, decimals, expected_results):
         # GH#19708
         idx = Index([1.234, 2.345, 3.456])
-        result = idx.round()
+        result = idx.round(decimals)
         expected = Index(expected_results)
 
         tm.assert_index_equal(result, expected)
