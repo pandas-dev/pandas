@@ -794,12 +794,12 @@ Apply
        index=["I", "II", "III"],
    )
 
-   def SeriesFromSubList(aList):
-       return pd.Series(aList)
+   def make_df(ser):
+       new_vals = [pd.Series(value, name=name) for name, value in ser.items()]
+       return pd.DataFrame(new_vals)
 
-   df_orgz = pd.concat(
-       {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
-   )
+   df_orgz = pd.concat({ind: row.pipe(make_df) for ind, row in df.iterrows()})
+
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series

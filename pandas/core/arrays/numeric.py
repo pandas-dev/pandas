@@ -6,7 +6,6 @@ from typing import (
     Any,
     Callable,
     Mapping,
-    TypeVar,
 )
 
 import numpy as np
@@ -38,11 +37,9 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
-
-
-T = TypeVar("T", bound="NumericArray")
 
 
 class NumericDtype(BaseMaskedDtype):
@@ -79,11 +76,13 @@ class NumericDtype(BaseMaskedDtype):
         array_class = self.construct_array_type()
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
+        if not array.type.equals(pyarrow_type) and not pyarrow.types.is_null(
+            array.type
+        ):
             # test_from_arrow_type_error raise for string, but allow
             #  through itemsize conversion GH#31896
             rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
-            if rt_dtype.kind not in ["i", "u", "f"]:
+            if rt_dtype.kind not in "iuf":
                 # Could allow "c" or potentially disallow float<->int conversion,
                 #  but at the moment we specifically test that uint<->int works
                 raise TypeError(
@@ -282,11 +281,11 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls: type[T], strings, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> T:
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
-        scalars = to_numeric(strings, errors="raise", use_nullable_dtypes=True)
+        scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

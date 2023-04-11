@@ -419,7 +419,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:

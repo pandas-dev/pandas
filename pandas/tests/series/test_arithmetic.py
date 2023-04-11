@@ -27,10 +27,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -499,17 +496,6 @@ class TestSeriesComparison:
             assert result.name == names[2]
 
     def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid="ignore"):
-            expected = (left > right).astype("O")
-        expected[:3] = np.nan
-
-        tm.assert_almost_equal(result, expected)
-
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
@@ -801,6 +787,14 @@ class TestNamePreservation:
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
 
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        warn = None
+        if box in [list, tuple] and is_logical:
+            warn = FutureWarning
+
         right = box(right)
         if flex:
             if is_logical:
@@ -809,7 +803,8 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            result = op(left, right)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

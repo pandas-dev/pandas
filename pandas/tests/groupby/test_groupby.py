@@ -261,7 +261,6 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         2: tsframe[tsframe.index.month == 2].quantile(0.8),
     }
     expected = DataFrame(ex_data).T
-    expected.index = expected.index.astype(np.int32)
     if not as_index:
         # TODO: try to get this more consistent?
         expected.index = Index(range(2))
@@ -728,7 +727,9 @@ def test_groupby_as_index_agg(df):
 
     expected3 = grouped["C"].sum()
     expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
-    result3 = grouped["C"].agg({"Q": np.sum})
+    msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result3 = grouped["C"].agg({"Q": np.sum})
     tm.assert_frame_equal(result3, expected3)
 
     # GH7115 & GH8112 & GH8582
@@ -964,7 +965,7 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
 def test_raise_on_nuisance_python_single(df):
     # GH 38815
     grouped = df.groupby("A")
-    with pytest.raises(TypeError, match="could not convert"):
+    with pytest.raises(ValueError, match="could not convert"):
         grouped.skew()
 
 
@@ -1926,7 +1927,7 @@ def test_empty_groupby(
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False, dropna=dropna)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=dropna, observed=False)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -1971,14 +1972,14 @@ def test_empty_groupby(
         if is_dt64 or is_cat or is_per:
             # GH#41291
             # datetime64 -> prod and sum are invalid
-            if op == "skew":
-                msg = "does not support reduction 'skew'"
-            elif is_dt64:
+            if is_dt64:
                 msg = "datetime64 type does not support"
             elif is_per:
                 msg = "Period type does not support"
             else:
                 msg = "category type does not support"
+            if op == "skew":
+                msg = "|".join([msg, "does not support reduction 'skew'"])
             with pytest.raises(TypeError, match=msg):
                 get_result()
 
@@ -2638,7 +2639,7 @@ def test_datetime_categorical_multikey_groupby_indices():
             "c": Categorical.from_codes([-1, 0, 1], categories=[0, 1]),
         }
     )
-    result = df.groupby(["a", "b"]).indices
+    result = df.groupby(["a", "b"], observed=False).indices
     expected = {
         ("a", Timestamp("2018-01-01 00:00:00")): np.array([0]),
         ("b", Timestamp("2018-02-01 00:00:00")): np.array([1]),
@@ -2707,6 +2708,24 @@ def test_single_element_list_grouping():
     result = [key for key, _ in df.groupby(["a"])]
     expected = [(1,), (2,)]
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "level_arg, multiindex", [([0], False), ((0,), False), ([0], True), ((0,), True)]
+)
+def test_single_element_listlike_level_grouping_deprecation(level_arg, multiindex):
+    # GH 51583
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
+    if multiindex:
+        df = df.set_index(["a", "b"])
+    depr_msg = (
+        "Creating a Groupby object with a length-1 list-like "
+        "level parameter will yield indexes as tuples in a future version. "
+        "To keep indexes as scalars, create Groupby objects with "
+        "a scalar level parameter instead."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        [key for key, _ in df.groupby(level=level_arg)]
 
 
 @pytest.mark.parametrize("func", ["sum", "cumsum", "cumprod", "prod"])

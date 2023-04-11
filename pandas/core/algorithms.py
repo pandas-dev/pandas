@@ -35,7 +35,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     infer_dtype_from_array,
-    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -43,9 +42,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_array_like,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_float_dtype,
@@ -56,12 +53,12 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -144,7 +141,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             return _ensure_data(values._data)
         return np.asarray(values)
 
-    elif is_categorical_dtype(values.dtype):
+    elif isinstance(values.dtype, CategoricalDtype):
         # NB: cases that go through here should NOT be using _reconstruct_data
         #  on the back-end.
         values = cast("Categorical", values)
@@ -175,8 +172,6 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
-        if isinstance(values, np.ndarray):
-            values = sanitize_to_nanoseconds(values)
         npvalues = values.view("i8")
         npvalues = cast(np.ndarray, npvalues)
         return npvalues
@@ -214,11 +209,6 @@ def _reconstruct_data(
         values = cls._from_sequence(values, dtype=dtype)
 
     else:
-        if is_datetime64_dtype(dtype):
-            dtype = np.dtype("datetime64[ns]")
-        elif is_timedelta64_dtype(dtype):
-            dtype = np.dtype("timedelta64[ns]")
-
         values = values.astype(dtype, copy=False)
 
     return values
@@ -427,7 +417,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values.dtype):
+    if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -481,7 +471,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
         if (
             len(values) > 0
-            and is_numeric_dtype(values)
+            and is_numeric_dtype(values.dtype)
             and not is_signed_integer_dtype(comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
@@ -578,7 +568,7 @@ def factorize_array(
     uniques : ndarray
     """
     original = values
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
         #  need to do the same to na_value. We are assuming here that the passed
         #  na_value is an appropriately-typed NaT.
@@ -769,7 +759,8 @@ def factorize(
         codes, uniques = values.factorize(sort=sort)
         return codes, uniques
 
-    elif not isinstance(values.dtype, np.dtype):
+    elif not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
     else:
@@ -847,7 +838,7 @@ def value_counts(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values)
+        values = Series(values, copy=False)
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -870,7 +861,7 @@ def value_counts(
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values)._values.value_counts(dropna=dropna)
+            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
             counts = result._values
@@ -902,7 +893,7 @@ def value_counts(
                 idx = idx.astype(object)
             idx.name = index_name
 
-            result = Series(counts, index=idx, name=name)
+            result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
         result = result.sort_values(ascending=ascending)
@@ -1543,7 +1534,7 @@ def safe_sort(
     ordered: AnyArrayLike
 
     if (
-        not is_extension_array_dtype(values)
+        not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
         ordered = _sort_mixed(values)
@@ -1675,14 +1666,21 @@ def union_with_duplicates(
             lvals = lvals._values
         if isinstance(rvals, ABCIndex):
             rvals = rvals._values
-        unique_vals = unique(concat_compat([lvals, rvals]))
+        # error: List item 0 has incompatible type "Union[ExtensionArray,
+        # ndarray[Any, Any], Index]"; expected "Union[ExtensionArray,
+        # ndarray[Any, Any]]"
+        combined = concat_compat([lvals, rvals])  # type: ignore[list-item]
+        unique_vals = unique(combined)
         unique_vals = ensure_wrapped_if_datetimelike(unique_vals)
     repeats = final_count.reindex(unique_vals).values
     return np.repeat(unique_vals, repeats)
 
 
 def map_array(
-    arr: ArrayLike, mapper, na_action: Literal["ignore"] | None = None
+    arr: ArrayLike,
+    mapper,
+    na_action: Literal["ignore"] | None = None,
+    convert: bool = True,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1694,6 +1692,9 @@ def map_array(
     na_action : {None, 'ignore'}, default None
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
+    convert : bool, default True
+        Try to find better dtype for elementwise function results. If
+        False, leave as dtype=object.
 
     Returns
     -------
@@ -1745,9 +1746,14 @@ def map_array(
 
         return new_values
 
+    if not len(arr):
+        return arr.copy()
+
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper)
+        return lib.map_infer(values, mapper, convert=convert)
     else:
-        return lib.map_infer_mask(values, mapper, isna(values).view(np.uint8))
+        return lib.map_infer_mask(
+            values, mapper, mask=isna(values).view(np.uint8), convert=convert
+        )

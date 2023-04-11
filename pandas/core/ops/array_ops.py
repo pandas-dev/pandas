@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas._libs.tslibs import BaseOffset
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -106,6 +108,7 @@ def fill_binop(left, right, fill_value):
 
 def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
+        # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
 
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
@@ -137,7 +140,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
     # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
     # the logic valid for both Series and DataFrame ops.
     xrav = x.ravel()
-    assert isinstance(x, np.ndarray), type(x)
+
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
@@ -395,11 +398,10 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     -------
     ndarray or ExtensionArray
     """
-    fill_int = lambda x: x
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
-        if x.dtype.kind in ["c", "f", "O"]:
+        if x.dtype.kind in "cfO":
             # dtypes that can hold NA
             mask = isna(x)
             if mask.any():
@@ -410,11 +412,17 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             x = x.astype(bool)
         return x
 
-    is_self_int_dtype = is_integer_dtype(left.dtype)
-
     right = lib.item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
+        warnings.warn(
+            "Logical ops (and, or, xor) between Pandas objects and dtype-less "
+            "sequences (e.g. list, tuple) are deprecated and will raise in a "
+            "future version. Wrap the object in a Series, Index, or np.array "
+            "before operating instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
@@ -428,19 +436,19 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     else:
         if isinstance(rvalues, np.ndarray):
             is_other_int_dtype = is_integer_dtype(rvalues.dtype)
-            rvalues = rvalues if is_other_int_dtype else fill_bool(rvalues, lvalues)
+            if not is_other_int_dtype:
+                rvalues = fill_bool(rvalues, lvalues)
 
         else:
             # i.e. scalar
             is_other_int_dtype = lib.is_integer(rvalues)
 
+        res_values = na_logical_op(lvalues, rvalues, op)
+
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
-        filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
-
-        res_values = na_logical_op(lvalues, rvalues, op)
-        # error: Cannot call function of unknown type
-        res_values = filler(res_values)  # type: ignore[operator]
+        if not (is_integer_dtype(left.dtype) and is_other_int_dtype):
+            res_values = fill_bool(res_values)
 
     return res_values
 
