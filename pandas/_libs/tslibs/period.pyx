@@ -1985,7 +1985,7 @@ cdef class _Period(PeriodMixin):
 
         Period longer than a day
 
-        >>> p = pd.Period("2018-03-11", freq="M")
+        >>> p = pd.Period("2018-03-11", freq="ME")
         >>> p.hour
         0
         """
@@ -2143,7 +2143,7 @@ cdef class _Period(PeriodMixin):
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
-        >>> per = pd.Period('2018-01', 'M')
+        >>> per = pd.Period('2018-01', 'ME')
         >>> per.day_of_week
         2
         >>> per.end_time.day_of_week
@@ -2194,7 +2194,7 @@ cdef class _Period(PeriodMixin):
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
-        >>> per = pd.Period('2018-01', 'M')
+        >>> per = pd.Period('2018-01', 'ME')
         >>> per.dayofweek
         2
         >>> per.end_time.dayofweek
