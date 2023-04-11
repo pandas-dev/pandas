@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
@@ -33,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -255,11 +255,7 @@ def cut(
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
 
-        try:  # for array-like
-            sz = x.size
-        except AttributeError:
-            x = np.asarray(x)
-            sz = x.size
+        sz = x.size
 
         if sz == 0:
             raise ValueError("Cannot cut empty array")
@@ -462,7 +458,8 @@ def _bins_to_cuts(
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-        if not is_categorical_dtype(labels):
+
+        if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
                 labels,
                 categories=labels if len(set(labels)) == len(labels) else None,
@@ -489,7 +486,7 @@ def _coerce_to_type(x):
     """
     dtype: DtypeObj | None = None
 
-    if is_datetime64tz_dtype(x.dtype):
+    if isinstance(x.dtype, DatetimeTZDtype):
         dtype = x.dtype
     elif is_datetime64_dtype(x.dtype):
         x = to_datetime(x).astype("datetime64[ns]", copy=False)
@@ -534,7 +531,7 @@ def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+    elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
         if bins_dtype in ["datetime", "datetime64"]:
             bins = to_datetime(bins)
             if is_datetime64_dtype(bins):
@@ -621,7 +618,7 @@ def _preprocess_for_cut(x):
     return x
 
 
-def _postprocess_for_cut(fac, bins, retbins: bool, dtype, original):
+def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, original):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed

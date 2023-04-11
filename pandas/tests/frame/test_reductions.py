@@ -9,11 +9,10 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     DataFrame,
     Index,
     Series,
@@ -1280,7 +1279,7 @@ class TestDataFrameAnalytics:
         # GH 19976
         data = DataFrame(data)
 
-        if any(is_categorical_dtype(x) for x in data.dtypes):
+        if any(isinstance(x, CategoricalDtype) for x in data.dtypes):
             with pytest.raises(
                 TypeError, match="dtype category does not support reduction"
             ):

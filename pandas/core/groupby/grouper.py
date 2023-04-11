@@ -22,10 +22,10 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -618,7 +618,7 @@ class Grouping:
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif is_categorical_dtype(grouping_vector):
+        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
             grouping_vector, self._all_grouper = recode_for_groupby(
@@ -635,7 +635,8 @@ class Grouping:
 
     @cache_readonly
     def _passed_categorical(self) -> bool:
-        return is_categorical_dtype(self.grouping_vector)
+        dtype = getattr(self.grouping_vector, "dtype", None)
+        return isinstance(dtype, CategoricalDtype)
 
     @cache_readonly
     def name(self) -> Hashable:
