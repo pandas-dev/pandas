@@ -1302,10 +1302,7 @@ class TestToDatetime:
             to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(
             ValueError,
-            match=(
-                r'^time data "True" doesn\'t match format "%Y%m%d", '
-                f"at position 1. {PARSING_ERR_MSG}$"
-            ),
+            match=(f"{PARSING_ERR_MSG}"),
         ):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
@@ -1652,11 +1649,11 @@ class TestToDatetime:
         mixed = to_datetime(ser)
         expected = Series(
             [
-                "NaT",
+                NaT,
                 Timestamp("1990-01-01"),
                 Timestamp("2015-03-14T16:15:14.123-08:00").to_pydatetime(),
                 Timestamp("2019-03-04T21:56:32.620-07:00").to_pydatetime(),
-                None,
+                NaT,  # TODO check
             ],
             dtype=object,
         )
@@ -1855,7 +1852,7 @@ class TestToDatetimeUnit:
             [
                 ["2015-06-19 05:33:20", "2015-05-27 22:33:20", "NaT", "NaT"],
                 [1.434692e18, 1.432766e18, "foo", "NaT"],
-                None,
+                UserWarning,
             ],
         ],
     )
@@ -2393,10 +2390,7 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
-        msg = (
-            r'^time data " " doesn\'t match format "%m/%d/%Y", '
-            rf"at position 2. {PARSING_ERR_MSG}$"
-        )
+        msg = rf"{PARSING_ERR_MSG}"
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
         result_coerce = to_datetime(ser, errors="coerce", cache=cache)
@@ -2467,6 +2461,7 @@ class TestToDatetimeMisc:
         expected = Timestamp(2012, 1, 1)
         assert result == expected
 
+    @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_unprocessable_input(self, cache):
         # GH 4928
         # GH 21864
@@ -2659,10 +2654,7 @@ class TestToDatetimeMisc:
 
         with pytest.raises(
             ValueError,
-            match=(
-                r'^time data "03/30/2011" doesn\'t match format '
-                rf'"%d/%m/%Y", at position 1. {PARSING_ERR_MSG}$'
-            ),
+            match=(rf"{PARSING_ERR_MSG}"),
         ):
             to_datetime(arr, dayfirst=True)
 
@@ -2681,32 +2673,77 @@ class TestToDatetimeMisc:
 
 class TestGuessDatetimeFormat:
     @pytest.mark.parametrize(
-        "test_list",
+        "test_list, expected_formats",
         [
-            [
-                "2011-12-30 00:00:00.000000",
-                "2011-12-30 00:00:00.000000",
-                "2011-12-30 00:00:00.000000",
-            ],
-            [np.nan, np.nan, "2011-12-30 00:00:00.000000"],
-            ["", "2011-12-30 00:00:00.000000"],
-            ["NaT", "2011-12-30 00:00:00.000000"],
-            ["2011-12-30 00:00:00.000000", "random_string"],
-            ["now", "2011-12-30 00:00:00.000000"],
-            ["today", "2011-12-30 00:00:00.000000"],
+            (
+                [
+                    "2011-12-30 00:00:00.000000",
+                    "2011-12-30 00:00:00.000000",
+                    "2011-12-30 00:00:00.000000",
+                ],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                [np.nan, np.nan, "2011-12-30 00:00:00.000000"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                ["", "2011-12-30 00:00:00.000000"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                ["NaT", "2011-12-30 00:00:00.000000"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                ["2011-12-30 00:00:00.000000", "random_string"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 50)], dtype=object),
+            ),
+            (
+                ["now", "2011-12-30 00:00:00.000000"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                ["today", "2011-12-30 00:00:00.000000"],
+                np.array([("%Y-%m-%d %H:%M:%S.%f", 100)], dtype=object),
+            ),
+            (
+                ["30-12-2012 00:00:00.000000", "12-30-2012 00:00:00.000000"],
+                np.array(
+                    [("%d-%m-%Y %H:%M:%S.%f", 50), ("%m-%d-%Y %H:%M:%S.%f", 50)],
+                    dtype=object,
+                ),
+            ),
+            (
+                ["30-12-2009", "12/30/2011", "2011-12-30 00:00:00.000000"],
+                np.array(
+                    [("%d-%m-%Y", 33), ("%m/%d/%Y", 33), ("%Y-%m-%d %H:%M:%S.%f", 33)],
+                    dtype=object,
+                ),
+            ),
         ],
     )
-    def test_guess_datetime_format_for_array(self, test_list):
-        expected_format = "%Y-%m-%d %H:%M:%S.%f"
+    def test_guess_datetime_format_for_array(self, test_list, expected_formats):
         test_array = np.array(test_list, dtype=object)
-        assert tools._guess_datetime_format_for_array(test_array) == expected_format
+        res = tools._guess_datetime_format_for_array(
+            test_array, n_find_format=5, n_check_format=5
+        )
+        # sort according to first element of tuple (format string) to ignore order
+        sorted_index = np.argsort([x[0] for x in res])
+        res = res[sorted_index]
+        sorted_index = np.argsort([x[0] for x in expected_formats])
+        expected_formats = expected_formats[sorted_index]
+        assert (res == expected_formats).all()
+        # TODO more tests
 
     @td.skip_if_not_us_locale
     def test_guess_datetime_format_for_array_all_nans(self):
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
-            np.array([np.nan, np.nan, np.nan], dtype="O")
+            np.array([np.nan, np.nan, np.nan], dtype="O"),
+            n_find_format=5,
+            n_check_format=5,
         )
-        assert format_for_string_of_nans is None
+        assert len(format_for_string_of_nans) == 0
 
 
 class TestToDatetimeInferFormat:
@@ -2730,10 +2767,7 @@ class TestToDatetimeInferFormat:
     def test_to_datetime_inconsistent_format(self, cache):
         data = ["01/01/2011 00:00:00", "01-02-2011 00:00:00", "2011-01-03T00:00:00"]
         ser = Series(np.array(data))
-        msg = (
-            r'^time data "01-02-2011 00:00:00" doesn\'t match format '
-            rf'"%m/%d/%Y %H:%M:%S", at position 1. {PARSING_ERR_MSG}$'
-        )
+        msg = f"{PARSING_ERR_MSG}"
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, cache=cache)
 
@@ -3584,3 +3618,206 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     result = to_datetime(ser)
     expected = Series([1, 2], dtype="datetime64[ns]")
     tm.assert_series_equal(result, expected)
+
+
+class TestParsingMultipleDates:
+    # TODO handle yearfirst
+    @pytest.mark.parametrize(
+        "date_str, expected_format, dayfirst",
+        [
+            (["2010-01-01", "2010-02-02", "2010-01-03"], "%Y-%m-%d", None),
+            (["2010-01-01", "2010-02-13", "2010-01-03"], "%Y-%m-%d", None),
+            (["01-01-2012", "01-13-2012", "01-03-2010"], "%m-%d-%Y", False),
+            (["01-01-2012", "13-01-2012", "01-03-2010"], "%d-%m-%Y", True),
+        ],
+    )
+    def test_multiple_dates_non_ambiguous(self, date_str, expected_format, dayfirst):
+        # only one format is possible
+        expected = to_datetime(date_str, format=expected_format)
+
+        # all errors should prefer the format
+        # which works for all dates
+        for errors in ["raise", "coerce", "ignore"]:
+            for try_dayfirst in [True, False]:
+                # warn if we contradict dayfirst
+                # we don't warn when format is "%Y-%m-%d"
+                # TODO same for yearfirst
+                if dayfirst is not None and try_dayfirst != dayfirst:
+                    with tm.assert_produces_warning(UserWarning):
+                        result = to_datetime(
+                            date_str, errors=errors, dayfirst=try_dayfirst
+                        )
+                else:
+                    result = to_datetime(date_str, errors=errors, dayfirst=try_dayfirst)
+                tm.assert_index_equal(result, expected)
+
+        # should also work with format="mixed"
+        result = to_datetime(date_str, format="mixed")
+        tm.assert_index_equal(result, expected)
+
+    # ambiguous dates
+    @pytest.mark.parametrize(
+        "date_str",
+        [
+            (["01-01-2012", "01-05-2012", "01-03-2010"]),
+            (["01-01-2012", "05-01-2012", "01-03-2010"]),
+        ],
+    )
+    def test_multiple_dates_ambiguous(self, date_str):
+        # multiple formats work for all dates
+        # we should respect the dayfirst argument
+        expected_dayfirst = to_datetime(date_str, format="%d-%m-%Y")
+        expected_not_dayfirst = to_datetime(date_str, format="%m-%d-%Y")
+
+        for errors in ["raise", "coerce", "ignore"]:
+            result_dayfirst = to_datetime(date_str, errors=errors, dayfirst=True)
+            tm.assert_index_equal(result_dayfirst, expected_dayfirst)
+
+            result_not_dayfirst = to_datetime(date_str, errors=errors, dayfirst=False)
+            tm.assert_index_equal(result_not_dayfirst, expected_not_dayfirst)
+
+        # # should also work with format="mixed"
+        result_dayfirst = to_datetime(date_str, format="mixed", dayfirst=True)
+        tm.assert_index_equal(result_dayfirst, expected_dayfirst)
+
+        result_not_dayfirst = to_datetime(date_str, format="mixed", dayfirst=False)
+        tm.assert_index_equal(result_not_dayfirst, expected_not_dayfirst)
+
+    # ambiguous dates with errors
+    @pytest.mark.parametrize(
+        "date_str",
+        [
+            (["01-01-2012", "01-05-2012", "random_string", "01-03-2010"]),
+            (["01-01-2012", "05-01-2012", "random_string", "01-03-2010"]),
+        ],
+    )
+    def test_multiple_dates_ambiguous_error(self, date_str):
+        # multiple formats work for all dates
+        # we should respect the dayfirst argument
+        for errors in ["coerce", "ignore"]:
+            expected_dayfirst = to_datetime(date_str, format="%d-%m-%Y", errors=errors)
+            expected_not_dayfirst = to_datetime(
+                date_str, format="%m-%d-%Y", errors=errors
+            )
+            result_dayfirst = to_datetime(date_str, errors=errors, dayfirst=True)
+            tm.assert_index_equal(result_dayfirst, expected_dayfirst)
+
+            result_not_dayfirst = to_datetime(date_str, errors=errors, dayfirst=False)
+            tm.assert_index_equal(result_not_dayfirst, expected_not_dayfirst)
+
+        # should raise an error with "raise"
+        with pytest.raises(
+            ValueError,
+            match="No datetime format was found which matched all values in the array",
+        ):
+            to_datetime(date_str, errors="raise", dayfirst=True)
+        with pytest.raises(
+            ValueError,
+            match="No datetime format was found which matched all values in the array",
+        ):
+            to_datetime(date_str, errors="raise", dayfirst=False)
+
+        # same with mixed
+        for errors in ["coerce", "ignore"]:
+            expected_dayfirst = to_datetime(date_str, format="%d-%m-%Y", errors=errors)
+            expected_not_dayfirst = to_datetime(
+                date_str, format="%m-%d-%Y", errors=errors
+            )
+            result_dayfirst = to_datetime(
+                date_str, errors=errors, dayfirst=True, format="mixed"
+            )
+            tm.assert_index_equal(result_dayfirst, expected_dayfirst)
+
+            result_not_dayfirst = to_datetime(
+                date_str, errors=errors, dayfirst=False, format="mixed"
+            )
+            tm.assert_index_equal(result_not_dayfirst, expected_not_dayfirst)
+
+        # should raise an error with "raise"
+        with pytest.raises(
+            ValueError, match="""Unable to parse "random_string" as a date"""
+        ):
+            to_datetime(date_str, errors="raise", dayfirst=True, format="mixed")
+        with pytest.raises(
+            ValueError, match="""Unable to parse "random_string" as a date"""
+        ):
+            to_datetime(date_str, errors="raise", dayfirst=False, format="mixed")
+
+    # mixed formats
+    @pytest.mark.parametrize(
+        "date_str, expected_formats, expected_mixed",
+        [
+            (
+                [
+                    "01-02-2012",
+                    "13-05-2012",
+                    "14-03-2010",
+                    "03-13-2012",
+                    "15-05-2012",
+                    "03-13-2010",
+                ],
+                ["%d-%m-%Y", "%m-%d-%Y"],
+                DatetimeIndex(
+                    [
+                        "2012-02-01",
+                        "2012-05-13",
+                        "2010-03-14",
+                        "2012-03-13",
+                        "2012-05-15",
+                        "2010-03-13",
+                    ],
+                    dtype="datetime64[ns]",
+                ),
+            ),
+            (
+                [
+                    "01-02-2012",
+                    "05-13-2012",
+                    "03-14-2010",
+                    "13-03-2012",
+                    "05-15-2012",
+                    "13-03-2010",
+                ],
+                ["%m-%d-%Y", "%d-%m-%Y"],
+                DatetimeIndex(
+                    [
+                        "2012-01-02",
+                        "2012-05-13",
+                        "2010-03-14",
+                        "2012-03-13",
+                        "2012-05-15",
+                        "2010-03-13",
+                    ],
+                    dtype="datetime64[ns]",
+                ),
+            ),
+        ],
+    )
+    def test_multiple_dates_mixed(self, date_str, expected_formats, expected_mixed):
+        # no format works for all dates
+        # raise should raise an error
+        with pytest.raises(
+            ValueError,
+            match="No datetime format was found which matched all values in the array",
+        ):
+            to_datetime(date_str, errors="raise")
+
+        # coerce and ignore should choose the format
+        # which works for the most dates (the first one)
+        for errors in ["coerce", "ignore"]:
+            expected = to_datetime(date_str, format=expected_formats[0], errors=errors)
+            if expected_formats[0] == "%d-%m-%Y":
+                # contradicting default dayfirst=False
+                with tm.assert_produces_warning(UserWarning):
+                    result = to_datetime(date_str, errors=errors)
+            else:
+                result = to_datetime(date_str, errors=errors)
+            tm.assert_index_equal(result, expected)
+
+        # if format="mixed", the conversion should be done from the best format
+        # to the worst format
+        result = to_datetime(date_str, format="mixed")
+        tm.assert_index_equal(result, expected_mixed)
+
+    # TODO multiple precision
+    # (["2011-12-30 00:00:00.000000", "2011-11-20"], "%Y-%m-%d", None)

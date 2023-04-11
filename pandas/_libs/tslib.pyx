@@ -69,16 +69,21 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
+import cython
+
 from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
 )
 from pandas._libs.tslibs.timestamps import Timestamp
 
-# Note: this is the only non-tslibs intra-pandas dependency here
+from libc.stdlib cimport srand
+from libc.time cimport time
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
+
+# Note: this is the only non-tslibs intra-pandas dependency here
 
 
 def _test_parse_iso8601(ts: str):
@@ -396,6 +401,33 @@ def first_non_null(values: ndarray) -> int:
         return i
     else:
         return -1
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def random_non_null(values: ndarray, int n) -> ndarray:
+    """Find n non-null values selected at random, return an array of indices."""
+    cdef:
+        Py_ssize_t total = len(values)
+        Py_ssize_t i, non_null_count
+        list non_null_indices = []
+    srand(time(NULL))
+    for i in range(total):
+        val = values[i]
+        if checknull_with_nat_and_na(val):
+            continue
+        if (
+            isinstance(val, str)
+            and
+            (len(val) == 0 or val in nat_strings or val in ("now", "today"))
+        ):
+            continue
+        non_null_indices.append(i)
+    non_null_count = len(non_null_indices)
+    if non_null_count == 0 or n <= 0:
+        return np.empty(0, dtype=np.int64)
+    # use np.random.choice
+    return np.random.choice(non_null_indices, min(n, non_null_count), replace=False)
 
 
 @cython.wraparound(False)
