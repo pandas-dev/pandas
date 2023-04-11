@@ -431,7 +431,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def _can_hold_strings(self) -> bool:
-        return not is_numeric_dtype(self)
+        return not is_numeric_dtype(self.dtype)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -3307,6 +3307,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def intersection(self, other, sort: bool = False):
+        # default sort keyword is different here from other setops intentionally
+        #  done in GH#25063
         """
         Form the intersection of two Index objects.
 
