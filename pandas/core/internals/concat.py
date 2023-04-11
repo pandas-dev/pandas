@@ -4,7 +4,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
-    cast,
 )
 
 import numpy as np
@@ -29,20 +28,14 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     isna_all,
 )
 
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-)
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
@@ -53,7 +46,10 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
 )
-from pandas.core.internals.managers import BlockManager
+from pandas.core.internals.managers import (
+    BlockManager,
+    make_na_array,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -474,38 +470,7 @@ class JoinUnit:
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if isinstance(empty_dtype, DatetimeTZDtype):
-                    # NB: exclude e.g. pyarrow[dt64tz] dtypes
-                    i8values = np.full(self.block.shape, fill_value._value)
-                    return DatetimeArray(i8values, dtype=empty_dtype)
-
-                elif is_1d_only_ea_dtype(empty_dtype):
-                    empty_dtype = cast(ExtensionDtype, empty_dtype)
-                    cls = empty_dtype.construct_array_type()
-
-                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
-                    ncols, nrows = self.block.shape
-                    assert ncols == 1, ncols
-                    empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
-                    return missing_arr.take(
-                        empty_arr, allow_fill=True, fill_value=fill_value
-                    )
-                elif isinstance(empty_dtype, ExtensionDtype):
-                    # TODO: no tests get here, a handful would if we disabled
-                    #  the dt64tz special-case above (which is faster)
-                    cls = empty_dtype.construct_array_type()
-                    missing_arr = cls._empty(shape=self.block.shape, dtype=empty_dtype)
-                    missing_arr[:] = fill_value
-                    return missing_arr
-                else:
-                    # NB: we should never get here with empty_dtype integer or bool;
-                    #  if we did, the missing_arr.fill would cast to gibberish
-                    missing_arr = np.empty(self.block.shape, dtype=empty_dtype)
-                    missing_arr.fill(fill_value)
-
-                    if empty_dtype.kind in "mM":
-                        missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
-                    return missing_arr
+                return make_na_array(empty_dtype, self.block.shape, fill_value)
 
             if not self.block._can_consolidate:
                 # preserve these for validation in concat_compat
