@@ -341,6 +341,7 @@ Period
 - Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
+-
 
 Plotting
 ^^^^^^^^
