@@ -30,7 +30,9 @@ import re
 import sys
 from typing import Sequence
 
-pattern = re.compile(r"\(:issue:`(\d+)`\)\n$")
+# Check line starts with `-` and ends with e.g. `(:issue:`12345`)`,
+# possibly with a trailing full stop.
+pattern = re.compile(r"-.*\(:issue:`(\d+)`\)\.?$")
 
 
 def sort_whatsnew_note(content: str) -> int:
