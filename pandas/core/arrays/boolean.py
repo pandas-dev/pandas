@@ -13,10 +13,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_numeric_dtype,
-)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
@@ -180,7 +177,7 @@ def coerce_to_array(
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         if copy:
             values = values.copy()
-    elif isinstance(values, np.ndarray) and is_numeric_dtype(values.dtype):
+    elif isinstance(values, np.ndarray) and values.dtype.kind in "iufcb":
         mask_values = isna(values)
 
         values_bool = np.zeros(len(values), dtype=bool)
