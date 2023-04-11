@@ -64,7 +64,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import Index
-    from pandas.core.internals.blocks import Block
+    from pandas.core.internals.blocks import (
+        Block,
+        BlockPlacement,
+    )
 
 
 def _concatenate_array_managers(
@@ -262,10 +265,10 @@ def _concat_managers_axis0(
     }
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
-    mgrs = [x[0] for x in mgrs_indexers]
+    mgrs: list[BlockManager] = [x[0] for x in mgrs_indexers]
 
     offset = 0
-    blocks = []
+    blocks: list[Block] = []
     for i, mgr in enumerate(mgrs):
         # If we already reindexed, then we definitely don't need another copy
         made_copy = had_reindexers[i]
@@ -317,7 +320,9 @@ def _maybe_reindex_columns_na_proxy(
     return new_mgrs_indexers
 
 
-def _get_mgr_concatenation_plan(mgr: BlockManager):
+def _get_mgr_concatenation_plan(
+    mgr: BlockManager,
+) -> list[tuple[BlockPlacement, JoinUnit]]:
     """
     Construct concatenation plan for given block manager.
 
@@ -336,7 +341,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager):
     blknos = mgr.blknos
     blklocs = mgr.blklocs
 
-    plan = []
+    plan: list[tuple[BlockPlacement, JoinUnit]] = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
         assert placements.is_slice_like
         assert blkno != -1

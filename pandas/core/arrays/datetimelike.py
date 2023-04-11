@@ -111,7 +111,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     nanops,
-    ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
@@ -901,13 +900,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
-            # We have to use comp_method_OBJECT_ARRAY instead of numpy
-            #  comparison otherwise it would fail to raise when
-            #  comparing tz-aware and tz-naive
-            result = ops.comp_method_OBJECT_ARRAY(
-                op, np.asarray(self.astype(object)), other
-            )
-            return result
+            return op(np.asarray(self, dtype=object), other)
 
         if other is NaT:
             if op is operator.ne:
