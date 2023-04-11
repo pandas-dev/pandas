@@ -286,7 +286,7 @@ cdef class _Timestamp(ABCTimestamp):
         return npy_unit_to_abbrev(self._creso)
 
     @property
-    cdef year(self) -> int:
+    def year(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the year of the timestamp.
 
@@ -294,11 +294,13 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._y
 
     @property
-    cdef month(self) -> int:
+    def month(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the month of the timestamp.
 
@@ -306,11 +308,13 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._month
 
     @property
-    cdef day(self) -> int:
+    def day(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the day of the timestamp.
 
@@ -318,12 +322,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._d
 
 
     @property
-    cdef hour(self) -> int:
+    def hour(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the hour of the timestamp.
 
@@ -331,12 +337,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._h
 
 
     @property
-    cdef minute(self) -> int:
+    def minute(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the minute of the timestamp.
 
@@ -344,12 +352,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._m
 
 
     @property
-    cdef second(self) -> int:
+    def second(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the second of the timestamp.
 
@@ -357,12 +367,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._s
 
 
     @property
-    cdef millisecond(self) -> int:
+    def millisecond(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the millisecond of the timestamp.
 
@@ -370,12 +382,14 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._ms
 
 
     @property
-    cdef microsecond(self) -> int:
+    def microsecond(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the microsecond of the timestamp.
 
@@ -383,18 +397,22 @@ cdef class _Timestamp(ABCTimestamp):
         -------
         int
 
+        """
+
         self._ensure_components()
         return self._us
 
 
     @property
-    cdef nanosecond(self) -> int:
+    def nanosecond(self) -> int: # TODO(cython3): make cdef property
         """
         Returns the nanosecond of the timestamp.
 
         Returns
         -------
         int
+
+        """
 
         self._ensure_components()
         return self._ns
