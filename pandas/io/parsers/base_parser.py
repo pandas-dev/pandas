@@ -67,6 +67,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas import (
+    ArrowDtype,
     DatetimeIndex,
     StringDtype,
 )
@@ -866,6 +867,7 @@ class ParserBase:
                 self.index_names,
                 names,
                 keep_date_col=self.keep_date_col,
+                dtype_backend=self.dtype_backend,
             )
 
         return names, data
@@ -1202,6 +1204,7 @@ def _process_date_conversion(
     index_names,
     columns,
     keep_date_col: bool = False,
+    dtype_backend=lib.no_default,
 ):
     def _isindex(colspec):
         return (isinstance(index_col, list) and colspec in index_col) or (
@@ -1227,6 +1230,16 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
+                elif dtype_backend == "pyarrow":
+                    import pyarrow as pa
+
+                    dtype = data_dict[colspec].dtype
+                    if isinstance(dtype, ArrowDtype) and (
+                        pa.types.is_timestamp(dtype.pyarrow_dtype)
+                        or pa.types.is_date(dtype.pyarrow_dtype)
+                    ):
+                        continue
+
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
                 data_dict[colspec] = converter(
