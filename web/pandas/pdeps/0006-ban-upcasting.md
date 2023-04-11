@@ -214,6 +214,17 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
   same number. So, it would be inserted as ``1`` and the dtype would not change
   (just like what happens now, there would be no change here).
 
+**Q: What if I want ``1.0000000001`` to be inserted as ``1.0`` in an `'int8'` Series?**
+
+**A**: You may want to define your own helper function, such as
+  ```python
+  >>> def maybe_convert_to_int(x: int | float, tolerance: float):
+      if np.abs(x - round(x)) < tolerance:
+          return round(x)
+      return x
+  ```
+  which you could adapt according to your needs.
+
 ## Timeline
 
 Deprecate sometime in the 2.x releases (after 2.0.0 has already been released), and enforce in 3.0.0.
