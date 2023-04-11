@@ -162,9 +162,7 @@ def get_group_index(
     lshape = list(shape)
     if not xnull:
         for i, (lab, size) in enumerate(zip(labels, shape)):
-            lab_lifted, size_lifted = maybe_lift(lab, size)
-            labels[i] = lab_lifted
-            lshape[i] = size_lifted
+            labels[i], lshape[i] = maybe_lift(lab, size)
 
     labels = list(labels)
 

@@ -301,19 +301,14 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
-# to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
-"pandas/core/groupby/*" = ["PLW2901"]
-"pandas/core/indexes/*" = ["PLW2901"]
-"pandas/core/internals/*" = ["PLW2901"]
-"pandas/core/reshape/*" = ["PLW2901"]
-"pandas/core/strings/*" = ["PLW2901"]
-"pandas/io/*" = ["PLW2901"]
+# to be enabled gradually (PLW2901 to be moved under keep enabled)
+"pandas/core/*" = ["PLR5501", "PLW2901"]
 "pandas/tests/*" = ["B028", "PLW2901"]
-"pandas/plotting/*" = ["PLW2901"]
 "scripts/*" = ["B028"]
-# Keep this one enabled
+# Keep those enabled
 "pandas/_typing.py" = ["TCH"]
+"pandas/io/*" = ["PLW2901"]
+"pandas/plotting/*" = ["PLW2901"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
@@ -361,6 +356,7 @@ disable = [
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
   "wrong-import-position",
+  "redefined-loop-name",
 
  # misc
   "abstract-class-instantiated",

@@ -2285,11 +2285,12 @@ class _iLocIndexer(_LocationIndexer):
             for i, ix in enumerate(indexer):
                 ax = self.obj.axes[i]
                 if is_sequence(ix) or isinstance(ix, slice):
-                    raveled_ix = ix.ravel() if isinstance(ix, np.ndarray) else ix
+                    if isinstance(ix, np.ndarray):
+                        ix = ix.ravel()
                     if idx is None:
-                        idx = ax[raveled_ix]
+                        idx = ax[ix]
                     elif cols is None:
-                        cols = ax[raveled_ix]
+                        cols = ax[ix]
                     else:
                         break
                 else:

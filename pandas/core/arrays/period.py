@@ -1105,8 +1105,10 @@ def _range_from_fields(
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y_parsed, m = parsing.quarter_to_myear(y, q, freqstr)
-            val = libperiod.period_ordinal(y_parsed, m, 1, 1, 1, 1, 0, 0, base)
+            calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
+            val = libperiod.period_ordinal(
+                calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
+            )
             ordinals.append(val)
     else:
         freq = to_offset(freq)

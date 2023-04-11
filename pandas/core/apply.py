@@ -1427,17 +1427,14 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     if len(aggfuncs) <= 1:
         # don't mangle for .agg([lambda x: .])
         return aggfuncs
-
+    i = 0
     mangled_aggfuncs = []
-    for idx, aggfunc in enumerate(aggfuncs):
-        if not com.get_callable_name(aggfunc) == "<lambda>":
-            mangled_aggfuncs.append(aggfunc)
-            continue
-
-        partial_aggfunc = partial(aggfunc)
-        # "partial[Any]" has no attribute "__name__"
-        partial_aggfunc.__name__ = f"<lambda_{idx}>"  # type: ignore[attr-defined]
-        mangled_aggfuncs.append(partial_aggfunc)
+    for aggfunc in aggfuncs:
+        if com.get_callable_name(aggfunc) == "<lambda>":
+            aggfunc = partial(aggfunc)
+            aggfunc.__name__ = f"<lambda_{i}>"
+            i += 1
+        mangled_aggfuncs.append(aggfunc)
 
     return mangled_aggfuncs
 
