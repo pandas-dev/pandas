@@ -125,7 +125,7 @@ class TestDataFrameSelectReindex:
 
         ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
         res = df.reindex([0, 1], axis=1, fill_value=ts)
-        assert res.dtypes[1] == pd.DatetimeTZDtype("US/Pacific")
+        assert res.dtypes[1] == pd.DatetimeTZDtype(tz="US/Pacific")
         expected = DataFrame({0: [1], 1: [ts]})
         tm.assert_frame_equal(res, expected)
 
