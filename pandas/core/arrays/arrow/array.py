@@ -1947,7 +1947,7 @@ class ArrowExtensionArray(
         if n in {-1, 0}:
             n = None
         return type(self)(
-            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
+            pc.split_pattern(self._data, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table):
