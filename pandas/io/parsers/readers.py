@@ -1515,7 +1515,7 @@ class TextFileReader(abc.Iterator):
             if engine == "c" and sep == r"\s+":
                 result["delim_whitespace"] = True
                 del result["delimiter"]
-            elif sep == r"\s+":
+            elif engine == "pyarrow" and sep == r"\s+":
                 fallback_reason = (
                     f"the '{engine}' engine does not support separators "
                     "with more than one character, except for '\\t'. "
