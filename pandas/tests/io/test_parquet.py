@@ -43,15 +43,15 @@ try:
 except ImportError:
     _HAVE_FASTPARQUET = False
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
-)
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:DataFrame._data is deprecated:FutureWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    ),
+]
 
 
 # setup engines & skips
