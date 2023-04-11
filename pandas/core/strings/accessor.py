@@ -277,7 +277,7 @@ class StringMethods(NoNewAttributesMixin):
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
                 max_len = pa.compute.max(
-                    result._pa_array.combine_chunks().value_lengths()
+                    result._data.combine_chunks().value_lengths()
                 ).as_py()
                 if result.isna().any():
                     result._pa_array = result._pa_array.fill_null([None] * max_len)
