@@ -863,6 +863,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
     __hash__ = PeriodDtypeBase.__hash__
+    _freq: BaseOffset
 
     def __new__(cls, freq):
         """
