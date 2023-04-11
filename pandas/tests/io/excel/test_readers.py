@@ -159,15 +159,14 @@ class TestReaders:
             "ods": {"foo": "abcd"},
         }
 
-        msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
-
         if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
             msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
-
         elif read_ext[1:] == "ods":
             msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
+        else:
+            msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
 
-        if engine is not None and expected_defaults[read_ext[1:]]:
+        if engine is not None:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel(
                     "test1" + read_ext,
