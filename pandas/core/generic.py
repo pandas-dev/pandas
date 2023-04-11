@@ -9020,7 +9020,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select initial periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
+        For a DataFrame with a sorted DatetimeIndex, this function can
         select the first few rows based on a date offset.
 
         Parameters

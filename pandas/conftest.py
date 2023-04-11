@@ -147,6 +147,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
     ]
 
     for item in items:
