@@ -8,6 +8,7 @@ shadows the python class, where we do any heavy lifting.
 """
 
 import warnings
+import collections
 
 cimport cython
 
@@ -128,6 +129,22 @@ from pandas._libs.tslibs.tzconversion cimport (
 _zero_time = dt_time(0, 0)
 _no_input = object()
 
+#components named tuple
+Components = collections.namedtuple(
+        "Components",
+        [
+            "year",
+            "month",
+            "day",
+            "hour",
+            "minute",
+            "second",
+            "millisecond",
+            "microsecond",
+            "nanosecond",
+        ]
+)
+
 # ----------------------------------------------------------------------
 
 
@@ -227,7 +244,6 @@ class MinMaxReso:
 # ----------------------------------------------------------------------
 
 cdef class _Timestamp(ABCTimestamp):
-
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
     dayofweek = _Timestamp.day_of_week
@@ -268,6 +284,121 @@ cdef class _Timestamp(ABCTimestamp):
         'ns'
         """
         return npy_unit_to_abbrev(self._creso)
+
+    @property
+    cdef year(self) -> int:
+        """
+        Returns the year of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._y
+
+    @property
+    cdef month(self) -> int:
+        """
+        Returns the month of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._month
+
+    @property
+    cdef day(self) -> int:
+        """
+        Returns the day of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._d
+
+
+    @property
+    cdef hour(self) -> int:
+        """
+        Returns the hour of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._h
+
+
+    @property
+    cdef minute(self) -> int:
+        """
+        Returns the minute of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._m
+
+
+    @property
+    cdef second(self) -> int:
+        """
+        Returns the second of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._s
+
+
+    @property
+    cdef millisecond(self) -> int:
+        """
+        Returns the millisecond of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._ms
+
+
+    @property
+    cdef microsecond(self) -> int:
+        """
+        Returns the microsecond of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._us
+
+
+    @property
+    cdef nanosecond(self) -> int:
+        """
+        Returns the nanosecond of the timestamp.
+
+        Returns
+        -------
+        int
+
+        self._ensure_components()
+        return self._ns
+
 
     # -----------------------------------------------------------------
     # Constructors
@@ -567,6 +698,36 @@ cdef class _Timestamp(ABCTimestamp):
         elif is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
+
+    cdef _ensure_components(_Timestamp self):
+        """
+            compute the components
+        """
+
+        if self._is_populated:
+            return
+        
+        cdef:
+            npy_datetimestruct dts
+        
+        pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+        self._y = dts.year
+        self._month = dts.month
+        self._d = dts.day
+        self._h = dts.hour
+        self._m = dts.minute
+        self._s = dts.sec
+        self._ms = dts.millisecond
+        self._us = dts.microsecond
+        self._ns = dts.nanosecond
+
+        self._is_populated = 1
+
+    @property
+    def components(self):
+        self._ensure_components()
+        return Components(self._y, self._month, self._d, self._h, self._m, self._s, self._ms, self._us, self._ns)
+
 
     # -----------------------------------------------------------------
 
