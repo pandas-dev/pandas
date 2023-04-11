@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 
@@ -60,16 +62,19 @@ class TestSeriesSubclassing:
         assert s2.equals(s1)
 
 
-class SubclassedSeries(pd.Series):
-    @property
-    def _constructor(self):
-        def _new(*args, **kwargs):
-            # some constructor logic that accesses the Series' name
-            if self.name == "test":
-                return pd.Series(*args, **kwargs)
-            return SubclassedSeries(*args, **kwargs)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
 
-        return _new
+    class SubclassedSeries(pd.Series):
+        @property
+        def _constructor(self):
+            def _new(*args, **kwargs):
+                # some constructor logic that accesses the Series' name
+                if self.name == "test":
+                    return pd.Series(*args, **kwargs)
+                return SubclassedSeries(*args, **kwargs)
+
+            return _new
 
 
 def test_constructor_from_dict():
