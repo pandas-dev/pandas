@@ -865,6 +865,11 @@ def test_read_seek(all_parsers):
 
 
 def test_pyarrow_with_multi_character_separator(all_parsers):
+    data = """A,B,C
+a,1,2
+b,3,4
+c,4,5
+"""
     parser = all_parsers
     msg = (
         "the 'pyarrow' engine does not support separators with more than one "
@@ -872,4 +877,4 @@ def test_pyarrow_with_multi_character_separator(all_parsers):
         "or a different engine."
     )
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv("../data/test2.csv", engine="pyarrow", sep=r"\s+")
+        parser.read_csv(StringIO(data), engine="pyarrow", sep=r"\s+")
