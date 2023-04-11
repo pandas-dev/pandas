@@ -72,7 +72,7 @@ The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
 The initial status of a PDEP will be `Status: Under discussion`. This will be changed to
-`Status: Accepted` when the PDEP is ready and have the approval of the core team.
+`Status: Accepted` when the PDEP is ready and has the approval of the core team.
 
 #### Accepted PDEP
 
@@ -141,7 +141,7 @@ changed and avoid confusion.
   - `Categorical` ([GH-7217][7217], [GH-8074][8074]), `StringDtype` ([GH-8640][8640]), `ArrowDtype`
 - A significant (breaking) change in existing behavior. For example:
   - Copy/view changes ([GH-36195][36195])
-- Support of new python features with a wide impact on the project. For example:
+- Support of new Python features with a wide impact on the project. For example:
   - Supporting typing within pandas vs. creation of `pandas-stubs` ([GH-43197][43197],
     [GH-45253][45253])
 - New required dependency.
@@ -160,9 +160,9 @@ attention and/or a formal decision-making process would help. Following are some
 hope can help clarify our meaning here:
 
 - API breaking changes, or discussion thereof, could be a PDEP. For example:
-  - Value counts rename ([GH-49497][49497]). The scope does not justify a PDEP at first, but later a
+  - `value_counts` result rename ([GH-49497][49497]). The scope does not justify a PDEP at first, but later a
     discussion about whether it should be executed as a breaking change or with deprecation
-    emerges, which could benefit from a PDEP process.
+    emerges, which could benefit from the PDEP process.
 - Adding new methods or parameters to an existing method typically will not require a PDEP for
   non-core features. For example:
   - Both `dropna(percentage)` ([GH-35299][35299]), and `Timestamp.normalize()` ([GH-8794][8794])
