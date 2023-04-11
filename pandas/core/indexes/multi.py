@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
     List,
@@ -3749,6 +3750,9 @@ class MultiIndex(Index):
 
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+        if isinstance(values, Generator):
+            values = list(values)
+
         if level is None:
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
