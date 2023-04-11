@@ -22,7 +22,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
-    is_categorical_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -34,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -563,7 +563,7 @@ class MPLPlot(ABC):
 
     def _convert_to_ndarray(self, data):
         # GH31357: categorical columns are processed separately
-        if is_categorical_dtype(data):
+        if isinstance(data.dtype, CategoricalDtype):
             return data
 
         # GH32073: cast to float if values contain nulled integers
@@ -1211,7 +1211,9 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
-        color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
+        color_by_categorical = c_is_column and isinstance(
+            self.data[c].dtype, CategoricalDtype
+        )
 
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:

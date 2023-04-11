@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -836,7 +835,7 @@ def test_categoricals(a_dtype, b_dtype):
 
     # Verify when categorical does not have all values present
     a.loc[a == 1] = 2
-    a_is_cat = is_categorical_dtype(a.dtype)
+    a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
     values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]

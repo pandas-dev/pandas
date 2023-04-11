@@ -7,7 +7,6 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_interval_dtype,
     is_object_dtype,
 )
@@ -484,9 +483,9 @@ class TestDataFrameSetItem:
         df["E"] = np.array(ser.values)
         df["F"] = ser.astype(object)
 
-        assert is_categorical_dtype(df["B"].dtype)
+        assert isinstance(df["B"].dtype, CategoricalDtype)
         assert is_interval_dtype(df["B"].cat.categories)
-        assert is_categorical_dtype(df["D"].dtype)
+        assert isinstance(df["D"].dtype, CategoricalDtype)
         assert is_interval_dtype(df["D"].cat.categories)
 
         # These go through the Series constructor and so get inferred back

@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
@@ -33,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -458,7 +458,8 @@ def _bins_to_cuts(
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-        if not is_categorical_dtype(labels):
+
+        if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
                 labels,
                 categories=labels if len(set(labels)) == len(labels) else None,
