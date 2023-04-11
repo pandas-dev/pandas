@@ -211,7 +211,7 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
 **Q: What happens in setting ``16.000000000000001`` in an `int8`` Series?**
 
 **A**: As far as Python is concerned, ``16.000000000000001`` and ``16.0`` are the
-  same number. So, it would be inserted as ``1`` and the dtype would not change
+  same number. So, it would be inserted as ``16`` and the dtype would not change
   (just like what happens now, there would be no change here).
 
 ## Timeline
