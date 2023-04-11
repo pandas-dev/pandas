@@ -280,7 +280,7 @@ class StringMethods(NoNewAttributesMixin):
                     result._data.combine_chunks().value_lengths()
                 ).as_py()
                 if result.isna().any():
-                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                    result._data = result._data.fill_null([None] * max_len)
                 result = {
                     i: ArrowExtensionArray(pa.array(res))
                     for i, res in enumerate(zip(*result.tolist()))
