@@ -6767,7 +6767,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        periods : int, optional 
+        periods : int, optional
             The number of positions between the current and previous
             value to compute the difference with. Default is 1.
 
