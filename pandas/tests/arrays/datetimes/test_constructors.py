@@ -127,6 +127,13 @@ class TestDatetimeArrayConstructor:
         arr = DatetimeArray(data, copy=True)
         assert arr._ndarray is not data
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_numpy_datetime_unit(self, unit):
+        data = np.array([1, 2, 3], dtype=f"M8[{unit}]")
+        arr = DatetimeArray(data)
+        assert arr.unit == unit
+        assert arr[0].unit == unit
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
