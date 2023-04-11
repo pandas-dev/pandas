@@ -6763,11 +6763,13 @@ class Index(IndexOpsMixin, PandasObject):
         If periods is greater than 1, computes the difference between values that
         are `periods` number of positions apart.
 
-        Parameters:
-            periods (int): The number of positions between the current and previous
+        Parameters
+        ----------
+        periods : int, optional 
+            The number of positions between the current and previous
             value to compute the difference with. Default is 1.
 
-        Returns:
+        Returns
         -------
         Index
             A new Index object with the computed differences.
