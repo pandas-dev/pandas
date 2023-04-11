@@ -863,6 +863,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
     __hash__ = PeriodDtypeBase.__hash__
+    _freq: BaseOffset
 
     def __new__(cls, freq):
         """
@@ -886,7 +887,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return u
 
     def __reduce__(self):
-        return type(self), (self.freq,)
+        return type(self), (self.name,)
 
     @property
     def freq(self):
@@ -940,7 +941,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        return f"period[{self.freq.freqstr}]"
+        return f"period[{self._freqstr}]"
 
     @property
     def na_value(self) -> NaTType:
@@ -954,12 +955,6 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
-
-    def __setstate__(self, state) -> None:
-        # for pickle compat. __getstate__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._freq = state["freq"]
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
