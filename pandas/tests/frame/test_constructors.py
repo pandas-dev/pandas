@@ -224,7 +224,7 @@ class TestDataFrameConstructors:
         ],
     )
     def test_empty_constructor_object_index(self, constructor):
-        expected = DataFrame(columns=Index([]))
+        expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
         result = constructor()
         assert len(result.index) == 0
         assert len(result.columns) == 0

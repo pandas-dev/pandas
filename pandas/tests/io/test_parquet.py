@@ -46,6 +46,10 @@ except ImportError:
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:DataFrame._data is deprecated:FutureWarning"
+)
+
 
 # setup engines & skips
 @pytest.fixture(
@@ -528,11 +532,7 @@ class TestBasic(Base):
         df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
-            if Version(fastparquet.__version__) < Version("0.7.0"):
-                err = TypeError
-            else:
-                err = ValueError
-            self.check_error_on_write(df, engine, err, "Column name")
+            self.check_error_on_write(df, engine, ValueError, "Column name")
         elif engine == "pyarrow":
             check_round_trip(df, engine)
 
@@ -1203,9 +1203,8 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame(index=[], columns=[])
+        df = pd.DataFrame()
         expected = df.copy()
-        expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
@@ -1320,8 +1319,5 @@ class TestParquetFastParquet(Base):
     def test_empty_columns(self, fp):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        expected = pd.DataFrame(
-            columns=pd.Index([], dtype=object),
-            index=pd.Index(["a", "b", "c"], name="custom name"),
-        )
+        expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, fp, expected=expected)
