@@ -862,3 +862,14 @@ def test_read_seek(all_parsers):
             actual = parser.read_csv(file)
         expected = parser.read_csv(StringIO(content))
     tm.assert_frame_equal(actual, expected)
+
+
+def test_pyarrow_with_multi_character_separator(all_parsers):
+    parser = all_parsers
+    msg = (
+        "the 'pyarrow' engine does not support separators with more than one "
+        "character, except for '\\t'. Please use a supported separator "
+        "or a different engine."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv("test1.csv", engine="pyarrow", sep=r"\s+")
