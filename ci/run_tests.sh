@@ -13,7 +13,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [[ "$COVERAGE" == "true" ]]; then
-    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=setup.cfg"
+    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
 else
     COVERAGE="" # We need to reset this for COVERAGE="false" case
 fi

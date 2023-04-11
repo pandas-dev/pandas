@@ -24,5 +24,5 @@ dependencies:
   - python-dateutil
   - pytz
   - pip:
-    - "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
+    - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
     - tzdata>=2022.1

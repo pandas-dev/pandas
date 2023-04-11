@@ -11,15 +11,6 @@ runs:
       shell: bash -el {0}
 
     - name: Build Pandas
-      if : ${{ runner.os != 'Windows' }}
       run: |
         pip install -e . --no-build-isolation -v
       shell: bash -el {0}
-
-    - name: Build Pandas (Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: |
-        call micromamba activate test
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        python -m pip install -e . --no-build-isolation -v
-      shell: cmd /C call {0}

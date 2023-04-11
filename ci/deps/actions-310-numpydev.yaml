@@ -11,7 +11,10 @@ dependencies:
   # test dependencies
   - pytest>=7.0.0
   - pytest-cov
-  - pytest-xdist>=2.2.0
+  # Once pytest-cov > 4 comes out, unpin this
+  # Right now, a DeprecationWarning related to rsyncdir
+  # causes an InternalError within pytest
+  - pytest-xdist>=2.2.0, <3
   - hypothesis>=6.46.1
   - pytest-asyncio>=0.17.0
 
@@ -22,8 +25,7 @@ dependencies:
 
   - pip:
     - "cython"
-    - "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
-    - "git+https://github.com/pytest-dev/pytest-cov.git@master"
+    - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"

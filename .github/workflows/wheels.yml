@@ -75,16 +75,6 @@ jobs:
           # https://github.com/actions/checkout/issues/338
           fetch-depth: 0
 
-      - name: Remove other compilers
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          # TODO: This is a bug in meson, where it will look for other compilers
-          # if it can't find cl.exe in path, before trying harder to find MSVC
-          # Remove once meson patches this.
-          choco uninstall mingw -y
-          choco uninstall strawberryperl -y
-          choco uninstall llvm -y
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.1
         env:
