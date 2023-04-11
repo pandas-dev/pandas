@@ -483,7 +483,7 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             from pandas import Series
 
-            # we have a dict of scalars or a list of scalars
+            # we have a list of scalars
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)
