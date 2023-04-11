@@ -1500,6 +1500,8 @@ def infer_dtype_from_object(dtype) -> type:
             # Should still pass if we don't have a date-like
             pass
         if hasattr(dtype, "numpy_dtype"):
+            # TODO: Implement this properly
+            # https://github.com/pandas-dev/pandas/issues/52576
             return dtype.numpy_dtype.type
         return dtype.type
 
