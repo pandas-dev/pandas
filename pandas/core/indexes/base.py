@@ -6768,6 +6768,7 @@ class Index(IndexOpsMixin, PandasObject):
             value to compute the difference with. Default is 1.
 
         Returns:
+        -------
         Index
             A new Index object with the computed differences.
 
