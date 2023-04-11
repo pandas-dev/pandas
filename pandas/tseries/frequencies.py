@@ -67,7 +67,6 @@ _offset_to_period_map = {
     "BAS": "A",
     "MS": "M",
     "D": "D",
-    "C": "C",
     "B": "B",
     "T": "T",
     "S": "S",
