@@ -604,8 +604,10 @@ _shared_docs[
 
     See Also
     --------
-    {klass}.fillna : Fill NA values.
-    {klass}.where : Replace values based on boolean condition.
+    Series.fillna : Fill NA values.
+    DataFrame.fillna : Fill NA values.
+    Series.where : Replace values based on boolean condition.
+    DataFrame.where : Replace values based on boolean condition.
     DataFrame.applymap: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
