@@ -236,7 +236,7 @@ class Apply(metaclass=abc.ABCMeta):
         # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
         # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type:ignore[arg-type]
+            obj.index  # type: ignore[arg-type]
         ):
             raise ValueError("Function did not transform")
 
