@@ -381,7 +381,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warnings.warn(
                 "The 'fastpath' keyword in Categorical is deprecated and will "
                 "be removed in a future version. Use Categorical.from_codes instead",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
         else:
