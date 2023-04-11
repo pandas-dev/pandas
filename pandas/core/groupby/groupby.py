@@ -3135,6 +3135,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
+        grouper: np.ndarray | Index | ops.BaseGrouper
         if self.keys is None and self.level is None:
             # we don't have the grouper info available
             # (e.g. we have selected out
@@ -3302,13 +3303,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
-        qs = np.array(q, dtype=np.float64)
+            qs = np.array([q], dtype=np.float64)
+        else:
+            qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
