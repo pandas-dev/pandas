@@ -6774,24 +6774,12 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             A new Index object with the computed differences.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import pandas as pd
         >>> idx = pd.Index([10, 20, 30, 40, 50])
-        >>> diff_idx = idx.diff()
-        >>> print(diff_idx)
+        >>> idx.diff()
         Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
-
-        This example creates a new `Index` object `idx` with values
-        `[10, 20, 30, 40, 50]`.
-
-        The `diff` method is then used to compute the difference between
-        consecutive values in the `Index` object.
-
-        The resulting `diff_idx` object has the values `[nan, 10.0, 10.0, 10.0, 10.0]`.
-
-        Note that the first value is `nan` since there is no previous value to compute
-        the difference with.
 
         """
         return self._constructor(self.to_series().diff(periods))
@@ -6811,21 +6799,12 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             A new Index with the rounded values.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import pandas as pd
         >>> idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
-        >>> rounded_idx = idx.round(decimals=2)
-        >>> print(rounded_idx)
+        >>> idx.round(decimals=2)
         Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
-
-        This example creates a new `Index` object `idx` with values
-        `[10.1234, 20.5678, 30.9123, 40.4567, 50.7890]`.
-
-        The `round` method is then used to round each value to two decimal places.
-
-        The resulting `rounded_idx` object has the values
-        `[10.12, 20.57, 30.91, 40.46, 50.79]`.
 
         """
         return self._constructor(self.to_series().round(decimals))
