@@ -6780,7 +6780,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index([10, 20, 30, 40, 50])
         >>> diff_idx = idx.diff()
         >>> print(diff_idx)
-        Float64Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         This example creates a new `Index` object `idx` with values
         `[10, 20, 30, 40, 50]`.
@@ -6817,7 +6817,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
         >>> rounded_idx = idx.round(decimals=2)
         >>> print(rounded_idx)
-        Float64Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
+        Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
 
         This example creates a new `Index` object `idx` with values
         `[10.1234, 20.5678, 30.9123, 40.4567, 50.7890]`.
