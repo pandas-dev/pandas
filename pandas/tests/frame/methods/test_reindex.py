@@ -120,6 +120,7 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     def test_reindex_tzaware_fill_value(self):
+        # GH#52586
         df = DataFrame([[1]])
 
         ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
