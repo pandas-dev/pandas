@@ -275,9 +275,7 @@ def to_numeric(
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array
     if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
-        if mask is None or (
-            mask is not None and new_mask is not None and new_mask.shape == mask.shape
-        ):
+        if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
             # GH 52588
             mask = new_mask
         else:
