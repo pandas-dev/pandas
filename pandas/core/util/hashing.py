@@ -16,6 +16,7 @@ import numpy as np
 from pandas._libs.hashing import hash_object_array
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -203,7 +204,10 @@ def hash_tuples(
 
     # create a list-of-Categoricals
     cat_vals = [
-        Categorical(mi.codes[level], mi.levels[level], ordered=False, fastpath=True)
+        Categorical._simple_new(
+            mi.codes[level],
+            CategoricalDtype(categories=mi.levels[level], ordered=False),
+        )
         for level in range(mi.nlevels)
     ]
 
@@ -296,7 +300,8 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
+            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            cat = Categorical._simple_new(codes, dtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )

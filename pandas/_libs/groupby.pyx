@@ -3,6 +3,10 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.math cimport (
+    NAN,
+    sqrt,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -23,7 +27,6 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
-from numpy.math cimport NAN
 
 cnp.import_array()
 
@@ -48,7 +51,6 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
@@ -255,9 +257,9 @@ def group_cumprod(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -344,9 +346,9 @@ def group_cumsum(
         True if `values` contains datetime-like entries.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -565,11 +567,11 @@ def group_any_all(
     const uint8_t[:, :] mask,
     str val_test,
     bint skipna,
-    bint nullable,
+    uint8_t[:, ::1] result_mask,
 ) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements. If the
-    input is a nullable type (nullable=True), the result will be computed
+    input is a nullable type (result_mask is not None), the result will be computed
     using Kleene logic.
 
     Parameters
@@ -587,9 +589,9 @@ def group_any_all(
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
-    nullable : bool
-        Whether or not the input is a nullable type. If True, the
-        result will be computed using Kleene logic
+    result_mask : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
 
     Notes
     -----
@@ -601,6 +603,7 @@ def group_any_all(
         Py_ssize_t i, j, N = len(labels), K = out.shape[1]
         intp_t lab
         int8_t flag_val, val
+        bint uses_mask = result_mask is not None
 
     if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -613,7 +616,7 @@ def group_any_all(
         # value encountered is True
         flag_val = 1
     else:
-        raise ValueError("'bool_func' must be either 'any' or 'all'!")
+        raise ValueError("'val_test' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
 
@@ -627,12 +630,12 @@ def group_any_all(
                 if skipna and mask[i, j]:
                     continue
 
-                if nullable and mask[i, j]:
+                if uses_mask and mask[i, j]:
                     # Set the position as masked if `out[lab] != flag_val`, which
                     # would indicate True/False has not yet been seen for any/all,
                     # so by Kleene logic the result is currently unknown
                     if out[lab, j] != flag_val:
-                        out[lab, j] = -1
+                        result_mask[lab, j] = 1
                     continue
 
                 val = values[i, j]
@@ -641,6 +644,8 @@ def group_any_all(
                 # already determined
                 if val == flag_val:
                     out[lab, j] = flag_val
+                    if uses_mask:
+                        result_mask[lab, j] = 0
 
 
 # ----------------------------------------------------------------------
@@ -819,6 +824,7 @@ def group_var(
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    str name="var",
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -827,6 +833,8 @@ def group_var(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
+        bint is_std = name == "std"
+        bint is_sem = name == "sem"
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -876,7 +884,101 @@ def group_var(
                     else:
                         out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - ddof)
+                    if is_std:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof))
+                    elif is_sem:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof) / ct)
+                    else:
+                        # just "var"
+                        out[i, j] /= (ct - ddof)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow
+def group_skew(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3
+        float64_t delta, delta_n, term1, val
+        int64_t n1, n
+        float64_t ct
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, and M3 correspond to 1st, 2nd, and third Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Based on RunningSats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 3:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    out[i, j] = (
+                        (ct * (ct - 1) ** 0.5 / (ct - 2))
+                        * (M3[i, j] / M2[i, j] ** 1.5)
+                    )
 
 
 @cython.wraparound(False)
@@ -1023,7 +1125,7 @@ def group_ohlc(
         raise NotImplementedError("Argument 'values' must have only one dimension")
 
     if int64float_t is float32_t or int64float_t is float64_t:
-        out[:] = np.nan
+        out[:] = NAN
     else:
         out[:] = 0
 

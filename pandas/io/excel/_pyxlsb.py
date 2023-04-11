@@ -89,7 +89,7 @@ class PyxlsbReader(BaseExcelReader):
         file_rows_needed: int | None = None,
     ) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
-        prevous_row_number = -1
+        previous_row_number = -1
         # When sparse=True the rows can have different lengths and empty rows are
         # not returned. The cells are namedtuples of row, col, value (r, c, v).
         for row in sheet.rows(sparse=True):
@@ -99,9 +99,9 @@ class PyxlsbReader(BaseExcelReader):
                 # trim trailing empty elements
                 converted_row.pop()
             if converted_row:
-                data.extend([[]] * (row_number - prevous_row_number - 1))
+                data.extend([[]] * (row_number - previous_row_number - 1))
                 data.append(converted_row)
-                prevous_row_number = row_number
+                previous_row_number = row_number
             if file_rows_needed is not None and len(data) >= file_rows_needed:
                 break
         if data:

@@ -32,9 +32,10 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import (
@@ -56,6 +57,7 @@ if TYPE_CHECKING:
         DtypeObj,
         Frequency,
         IntervalClosedType,
+        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -265,9 +267,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
-    def tz_convert(self, tz) -> DatetimeIndex:
+    def tz_convert(self, tz) -> Self:
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
@@ -275,7 +277,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         tz,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ) -> DatetimeIndex:
+    ) -> Self:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -316,7 +318,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
-    ) -> DatetimeIndex:
+    ) -> Self:
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -346,8 +348,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name)
+        subarr = cls._simple_new(dtarr, name=name, refs=refs)
         return subarr
 
     # --------------------------------------------------------------------
@@ -378,7 +383,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
-            return is_datetime64tz_dtype(dtype)
+            return isinstance(dtype, DatetimeTZDtype)
         # if we dont have tz, we can only compare to tznaive
         return is_datetime64_dtype(dtype)
 
@@ -785,7 +790,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str, datetime.timedelta, or DateOffset, default 'D'
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.

@@ -170,12 +170,15 @@ dtype : Type name or dict of column -> type, default ``None``
      the default determines the dtype of the columns which are not explicitly
      listed.
 
-use_nullable_dtypes : bool = False
-    Whether or not to use nullable dtypes as default when reading data. If
-    set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present.
+dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+  Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+  arrays, nullable dtypes are used for all dtypes that have a nullable
+  implementation when "numpy_nullable" is set, pyarrow is used for all
+  dtypes if "pyarrow" is set.
 
-    .. versionadded:: 2.0
+  The dtype_backends are still experimential.
+
+  .. versionadded:: 2.0
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
@@ -299,7 +302,7 @@ date_format : str or dict of column -> format, default ``None``
    format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
-    .. versionadded:: 2.0.0
+   .. versionadded:: 2.0.0
 dayfirst : boolean, default ``False``
   DD/MM format dates, international and European format.
 cache_dates : boolean, default True
@@ -382,9 +385,9 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
-        - 'error', raise an ParserError when a bad line is encountered.
-        - 'warn', print a warning when a bad line is encountered and skip that line.
-        - 'skip', skip bad lines without raising or warning when they are encountered.
+    - 'error', raise an ParserError when a bad line is encountered.
+    - 'warn', print a warning when a bad line is encountered and skip that line.
+    - 'skip', skip bad lines without raising or warning when they are encountered.
 
     .. versionadded:: 1.3.0
 
@@ -475,7 +478,7 @@ worth trying.
 
    os.remove("foo.csv")
 
-Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every column.
+Setting ``dtype_backend="numpy_nullable"`` will result in nullable dtypes for every column.
 
 .. ipython:: python
 
@@ -484,7 +487,7 @@ Setting ``use_nullable_dtypes=True`` will result in nullable dtypes for every co
    3,4.5,False,b,6,7.5,True,a,12-31-2019,
    """
 
-   df = pd.read_csv(StringIO(data), use_nullable_dtypes=True, parse_dates=["i"])
+   df = pd.read_csv(StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"])
    df
    df.dtypes
 
@@ -1995,12 +1998,12 @@ fall back in the following manner:
 * if an object is unsupported it will attempt the following:
 
 
-    * check if the object has defined a ``toDict`` method and call it.
+    - check if the object has defined a ``toDict`` method and call it.
       A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
 
-    * invoke the ``default_handler`` if one was provided.
+    - invoke the ``default_handler`` if one was provided.
 
-    * convert the object to a ``dict`` by traversing its contents. However this will often fail
+    - convert the object to a ``dict`` by traversing its contents. However this will often fail
       with an ``OverflowError`` or give unexpected results.
 
 In general the best approach for unsupported objects or dtypes is to provide a ``default_handler``.
@@ -2089,19 +2092,19 @@ preserve string-like numbers (e.g. '1', '2') in an axes.
 
   Large integer values may be converted to dates if ``convert_dates=True`` and the data and / or column labels appear 'date-like'. The exact threshold depends on the ``date_unit`` specified. 'date-like' means that the column label meets one of the following criteria:
 
-     * it ends with ``'_at'``
-     * it ends with ``'_time'``
-     * it begins with ``'timestamp'``
-     * it is ``'modified'``
-     * it is ``'date'``
+  * it ends with ``'_at'``
+  * it ends with ``'_time'``
+  * it begins with ``'timestamp'``
+  * it is ``'modified'``
+  * it is ``'date'``
 
 .. warning::
 
    When reading JSON data, automatic coercing into dtypes has some quirks:
 
-     * an index can be reconstructed in a different order from serialization, that is, the returned order is not guaranteed to be the same as before serialization
-     * a column that was ``float`` data will be converted to ``integer`` if it can be done safely, e.g. a column of ``1.``
-     * bool columns will be converted to ``integer`` on reconstruction
+   * an index can be reconstructed in a different order from serialization, that is, the returned order is not guaranteed to be the same as before serialization
+   * a column that was ``float`` data will be converted to ``integer`` if it can be done safely, e.g. a column of ``1.``
+   * bool columns will be converted to ``integer`` on reconstruction
 
    Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
 
@@ -2367,19 +2370,19 @@ A few notes on the generated table schema:
 
 * The default naming roughly follows these rules:
 
-    * For series, the ``object.name`` is used. If that's none, then the
+    - For series, the ``object.name`` is used. If that's none, then the
       name is ``values``
-    * For ``DataFrames``, the stringified version of the column name is used
-    * For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    - For ``DataFrames``, the stringified version of the column name is used
+    - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
       fallback to ``index`` if that is None.
-    * For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
       then ``level_<i>`` is used.
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
 
-  .. ipython:: python
+.. ipython:: python
 
    df = pd.DataFrame(
        {
@@ -2777,20 +2780,20 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    * |lxml|_ is very fast.
+    - |lxml|_ is very fast.
 
-    * |lxml|_ requires Cython to install correctly.
+    - |lxml|_ requires Cython to install correctly.
 
 * Drawbacks
 
-    * |lxml|_ does *not* make any guarantees about the results of its parse
+    - |lxml|_ does *not* make any guarantees about the results of its parse
       *unless* it is given |svm|_.
 
-    * In light of the above, we have chosen to allow you, the user, to use the
+    - In light of the above, we have chosen to allow you, the user, to use the
       |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
       fails to parse
 
-    * It is therefore *highly recommended* that you install both
+    - It is therefore *highly recommended* that you install both
       |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
       result (provided everything else is valid) even if |lxml|_ fails.
 
@@ -2803,22 +2806,22 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    * |html5lib|_ is far more lenient than |lxml|_ and consequently deals
+    - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
       with *real-life markup* in a much saner way rather than just, e.g.,
       dropping an element without notifying you.
 
-    * |html5lib|_ *generates valid HTML5 markup from invalid markup
+    - |html5lib|_ *generates valid HTML5 markup from invalid markup
       automatically*. This is extremely important for parsing HTML tables,
       since it guarantees a valid document. However, that does NOT mean that
       it is "correct", since the process of fixing markup does not have a
       single definition.
 
-    * |html5lib|_ is pure Python and requires no additional build steps beyond
+    - |html5lib|_ is pure Python and requires no additional build steps beyond
       its own installation.
 
 * Drawbacks
 
-    * The biggest drawback to using |html5lib|_ is that it is slow as
+    - The biggest drawback to using |html5lib|_ is that it is slow as
       molasses.  However consider the fact that many tables on the web are not
       big enough for the parsing algorithm runtime to matter. It is more
       likely that the bottleneck will be in the process of reading the raw
@@ -3208,7 +3211,7 @@ supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iter
 which are memory-efficient methods to iterate through an XML tree and extract specific elements and attributes.
 without holding entire tree in memory.
 
-    .. versionadded:: 1.5.0
+.. versionadded:: 1.5.0
 
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
@@ -5311,6 +5314,7 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet(
        "example_fp.parquet",
