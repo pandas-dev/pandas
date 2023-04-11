@@ -241,8 +241,12 @@ class ArrowExtensionArray(
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
-        if isinstance(scalars, np.ndarray) and (
-            pa.types.is_large_binary(pa_dtype) or pa.types.is_large_string(pa_dtype)
+        if (
+            isinstance(scalars, np.ndarray)
+            and isinstance(dtype, ArrowDtype)
+            and (
+                pa.types.is_large_binary(pa_dtype) or pa.types.is_large_string(pa_dtype)
+            )
         ):
             scalars = scalars.tolist()
 
