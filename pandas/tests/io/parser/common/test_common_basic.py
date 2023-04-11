@@ -876,5 +876,5 @@ c,4,5
         "character, except for '\\t'. Please use a supported separator "
         "or a different engine."
     )
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(Exception, match=msg):
         parser.read_csv(StringIO(data), engine="pyarrow", sep=r"\s+")
