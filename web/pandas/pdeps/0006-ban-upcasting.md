@@ -143,7 +143,8 @@ dtype: float64
 ```
 
 This is not necessarily a sign of a bug, because the user might just be thinking of their ``Series`` as being
-numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer.
+numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just what pandas happened to infer
+when constructing it.
 
 Possible options could be:
 1. only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``);
