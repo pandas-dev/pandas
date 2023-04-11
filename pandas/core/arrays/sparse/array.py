@@ -1805,21 +1805,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # This will infer the correct formatter from the dtype of the values.
         return None
 
-    # ------------------------------------------------------------------------
-    # GroupBy Methods
-
-    def _groupby_op(
-        self,
-        *,
-        how: str,
-        has_dropped_na: bool,
-        min_count: int,
-        ngroups: int,
-        ids: npt.NDArray[np.intp],
-        **kwargs,
-    ):
-        raise NotImplementedError(f"{self.dtype} dtype not supported")
-
 
 def _make_sparse(
     arr: np.ndarray,

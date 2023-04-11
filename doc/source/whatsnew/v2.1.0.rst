@@ -248,10 +248,12 @@ Performance improvements
 - Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)
 - Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)
 - Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)
+- Performance improvement in :func:`concat` (:issue:`52291`, :issue:`52290`)
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
+- Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -282,7 +284,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
 -
 
 Numeric
@@ -337,6 +339,8 @@ Period
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
+- Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
+-
 
 Plotting
 ^^^^^^^^

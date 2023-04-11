@@ -46,6 +46,10 @@ except ImportError:
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:DataFrame._data is deprecated:FutureWarning"
+)
+
 
 # setup engines & skips
 @pytest.fixture(
@@ -1199,9 +1203,8 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame(index=[], columns=[])
+        df = pd.DataFrame()
         expected = df.copy()
-        expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
@@ -1316,8 +1319,5 @@ class TestParquetFastParquet(Base):
     def test_empty_columns(self, fp):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        expected = pd.DataFrame(
-            columns=pd.Index([], dtype=object),
-            index=pd.Index(["a", "b", "c"], name="custom name"),
-        )
+        expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, fp, expected=expected)
