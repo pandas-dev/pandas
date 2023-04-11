@@ -1153,7 +1153,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
@@ -2134,15 +2134,25 @@ class ArrowExtensionArray(
         )
 
     def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
     ):
-        raise NotImplementedError(
-            "str.split not supported with pd.ArrowDtype(pa.string())."
-        )
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError(
-            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return type(self)(
+            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table: dict[int, str]):

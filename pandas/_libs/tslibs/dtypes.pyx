@@ -53,7 +53,10 @@ cdef class PeriodDtypeBase:
     @property
     def _freqstr(self) -> str:
         # Will be passed to to_offset in Period._maybe_convert_freq
-        return _reverse_period_code_map.get(self._dtype_code)
+        out = _reverse_period_code_map.get(self._dtype_code)
+        if self._n == 1:
+            return out
+        return str(self._n) + out
 
     cpdef int _get_to_timestamp_base(self):
         """

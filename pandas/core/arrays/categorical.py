@@ -38,7 +38,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_any_real_numeric_dtype,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
     is_dtype_equal,
@@ -381,7 +380,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warnings.warn(
                 "The 'fastpath' keyword in Categorical is deprecated and will "
                 "be removed in a future version. Use Categorical.from_codes instead",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
         else:
@@ -409,7 +408,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         null_mask = np.array(False)
 
         # sanitize input
-        if is_categorical_dtype(values):
+        vdtype = getattr(values, "dtype", None)
+        if isinstance(vdtype, CategoricalDtype):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
@@ -2721,7 +2721,9 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         raise TypeError("Input must be list-like")
 
     categories: Index
-    if is_categorical_dtype(values):
+
+    vdtype = getattr(values, "dtype", None)
+    if isinstance(vdtype, CategoricalDtype):
         values = extract_array(values)
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
