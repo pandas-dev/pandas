@@ -272,7 +272,6 @@ Datetimelike
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 - :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
-- Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
 -
 
 Timedelta
