@@ -1264,23 +1264,6 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     return issubclass(dtype.type, np.bool_)
 
 
-def is_1d_only_ea_obj(obj: Any) -> bool:
-    """
-    ExtensionArray that does not support 2D, or more specifically that does
-    not use HybridBlock.
-    """
-    from pandas.core.arrays import (
-        DatetimeArray,
-        ExtensionArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
-
-    return isinstance(obj, ExtensionArray) and not isinstance(
-        obj, (DatetimeArray, TimedeltaArray, PeriodArray)
-    )
-
-
 def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     """
     Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
@@ -1697,7 +1680,6 @@ __all__ = [
     "infer_dtype_from_object",
     "INT64_DTYPE",
     "is_1d_only_ea_dtype",
-    "is_1d_only_ea_obj",
     "is_all_strings",
     "is_any_real_numeric_dtype",
     "is_array_like",
