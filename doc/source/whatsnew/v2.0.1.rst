@@ -31,6 +31,7 @@ Bug fixes
 - Bug in :meth:`ArrowDtype.__from_arrow__` not respecting if dtype is explicitly given (:issue:`52533`)
 - Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend="pyarrow"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)
 - Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
+- Bug in :func:`to_numeric` with ``errors='coerce'`` and ``dtype_backend='pyarrow'`` with :class:`ArrowDtype` data (:issue:`52588`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
