@@ -17,7 +17,7 @@ from pandas._libs import (
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_1d_only_ea_obj,
+    is_1d_only_ea_dtype,
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -105,7 +105,7 @@ def take_nd(
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
-        if not is_1d_only_ea_obj(arr):
+        if not is_1d_only_ea_dtype(arr.dtype):
             # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(

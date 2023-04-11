@@ -56,7 +56,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_1d_only_ea_obj,
     is_dtype_equal,
     is_list_like,
     is_string_dtype,
@@ -356,7 +355,7 @@ class Block(PandasObject):
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self._mgr_locs):
-                if not is_1d_only_ea_obj(result):
+                if not is_1d_only_ea_dtype(result.dtype):
                     vals = result[i : i + 1]
                 else:
                     vals = result[i]
