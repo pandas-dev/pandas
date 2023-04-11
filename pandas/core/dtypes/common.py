@@ -319,6 +319,12 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
+    warnings.warn(
+        "is_datetime64tz_dtype is deprecated and will be removed in a future "
+        "version. Check `isinstance(dtype, pd.DatetimeTZDtype)` instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, DatetimeTZDtype):
         # GH#33400 fastpath for dtype object
         # GH 34986
@@ -431,6 +437,12 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
     True
     """
+    warnings.warn(
+        "is_interval_dtype is deprecated and will be removed in a future version. "
+        "Use `isinstance(dtype, pd.IntervalDtype)` instead",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Interval
@@ -854,7 +866,14 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     if arr_or_dtype is None:
         return False
-    return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
+
+    try:
+        tipo = get_dtype(arr_or_dtype)
+    except TypeError:
+        return False
+    return (isinstance(tipo, np.dtype) and tipo.kind == "M") or isinstance(
+        tipo, DatetimeTZDtype
+    )
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:

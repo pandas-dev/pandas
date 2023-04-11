@@ -228,6 +228,8 @@ Deprecations
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
+- Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`??`)
+- Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------

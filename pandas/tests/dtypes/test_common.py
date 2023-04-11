@@ -172,7 +172,12 @@ def test_get_dtype_error_catch(func):
 
     msg = f"{func.__name__} is deprecated"
     warn = None
-    if func is com.is_int64_dtype or func is com.is_categorical_dtype:
+    if (
+        func is com.is_int64_dtype
+        or func is com.is_interval_dtype
+        or func is com.is_datetime64tz_dtype
+        or func is com.is_categorical_dtype
+    ):
         warn = FutureWarning
 
     with tm.assert_produces_warning(warn, match=msg):
@@ -221,10 +226,12 @@ def test_is_datetime64_dtype():
 
 
 def test_is_datetime64tz_dtype():
-    assert not com.is_datetime64tz_dtype(object)
-    assert not com.is_datetime64tz_dtype([1, 2, 3])
-    assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
-    assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
+    msg = "is_datetime64tz_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_datetime64tz_dtype(object)
+        assert not com.is_datetime64tz_dtype([1, 2, 3])
+        assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
+        assert com.is_datetime64tz_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
 
 def test_custom_ea_kind_M_not_datetime64tz():
@@ -235,8 +242,10 @@ def test_custom_ea_kind_M_not_datetime64tz():
             return "M"
 
     not_tz_dtype = NotTZDtype()
-    assert not com.is_datetime64tz_dtype(not_tz_dtype)
-    assert not com.needs_i8_conversion(not_tz_dtype)
+    msg = "is_datetime64tz_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_datetime64tz_dtype(not_tz_dtype)
+        assert not com.needs_i8_conversion(not_tz_dtype)
 
 
 def test_is_timedelta64_dtype():
@@ -264,14 +273,16 @@ def test_is_period_dtype():
 
 
 def test_is_interval_dtype():
-    assert not com.is_interval_dtype(object)
-    assert not com.is_interval_dtype([1, 2, 3])
+    msg = "is_interval_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_interval_dtype(object)
+        assert not com.is_interval_dtype([1, 2, 3])
 
-    assert com.is_interval_dtype(IntervalDtype())
+        assert com.is_interval_dtype(IntervalDtype())
 
-    interval = pd.Interval(1, 2, closed="right")
-    assert not com.is_interval_dtype(interval)
-    assert com.is_interval_dtype(pd.IntervalIndex([interval]))
+        interval = pd.Interval(1, 2, closed="right")
+        assert not com.is_interval_dtype(interval)
+        assert com.is_interval_dtype(pd.IntervalIndex([interval]))
 
 
 def test_is_categorical_dtype():
