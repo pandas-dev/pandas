@@ -1289,7 +1289,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "decimals, expected_results",
         [
-            (0, [1, 2, 3]),
+            (0, [1.0, 2.0, 3.0]),
             (1, [1.2, 2.3, 3.5]),
             (2, [1.23, 2.35, 3.46]),
         ],
