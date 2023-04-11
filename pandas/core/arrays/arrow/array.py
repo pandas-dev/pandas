@@ -1150,7 +1150,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
