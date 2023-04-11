@@ -16,6 +16,7 @@ Fixed regressions
 - Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 - Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)
+- Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
@@ -28,6 +29,7 @@ Bug fixes
 - Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
 - Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)
 - Bug in :meth:`ArrowDtype.__from_arrow__` not respecting if dtype is explicitly given (:issue:`52533`)
+- Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend="pyarrow"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)
 - Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
 
 .. ---------------------------------------------------------------------------
@@ -35,6 +37,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
 - :class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 - :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 
