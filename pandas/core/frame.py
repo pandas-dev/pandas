@@ -9872,7 +9872,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
     ) -> DataFrame:
         """
-        Apply a function to a {klass} elementwise.
+        Apply a function to a Dataframe elementwise.
 
         .. deprecated:: 2.1.0
 
