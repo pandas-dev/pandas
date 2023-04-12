@@ -1821,6 +1821,8 @@ class TestNumberScalar:
         ts = pd.date_range("20130101", periods=3)
         tsa = pd.date_range("20130101", periods=3, tz="US/Eastern")
 
+        msg = "is_datetime64tz_dtype is deprecated"
+
         assert is_datetime64_dtype("datetime64")
         assert is_datetime64_dtype("datetime64[ns]")
         assert is_datetime64_dtype(ts)
@@ -1836,16 +1838,20 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        assert not is_datetime64tz_dtype("datetime64")
-        assert not is_datetime64tz_dtype("datetime64[ns]")
-        assert not is_datetime64tz_dtype(ts)
-        assert is_datetime64tz_dtype(tsa)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not is_datetime64tz_dtype("datetime64")
+            assert not is_datetime64tz_dtype("datetime64[ns]")
+            assert not is_datetime64tz_dtype(ts)
+            assert is_datetime64tz_dtype(tsa)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
     def test_is_datetime_dtypes_with_tz(self, tz):
         dtype = f"datetime64[ns, {tz}]"
         assert not is_datetime64_dtype(dtype)
-        assert is_datetime64tz_dtype(dtype)
+
+        msg = "is_datetime64tz_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_datetime64tz_dtype(dtype)
         assert is_datetime64_ns_dtype(dtype)
         assert is_datetime64_any_dtype(dtype)
 

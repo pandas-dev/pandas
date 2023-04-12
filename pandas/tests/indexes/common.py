@@ -8,16 +8,14 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     IntervalIndex,
     MultiIndex,
@@ -211,7 +209,7 @@ class Base:
 
         index_type = type(index)
         result = index_type(index.values, copy=True, **init_kwargs)
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             result = result.tz_localize("UTC").tz_convert(index.tz)
         if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
             index = index._with_freq(None)

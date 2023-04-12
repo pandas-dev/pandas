@@ -11,14 +11,12 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
 
 import pandas as pd
 from pandas import (
     Categorical,
+    DatetimeTZDtype,
     Index,
     Series,
     Timedelta,
@@ -907,7 +905,7 @@ def test_none_comparison(request, series_with_simple_index):
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+    if is_datetime64_dtype(series.dtype) or isinstance(series.dtype, DatetimeTZDtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"

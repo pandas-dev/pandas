@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_integer,
     is_list_like,
@@ -285,7 +284,7 @@ def cut(
             raise ValueError("Overlapping IntervalIndex is not accepted.")
 
     else:
-        if is_datetime64tz_dtype(bins):
+        if isinstance(getattr(bins, "dtype", None), DatetimeTZDtype):
             bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)

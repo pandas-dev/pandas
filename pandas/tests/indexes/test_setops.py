@@ -12,6 +12,7 @@ from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     RangeIndex,
@@ -21,7 +22,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import (
     is_bool_dtype,
-    is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
 )
@@ -193,7 +193,7 @@ class TestSetOps:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -220,7 +220,7 @@ class TestSetOps:
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
