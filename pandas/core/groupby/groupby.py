@@ -3313,13 +3313,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
-        qs = np.array(q, dtype=np.float64)
+            qs = np.array([q], dtype=np.float64)
+        else:
+            qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
