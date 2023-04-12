@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-import pandas._testing as tm
 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
@@ -200,12 +199,7 @@ class Dim2CompatTests(BaseExtensionTests):
             kwargs["ddof"] = 0
 
         try:
-            if method in ["mean", "var", "std"] and hasattr(data, "_mask"):
-                # Empty slices produced by the mask cause RuntimeWarnings by numpy
-                with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-                    result = getattr(arr2d, method)(axis=0, **kwargs)
-            else:
-                result = getattr(arr2d, method)(axis=0, **kwargs)
+            result = getattr(arr2d, method)(axis=0, **kwargs)
         except Exception as err:
             try:
                 getattr(data, method)()
