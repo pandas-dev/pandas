@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import (
     Timedelta,
     Timestamp,
+    lib,
 )
 from pandas._libs.lib import infer_dtype
 
@@ -28,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -487,10 +487,10 @@ def _coerce_to_type(x):
 
     if isinstance(x.dtype, DatetimeTZDtype):
         dtype = x.dtype
-    elif is_datetime64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "M"):
         x = to_datetime(x).astype("datetime64[ns]", copy=False)
         dtype = np.dtype("datetime64[ns]")
-    elif is_timedelta64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "m"):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x.dtype):
@@ -525,7 +525,7 @@ def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
     ValueError if bins are not of a compat dtype to dtype
     """
     bins_dtype = infer_dtype(bins, skipna=False)
-    if is_timedelta64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m"):
         if bins_dtype in ["timedelta", "timedelta64"]:
             bins = to_timedelta(bins).view(np.int64)
         else:
@@ -584,7 +584,7 @@ def _format_labels(
     elif is_datetime64_dtype(dtype):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta("1ns")
-    elif is_timedelta64_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "m"):
         formatter = Timedelta
         adjust = lambda x: x - Timedelta("1ns")
     else:
