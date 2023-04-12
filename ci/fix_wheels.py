@@ -51,9 +51,10 @@ try:
     required_dlls = ["msvcp140.dll", "concrt140.dll"]
     if not is_32:
         required_dlls += ["vcruntime140_1.dll"]
+    dest_dll_dir = os.path.join(tmp_dir, "pandas/_libs/window")
     for dll in required_dlls:
         src = os.path.join(base_redist_dir, dll)
-        shutil.copy(src, tmp_dir)
+        shutil.copy(src, dest_dll_dir)
     subprocess.run(["wheel", "pack", tmp_dir, "-d", dest_dir], check=True)
 except CalledProcessError:
     print("Failed to add DLLS to wheel.")
