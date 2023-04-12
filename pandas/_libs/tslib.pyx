@@ -69,8 +69,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 
-import cython
-
 from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
@@ -82,8 +80,6 @@ from libc.time cimport time
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
-
-# Note: this is the only non-tslibs intra-pandas dependency here
 
 
 def _test_parse_iso8601(ts: str):
