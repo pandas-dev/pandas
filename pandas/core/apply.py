@@ -1423,10 +1423,10 @@ def relabel_result(
         # mean  1.5
         # mean  1.5
         if reorder_mask:
-            fun_name = [
+            fun = [
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
-            col_idx_order = Index(s.index).get_indexer(fun_name)
+            col_idx_order = Index(s.index).get_indexer(fun)
             s = s[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
