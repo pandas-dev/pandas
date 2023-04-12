@@ -18,8 +18,8 @@ try:
         raise ValueError(
             "User must pass the path to the wheel and the destination directory."
         )
-    wheel_path = os.path.abspath(sys.argv[1])
-    dest_dir = os.path.abspath(sys.argv[2])
+    wheel_path = sys.argv[1]
+    dest_dir = sys.argv[2]
     # Figure out whether we are building on 32 or 64 bit python
     is_32 = sys.maxsize <= 2**32
     PYTHON_ARCH = "x86" if is_32 else "x64"
@@ -32,7 +32,6 @@ if not os.path.isdir(dest_dir):
     print(f"Created directory {dest_dir}")
     os.mkdir(dest_dir)
 
-shutil.copy(wheel_path, dest_dir)  # Remember to delete if process fails
 wheel_name = os.path.basename(wheel_path)
 success = True
 
