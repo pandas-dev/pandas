@@ -129,7 +129,7 @@ from pandas._libs.tslibs.tzconversion cimport (
 _zero_time = dt_time(0, 0)
 _no_input = object()
 
-#components named tuple
+# components named tuple
 Components = collections.namedtuple(
         "Components",
         [
@@ -591,10 +591,10 @@ cdef class _Timestamp(ABCTimestamp):
 
         if self._is_populated:
             return
-        
+
         cdef:
             npy_datetimestruct dts
-        
+
         pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
         self._y = dts.year
         self._month = dts.month
@@ -611,8 +611,8 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def components(self):
         self._ensure_components()
-        return Components(self._y, self._month, self._d, self._h, self._m, self._s, self._ms, self._us, self._ns)
-
+        return Components(self._y, self._month, self._d, 
+            self._h, self._m, self._s, self._ms, self._us, self._ns)
 
     # -----------------------------------------------------------------
 

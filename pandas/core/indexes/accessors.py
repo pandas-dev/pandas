@@ -413,13 +413,20 @@ class DatetimeProperties(Properties):
 
         dtype: datetime64[ns]
         >>> s.dt.components
-            year   month     day     hour     minute    second     microsecond    nanosecond
-        0     0      0        0        0        0          0            0              0
-        1     0      0        0        0        0          0            0              1
-        2     0      0        0        0        0          0            0              2
-        3     0      0        0        0        0          0            0              3
-        4     0      0        0        0        0          0            0              4
-        """
+            year   month     day     hour     minute
+        0     0      0        0        0        0
+        1     0      0        0        0        0
+        2     0      0        0        0        0
+        3     0      0        0        0        0
+        4     0      0        0        0        0
+
+             second     microsecond    nanosecond
+             0            0              0
+             0            0              1
+             0            0              2
+             0            0              3
+             0            0              4
+        """     
         return (
             self._get_values()
             .components.set_index(self._parent.index)
