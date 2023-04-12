@@ -1,5 +1,4 @@
 from functools import partial
-import operator
 import warnings
 
 import numpy as np
@@ -745,53 +744,6 @@ class TestnanopsDataFrame:
 
 
 @pytest.mark.parametrize(
-    "op,nanop",
-    [
-        (operator.eq, nanops.naneq),
-        (operator.ne, nanops.nanne),
-        (operator.gt, nanops.nangt),
-        (operator.ge, nanops.nange),
-        (operator.lt, nanops.nanlt),
-        (operator.le, nanops.nanle),
-    ],
-)
-def test_nan_comparison(request, op, nanop, disable_bottleneck):
-    arr_float = request.getfixturevalue("arr_float")
-    arr_float1 = request.getfixturevalue("arr_float")
-    targ0 = op(arr_float, arr_float1)
-    arr_nan = request.getfixturevalue("arr_nan")
-    arr_nan_nan = request.getfixturevalue("arr_nan_nan")
-    arr_float_nan = request.getfixturevalue("arr_float_nan")
-    arr_float1_nan = request.getfixturevalue("arr_float_nan")
-    arr_nan_float1 = request.getfixturevalue("arr_nan_float1")
-
-    while targ0.ndim:
-        res0 = nanop(arr_float, arr_float1)
-        tm.assert_almost_equal(targ0, res0)
-
-        if targ0.ndim > 1:
-            targ1 = np.vstack([targ0, arr_nan])
-        else:
-            targ1 = np.hstack([targ0, arr_nan])
-        res1 = nanop(arr_float_nan, arr_float1_nan)
-        tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
-
-        targ2 = arr_nan_nan
-        res2 = nanop(arr_float_nan, arr_nan_float1)
-        tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
-
-        # Lower dimension for next step in the loop
-        arr_float = np.take(arr_float, 0, axis=-1)
-        arr_float1 = np.take(arr_float1, 0, axis=-1)
-        arr_nan = np.take(arr_nan, 0, axis=-1)
-        arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
-        arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
-        arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
-        arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
-        targ0 = np.take(targ0, 0, axis=-1)
-
-
-@pytest.mark.parametrize(
     "arr, correct",
     [
         ("arr_complex", False),
@@ -1238,8 +1190,8 @@ def test_nanops_independent_of_mask_param(operation):
     # GH22764
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
-    median_expected = operation(ser)
-    median_result = operation(ser, mask=mask)
+    median_expected = operation(ser._values)
+    median_result = operation(ser._values, mask=mask)
     assert median_expected == median_result
 
 
