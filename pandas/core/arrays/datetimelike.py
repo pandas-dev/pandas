@@ -113,7 +113,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     nanops,
-    ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
@@ -903,13 +902,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
-            # We have to use comp_method_OBJECT_ARRAY instead of numpy
-            #  comparison otherwise it would fail to raise when
-            #  comparing tz-aware and tz-naive
-            result = ops.comp_method_OBJECT_ARRAY(
-                op, np.asarray(self.astype(object)), other
-            )
-            return result
+            return op(np.asarray(self, dtype=object), other)
 
         if other is NaT:
             if op is operator.ne:
@@ -1309,7 +1302,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if not isinstance(self.dtype, PeriodDtype):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
-            result = obj._addsub_int_array_or_scalar(other * obj.freq.n, operator.add)
+            result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.add)
 
         # array-like others
         elif is_timedelta64_dtype(other_dtype):
@@ -1327,7 +1320,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if not isinstance(self.dtype, PeriodDtype):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
-            result = obj._addsub_int_array_or_scalar(other * obj.freq.n, operator.add)
+            result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.add)
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1367,7 +1360,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if not isinstance(self.dtype, PeriodDtype):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
-            result = obj._addsub_int_array_or_scalar(other * obj.freq.n, operator.sub)
+            result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.sub)
 
         elif isinstance(other, Period):
             result = self._sub_periodlike(other)
@@ -1391,7 +1384,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if not isinstance(self.dtype, PeriodDtype):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
-            result = obj._addsub_int_array_or_scalar(other * obj.freq.n, operator.sub)
+            result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.sub)
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented
@@ -1885,7 +1878,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             values = values._ndarray
 
         elif dtype is None:
-            dtype = self._default_dtype
+            if isinstance(values, np.ndarray) and values.dtype.kind in "Mm":
+                dtype = values.dtype
+            else:
+                dtype = self._default_dtype
 
         if not isinstance(values, np.ndarray):
             raise ValueError(

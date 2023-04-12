@@ -217,7 +217,9 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        result = g.apply(lambda x: x.sum())
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = g.apply(lambda x: x.sum())
         expected["A"] = [0, 2, 4]
         expected = expected.loc[:, ["A", "B"]]
         tm.assert_frame_equal(result, expected)
@@ -446,6 +448,29 @@ class TestGrouping:
         expected = ts.groupby(ts.index).sum()
         expected.index.freq = None
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_with_datetime_key(self):
+        # GH 51158
+        df = DataFrame(
+            {
+                "id": ["a", "b"] * 3,
+                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+            }
+        )
+        grouper = Grouper(key="b", freq="D")
+        gb = df.groupby([grouper, "id"])
+
+        # test number of groups
+        expected = {
+            (Timestamp("2000-01-01"), "a"): [0, 2],
+            (Timestamp("2000-01-01"), "b"): [1],
+            (Timestamp("2000-01-02"), "a"): [4],
+            (Timestamp("2000-01-02"), "b"): [3, 5],
+        }
+        tm.assert_dict_equal(gb.groups, expected)
+
+        # test number of group keys
+        assert len(gb.groups.keys()) == 4
 
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
