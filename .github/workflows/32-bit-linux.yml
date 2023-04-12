@@ -40,14 +40,11 @@ jobs:
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
           python -m pip install versioneer[toml] && \
           python -m pip install "meson[ninja]==1.0.1" && \
-          python -m pip install "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5" && \
+          python -m pip install "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e" && \
           python -m pip install cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1 && \
-          python setup.py build_ext -q -j$(nproc) && \
-          python -m pip install --no-build-isolation --no-use-pep517 -e . && \
-          python -m pip list && \
-          export PANDAS_CI=1 && \
           python -m pip install --no-build-isolation -ve . && \
           python -m pip list && \
+          export PANDAS_CI=1 && \
           pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml --import-mode=importlib"
 
       - name: Publish test results for Python 3.8-32 bit full Linux

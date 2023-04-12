@@ -46,7 +46,7 @@ jobs:
           # since the PEP 517 build will pull build dependencies automatically
           python -m pip install --upgrade pip wheel python-dateutil pytz numpy cython
           python -m pip install "meson[ninja]==1.0.1"
-          python -m pip install "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
+          python -m pip install "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
           python -m pip install versioneer[toml]
         shell: bash -el {0}
 
