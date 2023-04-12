@@ -58,4 +58,4 @@ try:
 except CalledProcessError:
     print("Failed to add DLLS to wheel.")
     sys.exit(1)
-print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
+print(f"Successfully repaired wheel")
