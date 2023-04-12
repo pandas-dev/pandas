@@ -6,11 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -484,15 +480,15 @@ class TestDataFrameSetItem:
         df["E"] = np.array(ser.values)
         df["F"] = ser.astype(object)
 
-        assert is_categorical_dtype(df["B"].dtype)
-        assert is_interval_dtype(df["B"].cat.categories)
-        assert is_categorical_dtype(df["D"].dtype)
-        assert is_interval_dtype(df["D"].cat.categories)
+        assert isinstance(df["B"].dtype, CategoricalDtype)
+        assert isinstance(df["B"].cat.categories.dtype, IntervalDtype)
+        assert isinstance(df["D"].dtype, CategoricalDtype)
+        assert isinstance(df["D"].cat.categories.dtype, IntervalDtype)
 
         # These go through the Series constructor and so get inferred back
         #  to IntervalDtype
-        assert is_interval_dtype(df["C"])
-        assert is_interval_dtype(df["E"])
+        assert isinstance(df["C"].dtype, IntervalDtype)
+        assert isinstance(df["E"].dtype, IntervalDtype)
 
         # But the Series constructor doesn't do inference on Series objects,
         #  so setting df["F"] doesn't get cast back to IntervalDtype

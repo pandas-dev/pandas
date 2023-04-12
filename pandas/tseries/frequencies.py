@@ -32,11 +32,12 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_numeric_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -68,7 +69,6 @@ _offset_to_period_map = {
     "BAS": "A",
     "MS": "M",
     "D": "D",
-    "C": "C",
     "B": "B",
     "T": "T",
     "S": "S",
@@ -151,7 +151,7 @@ def infer_freq(
         values = index._values
         if not (
             is_datetime64_dtype(values)
-            or is_datetime64tz_dtype(values)
+            or isinstance(values.dtype, DatetimeTZDtype)
             or is_timedelta64_dtype(values)
             or values.dtype == object
         ):
@@ -176,7 +176,7 @@ def infer_freq(
         return inferer.get_freq()
 
     if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if is_numeric_dtype(index):
+        if index.dtype.kind in "iufcb":
             raise TypeError(
                 f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
             )
