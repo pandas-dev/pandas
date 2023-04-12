@@ -3450,6 +3450,18 @@ Reading Excel files
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 
+When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
+engine. For this, it is important to know which function pandas is
+using internally.
+
+* For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
+
+* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+
+* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+
+* For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
 .. code-block:: python
 
    # Returns a DataFrame
