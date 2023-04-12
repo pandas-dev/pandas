@@ -60,10 +60,6 @@ jobs:
             env_file: actions-310.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
-          - name: "Data Manager"
-            env_file: actions-38.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_data_manager: "array"
           - name: "Pypy"
             env_file: actions-pypy-38.yaml
             pattern: "not slow and not network and not single_cpu"
