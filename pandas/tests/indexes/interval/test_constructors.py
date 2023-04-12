@@ -3,11 +3,11 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     Index,
     Interval,
@@ -316,7 +316,7 @@ class TestFromTuples(ConstructorTests):
         tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
             return {"data": tuples}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(tuples)}
         return {"data": com.asarray_tuplesafe(tuples)}
 
@@ -378,7 +378,7 @@ class TestClassConstructors(ConstructorTests):
 
         if isinstance(breaks, list):
             return {"data": ivs}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(ivs)}
         return {"data": np.array(ivs, dtype=object)}
 
