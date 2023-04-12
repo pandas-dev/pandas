@@ -39,6 +39,9 @@ import textwrap
 
 from git import Repo
 
+# Contributors to be renamed.
+CONTRIBUTOR_MAPPING = {"znkjnffrezna": "znetbgcubravk"}
+
 UTF8Writer = codecs.getwriter("utf8")
 this_repo = Repo(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -86,6 +89,17 @@ def get_authors(revision_range):
     # Homu is the author of auto merges, clean him out.
     cur.discard("Homu")
     pre.discard("Homu")
+
+    # Rename contributors according to mapping.
+    for old_name, new_name in CONTRIBUTOR_MAPPING.items():
+        old_name_decoded = codecs.decode(old_name, "rot13")
+        new_name_decoded = codecs.decode(new_name, "rot13")
+        if old_name_decoded in pre:
+            pre.discard(old_name_decoded)
+            pre.add(new_name_decoded)
+        if old_name_decoded in cur:
+            cur.discard(old_name_decoded)
+            cur.add(new_name_decoded)
 
     # Append '+' to new authors.
     authors = [s + " +" for s in cur - pre] + list(cur & pre)
