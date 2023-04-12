@@ -308,7 +308,7 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 Notes
 -----
 For specific information on the methods used for each Excel engine, refer to the pandas
-user guide: :doc: `/source/user_guide/io`
+:ref:`user guide <io.excel_reader>`
 
 Examples
 --------
