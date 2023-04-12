@@ -23,6 +23,7 @@ cdef class _Timestamp(ABCTimestamp):
     cdef readonly:
         int64_t _value, nanosecond, year
         NPY_DATETIMEUNIT _creso
+        bint _is_populated
 
     cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)
