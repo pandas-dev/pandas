@@ -141,10 +141,6 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
             result = fields.get_date_name_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(result, fill_value=None)
 
-        if self._hasna:
-            result = fields.get_date_field(values, field, reso=self._creso)
-            result = self._maybe_mask_results(result, fill_value=None, convert="float64")
-
         else:
             result = fields.get_date_field(values, field, reso=self._creso)
             result = self._maybe_mask_results(
