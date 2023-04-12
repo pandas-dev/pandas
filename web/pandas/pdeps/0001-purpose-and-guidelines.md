@@ -174,7 +174,7 @@ hope can help clarify our meaning here:
     features that would be a good candidate for a PDEP.
 - Changing the default value of parameters in a core pandas method is another edge case. For
   example:
-  - Such changes in `dropna`,  `DataFrame.groupby`, or in `Series.groupby` could be PDEPs.
+  - Such changes for `dropna` in `DataFrame.groupby` and `Series.groupby` could be a PDEP.
 - New top level modules and/or exposing internal classes. For example:
   - Add `pandas.api.typing` ([GH-48577][48577]) is relatively small and would not necessarily
     require a PDEP.
