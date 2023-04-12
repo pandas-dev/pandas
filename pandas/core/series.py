@@ -195,16 +195,12 @@ _shared_doc_kwargs = {
     "unique": "np.ndarray",
     "duplicated": "Series",
     "optional_by": "",
-    "optional_mapper": "",
     "optional_reindex": """
 index : array-like, optional
     New labels for the index. Preferably an Index object to avoid
     duplicating data.
 axis : int or str, optional
     Unused.""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
 
 
@@ -558,7 +554,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 values = []
             keys = index
         else:
-            keys, values = (), []
+            keys, values = default_index(0), []
 
         # Input is now list-like, so rely on "standard" construction:
         s = Series(values, index=keys, dtype=dtype)
@@ -2422,9 +2418,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmin(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
-        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2493,9 +2488,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmax(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
-        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]

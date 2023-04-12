@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex,
     is_complex_dtype,
-    is_datetime64_dtype,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -63,7 +62,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype as pandas_dtype_func,
 )
@@ -1203,7 +1201,7 @@ def maybe_cast_to_datetime(
     #  _ensure_nanosecond_dtype raises TypeError
     _ensure_nanosecond_dtype(dtype)
 
-    if is_timedelta64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m"):
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
     else:
@@ -1407,10 +1405,10 @@ def find_common_type(types):
         return np.dtype("object")
 
     # take lowest unit
-    if all(is_datetime64_dtype(t) for t in types):
-        return np.dtype("datetime64[ns]")
-    if all(is_timedelta64_dtype(t) for t in types):
-        return np.dtype("timedelta64[ns]")
+    if all(lib.is_np_dtype(t, "M") for t in types):
+        return np.dtype(max(types))
+    if all(lib.is_np_dtype(t, "m") for t in types):
+        return np.dtype(max(types))
 
     # don't mix bool / int or float or complex
     # this is different from numpy, which casts bool with float/int as int

@@ -38,8 +38,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_any_real_numeric_dtype,
     is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -47,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -381,7 +378,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warnings.warn(
                 "The 'fastpath' keyword in Categorical is deprecated and will "
                 "be removed in a future version. Use Categorical.from_codes instead",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
         else:
@@ -409,7 +406,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         null_mask = np.array(False)
 
         # sanitize input
-        if is_categorical_dtype(values):
+        vdtype = getattr(values, "dtype", None)
+        if isinstance(vdtype, CategoricalDtype):
             if dtype.categories is None:
                 dtype = CategoricalDtype(values.categories, dtype.ordered)
         elif not isinstance(values, (ABCIndex, ABCSeries, ExtensionArray)):
@@ -622,9 +620,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # Convert to a specialized type with `dtype` if specified.
             if is_any_real_numeric_dtype(dtype.categories):
                 cats = to_numeric(inferred_categories, errors="coerce")
-            elif is_datetime64_dtype(dtype.categories):
+            elif lib.is_np_dtype(dtype.categories.dtype, "M"):
                 cats = to_datetime(inferred_categories, errors="coerce")
-            elif is_timedelta64_dtype(dtype.categories):
+            elif lib.is_np_dtype(dtype.categories.dtype, "m"):
                 cats = to_timedelta(inferred_categories, errors="coerce")
             elif is_bool_dtype(dtype.categories):
                 if true_values is None:
@@ -2721,7 +2719,9 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         raise TypeError("Input must be list-like")
 
     categories: Index
-    if is_categorical_dtype(values):
+
+    vdtype = getattr(values, "dtype", None)
+    if isinstance(vdtype, CategoricalDtype):
         values = extract_array(values)
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]

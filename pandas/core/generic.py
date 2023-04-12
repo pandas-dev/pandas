@@ -120,7 +120,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_re_compilable,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -212,16 +211,12 @@ _shared_doc_kwargs = {
     "axes": "keywords for axes",
     "klass": "Series/DataFrame",
     "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa:E501
-    "args_transpose": "axes to permute (int or label for object)",
     "inplace": """
     inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
 
 
@@ -264,22 +259,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(
-        self,
-        data: Manager,
-        copy: bool_t = False,
-        attrs: Mapping[Hashable, Any] | None = None,
-    ) -> None:
-        # copy kwarg is retained for mypy compat, is not used
-
+    def __init__(self, data: Manager) -> None:
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_mgr", data)
         object.__setattr__(self, "_item_cache", {})
-        if attrs is None:
-            attrs = {}
-        else:
-            attrs = dict(attrs)
-        object.__setattr__(self, "_attrs", attrs)
+        object.__setattr__(self, "_attrs", {})
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
     @final
@@ -313,6 +297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
+    @final
     def _as_manager(self, typ: str, copy: bool_t = True) -> Self:
         """
         Private helper function to create a DataFrame with specific manager.
@@ -7314,7 +7299,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         _shared_docs["replace"],
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,
@@ -7773,7 +7757,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
                 or is_datetime64_any_dtype(index.dtype)
-                or is_timedelta64_dtype(index.dtype)
+                or lib.is_np_dtype(index.dtype, "m")
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
@@ -9035,7 +9019,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select initial periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
+        For a DataFrame with a sorted DatetimeIndex, this function can
         select the first few rows based on a date offset.
 
         Parameters

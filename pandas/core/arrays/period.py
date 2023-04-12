@@ -104,7 +104,7 @@ _shared_doc_kwargs = {
 
 def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
-        base = self.freq._period_dtype_code
+        base = self.dtype._dtype_code
         result = get_period_field_arr(name, self.asi8, base)
         return result
 
@@ -543,7 +543,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             diffs = libalgos.unique_deltas(self.asi8)
             if len(diffs) == 1:
                 diff = diffs[0]
-                if diff == self.freq.n:
+                if diff == self.dtype._n:
                     dta._freq = self.freq
                 elif diff == 1:
                     dta._freq = self.freq.base
@@ -614,7 +614,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # self.freq.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = asi8 + self.freq.n - 1
+            ordinal = asi8 + self.dtype._n - 1
         else:
             ordinal = asi8
 
@@ -1124,8 +1124,10 @@ def _range_from_fields(
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = parsing.quarter_to_myear(y, q, freqstr)
-            val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
+            calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
+            val = libperiod.period_ordinal(
+                calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
+            )
             ordinals.append(val)
     else:
         freq = to_offset(freq)
