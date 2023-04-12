@@ -634,14 +634,13 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
 
-    # get the list of formats which work for some of the elements
-    # sorted by the percentage of elements that match, highest first
-    # It's a list of tuples of (format, percentage of elements that match)
     best_format = None
     if format is not None and format != "mixed":
         best_format = format
     else:
-        # guess the format
+        # get a list of formats which work for some of the elements
+        # sorted by the percentage of elements that match, highest first
+        # It's a list of tuples of (format, percentage of elements that match)
         formats = _guess_datetime_format_for_array(
             arg, n_find_format=20, n_check_format=250
         )
