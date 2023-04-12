@@ -1518,7 +1518,7 @@ class TextFileReader(abc.Iterator):
             elif engine == "pyarrow" and sep == r"\s+":
                 fallback_reason = (
                     f"the '{engine}' engine does not support separators "
-                    "with more than one character, except for '\\t'. "
+                    "with more than one character, except for '\t'. "
                     "Please use a supported separator or a different engine."
                 )
             elif engine not in ("python", "python-fwf"):
