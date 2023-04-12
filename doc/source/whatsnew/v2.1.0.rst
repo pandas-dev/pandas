@@ -17,7 +17,8 @@ Enhancements
 .. _whatsnew_210.enhancements.enhancement1:
 
 ``pd.to_datetime`` now tries to infer the datetime format of each string by considering
-the whole Series, and tries to find the format which work for most strings. If several
+a random sample (instead of the first non-null sample),
+and tries to find the format which work for most strings. If several
 formats work as well, the one which matches the ``dayfirst`` parameter is returned. If
 ``format="mixed"``, pandas does the same thing, then tries the second best format on the
 strings which failed to parse with the first best format, and so on (:issue:`52508`).
@@ -62,8 +63,6 @@ strings which failed to parse with the first best format, and so on (:issue:`525
     Out[3]:
     DatetimeIndex(['2012-02-01', '2012-03-01', '2012-01-30'], dtype='datetime64[ns]', freq=None)
 
-
-^^^^^^^^^^^^
 
 .. _whatsnew_210.enhancements.enhancement2:
 
