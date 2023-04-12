@@ -2244,14 +2244,14 @@ class TestSeriesFormatting:
 
         # unicode index
         s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
-        expected = "あ         a\nいい\
-                   bb\nううう     CCC\nええええ      D\ndtype: object"
+        expected = "あ         a\nいい       bb\nうう\
+            う     CCC\nええええ      D\ndtype: object"
         assert repr(s) == expected
 
         # unicode values
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
-        expected = "a         あ\nbb\
-                   いい\nc       ううう\nddd    ええええ\ndtype: object"
+        expected = "a         あ\nbb       いい\nc       うう\
+            う\nddd    ええええ\ndtype: object"
         assert repr(s) == expected
 
         # both
@@ -2259,8 +2259,8 @@ class TestSeriesFormatting:
             ["あ", "いい", "ううう", "ええええ"],
             index=["ああ", "いいいい", "う", "えええ"],
         )
-        expected = "ああ         あ\nいいいい\
-                      いい\nう        ううう\nえええ     ええええ\ndtype: object"
+        expected = "ああ         あ\nいいいい      いい\nう        う\
+                うう\nえええ     ええええ\ndtype: object"
         assert repr(s) == expected
 
         # unicode footer
