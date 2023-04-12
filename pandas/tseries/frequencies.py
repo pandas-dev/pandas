@@ -31,11 +31,11 @@ from pandas._libs.tslibs.offsets import (
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_numeric_dtype,
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -149,7 +149,7 @@ def infer_freq(
         values = index._values
         if not (
             lib.is_np_dtype(values.dtype, "mM")
-            or is_datetime64tz_dtype(values)
+            or isinstance(values.dtype, DatetimeTZDtype)
             or values.dtype == object
         ):
             raise TypeError(

@@ -1406,9 +1406,9 @@ def find_common_type(types):
 
     # take lowest unit
     if all(lib.is_np_dtype(t, "M") for t in types):
-        return np.dtype("datetime64[ns]")
+        return np.dtype(max(types))
     if all(lib.is_np_dtype(t, "m") for t in types):
-        return np.dtype("timedelta64[ns]")
+        return np.dtype(max(types))
 
     # don't mix bool / int or float or complex
     # this is different from numpy, which casts bool with float/int as int
