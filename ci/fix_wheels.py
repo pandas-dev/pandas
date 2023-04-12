@@ -54,7 +54,7 @@ try:
     for dll in required_dlls:
         src = os.path.join(base_redist_dir, dll)
         shutil.copy(src, tmp_dir)
-    subprocess.run(["wheel", "pack", tmp_dir, f"-d {dest_dir}"], check=True)
+    subprocess.run(["wheel", "pack", tmp_dir, "-d", "dest_dir"], check=True)
 except CalledProcessError:
     print("Failed to add DLLS to wheel.")
     sys.exit(1)
