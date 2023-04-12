@@ -29,6 +29,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -152,9 +153,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Set the Timezone of the data.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
+
+        .. deprecated:: 2.1.0
+
     closed : {'left', 'right'}, optional
         Set whether to include `start` and `end` that are on the
         boundary. The default includes boundary points on either end.
+
+        .. deprecated:: 2.1.0
+
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -310,8 +317,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        normalize: bool = False,
-        closed=None,
+        normalize: bool | lib.NoDefault = lib.no_default,
+        closed=lib.no_default,
         ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
@@ -319,6 +326,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         copy: bool = False,
         name: Hashable = None,
     ) -> Self:
+        if closed is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'closed' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if normalize is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'normalize' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
