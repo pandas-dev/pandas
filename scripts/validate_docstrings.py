@@ -130,15 +130,14 @@ def get_api_items(api_doc_fd):
             if line_stripped == "":
                 position = None
                 continue
-            item = line_stripped.strip()
-            if item in IGNORE_VALIDATION:
+            if line_stripped in IGNORE_VALIDATION:
                 continue
             func = importlib.import_module(current_module)
-            for part in item.split("."):
+            for part in line_stripped.split("."):
                 func = getattr(func, part)
 
             yield (
-                ".".join([current_module, item]),
+                ".".join([current_module, line_stripped]),
                 func,
                 current_section,
                 current_subsection,
