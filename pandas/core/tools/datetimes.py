@@ -129,8 +129,7 @@ start_caching_at = 50
 # ---------------------------------------------------------------------
 
 
-def _check_format_dayfirst(format_string):
-    dayfirst = False
+def _check_format_dayfirst(format_string: str) -> bool | None:
     for char in ["%d", "%m", "%Y"]:
         if char not in format_string:
             return None
@@ -150,8 +149,10 @@ def _check_format_dayfirst(format_string):
 
 
 def _guess_datetime_format_for_array(
-    arr, n_find_format, n_check_format
-) -> ArrayLike[tuple[str, str]]:
+    arr: np.ndarray,
+    n_find_format: int,
+    n_check_format: int,
+) -> np.ndarray:
     """
     Guess the format of the datetime strings in an array.
 
@@ -179,7 +180,7 @@ def _guess_datetime_format_for_array(
     sample_check = arr[sample_idx]
     sample_find = sample_check[:n_find_format]
     if len(sample_idx) == 0:
-        return []  # FIXME
+        return np.array([], dtype=object)
     format_found = set()
     for datetime_string in sample_find:
         # catch warnings from guess_datetime_format
@@ -193,22 +194,19 @@ def _guess_datetime_format_for_array(
             if type(datetime_string) is str:
                 format_found.add(guess_datetime_format(datetime_string, dayfirst=False))
                 format_found.add(guess_datetime_format(datetime_string, dayfirst=True))
-    if None in format_found:
-        format_found.remove(None)
     # remove YDM as it does not exist
     # but is returned by guess_datetime_format
-    for format in list(format_found):
-        if re.match(r"%Y[-/_.]+%d[-/_.]+%m", format):
+    for format_ in list(format_found):
+        if format_ is None or re.match(r"%Y[-/_.]+%d[-/_.]+%m", format_):
             # doesn't exist but is returned by guess_datetime_format
-            # FIXME
-            format_found.remove(format)
+            format_found.remove(format_)
     # Try to apply the formats found
     # to a larger sample
     format_checked = []
-    for format in format_found:
-        converted = array_strptime(sample_check, fmt=format, errors="coerce")[0]
+    for format_ in format_found:
+        converted = array_strptime(sample_check, fmt=format_, errors="coerce")[0]
         format_checked.append(
-            (format, int(100 * np.sum(~np.isnan(converted)) / len(converted)))
+            (format_, int(100 * np.sum(~np.isnan(converted)) / len(converted)))
         )
     # Sort by the number of strings that match the format
     format_checked.sort(key=lambda x: x[1], reverse=True)
@@ -228,7 +226,10 @@ def _guess_datetime_format_for_array(
     return np.array(format_checked, dtype=object)
 
 
-def _try_to_repect_dayfirst(formats, dayfirst):
+def _try_to_repect_dayfirst(
+    formats: np.ndarray,
+    dayfirst: bool | None,
+) -> tuple[str, bool | None]:
     """
     If several formats work as well, prefer the format which
     respect dayfirst.
@@ -262,7 +263,16 @@ def _try_to_repect_dayfirst(formats, dayfirst):
     return best_formats[0][0], _check_format_dayfirst(best_formats[0][0])
 
 
-def _iterative_conversion(arg, formats, utc, unit, errors, dayfirst, yearfirst, exact):
+def _iterative_conversion(
+    arg: np.ndarray,
+    formats: np.ndarray,
+    utc: bool,
+    unit: str | None,
+    errors: DateTimeErrorChoices,
+    dayfirst: bool | None,
+    yearfirst: bool | None,
+    exact: bool,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     For mixed format, convert datetimestrings iteratively,
     from the best format (the format which work for most samples)
@@ -327,7 +337,6 @@ def _iterative_conversion(arg, formats, utc, unit, errors, dayfirst, yearfirst, 
         elif errors == "coerce":
             result[~indices_succeeded] = iNaT
         elif errors == "ignore":
-            # TODO check
             result = arg
     return result, tz_parsed
 
