@@ -42,7 +42,7 @@ try:
     # Use the wheel CLI for zipping up the wheel since the CLI will
     # take care of rebuilding the hashes found in the record file
     tmp_dir = os.path.join(dest_dir, "tmp")
-    with ZipFile(tmp_file, 'r') as f:
+    with zipfile.ZipFile(tmp_file, 'r') as f:
         # Extracting all the members of the zip 
         # into a specific location.
         f.extractall(path=tmp_dir)
