@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 
 from subprocess import CalledProcessError
 
@@ -38,10 +39,13 @@ success = True
 repaired_wheel_path = os.path.join(dest_dir, wheel_name)
 
 try:
-    # Use the wheel CLI instead of manipulating zipfiles, since the CLI will
+    # Use the wheel CLI for zipping up the wheel since the CLI will
     # take care of rebuilding the hashes found in the record file
     tmp_dir = os.path.join(dest_dir, "tmp")
-    subprocess.run(["wheel", "unpack", f"-d {tmp_dir}", wheel_path], check=True)
+    with ZipFile(tmp_file, 'r') as f:
+        # Extracting all the members of the zip 
+        # into a specific location.
+        f.extractall(path=tmp_dir)
     base_redist_dir = (
         f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
         f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
