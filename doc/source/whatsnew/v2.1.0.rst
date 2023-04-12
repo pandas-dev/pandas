@@ -232,8 +232,8 @@ Deprecations
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
-- Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`??`)
-- Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`??`)
+- Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
+- Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
 -
 
 .. ---------------------------------------------------------------------------

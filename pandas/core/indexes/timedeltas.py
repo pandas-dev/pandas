@@ -143,6 +143,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name=None,
     ):
         if closed is not lib.no_default:
+            # GH#52628
             warnings.warn(
                 f"The 'closed' keyword in {cls.__name__} construction is "
                 "deprecated and will be removed in a future version.",

@@ -19,6 +19,7 @@ from pandas.core.arrays.timedeltas import (
 
 class TestTimedeltaIndex:
     def test_closed_deprecated(self):
+        # GH#52628
         msg = "The 'closed' keyword"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             TimedeltaIndex([], closed=True)

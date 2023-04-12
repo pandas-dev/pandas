@@ -327,6 +327,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         name: Hashable = None,
     ) -> Self:
         if closed is not lib.no_default:
+            # GH#52628
             warnings.warn(
                 f"The 'closed' keyword in {cls.__name__} construction is "
                 "deprecated and will be removed in a future version.",
@@ -334,6 +335,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 stacklevel=find_stack_level(),
             )
         if normalize is not lib.no_default:
+            # GH#52628
             warnings.warn(
                 f"The 'normalize' keyword in {cls.__name__} construction is "
                 "deprecated and will be removed in a future version.",
