@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
     List,
@@ -2942,7 +2943,7 @@ class MultiIndex(Index):
         if not drop_level:
             if lib.is_integer(loc):
                 # Slice index must be an integer or None
-                mi = self[loc : loc + 1]  # type: ignore[misc]
+                mi = self[loc : loc + 1]
             else:
                 mi = self[loc]
         return loc, mi
@@ -3772,6 +3773,9 @@ class MultiIndex(Index):
 
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+        if isinstance(values, Generator):
+            values = list(values)
+
         if level is None:
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
