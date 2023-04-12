@@ -19,6 +19,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
     DtypeObj,
@@ -33,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_extension_array_dtype,
     is_numeric_dtype,
-    is_timedelta64_dtype,
 )
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype
@@ -363,7 +363,7 @@ def select_describe_func(
         return describe_numeric_1d
     elif is_datetime64_any_dtype(data.dtype):
         return describe_timestamp_1d
-    elif is_timedelta64_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "m"):
         return describe_numeric_1d
     else:
         return describe_categorical_1d

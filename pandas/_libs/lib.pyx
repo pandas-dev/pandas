@@ -3070,3 +3070,30 @@ def dtypes_all_equal(list types not None) -> bool:
             return False
     else:
         return True
+
+
+def is_np_dtype(object dtype, str kinds=None) -> bool:
+    """
+    Optimized check for `isinstance(dtype, np.dtype)` with
+    optional `and dtype.kind in kinds`.
+
+    dtype = np.dtype("m8[ns]")
+
+    In [7]: %timeit isinstance(dtype, np.dtype)
+    117 ns ± 1.91 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+
+    In [8]: %timeit is_np_dtype(dtype)
+    64 ns ± 1.51 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+
+    In [9]: %timeit is_timedelta64_dtype(dtype)
+    209 ns ± 6.96 ns per loop (mean ± std. dev. of 7 runs, 1,000,000 loops each)
+
+    In [10]: %timeit is_np_dtype(dtype, "m")
+    93.4 ns ± 1.11 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+    """
+    if not cnp.PyArray_DescrCheck(dtype):
+        # i.e. not isinstance(dtype, np.dtype)
+        return False
+    if kinds is None:
+        return True
+    return dtype.kind in kinds

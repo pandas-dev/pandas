@@ -120,7 +120,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_re_compilable,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -7758,7 +7757,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
                 or is_datetime64_any_dtype(index.dtype)
-                or is_timedelta64_dtype(index.dtype)
+                or lib.is_np_dtype(index.dtype, "m")
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
