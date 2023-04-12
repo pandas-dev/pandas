@@ -1994,7 +1994,7 @@ class ArrowExtensionArray(
             from pandas.util._str_methods import removeprefix
 
         else:
-            removeprefix = lambda arg, prefix: arg.remove_prefix(prefix)
+            removeprefix = lambda arg, prefix: arg.removeprefix(prefix)
         return type(self)(
             pa.chunked_array(
                 [
