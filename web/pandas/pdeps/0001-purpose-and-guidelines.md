@@ -135,7 +135,7 @@ changed and avoid confusion.
 ### Clear examples for potential PDEPs:
 
 - Adding a new parameter to many existing methods, or deprecating one in many places. For example:
-  - The `numeric_only` deprecation affected many methods and could have been a PDEP.
+  - The `numeric_only` deprecation ([GH-28900][28900]) affected many methods and could have been a PDEP.
 - Adding a new data type has impact on a variety of places that need to handle the data type.
   Such wide-ranging impact would require a PDEP. For example:
   - `Categorical` ([GH-7217][7217], [GH-8074][8074]), `StringDtype` ([GH-8640][8640]), `ArrowDtype`
@@ -170,8 +170,8 @@ hope can help clarify our meaning here:
   - On the other hand, `DataFrame.assign()` might. While it is a single method without backwards
     compatibility concerns, it is also a core feature and the discussion should be highly visible.
 - Deprecating or removing a single method would not require a PDEP in most cases. For example:
-  - `DataFrame.xs` ([GH-6249][6249]) is an example of deprecations on core features that would be
-    a good candidate for a PDEP.
+  - That said, `DataFrame.append` ([GH-35407][35407]) is an example of deprecations on core
+    features that would be a good candidate for a PDEP.
 - Changing the default value of parameters in a core pandas method is another edge case. For
   example:
   - Such changes in `dropna`,  `DataFrame.groupby`, or in `Series.groupby` could be PDEPs.
@@ -200,3 +200,5 @@ hope can help clarify our meaning here:
 [28409]: https://github.com/pandas-dev/pandas/issues/28409
 [47938]: https://github.com/pandas-dev/pandas/pull/47938
 [51417]: https://github.com/pandas-dev/pandas/pull/51417
+[28900]: https://github.com/pandas-dev/pandas/issues/28900
+[35407]: https://github.com/pandas-dev/pandas/issues/35407
