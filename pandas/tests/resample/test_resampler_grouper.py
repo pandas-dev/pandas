@@ -494,7 +494,7 @@ def test_groupby_resample_with_list_of_keys():
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
-def test_resample_empty_Dataframe(keys):
+def test_resample_no_index(keys):
     # GH 47705
     df = DataFrame([], columns=["a", "b", "date"])
     df["date"] = pd.to_datetime(df["date"])
@@ -506,6 +506,35 @@ def test_resample_empty_Dataframe(keys):
     if len(keys) == 1:
         expected.index.name = keys[0]
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_no_columns():
+    # GH#52484
+    df = DataFrame(
+        index=Index(
+            pd.to_datetime(
+                ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+            ),
+            name="date",
+        )
+    )
+    result = df.groupby([0, 0, 1]).resample(rule=pd.to_timedelta("06:00:00")).mean()
+    index = pd.to_datetime(
+        [
+            "2018-01-01 00:00:00",
+            "2018-01-01 06:00:00",
+            "2018-01-01 12:00:00",
+            "2018-01-02 00:00:00",
+        ]
+    )
+    expected = DataFrame(
+        index=pd.MultiIndex(
+            levels=[[0, 1], index],
+            codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
+            names=[None, "date"],
+        )
+    )
     tm.assert_frame_equal(result, expected)
 
 
