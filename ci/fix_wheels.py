@@ -52,7 +52,7 @@ try:
     )
     required_dlls = ["msvcp140.dll", "concrt140.dll"]
     if not is_32:
-        required_dlls += "vcruntime140_1.dll"
+        required_dlls += ["vcruntime140_1.dll"]
     for dll in required_dlls:
         src = os.path.join(base_redist_dir, dll)
         shutil.copy(src, tmp_dir)
