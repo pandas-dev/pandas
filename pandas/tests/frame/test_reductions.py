@@ -1508,6 +1508,42 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @td.skip_array_manager_invalid_test
+    def test_reduction_timestamp_smallest_unit(self):
+        # GH#52524
+        df = DataFrame(
+            {
+                "a": Series([Timestamp("2019-12-31")], dtype="datetime64[s]"),
+                "b": Series(
+                    [Timestamp("2019-12-31 00:00:00.123")], dtype="datetime64[ms]"
+                ),
+            }
+        )
+        result = df.max()
+        expected = Series(
+            [Timestamp("2019-12-31"), Timestamp("2019-12-31 00:00:00.123")],
+            dtype="datetime64[ms]",
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_reduction_timedelta_smallest_unit(self):
+        # GH#52524
+        df = DataFrame(
+            {
+                "a": Series([pd.Timedelta("1 days")], dtype="timedelta64[s]"),
+                "b": Series([pd.Timedelta("1 days")], dtype="timedelta64[ms]"),
+            }
+        )
+        result = df.max()
+        expected = Series(
+            [pd.Timedelta("1 days"), pd.Timedelta("1 days")],
+            dtype="timedelta64[ms]",
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestNuisanceColumns:
     @pytest.mark.parametrize("method", ["any", "all"])
