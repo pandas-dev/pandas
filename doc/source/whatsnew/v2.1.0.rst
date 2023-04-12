@@ -16,7 +16,53 @@ Enhancements
 
 .. _whatsnew_210.enhancements.enhancement1:
 
-enhancement1
+``pd.to_datetime`` now tries to infer the datetime format of each string by considering
+the whole Series, and tries to find the format which work for most strings. If several
+formats work as well, the one which matches the ``dayfirst`` parameter is returned. If
+``format="mixed"``, pandas does the same thing, then tries the second best format on the
+strings which failed to parse with the first best format, and so on (:issue:`52508`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"])
+    Out[1]:
+    ValueError: time data "30-01-2012" doesn't match format "%m-%d-%Y", at position 2. You might want to try:
+    - passing `format` if your strings have a consistent format;
+    - passing `format='ISO8601'` if your strings are all ISO8601 but not necessarily in exactly the same format;
+    - passing `format='mixed'`, and the format will be inferred for each element individually. You might want to use `dayfirst` alongside this.
+
+    In [2]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"], errors="coerce")
+    Out[2]:
+    DatetimeIndex(['2012-01-02', '2012-01-03', 'NaT'], dtype='datetime64[ns]', freq=None)
+
+    In [3]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"], format="mixed")
+    Out[3]:
+    DatetimeIndex(['2012-01-02', '2012-01-03', '2012-01-30'], dtype='datetime64[ns]', freq=None)
+
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [1]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"])
+    Out[1]:
+    UserWarning: Parsing dates in %d-%m-%Y format when dayfirst=False was specified.
+    Pass `dayfirst=True` or specify a format to silence this warning.
+    DatetimeIndex(['2012-02-01', '2012-03-01', '2012-01-30'], dtype='datetime64[ns]',
+    freq=None)
+
+    In [2]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"], errors="coerce")
+    Out[2]:
+    UserWarning: Parsing dates in %d-%m-%Y format when dayfirst=False was specified. Pass `dayfirst=True` or specify a format to silence this warning.
+    DatetimeIndex(['2012-02-01', '2012-03-01', '2012-01-30'], dtype='datetime64[ns]', freq=None)
+
+    In [3]: pd.to_datetime(["01-02-2012", "01-03-2012", "30-01-2012"], format="mixed")
+    Out[3]:
+    DatetimeIndex(['2012-02-01', '2012-03-01', '2012-01-30'], dtype='datetime64[ns]', freq=None)
+
+
 ^^^^^^^^^^^^
 
 .. _whatsnew_210.enhancements.enhancement2:
