@@ -2175,6 +2175,40 @@ def test_str_wrap():
     tm.assert_series_equal(result, expected)
 
 
+def test_get_dummies():
+    ser = pd.Series(["a|b", None, "a|c"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.get_dummies()
+    expected = pd.DataFrame(
+        [[True, True, False], [False, False, False], [True, False, True]],
+        dtype=ArrowDtype(pa.bool_()),
+        columns=["a", "b", "c"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_str_partition():
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.partition("b")
+    expected = pd.DataFrame(
+        [["a", "b", "cba"], [None, None, None]], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.partition("b", expand=False)
+    expected = pd.Series(ArrowExtensionArray(pa.array([["a", "b", "cba"], None])))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.rpartition("b")
+    expected = pd.DataFrame(
+        [["abc", "b", "a"], [None, None, None]], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.rpartition("b", expand=False)
+    expected = pd.Series(ArrowExtensionArray(pa.array([["abc", "b", "a"], None])))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_split():
     # GH 52401
     ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
@@ -2231,21 +2265,12 @@ def test_str_rsplit():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "method, args",
-    [
-        ["partition", ("abc", False)],
-        ["rpartition", ("abc", False)],
-        ["extract", (r"[ab](\d)",)],
-        ["get_dummies", ()],
-    ],
-)
-def test_str_unsupported_methods(method, args):
+def test_str_unsupported_extract():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(
-        NotImplementedError, match=f"str.{method} not supported with pd.ArrowDtype"
+        NotImplementedError, match="str.extract not supported with pd.ArrowDtype"
     ):
-        getattr(ser.str, method)(*args)
+        ser.str.extract(r"[ab](\d)")
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])

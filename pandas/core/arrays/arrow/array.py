@@ -1871,13 +1871,29 @@ class ArrowExtensionArray(
         return type(self)(pc.binary_join(self._pa_array, sep))
 
     def _str_partition(self, sep: str, expand: bool):
-        raise NotImplementedError(
-            "str.partition not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        None if val.as_py() is None else val.as_py().partition(sep)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_rpartition(self, sep: str, expand: bool):
-        raise NotImplementedError(
-            "str.rpartition not supported with pd.ArrowDtype(pa.string())."
+        return type(self)(
+            pa.chunked_array(
+                [
+                    [
+                        None if val.as_py() is None else val.as_py().rpartition(sep)
+                        for val in chunk
+                    ]
+                    for chunk in self._pa_array.iterchunks()
+                ]
+            )
         )
 
     def _str_slice(
@@ -2028,21 +2044,9 @@ class ArrowExtensionArray(
         )
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        regex = re.compile(pat, flags=flags)
-        result = []
-        for chunk in self._pa_array.iterchunks():
-            result_chunk = []
-            for val in chunk:
-                if val.as_py() is None:
-                    result_chunk.append(None)
-                    continue
-                found = regex.search(val.as_py())
-                if found:
-                    result_chunk.append(found.groups())
-                else:
-                    result_chunk.append(None)
-            result.append(result_chunk)
-        return type(self)(pa.chunked_array(result))
+        raise NotImplementedError(
+            "str.extract not supported with pd.ArrowDtype(pa.string())."
+        )
 
     def _str_findall(self, pat: str, flags: int = 0):
         regex = re.compile(pat, flags=flags)
@@ -2063,13 +2067,12 @@ class ArrowExtensionArray(
         uniques = split.flatten().unique()
         uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
         result_data = []
-        # for unique in uniques_sorted:
         for lst in split.to_pylist():
             if lst is None:
-                arr = pa.array([False] * len(uniques_sorted))
+                result_data.append([False] * len(uniques_sorted))
             else:
-                arr = pc.is_in(uniques_sorted, pa.array(set(lst)))
-            result_data.append(arr.to_pylist())
+                res = pc.is_in(uniques_sorted, pa.array(set(lst)))
+                result_data.append(res.to_pylist())
         result = type(self)(pa.array(result_data))
         return result, uniques_sorted.to_pylist()
 

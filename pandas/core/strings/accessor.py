@@ -267,7 +267,6 @@ class StringMethods(NoNewAttributesMixin):
         if expand is None:
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
-
         elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
@@ -280,10 +279,15 @@ class StringMethods(NoNewAttributesMixin):
                     result._pa_array.combine_chunks().value_lengths()
                 ).as_py()
                 if result.isna().any():
+                    # ArrowExtensionArray.fillna doesn't work for list scalars
                     result._pa_array = result._pa_array.fill_null([None] * max_len)
+                if name is not None:
+                    labels = name
+                else:
+                    labels = range(max_len)
                 result = {
-                    i: ArrowExtensionArray(pa.array(res))
-                    for i, res in enumerate(zip(*result.tolist()))
+                    label: ArrowExtensionArray(pa.array(res))
+                    for label, res in zip(labels, (zip(*result.tolist())))
                 }
             elif is_object_dtype(result):
 
