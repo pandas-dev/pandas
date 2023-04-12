@@ -15,8 +15,7 @@ All rights reserved.
 See NUMPY_LICENSE.txt for the license.
 */
 
-#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
-#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_
+#pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -112,4 +111,3 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
 #ifdef __cplusplus
 }
 #endif
-#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_PD_DATETIME_H_

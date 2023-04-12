@@ -9,8 +9,7 @@ See LICENSE for the license
 
 */
 
-#ifndef PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
-#define PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_
+#pragma once
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -232,5 +231,3 @@ double precise_xstrtod(const char *p, char **q, char decimal,
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);
-
-#endif  // PANDAS__LIBS_SRC_PARSER_TOKENIZER_H_

@@ -14,8 +14,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
-#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
-#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+#pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -114,6 +113,3 @@ add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
  */
 PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(
         PyArray_Descr *dtype);
-
-
-#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
