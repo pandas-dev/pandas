@@ -2,6 +2,7 @@ import glob
 import os
 import shutil
 import subprocess
+from subprocess import CalledProcessError
 import sys
 
 if os.name == "nt":
