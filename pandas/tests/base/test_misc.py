@@ -6,7 +6,6 @@ import pytest
 from pandas.compat import PYPY
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_object_dtype,
 )
@@ -82,8 +81,8 @@ def test_ndarray_compat_properties(index_or_series_obj):
 
 
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-def test_memory_usage(index_or_series_obj):
-    obj = index_or_series_obj
+def test_memory_usage(index_or_series_memory_obj):
+    obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
     if isinstance(obj, Series):
         is_ser = True
@@ -96,8 +95,8 @@ def test_memory_usage(index_or_series_obj):
     res_deep = obj.memory_usage(deep=True)
 
     is_object = is_object_dtype(obj) or (is_ser and is_object_dtype(obj.index))
-    is_categorical = is_categorical_dtype(obj.dtype) or (
-        is_ser and is_categorical_dtype(obj.index.dtype)
+    is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
+        is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
     )
     is_object_string = is_dtype_equal(obj, "string[python]") or (
         is_ser and is_dtype_equal(obj.index.dtype, "string[python]")

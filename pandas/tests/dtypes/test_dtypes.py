@@ -123,7 +123,7 @@ class TestCategoricalDtype(Base):
 
     dtype1 = CategoricalDtype(["a", "b"], ordered=True)
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1, fastpath=True)
+    c = Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
@@ -166,16 +166,18 @@ class TestCategoricalDtype(Base):
         assert not CategoricalDtype.is_dtype(np.float64)
 
     def test_basic(self, dtype):
-        assert is_categorical_dtype(dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(dtype)
 
-        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
+            factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
 
-        s = Series(factor, name="A")
+            s = Series(factor, name="A")
 
-        # dtypes
-        assert is_categorical_dtype(s.dtype)
-        assert is_categorical_dtype(s)
-        assert not is_categorical_dtype(np.dtype("float64"))
+            # dtypes
+            assert is_categorical_dtype(s.dtype)
+            assert is_categorical_dtype(s)
+            assert not is_categorical_dtype(np.dtype("float64"))
 
     def test_tuple_categories(self):
         categories = [(1, "a"), (2, "b"), (3, "c")]
@@ -211,13 +213,25 @@ class TestCategoricalDtype(Base):
         dtype = CategoricalDtype(categories=rng, ordered=False)
         result = repr(dtype)
 
-        expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
+        expected = (
+            "CategoricalDtype(categories=range(0, 3), ordered=False, "
+            "categories_dtype=int64)"
+        )
         assert result == expected
 
     def test_update_dtype(self):
         # GH 27338
         result = CategoricalDtype(["a"]).update_dtype(Categorical(["b"], ordered=True))
         expected = CategoricalDtype(["b"], ordered=True)
+        assert result == expected
+
+    def test_repr(self):
+        cat = Categorical(pd.Index([1, 2, 3], dtype="int32"))
+        result = cat.dtype.__repr__()
+        expected = (
+            "CategoricalDtype(categories=[1, 2, 3], ordered=False, "
+            "categories_dtype=int32)"
+        )
         assert result == expected
 
 
@@ -426,6 +440,14 @@ class TestPeriodDtype(Base):
             assert dt.freq == pd.tseries.offsets.Hour(26)
             assert is_period_dtype(dt)
 
+    def test_cannot_use_custom_businessday(self):
+        # GH#52534
+        msg = "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype("C")
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype(pd.offsets.CustomBusinessDay())
+
     def test_subclass(self):
         a = PeriodDtype("period[D]")
         b = PeriodDtype("period[3D]")
@@ -523,7 +545,7 @@ class TestPeriodDtype(Base):
         with pytest.raises(TypeError, match=msg):
             PeriodDtype()
 
-        msg = "PeriodDtype argument should be string or BaseOffet, got NoneType"
+        msg = "PeriodDtype argument should be string or BaseOffset, got NoneType"
         with pytest.raises(TypeError, match=msg):
             # GH#51790
             PeriodDtype(None)
@@ -980,7 +1002,10 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
-        pat = r"CategoricalDtype\(categories=\[.*\], ordered={ordered}\)"
+        pat = (
+            r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
+            r"categories_dtype=object\)"
+        )
         assert re.match(pat.format(ordered=ordered), repr(c1))
 
     def test_categorical_categories(self):
@@ -1086,10 +1111,15 @@ def test_is_bool_dtype_sparse():
 )
 def test_is_dtype_no_warning(check):
     data = pd.DataFrame({"A": [1, 2]})
-    with tm.assert_produces_warning(None):
+
+    warn = None
+    msg = "is_categorical_dtype is deprecated"
+    if check is is_categorical_dtype:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
         check(data)
 
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         check(data["A"])
 
 

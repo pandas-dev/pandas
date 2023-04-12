@@ -82,7 +82,7 @@ class TestSeriesConstructors:
         expected = Index(vals, dtype=object)
         tm.assert_index_equal(idx, expected)
 
-    def test_unparseable_strings_with_dt64_dtype(self):
+    def test_unparsable_strings_with_dt64_dtype(self):
         # pre-2.0 these would be silently ignored and come back with object dtype
         vals = ["aa"]
         msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
@@ -93,35 +93,34 @@ class TestSeriesConstructors:
             Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
 
     @pytest.mark.parametrize(
-        "constructor,check_index_type",
+        "constructor",
         [
             # NOTE: some overlap with test_constructor_empty but that test does not
             # test for None or an empty generator.
             # test_constructor_pass_none tests None but only with the index also
             # passed.
-            (lambda idx: Series(index=idx), True),
-            (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series((), index=idx), True),
-            (lambda idx: Series([], index=idx), True),
-            (lambda idx: Series((_ for _ in []), index=idx), True),
-            (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series(data=(), index=idx), True),
-            (lambda idx: Series(data=[], index=idx), True),
-            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
+            (lambda idx: Series(index=idx)),
+            (lambda idx: Series(None, index=idx)),
+            (lambda idx: Series({}, index=idx)),
+            (lambda idx: Series((), index=idx)),
+            (lambda idx: Series([], index=idx)),
+            (lambda idx: Series((_ for _ in []), index=idx)),
+            (lambda idx: Series(data=None, index=idx)),
+            (lambda idx: Series(data={}, index=idx)),
+            (lambda idx: Series(data=(), index=idx)),
+            (lambda idx: Series(data=[], index=idx)),
+            (lambda idx: Series(data=(_ for _ in []), index=idx)),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])
-    def test_empty_constructor(self, constructor, check_index_type, empty_index):
-        # TODO: share with frame test of the same name
+    def test_empty_constructor(self, constructor, empty_index):
         # GH 49573 (addition of empty_index parameter)
         expected = Series(index=empty_index)
         result = constructor(empty_index)
 
         assert result.dtype == object
         assert len(result.index) == 0
-        tm.assert_series_equal(result, expected, check_index_type=check_index_type)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_invalid_dtype(self):
         # GH15520
@@ -385,7 +384,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -397,13 +396,17 @@ class TestSeriesConstructors:
     def test_construct_from_categorical_with_dtype(self):
         # GH12574
         cat = Series(Categorical([1, 2, 3]), dtype="category")
-        assert is_categorical_dtype(cat)
-        assert is_categorical_dtype(cat.dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(cat)
+            assert is_categorical_dtype(cat.dtype)
 
     def test_construct_intlist_values_category_dtype(self):
         ser = Series([1, 2, 3], dtype="category")
-        assert is_categorical_dtype(ser)
-        assert is_categorical_dtype(ser.dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(ser)
+            assert is_categorical_dtype(ser.dtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -473,12 +476,12 @@ class TestSeriesConstructors:
         result = Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
-        assert is_categorical_dtype(result.dtype) is True
+        assert isinstance(result.dtype, CategoricalDtype)
         tm.assert_index_equal(result.cat.categories, Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
-        assert is_categorical_dtype(result.dtype)
+        assert isinstance(result.dtype, CategoricalDtype)
         tm.assert_index_equal(result.cat.categories, Index(["b", "a"]))
         assert result.cat.ordered is False
 
@@ -527,7 +530,7 @@ class TestSeriesConstructors:
         # however, copy is False by default
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
-        s = Series(cat)
+        s = Series(cat, copy=False)
         assert s.values is cat
         s = s.cat.rename_categories([1, 2, 3])
         assert s.values is not cat

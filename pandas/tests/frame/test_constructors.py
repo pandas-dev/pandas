@@ -231,7 +231,7 @@ class TestDataFrameConstructors:
         ],
     )
     def test_empty_constructor_object_index(self, constructor):
-        expected = DataFrame(columns=Index([]))
+        expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
         result = constructor()
         assert len(result.index) == 0
         assert len(result.columns) == 0
@@ -663,7 +663,7 @@ class TestDataFrameConstructors:
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
         with pytest.raises(ValueError, match=msg):
-            DataFrame(np.empty(0), columns=list("abc"))
+            DataFrame(np.empty(0), index=[1])
 
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
@@ -2654,7 +2654,7 @@ class TestDataFrameConstructors:
 
     def test_construction_empty_array_multi_column_raises(self):
         # GH#46822
-        msg = "Empty data passed with indices specified."
+        msg = r"Shape of passed values is \(0, 1\), indices imply \(0, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(data=np.array([]), columns=["a", "b"])
 
