@@ -3818,6 +3818,3 @@ class TestParsingMultipleDates:
         # to the worst format
         result = to_datetime(date_str, format="mixed")
         tm.assert_index_equal(result, expected_mixed)
-
-    # TODO multiple precision
-    # (["2011-12-30 00:00:00.000000", "2011-11-20"], "%Y-%m-%d", None)
