@@ -36,13 +36,12 @@ if not os.path.isdir(dest_dir):
 shutil.copy(wheel_path, dest_dir)  # Remember to delete if process fails
 wheel_name = os.path.basename(wheel_path)
 success = True
-repaired_wheel_path = os.path.join(dest_dir, wheel_name)
 
 try:
     # Use the wheel CLI for zipping up the wheel since the CLI will
     # take care of rebuilding the hashes found in the record file
     tmp_dir = os.path.join(dest_dir, "tmp")
-    with zipfile.ZipFile(tmp_dir, 'r') as f:
+    with zipfile.ZipFile(wheel_path, 'r') as f:
         # Extracting all the members of the zip 
         # into a specific location.
         f.extractall(path=tmp_dir)
@@ -60,6 +59,5 @@ try:
     subprocess.run(["wheel", "pack", tmp_dir, f"-d {dest_dir}"], check=True)
 except CalledProcessError:
     print("Failed to add DLLS to wheel.")
-    os.remove(repaired_wheel_path)
     sys.exit(1)
 print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
