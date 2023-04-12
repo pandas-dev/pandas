@@ -137,7 +137,7 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
-        ("is_datetim64tz_dtype", "is_datetim64tz_dtype is deprecated"),
+        ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
