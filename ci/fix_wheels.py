@@ -8,10 +8,9 @@ redistributables
 import os
 import shutil
 import subprocess
+from subprocess import CalledProcessError
 import sys
 import zipfile
-
-from subprocess import CalledProcessError
 
 try:
     if len(sys.argv) != 3:
@@ -39,8 +38,8 @@ try:
     # Use the wheel CLI for zipping up the wheel since the CLI will
     # take care of rebuilding the hashes found in the record file
     tmp_dir = os.path.join(dest_dir, "tmp")
-    with zipfile.ZipFile(wheel_path, 'r') as f:
-        # Extracting all the members of the zip 
+    with zipfile.ZipFile(wheel_path, "r") as f:
+        # Extracting all the members of the zip
         # into a specific location.
         f.extractall(path=tmp_dir)
     base_redist_dir = (
@@ -59,4 +58,4 @@ try:
 except CalledProcessError:
     print("Failed to add DLLS to wheel.")
     sys.exit(1)
-print(f"Successfully repaired wheel")
+print("Successfully repaired wheel")
