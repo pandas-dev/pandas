@@ -568,8 +568,7 @@ class PyTablesExpr(expr.Expr):
                 if isinstance(w, PyTablesExpr):
                     local_dict = w.env.scope
                 else:
-                    w = _validate_where(w)
-                    where[idx] = w
+                    where[idx] = _validate_where(w)
             _where = " & ".join([f"({w})" for w in com.flatten(where)])
         else:
             # _validate_where ensures we otherwise have a string

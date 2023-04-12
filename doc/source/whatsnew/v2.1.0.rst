@@ -87,6 +87,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
+- Adding ``engine_kwargs`` parameter to :meth:`DataFrame.read_excel` (:issue:`52214`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -199,6 +200,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated :meth:`.DataFrameGroupBy.apply` and methods on the objects returned by :meth:`.DataFrameGroupBy.resample` operating on the grouping column(s); select the columns to operate on after groupby to either explicitly include or exclude the groupings and avoid the ``FutureWarning`` (:issue:`7155`)
 - Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated :meth:`DataFrame._data` and :meth:`Series._data`, use public APIs instead (:issue:`33333`)
 - Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
@@ -228,6 +230,10 @@ Deprecations
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
+- Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
+- Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
+- Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
+- Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
 -
 
 .. ---------------------------------------------------------------------------
