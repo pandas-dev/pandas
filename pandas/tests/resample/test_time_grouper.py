@@ -315,12 +315,14 @@ def test_groupby_resample_interpolate():
 
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
-    result = (
-        df.set_index("week_starting")
-        .groupby("volume")
-        .resample("1D")
-        .interpolate(method="linear")
-    )
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = (
+            df.set_index("week_starting")
+            .groupby("volume")
+            .resample("1D")
+            .interpolate(method="linear")
+        )
 
     expected_ind = pd.MultiIndex.from_tuples(
         [
