@@ -266,6 +266,8 @@ ignore = [
   "PLR0912",
   # Too many statements
   "PLR0915",
+  # Redefined loop name
+  "PLW2901",
   # Global statements are discouraged
   "PLW0603",
   # Docstrings should not be included in stubs
@@ -301,14 +303,12 @@ exclude = [
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
-# to be enabled gradually (PLW2901 to be moved under keep enabled)
-"pandas/core/*" = ["PLR5501", "PLW2901"]
-"pandas/tests/*" = ["B028", "PLW2901"]
+# to be enabled gradually
+"pandas/core/*" = ["PLR5501"]
+"pandas/tests/*" = ["B028"]
 "scripts/*" = ["B028"]
-# Keep those enabled
+# Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
-"pandas/io/*" = ["PLW2901"]
-"pandas/plotting/*" = ["PLW2901"]
 
 [tool.pylint.messages_control]
 max-line-length = 88
