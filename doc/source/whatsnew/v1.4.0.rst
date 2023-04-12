@@ -280,6 +280,7 @@ if one of the DataFrames was empty or had all-NA values, its dtype was
 consistently *not* ignored (:issue:`43507`).
 
 .. ipython:: python
+    :okwarning:
 
     df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
     df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
