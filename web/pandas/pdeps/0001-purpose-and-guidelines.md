@@ -119,7 +119,7 @@ good as an accepted PDEP, but where the final decision was to not implement the 
 
 ## Evolution of PDEPs
 
-Most PDEPs are not expected to change after they are accepted. However, this PDEP (PDEP-1), which governs the PDEP process, may change as the process evolves.  Once there is agreement on the changes,
+Most PDEPs are not expected to change after they are accepted. Once there is agreement on the changes,
 and they are implemented, the PDEP will be only useful to understand why the development happened,
 and the details of the discussion.
 
