@@ -257,10 +257,10 @@ class TestCounting:
 
 def test_groupby_timedelta_cython_count():
     df = DataFrame(
-        {"g": list("ab" * 2), "delt": np.arange(4).astype("timedelta64[ns]")}
+        {"g": list("ab" * 2), "dealt": np.arange(4).astype("timedelta64[ns]")}
     )
-    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="delt")
-    result = df.groupby("g").delt.count()
+    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="dealt")
+    result = df.groupby("g").dealt.count()
     tm.assert_series_equal(expected, result)
 
 

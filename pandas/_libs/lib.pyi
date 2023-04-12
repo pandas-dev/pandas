@@ -12,6 +12,7 @@ from typing import (
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import Period
@@ -23,15 +24,15 @@ from pandas._typing import (
 )
 
 # placeholder until we can specify np.ndarray[object, ndim=2]
-ndarray_obj_2d = np.ndarray
+ndarray_obj_2d: TypeAlias = np.ndarray
 
 from enum import Enum
 
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = _NoDefault.no_default
-NoDefault = Literal[_NoDefault.no_default]
+no_default: Final[TypeAlias] = ...
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int

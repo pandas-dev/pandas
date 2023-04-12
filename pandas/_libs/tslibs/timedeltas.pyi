@@ -7,6 +7,7 @@ from typing import (
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.tslibs import (
     NaTType,
@@ -19,7 +20,7 @@ from pandas._typing import (
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs
 # in pandas/_libs/tslibs/timedeltas.pyx
-UnitChoices = Literal[
+UnitChoices: TypeAlias = Literal[
     "Y",
     "y",
     "M",

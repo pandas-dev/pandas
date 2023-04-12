@@ -7,6 +7,7 @@ from typing import (
 
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import TypeAlias
 
 from pandas._typing import (
     IntervalClosedType,
@@ -16,9 +17,9 @@ from pandas._typing import (
 
 VALID_CLOSED: frozenset[str]
 
-_OrderableScalarT = TypeVar("_OrderableScalarT", int, float)
-_OrderableTimesT = TypeVar("_OrderableTimesT", Timestamp, Timedelta)
-_OrderableT = TypeVar("_OrderableT", int, float, Timestamp, Timedelta)
+_OrderableScalarT: TypeAlias = TypeVar("_OrderableScalarT", int, float)
+_OrderableTimesT: TypeAlias = TypeVar("_OrderableTimesT", Timestamp, Timedelta)
+_OrderableT: TypeAlias = TypeVar("_OrderableT", int, float, Timestamp, Timedelta)
 
 class _LengthDescriptor:
     @overload

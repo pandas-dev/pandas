@@ -227,7 +227,10 @@ def test_parse_encoded_special_characters(encoding):
     encoded_data = BytesIO(data.encode(encoding))
     result = read_csv(encoded_data, delimiter="\t", encoding=encoding)
 
-    expected = DataFrame(data=[["：foo", 0], ["bar", 1], ["baz", 2]], columns=["a", "b"])
+    expected = DataFrame(
+        data=[["：foo", 0], ["bar", 1], ["baz", 2]],
+        columns=["a", "b"],
+    )
     tm.assert_frame_equal(result, expected)
 
 

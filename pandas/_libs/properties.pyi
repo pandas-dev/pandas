@@ -3,6 +3,8 @@ from typing import (
     overload,
 )
 
+from typing_extensions import TypeAlias
+
 from pandas._typing import (
     AnyArrayLike,
     DataFrame,
@@ -13,7 +15,7 @@ from pandas._typing import (
 # note: this is a lie to make type checkers happy (they special
 # case property). cache_readonly uses attribute names similar to
 # property (fget) but it does not provide fset and fdel.
-cache_readonly = property
+cache_readonly: TypeAlias = property
 
 class AxisProperty:
     axis: int

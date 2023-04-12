@@ -13,6 +13,7 @@ from typing import (
 )
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -23,7 +24,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import Self
 
-_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
+_DatetimeT: TypeAlias = TypeVar("_DatetimeT", bound=datetime)
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
 

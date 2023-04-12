@@ -7,6 +7,8 @@ from typing import (
     overload,
 )
 
+from typing_extensions import TypeAlias
+
 if TYPE_CHECKING:
     import numba
 
@@ -39,5 +41,5 @@ def jit(
     parallel: bool = ...,
 ) -> Callable[[F], F]: ...
 
-njit = jit
-generated_jit = jit
+njit: TypeAlias = jit
+generated_jit: TypeAlias = jit
