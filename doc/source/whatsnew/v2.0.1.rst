@@ -20,6 +20,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :func:`first` when used with a DateOffset (:issue:`45908`)
 - Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
 - Bug in :meth:`Series.describe` not returning :class:`ArrowDtype` with ``pyarrow.float64`` type with numeric data (:issue:`52427`)
 - Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)

@@ -135,3 +135,12 @@ class TestFirst:
         i2 = pd.date_range("2018-04-09", periods=8, freq="2D")
         expected = DataFrame({"A": Series(np.arange(8), index=i2)}, index=i2)
         tm.assert_equal(result, expected)
+
+    def test_first_with_fst_day_last_of_m_DO_kwds_months(self, frame_or_series):
+        periods = 10
+        x = frame_or_series([1] * 10, index=bdate_range("2010-03-31", periods=periods))
+        result = x.first(pd.DateOffset(months=1))
+        expected = frame_or_series(
+            [1] * periods, index=bdate_range("2010-03-31", periods=periods)
+        )
+        tm.assert_equal(result, expected)
