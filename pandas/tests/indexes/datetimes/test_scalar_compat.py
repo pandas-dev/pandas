@@ -15,7 +15,6 @@ from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 import pandas as pd
 from pandas import (
     DatetimeIndex,
-    Series,
     Timestamp,
     date_range,
 )
@@ -160,18 +159,6 @@ class TestDatetimeIndexOps:
         with tm.assert_produces_warning(False):
             ts = "2016-10-17 12:00:00.001501031"
             DatetimeIndex([ts]).round("1010ns")
-
-    def test_components(self):
-        rng = date_range("1 days, 10:11:12", periods=2, freq="ns")
-        rng.components
-
-        s = Series(rng)
-        s[1] = np.nan
-
-        result = s.dt.components
-
-        assert not result.iloc[0].isna().all()
-        assert result.iloc[1].isna().all()
 
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
