@@ -611,8 +611,10 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def components(self):
         self._ensure_components()
-        return Components(self._y, self._month, self._d, 
-            self._h, self._m, self._s, self._ms, self._us, self._ns)
+        return Components(
+            self._y, self._month, self._d,
+            self._h, self._m, self._s, self._ms, self._us, self._ns
+            )
 
     # -----------------------------------------------------------------
 

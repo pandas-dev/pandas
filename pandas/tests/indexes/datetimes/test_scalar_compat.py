@@ -14,8 +14,8 @@ from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
 from pandas import (
-    Series,
     DatetimeIndex,
+    Series,
     Timestamp,
     date_range,
 )
@@ -164,6 +164,7 @@ class TestDatetimeIndexOps:
     def test_components(self):
         rng = date_range("1 days, 10:11:12", periods=2, freq="ns")
         rng.components
+        
         
         s = Series(rng)
         s[1] = np.nan
