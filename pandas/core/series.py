@@ -2908,7 +2908,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         one, or the Series and each columns of a DataFrame, or the Series and
         each columns of an array.
 
-        It can also be called using `self @ other` in Python >= 3.5.
+        It can also be called using `self @ other`.
 
         Parameters
         ----------
@@ -2980,13 +2980,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __matmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(np.transpose(other))
 

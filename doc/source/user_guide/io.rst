@@ -3449,6 +3449,18 @@ Reading Excel files
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 
+When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
+engine. For this, it is important to know which function pandas is
+using internally.
+
+* For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
+
+* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+
+* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+
+* For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
 .. code-block:: python
 
    # Returns a DataFrame
@@ -3987,7 +3999,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to pandas version 0.20.3
+   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
 
 .. _io.pickle.compression:
 
@@ -5910,11 +5922,6 @@ And then issue the following queries:
 Google BigQuery
 ---------------
 
-.. warning::
-
-   Starting in 0.20.0, pandas has split off Google BigQuery support into the
-   separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
-
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
 
 pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
@@ -6102,7 +6109,7 @@ SAS formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-XPORT (.xpt) and (since *v0.18.0*) SAS7BDAT (.sas7bdat) format files.
+XPORT (.xpt) and SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,
