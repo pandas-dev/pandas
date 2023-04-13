@@ -1953,11 +1953,6 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         else:
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
-        self._post_setstate()
-
-    def _post_setstate(self) -> None:
-        pass
-
     @cache_readonly
     def _block(self) -> Block:
         return self.blocks[0]

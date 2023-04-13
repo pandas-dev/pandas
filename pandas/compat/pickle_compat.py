@@ -59,23 +59,6 @@ def load_reduce(self):
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-    ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
-    # 15477
-    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
-    ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
-    # 10890
-    ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
-    ("pandas.sparse.series", "SparseTimeSeries"): (
-        "pandas.core.sparse.series",
-        "SparseSeries",
-    ),
-    # 12588, extensions moving
-    ("pandas._sparse", "BlockIndex"): ("pandas._libs.sparse", "BlockIndex"),
-    ("pandas.tslib", "Timestamp"): ("pandas._libs.tslib", "Timestamp"),
-    # 18543 moving period
-    ("pandas._period", "Period"): ("pandas._libs.tslibs.period", "Period"),
-    ("pandas._libs.period", "Period"): ("pandas._libs.tslibs.period", "Period"),
     # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
     ("pandas.tslib", "__nat_unpickle"): (
         "pandas._libs.tslibs.nattype",
