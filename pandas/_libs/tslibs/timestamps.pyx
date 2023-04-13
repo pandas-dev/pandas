@@ -464,7 +464,7 @@ cdef class _Timestamp(ABCTimestamp):
             raise integer_op_not_supported(self)
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -496,7 +496,7 @@ cdef class _Timestamp(ABCTimestamp):
             return self + neg_other
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:

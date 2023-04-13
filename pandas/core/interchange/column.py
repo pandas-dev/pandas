@@ -10,10 +10,7 @@ from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
-from pandas.api.types import (
-    is_categorical_dtype,
-    is_string_dtype,
-)
+from pandas.api.types import is_string_dtype
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,
@@ -99,7 +96,7 @@ class PandasColumn(Column):
     def dtype(self) -> tuple[DtypeKind, int, str, str]:
         dtype = self._col.dtype
 
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, pd.CategoricalDtype):
             codes = self._col.values.codes
             (
                 _,

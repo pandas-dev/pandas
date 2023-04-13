@@ -471,7 +471,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
         if (
             len(values) > 0
-            and is_numeric_dtype(values)
+            and is_numeric_dtype(values.dtype)
             and not is_signed_integer_dtype(comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
@@ -568,7 +568,7 @@ def factorize_array(
     uniques : ndarray
     """
     original = values
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # _get_hashtable_algo will cast dt64/td64 to i8 via _ensure_data, so we
         #  need to do the same to na_value. We are assuming here that the passed
         #  na_value is an appropriately-typed NaT.
@@ -1745,6 +1745,9 @@ def map_array(
         new_values = take_nd(mapper._values, indexer)
 
         return new_values
+
+    if not len(arr):
+        return arr.copy()
 
     # we must convert to python types
     values = arr.astype(object, copy=False)
