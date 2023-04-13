@@ -84,7 +84,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     is_all_strings,
     is_datetime64_any_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -474,10 +473,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             if copy:
                 values = values.copy()
             return values
-        elif (
-            is_datetime_or_timedelta_dtype(dtype)
-            and not is_dtype_equal(self.dtype, dtype)
-        ) or is_float_dtype(dtype):
+        elif (dtype.kind in "mM" and self.dtype != dtype) or is_float_dtype(dtype):
             # disallow conversion between datetime/timedelta,
             # and conversions for any datetimelike to float
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"

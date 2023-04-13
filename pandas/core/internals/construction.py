@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -349,7 +348,7 @@ def ndarray_to_mgr(
                 for i in range(values.shape[1])
             ]
         else:
-            if is_datetime_or_timedelta_dtype(values.dtype):
+            if lib.is_np_dtype(values.dtype, "mM"):
                 values = ensure_wrapped_if_datetimelike(values)
             arrays = [values[:, i] for i in range(values.shape[1])]
 
