@@ -1,5 +1,5 @@
 """
-Support pre-0.12 series pickle compatibility.
+Pickle compatibility.
 """
 from __future__ import annotations
 
@@ -59,52 +59,7 @@ def load_reduce(self):
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-    # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
-    ("pandas.tslib", "__nat_unpickle"): (
-        "pandas._libs.tslibs.nattype",
-        "__nat_unpickle",
-    ),
-    ("pandas._libs.tslib", "__nat_unpickle"): (
-        "pandas._libs.tslibs.nattype",
-        "__nat_unpickle",
-    ),
-    # 15998 top-level dirs moving
-    ("pandas.sparse.array", "SparseArray"): (
-        "pandas.core.arrays.sparse",
-        "SparseArray",
-    ),
-    ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
-    ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
-    ("pandas.indexes.numeric", "Int64Index"): (
-        "pandas.core.indexes.base",
-        "Index",  # updated in 50775
-    ),
-    ("pandas.indexes.range", "RangeIndex"): ("pandas.core.indexes.range", "RangeIndex"),
-    ("pandas.indexes.multi", "MultiIndex"): ("pandas.core.indexes.multi", "MultiIndex"),
-    ("pandas.tseries.index", "_new_DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
-        "_new_DatetimeIndex",
-    ),
-    ("pandas.tseries.index", "DatetimeIndex"): (
-        "pandas.core.indexes.datetimes",
-        "DatetimeIndex",
-    ),
-    ("pandas.tseries.period", "PeriodIndex"): (
-        "pandas.core.indexes.period",
-        "PeriodIndex",
-    ),
-    # 19269, arrays moving
-    ("pandas.core.categorical", "Categorical"): ("pandas.core.arrays", "Categorical"),
-    # 19939, add timedeltaindex, float64index compat from 15998 move
-    ("pandas.tseries.tdi", "TimedeltaIndex"): (
-        "pandas.core.indexes.timedeltas",
-        "TimedeltaIndex",
-    ),
-    ("pandas.indexes.numeric", "Float64Index"): (
-        "pandas.core.indexes.base",
-        "Index",  # updated in 50775
-    ),
-    # 50775, remove Int64Index, UInt64Index & Float64Index from codabase
+    # 50775, remove Int64Index, UInt64Index & Float64Index from codebase
     ("pandas.core.indexes.numeric", "Int64Index"): (
         "pandas.core.indexes.base",
         "Index",
@@ -179,7 +134,7 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding: str | None = None, is_verbose: bool = False):
+def load(fh, encoding: str | None = None):
     """
     Load a pickle, with a provided encoding,
 
@@ -187,7 +142,6 @@ def load(fh, encoding: str | None = None, is_verbose: bool = False):
     ----------
     fh : a filelike object
     encoding : an optional encoding
-    is_verbose : show exception output
     """
     try:
         fh.seek(0)
@@ -195,9 +149,6 @@ def load(fh, encoding: str | None = None, is_verbose: bool = False):
             up = Unpickler(fh, encoding=encoding)
         else:
             up = Unpickler(fh)
-        # "Unpickler" has no attribute "is_verbose"  [attr-defined]
-        up.is_verbose = is_verbose  # type: ignore[attr-defined]
-
         return up.load()
     except (ValueError, TypeError):
         raise
