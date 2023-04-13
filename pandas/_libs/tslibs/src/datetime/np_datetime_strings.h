@@ -19,8 +19,7 @@ This file implements string parsing and creation for NumPy datetime.
 
 */
 
-#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
-#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -108,4 +107,3 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
  */
 int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
                             size_t *outlen);
-#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
