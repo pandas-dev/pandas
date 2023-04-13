@@ -249,7 +249,7 @@ validate_any = CompatValidator(
 LOGICAL_FUNC_DEFAULTS = {"out": None, "keepdims": False}
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = {"axis": None, "out": None, "keepdims": False}
+MINMAX_DEFAULTS = {"axis": None, "dtype": None, "out": None, "keepdims": False}
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
