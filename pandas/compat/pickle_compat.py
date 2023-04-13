@@ -1,5 +1,5 @@
 """
-Pickle compatibility.
+Pickle compatibility to pandas version 1.0
 """
 from __future__ import annotations
 
