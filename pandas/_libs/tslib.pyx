@@ -401,8 +401,8 @@ def first_non_null(values: ndarray) -> int:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def random_non_null(values: ndarray, int n) -> ndarray:
-    """Find n non-null values selected at random, return an array of indices."""
+def evenly_spaced_non_null(values: ndarray, int n) -> ndarray:
+    """Find n evenly spaced non-null values, return an array of indices."""
     cdef:
         Py_ssize_t total = len(values)
         Py_ssize_t i, non_null_count
@@ -422,8 +422,10 @@ def random_non_null(values: ndarray, int n) -> ndarray:
     non_null_count = len(non_null_indices)
     if non_null_count == 0 or n <= 0:
         return np.empty(0, dtype=np.int64)
-    # use np.random.choice
-    return np.random.choice(non_null_indices, min(n, non_null_count), replace=False)
+    evenly_spaced_indices = np.linspace(0, len(non_null_indices) - 1,
+                                        min(len(non_null_indices), n),
+                                        dtype=int)
+    return np.array(non_null_indices)[evenly_spaced_indices]
 
 
 @cython.wraparound(False)

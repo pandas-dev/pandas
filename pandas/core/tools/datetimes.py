@@ -226,15 +226,13 @@ def _guess_datetime_format_for_array(
         match the format, sorted by the percentage of strings that match the
         format.
     """
-    # Extract a random sample of datetime strings
-    assert (
-        n_find_format <= n_check_format
-    ), "n_check_format must be greater than n_find_format"
-    sample_idx = tslib.random_non_null(arr, n_check_format)
-    sample_check = arr[sample_idx]
-    sample_find = sample_check[:n_find_format]
-    if len(sample_idx) == 0:
+    # Extract a sample of datetime strings
+    idx_find = tslib.evenly_spaced_non_null(arr, n_find_format)
+    if len(idx_find) == 0:
         return None
+    idx_check = tslib.evenly_spaced_non_null(arr, n_check_format)
+    sample_check = arr[idx_check]
+    sample_find = arr[idx_find]
     formats_found = set()
     for datetime_string in sample_find:
         # catch warnings from guess_datetime_format
