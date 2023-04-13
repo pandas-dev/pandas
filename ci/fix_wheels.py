@@ -1,5 +1,14 @@
+"""
+This file "repairs" our Windows wheels by copying the necessary DLLs for pandas to run
+on a barebones Windows installation() into the wheel.
+
+NOTE: The paths for the DLLs are hard-coded to the location of the Visual Studio
+redistributables
+"""
 import os
 import shutil
+import subprocess
+from subprocess import CalledProcessError
 import sys
 import zipfile
 
@@ -18,41 +27,35 @@ except ValueError:
     raise ValueError(
         "User must pass the path to the wheel and the destination directory."
     )
-# Wheels are zip files
 if not os.path.isdir(dest_dir):
     print(f"Created directory {dest_dir}")
     os.mkdir(dest_dir)
-shutil.copy(wheel_path, dest_dir)  # Remember to delete if process fails
+
 wheel_name = os.path.basename(wheel_path)
 success = True
-exception = None
-repaired_wheel_path = os.path.join(dest_dir, wheel_name)
-with zipfile.ZipFile(repaired_wheel_path, "a") as zipf:
-    try:
-        # TODO: figure out how licensing works for the redistributables
-        base_redist_dir = (
-            f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
-            f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
-            f"Microsoft.VC142.CRT/"
-        )
-        zipf.write(
-            os.path.join(base_redist_dir, "msvcp140.dll"),
-            "pandas/_libs/window/msvcp140.dll",
-        )
-        zipf.write(
-            os.path.join(base_redist_dir, "concrt140.dll"),
-            "pandas/_libs/window/concrt140.dll",
-        )
-        if not is_32:
-            zipf.write(
-                os.path.join(base_redist_dir, "vcruntime140_1.dll"),
-                "pandas/_libs/window/vcruntime140_1.dll",
-            )
-    except Exception as e:
-        success = False
-        exception = e
 
-if not success:
-    os.remove(repaired_wheel_path)
-    raise exception
-print(f"Successfully repaired wheel was written to {repaired_wheel_path}")
+try:
+    # Use the wheel CLI for zipping up the wheel since the CLI will
+    # take care of rebuilding the hashes found in the record file
+    tmp_dir = os.path.join(dest_dir, "tmp")
+    with zipfile.ZipFile(wheel_path, "r") as f:
+        # Extracting all the members of the zip
+        # into a specific location.
+        f.extractall(path=tmp_dir)
+    base_redist_dir = (
+        f"C:/Program Files (x86)/Microsoft Visual Studio/2019/"
+        f"Enterprise/VC/Redist/MSVC/14.29.30133/{PYTHON_ARCH}/"
+        f"Microsoft.VC142.CRT/"
+    )
+    required_dlls = ["msvcp140.dll", "concrt140.dll"]
+    if not is_32:
+        required_dlls += ["vcruntime140_1.dll"]
+    dest_dll_dir = os.path.join(tmp_dir, "pandas/_libs/window")
+    for dll in required_dlls:
+        src = os.path.join(base_redist_dir, dll)
+        shutil.copy(src, dest_dll_dir)
+    subprocess.run(["wheel", "pack", tmp_dir, "-d", dest_dir], check=True)
+except CalledProcessError:
+    print("Failed to add DLLS to wheel.")
+    sys.exit(1)
+print("Successfully repaired wheel")
