@@ -16,7 +16,6 @@ from typing import (
     cast,
 )
 
-from dateutil.relativedelta import relativedelta
 import matplotlib.dates as mdates
 from matplotlib.ticker import (
     AutoLocator,
@@ -349,6 +348,8 @@ class PandasAutoDateFormatter(mdates.AutoDateFormatter):
 class PandasAutoDateLocator(mdates.AutoDateLocator):
     def get_locator(self, dmin, dmax):
         """Pick the best locator based on a distance."""
+        from dateutil.relativedelta import relativedelta
+
         delta = relativedelta(dmax, dmin)
 
         num_days = (delta.years * 12.0 + delta.months) * 31.0 + delta.days

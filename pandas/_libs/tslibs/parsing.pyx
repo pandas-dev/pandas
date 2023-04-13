@@ -46,7 +46,6 @@ from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
 )
-from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -692,6 +691,9 @@ cdef datetime dateutil_parse(
         ) from err
 
     if res.weekday is not None and not res.day:
+        assert False
+        from dateutil.relativedelta import relativedelta
+
         ret = ret + relativedelta.relativedelta(weekday=res.weekday)
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
