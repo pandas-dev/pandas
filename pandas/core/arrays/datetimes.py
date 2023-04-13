@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float_dtype,
     is_object_dtype,
-    is_sparse,
     is_string_dtype,
     pandas_dtype,
 )
@@ -68,6 +67,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays.sparse.dtype import SparseDtype
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -2042,7 +2042,7 @@ def _sequence_to_dt64ns(
     if (
         is_object_dtype(data_dtype)
         or is_string_dtype(data_dtype)
-        or is_sparse(data_dtype)
+        or isinstance(data_dtype, SparseDtype)
     ):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension

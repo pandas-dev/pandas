@@ -198,14 +198,16 @@ def test_is_object():
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(SparseArray([1, 2, 3]))
+    msg = "is_sparse is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert com.is_sparse(SparseArray([1, 2, 3]))
 
-    assert not com.is_sparse(np.array([1, 2, 3]))
+        assert not com.is_sparse(np.array([1, 2, 3]))
 
-    if check_scipy:
-        import scipy.sparse
+        if check_scipy:
+            import scipy.sparse
 
-        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
+            assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 @td.skip_if_no_scipy

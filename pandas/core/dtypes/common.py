@@ -207,6 +207,12 @@ def is_sparse(arr) -> bool:
 
     Returns `False` if the parameter has more than one dimension.
     """
+    warnings.warn(
+        "is_sparse is deprecated and will be removed in a future "
+        "version. Check `isinstance(dtype, pd.SparseDtype)` instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     from pandas.core.arrays.sparse import SparseDtype
 
     dtype = getattr(arr, "dtype", arr)

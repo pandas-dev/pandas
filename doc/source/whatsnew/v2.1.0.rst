@@ -231,6 +231,7 @@ Deprecations
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_period_dtype`, check ``isinstance(dtype, pd.PeriodDtype)`` instead (:issue:`??`)
+- Deprecated :func:`is_sparse`, check ``isinstance(dtype, pd.SparseDtype)`` instead (:issue:`??`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
