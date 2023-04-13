@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_float,
@@ -55,7 +54,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+)
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
@@ -114,7 +116,7 @@ def _get_next_label(label):
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
         return label + np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label + 1
@@ -128,7 +130,7 @@ def _get_prev_label(label):
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
         return label - np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label - 1
@@ -805,7 +807,7 @@ class IntervalIndex(ExtensionIndex):
         #  positional in this case
         # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
         # ExtensionDtype]" has no attribute "subtype"
-        return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
+        return self.dtype.subtype.kind in "mM"  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str):
         return getattr(self, side)._maybe_cast_slice_bound(label, side)

@@ -1152,7 +1152,7 @@ class TestStyler:
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-        # test hiding mulitiple columns
+        # test hiding multiple columns
         ctx = df.style.hide(["A", "B"], axis="columns")._translate(True, True)
         assert not ctx["head"][0][1]["is_visible"]
         assert not ctx["head"][0][2]["is_visible"]
