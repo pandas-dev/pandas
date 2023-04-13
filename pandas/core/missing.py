@@ -455,7 +455,7 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
-    is_datetimelike = needs_i8_conversion(yvalues.dtype)
+    is_datetimelike = yvalues.dtype.kind in "mM"
 
     if is_datetimelike:
         yvalues = yvalues.view("i8")

@@ -29,7 +29,6 @@ from pandas.core.arrays.categorical import (
     contains,
 )
 from pandas.core.construction import extract_array
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -47,8 +46,6 @@ if TYPE_CHECKING:
         DtypeObj,
         npt,
     )
-_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
