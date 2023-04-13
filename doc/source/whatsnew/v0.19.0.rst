@@ -905,6 +905,7 @@ As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pi = pd.PeriodIndex(["2016-08-01"], freq="D")
    pi
