@@ -148,88 +148,11 @@ def _check_format_dayfirst(format_string: str) -> bool | None:
     return dayfirst
 
 
-def _guess_datetime_format_for_array(
-    arr: np.ndarray,
-    n_find_format: int,
-    n_check_format: int,
-) -> np.ndarray:
-    """
-    Guess the format of the datetime strings in an array.
-
-    Parameters
-    ----------
-    arr : ndarray
-        Array of datetime strings.
-    n_find_format : int
-        Number of strings to use to guess the format.
-    n_check_format : int
-        Number of strings to check for each format found.
-
-    Returns
-    -------
-    formats : ndarray
-        Array of tuples with the format and the percentage of strings that
-        match the format, sorted by the percentage of strings that match the
-        format.
-    """
-    # Extract a random sample of datetime strings
-    assert (
-        n_find_format <= n_check_format
-    ), "n_check_format must be greater than n_find_format"
-    sample_idx = tslib.random_non_null(arr, n_check_format)
-    sample_check = arr[sample_idx]
-    sample_find = sample_check[:n_find_format]
-    if len(sample_idx) == 0:
-        return np.array([], dtype=object)
-    format_found = set()
-    for datetime_string in sample_find:
-        # catch warnings from guess_datetime_format
-        # which appears when dayfirst is contradicted
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=UserWarning,
-                message="Parsing dates in .* format when dayfirst=.* was specified.",
-            )
-            if type(datetime_string) is str:
-                format_found.add(guess_datetime_format(datetime_string, dayfirst=False))
-                format_found.add(guess_datetime_format(datetime_string, dayfirst=True))
-    # remove YDM as it does not exist
-    # but is returned by guess_datetime_format
-    for format_ in list(format_found):
-        if format_ is None or re.match(r"%Y[-/_.]+%d[-/_.]+%m", format_):
-            # doesn't exist but is returned by guess_datetime_format
-            format_found.remove(format_)
-    # Try to apply the formats found
-    # to a larger sample
-    format_checked = []
-    for format_ in format_found:
-        converted = array_strptime(sample_check, fmt=format_, errors="coerce")[0]
-        format_checked.append(
-            (format_, int(100 * np.sum(~np.isnan(converted)) / len(converted)))
-        )
-    # Sort by the number of strings that match the format
-    format_checked.sort(key=lambda x: x[1], reverse=True)
-    if (
-        len(format_checked) == 0
-        and len(sample_check) > 1
-        and np.any([type(e) is str for e in sample_find])
-        # GH#32264 np.str_ objects
-    ):
-        warnings.warn(
-            "Could not infer format, so each element will be parsed "
-            "individually, falling back to `dateutil`. To ensure parsing is "
-            "consistent and as-expected, please specify a format.",
-            UserWarning,
-            stacklevel=find_stack_level(),
-        )
-    return np.array(format_checked, dtype=object)
-
-
 def _try_to_repect_dayfirst(
     formats: np.ndarray,
     dayfirst: bool | None,
-) -> tuple[str, bool | None]:
+    warn: bool,
+) -> str:
     """
     If several formats work as well, prefer the format which
     respect dayfirst.
@@ -252,20 +175,120 @@ def _try_to_repect_dayfirst(
     # Find all formats which work for
     # the largest number of samples
     best_formats = [
-        format_found for format_found in formats if format_found[1] == formats[0][1]
+        formats_found for formats_found in formats if formats_found[1] == formats[0][1]
     ]
     # If several formats work as well, prefer the format which
     # respect dayfirst
     if len(best_formats) > 1:
-        for format_found in best_formats:
-            if _check_format_dayfirst(format_found[0]) == dayfirst:
-                return format_found[0], _check_format_dayfirst(format_found[0])
-    return best_formats[0][0], _check_format_dayfirst(best_formats[0][0])
+        for formats_found in best_formats:
+            if _check_format_dayfirst(formats_found[0]) == dayfirst:
+                return formats_found[0]
+    if (
+        warn
+        and _check_format_dayfirst(best_formats[0][0]) is not None
+        and _check_format_dayfirst(best_formats[0][0]) != dayfirst
+    ):
+        warnings.warn(
+            f"Parsing dates in {best_formats[0][0]} format when "
+            f"dayfirst={dayfirst} was specified. "
+            f"Pass `dayfirst={not dayfirst}` or specify a format "
+            "to silence this warning.",
+            stacklevel=find_stack_level(),
+        )
+    return best_formats[0][0]
+
+
+def _guess_datetime_format_for_array(
+    arr: np.ndarray,
+    dayfirst: bool | None,
+    n_find_format: int = 10,
+    n_check_format: int = 200,
+    warn: bool = True,
+) -> str | None:
+    """
+    Guess the format of the datetime strings in an array.
+
+    Parameters
+    ----------
+    arr : ndarray
+        Array of datetime strings.
+    n_find_format : int
+        Number of strings to use to guess the format.
+    n_check_format : int
+        Number of strings to check for each format found.
+    warn: bool
+        Whether to warn if we contradict dayfirst
+
+    Returns
+    -------
+    formats : ndarray
+        Array of tuples with the format and the percentage of strings that
+        match the format, sorted by the percentage of strings that match the
+        format.
+    """
+    # Extract a random sample of datetime strings
+    assert (
+        n_find_format <= n_check_format
+    ), "n_check_format must be greater than n_find_format"
+    sample_idx = tslib.random_non_null(arr, n_check_format)
+    sample_check = arr[sample_idx]
+    sample_find = sample_check[:n_find_format]
+    if len(sample_idx) == 0:
+        return None
+    formats_found = set()
+    for datetime_string in sample_find:
+        # catch warnings from guess_datetime_format
+        # which appears when dayfirst is contradicted
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=UserWarning,
+                message="Parsing dates in .* format when dayfirst=.* was specified.",
+            )
+            if type(datetime_string) is str:
+                formats_found.add(
+                    guess_datetime_format(datetime_string, dayfirst=False)
+                )
+                formats_found.add(guess_datetime_format(datetime_string, dayfirst=True))
+    # remove YDM as it does not exist
+    # but is returned by guess_datetime_format
+    for format_ in list(formats_found):
+        if (format_ is None) or re.match(r"%Y[-/_.]+%d[-/_.]+%m", format_):
+            # doesn't exist but is returned by guess_datetime_format
+            formats_found.remove(format_)
+    # Try to apply the formats found
+    # to a larger sample
+    formats_checked = []
+    for format_ in formats_found:
+        converted = array_strptime(sample_check, fmt=format_, errors="coerce")[0]
+        formats_checked.append(
+            (format_, int(100 * np.sum(~np.isnan(converted)) / len(converted)))
+        )
+    if (
+        len(formats_checked) == 0
+        and len(sample_check) > 1
+        and np.any([type(e) is str for e in sample_find])
+        # GH#32264 np.str_ objects
+    ):
+        warnings.warn(
+            "Could not infer format, so each element will be parsed "
+            "individually, falling back to `dateutil`. To ensure parsing is "
+            "consistent and as-expected, please specify a format.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
+    if not len(formats_checked):
+        return None
+    else:
+        # Sort by the number of strings that match the format
+        formats_checked.sort(key=lambda x: x[1], reverse=True)
+        best_format = _try_to_repect_dayfirst(formats_checked, dayfirst, warn)
+        return best_format
 
 
 def _iterative_conversion(
     arg: np.ndarray,
-    formats: np.ndarray,
+    name: str,
     utc: bool,
     unit: str | None,
     errors: DateTimeErrorChoices,
@@ -282,10 +305,8 @@ def _iterative_conversion(
     ----------
     arg : ndarray
         Array of datetime strings.
-    formats : ndarray
-        Array of tuples with the format and the percentage of strings that
-        match the format, sorted by the percentage of strings that match the
-        format.
+    name : str
+        Name of the argument.
     utc : bool
         Whether to convert/localize timestamps to UTC.
     unit : str
@@ -302,16 +323,18 @@ def _iterative_conversion(
     """
     # iteratively convert the remaining samples
     # in "coerce" mode with the ith best format
-    # until all values are converted or all formats are exhausted
     # or 10 formats have been tried
-    best_format = _try_to_repect_dayfirst(formats, dayfirst)[0]
-    # remove the best format from the list
-    formats = formats[formats[:, 0] != best_format]
+    # if we contradict dayfirst, we warn for the first format, but not the rest
+    best_format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst, warn=True)
     result, tz_parsed = array_strptime(arg, best_format, exact, "coerce", utc)
     indices_succeeded = notna(result)
-    for _ in range(min(len(formats), 10)):
-        best_format = _try_to_repect_dayfirst(formats, dayfirst)[0]
-        formats = formats[formats[:, 0] != best_format]
+    for _ in range(10):
+        best_format = _guess_datetime_format_for_array(
+            arg[~indices_succeeded], dayfirst=dayfirst, warn=False
+        )
+
+        if best_format is None:
+            break
         results_format, timezones_format = array_strptime(
             arg[~indices_succeeded], best_format, exact, "coerce", utc
         )
@@ -338,7 +361,11 @@ def _iterative_conversion(
             result[~indices_succeeded] = iNaT
         elif errors == "ignore":
             result = arg
-    return result, tz_parsed
+
+    if any(tz is not None for tz in tz_parsed):
+        return _return_parsed_timezone_results(result, tz_parsed, utc, name)
+
+    return _box_as_indexlike(result, utc=utc, name=name)
 
 
 def should_cache(
@@ -634,63 +661,32 @@ def _convert_listlike_datetimes(
 
     arg = ensure_object(arg)
 
-    best_format = None
+    if format is None:
+        format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+
+    # `format` could be inferred, or user didn't ask for mixed-format parsing.
     if format is not None and format != "mixed":
-        best_format = format
-    else:
-        # get a list of formats which work for some of the elements
-        # sorted by the percentage of elements that match, highest first
-        # It's a list of tuples of (format, percentage of elements that match)
-        formats = _guess_datetime_format_for_array(
-            arg, n_find_format=20, n_check_format=250
-        )
-        if len(formats) == 0:
-            result, tz_parsed = objects_to_datetime64ns(
-                arg,
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                utc=utc,
-                errors=errors,
-                allow_object=True,
-            )
-            if tz_parsed is not None:
-                # We can take a shortcut since the datetime64 numpy array
-                # is in UTC
-                dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
-                return DatetimeIndex._simple_new(dta, name=name)
-        if format != "mixed" and len(formats) > 0:
-            # formats[0][1] is the percentage of elements that matched
-            if errors == "raise" and formats[0][1] != 100:
-                raise ValueError(
-                    "No datetime format was found which "
-                    "matched all values in the array.\n"
-                    "You might want to try:\n"
-                    "    - passing `format` if your strings have a consistent format;\n"
-                    "    - passing `format='ISO8601'` if your strings are "
-                    "all ISO8601 but not necessarily in exactly the same format;\n"
-                    "    - passing `format='mixed'`, and the format will be "
-                    "inferred for each element individually. "
-                    "You might want to use `dayfirst` alongside this.\n"
-                    f"Best format found: {formats[0][0]} "
-                    "(matched {formats[0][1]}% of the values)"
-                )
-            best_format, best_format_dayfirst = _try_to_repect_dayfirst(
-                formats, dayfirst
-            )
-            if best_format_dayfirst is not None and best_format_dayfirst != dayfirst:
-                warnings.warn(
-                    f"Parsing dates in {best_format} format when "
-                    f"dayfirst={dayfirst} was specified. "
-                    f"Pass `dayfirst={not dayfirst}` or specify a format "
-                    "to silence this warning.",
-                    stacklevel=find_stack_level(),
-                )
-    if best_format is not None:
-        return _array_strptime_with_fallback(arg, name, utc, best_format, exact, errors)
+        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+
     if format == "mixed":
-        result, tz_parsed = _iterative_conversion(
-            arg, formats, utc, unit, errors, dayfirst, yearfirst, exact
+        return _iterative_conversion(
+            arg, name, utc, unit, errors, dayfirst, yearfirst, exact
         )
+
+    result, tz_parsed = objects_to_datetime64ns(
+        arg,
+        dayfirst=dayfirst,
+        yearfirst=yearfirst,
+        utc=utc,
+        errors=errors,
+        allow_object=True,
+    )
+
+    if tz_parsed is not None:
+        # We can take a shortcut since the datetime64 numpy array
+        # is in UTC
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
 
