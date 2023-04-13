@@ -164,8 +164,7 @@ class TestDatetimeIndexOps:
     def test_components(self):
         rng = date_range("1 days, 10:11:12", periods=2, freq="ns")
         rng.components
-        
-        
+
         s = Series(rng)
         s[1] = np.nan
 
@@ -173,7 +172,6 @@ class TestDatetimeIndexOps:
 
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
-
 
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
@@ -360,5 +358,3 @@ class TestDateTimeIndexToJulianDate:
         r2 = dr.to_julian_date()
         assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
-
-    

@@ -391,7 +391,7 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
-    @property 
+    @property
     def components(self):
         """
         Return a Dataframe of the components of the DateTime.
@@ -425,8 +425,8 @@ class DatetimeProperties(Properties):
              0            0              2
              0            0              3
              0            0              4
-             
-        """     
+
+        """
         return (
             self._get_values()
             .components.set_index(self._parent.index)

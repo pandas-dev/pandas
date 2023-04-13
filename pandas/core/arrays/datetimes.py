@@ -1225,6 +1225,7 @@ default 'raise'
                 return x.components
 
         else:
+
             def f(x):
                 return x.components
 
@@ -1943,7 +1944,6 @@ default 'raise'
         dtype: bool
         """,
     )
-    
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """

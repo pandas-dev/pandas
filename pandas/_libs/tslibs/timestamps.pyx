@@ -7,8 +7,8 @@ construction requirements, we need to do object instantiation in python
 shadows the python class, where we do any heavy lifting.
 """
 
-import warnings
 import collections
+import warnings
 
 cimport cython
 
