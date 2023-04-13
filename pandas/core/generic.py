@@ -11345,6 +11345,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t = False,
         **kwargs,
     ):
+        assert name in ["median", "mean", "min", "max", "kurt", "skew"], name
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
@@ -11442,6 +11443,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_count: int = 0,
         **kwargs,
     ):
+        assert name in ["sum", "prod"], name
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
