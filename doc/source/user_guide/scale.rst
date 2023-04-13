@@ -257,6 +257,7 @@ We'll import ``dask.dataframe`` and notice that the API feels similar to pandas.
 We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in.
 
 .. ipython:: python
+   :okwarning:
 
    import dask.dataframe as dd
 
@@ -286,6 +287,7 @@ column names and dtypes. That's because Dask hasn't actually read the data yet.
 Rather than executing immediately, doing operations build up a **task graph**.
 
 .. ipython:: python
+   :okwarning:
 
    ddf
    ddf["name"]
@@ -300,6 +302,7 @@ returns a Dask Series with the same dtype and the same name.
 To get the actual result you can call ``.compute()``.
 
 .. ipython:: python
+   :okwarning:
 
    %time ddf["name"].value_counts().compute()
 
@@ -345,6 +348,7 @@ known automatically. In this case, since we created the parquet files manually,
 we need to supply the divisions manually.
 
 .. ipython:: python
+   :okwarning:
 
    N = 12
    starts = [f"20{i:>02d}-01-01" for i in range(N)]

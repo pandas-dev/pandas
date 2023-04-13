@@ -19,6 +19,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
     DtypeObj,
@@ -33,9 +34,9 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_extension_array_dtype,
     is_numeric_dtype,
-    is_timedelta64_dtype,
 )
 
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.reshape.concat import concat
 
@@ -229,7 +230,12 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
     if is_extension_array_dtype(series.dtype):
-        dtype = Float64Dtype()
+        if isinstance(series.dtype, ArrowDtype):
+            import pyarrow as pa
+
+            dtype = ArrowDtype(pa.float64())
+        else:
+            dtype = Float64Dtype()
     elif is_numeric_dtype(series.dtype) and not is_complex_dtype(series.dtype):
         dtype = np.dtype("float")
     else:
@@ -357,7 +363,7 @@ def select_describe_func(
         return describe_numeric_1d
     elif is_datetime64_any_dtype(data.dtype):
         return describe_timestamp_1d
-    elif is_timedelta64_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "m"):
         return describe_numeric_1d
     else:
         return describe_categorical_1d
