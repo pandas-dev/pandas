@@ -73,69 +73,6 @@ npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
     return dt;
 }
 
-/* Convert PyDatetime To ISO C-string. mutates len */
-char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
-                      size_t *len) {
-    npy_datetimestruct dts;
-    int ret;
-
-    ret = convert_pydatetime_to_datetimestruct(obj, &dts);
-    if (ret != 0) {
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert PyDateTime to numpy datetime");
-        }
-        return NULL;
-    }
-
-    *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-    char *result = PyObject_Malloc(*len);
-    // Check to see if PyDateTime has a timezone.
-    // Don't convert to UTC if it doesn't.
-    int is_tz_aware = 0;
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
-        PyObject *offset = extract_utc_offset(obj);
-        if (offset == NULL) {
-            PyObject_Free(result);
-            return NULL;
-        }
-        is_tz_aware = offset != Py_None;
-        Py_DECREF(offset);
-    }
-    ret = make_iso_8601_datetime(&dts, result, *len, is_tz_aware, base);
-
-    if (ret != 0) {
-        PyErr_SetString(PyExc_ValueError,
-                        "Could not convert datetime value to string");
-        PyObject_Free(result);
-        return NULL;
-    }
-
-    // Note that get_datetime_iso_8601_strlen just gives a generic size
-    // for ISO string conversion, not the actual size used
-    *len = strlen(result);
-    return result;
-}
-
-npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
-    npy_datetimestruct dts;
-    int ret;
-
-    ret = convert_pydatetime_to_datetimestruct(dt, &dts);
-    if (ret != 0) {
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert PyDateTime to numpy datetime");
-        }
-        // TODO(username): is setting errMsg required?
-        // ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-        // return NULL;
-    }
-
-    npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
-    return NpyDateTimeToEpoch(npy_dt, base);
-}
-
 /* Converts the int64_t representation of a duration to ISO; mutates len */
 char *int64ToIsoDuration(int64_t value, size_t *len) {
     pandas_timedeltastruct tds;

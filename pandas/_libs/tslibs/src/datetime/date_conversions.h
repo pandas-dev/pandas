@@ -24,13 +24,4 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len);
 // replace with scaleNanosecToUnit
 npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base);
 
-// Converts a Python object representing a Date / Datetime to ISO format
-// up to precision `base` e.g. base="s" yields 2020-01-03T00:00:00Z
-// while base="ns" yields "2020-01-01T00:00:00.000000000Z"
-// len is mutated to save the length of the returned string
-char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base, size_t *len);
-
-// Convert a Python Date/Datetime to Unix epoch with resolution base
-npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base);
-
 char *int64ToIsoDuration(int64_t value, size_t *len);
