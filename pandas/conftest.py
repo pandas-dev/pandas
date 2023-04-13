@@ -135,8 +135,15 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
+        ("is_int64_dtype", "is_int64_dtype is deprecated"),
+        ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "to_pydatetime",
+            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
+        ),
         (
             "pandas.core.generic.NDFrame.bool",
             "(Series|DataFrame).bool is now deprecated and will be removed "
@@ -166,6 +173,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DuplicateLabelError",
             "Series.flags is deprecated and will be removed in a future version",
         ),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
     ]
 
     for item in items:

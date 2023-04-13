@@ -1,5 +1,8 @@
 """
-Test the consistency of the groupby API, both internally and with other pandas objects.
+Tests of the groupby API, including internal consistency and with other pandas objects.
+
+Tests in this file should only check the existence, names, and arguments of groupby
+methods. It should not test the results of any groupby operation.
 """
 
 import inspect
@@ -10,10 +13,133 @@ from pandas import (
     DataFrame,
     Series,
 )
+from pandas.core.groupby.base import (
+    groupby_other_methods,
+    reduction_kernels,
+    transformation_kernels,
+)
 from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )
+
+
+def test_tab_completion(mframe):
+    grp = mframe.groupby(level="second")
+    results = {v for v in dir(grp) if not v.startswith("_")}
+    expected = {
+        "A",
+        "B",
+        "C",
+        "agg",
+        "aggregate",
+        "apply",
+        "boxplot",
+        "filter",
+        "first",
+        "get_group",
+        "groups",
+        "hist",
+        "indices",
+        "last",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "ngroups",
+        "nth",
+        "ohlc",
+        "plot",
+        "prod",
+        "size",
+        "std",
+        "sum",
+        "transform",
+        "var",
+        "sem",
+        "count",
+        "nunique",
+        "head",
+        "describe",
+        "cummax",
+        "quantile",
+        "rank",
+        "cumprod",
+        "tail",
+        "resample",
+        "cummin",
+        "fillna",
+        "cumsum",
+        "cumcount",
+        "ngroup",
+        "all",
+        "shift",
+        "skew",
+        "take",
+        "pct_change",
+        "any",
+        "corr",
+        "corrwith",
+        "cov",
+        "dtypes",
+        "ndim",
+        "diff",
+        "idxmax",
+        "idxmin",
+        "ffill",
+        "bfill",
+        "rolling",
+        "expanding",
+        "pipe",
+        "sample",
+        "ewm",
+        "value_counts",
+    }
+    assert results == expected
+
+
+def test_all_methods_categorized(mframe):
+    grp = mframe.groupby(mframe.iloc[:, 0])
+    names = {_ for _ in dir(grp) if not _.startswith("_")} - set(mframe.columns)
+    new_names = set(names)
+    new_names -= reduction_kernels
+    new_names -= transformation_kernels
+    new_names -= groupby_other_methods
+
+    assert not reduction_kernels & transformation_kernels
+    assert not reduction_kernels & groupby_other_methods
+    assert not transformation_kernels & groupby_other_methods
+
+    # new public method?
+    if new_names:
+        msg = f"""
+There are uncategorized methods defined on the Grouper class:
+{new_names}.
+
+Was a new method recently added?
+
+Every public method On Grouper must appear in exactly one the
+following three lists defined in pandas.core.groupby.base:
+- `reduction_kernels`
+- `transformation_kernels`
+- `groupby_other_methods`
+see the comments in pandas/core/groupby/base.py for guidance on
+how to fix this test.
+        """
+        raise AssertionError(msg)
+
+    # removed a public method?
+    all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
+    if names != all_categorized:
+        msg = f"""
+Some methods which are supposed to be on the Grouper class
+are missing:
+{all_categorized - names}.
+
+They're still defined in one of the lists that live in pandas/core/groupby/base.py.
+If you removed a method, you should update them
+"""
+        raise AssertionError(msg)
 
 
 def test_frame_consistency(groupby_func):
