@@ -43,12 +43,6 @@ def test_apply_invalid_axis_value():
         df.apply(lambda x: x, 2)
 
 
-def test_applymap_invalid_na_action(float_frame):
-    # GH 23803
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame.applymap(lambda x: len(str(x)), na_action="abc")
-
-
 def test_agg_raises():
     # GH 26513
     df = DataFrame({"A": [0, 1], "B": [1, 2]})

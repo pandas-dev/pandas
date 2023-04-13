@@ -56,6 +56,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -1044,14 +1045,22 @@ class ArrowExtensionArray(
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._pa_array)
+        elif pa.types.is_null(self._pa_array.type):
+            fill_value = None if isna(na_value) else na_value
+            return np.full(len(self), fill_value=fill_value, dtype=dtype)
         elif self._hasna:
-            data = self.copy()
-            data[self.isna()] = na_value
-            return np.asarray(data._pa_array, dtype=dtype)
+            data = self.fillna(na_value)
+            result = data._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
+            return result
         else:
-            result = np.asarray(self._pa_array, dtype=dtype)
+            result = self._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
             if copy:
                 result = result.copy()
+            return result
         if self._hasna:
             result[self.isna()] = na_value
         return result
@@ -1141,7 +1150,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
@@ -1650,6 +1659,82 @@ class ArrowExtensionArray(
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
 
+    # ------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _to_masked(self):
+        pa_dtype = self._pa_array.type
+        na_value = 1
+        from pandas.core.arrays import (
+            BooleanArray,
+            FloatingArray,
+            IntegerArray,
+        )
+
+        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
+        if pa.types.is_floating(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Float{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = FloatingArray
+        elif pa.types.is_unsigned_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"UInt{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_signed_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Int{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_boolean(pa_dtype):
+            dtype = "boolean"
+            np_dtype = "bool"
+            na_value = True
+            arr_cls = BooleanArray
+        else:
+            raise NotImplementedError
+
+        mask = self.isna()
+        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
+        return arr_cls(arr, mask)
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        if isinstance(self.dtype, StringDtype):
+            return super()._groupby_op(
+                how=how,
+                has_dropped_na=has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                **kwargs,
+            )
+
+        masked = self._to_masked()
+
+        result = masked._groupby_op(
+            how=how,
+            has_dropped_na=has_dropped_na,
+            min_count=min_count,
+            ngroups=ngroups,
+            ids=ids,
+            **kwargs,
+        )
+        if isinstance(result, np.ndarray):
+            return result
+        return type(self)._from_sequence(result, copy=False)
+
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
@@ -1940,15 +2025,25 @@ class ArrowExtensionArray(
         )
 
     def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
     ):
-        raise NotImplementedError(
-            "str.split not supported with pd.ArrowDtype(pa.string())."
-        )
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError(
-            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return type(self)(
+            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table):
