@@ -67,40 +67,6 @@ Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
 to ``na_action=None``, like for all the other array types.
 
-.. _whatsnew_210.enhancements.enhancement3:
-
-Index now has diff() and round() methods
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :class:`Index` object in Pandas version 2.1.0 has two new methods: :meth:`diff()` and :meth:`round()`. 
-These methods are useful for performing computations on the values in an :class:`Index` object (:issue:`19708`).
-
-The :meth:`diff()` method computes the difference between consecutive values in the index. 
-If the periods parameter is greater than 1, it computes the difference between values 
-that are periods number of positions apart.
-
-For example:
-
-.. code-block:: python
-  
-    import pandas as pd
-
-    idx = pd.Index([10, 20, 30, 40, 50])
-    print(idx.diff())  # Output: [nan, 10.0, 10.0, 10.0, 10.0]
-
-The :meth:`round()` method rounds each value in the index to the given number of decimals.
-
-For example:
-
-.. code-block:: python
-
-    import pandas as pd
-
-    idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
-    print(idx.round(decimals=2))  # Output: [10.12, 20.57, 30.91, 40.46, 50.79]
-    
-We hope these new methods enhance your experience with Pandas!
-
 .. _whatsnew_210.enhancements.other:
 
 Other enhancements
@@ -123,7 +89,6 @@ Other enhancements
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Adding ``engine_kwargs`` parameter to :meth:`DataFrame.read_excel` (:issue:`52214`)
 -
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
 
