@@ -40,11 +40,9 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
     is_dtype_equal,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -582,12 +580,12 @@ class ExtensionArray:
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_datetime64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
 
             return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
