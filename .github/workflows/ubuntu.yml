@@ -167,7 +167,6 @@ jobs:
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      if: ${{ matrix.name != 'Pypy' }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1
