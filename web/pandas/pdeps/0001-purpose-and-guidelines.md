@@ -169,7 +169,7 @@ hope can help clarify our meaning here:
     would not have required a PDEP.
   - On the other hand, `DataFrame.assign()` might. While it is a single method without backwards
     compatibility concerns, it is also a core feature and the discussion should be highly visible.
-- Deprecating or removing a single method would not require a PDEP in most cases. For example:
+- Deprecating or removing a single method would not require a PDEP in most cases.
   - That said, `DataFrame.append` ([GH-35407][35407]) is an example of deprecations on core
     features that would be a good candidate for a PDEP.
 - Changing the default value of parameters in a core pandas method is another edge case. For
