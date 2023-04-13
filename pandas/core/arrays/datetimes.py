@@ -57,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_sparse,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -670,7 +669,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         elif (
             self.tz is None
-            and is_datetime64_dtype(dtype)
+            and lib.is_np_dtype(dtype, "M")
             and not is_unitless(dtype)
             and is_supported_unit(get_unit_from_dtype(dtype))
         ):
@@ -679,7 +678,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             return type(self)._simple_new(res_values, dtype=res_values.dtype)
             # TODO: preserve freq?
 
-        elif self.tz is not None and is_datetime64_dtype(dtype):
+        elif self.tz is not None and lib.is_np_dtype(dtype, "M"):
             # pre-2.0 behavior for DTA/DTI was
             #  values.tz_convert("UTC").tz_localize(None), which did not match
             #  the Series behavior
@@ -691,7 +690,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         elif (
             self.tz is None
-            and is_datetime64_dtype(dtype)
+            and lib.is_np_dtype(dtype, "M")
             and dtype != self.dtype
             and is_unitless(dtype)
         ):
@@ -2083,7 +2082,7 @@ def _sequence_to_dt64ns(
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
 
-    elif is_datetime64_dtype(data_dtype):
+    elif lib.is_np_dtype(data_dtype, "M"):
         # tz-naive DatetimeArray or ndarray[datetime64]
         data = getattr(data, "_ndarray", data)
         new_dtype = data.dtype
@@ -2242,7 +2241,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         data = data.astype(DT64NS_DTYPE).view("i8")
         copy = False
 
-    elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "m") or is_bool_dtype(data.dtype):
         # GH#29794 enforcing deprecation introduced in GH#23539
         raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
     elif isinstance(data.dtype, PeriodDtype):
@@ -2391,7 +2390,7 @@ def _validate_tz_from_dtype(
                 raise ValueError("Cannot pass both a timezone-aware dtype and tz=None")
             tz = dtz
 
-        if tz is not None and is_datetime64_dtype(dtype):
+        if tz is not None and lib.is_np_dtype(dtype, "M"):
             # We also need to check for the case where the user passed a
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):

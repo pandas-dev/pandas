@@ -379,12 +379,6 @@ merge_ordered : Merge with optional filling/interpolation.
 merge_asof : Merge on nearest keys.
 DataFrame.join : Similar method using indices.
 
-Notes
------
-Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.23.0
-Support for merging named Series objects was added in version 0.24.0
-
 Examples
 --------
 >>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
@@ -1513,7 +1507,7 @@ class DataFrame(NDFrame, OpsMixin):
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
 
-        It can also be called using ``self @ other`` in Python >= 3.5.
+        It can also be called using ``self @ other``.
 
         Parameters
         ----------
@@ -1631,13 +1625,13 @@ class DataFrame(NDFrame, OpsMixin):
 
     def __matmul__(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other) -> DataFrame:
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         try:
             return self.T.dot(np.transpose(other)).T
@@ -2712,8 +2706,8 @@ class DataFrame(NDFrame, OpsMixin):
             it will be used as Root Directory path when writing a partitioned dataset.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
-            Starting with pyarrow 0.17, this includes the `compression`,
-            `compression_level`, `chunksize` and `version` keywords.
+            This includes the `compression`, `compression_level`, `chunksize`
+            and `version` keywords.
 
             .. versionadded:: 1.1.0
 
@@ -4645,8 +4639,8 @@ class DataFrame(NDFrame, OpsMixin):
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
           ``'timedelta64'``
         * To select Pandas categorical dtypes, use ``'category'``
-        * To select Pandas datetimetz dtypes, use ``'datetimetz'`` (new in
-          0.20.0) or ``'datetime64[ns, tz]'``
+        * To select Pandas datetimetz dtypes, use ``'datetimetz'``
+          or ``'datetime64[ns, tz]'``
 
         Examples
         --------
@@ -10000,9 +9994,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
         passing a list of `DataFrame` objects.
-
-        Support for specifying index levels as the `on` parameter was added
-        in version 0.23.0.
 
         Examples
         --------

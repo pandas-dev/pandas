@@ -4000,7 +4000,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to pandas version 0.20.3
+   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
 
 .. _io.pickle.compression:
 
@@ -5924,11 +5924,6 @@ And then issue the following queries:
 Google BigQuery
 ---------------
 
-.. warning::
-
-   Starting in 0.20.0, pandas has split off Google BigQuery support into the
-   separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
-
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
 
 pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
@@ -6116,7 +6111,7 @@ SAS formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-XPORT (.xpt) and (since *v0.18.0*) SAS7BDAT (.sas7bdat) format files.
+XPORT (.xpt) and SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,
