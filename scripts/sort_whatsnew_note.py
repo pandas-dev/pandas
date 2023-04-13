@@ -30,7 +30,9 @@ import re
 import sys
 from typing import Sequence
 
-pattern = re.compile(r"\(:issue:`(\d+)`\)\n$")
+# Check line starts with `-` and ends with e.g. `(:issue:`12345`)`,
+# possibly with a trailing full stop.
+pattern = re.compile(r"-.*\(:issue:`(\d+)`\)\.?$")
 
 
 def sort_whatsnew_note(content: str) -> int:
@@ -41,8 +43,7 @@ def sort_whatsnew_note(content: str) -> int:
         if line.startswith("- ") and pattern.search(line) is not None:
             block.append(line)
         else:
-            key = lambda x: int(pattern.search(x).group(1))
-            block = sorted(block, key=key)
+            block = sorted(block)
             new_lines.extend(block)
             new_lines.append(line)
             block = []

@@ -10,8 +10,8 @@ def test_sort_whatsnew_note():
         "\n"
         "Timedelta\n"
         "^^^^^^^^^\n"
-        "- Bug in :class:`TimedeltaIndex` (:issue:`51575`)\n"
         "- Bug in :meth:`Timedelta.round` (:issue:`51494`)\n"
+        "- Bug in :class:`TimedeltaIndex` (:issue:`51575`)\n"
         "\n"
     )
     expected = (
@@ -22,8 +22,8 @@ def test_sort_whatsnew_note():
         "\n"
         "Timedelta\n"
         "^^^^^^^^^\n"
-        "- Bug in :meth:`Timedelta.round` (:issue:`51494`)\n"
         "- Bug in :class:`TimedeltaIndex` (:issue:`51575`)\n"
+        "- Bug in :meth:`Timedelta.round` (:issue:`51494`)\n"
         "\n"
     )
     result = sort_whatsnew_note(content)
