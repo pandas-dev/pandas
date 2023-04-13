@@ -5748,8 +5748,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis=0,
         doc="""
         The index (axis labels) of the Series.
-
-        Get the index (row labels) of the Series.
+        
+        The index of a Series is used to label and identify each element of the
+        underlying data. The index can be thought of as an immutable ordered set
+        (technically a multi-set, as it may contain duplicate labels), and is
+        used to index and align data in pandas.
 
         Returns
         -------
@@ -5764,11 +5767,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Notes
         -----
-        The index of a Series is used to label and identify each element of the
-        underlying data. The index can be thought of as an immutable ordered set
-        (technically a multi-set, as it may contain duplicate labels), and is
-        used to index and align data in pandas.
-
         For more information on pandas indexing, see the `indexing user guide
         <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
 
