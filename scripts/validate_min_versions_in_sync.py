@@ -124,6 +124,11 @@ def get_yaml_map_from(
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
+        elif "[build=*_pypy]" in dependency:
+            search_text = search_text.replace("[build=*_pypy]", "")
+            yaml_package, yaml_version = search_text.split(operator)
+            yaml_version = operator + yaml_version
+            yaml_map[yaml_package] = [yaml_version]
         elif operator is not None:
             yaml_package, yaml_version = search_text.split(operator)
             yaml_version = operator + yaml_version
