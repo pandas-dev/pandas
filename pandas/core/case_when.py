@@ -27,7 +27,8 @@ def case_when(obj: pd.DataFrame | pd.Series, *args, default: Any) -> pd.Series:
 
     If multiple conditions are met, the value of the first condition is taken.
 
-    The returned Series have the same index as `obj`.
+    The returned Series have the same index as `obj` as mainly follows dtype
+    of `default`.
 
     Parameters
     ----------
