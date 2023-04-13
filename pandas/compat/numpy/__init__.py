@@ -11,10 +11,7 @@ np_version_gte1p24 = _nlv >= Version("1.24")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.21.6"
 
-if is_numpy_dev or not np_version_under1p22:
-    np_percentile_argname = "method"
-else:
-    np_percentile_argname = "interpolation"
+np_percentile_argname = "interpolation" if np_version_under1p22 else "method"
 
 
 if _nlv < Version(_min_numpy_ver):
