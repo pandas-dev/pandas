@@ -37,6 +37,32 @@ class TestGetIndexerNonUnique:
         tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
         tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)
 
+    def test_get_indexer_non_unique_int_index(self):
+        indexes, missing = Index([np.nan, 100, 200, 100]).get_indexer_non_unique(
+            Index([np.nan])
+        )
+        tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
+        indexes, missing = Index([np.nan, 100, 200, 100]).get_indexer_non_unique(
+            Index([np.nan, 100])
+        )
+        tm.assert_numpy_array_equal(np.array([0, 1, 3], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
+    def test_get_indexer_non_unique_float_index(self):
+        indexes, missing = Index([np.nan, 100.0, 200.0, 100.0]).get_indexer_non_unique(
+            Index([np.nan])
+        )
+        tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
+        indexes, missing = Index([np.nan, 100.0, 200.0, 100.0]).get_indexer_non_unique(
+            Index([np.nan, 100.0])
+        )
+        tm.assert_numpy_array_equal(np.array([0, 1, 3], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
 
 class TestGetLoc:
     @pytest.mark.slow  # to_flat_index takes a while
