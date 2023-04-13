@@ -154,7 +154,6 @@ def _new_IntervalIndex(cls, d):
         "klass": "IntervalIndex",
         "summary": "Immutable index of intervals that are closed on the same side.",
         "name": _index_doc_kwargs["name"],
-        "versionadded": "0.20.0",
         "extra_attributes": "is_overlapping\nvalues\n",
         "extra_methods": "",
         "examples": textwrap.dedent(

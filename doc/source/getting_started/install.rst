@@ -149,14 +149,6 @@ to install pandas with the optional dependencies to read Excel files.
 
 The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
 
-Installing with ActivePython
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Installation instructions for
-`ActivePython <https://www.activestate.com/products/python/>`__ can be found
-`here <https://www.activestate.com/products/python/>`__. Versions
-2.7, 3.5 and 3.6 include pandas.
-
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

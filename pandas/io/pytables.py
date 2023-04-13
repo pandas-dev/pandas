@@ -515,7 +515,7 @@ class HDFStore:
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
         Specifies the compression library to be used.
-        As of v0.20.2 these additional compressors for Blosc are supported
+        These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
          'blosc:zlib', 'blosc:zstd'}.

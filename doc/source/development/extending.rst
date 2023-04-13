@@ -450,7 +450,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 Plotting backends
 -----------------
 
-Starting in 0.25 pandas can be extended with third-party plotting backends. The
+pandas can be extended with third-party plotting backends. The
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib. For example:
 

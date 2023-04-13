@@ -510,12 +510,6 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-.. note::
-
-   Support for specifying index levels as the ``on``, ``left_on``, and
-   ``right_on`` parameters was added in version 0.23.0.
-   Support for merging named ``Series`` objects was added in version 0.24.0.
-
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame`` or named ``Series``
 and ``right`` is a subclass of ``DataFrame``, the return type will still be ``DataFrame``.
 

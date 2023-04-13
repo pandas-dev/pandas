@@ -1346,8 +1346,7 @@ class TestSeriesConstructors:
 
     def test_constructor_dict_order(self):
         # GH19018
-        # initialization ordering: by insertion order if python>= 3.6, else
-        # order by value
+        # initialization ordering: by insertion order
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
         expected = Series([1, 0, 2], index=list("bac"))
