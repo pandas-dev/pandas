@@ -61,7 +61,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -2380,7 +2379,7 @@ class DataCol(IndexCol):
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             atom = cls.get_atom_timedelta64(shape)
         elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
@@ -3100,7 +3099,7 @@ class GenericFixed(Fixed):
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
-        elif is_timedelta64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
         elif empty_array:
