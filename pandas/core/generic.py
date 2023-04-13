@@ -120,10 +120,12 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_re_compilable,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -208,17 +210,13 @@ _shared_docs = {**_shared_docs}
 _shared_doc_kwargs = {
     "axes": "keywords for axes",
     "klass": "Series/DataFrame",
-    "axes_single_arg": "int or labels for object",
-    "args_transpose": "axes to permute (int or label for object)",
+    "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa:E501
     "inplace": """
     inplace : bool, default False
         If True, performs operation inplace and returns None.""",
     "optional_by": """
         by : str or list of str
             Name or list of names to sort by""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
 
 
@@ -261,22 +259,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Constructors
 
-    def __init__(
-        self,
-        data: Manager,
-        copy: bool_t = False,
-        attrs: Mapping[Hashable, Any] | None = None,
-    ) -> None:
-        # copy kwarg is retained for mypy compat, is not used
-
+    def __init__(self, data: Manager) -> None:
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_mgr", data)
         object.__setattr__(self, "_item_cache", {})
-        if attrs is None:
-            attrs = {}
-        else:
-            attrs = dict(attrs)
-        object.__setattr__(self, "_attrs", attrs)
+        object.__setattr__(self, "_attrs", {})
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
     @final
@@ -310,6 +297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 mgr = mgr.astype(dtype=dtype)
         return mgr
 
+    @final
     def _as_manager(self, typ: str, copy: bool_t = True) -> Self:
         """
         Private helper function to create a DataFrame with specific manager.
@@ -2618,7 +2606,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A value of 0 or None disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
             Specifies the compression library to be used.
-            As of v0.20.2 these additional compressors for Blosc are supported
+            These additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
             'blosc:zlib', 'blosc:zstd'}.
@@ -4120,7 +4108,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not drop_level:
                 if lib.is_integer(loc):
                     # Slice index must be an integer or None
-                    new_index = index[loc : loc + 1]  # type: ignore[misc]
+                    new_index = index[loc : loc + 1]
                 else:
                     new_index = index[loc]
         else:
@@ -4670,7 +4658,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if errors == "raise" and labels_missing:
                     raise KeyError(f"{labels} not found in axis")
 
-            if is_extension_array_dtype(mask.dtype):
+            if isinstance(mask.dtype, ExtensionDtype):
                 # GH#45860
                 mask = mask.to_numpy(dtype=bool)
 
@@ -5161,6 +5149,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def reindex(
         self,
         labels=None,
+        *,
         index=None,
         columns=None,
         axis: Axis | None = None,
@@ -5457,7 +5446,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and not (
                 self.ndim == 2
                 and len(self.dtypes) == 1
-                and is_extension_array_dtype(self.dtypes.iloc[0])
+                and isinstance(self.dtypes.iloc[0], ExtensionDtype)
             )
         )
 
@@ -6834,7 +6823,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def fillna(
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
@@ -7301,11 +7294,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         ...
 
+    @final
     @doc(
         _shared_docs["replace"],
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,
@@ -7544,9 +7537,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               'cubicspline': Wrappers around the SciPy interpolation methods of
               similar names. See `Notes`.
             * 'from_derivatives': Refers to
-              `scipy.interpolate.BPoly.from_derivatives` which
-              replaces 'piecewise_polynomial' interpolation method in
-              scipy 0.18.
+              `scipy.interpolate.BPoly.from_derivatives`.
 
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to interpolate along. For `Series` this parameter is unused
@@ -7764,7 +7755,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
                 or is_datetime64_any_dtype(index.dtype)
-                or is_timedelta64_dtype(index.dtype)
+                or lib.is_np_dtype(index.dtype, "m")
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
@@ -8328,7 +8319,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return result
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def asfreq(
         self,
         freq: Frequency,
@@ -8595,7 +8587,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(klass=_shared_doc_kwargs["klass"])
     def resample(
         self,
         rule,
@@ -8996,8 +8989,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             else:
                 warnings.warn(
-                    "The 'axis' keyword in DataFrame.resample is deprecated and "
-                    "will be removed in a future version.",
+                    f"The 'axis' keyword in {type(self).__name__}.resample is "
+                    "deprecated and will be removed in a future version.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -9024,7 +9017,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select initial periods of time series data based on a date offset.
 
-        When having a DataFrame with dates as index, this function can
+        For a DataFrame with a sorted DatetimeIndex, this function can
         select the first few rows based on a date offset.
 
         Parameters
@@ -9392,7 +9385,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return diff
 
-    @doc(**_shared_doc_kwargs)
+    @final
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def align(
         self,
         other: NDFrameT,

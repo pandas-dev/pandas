@@ -50,7 +50,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -125,8 +124,6 @@ _interval_shared_docs[
 ] = """
 %(summary)s
 
-.. versionadded:: %(versionadded)s
-
 Parameters
 ----------
 data : array-like (1-dimensional)
@@ -188,7 +185,6 @@ for more.
     % {
         "klass": "IntervalArray",
         "summary": "Pandas array for interval data that are closed on the same side.",
-        "versionadded": "0.24.0",
         "name": "",
         "extra_attributes": "",
         "extra_methods": "",
@@ -1772,7 +1768,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
-    elif is_categorical_dtype(values):
+    elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
         values = np.asarray(values)
     elif not hasattr(values, "dtype") and not isinstance(values, (list, tuple, range)):
         # TODO: should we just cast these to list?
