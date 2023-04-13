@@ -124,7 +124,6 @@ _interval_shared_docs[
 ] = """
 %(summary)s
 
-
 Parameters
 ----------
 data : array-like (1-dimensional)
