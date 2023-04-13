@@ -32,18 +32,3 @@ fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
-
-if [[ "$PANDAS_DATA_MANAGER" != "array" && "$PYTEST_TARGET" == "pandas" ]]; then
-    # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
-    # If we're targeting specific files, e.g. test_downstream.py, don't run.
-    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE pandas"
-
-    if [[ "$PATTERN" ]]; then
-      PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"$PATTERN and arraymanager\""
-    else
-      PYTEST_AM_CMD="$PYTEST_AM_CMD -m \"arraymanager\""
-    fi
-
-    echo $PYTEST_AM_CMD
-    sh -c "$PYTEST_AM_CMD"
-fi
