@@ -43,12 +43,14 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
-    is_categorical_dtype,
     is_dict_like,
     is_integer_dtype,
-    is_interval_dtype,
     is_numeric_dtype,
     is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -68,7 +70,8 @@ from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _agg_template,
+    _agg_template_frame,
+    _agg_template_series,
     _apply_docs,
     _transform_template,
 )
@@ -214,7 +217,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
+    @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -306,6 +309,16 @@ class SeriesGroupBy(GroupBy[Series]):
                 raise SpecificationError("nested renamer is not supported")
             else:
                 # GH#50684 - This accidentally worked in 1.x
+                msg = (
+                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
+                    "and will raise in a future version of pandas. Pass a list "
+                    "of aggregations instead."
+                )
+                warnings.warn(
+                    message=msg,
+                    category=FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
@@ -681,7 +694,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = self.grouper.names + [self.obj.name]
 
-        if is_categorical_dtype(val.dtype) or (
+        if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
         ):
             # scalar bins cannot be done at top level
@@ -707,7 +720,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(
@@ -717,7 +730,7 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
-        if is_interval_dtype(lab.dtype):
+        if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
             lab_interval = cast(Interval, lab)
 
@@ -1071,14 +1084,27 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(Series.plot.__doc__)
@@ -1291,7 +1317,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     """
     )
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
+    @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -2249,7 +2275,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
         """
@@ -2554,14 +2580,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(DataFrame.plot.__doc__)
@@ -2646,7 +2685,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
+        return self._python_apply_general(  # type: ignore[return-value]
+            lambda df: df.dtypes, self._selected_obj
+        )
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(

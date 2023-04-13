@@ -36,14 +36,12 @@ import pytest
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     Series,
@@ -59,6 +57,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.util.version import Version
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -568,6 +567,22 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     conn = request.getfixturevalue(conn)
     with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
         df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "datetime": pd.array(
+                [datetime(2023, 1, 1), nulls_fixture], dtype="timestamp[ns][pyarrow]"
+            ),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
@@ -1918,7 +1933,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # "2000-06-01 07:00:00"
                 assert col[1] == Timestamp("2000-06-01 07:00:00")
 
-            elif is_datetime64tz_dtype(col.dtype):
+            elif isinstance(col.dtype, DatetimeTZDtype):
                 assert str(col.dt.tz) == "UTC"
 
                 # "2000-01-01 00:00:00-08:00" should convert to
@@ -1949,7 +1964,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgresql server version difference
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
 
         df = read_sql_query(
             "select * from types", self.conn, parse_dates=["DateColWithTz"]
@@ -1959,7 +1974,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 pytest.mark.xfail(reason="no column with datetime with time zone")
             )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
@@ -1968,11 +1983,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             ignore_index=True,
         )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         expected = sql.read_sql_table("types", self.conn)
         col = expected.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
@@ -2381,9 +2396,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
             # TODO(GH#36465): remove this version check after GH 36465 is fixed
-            import pymysql
+            pymysql = pytest.importorskip("pymysql")
 
-            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+            if (
+                Version(pymysql.__version__) < Version("1.0.3")
+                and "infe0" in df.columns
+            ):
                 mark = pytest.mark.xfail(reason="GH 36465")
                 request.node.add_marker(mark)
 

@@ -149,7 +149,7 @@ the columns except the one we specify:
    grouped.sum()
 
 The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
-a tranpose:
+a transpose:
 
 .. ipython::
 
@@ -429,6 +429,12 @@ This is mainly syntactic sugar for the alternative, which is much more verbose:
 
 Additionally, this method avoids recomputing the internal grouping information
 derived from the passed key.
+
+You can also include the grouping columns if you want to operate on them.
+
+.. ipython:: python
+
+   grouped[["A", "B"]].sum()
 
 .. _groupby.iterating-label:
 
@@ -1067,7 +1073,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D").ffill()
+   df_re.groupby("group")[["val"]].resample("1D").ffill()
 
 .. _groupby.filter:
 
@@ -1221,19 +1227,6 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
-``apply`` on a Series can operate on a returned value from the applied function
-that is itself a series, and possibly upcast the result to a DataFrame:
-
-.. ipython:: python
-
-    def f(x):
-        return pd.Series([x, x ** 2], index=["x", "x^2"])
-
-
-    s = pd.Series(np.random.rand(5))
-    s
-    s.apply(f)
-
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
@@ -1246,13 +1239,13 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x)
+    df.groupby("A", group_keys=True)[["B", "C", "D"]].apply(lambda x: x)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x)
+    df.groupby("A", group_keys=False)[["B", "C", "D"]].apply(lambda x: x)
 
 
 Numba Accelerated Routines
@@ -1735,7 +1728,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics)
+   result = df.groupby("a")[["b", "c"]].apply(compute_metrics)
 
    result
 

@@ -27,6 +27,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -38,7 +39,6 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_any_int_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 import pandas as pd
@@ -1583,15 +1583,6 @@ def test_is_integer_dtype(data):
         assert not is_integer_dtype(data)
 
 
-def test_is_any_integer_dtype(data):
-    # GH 50667
-    pa_type = data.dtype.pyarrow_dtype
-    if pa.types.is_integer(pa_type):
-        assert is_any_int_dtype(data)
-    else:
-        assert not is_any_int_dtype(data)
-
-
 def test_is_signed_integer_dtype(data):
     pa_type = data.dtype.pyarrow_dtype
     if pa.types.is_signed_integer(pa_type):
@@ -1676,6 +1667,23 @@ def test_to_numpy_int_with_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_val, exp", [(lib.no_default, np.nan), (1, 1)])
+def test_to_numpy_null_array(na_val, exp):
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype="float64", na_value=na_val)
+    expected = np.array([exp] * 2, dtype="float64")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_null_array_no_dtype():
+    # GH#52443
+    arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
+    result = arr.to_numpy(dtype=None)
+    expected = np.array([pd.NA] * 2, dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_setitem_null_slice(data):
     # GH50248
     orig = data.copy()
@@ -1719,6 +1727,28 @@ def test_setitem_invalid_dtype(data):
         msg = "Invalid value 'foo' for dtype"
     with pytest.raises(err, match=msg):
         data[:] = fill_value
+
+
+@pytest.mark.skipif(pa_version_under8p0, reason="returns object with 7.0")
+def test_from_arrow_respecting_given_dtype():
+    date_array = pa.array(
+        [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")], type=pa.date32()
+    )
+    result = date_array.to_pandas(
+        types_mapper={pa.date32(): ArrowDtype(pa.date64())}.get
+    )
+    expected = pd.Series(
+        [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")],
+        dtype=ArrowDtype(pa.date64()),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(pa_version_under8p0, reason="doesn't raise with 7")
+def test_from_arrow_respecting_given_dtype_unsafe():
+    array = pa.array([1.5, 2.5], type=pa.float64())
+    with pytest.raises(pa.ArrowInvalid, match="Float value 1.5 was truncated"):
+        array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 
 def test_round():
@@ -2059,6 +2089,62 @@ def test_str_removesuffix(val):
     tm.assert_series_equal(result, expected)
 
 
+def test_str_split():
+    # GH 52401
+    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split("c")
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a1", "b", "b"], ["a2", "b", "b"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.split("c", n=1)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a1", "bcb"], ["a2", "bcb"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.split("[1-2]", regex=True)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a", "cbcb"], ["a", "cbcb"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.split("[1-2]", regex=True, expand=True)
+    expected = pd.DataFrame(
+        {
+            0: ArrowExtensionArray(pa.array(["a", "a", None])),
+            1: ArrowExtensionArray(pa.array(["cbcb", "cbcb", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_str_rsplit():
+    # GH 52401
+    ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.rsplit("c")
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a1", "b", "b"], ["a2", "b", "b"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.rsplit("c", n=1)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([["a1cb", "b"], ["a2cb", "b"], None]))
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.rsplit("c", n=1, expand=True)
+    expected = pd.DataFrame(
+        {
+            0: ArrowExtensionArray(pa.array(["a1cb", "a2cb", None])),
+            1: ArrowExtensionArray(pa.array(["b", "b", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, args",
     [
@@ -2074,8 +2160,6 @@ def test_str_removesuffix(val):
         ["rindex", ("abc",)],
         ["normalize", ("abc",)],
         ["rfind", ("abc",)],
-        ["split", ()],
-        ["rsplit", ()],
         ["translate", ("abc",)],
         ["wrap", ("abc",)],
     ],
@@ -2110,6 +2194,7 @@ def test_unsupported_dt(data):
 @pytest.mark.parametrize(
     "prop, expected",
     [
+        ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
         ["dayofweek", 0],
@@ -2156,7 +2241,7 @@ def test_dt_properties(prop, expected):
     result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
-        exp_type = pa.date64()
+        exp_type = pa.date32()
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))
@@ -2268,12 +2353,16 @@ def test_dt_to_pydatetime():
     data = [datetime(2022, 1, 1), datetime(2023, 1, 1)]
     ser = pd.Series(data, dtype=ArrowDtype(pa.timestamp("ns")))
 
-    result = ser.dt.to_pydatetime()
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.dt.to_pydatetime()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is datetime for res in result)
 
-    expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
+    msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = ser.astype("datetime64[ns]").dt.to_pydatetime()
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2377,3 +2466,25 @@ def test_pickle_old_arrowextensionarray():
     tm.assert_extension_array_equal(result, expected)
     assert result._pa_array == pa.chunked_array(data)
     assert not hasattr(result, "_data")
+
+
+def test_setitem_boolean_replace_with_mask_segfault():
+    # GH#52059
+    N = 145_000
+    arr = ArrowExtensionArray(pa.chunked_array([np.ones((N,), dtype=np.bool_)]))
+    expected = arr.copy()
+    arr[np.zeros((N,), dtype=np.bool_)] = False
+    assert arr._pa_array == expected._pa_array
+
+
+@pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
+def test_describe_numeric_data(pa_type):
+    # GH 52470
+    data = pd.Series([1, 2, 3], dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
+        dtype=ArrowDtype(pa.float64()),
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)

@@ -35,13 +35,15 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
-    ExtensionArray,
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.floating import (
     FloatingArray,
-    IntegerArray,
+    FloatingDtype,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.integer import (
+    IntegerArray,
+    IntegerDtype,
+)
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -228,7 +230,9 @@ class BaseStringArray(ExtensionArray):
         return list(self.to_numpy())
 
 
-class StringArray(BaseStringArray, PandasArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
@@ -353,7 +357,9 @@ class StringArray(BaseStringArray, PandasArray):
 
         else:
             if hasattr(scalars, "type"):
-                # pyarrow array
+                # pyarrow array; we cannot rely on the "to_numpy" check in
+                #  ensure_string_array because calling scalars.to_numpy would set
+                #  zero_copy_only to True which caused problems see GH#52076
                 scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
