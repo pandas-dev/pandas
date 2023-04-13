@@ -110,7 +110,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -7754,8 +7753,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
-                or is_datetime64_any_dtype(index.dtype)
-                or lib.is_np_dtype(index.dtype, "m")
+                or isinstance(index.dtype, DatetimeTZDtype)
+                or lib.is_np_dtype(index.dtype, "mM")
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(

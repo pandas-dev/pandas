@@ -55,7 +55,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
@@ -63,7 +62,10 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCPeriodIndex,
@@ -658,7 +660,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if isinstance(dtype, PeriodDtype):
             return self.asfreq(dtype.freq)
 
-        if is_datetime64_any_dtype(dtype):
+        if lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp().tz_localize(tz)
