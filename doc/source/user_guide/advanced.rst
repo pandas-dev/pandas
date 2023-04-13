@@ -918,7 +918,7 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
-Selecting using an ``Interval`` will only return exact matches (starting from pandas 0.25.0).
+Selecting using an ``Interval`` will only return exact matches.
 
 .. ipython:: python
 
