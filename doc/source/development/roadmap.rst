@@ -113,7 +113,7 @@ By replacing the BlockManager we hope to achieve
 * Improved micro-performance
 * Option to provide a C / Cython API to pandas' internals
 
-See `these design documents <https://dev.pandas.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals>`__
+See `these design documents <https://wesm.github.io/pandas2/internal-architecture.html#removal-of-blockmanager-new-dataframe-internals>`__
 for more.
 
 Decoupling of indexing and internals

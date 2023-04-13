@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Literal,
     cast,
 )
 
@@ -28,7 +29,6 @@ from pandas.core.arrays.categorical import (
     contains,
 )
 from pandas.core.construction import extract_array
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -46,8 +46,6 @@ if TYPE_CHECKING:
         DtypeObj,
         npt,
     )
-_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
@@ -402,7 +400,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using input an input mapping or function.
 
@@ -469,7 +467,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper)
+        mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name)
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:

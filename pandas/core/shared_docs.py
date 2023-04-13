@@ -500,7 +500,8 @@ _shared_docs[
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
-    {replace_iloc}
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.
 
     Parameters
     ----------
@@ -604,8 +605,10 @@ _shared_docs[
 
     See Also
     --------
-    {klass}.fillna : Fill NA values.
-    {klass}.where : Replace values based on boolean condition.
+    Series.fillna : Fill NA values.
+    DataFrame.fillna : Fill NA values.
+    Series.where : Replace values based on boolean condition.
+    DataFrame.where : Replace values based on boolean condition.
     DataFrame.applymap: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
@@ -1053,11 +1056,11 @@ Rolling sum with a window length of 2 observations.
 Rolling sum with a window span of 2 seconds.
 
 >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-...                        index = [pd.Timestamp('20130101 09:00:00'),
-...                                 pd.Timestamp('20130101 09:00:02'),
-...                                 pd.Timestamp('20130101 09:00:03'),
-...                                 pd.Timestamp('20130101 09:00:05'),
-...                                 pd.Timestamp('20130101 09:00:06')])
+...                        index=[pd.Timestamp('20130101 09:00:00'),
+...                               pd.Timestamp('20130101 09:00:02'),
+...                               pd.Timestamp('20130101 09:00:03'),
+...                               pd.Timestamp('20130101 09:00:05'),
+...                               pd.Timestamp('20130101 09:00:06')])
 
 >>> df_time
                        B
