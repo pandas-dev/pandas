@@ -862,6 +862,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
+    # GH#52651
     warnings.warn(
         "is_datetime64_any_dtype is deprecated and will be removed in a future "
         "version. Check for specific dtypes of interest instead.",

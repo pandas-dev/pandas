@@ -228,13 +228,13 @@ Deprecations
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
-- Deprecated :func:`is_datetime64_any_dtype`, check for specific dtypes of interest instead (:issue:`??`)
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
 - Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
+- Deprecated :func:`is_datetime64_any_dtype`, check for specific dtypes of interest instead (:issue:`52651`)
 -
 
 .. ---------------------------------------------------------------------------
