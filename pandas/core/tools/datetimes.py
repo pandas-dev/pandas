@@ -252,13 +252,12 @@ def _guess_datetime_format_for_array(
                 message="Parsing dates in .* format when dayfirst=.* was specified.",
             )
             if type(datetime_string) is str:
-                formats_found.append(
-                    guess_datetime_format(datetime_string, dayfirst=False)
-                )
-                formats_found.append(
-                    guess_datetime_format(datetime_string, dayfirst=True)
-                )
-    formats_found = [format_ for format_ in formats_found if format_ is not None]
+                for try_dayfirst in [False, True]:
+                    format_found = guess_datetime_format(
+                        datetime_string, dayfirst=try_dayfirst
+                    )
+                    if format_found is not None:
+                        formats_found.append(format_found)
     # remove YDM as it does not exist
     # but is returned by guess_datetime_format
     for format_ in np.unique(formats_found):
