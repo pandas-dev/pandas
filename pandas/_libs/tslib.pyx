@@ -75,8 +75,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.timestamps import Timestamp
 
-from libc.stdlib cimport srand
-from libc.time cimport time
+# Note: this is the only non-tslibs intra-pandas dependency here
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
@@ -397,35 +396,6 @@ def first_non_null(values: ndarray) -> int:
         return i
     else:
         return -1
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def evenly_spaced_non_null(values: ndarray, int n) -> ndarray:
-    """Find n evenly spaced non-null values, return an array of indices."""
-    cdef:
-        Py_ssize_t total = len(values)
-        Py_ssize_t i, non_null_count
-        list non_null_indices = []
-    srand(time(NULL))
-    for i in range(total):
-        val = values[i]
-        if checknull_with_nat_and_na(val):
-            continue
-        if (
-            isinstance(val, str)
-            and
-            (len(val) == 0 or val in nat_strings or val in ("now", "today"))
-        ):
-            continue
-        non_null_indices.append(i)
-    non_null_count = len(non_null_indices)
-    if non_null_count == 0 or n <= 0:
-        return np.empty(0, dtype=np.int64)
-    evenly_spaced_indices = np.linspace(0, len(non_null_indices) - 1,
-                                        min(len(non_null_indices), n),
-                                        dtype=int)
-    return np.array(non_null_indices)[evenly_spaced_indices]
 
 
 @cython.wraparound(False)

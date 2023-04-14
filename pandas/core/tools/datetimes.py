@@ -228,12 +228,19 @@ def _guess_datetime_format_for_array(
         format.
     """
     # Extract a sample of datetime strings
-    idx_find = tslib.evenly_spaced_non_null(arr, n_find_format)
-    if len(idx_find) == 0:
+    # ignore missing
+    arr_non_null = arr[notna(arr)]
+    arr_non_null = arr_non_null[
+        ~np.isin(arr_non_null, ["", "now", "today"] + list(nat_strings))
+    ]
+    if len(arr_non_null) == 0:
         return None
-    idx_check = tslib.evenly_spaced_non_null(arr, n_check_format)
-    sample_check = arr[idx_check]
-    sample_find = arr[idx_find]
+    # get evenly spaced non-null indices
+    step_find = max(len(arr_non_null) // n_find_format, 1)
+    step_check = max(len(arr_non_null) // n_check_format, 1)
+    sample_check = arr_non_null[np.arange(0, len(arr_non_null), step_check)]
+    sample_find = arr_non_null[np.arange(0, len(arr_non_null), step_find)]
+    # try formats
     formats_found = set()
     for datetime_string in sample_find:
         # catch warnings from guess_datetime_format
