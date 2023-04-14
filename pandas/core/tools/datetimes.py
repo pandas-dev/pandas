@@ -213,16 +213,18 @@ def _guess_datetime_format_for_array(
     ----------
     arr : ndarray
         Array of datetime strings.
+    dayfirst : bool
+        dayfirst parsing behavior from to_datetime.
     n_find_format : int
         Number of strings to use to guess the format.
     n_check_format : int
         Number of strings to check for each format found.
-    warn: bool
-        Whether to warn if we contradict dayfirst
+    warn : bool
+        Whether to warn if we contradict dayfirst.
 
     Returns
     -------
-    formats : ndarray
+    ndarray
         Array of tuples with the format and the percentage of strings that
         match the format, sorted by the percentage of strings that match the
         format.
@@ -1181,8 +1183,8 @@ def to_datetime(
     If multiple datetime formats are possible for a value, pandas will try to infer
     the most plausible format using the other examples.
 
-    >>> pd.to_datetime(["01-02-2012", "30-01-2012"])
-    DatetimeIndex(['2012-02-01', '2012-01-30'], dtype='datetime64[ns]', freq=None)
+    >>> pd.to_datetime(["01-02-2012", "02-30-2012"])
+    DatetimeIndex(['2012-01-02', '2012-02-30'], dtype='datetime64[ns]', freq=None)
 
     .. _to_datetime_tz_examples:
 
