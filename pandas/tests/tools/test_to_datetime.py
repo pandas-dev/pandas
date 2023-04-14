@@ -1302,7 +1302,10 @@ class TestToDatetime:
             to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(
             ValueError,
-            match=(f"{PARSING_ERR_MSG}"),
+            match=(
+                r'^time data "True" doesn\'t match format "%Y%m%d", '
+                f"at position 1. {PARSING_ERR_MSG}$"
+            ),
         ):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
@@ -2390,7 +2393,10 @@ class TestToDatetimeMisc:
     def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         ser = Series(["10/18/2006", "10/18/2008", " "])
-        msg = rf"{PARSING_ERR_MSG}"
+        msg = (
+            r'^time data " " doesn\'t match format "%m/%d/%Y", '
+            rf"at position 2. {PARSING_ERR_MSG}$"
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, errors="raise", cache=cache)
         result_coerce = to_datetime(ser, errors="coerce", cache=cache)
@@ -2735,7 +2741,10 @@ class TestToDatetimeInferFormat:
     def test_to_datetime_inconsistent_format(self, cache):
         data = ["01/01/2011 00:00:00", "01-02-2011 00:00:00", "2011-01-03T00:00:00"]
         ser = Series(np.array(data))
-        msg = f"{PARSING_ERR_MSG}"
+        msg = (
+            r'^time data "01-02-2011 00:00:00" doesn\'t match format '
+            rf'"%m/%d/%Y %H:%M:%S", at position 1. {PARSING_ERR_MSG}$'
+        )
         with pytest.raises(ValueError, match=msg):
             to_datetime(ser, cache=cache)
 
