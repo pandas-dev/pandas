@@ -996,9 +996,10 @@ def to_datetime(
 
         - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
           time string (not necessarily in exactly the same format);
+
         - "mixed", to allow for multiple formats. Values will be parsed iteratively
-        using the most promising format at each step. This is risky,
-        and you should probably use it along with `dayfirst`.
+          using the most promising format at each step. This is risky,
+          and you should probably use it along with `dayfirst`.
 
     exact : bool, default True
         Control how `format` is used:
