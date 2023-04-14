@@ -20,7 +20,9 @@ del _hard_dependencies, _dependency, _missing_dependencies
 
 try:
     # numpy compat
-    pass  # pyright: ignore # noqa:F401
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore # noqa:F401
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
