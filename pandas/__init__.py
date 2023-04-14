@@ -18,11 +18,9 @@ if _missing_dependencies:  # pragma: no cover
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    pass  # pyright: ignore # noqa:F401
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
@@ -30,8 +28,6 @@ except ImportError as _err:  # pragma: no cover
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --force' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
