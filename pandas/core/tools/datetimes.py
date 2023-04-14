@@ -285,14 +285,12 @@ def _guess_datetime_format_for_array(
             UserWarning,
             stacklevel=find_stack_level(),
         )
-    print(formats_checked)
     if not len(formats_checked):
         return None
     else:
         # Sort by the number of strings that match the format
         formats_checked.sort(key=lambda x: x[1], reverse=True)
         best_format = _try_to_repect_dayfirst(formats_checked, dayfirst, warn)
-        print(best_format)
         return best_format
 
 
