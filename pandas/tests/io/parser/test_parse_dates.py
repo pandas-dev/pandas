@@ -1794,11 +1794,13 @@ def test_parse_delimited_date_swap_with_warning(
 
 def test_parse_multiple_delimited_dates_with_swap_warnings():
     # GH46210
-    with pytest.raises(
-        ValueError,
+    with tm.assert_produces_warning(
+        UserWarning,
         match=(
-            r'^time data "31/05/2000" doesn\'t match format "%m/%d/%Y", '
-            r"at position 1. You might want to try:"
+            "Parsing dates in %d/%m/%Y format when "
+            "dayfirst=False \\(the default\\) was specified. "
+            "Pass `dayfirst=True` or specify a format "
+            "to silence this warning."
         ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
@@ -2008,10 +2010,9 @@ def test_dayfirst_warnings():
     tm.assert_index_equal(expected, res5)
 
     # B. use dayfirst=False
-    with tm.assert_produces_warning(UserWarning, match=warning_msg):
-        res6 = read_csv(
-            StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
-        ).index
+    res6 = read_csv(
+        StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
+    ).index
     tm.assert_index_equal(expected, res6)
 
 

@@ -188,9 +188,10 @@ def _try_to_repect_dayfirst(
         and _check_format_dayfirst(best_formats[0][0]) is not None
         and _check_format_dayfirst(best_formats[0][0]) != dayfirst
     ):
+        default_string = " (the default)" if not dayfirst else ""
         warnings.warn(
             f"Parsing dates in {best_formats[0][0]} format when "
-            f"dayfirst={dayfirst} was specified. "
+            f"dayfirst={dayfirst}{default_string} was specified. "
             f"Pass `dayfirst={not dayfirst}` or specify a format "
             "to silence this warning.",
             stacklevel=find_stack_level(),
@@ -251,7 +252,7 @@ def _guess_datetime_format_for_array(
     # remove YDM as it does not exist
     # but is returned by guess_datetime_format
     for format_ in list(formats_found):
-        if (format_ is None) or re.match(r"%Y[-/_.]+%d[-/_.]+%m", format_):
+        if (format_ is None) or re.match(r".*%Y.*%d.*%m.*", format_):
             # doesn't exist but is returned by guess_datetime_format
             formats_found.remove(format_)
     # Try to apply the formats found
