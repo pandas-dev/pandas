@@ -1046,18 +1046,21 @@ class ArrowExtensionArray(
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._pa_array)
         elif pa.types.is_null(self._pa_array.type):
-            result = np.asarray(self._pa_array, dtype=dtype)
-            if not isna(na_value):
-                result[:] = na_value
-            return result
+            fill_value = None if isna(na_value) else na_value
+            return np.full(len(self), fill_value=fill_value, dtype=dtype)
         elif self._hasna:
-            data = self.copy()
-            data[self.isna()] = na_value
-            return np.asarray(data._pa_array, dtype=dtype)
+            data = self.fillna(na_value)
+            result = data._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
+            return result
         else:
-            result = np.asarray(self._pa_array, dtype=dtype)
+            result = self._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
             if copy:
                 result = result.copy()
+            return result
         if self._hasna:
             result[self.isna()] = na_value
         return result
@@ -1147,7 +1150,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
@@ -2022,15 +2025,25 @@ class ArrowExtensionArray(
         )
 
     def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
     ):
-        raise NotImplementedError(
-            "str.split not supported with pd.ArrowDtype(pa.string())."
-        )
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError(
-            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return type(self)(
+            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table):

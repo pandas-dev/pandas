@@ -64,7 +64,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -73,6 +72,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -195,16 +195,12 @@ _shared_doc_kwargs = {
     "unique": "np.ndarray",
     "duplicated": "Series",
     "optional_by": "",
-    "optional_mapper": "",
     "optional_reindex": """
 index : array-like, optional
     New labels for the index. Preferably an Index object to avoid
     duplicating data.
 axis : int or str, optional
     Unused.""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
 
 
@@ -558,7 +554,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 values = []
             keys = index
         else:
-            keys, values = (), []
+            keys, values = default_index(0), []
 
         # Input is now list-like, so rely on "standard" construction:
         s = Series(values, index=keys, dtype=dtype)
@@ -1861,7 +1857,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self) or is_extension_array_dtype(self):
+        if is_object_dtype(self.dtype) or isinstance(self.dtype, ExtensionDtype):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -2422,9 +2418,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmin(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
-        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2493,9 +2488,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmax(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
-        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2897,7 +2891,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         one, or the Series and each columns of a DataFrame, or the Series and
         each columns of an array.
 
-        It can also be called using `self @ other` in Python >= 3.5.
+        It can also be called using `self @ other`.
 
         Parameters
         ----------
@@ -2969,13 +2963,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __matmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(np.transpose(other))
 
@@ -4164,7 +4158,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self):
+        if not len(self) or not is_object_dtype(self.dtype):
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
 
@@ -5220,7 +5214,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         input_series = self
         if infer_objects:
             input_series = input_series.infer_objects()
-            if is_object_dtype(input_series):
+            if is_object_dtype(input_series.dtype):
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:

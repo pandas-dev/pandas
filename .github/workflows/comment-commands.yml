@@ -1,19 +1,25 @@
-name: Preview docs
+name: Comment Commands
 on:
   issue_comment:
     types: created
 
 permissions:
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
-  preview_docs:
-    permissions:
-      issues: write
-      pull-requests: write
+  issue_assign:
     runs-on: ubuntu-22.04
     steps:
-    - if: github.event.comment.body == '/preview'
+    - if: (!github.event.issue.pull_request) && github.event.comment.body == 'take'
+      run: |
+        echo "Assigning issue ${{ github.event.issue.number }} to ${{ github.event.comment.user.login }}"
+        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"assignees": ["${{ github.event.comment.user.login }}"]}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees
+  preview_docs:
+    runs-on: ubuntu-22.04
+    steps:
+    - if: github.event.issue.pull_request && github.event.comment.body == '/preview'
       run: |
         if curl --output /dev/null --silent --head --fail "https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"; then
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "Website preview of this PR available at: https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments

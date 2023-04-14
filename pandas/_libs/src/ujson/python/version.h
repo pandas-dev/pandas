@@ -35,9 +35,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
  * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
-#ifndef PANDAS__LIBS_SRC_UJSON_PYTHON_VERSION_H_
-#define PANDAS__LIBS_SRC_UJSON_PYTHON_VERSION_H_
+#pragma once
 
 #define UJSON_VERSION "1.33"
-
-#endif  // PANDAS__LIBS_SRC_UJSON_PYTHON_VERSION_H_

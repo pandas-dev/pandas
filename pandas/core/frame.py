@@ -94,7 +94,6 @@ from pandas.core.dtypes.common import (
     is_dataclass,
     is_dict_like,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -279,14 +278,7 @@ columns : array-like, optional
 axis : int or str, optional
     Axis to target. Can be either the axis name ('index', 'columns')
     or number (0, 1).""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
-
-_numeric_only_doc = """numeric_only : bool, default False
-    Include only float, int, boolean data.
-"""
 
 _merge_doc = """
 Merge DataFrame or named Series objects with a database-style join.
@@ -386,12 +378,6 @@ See Also
 merge_ordered : Merge with optional filling/interpolation.
 merge_asof : Merge on nearest keys.
 DataFrame.join : Similar method using indices.
-
-Notes
------
-Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.23.0
-Support for merging named Series objects was added in version 0.24.0
 
 Examples
 --------
@@ -1509,7 +1495,7 @@ class DataFrame(NDFrame, OpsMixin):
         This method computes the matrix product between the DataFrame and the
         values of an other Series, DataFrame or a numpy array.
 
-        It can also be called using ``self @ other`` in Python >= 3.5.
+        It can also be called using ``self @ other``.
 
         Parameters
         ----------
@@ -1627,13 +1613,13 @@ class DataFrame(NDFrame, OpsMixin):
 
     def __matmul__(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other) -> DataFrame:
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         try:
             return self.T.dot(np.transpose(other)).T
@@ -2708,8 +2694,8 @@ class DataFrame(NDFrame, OpsMixin):
             it will be used as Root Directory path when writing a partitioned dataset.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
-            Starting with pyarrow 0.17, this includes the `compression`,
-            `compression_level`, `chunksize` and `version` keywords.
+            This includes the `compression`, `compression_level`, `chunksize`
+            and `version` keywords.
 
             .. versionadded:: 1.1.0
 
@@ -3597,7 +3583,9 @@ class DataFrame(NDFrame, OpsMixin):
                 result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
 
         elif (
-            self._is_homogeneous_type and dtypes and is_extension_array_dtype(dtypes[0])
+            self._is_homogeneous_type
+            and dtypes
+            and isinstance(dtypes[0], ExtensionDtype)
         ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
@@ -4178,7 +4166,7 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not is_extension_array_dtype(value)
+            and not isinstance(value.dtype, ExtensionDtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
@@ -4637,8 +4625,8 @@ class DataFrame(NDFrame, OpsMixin):
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
           ``'timedelta64'``
         * To select Pandas categorical dtypes, use ``'category'``
-        * To select Pandas datetimetz dtypes, use ``'datetimetz'`` (new in
-          0.20.0) or ``'datetime64[ns, tz]'``
+        * To select Pandas datetimetz dtypes, use ``'datetimetz'``
+          or ``'datetime64[ns, tz]'``
 
         Examples
         --------
@@ -5735,7 +5723,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 # error: Argument 1 to "append" of "list" has incompatible type
                 #  "Union[Index, Series]"; expected "Index"
-                arrays.append(col)  # type:ignore[arg-type]
+                arrays.append(col)  # type: ignore[arg-type]
                 names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
                 # error: Argument 1 to "append" of "list" has incompatible type
@@ -6770,10 +6758,14 @@ class DataFrame(NDFrame, OpsMixin):
                 return self.copy(deep=None)
 
         if is_range_indexer(indexer, len(indexer)):
+            result = self.copy(deep=(not inplace and not using_copy_on_write()))
+            if ignore_index:
+                result.index = default_index(len(result))
+
             if inplace:
-                return self._update_inplace(self)
+                return self._update_inplace(result)
             else:
-                return self.copy(deep=None)
+                return result
 
         new_data = self._mgr.take(
             indexer, axis=self._get_block_manager_axis(axis), verify=False
@@ -7790,10 +7782,7 @@ class DataFrame(NDFrame, OpsMixin):
             #  through the DataFrame path
             raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
-        other = ops.maybe_prepare_scalar_for_op(
-            other,
-            self.shape,
-        )
+        other = ops.maybe_prepare_scalar_for_op(other, self.shape)
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
         with np.errstate(all="ignore"):
@@ -8600,20 +8589,20 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
         ...                               'Parrot', 'Parrot'],
         ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-                  Animal  Max Speed
+        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+                  Max Speed
         Animal
-        Falcon 0  Falcon      380.0
-               1  Falcon      370.0
-        Parrot 2  Parrot       24.0
-               3  Parrot       26.0
+        Falcon 0      380.0
+               1      370.0
+        Parrot 2       24.0
+               3       26.0
 
-        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-           Animal  Max Speed
-        0  Falcon      380.0
-        1  Falcon      370.0
-        2  Parrot       24.0
-        3  Parrot       26.0
+        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+           Max Speed
+        0      380.0
+        1      370.0
+        2       24.0
+        3       26.0
         """
         )
     )
@@ -9987,9 +9976,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
         passing a list of `DataFrame` objects.
-
-        Support for specifying index levels as the `on` parameter was added
-        in version 0.23.0.
 
         Examples
         --------

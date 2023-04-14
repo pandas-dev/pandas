@@ -260,7 +260,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1.apply(lambda x: x.C.max() - x.B.min())
+    >>> g1[['B', 'C']].apply(lambda x: x.C.max() - x.B.min())
     A
     a    5
     b    2
@@ -1487,6 +1487,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
+                if (
+                    not isinstance(self.obj, Series)
+                    and self._selection is None
+                    and self._selected_obj.shape != self._obj_with_exclusions.shape
+                ):
+                    warnings.warn(
+                        message=_apply_groupings_depr.format(type(self).__name__),
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -2645,55 +2655,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T').sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  2
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:00:00  5  1
+        0   2000-01-01 00:00:00  2
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:00:00  1
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
-                            a  b
+        >>> df.groupby('a')[['b']].resample('30S').sum()
+                            b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:00:30  0  0
-            2000-01-01 00:01:00  0  1
-            2000-01-01 00:01:30  0  0
-            2000-01-01 00:02:00  0  0
-            2000-01-01 00:02:30  0  0
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:02:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:00:30  0
+            2000-01-01 00:01:00  1
+            2000-01-01 00:01:30  0
+            2000-01-01 00:02:00  0
+            2000-01-01 00:02:30  0
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:02:00  1
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('M').sum()
-                    a  b
+        >>> df.groupby('a')[['b']].resample('M').sum()
+                    b
         a
-        0   2000-01-31  0  3
-        5   2000-01-31  5  1
+        0   2000-01-31  3
+        5   2000-01-31  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T', closed='right').sum()
+                                 b
         a
-        0   1999-12-31 23:57:00  0  1
-            2000-01-01 00:00:00  0  2
-        5   2000-01-01 00:00:00  5  1
+        0   1999-12-31 23:57:00  1
+            2000-01-01 00:00:00  2
+        5   2000-01-01 00:00:00  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T', closed='right', label='right').sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:03:00  0  2
-        5   2000-01-01 00:03:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:03:00  2
+        5   2000-01-01 00:03:00  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
@@ -3303,13 +3313,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
-        qs = np.array(q, dtype=np.float64)
+            qs = np.array([q], dtype=np.float64)
+        else:
+            qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
@@ -4313,3 +4319,13 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
+
+
+# GH#7155
+_apply_groupings_depr = (
+    "{}.apply operated on the grouping columns. This behavior is deprecated, "
+    "and in a future version of pandas the grouping columns will be excluded "
+    "from the operation. Select the columns to operate on after groupby to"
+    "either explicitly include or exclude the groupings and silence "
+    "this warning."
+)
