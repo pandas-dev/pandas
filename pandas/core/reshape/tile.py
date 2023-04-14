@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import (
     Timedelta,
     Timestamp,
+    lib,
 )
 from pandas._libs.lib import infer_dtype
 
@@ -22,17 +23,14 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
-    is_categorical_dtype,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -255,11 +253,7 @@ def cut(
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
 
-        try:  # for array-like
-            sz = x.size
-        except AttributeError:
-            x = np.asarray(x)
-            sz = x.size
+        sz = x.size
 
         if sz == 0:
             raise ValueError("Cannot cut empty array")
@@ -289,7 +283,7 @@ def cut(
             raise ValueError("Overlapping IntervalIndex is not accepted.")
 
     else:
-        if is_datetime64tz_dtype(bins):
+        if isinstance(getattr(bins, "dtype", None), DatetimeTZDtype):
             bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
@@ -462,7 +456,8 @@ def _bins_to_cuts(
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-        if not is_categorical_dtype(labels):
+
+        if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
                 labels,
                 categories=labels if len(set(labels)) == len(labels) else None,
@@ -489,12 +484,12 @@ def _coerce_to_type(x):
     """
     dtype: DtypeObj | None = None
 
-    if is_datetime64tz_dtype(x.dtype):
+    if isinstance(x.dtype, DatetimeTZDtype):
         dtype = x.dtype
-    elif is_datetime64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "M"):
         x = to_datetime(x).astype("datetime64[ns]", copy=False)
         dtype = np.dtype("datetime64[ns]")
-    elif is_timedelta64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "m"):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x.dtype):
@@ -529,12 +524,12 @@ def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
     ValueError if bins are not of a compat dtype to dtype
     """
     bins_dtype = infer_dtype(bins, skipna=False)
-    if is_timedelta64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m"):
         if bins_dtype in ["timedelta", "timedelta64"]:
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+    elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
         if bins_dtype in ["datetime", "datetime64"]:
             bins = to_datetime(bins)
             if is_datetime64_dtype(bins):
@@ -565,7 +560,7 @@ def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
     """
     if isinstance(dtype, DatetimeTZDtype):
         bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "mM"):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
@@ -588,7 +583,7 @@ def _format_labels(
     elif is_datetime64_dtype(dtype):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta("1ns")
-    elif is_timedelta64_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "m"):
         formatter = Timedelta
         adjust = lambda x: x - Timedelta("1ns")
     else:
@@ -621,7 +616,7 @@ def _preprocess_for_cut(x):
     return x
 
 
-def _postprocess_for_cut(fac, bins, retbins: bool, dtype, original):
+def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, original):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
