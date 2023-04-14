@@ -46,7 +46,6 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        BaseBuffer,
         DtypeBackend,
         FilePath,
         ReadBuffer,
@@ -109,8 +108,11 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
-          encoding: str | None, storage_options: StorageOptions | None) -> str | bytes:
+def _read(
+    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    encoding: str | None,
+    storage_options: StorageOptions | None,
+) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -128,8 +130,9 @@ def _read(obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        with get_handle(obj, "r", encoding=encoding,
-                        storage_options=storage_options) as handles:
+        with get_handle(
+            obj, "r", encoding=encoding, storage_options=storage_options
+        ) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
@@ -943,16 +946,32 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links,
-           storage_options, **kwargs):
+def _parse(
+    flavor,
+    io,
+    match,
+    attrs,
+    encoding,
+    displayed_only,
+    extract_links,
+    storage_options,
+    **kwargs,
+):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding,
-                   displayed_only, extract_links, storage_options)
+        p = parser(
+            io,
+            compiled_match,
+            attrs,
+            encoding,
+            displayed_only,
+            extract_links,
+            storage_options,
+        )
 
         try:
             tables = p.parse_tables()

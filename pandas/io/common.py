@@ -267,15 +267,15 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    if 'storage_options' in kwargs and kwargs['storage_options'] is not None:
+    if "storage_options" in kwargs and kwargs["storage_options"] is not None:
         request = urllib.request.Request(*args)
-        headers = kwargs['storage_options']  # This is a dict
+        headers = kwargs["storage_options"]  # This is a dict
         for header in headers:
             request.add_header(header, headers[header])
         return urllib.request.urlopen(request)
 
-    elif 'storage_options' in kwargs:
-        del kwargs['storage_options']
+    elif "storage_options" in kwargs:
+        del kwargs["storage_options"]
 
     return urllib.request.urlopen(*args, **kwargs)
 

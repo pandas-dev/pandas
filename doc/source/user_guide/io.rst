@@ -2486,8 +2486,8 @@ Read a URL while passing headers alongside the HTTP request:
    In [323]: pd.read_html(url)
    Out[323]:
    [                   0                    1
-    0     Remote Socket:  65.94.105.142:51760 
-    1  Protocol Version:             HTTP/1.1 
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
     2    Request Method:                  GET
     3       Request URI:      /notes/request/
     4     Request Query:                  NaN,
@@ -2504,8 +2504,8 @@ Read a URL while passing headers alongside the HTTP request:
    In [340]: pd.read_html(url, storage_options=headers)
    Out[340]:
    [                   0                    1
-    0     Remote Socket:  65.94.105.142:51760 
-    1  Protocol Version:             HTTP/1.1 
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
     2    Request Method:                  GET
     3       Request URI:      /notes/request/
     4     Request Query:                  NaN,
