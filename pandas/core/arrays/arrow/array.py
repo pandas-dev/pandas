@@ -15,8 +15,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import iNaT
-from pandas._libs.tslibs.fields import get_date_field
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -2120,30 +2118,25 @@ class ArrowExtensionArray(
 
     @property
     def _dt_is_quarter_start(self):
-        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([1, 4, 7, 10]))
-        is_first_day = pc.equal(pc.day(self._pa_array), 1)
-        return type(self)(pc.and_(is_correct_month, is_first_day))
+        is_start = pc.equal(
+            pc.floor_temporal(self._pa_array, unit="quarter"), self._pa_array
+        )
+        return type(self)(is_start)
 
     @property
     def _dt_is_quarter_end(self):
-        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([3, 6, 9, 12]))
-        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
-        is_first_day = pc.equal(pc.day(plus_one_day), 1)
-        return type(self)(pc.and_(is_correct_month, is_first_day))
+        is_end = pc.equal(
+            pc.ceil_temporal(self._pa_array, unit="quarter"), self._pa_array
+        )
+        return type(self)(is_end)
 
     @property
     def _dt_days_in_month(self):
-        pa_array = self._pa_array
-        if self.dtype.pyarrow_dtype.unit != "ns":
-            pa_array = self._pa_array.cast(
-                pa.timestamp("ns", tz=self.dtype.pyarrow_dtype.tz)
-            )
-        pa_array_int = pa_array.cast(pa.int64())
-        if self._hasna:
-            pa_array_int = pa_array_int.fill_null(iNaT)
-        np_result = get_date_field(pa_array_int.to_numpy(), "dim")
-        mask = np_result == -1
-        return type(self)(pa.array(np_result, mask=mask))
+        result = pc.days_between(
+            pc.floor_temporal(self._pa_array, unit="month"),
+            pc.ceil_temporal(self._pa_array, unit="month"),
+        )
+        return type(self)(result)
 
     _dt_daysinmonth = _dt_days_in_month
 

@@ -2319,7 +2319,7 @@ def test_dt_days_in_month(method):
         dtype=ArrowDtype(pa.timestamp("us")),
     )
     result = getattr(ser.dt, method)
-    expected = pd.Series([31, 30, 28, None], dtype=ArrowDtype(pa.int32()))
+    expected = pd.Series([31, 30, 28, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
