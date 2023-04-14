@@ -760,6 +760,7 @@ class SetitemCastingEquivalents:
         genkey = (x for x in indkey)
         self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask
         mask = np.zeros(obj.shape, dtype=bool)

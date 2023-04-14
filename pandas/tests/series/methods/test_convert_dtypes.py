@@ -152,6 +152,7 @@ class TestSeriesConvertDtypes:
         test_cases,
     )
     @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_convert_dtypes(
         self, data, maindtype, params, expected_default, expected_other
     ):
