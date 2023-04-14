@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_float,
     is_float_dtype,
@@ -53,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -115,8 +115,10 @@ _index_doc_kwargs.update(
 def _get_next_label(label):
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
-        dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
+        dtype = "datetime64[ns]"
+    dtype = pandas_dtype(dtype)
+
+    if lib.is_np_dtype(dtype, "mM") or isinstance(dtype, DatetimeTZDtype):
         return label + np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label + 1
@@ -129,8 +131,10 @@ def _get_next_label(label):
 def _get_prev_label(label):
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
-        dtype = "datetime64"
-    if is_datetime_or_timedelta_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
+        dtype = "datetime64[ns]"
+    dtype = pandas_dtype(dtype)
+
+    if lib.is_np_dtype(dtype, "mM") or isinstance(dtype, DatetimeTZDtype):
         return label - np.timedelta64(1, "ns")
     elif is_integer_dtype(dtype):
         return label - 1
@@ -154,7 +158,6 @@ def _new_IntervalIndex(cls, d):
         "klass": "IntervalIndex",
         "summary": "Immutable index of intervals that are closed on the same side.",
         "name": _index_doc_kwargs["name"],
-        "versionadded": "0.20.0",
         "extra_attributes": "is_overlapping\nvalues\n",
         "extra_methods": "",
         "examples": textwrap.dedent(
