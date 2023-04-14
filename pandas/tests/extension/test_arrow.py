@@ -2487,16 +2487,17 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_dt_tz_localize_unsupported_tz_options():
+@pytest.mark.parametrize("method", ["tz_localize", "tz_convert"])
+def test_dt_tz_localize_unsupported_tz_options(method):
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
-        dtype=ArrowDtype(pa.timestamp("ns")),
+        dtype=ArrowDtype(pa.timestamp("ns", "UTC")),
     )
     with pytest.raises(NotImplementedError, match="ambiguous='NaT' is not supported"):
-        ser.dt.tz_localize("UTC", ambiguous="NaT")
+        getattr(ser.dt, method)("UTC", ambiguous="NaT")
 
     with pytest.raises(NotImplementedError, match="nonexistent='NaT' is not supported"):
-        ser.dt.tz_localize("UTC", nonexistent="NaT")
+        getattr(ser.dt, method)("UTC", nonexistent="NaT")
 
 
 def test_dt_tz_localize_none():
@@ -2522,6 +2523,42 @@ def test_dt_tz_localize(unit):
     expected = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_tz_convert_not_tz_raises():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    with pytest.raises(TypeError, match="Cannot convert tz-naive timestamps"):
+        ser.dt.tz_convert("UTC")
+
+
+def test_dt_tz_convert_none():
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns", "US/Pacific")),
+    )
+    result = ser.dt.tz_convert(None)
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["us", "ns"])
+def test_dt_tz_convert(unit):
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    )
+    result = ser.dt.tz_convert("US/Eastern")
+    expected = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp(unit, "US/Eastern")),
     )
     tm.assert_series_equal(result, expected)
 

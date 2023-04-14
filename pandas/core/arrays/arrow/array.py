@@ -2285,3 +2285,27 @@ class ArrowExtensionArray(
         return type(self)(
             self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
         )
+
+    def _dt_tz_convert(
+        self,
+        tz,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ):
+        if self.dtype.pyarrow_dtype.tz is None:
+            raise TypeError(
+                "Cannot convert tz-naive timestamps, use tz_localize to localize"
+            )
+        if ambiguous != "raise":
+            raise NotImplementedError(f"{ambiguous=} is not supported")
+        if nonexistent != "raise":
+            raise NotImplementedError(f"{nonexistent=} is not supported")
+        current_unit = self.dtype.pyarrow_dtype.unit
+        if tz is None:
+            result = self._pa_array.cast(pa.timestamp(current_unit, "UTC")).cast(
+                pa.timestamp(current_unit)
+            )
+        else:
+            pa_tz = str(tz)
+            result = self._pa_array.cast(pa.timestamp(current_unit, pa_tz))
+        return type(self)(result)
