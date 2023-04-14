@@ -2118,17 +2118,16 @@ class ArrowExtensionArray(
 
     @property
     def _dt_is_quarter_start(self):
-        is_start = pc.equal(
-            pc.floor_temporal(self._pa_array, unit="quarter"), self._pa_array
-        )
-        return type(self)(is_start)
+        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([1, 4, 7, 10]))
+        is_first_day = pc.equal(pc.day(self._pa_array), 1)
+        return type(self)(pc.and_(is_correct_month, is_first_day))
 
     @property
     def _dt_is_quarter_end(self):
-        is_end = pc.equal(
-            pc.ceil_temporal(self._pa_array, unit="quarter"), self._pa_array
-        )
-        return type(self)(is_end)
+        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([3, 6, 9, 12]))
+        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
+        is_first_day = pc.equal(pc.day(plus_one_day), 1)
+        return type(self)(pc.and_(is_correct_month, is_first_day))
 
     @property
     def _dt_days_in_month(self):
