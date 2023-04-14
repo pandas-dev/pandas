@@ -452,12 +452,12 @@ def get_concat_blkno_indexers(list blknos_list not None):
     cdef:
         Py_ssize_t i, j, k, start, ncols
         cnp.npy_intp n_mgrs
-        ndarray[int64_t] blknos, cur_blknos, run_blknos
+        ndarray[intp_t] blknos, cur_blknos, run_blknos
         BlockPlacement bp
         list result = []
 
     n_mgrs = len(blknos_list)
-    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INT64, 0)
+    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
 
     blknos = blknos_list[0]
     ncols = len(blknos)

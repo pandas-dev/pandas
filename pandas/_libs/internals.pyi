@@ -20,8 +20,8 @@ from pandas.core.internals.blocks import Block as B
 
 def slice_len(slc: slice, objlen: int = ...) -> int: ...
 def get_concat_blkno_indexers(
-    blknos_list: list[npt.NDArray[np.int64]],
-) -> list[tuple[npt.NDArray[np.int64], BlockPlacement]]: ...
+    blknos_list: list[npt.NDArray[np.intp]],
+) -> list[tuple[npt.NDArray[np.intp], BlockPlacement]]: ...
 def get_blkno_indexers(
     blknos: np.ndarray,  # int64_t[:]
     group: bool = ...,
