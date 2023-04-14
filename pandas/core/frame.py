@@ -106,7 +106,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -3596,9 +3599,14 @@ class DataFrame(NDFrame, OpsMixin):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
             arr_type = dtype.construct_array_type()
-            values = self.values
-
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            if isinstance(dtype, BaseMaskedDtype):
+                data, mask = self._mgr.as_array_masked()
+                new_values = [arr_type(data[i], mask[i]) for i in range(self.shape[0])]
+            else:
+                values = self.values
+                new_values = [
+                    arr_type._from_sequence(row, dtype=dtype) for row in values
+                ]
             result = type(self)._from_arrays(
                 new_values, index=self.columns, columns=self.index
             )

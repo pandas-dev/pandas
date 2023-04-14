@@ -1749,6 +1749,40 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return arr.transpose()
 
+    def as_array_masked(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Convert the blockmanager data into an numpy array.
+
+        Returns
+        -------
+        arr : ndarray
+        """
+        # # TODO(CoW) handle case where resulting array is a view
+        # if len(self.blocks) == 0:
+        #     arr = np.empty(self.shape, dtype=float)
+        #     return arr.transpose()
+
+        # TODO we already established we only have a single dtype, but this
+        # could be generalized to be a mix of all masked dtypes
+        dtype = self.blocks[0].dtype.numpy_dtype
+
+        result_data = np.empty(self.shape, dtype=dtype)
+        result_mask = np.empty(self.shape, dtype="bool")
+
+        # itemmask = np.zeros(self.shape[0])
+
+        for blk in self.blocks:
+            rl = blk.mgr_locs
+            arr = blk.values
+            result_data[rl.indexer] = arr._data
+            result_mask[rl.indexer] = arr._mask
+            # itemmask[rl.indexer] = 1
+
+        # if not itemmask.all():
+        #     raise AssertionError("Some items were not contained in blocks")
+
+        return result_data.transpose(), result_mask.transpose()
+
     def _interleave(
         self,
         dtype: np.dtype | None = None,
