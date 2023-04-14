@@ -977,11 +977,10 @@ Note that format inference is sensitive to ``dayfirst``.  With
 ``dayfirst=True``, it will guess "01/12/2011" to be December 1st. With
 ``dayfirst=False`` (default) it will guess "01/12/2011" to be January 12th.
 
-If you try to parse a column of date strings, pandas will attempt to guess the format
-from the first non-NaN element, and will then parse the rest of the column with that
-format. If pandas fails to guess the format (for example if your first string is
-``'01 December US/Pacific 2000'``), then a warning will be raised and each
-row will be parsed individually by ``dateutil.parser.parse``. The safest
+If you try to parse a column of date strings, pandas will attempt to find the format
+which work best from a sample of non-NaN elements, and will then parse the rest of the
+column with that format. If pandas fails to guess the format, then a warning will be
+raised and each row will be parsed individually by ``dateutil.parser.parse``. The safest
 way to parse dates is to explicitly set ``format=``.
 
 .. ipython:: python
@@ -994,7 +993,9 @@ way to parse dates is to explicitly set ``format=``.
    df
 
 In the case that you have mixed datetime formats within the same column, you can
-pass  ``format='mixed'``
+pass  ``format='mixed'``. Pandas will convert rows to the best format found (the one
+which matches the most rows), and then iteratively convert the remaining rows with the
+remaining formats.
 
 .. ipython:: python
 
