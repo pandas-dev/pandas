@@ -205,9 +205,9 @@ def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
 
     result = dtype.__from_arrow__(arr)
     expected = DatetimeArray(
-        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]")
+        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
+        dtype=dtype,
     )
-    expected = expected.tz_localize(pd_tz)
     tm.assert_extension_array_equal(result, expected)
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
