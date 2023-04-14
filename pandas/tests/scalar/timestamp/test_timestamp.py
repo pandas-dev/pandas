@@ -108,7 +108,7 @@ class TestTimestampProperties:
             nanosecond=7,
             tz=tzstr,
         )
-        dt = ts.to_pydatetime
+        dt = ts.to_pydatetime()
         assert dt.components.year == 2013
         assert dt.components.month == 11
         assert dt.components.day == 3
