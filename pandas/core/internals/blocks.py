@@ -1191,14 +1191,6 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, other)
         except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                "and will raise in a future error of pandas. "
-                f"Value '{other}' has dtype incompatible with {values.dtype}, "
-                "please explicitly cast to a compatible dtype first.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
@@ -1751,6 +1743,14 @@ class EABackedBlock(Block):
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
             _catch_deprecated_value_error(err)
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value '{new}' has dtype incompatible with {values.dtype}, "
+                "please explicitly cast to a compatible dtype first.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
