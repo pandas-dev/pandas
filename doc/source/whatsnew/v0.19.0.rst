@@ -766,6 +766,7 @@ This will now convert integers/floats with the default unit of ``ns``.
 
 .. ipython:: python
    :okwarning:
+
    pd.to_datetime([1, "foo"], errors="coerce")
 
 Bug fixes related to ``.to_datetime()``:
