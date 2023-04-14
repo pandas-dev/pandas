@@ -577,7 +577,10 @@ def test_setitem_scalar_with_mask_validation(dtype):
     else:
         msg = "Scalar must be NA or str"
     with pytest.raises(TypeError, match=msg):
-        ser[mask] = 1
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            ser[mask] = 1
 
 
 def test_from_numpy_str(dtype):
