@@ -319,6 +319,13 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(s)
     True
     """
+    # GH#52607
+    warnings.warn(
+        "is_datetime64tz_dtype is deprecated and will be removed in a future "
+        "version. Check `isinstance(dtype, pd.DatetimeTZDtype)` instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, DatetimeTZDtype):
         # GH#33400 fastpath for dtype object
         # GH 34986
@@ -431,6 +438,13 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     >>> is_interval_dtype(pd.IntervalIndex([interval]))
     True
     """
+    # GH#52607
+    warnings.warn(
+        "is_interval_dtype is deprecated and will be removed in a future version. "
+        "Use `isinstance(dtype, pd.IntervalDtype)` instead",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Interval
@@ -854,7 +868,14 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     if arr_or_dtype is None:
         return False
-    return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
+
+    try:
+        tipo = get_dtype(arr_or_dtype)
+    except TypeError:
+        return False
+    return (isinstance(tipo, np.dtype) and tipo.kind == "M") or isinstance(
+        tipo, DatetimeTZDtype
+    )
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
@@ -935,44 +956,6 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     False
     """
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
-
-
-def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether the provided array or dtype is of
-    a timedelta64 or datetime64 dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array or dtype is of a timedelta64,
-        or datetime64 dtype.
-
-    Examples
-    --------
-    >>> is_datetime_or_timedelta_dtype(str)
-    False
-    >>> is_datetime_or_timedelta_dtype(int)
-    False
-    >>> is_datetime_or_timedelta_dtype(np.datetime64)
-    True
-    >>> is_datetime_or_timedelta_dtype(np.timedelta64)
-    True
-    >>> is_datetime_or_timedelta_dtype(np.array(['a', 'b']))
-    False
-    >>> is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
-    False
-    >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
-    True
-    >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-    True
-    """
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
 # This exists to silence numpy deprecation warnings, see GH#29553
@@ -1672,7 +1655,6 @@ __all__ = [
     "is_datetime64_dtype",
     "is_datetime64_ns_dtype",
     "is_datetime64tz_dtype",
-    "is_datetime_or_timedelta_dtype",
     "is_decimal",
     "is_dict_like",
     "is_dtype_equal",
