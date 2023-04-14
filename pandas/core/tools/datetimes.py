@@ -1183,8 +1183,8 @@ def to_datetime(
     If multiple datetime formats are possible for a value, pandas will try to infer
     the most plausible format using the other examples.
 
-    >>> pd.to_datetime(["01-02-2012", "02-30-2012"])
-    DatetimeIndex(['2012-01-02', '2012-02-30'], dtype='datetime64[ns]', freq=None)
+    >>> pd.to_datetime(["01-02-2012", "02-27-2012"])
+    DatetimeIndex(['2012-01-02', '2012-02-27'], dtype='datetime64[ns]', freq=None)
 
     .. _to_datetime_tz_examples:
 
