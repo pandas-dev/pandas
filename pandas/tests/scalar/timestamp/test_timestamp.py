@@ -94,9 +94,20 @@ class TestTimestampProperties:
         assert isinstance(result, int)
         assert result == expected
 
-        #components
+        # components
         tzstr = "dateutil/usr/share/zoneinfo/America/Chicago"
-        ts = Timestamp(year=2013, month=11, day=3, hour=1, minute=0, fold=1, second=32, microsecond=3, nanosecond=7, tz=tzstr)
+        ts = Timestamp(
+            year=2013,
+            month=11,
+            day=3,
+            hour=1,
+            minute=0,
+            fold=1,
+            second=32,
+            microsecond=3,
+            nanosecond=7,
+            tz=tzstr,
+        )
         dt = ts.to_pydatetime
         assert dt.components.year == 2013
         assert dt.components.month == 11
@@ -114,8 +125,7 @@ class TestTimestampProperties:
         assert dt.components.month == 4
         assert dt.components.day == 14
         assert dt.components.hour == 9
-        assert dt.components.minute == 53 
-
+        assert dt.components.minute == 53
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_millisecond_raises(self, tz):
