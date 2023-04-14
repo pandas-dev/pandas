@@ -205,8 +205,8 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error():
-    if PYPY:
+def raises_chained_assignment_error(extra_warnings=()):
+    if PYPY and extra_warnings is None:
         from contextlib import nullcontext
 
         return nullcontext()
@@ -214,7 +214,7 @@ def raises_chained_assignment_error():
         from pandas._testing import assert_produces_warning
 
         return assert_produces_warning(
-            ChainedAssignmentError,
+            (ChainedAssignmentError, *extra_warnings),
             match=(
                 "A value is trying to be set on a copy of a DataFrame or Series "
                 "through chained assignment"
