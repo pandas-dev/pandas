@@ -7,6 +7,7 @@ from decimal import Decimal
 from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Any,
     overload,
 )
 
@@ -324,32 +325,31 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     return result
 
 
+def _check_record_value(element: Any, inf_as_na: bool) -> bool:
+    is_element_nan = False
+    if element != element:
+        is_element_nan = True
+
+    is_element_inf = False
+    if inf_as_na:
+        try:
+            if np.isinf(element):
+                is_element_inf = True
+        except TypeError:
+            is_element_inf = False
+
+    return np.any(np.logical_or(is_element_nan, is_element_inf))
+
+
 def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         does_record_contain_nan = np.zeros(len(record), dtype=bool)
-        if inf_as_na:
-            does_record_contain_inf = np.zeros(len(record), dtype=bool)
         for j, element in enumerate(record):
-            if element != element:
-                does_record_contain_nan[j] = True
-            else:
-                does_record_contain_nan[j] = False
-            if inf_as_na:
-                try:
-                    if np.isinf(element):
-                        does_record_contain_inf[j] = True
-                    else:
-                        does_record_contain_inf[j] = False
-                except TypeError:
-                    does_record_contain_inf[j] = False
-
-        if inf_as_na:
-            result[i] = np.any(
-                np.logical_or(does_record_contain_nan, does_record_contain_inf)
+            does_record_contain_nan[j] = _check_record_value(
+                element, inf_as_na=inf_as_na
             )
-        else:
-            result[i] = np.any(does_record_contain_nan)
+        result[i] = np.any(does_record_contain_nan)
 
     return result
 
