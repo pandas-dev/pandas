@@ -48,8 +48,7 @@ class TestSeriesSubclassing:
         N = 3
         rng = pd.date_range("1/1/1990", periods=N, freq="53s")
 
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
+        s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
 
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             result = s.asof(rng[-2:])

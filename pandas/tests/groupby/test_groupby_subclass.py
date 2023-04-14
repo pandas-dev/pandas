@@ -43,7 +43,6 @@ def test_groupby_preserves_subclass(obj, groupby_func):
         "pct_change",
         "shift",
         "prod",
-        "skew",
         "mean",
         "median",
         "first",
