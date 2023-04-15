@@ -3227,7 +3227,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals):
+            if is_object_dtype(vals.dtype):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
@@ -3253,7 +3253,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
                 # Optional[Union[dtype[Any], ExtensionDtype]]]")
                 return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:

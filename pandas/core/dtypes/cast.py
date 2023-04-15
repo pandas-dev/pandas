@@ -609,7 +609,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
     if not is_scalar(fill_value):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
-        if not is_object_dtype(dtype):
+        if dtype != object:
             # with object dtype there is nothing to promote, and the user can
             #  pass pretty much any weird fill_value they like
             raise ValueError("fill_value must be a scalar")

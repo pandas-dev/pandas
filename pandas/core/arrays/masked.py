@@ -788,10 +788,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif (
-            isinstance(result.dtype, np.dtype)
-            and result.dtype.kind == "m"
-            and is_supported_unit(get_unit_from_dtype(result.dtype))
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
+            get_unit_from_dtype(result.dtype)
         ):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
