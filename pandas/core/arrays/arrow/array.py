@@ -2211,7 +2211,9 @@ class ArrowExtensionArray(
             "raise": "raise",
             "shift_backward": "earliest",
             "shift_forward": "latest",
-        }.get(nonexistent, None)
+        }.get(
+            nonexistent, None
+        )  # type: ignore[arg-type]
         if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
