@@ -325,7 +325,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     return result
 
 
-def _check_record_value(element: Any, inf_as_na: bool) -> bool:
+def _check_record_value(element: Any, inf_as_na: bool) -> np.bool_:
     is_element_nan = False
     if element != element:
         is_element_nan = True
