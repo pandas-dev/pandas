@@ -175,7 +175,11 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
+        LaTeX-safe sequences. Use 'latex-math' to replace the characters
+        the same way as in 'latex' mode, except for math substrings,
+        which either are surrounded by two characters ``$`` or start with
+        the character ``\(`` and end with ``\)``.
+        If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
@@ -1766,16 +1770,16 @@ class Styler(StylerRenderer):
         Using ``subset`` to restrict application to a single column or multiple columns
 
         >>> df.style.apply(highlight_max, color='red', subset="A")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None)))
-        ...  # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=([0, 1, 2], slice(None)))
+        ... # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=(slice(0, 5, 2), "A"))
+        ... # doctest: +SKIP
 
         Using a function which returns a Series / DataFrame of unequal length but
         containing valid index labels

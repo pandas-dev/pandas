@@ -8,17 +8,13 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
-)
-from pandas._typing import (
-    TYPE_CHECKING,
-    DtypeObj,
-    type_t,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.util._decorators import cache_readonly
@@ -33,6 +29,11 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        type_t,
+    )
+
     from pandas.core.arrays.arrow import ArrowExtensionArray
 
 
@@ -318,4 +319,5 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        return array_class(array)
+        arr = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(arr)

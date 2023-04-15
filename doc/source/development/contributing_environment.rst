@@ -21,7 +21,7 @@ locally before pushing your changes. It's recommended to also install the :ref:`
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform. If you choose to user ``Docker``
+How to do this will depend on your platform. If you choose to use ``Docker`` or ``GitPod``
 in the next step, then you can skip this step.
 
 **Windows**
@@ -210,8 +210,14 @@ Step 3: build and install pandas
 You can now run::
 
    # Build and install pandas
+   # The number after -j is the number of compiling jobs run in parallel
+   # Change it according to your machine's hardware spec
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
+
+.. note::
+   You will need to repeat this step each time the C extensions change, for example
+   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -222,7 +228,3 @@ At this point you should be able to import pandas from your locally built versio
 
 This will create the new environment, and not touch any of your existing environments,
 nor any existing Python installation.
-
-.. note::
-   You will need to repeat this step each time the C extensions change, for example
-   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.

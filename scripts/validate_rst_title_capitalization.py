@@ -229,15 +229,15 @@ def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
     with open(rst_file) as fd:
         previous_line = ""
         for i, line in enumerate(fd):
-            line = line[:-1]
-            line_chars = set(line)
+            line_no_last_elem = line[:-1]
+            line_chars = set(line_no_last_elem)
             if (
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
-                and len(line) == len(previous_line)
+                and len(line_no_last_elem) == len(previous_line)
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
-            previous_line = line
+            previous_line = line_no_last_elem
 
 
 def main(source_paths: list[str]) -> int:

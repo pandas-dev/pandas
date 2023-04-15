@@ -641,7 +641,10 @@ def test_resample_dup_index():
         columns=[Period(year=2000, month=i + 1, freq="M") for i in range(12)],
     )
     df.iloc[3, :] = np.nan
-    result = df.resample("Q", axis=1).mean()
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = df.resample("Q", axis=1).mean()
+
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         expected = df.groupby(lambda x: int((x.month - 1) / 3), axis=1).mean()
@@ -729,7 +732,9 @@ def test_resample_axis1(unit):
     rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     df = DataFrame(np.random.randn(3, len(rng)), columns=rng, index=["a", "b", "c"])
 
-    result = df.resample("M", axis=1).mean()
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = df.resample("M", axis=1).mean()
     expected = df.T.resample("M").mean().T
     tm.assert_frame_equal(result, expected)
 
@@ -1034,8 +1039,12 @@ def test_resample_segfault(unit):
         all_wins_and_wagers, columns=("ID", "timestamp", "A", "B")
     ).set_index("timestamp")
     df.index = df.index.as_unit(unit)
-    result = df.groupby("ID").resample("5min").sum()
-    expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("ID").resample("5min").sum()
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
     tm.assert_frame_equal(result, expected)
 
 
@@ -1054,7 +1063,9 @@ def test_resample_dtype_preservation(unit):
     result = df.resample("1D").ffill()
     assert result.val.dtype == np.int32
 
-    result = df.groupby("group").resample("1D").ffill()
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("group").resample("1D").ffill()
     assert result.val.dtype == np.int32
 
 
@@ -1773,8 +1784,12 @@ def test_resample_apply_with_additional_args(series, unit):
 
     # Testing dataframe
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
-    result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
-    expected = df.groupby("A").resample("D").mean().multiply(multiplier)
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     tm.assert_frame_equal(result, expected)
 
 

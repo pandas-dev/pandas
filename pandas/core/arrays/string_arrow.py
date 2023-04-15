@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Union,
 )
@@ -12,11 +13,6 @@ import numpy as np
 from pandas._libs import (
     lib,
     missing as libmissing,
-)
-from pandas._typing import (
-    Dtype,
-    Scalar,
-    npt,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.util._exceptions import find_stack_level
@@ -47,6 +43,15 @@ if not pa_version_under7p0:
     import pyarrow.compute as pc
 
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
+
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        Scalar,
+        npt,
+    )
+
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
@@ -146,6 +151,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             return cls(pa.array(result, mask=na_values, type=pa.string()))
+        elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            return cls(pc.cast(scalars, pa.string()))
 
         # convert non-na-likes to str
         result = lib.ensure_string_array(scalars, copy=copy)

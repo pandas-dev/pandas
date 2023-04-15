@@ -595,7 +595,7 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_array_manager):
+    def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
         df["D"] = df["A"] * 2
@@ -604,9 +604,15 @@ class TestDataFrameSortValues:
             assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
-        ser.values[0] = 99
 
-        assert df.iloc[0, 0] == df["A"][0]
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] != 99
+        else:
+            ser.values[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] == 99
 
     def test_sort_values_reshaping(self):
         # GH 39426
@@ -623,6 +629,13 @@ class TestDataFrameSortValues:
         result = df.sort_values(by=[], inplace=True)
         tm.assert_frame_equal(df, expected)
         assert result is None
+
+    def test_sort_values_no_op_reset_index(self):
+        # GH#52553
+        df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
+        result = df.sort_values(by="A", ignore_index=True)
+        expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)

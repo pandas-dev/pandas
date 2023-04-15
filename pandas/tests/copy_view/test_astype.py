@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from pandas.compat import pa_version_under7p0
+import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -84,6 +86,14 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     tm.assert_frame_equal(df2, df_orig.astype(dtype))
 
 
+@td.skip_array_manager_invalid_test
+def test_astype_numpy_to_ea():
+    ser = Series([1, 2, 3])
+    with pd.option_context("mode.copy_on_write", True):
+        result = ser.astype("Int64")
+    assert np.shares_memory(get_array(ser), get_array(result))
+
+
 @pytest.mark.parametrize(
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
@@ -163,7 +173,7 @@ def test_astype_different_timezones(using_copy_on_write):
     result = df.astype("datetime64[ns, Europe/Berlin]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(get_array(df, "a").asi8, get_array(result, "a").asi8)
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
 def test_astype_different_timezones_different_reso(using_copy_on_write):
@@ -173,9 +183,7 @@ def test_astype_different_timezones_different_reso(using_copy_on_write):
     result = df.astype("datetime64[ms, Europe/Berlin]")
     if using_copy_on_write:
         assert result._mgr._has_no_reference(0)
-        assert not np.shares_memory(
-            get_array(df, "a").asi8, get_array(result, "a").asi8
-        )
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
 
 
 @pytest.mark.skipif(pa_version_under7p0, reason="pyarrow not installed")
@@ -192,8 +200,10 @@ def test_astype_arrow_timestamp(using_copy_on_write):
     result = df.astype("timestamp[ns][pyarrow]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(
-            get_array(df, "a").asi8, get_array(result, "a")._pa_array
+        # TODO(CoW): arrow is not setting copy=False in the Series constructor
+        # under the hood
+        assert not np.shares_memory(
+            get_array(df, "a"), get_array(result, "a")._pa_array
         )
 
 

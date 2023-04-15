@@ -35,27 +35,27 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
+    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
 
 
 @pytest.fixture
 def data_for_twos(dtype):
-    return PeriodArray(np.ones(100) * 2, freq=dtype.freq)
+    return PeriodArray(np.ones(100) * 2, dtype=dtype)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
+    return PeriodArray([2018, 2019, 2017], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return PeriodArray([iNaT, 2017], freq=dtype.freq)
+    return PeriodArray([iNaT, 2017], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return PeriodArray([2018, iNaT, 2017], freq=dtype.freq)
+    return PeriodArray([2018, iNaT, 2017], dtype=dtype)
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def data_for_grouping(dtype):
     NA = iNaT
     A = 2017
     C = 2019
-    return PeriodArray([B, B, NA, NA, A, A, B, C], freq=dtype.freq)
+    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
 
 
 @pytest.fixture
@@ -104,6 +104,11 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
                 super().test_diff(data, periods)
         else:
             super().test_diff(data, periods)
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        self.assert_extension_array_equal(result, data)
 
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):

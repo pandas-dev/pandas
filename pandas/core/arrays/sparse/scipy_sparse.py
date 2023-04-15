@@ -10,13 +10,7 @@ from typing import (
     Iterable,
 )
 
-import numpy as np
-
 from pandas._libs import lib
-from pandas._typing import (
-    IndexLabel,
-    npt,
-)
 
 from pandas.core.dtypes.missing import notna
 
@@ -25,7 +19,13 @@ from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    import numpy as np
     import scipy.sparse
+
+    from pandas._typing import (
+        IndexLabel,
+        npt,
+    )
 
 
 def _check_is_partition(parts: Iterable, whole: Iterable):
@@ -195,7 +195,7 @@ def coo_to_sparse_series(
     from pandas import SparseDtype
 
     try:
-        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)), copy=False)
     except AttributeError as err:
         raise TypeError(
             f"Expected coo_matrix. Got {type(A).__name__} instead."
