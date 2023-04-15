@@ -91,6 +91,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 -
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
 
