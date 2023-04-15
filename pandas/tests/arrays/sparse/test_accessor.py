@@ -165,6 +165,17 @@ class TestFrameAccessor:
         expected = scipy.sparse.coo_matrix(np.asarray(df))
         assert (result != expected).nnz == 0
 
+    @td.skip_if_no_scipy
+    def test_to_coo_2(self):
+        import scipy.sparse
+
+        arr = np.array([[1, 0, 0, 3], [1, 0, 2, 0], [0, 4, 0, 0]])
+
+        df = pd.DataFrame(arr, columns=[1, 2, 3, 4], dtype="Sparse[int64, 0]")
+        result = df.sparse.to_coo()
+        expected = scipy.sparse.coo_matrix(np.asarray(df))
+        assert (result != expected).nnz == 0
+
     @pytest.mark.parametrize("fill_value", [1, np.nan])
     @td.skip_if_no_scipy
     def test_to_coo_nonzero_fill_val_raises(self, fill_value):
