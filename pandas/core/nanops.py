@@ -1075,11 +1075,8 @@ def _nanminmax(meth, fill_value_typ):
 
         if (axis is not None and values.shape[axis] == 0) or values.size == 0:
             dtype_max = _get_dtype_max(dtype)
-            try:
-                result = getattr(values, meth)(axis, dtype=dtype_max)
-                result.fill(np.nan)
-            except (AttributeError, TypeError, ValueError):
-                result = np.nan
+            result = getattr(values, meth)(axis, dtype=dtype_max)
+            result.fill(np.nan)
         else:
             result = getattr(values, meth)(axis)
 
