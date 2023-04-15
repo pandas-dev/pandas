@@ -1259,6 +1259,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # Allow Index[object] that is all-bools or Index["boolean"]
         if arr_or_dtype.inferred_type == "boolean":
             if not is_bool_dtype(arr_or_dtype.dtype):
+                # GH#52680
                 warnings.warn(
                     "The behavior of is_bool_dtype with an object-dtype Index "
                     "of bool objects is deprecated. In a future version, "

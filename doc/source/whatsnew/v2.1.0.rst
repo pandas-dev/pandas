@@ -234,7 +234,7 @@ Deprecations
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
 - Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
-- Deprecated the behavior of :func:`is_bool_dtype` returning ``True`` for object-dtype :class:`Index` of bool objects (:issue:`??`)
+- Deprecated the behavior of :func:`is_bool_dtype` returning ``True`` for object-dtype :class:`Index` of bool objects (:issue:`52680`)
 -
 
 .. ---------------------------------------------------------------------------
