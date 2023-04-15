@@ -2011,8 +2011,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         _maxlen = 10
         na_repr = "NaN"
-        if is_extension_array_dtype(self.categories.dtype):
-            na_repr = repr(self.categories.dtype.na_value)
+        if isinstance(self.categories.dtype, ExtensionDtype):
+            # np.nan should show up as NaN, not as nan
+            if self.categories.dtype.na_value is not np.nan:
+                na_repr = repr(self.categories.dtype.na_value)
         if len(self._codes) > _maxlen:
             result = self._tidy_repr(_maxlen, na_rep=na_repr)
         elif len(self._codes) > 0:
