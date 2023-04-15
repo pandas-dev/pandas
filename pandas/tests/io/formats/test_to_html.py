@@ -898,7 +898,7 @@ def test_to_html_float_format_object_col(datapath):
     assert result == expected
 
 
-def test_to_html_long_format_object_col(datapath):
+def test_to_html_float_point_double(datapath):
     # GH#52272
     df = DataFrame(data=[[1234567890123456789]], columns=['test'])
     result = df.to_html()

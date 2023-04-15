@@ -1500,7 +1500,7 @@ class TestRowStringConverter:
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
 
-    def test_to_latex_exceeding_long(self):
+    def test_to_latex_exceeding_float_point_double(self):
         df = DataFrame(data=[[1234567890123456789]], columns=['test'])
         expected = _dedent(
             r"""
