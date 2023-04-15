@@ -265,9 +265,9 @@ Categories (2, int64): [1, 2]"""
         assert repr(c) == c_exp
 
         s = Series([1, 2, np.nan], dtype=values_dtype).astype("category")
-        s_exp = """0       1\n1       2\n2    <NA>
+        s_exp = f"""0       1\n1       2\n2    <NA>
 dtype: category
-Categories (2, Int64): [1, 2]"""
+Categories (2, {values_dtype}): [1, 2]"""
         assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):

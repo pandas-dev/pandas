@@ -1599,14 +1599,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
-            fill_value = self.categories.dtype.na_value
-            if is_extension_array_dtype(self.categories.dtype):
+            if isinstance(self.categories.dtype, ExtensionDtype):
                 # Nullable integer dtype
                 # Don't astype to object
+                fill_value = self.categories.dtype.na_value
                 return self.categories.take(self._codes, fill_value=fill_value)
-            return self.categories.astype("object").take(
-                self._codes, fill_value=fill_value
-            )
+            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:
