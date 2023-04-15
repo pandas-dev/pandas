@@ -27,12 +27,12 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_integer,
     is_list_like,
     is_object_dtype,
     is_re,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -178,7 +179,7 @@ class StringMethods(NoNewAttributesMixin):
         from pandas.core.arrays.string_ import StringDtype
 
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data.dtype)
+        self._is_categorical = isinstance(data.dtype, CategoricalDtype)
         self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
@@ -267,27 +268,39 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif (
-            expand is True
-            and is_object_dtype(result)
-            and not isinstance(self._orig, ABCIndex)
-        ):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
+            if isinstance(result.dtype, ArrowDtype):
+                import pyarrow as pa
 
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
-                else:
-                    return [x]
+                from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-            result = [cons_row(x) for x in result]
-            if result and not self._is_string:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
+                max_len = pa.compute.max(
+                    result._pa_array.combine_chunks().value_lengths()
+                ).as_py()
+                if result.isna().any():
+                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                result = {
+                    i: ArrowExtensionArray(pa.array(res))
+                    for i, res in enumerate(zip(*result.tolist()))
+                }
+            elif is_object_dtype(result):
+
+                def cons_row(x):
+                    if is_list_like(x):
+                        return x
+                    else:
+                        return [x]
+
+                result = [cons_row(x) for x in result]
+                if result and not self._is_string:
+                    # propagate nan values to match longest sequence (GH 18450)
+                    max_len = max(len(x) for x in result)
+                    result = [
+                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        for x in result
+                    ]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -379,7 +392,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx, dtype=others.dtype)]
+            return [Series(others, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -628,13 +641,13 @@ class StringMethods(NoNewAttributesMixin):
 
             out = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            if is_categorical_dtype(self._orig.dtype):
+            if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
-                result, dtype=dtype, index=data.index, name=self._orig.name
+                result, dtype=dtype, index=data.index, name=self._orig.name, copy=False
             )
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
