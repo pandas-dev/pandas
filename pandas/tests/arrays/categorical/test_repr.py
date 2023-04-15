@@ -1,15 +1,19 @@
 import numpy as np
+import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
     Series,
+    array,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 
 
 class TestCategoricalReprWithFactor:
@@ -251,6 +255,19 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
         s_exp = """0      1\n1      2\n2    NaN
 dtype: category
 Categories (2, int64): [1, 2]"""
+        assert repr(s) == s_exp
+
+    @pytest.mark.parametrize("values_dtype", tm.ALL_INT_EA_DTYPES)
+    def test_categorical_repr_nullable_int_NA(self, values_dtype):
+        arr = array([1, 2, np.nan], dtype=values_dtype)
+        c = Categorical(arr)
+        c_exp = f"""[1, 2, {NA}]\nCategories (2, {values_dtype}): [1, 2]"""
+        assert repr(c) == c_exp
+
+        s = Series([1, 2, np.nan], dtype=values_dtype).astype("category")
+        s_exp = """0       1\n1       2\n2    <NA>
+dtype: category
+Categories (2, Int64): [1, 2]"""
         assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):

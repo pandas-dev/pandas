@@ -272,6 +272,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :meth:`Categorical.__repr__` and :meth:`Series.__repr`, where :class:`Categorical`'s having categories backed by a :class:`pandas.api.extensions.ExtensionDtype` had null values show up as "NaN" instead of ``ExtensionDtype.na_value`` (:issue:`52681`)
 - Bug in :meth:`Series.map` , where the value of the ``na_action`` parameter was not used if the series held a :class:`Categorical` (:issue:`22527`).
 -
 

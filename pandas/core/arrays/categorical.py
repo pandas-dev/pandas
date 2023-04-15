@@ -1599,7 +1599,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=NaT)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
-            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
+            fill_value = self.categories.dtype.na_value
+            if is_extension_array_dtype(self.categories.dtype):
+                # Nullable integer dtype
+                # Don't astype to object
+                return self.categories.take(self._codes, fill_value=fill_value)
+            return self.categories.astype("object").take(
+                self._codes, fill_value=fill_value
+            )
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:
@@ -1911,14 +1918,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
+    def _tidy_repr(
+        self, max_vals: int = 10, footer: bool = True, na_rep: str = "NaN"
+    ) -> str:
         """
         a short repr displaying only max_vals and an optional (but default
         footer)
         """
         num = max_vals // 2
-        head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
+        head = self[:num]._get_repr(length=False, footer=False, na_rep=na_rep)
+        tail = self[-(max_vals - num) :]._get_repr(
+            length=False, footer=False, na_rep=na_rep
+        )
 
         result = f"{head[:-1]}, ..., {tail[1:]}"
         if footer:
@@ -2001,12 +2012,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         String representation.
         """
         _maxlen = 10
+        na_repr = "NaN"
+        if is_extension_array_dtype(self.categories.dtype):
+            na_repr = repr(self.categories.dtype.na_value)
         if len(self._codes) > _maxlen:
-            result = self._tidy_repr(_maxlen)
+            result = self._tidy_repr(_maxlen, na_rep=na_repr)
         elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > _maxlen)
+            result = self._get_repr(length=len(self) > _maxlen, na_rep=na_repr)
         else:
-            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
+            msg = self._get_repr(length=False, footer=True, na_rep=na_repr).replace(
+                "\n", ", "
+            )
             result = f"[], {msg}"
 
         return result
