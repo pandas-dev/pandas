@@ -260,7 +260,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
-        >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
+        >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     c, ['x', 'y'], ordered=True, dtype=dtype2
         ... )
@@ -862,6 +862,8 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    __hash__ = PeriodDtypeBase.__hash__
+    _freq: BaseOffset
 
     def __new__(cls, freq):
         """
@@ -879,13 +881,13 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return cls._cache_dtypes[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = PeriodDtypeBase.__new__(cls, dtype_code)
+            u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
             u._freq = freq
             cls._cache_dtypes[freq.freqstr] = u
             return u
 
     def __reduce__(self):
-        return type(self), (self.freq,)
+        return type(self), (self.name,)
 
     @property
     def freq(self):
@@ -939,37 +941,20 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        return f"period[{self.freq.freqstr}]"
+        return f"period[{self._freqstr}]"
 
     @property
     def na_value(self) -> NaTType:
         return NaT
 
-    def __hash__(self) -> int:
-        # make myself hashable
-        return hash(str(self))
-
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
-        elif isinstance(other, PeriodDtype):
-            # For freqs that can be held by a PeriodDtype, this check is
-            # equivalent to (and much faster than) self.freq == other.freq
-            sfreq = self._freq
-            ofreq = other._freq
-            return sfreq.n == ofreq.n and self._dtype_code == other._dtype_code
-
-        return False
+        return super().__eq__(other)
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
-
-    def __setstate__(self, state) -> None:
-        # for pickle compat. __getstate__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._freq = state["freq"]
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
@@ -1023,14 +1008,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         results = []
         for arr in chunks:
             data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
-            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr = PeriodArray(data.copy(), dtype=self, copy=False)
             # error: Invalid index type "ndarray[Any, dtype[bool_]]" for "PeriodArray";
             # expected type "Union[int, Sequence[int], Sequence[bool], slice]"
             parr[~mask] = NaT  # type: ignore[index]
             results.append(parr)
 
         if not results:
-            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
+            return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
@@ -1148,7 +1133,7 @@ class IntervalDtype(PandasExtensionDtype):
             raise NotImplementedError(
                 "_can_hold_na is not defined for partially-initialized IntervalDtype"
             )
-        if subtype.kind in ["i", "u"]:
+        if subtype.kind in "iu":
             return False
         return True
 
@@ -1447,7 +1432,7 @@ class BaseMaskedDtype(ExtensionDtype):
             from pandas.core.arrays.boolean import BooleanDtype
 
             return BooleanDtype()
-        elif dtype.kind in ["i", "u"]:
+        elif dtype.kind in "iu":
             from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
             return INT_STR_TO_DTYPE[dtype.name]
