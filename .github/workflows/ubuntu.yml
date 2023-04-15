@@ -87,9 +87,6 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      IS_PYPY: ${{ contains(matrix.env_file, 'pypy') }}
-      # TODO: re-enable coverage on pypy, its slow
-      COVERAGE: ${{ !contains(matrix.env_file, 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}
@@ -158,16 +155,13 @@ jobs:
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
-      # TODO: Don't continue on error for PyPy
-      continue-on-error: ${{ env.IS_PYPY == 'true' }}
+      if: ${{ matrix.name != 'Pypy' }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      # TODO: Don't continue on error for PyPy
-      continue-on-error: ${{ env.IS_PYPY == 'true' }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 1

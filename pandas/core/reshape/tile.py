@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool_dtype,
     is_datetime64_dtype,
-    is_datetime_or_timedelta_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
@@ -561,7 +560,7 @@ def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
     """
     if isinstance(dtype, DatetimeTZDtype):
         bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "mM"):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
