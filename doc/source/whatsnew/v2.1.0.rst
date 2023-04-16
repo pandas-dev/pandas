@@ -25,7 +25,7 @@ enhancement1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`.
-Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of the :class:`DataFrame`,
+Similarly, :meth:`DataFrame.map` applies the callable to all elements of the :class:`DataFrame`,
 while :meth:`Index.map` applies the callable to all elements of the :class:`Index`.
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
@@ -59,9 +59,11 @@ and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` sub
     ser = pd.Series(["a", "b", np.nan], dtype="category")
     ser.map(str.upper, na_action="ignore")
     df = pd.DataFrame(ser)
-    df.applymap(str.upper, na_action="ignore")
+    df.map(str.upper, na_action="ignore")
     idx = pd.Index(ser)
     idx.map(str.upper, na_action="ignore")
+
+Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but the new name better communicate that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`).
 
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
@@ -224,6 +226,7 @@ Deprecations
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
+- Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
