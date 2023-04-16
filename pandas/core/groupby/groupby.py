@@ -260,7 +260,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1.apply(lambda x: x.C.max() - x.B.min())
+    >>> g1[['B', 'C']].apply(lambda x: x.C.max() - x.B.min())
     A
     a    5
     b    2
@@ -489,7 +489,93 @@ Examples
 --------
 %(example)s"""
 
-_agg_template = """
+_agg_template_series = """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list, dict or None
+    Function to use for aggregating the data. If a function, must either
+    work when passed a {klass} or when passed to {klass}.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
+
+    .. versionchanged:: 1.1.0
+
+        Can also accept a Numba JIT function with
+        ``engine='numba'`` specified. Only passing a single function is supported
+        with this engine.
+
+        If the ``'numba'`` engine is chosen, the function must be
+        a user defined function with ``values`` and ``index`` as the
+        first and second arguments respectively in the function signature.
+        Each group's index will be passed to the user defined function
+        and optionally available for use.
+
+    .. deprecated:: 2.1.0
+
+        Passing a dictionary is deprecated and will raise in a future version
+        of pandas. Pass a list of aggregations instead.
+*args
+    Positional arguments to pass to func.
+engine : str, default None
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+    .. versionadded:: 1.1.0
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+      applied to the function
+
+    .. versionadded:: 1.1.0
+**kwargs
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
+
+Returns
+-------
+{klass}
+
+See Also
+--------
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Transforms the Series on each group
+    based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
+
+Notes
+-----
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
+{examples}"""
+
+_agg_template_frame = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -509,17 +595,18 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified. Only passing a single function is supported
-    with this engine.
-
-    If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the
-    first and second arguments respectively in the function signature.
-    Each group's index will be passed to the user defined function
-    and optionally available for use.
-
     .. versionchanged:: 1.1.0
+
+        Can also accept a Numba JIT function with
+        ``engine='numba'`` specified. Only passing a single function is supported
+        with this engine.
+
+        If the ``'numba'`` engine is chosen, the function must be
+        a user defined function with ``values`` and ``index`` as the
+        first and second arguments respectively in the function signature.
+        Each group's index will be passed to the user defined function
+        and optionally available for use.
+
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -586,14 +673,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby.apply(f)
+        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby.apply(f)
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
         return attr
 
@@ -1030,7 +1117,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self.apply(curried)
+            return self._python_apply_general(curried, self._selected_obj)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1105,7 +1192,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = concat(values, axis=self.axis)
 
-        name = self.obj.name if self.obj.ndim == 1 else self._selection
+        if self.obj.ndim == 1:
+            name = self.obj.name
+        elif is_hashable(self._selection):
+            name = self._selection
+        else:
+            name = None
+
         if isinstance(result, Series) and name is not None:
             result.name = name
 
@@ -1381,8 +1474,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 @wraps(func)
                 def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
+                    return func(g, *args, **kwargs)
 
             else:
                 raise ValueError(
@@ -1395,6 +1487,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
+                if (
+                    not isinstance(self.obj, Series)
+                    and self._selection is None
+                    and self._selected_obj.shape != self._obj_with_exclusions.shape
+                ):
+                    warnings.warn(
+                        message=_apply_groupings_depr.format(type(self).__name__),
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -1483,7 +1585,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
-            ser = Series(values)
+            ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
             # TODO: special case not needed with ArrayManager
@@ -2553,55 +2655,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T').sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  2
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:00:00  5  1
+        0   2000-01-01 00:00:00  2
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:00:00  1
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
-                            a  b
+        >>> df.groupby('a')[['b']].resample('30S').sum()
+                            b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:00:30  0  0
-            2000-01-01 00:01:00  0  1
-            2000-01-01 00:01:30  0  0
-            2000-01-01 00:02:00  0  0
-            2000-01-01 00:02:30  0  0
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:02:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:00:30  0
+            2000-01-01 00:01:00  1
+            2000-01-01 00:01:30  0
+            2000-01-01 00:02:00  0
+            2000-01-01 00:02:30  0
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:02:00  1
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('M').sum()
-                    a  b
+        >>> df.groupby('a')[['b']].resample('M').sum()
+                    b
         a
-        0   2000-01-31  0  3
-        5   2000-01-31  5  1
+        0   2000-01-31  3
+        5   2000-01-31  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T', closed='right').sum()
+                                 b
         a
-        0   1999-12-31 23:57:00  0  1
-            2000-01-01 00:00:00  0  2
-        5   2000-01-01 00:00:00  5  1
+        0   1999-12-31 23:57:00  1
+            2000-01-01 00:00:00  2
+        5   2000-01-01 00:00:00  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
-                                 a  b
+        >>> df.groupby('a')[['b']].resample('3T', closed='right', label='right').sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:03:00  0  2
-        5   2000-01-01 00:03:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:03:00  2
+        5   2000-01-01 00:03:00  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
@@ -2832,11 +2934,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # We broadcast algorithms.take_nd analogous to
                 #  np.take_along_axis
-
-                # Note: we only get here with backfill/pad,
-                #  so if we have a dtype that cannot hold NAs,
-                #  then there will be no -1s in indexer, so we can use
-                #  the original dtype (no need to ensure_dtype_can_hold_na)
                 if isinstance(values, np.ndarray):
                     dtype = values.dtype
                     if self.grouper.has_dropped_na:
@@ -2844,6 +2941,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         dtype = ensure_dtype_can_hold_na(values.dtype)
                     out = np.empty(values.shape, dtype=dtype)
                 else:
+                    # Note: we only get here with backfill/pad,
+                    #  so if we have a dtype that cannot hold NAs,
+                    #  then there will be no -1s in indexer, so we can use
+                    #  the original dtype (no need to ensure_dtype_can_hold_na)
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
                 for i, value_element in enumerate(values):
@@ -3044,6 +3145,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
+        grouper: np.ndarray | Index | ops.BaseGrouper
         if self.keys is None and self.level is None:
             # we don't have the grouper info available
             # (e.g. we have selected out
@@ -3211,13 +3313,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
-        qs = np.array(q, dtype=np.float64)
+            qs = np.array([q], dtype=np.float64)
+        else:
+            qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
@@ -4221,3 +4319,13 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
+
+
+# GH#7155
+_apply_groupings_depr = (
+    "{}.apply operated on the grouping columns. This behavior is deprecated, "
+    "and in a future version of pandas the grouping columns will be excluded "
+    "from the operation. Select the columns to operate on after groupby to"
+    "either explicitly include or exclude the groupings and silence "
+    "this warning."
+)

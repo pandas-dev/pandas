@@ -36,14 +36,12 @@ import pytest
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_datetime64_dtype
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     Series,
@@ -1935,7 +1933,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # "2000-06-01 07:00:00"
                 assert col[1] == Timestamp("2000-06-01 07:00:00")
 
-            elif is_datetime64tz_dtype(col.dtype):
+            elif isinstance(col.dtype, DatetimeTZDtype):
                 assert str(col.dt.tz) == "UTC"
 
                 # "2000-01-01 00:00:00-08:00" should convert to
@@ -1966,7 +1964,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgresql server version difference
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
 
         df = read_sql_query(
             "select * from types", self.conn, parse_dates=["DateColWithTz"]
@@ -1976,7 +1974,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 pytest.mark.xfail(reason="no column with datetime with time zone")
             )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
@@ -1985,11 +1983,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             ignore_index=True,
         )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         expected = sql.read_sql_table("types", self.conn)
         col = expected.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
@@ -2137,13 +2135,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
         res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
-        ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+        ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
         assert sql.to_sql(df, "test_time3", self.conn, index=False) == 2
         if self.flavor == "sqlite":
             res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
-            ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(ref, res)
         res = sql.read_sql_table("test_time3", self.conn)
         tm.assert_frame_equal(df, res)
@@ -2951,7 +2949,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
-            expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(res, expected)
 
     def _get_index_columns(self, tbl_name):

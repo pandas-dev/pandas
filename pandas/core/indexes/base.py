@@ -99,7 +99,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_hashable,
     is_integer,
-    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_numeric_dtype,
@@ -136,6 +135,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
+    nanops,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -161,7 +161,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import disallow_ndim_indexing
+from pandas.core.indexers import (
+    disallow_ndim_indexing,
+    is_valid_positional_slice,
+)
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
@@ -428,7 +431,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def _can_hold_strings(self) -> bool:
-        return not is_numeric_dtype(self)
+        return not is_numeric_dtype(self.dtype)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -503,7 +506,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
-            if data.dtype.kind not in ["i", "u", "f", "b", "c", "m", "M"]:
+            if data.dtype.kind not in "iufcbmM":
                 # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
@@ -671,7 +674,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
-            if values.dtype.kind in ["i", "u", "f", "b"]:
+            if values.dtype.kind in "iufb":
                 return Index(values, name=result.name)
 
         return result
@@ -936,7 +939,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.dtype
 
     @final
-    def ravel(self, order: str_t = "C") -> Index:
+    def ravel(self, order: str_t = "C") -> Self:
         """
         Return a view on self.
 
@@ -958,9 +961,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(cls, str):
                 dtype = pandas_dtype(cls)
 
-            if isinstance(dtype, (np.dtype, ExtensionDtype)) and needs_i8_conversion(
-                dtype
-            ):
+            if needs_i8_conversion(dtype):
                 if dtype.kind == "m" and dtype != "m8[ns]":
                     # e.g. m8[s]
                     return self._data.view(cls)
@@ -2119,7 +2120,7 @@ class Index(IndexOpsMixin, PandasObject):
                 #  in IntervalArray._cmp_method
                 return True
             return self.dtype._can_hold_na
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             return False
         return True
 
@@ -2685,7 +2686,7 @@ class Index(IndexOpsMixin, PandasObject):
         """The expected NA value to use with this index."""
         dtype = self.dtype
         if isinstance(dtype, np.dtype):
-            if dtype.kind in ["m", "M"]:
+            if dtype.kind in "mM":
                 return NaT
             return np.nan
         return dtype.na_value
@@ -3306,6 +3307,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def intersection(self, other, sort: bool = False):
+        # default sort keyword is different here from other setops intentionally
+        #  done in GH#25063
         """
         Form the intersection of two Index objects.
 
@@ -4071,7 +4074,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_indexer("positional", key.stop, "iloc")
         self._validate_indexer("positional", key.step, "iloc")
 
-    def _convert_slice_indexer(self, key: slice, kind: str_t):
+    def _convert_slice_indexer(self, key: slice, kind: Literal["loc", "getitem"]):
         """
         Convert a slice indexer.
 
@@ -4083,7 +4086,6 @@ class Index(IndexOpsMixin, PandasObject):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem"], kind
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -4096,10 +4098,21 @@ class Index(IndexOpsMixin, PandasObject):
             return self.slice_indexer(start, stop, step)
 
         # figure out if this is a positional indexer
-        def is_int(v):
-            return v is None or is_integer(v)
+        is_index_slice = is_valid_positional_slice(key)
 
-        is_index_slice = is_int(start) and is_int(stop) and is_int(step)
+        if kind == "getitem":
+            # called from the getitem slicers, validate that we are in fact integers
+            if is_index_slice:
+                # In this case the _validate_indexer checks below are redundant
+                return key
+            elif self.dtype.kind in "iu":
+                # Note: these checks are redundant if we know is_index_slice
+                self._validate_indexer("slice", key.start, "getitem")
+                self._validate_indexer("slice", key.stop, "getitem")
+                self._validate_indexer("slice", key.step, "getitem")
+                return key
+
+        # convert the slice to an indexer here
 
         # special case for interval_dtype bc we do not do partial-indexing
         #  on integer Intervals when slicing
@@ -4108,17 +4121,6 @@ class Index(IndexOpsMixin, PandasObject):
             self.dtype, IntervalDtype
         )
         is_positional = is_index_slice and ints_are_positional
-
-        if kind == "getitem":
-            # called from the getitem slicers, validate that we are in fact integers
-            if is_index_slice or is_integer_dtype(self.dtype):
-                # Note: these checks are redundant if we know is_index_slice
-                self._validate_indexer("slice", key.start, "getitem")
-                self._validate_indexer("slice", key.stop, "getitem")
-                self._validate_indexer("slice", key.step, "getitem")
-                return key
-
-        # convert the slice to an indexer here
 
         # if we are mixed and have integers
         if is_positional:
@@ -4151,7 +4153,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _raise_invalid_indexer(
         self,
-        form: str_t,
+        form: Literal["slice", "positional"],
         key,
         reraise: lib.NoDefault | None | Exception = lib.no_default,
     ) -> None:
@@ -5099,7 +5101,7 @@ class Index(IndexOpsMixin, PandasObject):
             If the value cannot be inserted into an array of this dtype.
         """
         dtype = self.dtype
-        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+        if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
             # return np_can_hold_element(dtype, value)
             try:
                 return np_can_hold_element(dtype, value)
@@ -5901,7 +5903,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
-        if keyarr.dtype.kind in ["m", "M"]:
+        if keyarr.dtype.kind in "mM":
             # DTI/TDI.take can infer a freq in some cases when we dont want one
             if isinstance(key, list) or (
                 isinstance(key, type(self))
@@ -6384,14 +6386,17 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_index(target)
 
     @final
-    def _validate_indexer(self, form: str_t, key, kind: str_t) -> None:
+    def _validate_indexer(
+        self,
+        form: Literal["positional", "slice"],
+        key,
+        kind: Literal["getitem", "iloc"],
+    ) -> None:
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
         """
-        assert kind in ["getitem", "iloc"]
-
-        if key is not None and not is_integer(key):
+        if not lib.is_int_or_none(key):
             self._raise_invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(self, label, side: str_t):
@@ -6786,20 +6791,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
             # e.g. PeriodArray, Categorical
-            with np.errstate(all="ignore"):
-                result = op(self._values, other)
+            result = op(self._values, other)
 
         elif isinstance(self._values, ExtensionArray):
             result = op(self._values, other)
 
         elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
+            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
         else:
-            with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, other, op)
+            result = ops.comparison_op(self._values, other, op)
 
         return result
 
@@ -6985,8 +6987,46 @@ class Index(IndexOpsMixin, PandasObject):
                 return -1
         return super().argmax(skipna=skipna)
 
-    @doc(IndexOpsMixin.min)
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+        """
+        Return the minimum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series.
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar
+            Minimum value.
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.min()
+        1
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.min()
+        'a'
+
+        For a MultiIndex, the minimum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.min()
+        ('a', 1)
+        """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7008,10 +7048,49 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return super().min(skipna=skipna)
+        return nanops.nanmin(self._values, skipna=skipna)
 
-    @doc(IndexOpsMixin.max)
     def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+        """
+        Return the maximum value of the Index.
+
+        Parameters
+        ----------
+        axis : int, optional
+            For compatibility with NumPy. Only 0 or None are allowed.
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar
+            Maximum value.
+
+        See Also
+        --------
+        Index.min : Return the minimum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        DataFrame.max : Return the maximum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.max()
+        3
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.max()
+        'c'
+
+        For a MultiIndex, the maximum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.max()
+        ('b', 2)
+        """
+
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7033,7 +7112,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return super().max(skipna=skipna)
+        return nanops.nanmax(self._values, skipna=skipna)
 
     # --------------------------------------------------------------------
 

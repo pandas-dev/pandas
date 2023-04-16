@@ -508,7 +508,7 @@ $1$,$2$
         reason=(
             "Especially in Windows, file stream should not be passed"
             "to csv writer without newline='' option."
-            "(https://docs.python.org/3.6/library/csv.html#csv.writer)"
+            "(https://docs.python.org/3/library/csv.html#csv.writer)"
         ),
     )
     def test_to_csv_write_to_open_file(self):

@@ -52,7 +52,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_float,
     is_integer,
     is_integer_dtype,
@@ -60,6 +59,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -250,7 +250,7 @@ def _maybe_cache(
             cache_dates = convert_listlike(unique_dates, format)
             # GH#45319
             try:
-                cache_array = Series(cache_dates, index=unique_dates)
+                cache_array = Series(cache_dates, index=unique_dates, copy=False)
             except OutOfBoundsDatetime:
                 return cache_array
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
@@ -395,7 +395,7 @@ def _convert_listlike_datetimes(
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
     tz = "utc" if utc else None
-    if is_datetime64tz_dtype(arg_dtype):
+    if isinstance(arg_dtype, DatetimeTZDtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if utc:
@@ -502,7 +502,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     else:
         arg = np.asarray(arg)
 
-        if arg.dtype.kind in ["i", "u"]:
+        if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
             arr = arg.astype(f"datetime64[{unit}]", copy=False)

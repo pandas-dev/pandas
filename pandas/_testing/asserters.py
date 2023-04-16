@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import operator
 from typing import (
+    TYPE_CHECKING,
     Literal,
     cast,
 )
@@ -10,6 +12,7 @@ import numpy as np
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
+from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -21,6 +24,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
     PandasDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -52,6 +57,9 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import safe_sort_index
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 def assert_almost_equal(
@@ -295,6 +303,7 @@ def assert_index_equal(
                 exact=exact,
                 check_names=check_names,
                 check_exact=check_exact,
+                check_categorical=check_categorical,
                 rtol=rtol,
                 atol=atol,
                 obj=lobj,
@@ -524,7 +533,7 @@ def assert_interval_array_equal(
     _check_isinstance(left, right, IntervalArray)
 
     kwargs = {}
-    if left._left.dtype.kind in ["m", "M"]:
+    if left._left.dtype.kind in "mM":
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
 
@@ -538,7 +547,7 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    assert_attr_equal("freq", left, right, obj=obj)
+    assert_attr_equal("dtype", left, right, obj=obj)
 
 
 def assert_datetime_array_equal(
@@ -738,6 +747,23 @@ def assert_extension_array_equal(
         and isinstance(right, DatetimeLikeArrayMixin)
         and type(right) == type(left)
     ):
+        # GH 52449
+        if not check_dtype and left.dtype.kind in "mM":
+            if not isinstance(left.dtype, np.dtype):
+                l_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                l_unit = np.datetime_data(left.dtype)[0]
+            if not isinstance(right.dtype, np.dtype):
+                r_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                r_unit = np.datetime_data(right.dtype)[0]
+            if (
+                l_unit != r_unit
+                and compare_mismatched_resolutions(
+                    left._ndarray, right._ndarray, operator.eq
+                ).all()
+            ):
+                return
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
         assert_numpy_array_equal(
@@ -965,7 +991,9 @@ def assert_series_equal(
             obj=str(obj),
             index_values=np.asarray(left.index),
         )
-    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
+    elif isinstance(left.dtype, ExtensionDtype) and isinstance(
+        right.dtype, ExtensionDtype
+    ):
         assert_extension_array_equal(
             left._values,
             right._values,
@@ -1320,7 +1348,9 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
         assert elem1 is not elem2, msg
 
 
-def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) -> bool:
+def is_extension_array_dtype_and_needs_i8_conversion(
+    left_dtype: DtypeObj, right_dtype: DtypeObj
+) -> bool:
     """
     Checks that we have the combination of an ExtensionArraydtype and
     a dtype that should be converted to int64
@@ -1331,7 +1361,7 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
 
     Related to issue #37609
     """
-    return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+    return isinstance(left_dtype, ExtensionDtype) and needs_i8_conversion(right_dtype)
 
 
 def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice) -> None:
