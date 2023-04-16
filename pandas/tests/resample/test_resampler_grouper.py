@@ -538,6 +538,37 @@ def test_resample_no_columns():
     tm.assert_frame_equal(result, expected)
 
 
+def test_resample_one_column():
+    # GH#52484
+    df = DataFrame(
+        data=[4, 5, 6],
+        index=Index(
+            pd.to_datetime(
+                ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+            ),
+            name="date",
+        ),
+    )
+    result = df.groupby([0, 0, 1]).resample(rule=pd.to_timedelta("06:00:00")).mean()
+    index = pd.to_datetime(
+        [
+            "2018-01-01 00:00:00",
+            "2018-01-01 06:00:00",
+            "2018-01-01 12:00:00",
+            "2018-01-02 00:00:00",
+        ]
+    )
+    expected = DataFrame(
+        data=[4.0, np.nan, 5.0, 6.0],
+        index=pd.MultiIndex(
+            levels=[[0, 1], index],
+            codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
+            names=[None, "date"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = DataFrame(
