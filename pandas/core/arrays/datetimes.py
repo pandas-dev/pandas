@@ -1191,7 +1191,6 @@ default 'raise'
             freq = res
 
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
-        
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
