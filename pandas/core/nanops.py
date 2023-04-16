@@ -1067,7 +1067,7 @@ def _nanminmax(meth, fill_value_typ):
         axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
-    ) -> Dtype:
+    ):
         if values.size == 0:
             return _na_for_min_count(values, axis)
 
