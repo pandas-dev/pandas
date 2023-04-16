@@ -25,7 +25,7 @@ enhancement1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`.
-Similarly, :meth:`DataFrame.map` (previously named :meth:`DataFrame.applymap`) applies the callable to all elements of the :class:`DataFrame`,
+Similarly, :meth:`DataFrame.map` applies the callable to all elements of the :class:`DataFrame`,
 while :meth:`Index.map` applies the callable to all elements of the :class:`Index`.
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
@@ -63,11 +63,11 @@ and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` sub
     idx = pd.Index(ser)
     idx.map(str.upper, na_action="ignore")
 
+Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but does the new name better communicate that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`).
+
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
 to ``na_action=None``, like for all the other array types.
-
-Notice also that in this version, :meth:`DataFrame.applymap` has been renamed to :meth:`DataFrame.map` (:issue:`52353`).
 
 .. _whatsnew_210.enhancements.other:
 
