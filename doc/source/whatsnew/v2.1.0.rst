@@ -63,7 +63,7 @@ and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` sub
     idx = pd.Index(ser)
     idx.map(str.upper, na_action="ignore")
 
-Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but does the new name better communicate that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`).
+Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but the new name better communicate that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`).
 
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
