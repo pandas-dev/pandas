@@ -1203,8 +1203,6 @@ cdef class TextReader:
                 else:
                     if chr(self.parser.decimal) != '.':
                         for i in range(len(result)):
-                            # print(result[i], type(result[i]))
-                            #str(chr(self.parser.decimal))
                             result[i] = result[i].replace(chr(self.parser.decimal), ".")
                             
                     result = array_type._from_sequence_of_strings(result, dtype=dtype)
