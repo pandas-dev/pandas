@@ -530,7 +530,7 @@ def test_resample_no_columns():
     )
     expected = DataFrame(
         index=pd.MultiIndex(
-            levels=[np.array([0, 1], dtype=np.intp), index],
+            levels=[[0, 1], index],
             codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
             names=[None, "date"],
         )
