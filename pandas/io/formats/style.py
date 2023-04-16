@@ -1813,7 +1813,7 @@ class Styler(StylerRenderer):
         if method == "apply":
             result = data.apply(func, axis=0, **kwargs)
         elif method == "applymap":
-            result = data.applymap(func, **kwargs)
+            result = data.map(func, **kwargs)
 
         self._update_ctx_header(result, axis)
         return self
@@ -1938,7 +1938,7 @@ class Styler(StylerRenderer):
         if subset is None:
             subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
-        result = self.data.loc[subset].applymap(func)
+        result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
 

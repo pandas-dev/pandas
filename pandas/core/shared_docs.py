@@ -609,7 +609,7 @@ _shared_docs[
     DataFrame.fillna : Fill NA values.
     Series.where : Replace values based on boolean condition.
     DataFrame.where : Replace values based on boolean condition.
-    DataFrame.applymap: Apply a function to a Dataframe elementwise.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 

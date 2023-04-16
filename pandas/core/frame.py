@@ -9673,7 +9673,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.applymap: For elementwise operations.
+        DataFrame.map: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
@@ -9765,11 +9765,15 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return op.apply().__finalize__(self, method="apply")
 
-    def applymap(
+    def map(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
+
+        .. versionadded:: 2.1.0
+
+           DataFrame.applymap was deprecated and renamed to DataFrame.map.
 
         This method applies a function that accepts and returns a scalar
         to every element of a DataFrame.
@@ -9798,6 +9802,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
         DataFrame.replace: Replace values given in `to_replace` with `value`.
+        Series.map : Apply a function elementwise on a Series.
 
         Examples
         --------
@@ -9807,7 +9812,7 @@ class DataFrame(NDFrame, OpsMixin):
         0  1.000  2.120
         1  3.356  4.567
 
-        >>> df.applymap(lambda x: len(str(x)))
+        >>> df.map(lambda x: len(str(x)))
            0  1
         0  3  4
         1  5  5
@@ -9816,7 +9821,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
-        >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
+        >>> df_copy.map(lambda x: len(str(x)), na_action='ignore')
              0  1
         0  NaN  4
         1  5.0  5
@@ -9824,12 +9829,12 @@ class DataFrame(NDFrame, OpsMixin):
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
-        >>> df.applymap(lambda x: x**2)
+        >>> df.map(lambda x: x**2)
                    0          1
         0   1.000000   4.494400
         1  11.262736  20.857489
 
-        But it's better to avoid applymap in that case.
+        But it's better to avoid map in that case.
 
         >>> df ** 2
                    0          1
@@ -9849,7 +9854,61 @@ class DataFrame(NDFrame, OpsMixin):
         def infer(x):
             return x._map_values(func, na_action=na_action)
 
-        return self.apply(infer).__finalize__(self, "applymap")
+        return self.apply(infer).__finalize__(self, "map")
+
+    def applymap(
+        self, func: PythonFuncType, na_action: str | None = None, **kwargs
+    ) -> DataFrame:
+        """
+        Apply a function to a Dataframe elementwise.
+
+        .. deprecated:: 2.1.0
+
+           DataFrame.applymap has been deprecated. Use DataFrame.map instead.
+
+        This method applies a function that accepts and returns a scalar
+        to every element of a DataFrame.
+
+        Parameters
+        ----------
+        func : callable
+            Python function, returns a single value from a single value.
+        na_action : {None, 'ignore'}, default None
+            If ‘ignore’, propagate NaN values, without passing them to func.
+        **kwargs
+            Additional keyword arguments to pass as keywords arguments to
+            `func`.
+
+        Returns
+        -------
+        DataFrame
+            Transformed DataFrame.
+
+        See Also
+        --------
+        DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.map : Apply a function along input axis of DataFrame.
+        DataFrame.replace: Replace values given in `to_replace` with `value`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.map(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
+        """
+        warnings.warn(
+            "DataFrame.applymap has been deprecated. Use DataFrame.map instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.map(func, na_action=na_action, **kwargs)
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
