@@ -61,13 +61,13 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -515,7 +515,7 @@ class HDFStore:
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
         Specifies the compression library to be used.
-        As of v0.20.2 these additional compressors for Blosc are supported
+        These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
          'blosc:zlib', 'blosc:zstd'}.
@@ -2223,7 +2223,9 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(new_metadata, cur_metadata)
+                and not array_equivalent(
+                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
+                )
             ):
                 raise ValueError(
                     "cannot append a categorical with "
@@ -2377,7 +2379,7 @@ class DataCol(IndexCol):
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             atom = cls.get_atom_timedelta64(shape)
         elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
@@ -2790,7 +2792,8 @@ class GenericFixed(Fixed):
         elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                parr = PeriodArray._simple_new(values, freq=freq)
+                dtype = PeriodDtype(freq)
+                parr = PeriodArray._simple_new(values, dtype=dtype)
                 return PeriodIndex._simple_new(parr, name=None)
 
             factory = f
@@ -3096,7 +3099,7 @@ class GenericFixed(Fixed):
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
-        elif is_timedelta64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
         elif empty_array:
@@ -3855,10 +3858,18 @@ class Table(Fixed):
         if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
             exist_axis = self.non_index_axes[indexer][1]
-            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
+            if not array_equivalent(
+                np.array(append_axis),
+                np.array(exist_axis),
+                strict_nan=True,
+                dtype_equal=True,
+            ):
                 # ahah! -> reindex
                 if array_equivalent(
-                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                    np.array(sorted(append_axis)),
+                    np.array(sorted(exist_axis)),
+                    strict_nan=True,
+                    dtype_equal=True,
                 ):
                     append_axis = exist_axis
 
@@ -5165,7 +5176,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
-    if data.dtype.kind in ["m", "M"]:
+    if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?

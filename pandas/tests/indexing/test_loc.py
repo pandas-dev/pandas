@@ -62,6 +62,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
+    def test_none_values_on_string_columns(self):
+        # Issue #32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+
+        assert df.loc[2, "a"] is None
+
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
         # int label
@@ -2968,6 +2974,28 @@ def test_loc_periodindex_3_levels():
     )
     mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
+
+
+def test_loc_setitem_pyarrow_strings():
+    # GH#52319
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "strings": Series(["A", "B", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+    new_value = Series(["X", "Y"])
+    df.loc[df.ids, "strings"] = new_value
+
+    expected_df = DataFrame(
+        {
+            "strings": Series(["X", "Y", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+
+    tm.assert_frame_equal(df, expected_df)
 
 
 class TestLocSeries:

@@ -18,12 +18,10 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
     is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -86,7 +84,7 @@ def _astype_nansafe(
     elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
-    if arr.dtype.kind in ["m", "M"]:
+    if arr.dtype.kind in "mM":
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
         arr = ensure_wrapped_if_datetimelike(arr)
@@ -108,14 +106,14 @@ def _astype_nansafe(
         # if we have a datetime/timedelta array of objects
         # then coerce to datetime64[ns] and use DatetimeArray.astype
 
-        if is_datetime64_dtype(dtype):
+        if lib.is_np_dtype(dtype, "M"):
             from pandas import to_datetime
 
             dti = to_datetime(arr.ravel())
             dta = dti._data.reshape(arr.shape)
             return dta.astype(dtype, copy=False)._ndarray
 
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.construction import ensure_wrapped_if_datetimelike
 
             # bc we know arr.dtype == object, this is equivalent to

@@ -30,7 +30,6 @@ import numpy as np
 from pandas._libs import (
     Interval,
     lib,
-    reduction as libreduction,
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -66,7 +65,10 @@ from pandas.core.apply import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import (
+    base,
+    ops,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
@@ -437,10 +439,10 @@ class SeriesGroupBy(GroupBy[Series]):
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
-            output = libreduction.extract_result(output)
+            output = ops.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output, group.dtype)
+                ops.check_result_array(output, group.dtype)
                 initialized = True
             result[name] = output
 
@@ -720,7 +722,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(
@@ -2685,7 +2687,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
+        return self._python_apply_general(  # type: ignore[return-value]
+            lambda df: df.dtypes, self._selected_obj
+        )
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(

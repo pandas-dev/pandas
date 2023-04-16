@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
@@ -978,7 +977,7 @@ class RangeIndex(Index):
             # GH#19333 is_integer evaluated True on timedelta64,
             # so we need to catch these explicitly
             return super()._arith_method(other, op)
-        elif is_timedelta64_dtype(other):
+        elif lib.is_np_dtype(getattr(other, "dtype", None), "m"):
             # Must be an np.ndarray; GH#22390
             return super()._arith_method(other, op)
 
