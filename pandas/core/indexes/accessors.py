@@ -391,48 +391,6 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
-    @property
-    def components(self):
-        """
-        Return a Dataframe of the components of the DateTime.
-
-        Returns
-        -------
-        DataFrame
-
-        Examples
-        --------
-        >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
-        >>> s
-        0   2018-03-10 00:00:00.000000000
-        1   2018-03-10 00:00:00.000000001
-        2   2018-03-10 00:00:00.000000002
-        3   2018-03-10 00:00:00.000000003
-        4   2018-03-10 00:00:00.000000004
-
-        dtype: datetime64[ns]
-        >>> s.dt.components
-            year   month     day     hour     minute
-        0     0      0        0        0        0
-        1     0      0        0        0        0
-        2     0      0        0        0        0
-        3     0      0        0        0        0
-        4     0      0        0        0        0
-
-             second     microsecond    nanosecond
-             0            0              0
-             0            0              1
-             0            0              2
-             0            0              3
-             0            0              4
-
-        """
-        return (
-            self._get_values()
-            .components.set_index(self._parent.index)
-            .__finalize__(self._parent)
-        )
-
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"

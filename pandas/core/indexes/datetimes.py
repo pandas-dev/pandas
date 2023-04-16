@@ -116,7 +116,6 @@ def _new_DatetimeIndex(cls, d):
 @inherit_names(["is_normalized"], DatetimeArray, cache=True)
 @inherit_names(
     [
-        "components",
         "tz",
         "tzinfo",
         "dtype",
@@ -220,7 +219,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     is_year_end
     is_leap_year
     inferred_freq
-    components
 
     Methods
     -------

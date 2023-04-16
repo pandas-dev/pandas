@@ -1191,48 +1191,7 @@ default 'raise'
             freq = res
 
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
-
-    @property
-    def components(self) -> DataFrame:
-        """
-        Return a DataFrame of the individual resolution components of the Datetime.
-
-        The components (year, month, day, hour, minute, second, microsecond,
-        nanosecond) are returned as columns in a DataFrame.
-
-        Returns
-        -------
-        DataFrame
-        """
-        from pandas import DataFrame
-
-        columns = [
-            "year",
-            "month",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "micorsecond",
-            "nanosecond",
-        ]
-        hasnans = self._hasna
-        if hasnans:
-
-            def f(x):
-                if isna(x):
-                    return [np.nan] * len(columns)
-                return x.components
-
-        else:
-
-            def f(x):
-                return x.components
-
-        result = DataFrame([f(x) for x in self], columns=columns)
-        if not hasnans:
-            result = result.astype("int64")
-        return result
+        
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
