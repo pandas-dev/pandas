@@ -67,7 +67,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
-        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int32))
+        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int64))
         tm.assert_index_equal(
             rng.seconds,
             Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype=np.int32),
