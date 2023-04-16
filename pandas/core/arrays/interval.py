@@ -124,8 +124,6 @@ _interval_shared_docs[
 ] = """
 %(summary)s
 
-.. versionadded:: %(versionadded)s
-
 Parameters
 ----------
 data : array-like (1-dimensional)
@@ -187,7 +185,6 @@ for more.
     % {
         "klass": "IntervalArray",
         "summary": "Pandas array for interval data that are closed on the same side.",
-        "versionadded": "0.24.0",
         "name": "",
         "extra_attributes": "",
         "extra_methods": "",

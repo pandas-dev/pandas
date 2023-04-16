@@ -14,7 +14,6 @@ from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
-    is_datetime_or_timedelta_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -516,7 +515,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, nulls_fixture):
         # but *does* cast None to np.nan
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif dtype.kind in "mM":
         # datetime / timedelta cast all missing values to dtyped-NaT
         expected_dtype = dtype
         exp_val_for_scalar = dtype.type("NaT", "ns")
