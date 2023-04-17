@@ -49,9 +49,9 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import (
     NoDefault,
+    infer_dtype,
     is_range_indexer,
     no_default,
-    infer_dtype,
 )
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
@@ -107,8 +107,6 @@ from pandas.core.dtypes.common import (
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
-    is_unsigned_integer_dtype,
-    is_signed_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
