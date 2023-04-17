@@ -3,6 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -568,7 +569,9 @@ def test_resample_no_columns():
             names=[None, "date"],
         )
     )
-    tm.assert_frame_equal(result, expected)
+
+    # GH#52710
+    tm.assert_frame_equal(result, expected, check_dtype=not is_platform_windows())
 
 
 def test_groupby_resample_size_all_index_same():
