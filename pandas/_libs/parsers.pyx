@@ -1201,10 +1201,9 @@ cdef class TextReader:
                         result, dtype=dtype, true_values=true_values,
                         false_values=false_values)
                 else:
-                    if chr(self.parser.decimal) != '.':
+                    if chr(self.parser.decimal) != ".":
                         for i in range(len(result)):
                             result[i] = result[i].replace(chr(self.parser.decimal), ".")
-                            
                     result = array_type._from_sequence_of_strings(result, dtype=dtype)
             except NotImplementedError:
                 raise NotImplementedError(

@@ -1,3 +1,5 @@
+import io
+
 import numpy as np
 import pytest
 
@@ -7,10 +9,9 @@ from pandas._libs import (
     writers as libwriters,
 )
 
+import pandas as pd
 from pandas import Index
 import pandas._testing as tm
-import pandas as pd
-import io
 
 
 class TestMisc:
@@ -273,12 +274,32 @@ def test_no_default_pickle():
     obj = tm.round_trip_pickle(lib.no_default)
     assert obj is lib.no_default
 
+
 def test_pdfloat64_decimal_separator():
-    df1 = pd.read_csv(io.StringIO('id\n"1,5"\n"1,6"\n'), dtype={'id':pd.Float64Dtype()}, sep=';', decimal=',')
-    df2 = pd.read_csv(io.StringIO('id\n"1.5"\n"1.6"\n'), dtype={'id':pd.Float64Dtype()}, sep=',', decimal='.')
+    df1 = pd.read_csv(
+        io.StringIO('id\n"1,5"\n"1,6"\n'),
+        dtype={"id": pd.Float64Dtype()},
+        sep=";",
+        decimal=",",
+    )
+    df2 = pd.read_csv(
+        io.StringIO('id\n"1.5"\n"1.6"\n'),
+        dtype={"id": pd.Float64Dtype()},
+        sep=",",
+        decimal=".",
+    )
     assert df1.equals(df2)
 
-    df1 = pd.read_csv(io.StringIO('id\n"1,5"\n'), dtype={'id':pd.Float64Dtype()}, sep=';', decimal=',')
-    df2 = pd.read_csv(io.StringIO('id\n"1.5"\n'), dtype={'id':pd.Float64Dtype()}, sep=',', decimal='.')
+    df1 = pd.read_csv(
+        io.StringIO('id\n"1,5"\n'),
+        dtype={"id": pd.Float64Dtype()},
+        sep=";",
+        decimal=",",
+    )
+    df2 = pd.read_csv(
+        io.StringIO('id\n"1.5"\n'),
+        dtype={"id": pd.Float64Dtype()},
+        sep=",",
+        decimal=".",
+    )
     assert df1.equals(df2)
-
