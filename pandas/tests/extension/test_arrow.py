@@ -2287,7 +2287,6 @@ def test_dt_is_year_start_end():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(pa_version_under8p0, reason="datetime + timedelta arith unavailable")
 def test_dt_is_quarter_start_end():
     ser = pd.Series(
         [

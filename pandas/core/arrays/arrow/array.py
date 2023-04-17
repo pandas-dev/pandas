@@ -2119,16 +2119,19 @@ class ArrowExtensionArray(
 
     @property
     def _dt_is_quarter_start(self):
-        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([1, 4, 7, 10]))
-        is_first_day = pc.equal(pc.day(self._pa_array), 1)
-        return type(self)(pc.and_(is_correct_month, is_first_day))
+        result = pc.equal(
+            pc.floor_temporal(self._pa_array, unit="quarter"),
+            pc.floor_temporal(self._pa_array, unit="day"),
+        )
+        return type(self)(result)
 
     @property
     def _dt_is_quarter_end(self):
-        is_correct_month = pc.is_in(pc.month(self._pa_array), pa.array([3, 6, 9, 12]))
-        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
-        is_first_day = pc.equal(pc.day(plus_one_day), 1)
-        return type(self)(pc.and_(is_correct_month, is_first_day))
+        result = pc.equal(
+            pc.ceil_temporal(self._pa_array, unit="quarter"),
+            pc.ceil_temporal(self._pa_array, unit="day"),
+        )
+        return type(self)(result)
 
     @property
     def _dt_days_in_month(self):
@@ -2286,20 +2289,11 @@ class ArrowExtensionArray(
             self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
         )
 
-    def _dt_tz_convert(
-        self,
-        tz,
-        ambiguous: TimeAmbiguous = "raise",
-        nonexistent: TimeNonexistent = "raise",
-    ):
+    def _dt_tz_convert(self, tz):
         if self.dtype.pyarrow_dtype.tz is None:
             raise TypeError(
                 "Cannot convert tz-naive timestamps, use tz_localize to localize"
             )
-        if ambiguous != "raise":
-            raise NotImplementedError(f"{ambiguous=} is not supported")
-        if nonexistent != "raise":
-            raise NotImplementedError(f"{nonexistent=} is not supported")
         current_unit = self.dtype.pyarrow_dtype.unit
         if tz is None:
             result = self._pa_array.cast(pa.timestamp(current_unit, "UTC")).cast(
