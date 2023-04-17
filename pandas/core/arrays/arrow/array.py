@@ -1495,6 +1495,8 @@ class ArrowExtensionArray(
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
             nbits = pa_dtype.bit_width
             if nbits == 32:
                 result = result.cast(pa.int32())
