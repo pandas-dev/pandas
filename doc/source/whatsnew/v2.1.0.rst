@@ -70,7 +70,7 @@ strings which failed to parse with the first best format, and so on (:issue:`525
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`.
-Similarly, :meth:`DataFrame.applymap` applies the callable to all elements of the :class:`DataFrame`,
+Similarly, :meth:`DataFrame.map` applies the callable to all elements of the :class:`DataFrame`,
 while :meth:`Index.map` applies the callable to all elements of the :class:`Index`.
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
@@ -104,9 +104,11 @@ and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` sub
     ser = pd.Series(["a", "b", np.nan], dtype="category")
     ser.map(str.upper, na_action="ignore")
     df = pd.DataFrame(ser)
-    df.applymap(str.upper, na_action="ignore")
+    df.map(str.upper, na_action="ignore")
     idx = pd.Index(ser)
     idx.map(str.upper, na_action="ignore")
+
+Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but the new name better communicate that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`).
 
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
@@ -125,9 +127,11 @@ Other enhancements
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - :meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
+- Add :meth:`diff()` and :meth:`round()` for :class:`Index` (:issue:`19708`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
 - Adding ``engine_kwargs`` parameter to :meth:`DataFrame.read_excel` (:issue:`52214`)
+- Implemented ``__from_arrow__`` on :class:`DatetimeTZDtype`. (:issue:`52201`)
 - Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
@@ -265,10 +269,12 @@ Deprecations
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)
 - Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
 - Deprecated the 'axis' keyword in :meth:`.GroupBy.idxmax`, :meth:`.GroupBy.idxmin`, :meth:`.GroupBy.fillna`, :meth:`.GroupBy.take`, :meth:`.GroupBy.skew`, :meth:`.GroupBy.rank`, :meth:`.GroupBy.cumprod`, :meth:`.GroupBy.cumsum`, :meth:`.GroupBy.cummax`, :meth:`.GroupBy.cummin`, :meth:`.GroupBy.pct_change`, :meth:`GroupBy.diff`, :meth:`.GroupBy.shift`, and :meth:`DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)
+- Deprecated :class:`.DataFrameGroupBy` with ``as_index=False`` not including groupings in the result when they are not columns of the DataFrame (:issue:`49519`)
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
+- Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
@@ -380,6 +386,7 @@ MultiIndex
 I/O
 ^^^
 - :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
+- :meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
 -
@@ -429,6 +436,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 -
