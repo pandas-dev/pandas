@@ -94,6 +94,7 @@ from pandas.core.dtypes.common import (
     is_dataclass,
     is_dict_like,
     is_dtype_equal,
+    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -10899,14 +10900,23 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor(res).iloc[0]
+        mgr_dtypes = df._mgr.get_dtypes().tolist()
+        if out.dtype != object:
+            # e.g. if data dtype is UInt8 and out.dtype is uint64, then common is UInt64
+            mgr_dtypes.append(out.dtype)
+        common_dtype = find_common_type(mgr_dtypes) if mgr_dtypes else None
+        is_ext_dtype = common_dtype is not None and is_extension_array_dtype(
+            common_dtype
+        )
+
         if out_dtype is not None:
             out = out.astype(out_dtype)
+        elif is_ext_dtype and out.dtype == common_dtype.type:
+            out = out.astype(common_dtype)
+        elif out.dtype == object and isna(out).all():
+            out = out.astype(common_dtype)
         elif (df._mgr.get_dtypes() == object).any():
             out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
-            # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
 
         return out
 
@@ -11157,11 +11167,6 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
-        # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
-
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
@@ -11181,11 +11186,6 @@ class DataFrame(NDFrame, OpsMixin):
             nanops.nanargmax, "argmax", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
-
-        # indices will always be np.ndarray since axis is not None and
-        # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
