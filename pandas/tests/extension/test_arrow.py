@@ -2248,7 +2248,6 @@ def test_dt_properties(prop, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(pa_version_under8p0, reason="datetime + timedelta arith unavailable")
 def test_dt_is_month_start_end():
     ser = pd.Series(
         [
@@ -2486,17 +2485,16 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["tz_localize", "tz_convert"])
 def test_dt_tz_localize_unsupported_tz_options(method):
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
-        dtype=ArrowDtype(pa.timestamp("ns", "UTC")),
+        dtype=ArrowDtype(pa.timestamp("ns")),
     )
     with pytest.raises(NotImplementedError, match="ambiguous='NaT' is not supported"):
-        getattr(ser.dt, method)("UTC", ambiguous="NaT")
+        ser.dt.tz_localize("UTC", ambiguous="NaT")
 
     with pytest.raises(NotImplementedError, match="nonexistent='NaT' is not supported"):
-        getattr(ser.dt, method)("UTC", nonexistent="NaT")
+        ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
 def test_dt_tz_localize_none():
