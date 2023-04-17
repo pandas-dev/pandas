@@ -242,7 +242,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 New columns
 ***********
 
-`Efficiently and dynamically creating new columns using applymap
+`Efficiently and dynamically creating new columns using DataFrame.map (previously named applymap)
 <https://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__
 
 .. ipython:: python
@@ -254,7 +254,7 @@ New columns
    new_cols = [str(x) + "_cat" for x in source_cols]
    categories = {1: "Alpha", 2: "Beta", 3: "Charlie"}
 
-   df[new_cols] = df[source_cols].applymap(categories.get)
+   df[new_cols] = df[source_cols].map(categories.get)
    df
 
 `Keep other columns when using min() with groupby
