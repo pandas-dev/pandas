@@ -91,6 +91,7 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
+- Performance improvement in :func:`concat` with homogeneous dtypes (:issue:`52685`)
 -
 
 .. ---------------------------------------------------------------------------
