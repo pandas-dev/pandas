@@ -685,7 +685,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return NaT
 
     @cache_readonly
-    def base(self) -> DtypeObj:
+    def base(self) -> DtypeObj:  # type: ignore[override]
         return np.dtype(f"M8[{self.unit}]")
 
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
