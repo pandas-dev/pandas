@@ -37,14 +37,14 @@ pandas supports 4 types of windowing operations:
 #. Expanding window: Accumulating window over the values.
 #. Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
 
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
-Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
-Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
-Weighted window                 ``rolling``        ``Window``                    No                           No                        No                                   No
-Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
-Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
+Concept                         Method             Returned Object                                 Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
+Rolling window                  ``rolling``        ``pandas.typing.api.Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
+Weighted window                 ``rolling``        ``pandas.typing.api.Window``                    No                           No                        No                                   No
+Expanding window                ``expanding``      ``pandas.typing.api.Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
+Exponentially Weighted window   ``ewm``            ``pandas.typing.api.ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 
 As noted above, some operations support specifying a window based on a time offset:
 

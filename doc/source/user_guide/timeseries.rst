@@ -1750,8 +1750,9 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
-a ``Resampler`` can be selectively resampled.
+The ``resample()`` method returns a ``pandas.api.typing.Resampler`` instance.  Similar to
+the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`,
+and the :ref:`window API <window.overview>`, a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
