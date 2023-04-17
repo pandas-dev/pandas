@@ -31,10 +31,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -409,7 +406,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # If we have tz, we can compare to tzaware
             return isinstance(dtype, DatetimeTZDtype)
         # if we dont have tz, we can only compare to tznaive
-        return is_datetime64_dtype(dtype)
+        return lib.is_np_dtype(dtype, "M")
 
     # --------------------------------------------------------------------
     # Rendering Methods

@@ -9,9 +9,9 @@ import typing
 
 import numpy as np
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas._libs import lib
 
-from pandas.api.types import is_datetime64_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 if typing.TYPE_CHECKING:
     from pandas._typing import DtypeObj
@@ -82,7 +82,7 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     if format_str is not None:
         return format_str
 
-    if is_datetime64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "M"):
         # Selecting the first char of resolution string:
         # dtype.str -> '<M8[ns]'
         resolution = re.findall(r"\[(.*)\]", typing.cast(np.dtype, dtype).str)[0][:1]

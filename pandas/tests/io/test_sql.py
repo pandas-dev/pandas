@@ -36,8 +36,6 @@ import pytest
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_datetime64_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1924,7 +1922,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def check(col):
             # check that a column is either datetime64[ns]
             # or datetime64[ns, UTC]
-            if is_datetime64_dtype(col.dtype):
+            if lib.is_np_dtype(col.dtype, "M"):
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
                 assert col[0] == Timestamp("2000-01-01 08:00:00")
