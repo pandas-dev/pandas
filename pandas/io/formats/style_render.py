@@ -247,7 +247,7 @@ class StylerRenderer:
         Execute the style functions built up in `self._todo`.
 
         Relies on the conventions that all style functions go through
-        .apply or .applymap. The append styles to apply as tuples of
+        .apply or .map. The append styles to apply as tuples of
 
         (application method, *args, **kwargs)
         """
@@ -1168,7 +1168,7 @@ class StylerRenderer:
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
         >>> filename = "formatted_file.xlsx"
-        >>> df.style.applymap(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
+        >>> df.style.map(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """

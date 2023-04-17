@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -26,6 +27,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -205,7 +207,7 @@ class Styler(StylerRenderer):
     Notes
     -----
     Most styling will be done by passing style functions into
-    ``Styler.apply`` or ``Styler.applymap``. Style functions should
+    ``Styler.apply`` or ``Styler.map``. Style functions should
     return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
@@ -305,8 +307,8 @@ class Styler(StylerRenderer):
         For example adding a sub total row, or displaying metrics such as means,
         variance or counts.
 
-        Styles that are applied using the ``apply``, ``applymap``, ``apply_index``
-        and ``applymap_index``, and formatting applied with ``format`` and
+        Styles that are applied using the ``apply``, ``map``, ``apply_index``
+        and ``map_index``, and formatting applied with ``format`` and
         ``format_index`` will be preserved.
 
         .. warning::
@@ -353,7 +355,7 @@ class Styler(StylerRenderer):
         >>> other = (descriptors.style
         ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
         ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
-        ...          .applymap(lambda v: "font-weight: bold;"))
+        ...          .map(lambda v: "font-weight: bold;"))
         >>> styler = (df.style
         ...             .highlight_max(color="salmon")
         ...             .set_table_styles([{"selector": ".foot_row0",
@@ -990,7 +992,7 @@ class Styler(StylerRenderer):
         ...     else: color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .applymap(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -1002,7 +1004,7 @@ class Styler(StylerRenderer):
         as well as `--rwrap` to ensure this is formatted correctly and
         not ignored upon conversion.
 
-        >>> styler.applymap_index(
+        >>> styler.map_index(
         ...     lambda v: "rotatebox:{45}--rwrap--latex;", level=2, axis=1
         ... )  # doctest: +SKIP
 
@@ -1513,7 +1515,7 @@ class Styler(StylerRenderer):
         """
         if not self.index.is_unique or not self.columns.is_unique:
             raise KeyError(
-                "`Styler.apply` and `.applymap` are not compatible "
+                "`Styler.apply` and `.map` are not compatible "
                 "with non-unique index or columns."
             )
 
@@ -1744,9 +1746,9 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.map_index: Apply a CSS-styling function to headers elementwise.
         Styler.apply_index: Apply a CSS-styling function to headers level-wise.
-        Styler.applymap: Apply a CSS-styling function elementwise.
+        Styler.map: Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -1963,6 +1965,11 @@ class Styler(StylerRenderer):
         -------
         Styler
         """
+        warnings.warn(
+            "Styler.applymap_index has been deprecated. Use Styler.map_index instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.map_index(func, axis, level, **kwargs)
 
     def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
@@ -2057,6 +2064,11 @@ class Styler(StylerRenderer):
         -------
         Styler
         """
+        warnings.warn(
+            "Styler.applymap has been deprecated. Use Styler.map instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.map(func, subset, **kwargs)
 
     def set_table_attributes(self, attributes: str) -> Styler:
@@ -2112,7 +2124,7 @@ class Styler(StylerRenderer):
 
         The following items are exported since they are not generally data dependent:
 
-          - Styling functions added by the ``apply`` and ``applymap``
+          - Styling functions added by the ``apply`` and ``map``
           - Whether axes and names are hidden from the display, if unambiguous.
           - Table attributes
           - Table styles
@@ -2158,7 +2170,7 @@ class Styler(StylerRenderer):
         styles : dict(str, Any)
             List of attributes to add to Styler. Dict keys should contain only:
               - "apply": list of styler functions, typically added with ``apply`` or
-                ``applymap``.
+                ``map``.
               - "table_attributes": HTML attributes, typically added with
                 ``set_table_attributes``.
               - "table_styles": CSS selectors and properties, typically added with
@@ -2947,7 +2959,7 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        This is a convenience methods which wraps the :meth:`Styler.applymap` calling a
+        This is a convenience methods which wraps the :meth:`Styler.map` calling a
         function returning the CSS-properties independently of the data.
 
         Examples
@@ -2960,7 +2972,7 @@ class Styler(StylerRenderer):
         more details.
         """
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
-        return self.applymap(lambda x: values, subset=subset)
+        return self.map(lambda x: values, subset=subset)
 
     @Substitution(subset=subset_args)
     def bar(  # pylint: disable=disallowed-name
