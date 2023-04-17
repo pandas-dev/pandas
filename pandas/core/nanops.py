@@ -1067,22 +1067,14 @@ def _nanminmax(meth, fill_value_typ):
         axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
-    ) -> Dtype:
-        dtype = values.dtype
+    ):
+        if values.size == 0:
+            return _na_for_min_count(values, axis)
+
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
-
-        if (axis is not None and values.shape[axis] == 0) or values.size == 0:
-            dtype_max = _get_dtype_max(dtype)
-            try:
-                result = getattr(values, meth)(axis, dtype=dtype_max)
-                result.fill(np.nan)
-            except (AttributeError, TypeError, ValueError):
-                result = np.nan
-        else:
-            result = getattr(values, meth)(axis)
-
+        result = getattr(values, meth)(axis)
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
 
