@@ -2589,3 +2589,15 @@ def test_describe_numeric_data(pa_type):
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_quantile_temporal(pa_type):
+    # GH52678
+    data = [1, 2, 3]
+    ser = pd.Series(data, dtype=ArrowDtype(pa_type))
+    result = ser.quantile(0.1)
+    expected = ser[0]
+    assert result == expected
