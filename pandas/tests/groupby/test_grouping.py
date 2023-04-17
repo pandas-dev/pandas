@@ -1085,7 +1085,9 @@ def test_grouping_by_key_is_in_axis():
 
     # Currently only in-axis groupings are including in the result when as_index=False;
     # This is likely to change in the future.
-    result = gb.sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
 

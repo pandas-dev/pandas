@@ -576,7 +576,13 @@ def test_categorical_reducers(
     gb_keepna = df.groupby(
         keys, dropna=False, observed=observed, sort=sort, as_index=as_index
     )
-    result = getattr(gb_keepna, reduction_func)(*args)
+    if as_index or index_kind == "range" or reduction_func == "size":
+        warn = None
+    else:
+        warn = FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)

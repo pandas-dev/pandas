@@ -244,18 +244,26 @@ def test_pass_args_kwargs(ts, tsframe):
     # DataFrame
     for as_index in [True, False]:
         df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
-        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-        expected = df_grouped.quantile(0.8)
+        warn = None if as_index else FutureWarning
+        msg = "A grouping .* was excluded from the result"
+        with tm.assert_produces_warning(warn, match=msg):
+            agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+        with tm.assert_produces_warning(warn, match=msg):
+            apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = df_grouped.quantile(0.8)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
         tm.assert_frame_equal(agg_result, expected)
 
         apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
-        expected_seq = df_grouped.quantile([0.4, 0.8])
+        with tm.assert_produces_warning(warn, match=msg):
+            expected_seq = df_grouped.quantile([0.4, 0.8])
         tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
-        agg_result = df_grouped.agg(f, q=80)
-        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+        with tm.assert_produces_warning(warn, match=msg):
+            agg_result = df_grouped.agg(f, q=80)
+        with tm.assert_produces_warning(warn, match=msg):
+            apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
         tm.assert_frame_equal(agg_result, expected)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
@@ -266,7 +274,10 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     tsframe.columns = ["A", "B", "A", "C"]
     gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
-    res = gb.agg(np.percentile, 80, axis=0)
+    warn = None if as_index else FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        res = gb.agg(np.percentile, 80, axis=0)
 
     ex_data = {
         1: tsframe[tsframe.index.month == 1].quantile(0.8),

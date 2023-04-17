@@ -771,7 +771,9 @@ def test_as_index():
 
     # function grouper
     f = lambda r: df.loc[r, "A"]
-    result = df.groupby(["cat", f], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", f], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": Categorical([1, 2], categories=df.cat.cat.categories),
@@ -784,7 +786,9 @@ def test_as_index():
 
     # another not in-axis grouper (conflicting names in index)
     s = Series(["a", "b", "b"], name="cat")
-    result = df.groupby(["cat", s], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
 
     # is original index dropped?
