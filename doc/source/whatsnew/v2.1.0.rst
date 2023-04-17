@@ -19,7 +19,7 @@ Enhancements
 Better dtype inference when doing reductions on dataframes of nullable arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Dtype inference when doing reductions on DataFrames with nullable arrays has been improved.
+Dtype inference when doing reductions on DataFrames with nullable arrays has been improved (:issue:`52707`).
 
 *Previous behavior*:
 
