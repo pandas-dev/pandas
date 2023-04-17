@@ -6,7 +6,10 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows, IS64
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
