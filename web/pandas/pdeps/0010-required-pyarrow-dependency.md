@@ -1,6 +1,6 @@
 # PDEP-10: PyArrow as a required dependency
 
-- Created: 13 April 2023
+- Created: 17 April 2023
 - Status: Under discussion
 - Discussion: [#?](https://github.com/pandas-dev/pandas/pull/?)
               [#52509](https://github.com/pandas-dev/pandas/issues/52509)
@@ -18,12 +18,19 @@ This PDEP proposes that:
 
 ## Background
 
-PyArrow has been an optional dependency of pandas since version 0.21.0. PyArrow
-initially provided I/O reading functionality for formats such as Parquet and CSV. In pandas version 1.2,
-pandas integrated PyArrow into the ExtensionArray interface to provide an optional string data type backed by PyArrow.
-In pandas version 1.5 this functionality was expanded to support all data types that PyArrow supports. As of pandas version 2.0,
-all I/O readers have the option to return PyArrow-backed data types, and a lot of methods now utilize PyArrow compute functions to
+PyArrow is an optional dependency of pandas that provides a wide range of supplimental feature to pandas:
+
+- Since pandas 0.21.0, PyArrow provided I/O reading functionality for Parquet
+- Since pandas 1.2.0, pandas integrated PyArrow into the `ExtensionArray` interface to provide an optional string data type backed by PyArrow
+- Since pandas 1.4.0, PyArrow provided I/0 reading functionality for CSV
+- Since pandas 1.5.0, pandas provided an `ArrowExtensionArray` and `ArrowDtype` to support all PyArrow data types within the `ExtensionArray` interface
+- Since pandas 2.0.0, All I/O readers have the option to return PyArrow-backed data types, and many methods now utilize PyArrow compute functions to
 accelerate PyArrow-backed data in pandas, notibly string and datetime types.
+
+As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data representation to NumPy with advantages such as:
+
+1. Consistent ``NA`` support for all data types
+2. Broader support of data types such as ``decimal``, ``date`` and nested types
 
 ## Motivation
 
@@ -35,15 +42,25 @@ Additionally, requiring PyArrow would simplify the related development within pa
 by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
-- Improve NumPy object data type support by default for analogous types that have native PyArrow support such as decimal, binary, and nested types
+- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as decimal, binary, and nested types
 
 ## Drawbacks
 
-Including PyArrow would naturally increase the installation size of pandas.
+Including PyArrow would naturally increase the installation size of pandas. For example, installing pandas and PyArrow using pip from wheels, numpy and pandas
+are about `70MB`, and PyArrow is around `120MB`. An increase of installation size would have negative impliciation using pandas in space-constrained development
+or deployment environments such as AWS Lambda.
+
+Additionally, if a user is installing pandas in an environment where wheels are not available and needs to build from source, the user will need to build Arrow C++ and related dependencies. These environments include
+
+- Alpine linux (commonly used as a base for Docker containers)
+- WASM (pyodide and pyscript)
+- Python development versions
+
+Lastly, pandas development and releases will need to be mindful of PyArrow's development and release cadance. For example when supporting a newly released Python version, pandas will also need to be mindful of PyArrow's wheel support for that Python version before releasing a new pandas version.
 
 ### PDEP-1 History
 
-- 13 April 2023: Initial version
+- 17 April 2023: Initial version
 
 [^1] <https://pandas.pydata.org/docs/development/roadmap.html#apache-arrow-interoperability>
 [^2] <https://arrow.apache.org/powered_by/>
