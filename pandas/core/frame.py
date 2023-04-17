@@ -51,6 +51,7 @@ from pandas._libs.lib import (
     NoDefault,
     is_range_indexer,
     no_default,
+    infer_dtype,
 )
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
@@ -106,6 +107,8 @@ from pandas.core.dtypes.common import (
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
+    is_unsigned_integer_dtype,
+    is_signed_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
@@ -10913,10 +10916,16 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(out_dtype)
         elif is_ext_dtype and out.dtype == common_dtype.type:
             out = out.astype(common_dtype)
-        elif out.dtype == object and isna(out).all():
-            out = out.astype(common_dtype)
         elif (df._mgr.get_dtypes() == object).any():
             out = out.astype(object)
+        elif is_ext_dtype and out.dtype == object:
+            inferred_dtype = infer_dtype(out)
+            if isna(out).all():
+                out = out.astype(common_dtype)
+            elif inferred_dtype == "integer":
+                out = out.astype("Int64")
+            elif inferred_dtype == "float":
+                out = out.astype("Float64")
 
         return out
 

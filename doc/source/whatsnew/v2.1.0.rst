@@ -14,12 +14,39 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_210.enhancements.enhancement1:
+.. _whatsnew_210.enhancements.better_dtype_inference_for_frame_reductions:
 
-enhancement1
-^^^^^^^^^^^^
+Better dtype inference when doing reductions on dataframes of nullable arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_210.enhancements.enhancement2:
+Dtype inference when doing reductions on DataFrames with nullable arrays has been improved.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [1]: df = pd.DataFrame({"a": [1], "b": [pd.NA]}, dtype="Int64")
+   In [2]: df.sum()
+   a    1
+   b    0
+   dtype: int64
+   In [3]: df.sum(min_count=1)
+   a       1
+   b    <NA>
+   dtype: object
+
+With the new behavior, we keep the original dtype:
+
+*New behavior*:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": [1], "b": [pd.NA]}, dtype="Int64")
+   df.sum()
+   df.sum(min_count=1)
+
+
+.. _whatsnew_210.enhancements.map_works_for_all_array_types:
 
 ``map(func, na_action="ignore")`` now works for all array types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
