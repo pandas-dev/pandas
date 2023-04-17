@@ -1,7 +1,7 @@
 # Doing a local shallow clone - keeps the container secure
 # and much slimmer than using COPY directly or making a
 # remote clone
-ARG BASE_CONTAINER="pythonpandas/pandas-dev:latest"
+ARG BASE_CONTAINER="pandas/pandas-dev:latest"
 FROM gitpod/workspace-base:latest as clone
 
 # the clone should be deep enough for versioneer to work
