@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import operator
 import re
 from typing import (
@@ -2096,8 +2095,14 @@ class ArrowExtensionArray(
 
     @property
     def _dt_is_month_end(self):
-        plus_one_day = pc.add(self._pa_array, pa.scalar(datetime.timedelta(days=1)))
-        return type(self)(pc.equal(pc.day(plus_one_day), 1))
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="month"),
+            ),
+            1,
+        )
+        return type(self)(result)
 
     @property
     def _dt_is_year_start(self):
