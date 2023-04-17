@@ -379,6 +379,15 @@ class TestDataFrameSetItem:
         assert expected["d"].dtype == arr.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_periodd_dtype(self):
+        # GH 39763
+        rng = period_range("2016-01-01", periods=9, freq="D", name="A")
+        df = DataFrame(rng)
+        expected = df.dtypes
+        df.iloc[:] = rng._na_value
+        result = df.dtypes
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
