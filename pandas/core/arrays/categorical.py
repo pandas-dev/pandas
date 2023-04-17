@@ -533,7 +533,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
-        elif is_integer_dtype(dtype) and self.isna().any():
+        elif dtype.kind in "iu" and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
@@ -624,7 +624,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 cats = to_datetime(inferred_categories, errors="coerce")
             elif lib.is_np_dtype(dtype.categories.dtype, "m"):
                 cats = to_timedelta(inferred_categories, errors="coerce")
-            elif is_bool_dtype(dtype.categories):
+            elif is_bool_dtype(dtype.categories.dtype):
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
@@ -708,7 +708,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = codes.to_numpy(dtype=np.int64)
         else:
             codes = np.asarray(codes)
-        if len(codes) and not is_integer_dtype(codes):
+        if len(codes) and codes.dtype.kind not in "iu":
             raise ValueError("codes need to be array-like integers")
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):

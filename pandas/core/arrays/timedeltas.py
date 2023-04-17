@@ -925,7 +925,7 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        if is_extension_array_dtype(data):
+        if is_extension_array_dtype(data.dtype):
             mask = data._mask
             data = data._data
         else:

@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_object_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -581,7 +580,7 @@ def infer_fill_value(val):
     val = np.array(val, copy=False)
     if val.dtype.kind in "mM":
         return np.array("NaT", dtype=val.dtype)
-    elif is_object_dtype(val.dtype):
+    elif val.dtype == object:
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ["datetime", "datetime64"]:
             return np.array("NaT", dtype=DT64NS_DTYPE)

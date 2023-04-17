@@ -12,12 +12,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-)
-
 if TYPE_CHECKING:
     from pandas._typing import npt
 
@@ -46,11 +40,11 @@ def _cum_func(
         Whether to skip NA.
     """
     dtype_info: np.iinfo | np.finfo
-    if is_float_dtype(values):
+    if values.dtype.kind == "f":
         dtype_info = np.finfo(values.dtype.type)
-    elif is_integer_dtype(values):
+    elif values.dtype.kind in "iu":
         dtype_info = np.iinfo(values.dtype.type)
-    elif is_bool_dtype(values):
+    elif values.dtype.kind == "b":
         # Max value of bool is 1, but since we are setting into a boolean
         # array, 255 is fine as well. Min value has to be 0 when setting
         # into the boolean array.

@@ -1270,7 +1270,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif self.inferred_type == "categorical":
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories):
+            if is_object_dtype(self.categories.dtype):
                 is_justify = False
 
         return format_object_summary(
@@ -5314,7 +5314,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
         except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self):  # pragma: no cover
+            if is_object_dtype(self.dtype):  # pragma: no cover
                 raise err
 
             # See also: Block.coerce_to_target_dtype
