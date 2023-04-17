@@ -205,7 +205,7 @@ jobs:
       - name: Test
         uses: ./.github/actions/run-tests
 
-  32-bit-linux:
+  Linux-32-bit:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
