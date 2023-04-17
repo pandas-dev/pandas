@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import iNaT
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -168,3 +170,87 @@ class TestSequenceToDT64NS:
         res = DatetimeArray._from_sequence(arr)
         expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
         tm.assert_datetime_array_equal(res, expected)
+
+
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+EXTREME_VALUES = [0, 123456789, None, iNaT, 2**63 - 1, -(2**63) + 1]
+FINE_TO_COARSE_SAFE = [123_000_000_000, None, -123_000_000_000]
+COARSE_TO_FINE_SAFE = [123, None, -123]
+
+
+@pytest.mark.parametrize(
+    ("pa_unit", "pd_unit", "pa_tz", "pd_tz", "data"),
+    [
+        ("s", "s", "UTC", "UTC", EXTREME_VALUES),
+        ("ms", "ms", "UTC", "Europe/Berlin", EXTREME_VALUES),
+        ("us", "us", "US/Eastern", "UTC", EXTREME_VALUES),
+        ("ns", "ns", "US/Central", "Asia/Kolkata", EXTREME_VALUES),
+        ("ns", "s", "UTC", "UTC", FINE_TO_COARSE_SAFE),
+        ("us", "ms", "UTC", "Europe/Berlin", FINE_TO_COARSE_SAFE),
+        ("ms", "us", "US/Eastern", "UTC", COARSE_TO_FINE_SAFE),
+        ("s", "ns", "US/Central", "Asia/Kolkata", COARSE_TO_FINE_SAFE),
+    ],
+)
+def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
+    pa_unit, pd_unit, pa_tz, pd_tz, data
+):
+    pa = pytest.importorskip("pyarrow")
+
+    pa_type = pa.timestamp(pa_unit, tz=pa_tz)
+    arr = pa.array(data, type=pa_type)
+    dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(
+        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "tz"),
+    [
+        ("s", "UTC"),
+        ("ms", "Europe/Berlin"),
+        ("us", "US/Eastern"),
+        ("ns", "Asia/Kolkata"),
+        ("ns", "UTC"),
+    ],
+)
+def test_from_arrow_from_empty(unit, tz):
+    pa = pytest.importorskip("pyarrow")
+
+    data = []
+    arr = pa.array(data)
+    dtype = DatetimeTZDtype(unit=unit, tz=tz)
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(np.array(data, dtype=f"datetime64[{unit}]"))
+    expected = expected.tz_localize(tz=tz)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_from_integers():
+    pa = pytest.importorskip("pyarrow")
+
+    data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
+    arr = pa.array(data)
+    dtype = DatetimeTZDtype(unit="ns", tz="UTC")
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(np.array(data, dtype="datetime64[ns]"))
+    expected = expected.tz_localize("UTC")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
