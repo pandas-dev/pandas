@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import operator
 import re
 import sys
@@ -1739,6 +1740,16 @@ class ArrowExtensionArray(
             return result
         return type(self)._from_sequence(result, copy=False)
 
+    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
+        """Apply a callable to each element while maintaining the chunking structure."""
+        return [
+            [
+                None if val is None else func(val)
+                for val in chunk.to_numpy(zero_copy_only=False)
+            ]
+            for chunk in self._pa_array.iterchunks()
+        ]
+
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
@@ -1872,30 +1883,14 @@ class ArrowExtensionArray(
         return type(self)(pc.binary_join(self._pa_array, sep))
 
     def _str_partition(self, sep: str, expand: bool):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else val.as_py().partition(sep)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.partition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_rpartition(self, sep: str, expand: bool):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else val.as_py().rpartition(sep)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.rpartition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
@@ -1994,21 +1989,11 @@ class ArrowExtensionArray(
             # so don't remove the unnecessary `else` statement below
             from pandas.util._str_methods import removeprefix
 
+            predicate = functools.partial(removeprefix, prefix=prefix)
         else:
-            removeprefix = lambda arg, prefix: arg.removeprefix(prefix)
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else removeprefix(val.as_py(), prefix)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+            predicate = lambda val: val.removeprefix(prefix)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
@@ -2017,32 +2002,14 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_casefold(self):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else val.as_py().casefold()
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.casefold()
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_encode(self, encoding: str, errors: str = "strict"):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else val.as_py().encode(encoding, errors)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.encode(encoding, errors)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         raise NotImplementedError(
@@ -2051,17 +2018,9 @@ class ArrowExtensionArray(
 
     def _str_findall(self, pat: str, flags: int = 0):
         regex = re.compile(pat, flags=flags)
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else regex.findall(val.as_py())
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: regex.findall(val)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_get_dummies(self, sep: str = "|"):
         split = pc.split_pattern(self._pa_array, sep).combine_chunks()
@@ -2078,64 +2037,24 @@ class ArrowExtensionArray(
         return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else val.as_py().index(sub, start, end)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.index(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_rindex(self, sub: str, start: int = 0, end: int | None = None):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else val.as_py().rindex(sub, start, end)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.rindex(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_normalize(self, form: str):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else unicodedata.normalize(form, val.as_py())
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: unicodedata.normalize(form, val)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None
-                        if val.as_py() is None
-                        else val.as_py().rfind(sub, start, end)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.rfind(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_split(
         self,
@@ -2160,32 +2079,16 @@ class ArrowExtensionArray(
         )
 
     def _str_translate(self, table: dict[int, str]):
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else val.as_py().translate(table)
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: val.translate(table)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_wrap(self, width: int, **kwargs):
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
-        return type(self)(
-            pa.chunked_array(
-                [
-                    [
-                        None if val.as_py() is None else "\n".join(tw.wrap(val.as_py()))
-                        for val in chunk
-                    ]
-                    for chunk in self._pa_array.iterchunks()
-                ]
-            )
-        )
+        predicate = lambda val: "\n".join(tw.wrap(val))
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     @property
     def _dt_year(self):
