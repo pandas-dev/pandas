@@ -6,7 +6,7 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import is_platform_windows, IS64
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1549,11 +1549,11 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", np.int8, 0, np.int64),
-            ("prod", np.int8, 1, np.int64),
+            ("prod", np.int8, 1, np.int_),
             ("sum", np.int64, 0, np.int64),
             ("prod", np.int64, 1, np.int64),
             ("sum", np.uint8, 0, np.int64),
-            ("prod", np.uint8, 1, np.uint64),
+            ("prod", np.uint8, 1, np.uint),
             ("sum", np.uint64, 0, np.int64),
             ("prod", np.uint64, 1, np.uint64),
             ("sum", np.float32, 0, np.float32),
@@ -1594,12 +1594,12 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, "Int64"),
-            ("prod", "Int8", 1, "Int64"),
+            ("sum", "Int8", 0, ("Int64" if IS64 else "Int32")),
+            ("prod", "Int8", 1, ("Int64" if IS64 else "Int32")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, "UInt64"),
-            ("prod", "UInt8", 1, "UInt64"),
+            ("sum", "UInt8", 0, ("UInt64" if IS64 else "UInt32")),
+            ("prod", "UInt8", 1, ("UInt64" if IS64 else "UInt32")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
