@@ -1270,7 +1270,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif self.inferred_type == "categorical":
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories):
+            if is_object_dtype(self.categories.dtype):
                 is_justify = False
 
         return format_object_summary(
@@ -5314,7 +5314,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
         except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self):  # pragma: no cover
+            if is_object_dtype(self.dtype):  # pragma: no cover
                 raise err
 
             # See also: Block.coerce_to_target_dtype
@@ -6757,6 +6757,59 @@ class Index(IndexOpsMixin, PandasObject):
             result._references = self._references
             result._references.add_index_reference(result)
         return result
+
+    def diff(self, periods: int = 1):
+        """
+        Computes the difference between consecutive values in the Index object.
+
+        If periods is greater than 1, computes the difference between values that
+        are `periods` number of positions apart.
+
+        Parameters
+        ----------
+        periods : int, optional
+            The number of positions between the current and previous
+            value to compute the difference with. Default is 1.
+
+        Returns
+        -------
+        Index
+            A new Index object with the computed differences.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10, 20, 30, 40, 50])
+        >>> idx.diff()
+        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().diff(periods))
+
+    def round(self, decimals: int = 0):
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+
+        Returns
+        -------
+        Index
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
+        >>> idx.round(decimals=2)
+        Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().round(decimals))
 
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
