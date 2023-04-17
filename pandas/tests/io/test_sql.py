@@ -2676,6 +2676,11 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
 
+    def test_valueerror_exception(self):
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        with pytest.raises(ValueError, match="Empty table name specified"):
+            df.to_sql(name="", con=self.conn, if_exists="replace", index=False)
+
     def test_row_object_is_named_tuple(self):
         # GH 40682
         # Test for the is_named_tuple() function
