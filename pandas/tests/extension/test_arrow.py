@@ -2485,7 +2485,7 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_dt_tz_localize_unsupported_tz_options(method):
+def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
