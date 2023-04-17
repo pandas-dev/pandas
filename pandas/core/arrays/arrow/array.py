@@ -2295,11 +2295,5 @@ class ArrowExtensionArray(
                 "Cannot convert tz-naive timestamps, use tz_localize to localize"
             )
         current_unit = self.dtype.pyarrow_dtype.unit
-        if tz is None:
-            result = self._pa_array.cast(pa.timestamp(current_unit, "UTC")).cast(
-                pa.timestamp(current_unit)
-            )
-        else:
-            pa_tz = str(tz)
-            result = self._pa_array.cast(pa.timestamp(current_unit, pa_tz))
+        result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
