@@ -96,13 +96,24 @@ class MaybeConvertNumeric:
 
     def setup(self, dtype):
         N = 10**7
-        # Just under int64
-        arr = np.repeat([2**63 - 1], N) + np.arange(N)
-        arr = arr.astype(dtype)
-        if dtype == "uint64":
-            # Make vals not storable as int64
-            arr += 1
-        self.data = arr.astype(object)
+        # Do bool separately
+        if dtype == "bool":
+            # We'll generate our bool array by generating a N(0,1)
+            # and marking positive as true and negative as false
+            arr = np.random.randn(N)
+            self.data = (arr > 0).astype(object)
+        else:
+            # Measure performance of maybe_convert_numeric
+            # when data has to be cast in the middle
+            # Just under int64
+            arr = np.empty(N, dtype=object)
+            int_vals = np.repeat([2**63 - 1], N // 2)
+            if dtype == "uint64":
+                # Make vals not storable as int64
+                int_vals += 1
+            arr[: N // 2] = int_vals
+            arr[N // 2 :] = np.arange(N // 2, dtype=dtype)
+            self.data = arr.astype(object)
         if dtype not in ["complex128", "bool"]:
             # Prevent fastpath from being triggered by stringifying first element
             self.data[0] = str(self.data[0])

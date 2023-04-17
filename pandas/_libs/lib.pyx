@@ -1394,45 +1394,64 @@ cdef class Seen:
             self.datetime_ or self.datetimetz_ or self.nat_ or self.timedelta_
             or self.period_ or self.interval_ or self.numeric_ or self.object_
         )
-    cdef int get_curr_val(self, curr_seen_t *ret_val) except -1:
-        """
-        Gets the current seen val and casts it to ret_val's type.
 
-        While this function does check types to make sure downcasting
-        doesn't happen for the most part, caller is responsible for making
-        sure all int64 <-> uint64 casts are safe
-        """
-        if self.curr_seen is CurrSeen.null_:
-            if curr_seen_t is float64_t or curr_seen_t is complex128_t:
-                ret_val[0] = NaN
+    # These functions get the currently seen value
+    cdef uint8_t get_bool_val(self) except *:
         if self.curr_seen is CurrSeen.bool_:
-            # There's nothing to a bool can be downcast to, it is 1 byte
-            # so no checking
-            ret_val[0] = self.curr_seen_val.bool_
-        elif self.curr_seen is CurrSeen.uint_:
-            if sizeof(curr_seen_t) < sizeof(uint64_t):
-                raise ValueError("Downcasting uint64 is not allowed")
-            ret_val[0] = self.curr_seen_val.uint_
+            return self.curr_seen_val.bool_
+        else:
+            raise ValueError("Cannot convert non-booolean's to boolean")
+    cdef uint64_t get_uint_val(self) except *:
+        if self.curr_seen is CurrSeen.uint_:
+            return self.curr_seen_val.uint_
         elif self.curr_seen is CurrSeen.int_:
-            if sizeof(curr_seen_t) < sizeof(int64_t):
-                raise ValueError("Downcasting int64 is not allowed")
-            ret_val[0] = self.curr_seen_val.int_
+            return self.curr_seen_val.int_
+        elif self.curr_seen is CurrSeen.bool_:
+            return self.curr_seen_val.bool_
+        else:
+            # float, complex, NaN can't be cast to uint
+            raise ValueError("Cannot convert float/complex/NaN to uint64")
+
+    cdef int64_t get_int_val(self) except *:
+        if self.curr_seen is CurrSeen.uint_:
+            return self.curr_seen_val.uint_
+        elif self.curr_seen is CurrSeen.int_:
+            return self.curr_seen_val.int_
+        elif self.curr_seen is CurrSeen.bool_:
+            return self.curr_seen_val.bool_
+        else:
+            # float, complex, NaN can't be cast to uint
+            raise ValueError("Cannot convert float/complex/NaN to int64")
+
+    cdef float64_t get_float_val(self) except *:
+        if self.curr_seen is CurrSeen.null_:
+            return NaN
+        if self.curr_seen is CurrSeen.uint_:
+            return self.curr_seen_val.uint_
+        elif self.curr_seen is CurrSeen.int_:
+            return self.curr_seen_val.int_
+        elif self.curr_seen is CurrSeen.bool_:
+            return self.curr_seen_val.bool_
         elif self.curr_seen is CurrSeen.float_:
-            if sizeof(curr_seen_t) < sizeof(float64_t) \
-                    or curr_seen_t is int64_t or curr_seen_t is uint64_t:
-                raise ValueError("Downcasting float64 is not allowed")
-            # Cast is necessary here, since otherwise Cython will complain
-            # about downcasting the float to e.g. ints/bools
-            # (which can never happen, see exception above)
-            ret_val[0] = <curr_seen_t>self.curr_seen_val.float_
+            return self.curr_seen_val.float_
+        else:
+            # complex cannot be cast to float
+            raise ValueError("Cannot convert complex to float64")
+
+    cdef complex128_t get_complex_val(self):
+        if self.curr_seen is CurrSeen.null_:
+            return NaN
+        elif self.curr_seen is CurrSeen.uint_:
+            return self.curr_seen_val.uint_
+        elif self.curr_seen is CurrSeen.int_:
+            return self.curr_seen_val.int_
+        elif self.curr_seen is CurrSeen.bool_:
+            return self.curr_seen_val.bool_
+        elif self.curr_seen is CurrSeen.float_:
+            return self.curr_seen_val.float_
         elif self.curr_seen is CurrSeen.complex_:
-            if curr_seen_t is complex128_t:
-                # Need to gate behind specialization since complex can't safely
-                # cast to other types throwing a compile error
-                ret_val[0] = self.curr_seen_val.complex_
-            else:
-                raise ValueError("Downcasting complex128 is not allowed")
-        return 0  # Success
+            return self.curr_seen_val.complex_
+        # No failure cases
 
     cdef void set_curr_val(self, curr_seen_t val):
         """
@@ -2453,7 +2472,7 @@ def maybe_convert_numeric(
                 ints = None
                 uints = None
                 floats = None
-            seen.get_curr_val(&complexes[i])
+            complexes[i] = seen.get_complex_val()
         elif seen.float_:
             if floats is None:
                 floats = np.empty(n, dtype=np.float64)
@@ -2463,7 +2482,7 @@ def maybe_convert_numeric(
                 ints = None
                 uints = None
                 arr_to_upcast = floats
-            seen.get_curr_val(&floats[i])
+            floats[i] = seen.get_float_val()
         elif seen.int_:
             if seen.curr_seen == CurrSeen.null_:
                 # No need to set, since we're covered by the mask
@@ -2474,13 +2493,13 @@ def maybe_convert_numeric(
                 if uints is None:
                     uints = np.empty(n, dtype=np.uint64)
                     uints = astype_arr(i, arr_to_upcast, uints)
-                seen.get_curr_val(&uints[i])
+                uints[i] = seen.get_uint_val()
                 arr_to_upcast = uints
             else:
                 if ints is None:
                     ints = np.empty(n, dtype=np.int64)
                     ints = astype_arr(i, arr_to_upcast, ints)
-                seen.get_curr_val(&ints[i])
+                ints[i] = seen.get_int_val()
                 arr_to_upcast = ints
             # Reset all other arrs so memory can get freed
             bools = None
@@ -2491,7 +2510,7 @@ def maybe_convert_numeric(
                 # so we just do nothing
                 continue
             # bools cannot be None, we started off with it initialized
-            seen.get_curr_val(&bools[i])
+            bools[i] = seen.get_bool_val()
 
     if seen.check_uint64_conflict():
         return (values, None)
