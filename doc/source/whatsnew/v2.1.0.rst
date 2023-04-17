@@ -300,6 +300,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
+- Bug in :meth:`DatetimeTZDtype.base` that always returns a NumPy dtype with nanosecond resolution (:issue:`52705`)
 -
 
 Numeric

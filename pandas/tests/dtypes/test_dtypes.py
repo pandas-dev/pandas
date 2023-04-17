@@ -276,6 +276,7 @@ class TestDatetimeTZDtype(Base):
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
+        assert res.base == np.dtype("M8[ms]")
 
     def test_day_not_supported(self):
         msg = "DatetimeTZDtype only supports s, ms, us, ns units"
