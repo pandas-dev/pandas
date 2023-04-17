@@ -1,4 +1,9 @@
 {
+	// Conda requires lots of memory to resolve our environment
+	"hostRequirements": {
+		"memory": "8gb"
+	},
+
 	// More info about Features: https://containers.dev/features
 	"image": "mcr.microsoft.com/devcontainers/universal:2",
 	"features": {},
