@@ -7,11 +7,8 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
-    Series,
     bdate_range,
 )
-
-# from pandas._libs.tslibs import offsets
 import pandas._testing as tm
 
 
@@ -101,46 +98,48 @@ class TestFirst:
         assert df is not result
 
     @pytest.mark.parametrize("start, periods", [("2010-03-31", 1), ("2010-03-30", 2)])
-    def test_first_with_first_day_last_of_m_DO(self, frame_or_series, start, periods):
-        x = frame_or_series([1] * 100, index=bdate_range(start, periods=100))
+    def test_last_day_of_months_with_date_offset(self, frame_or_series, start, periods):
+        x = frame_or_series([1] * 100, index=pd.date_range(start, periods=100))
         result = x.first(pd.DateOffset(days=periods))
         expected = frame_or_series(
-            [1] * periods, index=bdate_range(start, periods=periods)
+            [1] * periods, index=pd.date_range(start, periods=periods)
         )
         tm.assert_equal(result, expected)
 
-    def test_first_with_first_day_end_of_frq_n_greater_one_DO(self, frame_or_series):
-        x = frame_or_series([1] * 100, index=bdate_range("2010-03-31", periods=100))
+    def test_date_offset_multiple_days(self, frame_or_series):
+        x = frame_or_series([1] * 100, index=pd.date_range("2010-03-31", periods=100))
         result = x.first(pd.DateOffset(days=2))
         expected = frame_or_series(
-            [1] * 2, index=bdate_range("2010-03-31", "2010-04-01")
+            [1] * 2, index=pd.date_range("2010-03-31", "2010-04-01")
         )
         tm.assert_equal(result, expected)
 
-    def test_first_w_DateOffset(self):
+    def test_first_with_date_offset(self):
         # GH#51284
-        i = pd.date_range("2018-04-09", periods=4, freq="2D")
+        i = pd.to_datetime(["2018-04-09", "2018-04-10", "2018-04-11", "2018-04-12"])
         x = DataFrame({"A": [1, 2, 3, 4]}, index=i)
-        result = x.first(pd.DateOffset(days=3))
+        result = x.first(pd.DateOffset(days=2))
         expected = DataFrame(
-            {"A": [1, 2]}, index=pd.date_range("2018-04-09", periods=2, freq="2D")
+            {"A": [1, 2]}, index=pd.to_datetime(["2018-04-09", "2018-04-10"])
         )
         tm.assert_equal(result, expected)
 
-    def test_first_w_DateOffset_other(self):
+    def test_date_offset_15_days(self):
         # GH#45908
         i = pd.date_range("2018-04-09", periods=30, freq="2D")
-        x = DataFrame({"A": Series(np.arange(30), index=i)}, index=i)
+        x = DataFrame({"A": np.arange(30)}, index=i)
         result = x.first(pd.DateOffset(days=15))
         i2 = pd.date_range("2018-04-09", periods=8, freq="2D")
-        expected = DataFrame({"A": Series(np.arange(8), index=i2)}, index=i2)
+        expected = DataFrame({"A": np.arange(8)}, index=i2)
         tm.assert_equal(result, expected)
 
-    def test_first_with_fst_day_last_of_m_DO_kwds_months(self, frame_or_series):
-        periods = 10
-        x = frame_or_series([1] * 10, index=bdate_range("2010-03-31", periods=periods))
+    def test_first_with_date_offset_months(self, frame_or_series):
+        periods = 40
+        x = frame_or_series(
+            [1] * periods, index=pd.date_range("2010-03-31", periods=periods)
+        )
         result = x.first(pd.DateOffset(months=1))
         expected = frame_or_series(
-            [1] * periods, index=bdate_range("2010-03-31", periods=periods)
+            [1] * 30, index=pd.date_range("2010-03-31", periods=30)
         )
         tm.assert_equal(result, expected)
