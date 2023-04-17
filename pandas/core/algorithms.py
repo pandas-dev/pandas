@@ -510,7 +510,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     if (
         len(comps_array) > 1_000_000
         and len(values) <= 26
-        and not is_object_dtype(comps_array)
+        and comps_array.dtype != object
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
@@ -766,7 +766,7 @@ def factorize(
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
 
-        if not use_na_sentinel and is_object_dtype(values):
+        if not use_na_sentinel and values.dtype == object:
             # factorize can now handle differentiating various types of null values.
             # These can only occur when the array has object dtype.
             # However, for backwards compatibility we only use the null for the
@@ -1317,7 +1317,7 @@ def searchsorted(
 
     if (
         isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr.dtype)
+        and arr.dtype.kind in "iu"
         and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be

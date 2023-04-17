@@ -12,11 +12,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [[ "$COVERAGE" == "true" ]]; then
-    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
-else
-    COVERAGE="" # We need to reset this for COVERAGE="false" case
-fi
+COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
 
 # If no X server is found, we use xvfb to emulate it
 if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then

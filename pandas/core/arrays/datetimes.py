@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
     is_bool_dtype,
-    is_datetime64_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_object_dtype,
@@ -2191,11 +2190,11 @@ def objects_to_datetime64ns(
         #  is in UTC
         # Return i8 values to denote unix timestamps
         return result.view("i8"), tz_parsed
-    elif is_datetime64_dtype(result):
+    elif result.dtype.kind == "M":
         # returning M8[ns] denotes wall-times; since tz is None
         #  the distinction is a thin one
         return result, tz_parsed
-    elif is_object_dtype(result):
+    elif result.dtype == object:
         # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
         #  array is allowed.  When called via `pd.DatetimeIndex`, we can
         #  only accept datetime64 dtype, so raise TypeError if object-dtype
@@ -2345,7 +2344,9 @@ def _validate_dt64_dtype(dtype):
             # a  tz-aware Timestamp (with a tz specific to its datetime) will
             # be incorrect(ish?) for the array as a whole
             dtype = cast(DatetimeTZDtype, dtype)
-            dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
+            dtype = DatetimeTZDtype(
+                unit=dtype.unit, tz=timezones.tz_standardize(dtype.tz)
+            )
 
     return dtype
 

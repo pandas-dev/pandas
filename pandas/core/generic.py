@@ -5941,7 +5941,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
-        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        DataFrame.map : Apply a function elementwise on a whole DataFrame.
         Series.map : Apply a mapping correspondence on a
             :class:`~pandas.Series`.
 
@@ -11341,10 +11341,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t = False,
         **kwargs,
     ):
-        if name == "median":
-            nv.validate_median((), kwargs)
-        else:
-            nv.validate_stat_func((), kwargs, fname=name)
+        assert name in ["median", "mean", "min", "max", "kurt", "skew"], name
+        nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
@@ -11441,12 +11439,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        if name == "sum":
-            nv.validate_sum((), kwargs)
-        elif name == "prod":
-            nv.validate_prod((), kwargs)
-        else:
-            nv.validate_stat_func((), kwargs, fname=name)
+        assert name in ["sum", "prod"], name
+        nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 

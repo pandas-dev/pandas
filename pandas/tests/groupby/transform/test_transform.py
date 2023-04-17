@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas._libs import lib
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
@@ -337,10 +336,10 @@ def test_transform_casting():
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.dtype)
+    assert lib.is_np_dtype(result.dtype, "m")
 
     result = df[["ID3", "DATETIME"]].groupby("ID3").transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.DATETIME.dtype)
+    assert lib.is_np_dtype(result.DATETIME.dtype, "m")
 
 
 def test_transform_multiple(ts):
