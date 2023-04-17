@@ -175,7 +175,6 @@ def test_get_dtype_error_catch(func):
     if (
         func is com.is_int64_dtype
         or func is com.is_interval_dtype
-        or func is com.is_datetime64_any_dtype
         or func is com.is_datetime64tz_dtype
         or func is com.is_categorical_dtype
     ):
@@ -472,19 +471,17 @@ def test_is_not_int64_dtype(dtype):
 
 
 def test_is_datetime64_any_dtype():
-    msg = "is_datetime64_any_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert not com.is_datetime64_any_dtype(int)
-        assert not com.is_datetime64_any_dtype(str)
-        assert not com.is_datetime64_any_dtype(np.array([1, 2]))
-        assert not com.is_datetime64_any_dtype(np.array(["a", "b"]))
+    assert not com.is_datetime64_any_dtype(int)
+    assert not com.is_datetime64_any_dtype(str)
+    assert not com.is_datetime64_any_dtype(np.array([1, 2]))
+    assert not com.is_datetime64_any_dtype(np.array(["a", "b"]))
 
-        assert com.is_datetime64_any_dtype(np.datetime64)
-        assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
-        assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-        assert com.is_datetime64_any_dtype(
-            pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]")
-        )
+    assert com.is_datetime64_any_dtype(np.datetime64)
+    assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+    assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
+    assert com.is_datetime64_any_dtype(
+        pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]")
+    )
 
 
 def test_is_datetime64_ns_dtype():

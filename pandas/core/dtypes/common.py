@@ -862,13 +862,6 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-    # GH#52651
-    warnings.warn(
-        "is_datetime64_any_dtype is deprecated and will be removed in a future "
-        "version. Check for specific dtypes of interest instead.",
-        FutureWarning,
-        stacklevel=find_stack_level(),
-    )
     if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.kind == "M"
@@ -1226,7 +1219,18 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     if isinstance(arr_or_dtype, ABCIndex):
         # Allow Index[object] that is all-bools or Index["boolean"]
-        return arr_or_dtype.inferred_type == "boolean"
+        if arr_or_dtype.inferred_type == "boolean":
+            if not is_bool_dtype(arr_or_dtype.dtype):
+                # GH#52680
+                warnings.warn(
+                    "The behavior of is_bool_dtype with an object-dtype Index "
+                    "of bool objects is deprecated. In a future version, "
+                    "this will return False. Cast the Index to a bool dtype instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            return True
+        return False
     elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 

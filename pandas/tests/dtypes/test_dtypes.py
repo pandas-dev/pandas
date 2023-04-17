@@ -294,11 +294,8 @@ class TestDatetimeTZDtype(Base):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
-
-        msg = "is_datetime64_any_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert is_datetime64_any_dtype(dtype)
-            assert is_datetime64_any_dtype("datetime64[ns, US/Eastern]")
+        assert is_datetime64_any_dtype(dtype)
+        assert is_datetime64_any_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_ns_dtype(dtype)
         assert is_datetime64_ns_dtype("datetime64[ns, US/Eastern]")
         assert not is_datetime64_dtype(dtype)
@@ -1133,7 +1130,6 @@ def test_is_dtype_no_warning(check):
     if (
         check is is_categorical_dtype
         or check is is_interval_dtype
-        or check is is_datetime64_any_dtype
         or check is is_datetime64tz_dtype
     ):
         warn = FutureWarning
