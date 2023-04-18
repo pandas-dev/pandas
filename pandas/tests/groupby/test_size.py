@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,7 +38,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     expected = Series(counts, dtype="int64")
     if sort:
         expected = expected.sort_index()
-    if tm.is_integer_dtype(expected.index) and not any(x is None for x in by):
+    if is_integer_dtype(expected.index.dtype) and not any(x is None for x in by):
         expected.index = expected.index.astype(np.int_)
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
