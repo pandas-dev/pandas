@@ -53,6 +53,7 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
+    IndexMethod,
     JoinHow,
     Level,
     Self,
@@ -207,8 +208,6 @@ _index_doc_kwargs: dict[str, str] = {
 }
 _index_shared_docs: dict[str, str] = {}
 str_t = str
-
-IndexMethod = Literal["pad", "ffill", "backfill", "bfill", "nearest"]
 
 _dtype_obj = np.dtype("object")
 

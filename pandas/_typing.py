@@ -390,3 +390,5 @@ CorrelationMethod = Union[
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
 DtypeBackend = Literal["pyarrow", "numpy_nullable"]
+
+IndexMethod = Literal["pad", "ffill", "backfill", "bfill", "nearest"]
