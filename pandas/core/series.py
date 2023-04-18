@@ -771,6 +771,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         numpy.ndarray.ravel : Return a flattened array.
         """
+        warnings.warn(
+            # GH#52511
+            f"'{type(self).__name__}.ravel' is deprecated and will be removed in a "
+            f"future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
             arr.flags.writeable = False

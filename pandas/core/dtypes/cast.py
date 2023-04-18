@@ -351,7 +351,7 @@ def maybe_downcast_numeric(
             return trans(result).astype(dtype)
 
         # do a test on the first element, if it fails then we are done
-        r = result.ravel()
+        r = np.ravel(result)
         arr = np.array([r[0]])
 
         if isna(arr).any():

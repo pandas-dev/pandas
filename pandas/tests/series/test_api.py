@@ -142,7 +142,9 @@ class TestSeriesMisc:
     def test_ndarray_compat_ravel(self):
         # ravel
         s = Series(np.random.randn(10))
-        tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
+        msg = "'Series.ravel' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
 
     def test_empty_method(self):
         s_empty = Series(dtype=object)
