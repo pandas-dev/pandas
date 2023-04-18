@@ -21,6 +21,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import operator
 import pickle
 import re
 
@@ -1216,7 +1217,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_array(self, data, comparison_op, na_value, request):
+    def test_compare_array(self, data, comparison_op, na_value):
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
@@ -1254,6 +1255,20 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             NotImplementedError, match=".* not implemented for <class 'object'>"
         ):
             comparison_op(data, object())
+
+    @pytest.mark.parametrize("masked_dtype", ["boolean", "Int64", "Float64"])
+    def test_comp_masked_numpy(self, masked_dtype, comparison_op):
+        # GH 52625
+        data = [1, 0, None]
+        ser_masked = pd.Series(data, dtype=masked_dtype)
+        ser_pa = pd.Series(data, dtype=f"{masked_dtype.lower()}[pyarrow]")
+        result = comparison_op(ser_pa, ser_masked)
+        if comparison_op in [operator.lt, operator.gt, operator.ne]:
+            exp = [False, False, None]
+        else:
+            exp = [True, True, None]
+        expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+        tm.assert_series_equal(result, expected)
 
 
 class TestLogicalOps:
@@ -1398,6 +1413,23 @@ class TestLogicalOps:
         tm.assert_series_equal(
             a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
         )
+
+    @pytest.mark.parametrize(
+        "op, exp",
+        [
+            ["__and__", True],
+            ["__or__", True],
+            ["__xor__", False],
+        ],
+    )
+    def test_logical_masked_numpy(self, op, exp):
+        # GH 52625
+        data = [True, False, None]
+        ser_masked = pd.Series(data, dtype="boolean")
+        ser_pa = pd.Series(data, dtype="boolean[pyarrow]")
+        result = getattr(ser_pa, op)(ser_masked)
+        expected = pd.Series([exp, False, None], dtype=ArrowDtype(pa.bool_()))
+        tm.assert_series_equal(result, expected)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():

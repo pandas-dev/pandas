@@ -55,6 +55,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -450,6 +451,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, other)
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, pa.scalar(other))
@@ -497,6 +501,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, pa.array(other, from_pandas=True))
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
                 # pyarrow kleene ops require null to be typed
