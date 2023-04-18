@@ -57,7 +57,6 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
-from pandas.core.arrays.masked import BaseMaskedArray
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -435,6 +434,8 @@ class ArrowExtensionArray(
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowExtensionArray):
             result = pc_func(self._data, other._data)
@@ -460,6 +461,8 @@ class ArrowExtensionArray(
         return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         pa_type = self._data.type
         if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
             operator.add,
