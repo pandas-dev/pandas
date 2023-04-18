@@ -82,7 +82,10 @@ def get_indexer_indexer(
         The indexer for the new index.
     """
 
-    target = ensure_key_mapped(target, key, levels=level)
+    # error: Incompatible types in assignment (expression has type
+    # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
+    # type "Index")
+    target = ensure_key_mapped(target, key, levels=level)  # type:ignore[assignment]
     target = target._sort_levels_monotonic()
 
     if level is not None:
@@ -347,7 +350,10 @@ def lexsort_indexer(
     elif orders is None:
         orders = [True] * len(keys)
 
-    keys = [ensure_key_mapped(k, key) for k in keys]
+    # error: Incompatible types in assignment (expression has type
+    # "List[Union[ExtensionArray, ndarray[Any, Any], Index, Series]]", variable
+    # has type "Union[List[Union[ExtensionArray, ndarray[Any, Any]]], List[Series]]")
+    keys = [ensure_key_mapped(k, key) for k in keys]  # type: ignore[assignment]
 
     for k, order in zip(keys, orders):
         if na_position not in ["last", "first"]:
