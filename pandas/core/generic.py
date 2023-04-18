@@ -80,10 +80,12 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimeNonexistent,
     TimestampConvertibleTypes,
+    TimeUnit,
     ValueKeyFunc,
     WriteBuffer,
     WriteExcelBuffer,
     npt,
+    
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2276,7 +2278,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool_t = True,
-        date_unit: Literal["s", "ms", "us", "ns"] = "ms",
+        date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
@@ -2558,7 +2560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         key: str,
         mode: Literal["a", "w", "r+"] = "a",
         complevel: int | None = None,
-        complib: ["zlib", "lzo", "bzip2", "blosc"] | None = None,
+        complib: Literal["zlib", "lzo", "bzip2", "blosc"] | None = None,
         append: bool_t = False,
         format: Literal["fixed", "table"] | None = None,
         index: bool_t = True,
