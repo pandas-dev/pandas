@@ -10,6 +10,7 @@ from typing import (
     Hashable,
     Iterator,
     List,
+    Literal,
     cast,
 )
 
@@ -493,7 +494,7 @@ class RangeIndex(Index):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str = "last",
+        na_position: Literal["first", "last"] = "last",
         key: Callable | None = None,
     ):
         if key is not None:
