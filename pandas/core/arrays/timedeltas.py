@@ -30,7 +30,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.fields import (
+    get_timedelta_days,
+    get_timedelta_field,
+)
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     floordiv_object_array,
@@ -81,7 +84,13 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._creso)
+        if alias == "days":
+            result = get_timedelta_days(values, reso=self._creso)
+        else:
+            # error: Incompatible types in assignment (
+            # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
+            # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -916,7 +925,7 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        if is_extension_array_dtype(data):
+        if is_extension_array_dtype(data.dtype):
             mask = data._mask
             data = data._data
         else:

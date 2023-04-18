@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -363,9 +362,9 @@ class ArrowExtensionArray(
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
                 return type(self)(pa.chunked_array([], type=pa_dtype))
-            elif is_integer_dtype(item.dtype):
+            elif item.dtype.kind in "iu":
                 return self.take(item)
-            elif is_bool_dtype(item.dtype):
+            elif item.dtype.kind == "b":
                 return type(self)(self._pa_array.filter(item))
             else:
                 raise IndexError(
@@ -1495,6 +1494,8 @@ class ArrowExtensionArray(
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
             nbits = pa_dtype.bit_width
             if nbits == 32:
                 result = result.cast(pa.int32())
@@ -2207,12 +2208,19 @@ class ArrowExtensionArray(
     ):
         if ambiguous != "raise":
             raise NotImplementedError(f"{ambiguous=} is not supported")
-        if nonexistent != "raise":
+        nonexistent_pa = {
+            "raise": "raise",
+            "shift_backward": "earliest",
+            "shift_forward": "latest",
+        }.get(
+            nonexistent, None  # type: ignore[arg-type]
+        )
+        if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
-            return type(self)(self._pa_array.cast(new_type))
-        pa_tz = str(tz)
-        return type(self)(
-            self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
-        )
+            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+        else:
+            result = pc.assume_timezone(
+                self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
+            )
+        return type(self)(result)
