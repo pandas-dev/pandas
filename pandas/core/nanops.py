@@ -44,7 +44,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -669,7 +668,6 @@ def _mask_datetimelike_result(
     return result
 
 
-@disallow(PeriodDtype)
 @bottleneck_switch()
 @_datetimelike_compat
 def nanmean(
@@ -808,7 +806,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             # empty set so return nans of shape "everything but the passed axis"
             # since "axis" is where the reduction would occur if we had a nonempty
             # array
-            res = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
+            res = _get_empty_reduction_result(values.shape, axis)
 
     else:
         # otherwise return a scalar value
@@ -816,21 +814,17 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     return _wrap_results(res, dtype)
 
 
-def get_empty_reduction_result(
-    shape: tuple[int, ...],
+def _get_empty_reduction_result(
+    shape: Shape,
     axis: AxisInt,
-    dtype: np.dtype | type[np.floating],
-    fill_value: Any,
 ) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
 
     Parameters
     ----------
-    shape : Tuple[int]
+    shape : Tuple[int, ...]
     axis : int
-    dtype : np.dtype
-    fill_value : Any
 
     Returns
     -------
@@ -838,8 +832,8 @@ def get_empty_reduction_result(
     """
     shp = np.array(shape)
     dims = np.arange(len(shape))
-    ret = np.empty(shp[dims != axis], dtype=dtype)
-    ret.fill(fill_value)
+    ret = np.empty(shp[dims != axis], dtype=np.float64)
+    ret.fill(np.nan)
     return ret
 
 
@@ -1073,22 +1067,14 @@ def _nanminmax(meth, fill_value_typ):
         axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
-    ) -> Dtype:
-        dtype = values.dtype
+    ):
+        if values.size == 0:
+            return _na_for_min_count(values, axis)
+
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
-
-        if (axis is not None and values.shape[axis] == 0) or values.size == 0:
-            dtype_max = _get_dtype_max(dtype)
-            try:
-                result = getattr(values, meth)(axis, dtype=dtype_max)
-                result.fill(np.nan)
-            except (AttributeError, TypeError, ValueError):
-                result = np.nan
-        else:
-            result = getattr(values, meth)(axis)
-
+        result = getattr(values, meth)(axis)
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
 

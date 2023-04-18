@@ -178,7 +178,7 @@ dropna : bool, default True
 
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -500,7 +500,8 @@ _shared_docs[
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
-    {replace_iloc}
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.
 
     Parameters
     ----------
@@ -608,7 +609,7 @@ _shared_docs[
     DataFrame.fillna : Fill NA values.
     Series.where : Replace values based on boolean condition.
     DataFrame.where : Replace values based on boolean condition.
-    DataFrame.applymap: Apply a function to a Dataframe elementwise.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 

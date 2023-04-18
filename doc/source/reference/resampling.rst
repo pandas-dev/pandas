@@ -7,7 +7,8 @@ Resampling
 ==========
 .. currentmodule:: pandas.core.resample
 
-Resampler objects are returned by resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
+:class:`pandas.api.typing.Resampler` instances are returned by
+resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 
 Indexing, iteration
 ~~~~~~~~~~~~~~~~~~~

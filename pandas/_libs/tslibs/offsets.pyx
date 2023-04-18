@@ -3778,6 +3778,13 @@ cdef class CustomBusinessDay(BusinessDay):
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
 
+    @property
+    def _period_dtype_code(self):
+        # GH#52534
+        raise TypeError(
+            "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        )
+
     _apply_array = BaseOffset._apply_array
 
     def __init__(

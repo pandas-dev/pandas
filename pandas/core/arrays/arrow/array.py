@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -363,9 +362,9 @@ class ArrowExtensionArray(
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
                 return type(self)(pa.chunked_array([], type=pa_dtype))
-            elif is_integer_dtype(item.dtype):
+            elif item.dtype.kind in "iu":
                 return self.take(item)
-            elif is_bool_dtype(item.dtype):
+            elif item.dtype.kind == "b":
                 return type(self)(self._pa_array.filter(item))
             else:
                 raise IndexError(
@@ -1150,7 +1149,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
@@ -1495,6 +1494,8 @@ class ArrowExtensionArray(
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
             nbits = pa_dtype.bit_width
             if nbits == 32:
                 result = result.cast(pa.int32())
@@ -2025,15 +2026,25 @@ class ArrowExtensionArray(
         )
 
     def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
     ):
-        raise NotImplementedError(
-            "str.split not supported with pd.ArrowDtype(pa.string())."
-        )
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError(
-            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return type(self)(
+            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table):

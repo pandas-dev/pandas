@@ -56,10 +56,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_datetime64_any_dtype,
-    is_datetime64_dtype,
     is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
     is_period_dtype,
     pandas_dtype,
 )
@@ -104,7 +101,7 @@ _shared_doc_kwargs = {
 
 def _field_accessor(name: str, docstring: str | None = None):
     def f(self):
-        base = self.freq._period_dtype_code
+        base = self.dtype._dtype_code
         result = get_period_field_arr(name, self.asi8, base)
         return result
 
@@ -543,7 +540,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             diffs = libalgos.unique_deltas(self.asi8)
             if len(diffs) == 1:
                 diff = diffs[0]
-                if diff == self.freq.n:
+                if diff == self.dtype._n:
                     dta._freq = self.freq
                 elif diff == 1:
                     dta._freq = self.freq.base
@@ -614,7 +611,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # self.freq.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = asi8 + self.freq.n - 1
+            ordinal = asi8 + self.dtype._n - 1
         else:
             ordinal = asi8
 
@@ -915,7 +912,7 @@ def period_array(
     """
     data_dtype = getattr(data, "dtype", None)
 
-    if is_datetime64_dtype(data_dtype):
+    if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
     if isinstance(data_dtype, PeriodDtype):
         out = PeriodArray(data)
@@ -937,10 +934,10 @@ def period_array(
     else:
         dtype = None
 
-    if is_float_dtype(arrdata) and len(arrdata) > 0:
+    if arrdata.dtype.kind == "f" and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    if is_integer_dtype(arrdata.dtype):
+    if arrdata.dtype.kind in "iu":
         arr = arrdata.astype(np.int64, copy=False)
         # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
         # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
@@ -1124,8 +1121,10 @@ def _range_from_fields(
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = parsing.quarter_to_myear(y, q, freqstr)
-            val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
+            calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
+            val = libperiod.period_ordinal(
+                calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
+            )
             ordinals.append(val)
     else:
         freq = to_offset(freq)
