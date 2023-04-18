@@ -68,6 +68,7 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
+    OpenFileErrors,
     RandomState,
     Renamer,
     Scalar,
@@ -2566,7 +2567,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nan_rep=None,
         dropna: bool_t | None = None,
         data_columns: Literal[True] | list[str] | None = None,
-        errors: str = "strict",
+        errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
     ) -> None:
         """
@@ -2713,7 +2714,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index_label: IndexLabel = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: str | None = None,
+        method: Literal['multi'] | Callable | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -3548,7 +3549,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         index_label: IndexLabel | None = ...,
-        mode: str = ...,
+        mode: Literal["w", "x", "a"] = ...,
         encoding: str | None = ...,
         compression: CompressionOptions = ...,
         quoting: int | None = ...,
@@ -3559,7 +3560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
-        errors: str = ...,
+        errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
     ) -> str:
         ...
@@ -3575,7 +3576,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         index_label: IndexLabel | None = ...,
-        mode: str = ...,
+        mode: Literal["w", "x", "a"] = ...,
         encoding: str | None = ...,
         compression: CompressionOptions = ...,
         quoting: int | None = ...,
@@ -3586,7 +3587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
-        errors: str = ...,
+        errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
     ) -> None:
         ...
@@ -3606,7 +3607,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool_t | list[str] = True,
         index: bool_t = True,
         index_label: IndexLabel | None = None,
-        mode: str = "w",
+        mode: Literal["w", "x", "a"] = "w",
         encoding: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
@@ -3617,7 +3618,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = True,
         escapechar: str | None = None,
         decimal: str = ".",
-        errors: str = "strict",
+        errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
     ) -> str | None:
         r"""
@@ -4852,8 +4853,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> Self:
@@ -4866,8 +4867,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -4880,8 +4881,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: bool_t = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> Self | None:
@@ -4893,8 +4894,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool_t = False,
         key: ValueKeyFunc = None,
     ) -> Self | None:
