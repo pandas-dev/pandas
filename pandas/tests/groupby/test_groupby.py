@@ -2975,9 +2975,7 @@ def test_groupby_numeric_only_std_no_result(numeric_only):
 @pytest.mark.parametrize("bug_var", [1, "a"])
 def test_groupby_sum_on_nan_should_return_nan(bug_var):
     # GH 24196
-    df = pd.DataFrame({
-        "A": [bug_var, bug_var, bug_var, np.nan]
-    })
+    df = DataFrame({"A": [bug_var, bug_var, bug_var, np.nan]})
     dfgb = df.groupby(lambda x: x)
     result = dfgb.sum(min_count=1)
 
