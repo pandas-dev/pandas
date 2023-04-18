@@ -24,7 +24,7 @@ cdef class _Timestamp(ABCTimestamp):
         int64_t _value, nanosecond, year
         NPY_DATETIMEUNIT _creso
         bint _is_populated  # are my components populated
-        int64_t _y, _month, _d, _h, _m, _s, _ms, _us, _ns
+        int64_t _y, _month, _d, _h, _m, _s, _us, _ns
 
     cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)

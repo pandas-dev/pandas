@@ -110,7 +110,6 @@ class TestTimestampProperties:
         ).components
 
         assert ts.year == 2013
-        print(ts.year)
         assert ts.month == 11
         assert ts.day == 3
         assert ts.hour == 1
