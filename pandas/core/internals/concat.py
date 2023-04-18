@@ -251,6 +251,9 @@ def _concat_managers_axis0(mgrs: list[BlockManager], axes: list[Index]) -> Block
     blocks: list[Block] = []
     for i, mgr in enumerate(mgrs):
         for blk in mgr.blocks:
+            # We need to do getitem_block here otherwise we would be altering
+            #  blk.mgr_locs in place, which would render it invalid. This is only
+            #  relevant in the copy=False case.
             nb = blk.getitem_block(slice(None))
             nb._mgr_locs = nb._mgr_locs.add(offset)
             blocks.append(nb)
