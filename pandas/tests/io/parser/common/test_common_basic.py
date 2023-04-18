@@ -866,7 +866,9 @@ def test_read_seek(all_parsers):
 
 def test_pyarrow_with_multi_character_separator(all_parsers):
     # GH#52554
-    data = ""
+    data = """a,b,c
+1,2,3
+    """
     parser = all_parsers
     msg = (
         "the 'pyarrow' engine does not support separators with more than one "
