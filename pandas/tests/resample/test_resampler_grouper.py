@@ -571,7 +571,7 @@ def test_resample_no_columns():
     )
 
     # GH#52710 - Index comes out as 32-bit on 64-bit Windows
-    tm.assert_frame_equal(result, expected, check_dtype=not is_platform_windows())
+    tm.assert_frame_equal(result, expected, check_index_type=not is_platform_windows())
 
 
 def test_groupby_resample_size_all_index_same():
