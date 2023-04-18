@@ -795,10 +795,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
-
             result[mask] = result.dtype.type("NaT")
+
+            if not isinstance(result, TimedeltaArray):
+                return TimedeltaArray._simple_new(result, dtype=result.dtype)
+
             return result
 
         elif result.dtype.kind in "iu":

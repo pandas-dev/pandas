@@ -269,7 +269,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     else:
         # TODO we should handle EAs consistently and move this check before the if/else
         # (https://github.com/pandas-dev/pandas/issues/41165)
-        _bool_arith_check(op, left, right)
+        # error: Argument 2 to "_bool_arith_check" has incompatible type
+        # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
+        _bool_arith_check(op, left, right)  # type: ignore[arg-type]
 
         # error: Argument 1 to "_na_arithmetic_op" has incompatible type
         # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
