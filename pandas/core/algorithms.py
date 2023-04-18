@@ -466,11 +466,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if isinstance(values, ABCDataFrame): 
+    if isinstance(values, ABCDataFrame):
         raise TypeError(
             "only list-like objects are allowed to be passed "
             f"to isin(), you passed a [{type(values).__name__}]"
-            )
+        )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
