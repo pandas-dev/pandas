@@ -2555,7 +2555,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values)):
+        if not is_object_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 

@@ -49,7 +49,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
@@ -471,7 +470,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
         if (
             len(values) > 0
-            and is_numeric_dtype(values.dtype)
+            and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
@@ -1403,7 +1402,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
             )
 
     is_timedelta = False
-    if needs_i8_conversion(arr.dtype):
+    if arr.dtype.kind in "mM":
         dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
@@ -1413,7 +1412,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
         # We have to cast in order to be able to hold np.nan
         dtype = np.object_
 
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # We have to cast in order to be able to hold np.nan
 
         # int8, int16 are incompatible with float64,
