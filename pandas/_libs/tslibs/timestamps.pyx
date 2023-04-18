@@ -139,7 +139,6 @@ Components = collections.namedtuple(
             "hour",
             "minute",
             "second",
-            "millisecond",
             "microsecond",
             "nanosecond",
         ]
@@ -600,11 +599,10 @@ cdef class _Timestamp(ABCTimestamp):
         self._month = dts.month
         self._d = dts.day
         self._h = dts.hour
-        self._m = dts.minute
+        self._m = dts.min
         self._s = dts.sec
-        self._ms = dts.millisecond
-        self._us = dts.microsecond
-        self._ns = dts.nanosecond
+        self._us = dts.us
+        self._ns = dts.ps // 1000
 
         self._is_populated = 1
 
@@ -613,7 +611,7 @@ cdef class _Timestamp(ABCTimestamp):
         self._ensure_components()
         return Components(
             self._y, self._month, self._d,
-            self._h, self._m, self._s, self._ms, self._us, self._ns
+            self._h, self._m, self._s, self._us, self._ns
             )
 
     # -----------------------------------------------------------------

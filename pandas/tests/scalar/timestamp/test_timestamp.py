@@ -107,24 +107,25 @@ class TestTimestampProperties:
             microsecond=3,
             nanosecond=7,
             tz=tzstr,
-        )
+        ).components
 
-        assert ts.components.year == 2013
-        assert ts.components.month == 11
-        assert ts.components.day == 3
-        assert ts.components.hour == 1
-        assert ts.components.minute == 0
-        assert ts.components.second == 32
-        assert ts.components.microsecond == 3
-        assert ts.components.nanosecond == 7
+        assert ts.year == 2013
+        print(ts.year)
+        assert ts.month == 11
+        assert ts.day == 3
+        assert ts.hour == 1
+        assert ts.minute == 0
+        assert ts.second == 32
+        assert ts.microsecond == 3
+        assert ts.nanosecond == 7
 
         tzstr = "dateutil/usr/share/zoneinfo/America/Detroit"
-        ts = Timestamp(year=2023, month=4, day=14, hour=9, minute=53, fold=1, tz=tzstr)
-        assert ts.components.year == 2023
-        assert ts.components.month == 4
-        assert ts.components.day == 14
-        assert ts.components.hour == 9
-        assert ts.components.minute == 53
+        ts = Timestamp(year=2023, month=4, day=14, hour=9, minute=53, fold=1, tz=tzstr).components
+        assert ts.year == 2023
+        assert ts.month == 4
+        assert ts.day == 14
+        assert ts.hour == 9
+        assert ts.minute == 53
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_millisecond_raises(self, tz):
