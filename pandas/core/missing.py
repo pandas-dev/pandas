@@ -86,7 +86,7 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     potential_na = False
-    if is_object_dtype(arr):
+    if is_object_dtype(arr.dtype):
         # pre-compute mask to avoid comparison to NA
         potential_na = True
         arr_mask = ~isna(arr)
