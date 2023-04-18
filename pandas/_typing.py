@@ -391,4 +391,12 @@ CorrelationMethod = Union[
 AlignJoin = Literal["outer", "inner", "left", "right"]
 DtypeBackend = Literal["pyarrow", "numpy_nullable"]
 
-OpenFileErrors = Literal["strict", "ignore", "replace", "surrogateescape", "xmlcharrefreplace", "backslashreplace", "namereplace"]
+OpenFileErrors = Literal[
+    "strict",
+    "ignore",
+    "replace",
+    "surrogateescape",
+    "xmlcharrefreplace",
+    "backslashreplace",
+    "namereplace",
+]
