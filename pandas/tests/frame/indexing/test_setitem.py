@@ -917,7 +917,7 @@ class TestDataFrameSetItemWithExpansion:
 
     def test_frame_setitem_empty_dataframe(self):
         # GH#28871
-        df = pd.DataFrame({"date":[datetime(2000,1,1)]}).set_index("date")
+        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
         df = df[0:0].copy()
 
         df["3010"] = None
