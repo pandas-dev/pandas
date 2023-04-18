@@ -2276,7 +2276,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool_t = True,
-        date_unit: str = "ms",
+        date_unit: Literal["s", "ms", "us", "ns"] = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
