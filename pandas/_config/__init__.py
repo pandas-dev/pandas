@@ -46,5 +46,13 @@ def using_copy_on_write() -> bool:
 
 
 def using_nullable_dtypes() -> bool:
+    """
+    This function examines the global pandas configuration settings to determine if nullable data types are being used. 
+    If pandas is using nullable data types, the function will return True. Otherwise, it will return False.
+
+    Note: This function assumes that the global pandas configuration settings have already been initialized. 
+    If you are not sure whether the settings have been initialized, you can call the `pandas.api.types.is_extension_type()` function to force initialization.
+
+    """
     _mode_options = _global_config["mode"]
     return _mode_options["nullable_dtypes"]
