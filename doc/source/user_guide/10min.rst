@@ -7,7 +7,7 @@
 ********************
 
 This is a short introduction to pandas, geared mainly for new users.
-You can see more complex recipes in the :ref:`Cookbook<cookbook>`.
+You can see more complex recipes in the :ref:`Cookbook<cookbook>`. 
 
 Customarily, we import as follows:
 
@@ -15,6 +15,15 @@ Customarily, we import as follows:
 
    import numpy as np
    import pandas as pd
+
+Basic data structures in pandas
+------------------------------
+
+Information in pandas is organized in two types of classes:
+
+1. :class:`Series`: a one-dimensional container of indexed data. It is analogous to arrays and dictionaries.
+2. :class:`DataFrame`: a two-dimensional container of indexed data.  \
+   It follows a tabular data format, where rows (indexes) and columns are used to organize information.
 
 Object creation
 ---------------
