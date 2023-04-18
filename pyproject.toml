@@ -271,6 +271,8 @@ ignore = [
   "PLR0912",
   # Too many statements
   "PLR0915",
+  # Redefined loop name
+  "PLW2901",
   # Global statements are discouraged
   "PLW0603",
   # Docstrings should not be included in stubs
@@ -307,10 +309,8 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501", "PLW2901"]
-"pandas/io/*" = ["PLW2901"]
-"pandas/tests/*" = ["B028", "PLW2901"]
-"pandas/plotting/*" = ["PLW2901"]
+"pandas/core/*" = ["PLR5501"]
+"pandas/tests/*" = ["B028"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
@@ -361,6 +361,7 @@ disable = [
   "use-implicit-booleaness-not-len",
   "wrong-import-order",
   "wrong-import-position",
+  "redefined-loop-name",
 
  # misc
   "abstract-class-instantiated",

@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas._libs import lib
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
@@ -337,10 +336,10 @@ def test_transform_casting():
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.dtype)
+    assert lib.is_np_dtype(result.dtype, "m")
 
     result = df[["ID3", "DATETIME"]].groupby("ID3").transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.DATETIME.dtype)
+    assert lib.is_np_dtype(result.DATETIME.dtype, "m")
 
 
 def test_transform_multiple(ts):
@@ -587,7 +586,9 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    result = grouped.apply(f)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
@@ -742,7 +743,13 @@ def test_cython_transform_frame(op, args, targop):
                 f = gb[["float", "float_missing"]].apply(targop)
                 expected = concat([f, i], axis=1)
             else:
-                expected = gb.apply(targop)
+                if op != "shift" or not isinstance(gb_target.get("by"), str):
+                    warn = None
+                else:
+                    warn = FutureWarning
+                msg = "DataFrameGroupBy.apply operated on the grouping columns"
+                with tm.assert_produces_warning(warn, match=msg):
+                    expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
 

@@ -49,22 +49,15 @@ from pandas.core.dtypes.common import (
     ensure_object,
     ensure_str,
     is_bool,
-    is_bool_dtype,
     is_complex,
-    is_complex_dtype,
-    is_datetime64_dtype,
     is_extension_array_dtype,
     is_float,
-    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_signed_integer_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
-    is_unsigned_integer_dtype,
     pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
@@ -354,7 +347,7 @@ def maybe_downcast_numeric(
         if result.dtype.itemsize <= dtype.itemsize and result.size:
             return result
 
-    if is_bool_dtype(dtype) or is_integer_dtype(dtype):
+    if dtype.kind in "biu":
         if not result.size:
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
@@ -386,7 +379,7 @@ def maybe_downcast_numeric(
 
     elif (
         issubclass(dtype.type, np.floating)
-        and not is_bool_dtype(result.dtype)
+        and result.dtype.kind != "b"
         and not is_string_dtype(result.dtype)
     ):
         with warnings.catch_warnings():
@@ -428,11 +421,11 @@ def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
     ndarray or ExtensionArray
     """
     dtype = arr.dtype
-    if is_signed_integer_dtype(dtype) and dtype != np.int64:
+    if dtype.kind == "i" and dtype != np.int64:
         return arr.astype(np.int64)
-    elif is_unsigned_integer_dtype(dtype) and dtype != np.uint64:
+    elif dtype.kind == "u" and dtype != np.uint64:
         return arr.astype(np.uint64)
-    elif is_float_dtype(dtype) and dtype != np.float64:
+    elif dtype.kind == "f" and dtype != np.float64:
         return arr.astype(np.float64)
     else:
         return arr
@@ -616,7 +609,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
     if not is_scalar(fill_value):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
-        if not is_object_dtype(dtype):
+        if dtype != object:
             # with object dtype there is nothing to promote, and the user can
             #  pass pretty much any weird fill_value they like
             raise ValueError("fill_value must be a scalar")
@@ -1034,7 +1027,7 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-        if is_object_dtype(input_array.dtype):
+        if input_array.dtype == object:
             inferred_dtype = lib.infer_dtype(input_array)
         else:
             inferred_dtype = input_array.dtype
@@ -1063,7 +1056,7 @@ def convert_dtypes(
                     inferred_dtype = input_array.dtype
             elif (
                 infer_objects
-                and is_object_dtype(input_array.dtype)
+                and input_array.dtype == object
                 and (isinstance(inferred_dtype, str) and inferred_dtype == "integer")
             ):
                 inferred_dtype = target_int_dtype
@@ -1090,7 +1083,7 @@ def convert_dtypes(
                     inferred_dtype = inferred_float_dtype
             elif (
                 infer_objects
-                and is_object_dtype(input_array.dtype)
+                and input_array.dtype == object
                 and (
                     isinstance(inferred_dtype, str)
                     and inferred_dtype == "mixed-integer-float"
@@ -1099,7 +1092,7 @@ def convert_dtypes(
                 inferred_dtype = pandas_dtype_func("Float64")
 
         if convert_boolean:
-            if is_bool_dtype(input_array.dtype):
+            if input_array.dtype.kind == "b":
                 inferred_dtype = pandas_dtype_func("boolean")
             elif isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
                 inferred_dtype = pandas_dtype_func("boolean")
@@ -1203,7 +1196,7 @@ def maybe_cast_to_datetime(
     #  _ensure_nanosecond_dtype raises TypeError
     _ensure_nanosecond_dtype(dtype)
 
-    if is_timedelta64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m"):
         res = TimedeltaArray._from_sequence(value, dtype=dtype)
         return res
     else:
@@ -1407,17 +1400,17 @@ def find_common_type(types):
         return np.dtype("object")
 
     # take lowest unit
-    if all(is_datetime64_dtype(t) for t in types):
-        return np.dtype("datetime64[ns]")
-    if all(is_timedelta64_dtype(t) for t in types):
-        return np.dtype("timedelta64[ns]")
+    if all(lib.is_np_dtype(t, "M") for t in types):
+        return np.dtype(max(types))
+    if all(lib.is_np_dtype(t, "m") for t in types):
+        return np.dtype(max(types))
 
     # don't mix bool / int or float or complex
     # this is different from numpy, which casts bool with float/int as int
-    has_bools = any(is_bool_dtype(t) for t in types)
+    has_bools = any(t.kind == "b" for t in types)
     if has_bools:
         for t in types:
-            if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
+            if t.kind in "iufc":
                 return np.dtype("object")
 
     return np.find_common_type(types, [])
@@ -1482,7 +1475,7 @@ def construct_1d_arraylike_from_scalar(
         subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
 
     else:
-        if length and is_integer_dtype(dtype) and isna(value):
+        if length and dtype.kind in "iu" and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
         elif isinstance(dtype, np.dtype) and dtype.kind in "US":
@@ -1575,7 +1568,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
         ...
     ValueError: Trying to coerce float values to integers
     """
-    assert is_integer_dtype(dtype)
+    assert dtype.kind in "iu"
 
     try:
         if not isinstance(arr, np.ndarray):
@@ -1622,16 +1615,16 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
             return casted
         raise ValueError(f"string values cannot be losslessly cast to {dtype}")
 
-    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
+    if dtype.kind == "u" and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_float_dtype(arr.dtype):
+    if arr.dtype.kind == "f":
         if not np.isfinite(arr).all():
             raise IntCastingNaNError(
                 "Cannot convert non-finite values (NA or inf) to integer"
             )
         raise ValueError("Trying to coerce float values to integers")
-    if is_object_dtype(arr.dtype):
+    if arr.dtype == object:
         raise ValueError("Trying to coerce float values to integers")
 
     if casted.dtype < arr.dtype:
