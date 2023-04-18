@@ -2618,6 +2618,14 @@ class TestLocBooleanMask:
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_mask_dtype_change(self):
+        # GH: 29707
+        df = DataFrame([])
+        df["col0"] = np.array([1, 4])
+        df["col1"] = np.array([6, 5], dtype=object)
+        assert df["col0"].dtype == "int"
+        assert df["col1"].dtype == "object"
+
 
 class TestLocListlike:
     @pytest.mark.parametrize("box", [lambda x: x, np.asarray, list])
@@ -2665,6 +2673,12 @@ class TestLocListlike:
         )
         with pytest.raises(KeyError, match="not in index"):
             ser.loc[np.array([9730701000001104, 10047311000001102])]
+
+    def test_loc_set_item_empty_list(self):
+        # GH: 29707
+        df = DataFrame({"a": [2, 3]})
+        df.loc[[]] = 0.1
+        assert df.a.dtype == "int64"
 
     @pytest.mark.parametrize("to_period", [True, False])
     def test_loc_getitem_listlike_of_datetimelike_keys(self, to_period):
