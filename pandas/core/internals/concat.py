@@ -444,17 +444,15 @@ class JoinUnit:
             return all(isna_all(row) for row in values)
 
     @cache_readonly
-    def is_na_after_size_deprecation(self) -> bool:
+    def is_na_after_size_and_isna_all_deprecation(self) -> bool:
         """
-        Will self.is_na be True after values.size == 0 deprecation is enforced?
+        Will self.is_na be True after values.size == 0 deprecation and isna_all
+        deprecation are enforced?
         """
         blk = self.block
         if blk.dtype.kind == "V":
             return True
-
-        if not blk._can_hold_na:
-            return False
-        return self.is_na and blk.values.size != 0
+        return False
 
     def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
         values: ArrayLike
@@ -545,12 +543,12 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
 
     if empty_dtype != empty_dtype_future:
         if empty_dtype == concat_values.dtype:
-            # GH#39122
+            # GH#39122, GH#40893
             warnings.warn(
-                "The behavior of DataFrame concatenation with empty entries is "
-                "deprecated. In a future version, this will no longer exclude "
-                "empty frames when determining the result dtypes. "
-                "To retain the old behavior, exclude the empty entries before "
+                "The behavior of DataFrame concatenation with empty or all-NA "
+                "entries is deprecated. In a future version, this will no longer "
+                "exclude empty or all-NA columns when determining the result dtypes. "
+                "To retain the old behavior, exclude the relevant entries before "
                 "the concat operation.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
@@ -616,7 +614,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj
         dtypes_future = [
             unit.block.dtype
             for unit in join_units
-            if not unit.is_na_after_size_deprecation
+            if not unit.is_na_after_size_and_isna_all_deprecation
         ]
         if not len(dtypes_future):
             dtypes_future = [
