@@ -495,10 +495,7 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-    # error: Argument "kind" to "argsort" of "_ArrayOrScalarCommon" has
-    # incompatible type "str"; expected "Optional[Literal['quicksort',
-    # 'mergesort', 'heapsort', 'stable']]"
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]  # type: ignore[arg-type]
+    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
