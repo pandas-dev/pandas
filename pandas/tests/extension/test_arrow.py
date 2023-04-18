@@ -504,6 +504,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
+    def test_median_not_approximate(self, typ):
+        # GH 52679
+        result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
+        assert result == 1.5
+
 
 class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
