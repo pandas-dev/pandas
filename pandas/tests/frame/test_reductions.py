@@ -32,6 +32,8 @@ from pandas.core import (
     nanops,
 )
 
+is_windows_or_is32 = is_platform_windows() or not IS64
+
 
 def assert_stat_op_calc(
     opname,
@@ -1597,12 +1599,12 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, ("Int64" if IS64 else "Int32")),
-            ("prod", "Int8", 1, ("Int64" if IS64 else "Int32")),
+            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, ("UInt64" if IS64 else "UInt32")),
-            ("prod", "UInt8", 1, ("UInt64" if IS64 else "UInt32")),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
