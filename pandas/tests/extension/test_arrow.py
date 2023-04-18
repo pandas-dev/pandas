@@ -2511,16 +2511,56 @@ def test_dt_tz_localize_none():
 
 
 @pytest.mark.parametrize("unit", ["us", "ns"])
-def test_dt_tz_localize(unit):
+def test_dt_tz_localize(unit, request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit)),
     )
     result = ser.dt.tz_localize("US/Pacific")
-    expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
-        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    exp_data = pa.array(
+        [datetime(year=2023, month=1, day=2, hour=3), None], type=pa.timestamp(unit)
     )
+    exp_data = pa.compute.assume_timezone(exp_data, "US/Pacific")
+    expected = pd.Series(ArrowExtensionArray(exp_data))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "nonexistent, exp_date",
+    [
+        ["shift_forward", datetime(year=2023, month=3, day=12, hour=3)],
+        ["shift_backward", pd.Timestamp("2023-03-12 01:59:59.999999999")],
+    ],
+)
+def test_dt_tz_localize_nonexistent(nonexistent, exp_date, request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
+    ser = pd.Series(
+        [datetime(year=2023, month=3, day=12, hour=2, minute=30), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.tz_localize("US/Pacific", nonexistent=nonexistent)
+    exp_data = pa.array([exp_date, None], type=pa.timestamp("ns"))
+    exp_data = pa.compute.assume_timezone(exp_data, "US/Pacific")
+    expected = pd.Series(ArrowExtensionArray(exp_data))
     tm.assert_series_equal(result, expected)
 
 
