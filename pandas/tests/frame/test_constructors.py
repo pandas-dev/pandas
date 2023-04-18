@@ -2642,7 +2642,7 @@ class TestDataFrameConstructors:
     def test_construct_with_strings_and_none(self):
         # GH#32218
         df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
-        expected = df = DataFrame({"a": ["1", "2", None]}, dtype="str")
+        expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
         tm.assert_frame_equal(df, expected)
 
 
