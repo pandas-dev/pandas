@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 from pandas._typing import (
-    IntervalClosedType,
+    IntervalInclusiveType,
     Timedelta,
     Timestamp,
 )
@@ -57,14 +57,14 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
     def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def closed(self) -> IntervalClosedType: ...
+    def closed(self) -> IntervalInclusiveType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
         left: _OrderableT,
         right: _OrderableT,
-        closed: IntervalClosedType = ...,
+        closed: IntervalInclusiveType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
     @overload
@@ -155,7 +155,7 @@ class IntervalTree(IntervalMixin):
         self,
         left: np.ndarray,
         right: np.ndarray,
-        closed: IntervalClosedType = ...,
+        closed: IntervalInclusiveType = ...,
         leaf_size: int = ...,
     ) -> None: ...
     @property

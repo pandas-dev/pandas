@@ -31,7 +31,7 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
-    IntervalClosedType,
+    IntervalInclusiveType,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
@@ -293,7 +293,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls,
         left,
         right,
-        closed: IntervalClosedType | None = None,
+        closed: IntervalInclusiveType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
@@ -444,7 +444,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_breaks(
         cls,
         breaks,
-        closed: IntervalClosedType | None = "right",
+        closed: IntervalInclusiveType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> Self:
@@ -522,7 +522,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         cls,
         left,
         right,
-        closed: IntervalClosedType | None = "right",
+        closed: IntervalInclusiveType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> Self:
@@ -594,7 +594,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_tuples(
         cls,
         data,
-        closed: IntervalClosedType | None = "right",
+        closed: IntervalInclusiveType | None = "right",
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> Self:
@@ -1374,7 +1374,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def closed(self) -> IntervalClosedType:
+    def closed(self) -> IntervalInclusiveType:
         """
         String describing the inclusive side the intervals.
 
@@ -1421,7 +1421,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def set_closed(self, closed: IntervalClosedType) -> Self:
+    def set_closed(self, closed: IntervalInclusiveType) -> Self:
         if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)

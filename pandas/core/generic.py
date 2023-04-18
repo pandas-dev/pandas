@@ -62,7 +62,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexKeyFunc,
     IndexLabel,
-    IntervalClosedType,
+    IntervalInclusiveType,
     JSONSerializable,
     Level,
     Manager,
@@ -8507,7 +8507,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         start_time,
         end_time,
-        inclusive: IntervalClosedType = "both",
+        inclusive: IntervalInclusiveType = "both",
         axis: Axis | None = None,
     ) -> Self:
         """

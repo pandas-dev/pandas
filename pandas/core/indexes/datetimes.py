@@ -54,7 +54,7 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         Frequency,
-        IntervalClosedType,
+        IntervalInclusiveType,
         Self,
         TimeAmbiguous,
         TimeNonexistent,
@@ -786,7 +786,7 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    inclusive: IntervalClosedType = "both",
+    inclusive: IntervalInclusiveType = "both",
     *,
     unit: str | None = None,
     **kwargs,
@@ -989,7 +989,7 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    inclusive: IntervalClosedType = "both",
+    inclusive: IntervalInclusiveType = "both",
     **kwargs,
 ) -> DatetimeIndex:
     """

@@ -92,7 +92,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
-        IntervalClosedType,
+        IntervalInclusiveType,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -200,7 +200,7 @@ class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    closed: IntervalClosedType
+    closed: IntervalInclusiveType
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
@@ -261,7 +261,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        closed: IntervalClosedType | None = "right",
+        closed: IntervalInclusiveType | None = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -297,7 +297,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        closed: IntervalClosedType = "right",
+        closed: IntervalInclusiveType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -332,7 +332,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        closed: IntervalClosedType = "right",
+        closed: IntervalInclusiveType = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -983,7 +983,7 @@ def interval_range(
     periods=None,
     freq=None,
     name: Hashable = None,
-    closed: IntervalClosedType = "right",
+    closed: IntervalInclusiveType = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.

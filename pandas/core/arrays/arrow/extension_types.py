@@ -13,7 +13,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.arrays.interval import VALID_CLOSED
 
 if TYPE_CHECKING:
-    from pandas._typing import IntervalClosedType
+    from pandas._typing import IntervalInclusiveType
 
 
 class ArrowPeriodType(pyarrow.ExtensionType):
@@ -58,11 +58,11 @@ pyarrow.register_extension_type(_period_type)
 
 
 class ArrowIntervalType(pyarrow.ExtensionType):
-    def __init__(self, subtype, closed: IntervalClosedType) -> None:
+    def __init__(self, subtype, closed: IntervalInclusiveType) -> None:
         # attributes need to be set first before calling
         # super init (as that calls serialize)
         assert closed in VALID_CLOSED
-        self._closed: IntervalClosedType = closed
+        self._closed: IntervalInclusiveType = closed
         if not isinstance(subtype, pyarrow.DataType):
             subtype = pyarrow.type_for_alias(str(subtype))
         self._subtype = subtype
@@ -75,7 +75,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return self._subtype
 
     @property
-    def closed(self) -> IntervalClosedType:
+    def closed(self) -> IntervalInclusiveType:
         return self._closed
 
     def __arrow_ext_serialize__(self) -> bytes:

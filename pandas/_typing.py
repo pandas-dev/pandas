@@ -351,7 +351,7 @@ XMLParsers = Literal["lxml", "etree"]
 
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]
-IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
+IntervalInclusiveType = Union[IntervalLeftRight, Literal["both", "neither"]]
 
 # datetime and NaTType
 DatetimeNaTType = Union[datetime, "NaTType"]

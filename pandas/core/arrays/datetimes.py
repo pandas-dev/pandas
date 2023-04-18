@@ -78,7 +78,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DateTimeErrorChoices,
-        IntervalClosedType,
+        IntervalInclusiveType,
         Self,
         TimeAmbiguous,
         TimeNonexistent,
@@ -384,7 +384,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         normalize: bool = False,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-        inclusive: IntervalClosedType = "both",
+        inclusive: IntervalInclusiveType = "both",
         *,
         unit: str | None = None,
     ) -> Self:
