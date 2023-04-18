@@ -130,7 +130,9 @@ as_index : bool, default True
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group. If False the order among groups with their keys follows the order of appearance of the keys in the original dataframe.
+    group. Groupby preserves the order of rows within each group. If False
+    the order among groups with their keys follows the order of appearance
+    of the keys in the original dataframe.
     This argument has no effect on filtrations (see the `filtrations in the user guide
     <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
     such as ``head()``, ``tail()``, ``nth()`` and in transformations
