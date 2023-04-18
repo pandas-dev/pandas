@@ -7503,7 +7503,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         inplace: bool_t = False,
         limit_direction: str | None = None,
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: str | None = None,
         **kwargs,
     ) -> Self | None:
@@ -8325,7 +8325,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         freq: Frequency,
         method: FillnaOptions | None = None,
-        how: str | None = None,
+        how: Literal["start", "end"] | None = None,
         normalize: bool_t = False,
         fill_value: Hashable = None,
     ) -> Self:
