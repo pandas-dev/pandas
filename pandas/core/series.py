@@ -3897,7 +3897,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    def nsmallest(self, n: int = 5, keep: Literal["first", "last", "all"] = "first") -> Series:
         """
         Return the smallest `n` elements.
 
