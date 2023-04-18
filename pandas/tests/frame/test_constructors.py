@@ -82,6 +82,15 @@ class TestDataFrameConstructors:
         df = DataFrame(arr, dtype=str)
         expected = DataFrame(arr.astype(str))
         tm.assert_frame_equal(df, expected)
+    
+    def test_no_overflow_of_freq_and_time_in_dataframe(self):
+        # GH 35665
+        foo = pd.DataFrame(
+            {'some_string': ['2222Y3'], 
+             'time': [pd.Timedelta("0 days 00:00:00.990000")]
+             })
+        for _, row in foo.iterrows():
+            assert row.dtype=="object"
 
     def test_constructor_from_2d_datetimearray(self, using_array_manager):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
