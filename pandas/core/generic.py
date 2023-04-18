@@ -2558,7 +2558,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         key: str,
         mode: Literal["a", "w", "r+"] = "a",
         complevel: int | None = None,
-        complib: str | None = None,
+        complib: ["zlib", "lzo", "bzip2", "blosc"] | None = None,
         append: bool_t = False,
         format: str | None = None,
         index: bool_t = True,
