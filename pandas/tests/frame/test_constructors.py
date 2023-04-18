@@ -2639,6 +2639,12 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame(data=np.array([]), columns=["a", "b"])
 
+    def test_construct_with_strings_and_none(self):
+        # GH#32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        expected = df = DataFrame({"a": ["1", "2", None]}, dtype="str")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
