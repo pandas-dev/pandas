@@ -4074,7 +4074,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         {examples}
         """
-        return self.axis_ops.swaplevel(i, j, copy=copy)
+        return self.axis_ops.swap_level(i, j, copy=copy)
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
         """

@@ -99,7 +99,7 @@ class AxisOps(Generic[NDFrameT]):
             result.columns = result.columns.reorder_levels(order)
         return result
 
-    def droplevel(self, level: IndexLabel, axis: Axis = 0) -> NDFrameT:
+    def drop_level(self, level: IndexLabel, axis: Axis = 0) -> NDFrameT:
         """
         Return Series/Dataframe with requested index / column level(s) removed.
 
@@ -164,7 +164,7 @@ class AxisOps(Generic[NDFrameT]):
         new_labels = labels.droplevel(level)
         return obj.set_axis(new_labels, axis=axis, copy=None)
 
-    def swaplevel(
+    def swap_level(
         self, i: Level = -2, j: Level = -1, *, axis: Axis = 0, copy: bool | None = None
     ) -> NDFrameT:
         """

@@ -788,9 +788,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ).__finalize__(self, method="swapaxes")
 
     @final
-    @Appender(AxisOps.droplevel.__doc__)
+    @Appender(AxisOps.drop_level.__doc__)
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
-        return self.axis_ops.droplevel(level=level, axis=axis)
+        return self.axis_ops.drop_level(level=level, axis=axis)
 
     def pop(self, item: Hashable) -> Series | Any:
         result = self[item]

@@ -7281,9 +7281,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nsmallest()
 
-    @Appender(AxisOps.swaplevel.__doc__)
+    @Appender(AxisOps.swap_level.__doc__)
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
-        return self.axis_ops.swaplevel(i, j, axis=axis)
+        return self.axis_ops.swap_level(i, j, axis=axis)
 
     @Appender(AxisOps.reorder_levels.__doc__)
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
