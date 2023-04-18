@@ -5050,7 +5050,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Raises
         ------
         TypeError
-          * If `values` is a string
+          * If `values` is a string or a dataframe
 
         See Also
         --------

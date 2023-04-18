@@ -63,6 +63,7 @@ from pandas.core.dtypes.dtypes import (
     PandasDtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
@@ -464,6 +465,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             "only list-like objects are allowed to be passed "
             f"to isin(), you passed a [{type(values).__name__}]"
         )
+
+    if isinstance(values, ABCDataFrame): 
+        raise TypeError(
+            "only list-like objects are allowed to be passed "
+            f"to isin(), you passed a [{type(values).__name__}]"
+            )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
