@@ -208,6 +208,7 @@ _index_doc_kwargs: dict[str, str] = {
 _index_shared_docs: dict[str, str] = {}
 str_t = str
 
+IndexMethod = Literal["pad", "ffill", "backfill", "bfill", "nearest"]
 
 _dtype_obj = np.dtype("object")
 
@@ -3742,7 +3743,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self,
         target,
-        method: str_t | None = None,
+        method: IndexMethod | None = None,
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
@@ -4197,7 +4198,7 @@ class Index(IndexOpsMixin, PandasObject):
     def reindex(
         self,
         target,
-        method=None,
+        method: IndexMethod | None = None,
         level=None,
         limit: int | None = None,
         tolerance: float | None = None,
