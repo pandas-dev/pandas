@@ -1251,3 +1251,14 @@ class TestDataFrameSetitemCopyViewSemantics:
                     df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
+
+    def test_setitem_column_frame_as_category(self):
+        # GH31581
+        df = DataFrame([1, 2, 3])
+        df["col1"] = DataFrame([1, 2, 3], dtype="category")
+        df["col2"] = Series([1, 2, 3], dtype="category")
+
+        expected_types = Series(
+            ["int64", "category", "category"], index=[0, "col1", "col2"]
+        )
+        tm.assert_series_equal(df.dtypes, expected_types)
