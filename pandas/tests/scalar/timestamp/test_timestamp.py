@@ -119,7 +119,9 @@ class TestTimestampProperties:
         assert ts.nanosecond == 7
 
         tzstr = "dateutil/usr/share/zoneinfo/America/Detroit"
-        ts = Timestamp(year=2023, month=4, day=14, hour=9, minute=53, fold=1, tz=tzstr).components
+        ts = Timestamp(
+            year=2023, month=4, day=14, hour=9, minute=53, fold=1, tz=tzstr
+        ).components
         assert ts.year == 2023
         assert ts.month == 4
         assert ts.day == 14
