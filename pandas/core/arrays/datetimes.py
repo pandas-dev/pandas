@@ -53,7 +53,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_dtype_equal,
     is_float_dtype,
-    is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -2039,7 +2038,7 @@ def _sequence_to_dt64ns(
         out_dtype = np.dtype(f"M8[{out_unit}]")
 
     if (
-        is_object_dtype(data_dtype)
+        data_dtype == object
         or is_string_dtype(data_dtype)
         or isinstance(data_dtype, SparseDtype)
     ):
