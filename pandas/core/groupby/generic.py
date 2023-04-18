@@ -542,6 +542,41 @@ class SeriesGroupBy(GroupBy[Series]):
 
         result.name = self.obj.name
         return result
+    
+    def normgroup(self, by, norm='12'):
+        """
+        Normalize each group of a DataFrame by a specified column.
+    
+        Parameters
+        ----------
+        by : string
+            The name of the column to group by.
+        norm : string or callable
+            The normalization method to use (default 'l2').
+    
+        Returns:
+        --------
+        pandas.DataFrame: A DataFrame with each group normalized by the specified column.
+
+        Examples
+        --------
+        >>> data = {'group': ['A', 'A', 'B', 'B', 'B', 'C', 'C'],
+        ... 'value': [1, 2, 3, 4, 5, 6, 7]}
+        >>> df = pd.DataFrame(data)
+
+        >>> normalized_df = df.normgroup('group', norm='l2')
+        >>> print(normalized_df)
+              value
+        0  0.447214
+        1  0.894427
+        2  0.424264
+        3  0.565685
+        4  0.707107
+        5  0.640513
+        6  0.767188
+        """
+        groups = self._groupby(by)
+        return groups.transform(lambda x: (x / np.linalg.norm(x, ord=norm)))
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
