@@ -9145,9 +9145,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         offset = to_offset(offset)
 
-        start_date = self.index[-1] - offset
-        start = self.index.searchsorted(start_date, side="right")
-        return self.iloc[start:]
+        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[-1]):
+            # GH#29623 if first value is end of period, remove offset with n = 1
+            #  before adding the real offset
+            start_date = start = self.index[-1] - offset.base - offset
+        else:
+            start_date = start = self.index[-1] - offset
+
+        # Tick-like, e.g. 3 weeks
+        if isinstance(offset, Tick) and start_date in self.index:
+            start = self.index.searchsorted(start_date, side="right")
+            return self.iloc[:start]
+
+        return self.loc[:start]
 
     @final
     def rank(
