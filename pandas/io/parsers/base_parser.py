@@ -7,6 +7,7 @@ import datetime
 from enum import Enum
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
