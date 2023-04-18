@@ -219,12 +219,17 @@ if TYPE_CHECKING:
         FloatFormatType,
         FormattersType,
         Frequency,
+        FromDictOrient,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
+        JoinValidate,
         Level,
         MergeHow,
+        MergeValidate,
+        NaAction,
         NaPosition,
+        NsmallestNlargestKeep,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
@@ -234,6 +239,10 @@ if TYPE_CHECKING:
         SortKind,
         StorageOptions,
         Suffixes,
+        ToGbqIfexist,
+        ToStataByteorder,
+        ToTimestampHow,
+        UpdateJoin,
         ValueKeyFunc,
         WriteBuffer,
         npt,
@@ -1637,7 +1646,7 @@ class DataFrame(NDFrame, OpsMixin):
     def from_dict(
         cls,
         data: dict,
-        orient: str = "columns",
+        orient: FromDictOrient = "columns",
         dtype: Dtype | None = None,
         columns: Axes | None = None,
     ) -> DataFrame:
@@ -1981,7 +1990,7 @@ class DataFrame(NDFrame, OpsMixin):
         project_id: str | None = None,
         chunksize: int | None = None,
         reauth: bool = False,
-        if_exists: str = "fail",
+        if_exists: ToGbqIfexist = "fail",
         auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
@@ -2535,7 +2544,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: str | None = None,
+        byteorder: ToStataByteorder | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
@@ -6521,8 +6530,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         ascending=...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> DataFrame:
@@ -7077,7 +7086,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
-    def nlargest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nlargest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -7184,7 +7195,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nsmallest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -8348,10 +8361,10 @@ class DataFrame(NDFrame, OpsMixin):
     def update(
         self,
         other,
-        join: str = "left",
+        join: UpdateJoin = "left",
         overwrite: bool = True,
         filter_func=None,
-        errors: str = "ignore",
+        errors: IgnoreRaise = "ignore",
     ) -> None:
         """
         Modify in place using non-NA values from another DataFrame.
@@ -9857,7 +9870,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self.apply(infer).__finalize__(self, "map")
 
     def applymap(
-        self, func: PythonFuncType, na_action: str | None = None, **kwargs
+        self, func: PythonFuncType, na_action: NaAction = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
@@ -9969,7 +9982,7 @@ class DataFrame(NDFrame, OpsMixin):
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
-        validate: str | None = None,
+        validate: JoinValidate | None = None,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -10211,7 +10224,7 @@ class DataFrame(NDFrame, OpsMixin):
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool | None = None,
         indicator: str | bool = False,
-        validate: str | None = None,
+        validate: MergeValidate | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
@@ -11506,7 +11519,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_timestamp(
         self,
         freq: Frequency | None = None,
-        how: str = "start",
+        how: ToTimestampHow = "start",
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
