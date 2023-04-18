@@ -350,6 +350,17 @@ class TestReaders:
             index=MultiIndex(levels=[[]] * 3, codes=[[]] * 3, names=["A", "B", "C"]),
         )
         tm.assert_frame_equal(result, expected)
+    
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel(
+            "test1" + read_ext, sheet_name="Sheet3", index_col="A"
+        )
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"],
+            index=Index([],name="A")
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("index_col", [None, 2])
     def test_index_col_with_unnamed(self, read_ext, index_col):
