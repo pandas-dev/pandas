@@ -2,7 +2,6 @@ from datetime import datetime
 import random
 
 import numpy as np
-import pyarrow as pa
 import pytest
 
 from pandas._libs.tslibs import iNaT
@@ -75,8 +74,11 @@ def test_categorical_dtype(data):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
+@td.skip_if_no("pyarrow")
 def test_categorical_pyarrow():
     # GH 49889
+    import pyarrow as pa
+
     arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
     table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
     exchange_df = table.__dataframe__()
