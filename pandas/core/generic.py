@@ -2560,7 +2560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         complevel: int | None = None,
         complib: ["zlib", "lzo", "bzip2", "blosc"] | None = None,
         append: bool_t = False,
-        format: str | None = None,
+        format: Literal["fixed", "table"] | None = None,
         index: bool_t = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
