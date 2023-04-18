@@ -74,10 +74,9 @@ def test_categorical_dtype(data):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@td.skip_if_no("pyarrow")
 def test_categorical_pyarrow():
     # GH 49889
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
     table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
