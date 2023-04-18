@@ -773,3 +773,14 @@ def test_errorreset_index_rename(float_frame):
 
     with pytest.raises(IndexError, match="list index out of range"):
         stacked_df.reset_index(names=["new_first"])
+
+
+def test_reset_index_false_index_name():
+    # GH 38147
+    df1 = Series(data=range(5, 10), index=range(0, 5))
+    df1.index.name = False
+    df1.reset_index()
+
+    df2 = DataFrame(data=range(5, 10), index=range(0, 5))
+    df2.index.name = False
+    df2.reset_index()
