@@ -402,7 +402,7 @@ JoinValidate = Literal[
 ]
 
 # reindex
-ReindexMethod = Union[FillnaOptions ,Literal["nearest"]]
+ReindexMethod = Union[FillnaOptions, Literal["nearest"]]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[
@@ -423,7 +423,7 @@ DtypeBackend = Literal["pyarrow", "numpy_nullable"]
 UpdateJoin = Literal["left"]
 
 # applymap
-NaAction = Literal["None", "ignore"]
+NaAction = Literal["ignore"]
 
 # from_dict[
 FromDictOrient = Literal["columns", "index", "tight"]

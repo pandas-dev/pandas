@@ -233,6 +233,7 @@ if TYPE_CHECKING:
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
@@ -245,9 +246,8 @@ if TYPE_CHECKING:
         UpdateJoin,
         ValueKeyFunc,
         WriteBuffer,
-        npt,
-        ReindexMethod,
         XMLParsers,
+        npt,
     )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
@@ -9872,7 +9872,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self.apply(infer).__finalize__(self, "map")
 
     def applymap(
-        self, func: PythonFuncType, na_action: NaAction = None, **kwargs
+        self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
