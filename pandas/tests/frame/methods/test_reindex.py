@@ -119,6 +119,29 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    @td.skip_array_manager_not_yet_implemented
+    def test_reindex_tzaware_fill_value(self):
+        # GH#52586
+        df = DataFrame([[1]])
+
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        res = df.reindex([0, 1], axis=1, fill_value=ts)
+        assert res.dtypes[1] == pd.DatetimeTZDtype(tz="US/Pacific")
+        expected = DataFrame({0: [1], 1: [ts]})
+        tm.assert_frame_equal(res, expected)
+
+        per = ts.tz_localize(None).to_period("s")
+        res = df.reindex([0, 1], axis=1, fill_value=per)
+        assert res.dtypes[1] == pd.PeriodDtype("s")
+        expected = DataFrame({0: [1], 1: [per]})
+        tm.assert_frame_equal(res, expected)
+
+        interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
+        res = df.reindex([0, 1], axis=1, fill_value=interval)
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[ns, US/Pacific]", "right")
+        expected = DataFrame({0: [1], 1: [interval]})
+        tm.assert_frame_equal(res, expected)
+
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
