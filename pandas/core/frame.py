@@ -3101,6 +3101,10 @@ class DataFrame(NDFrame, OpsMixin):
             .. versionadded:: 1.0
         %(returns)s
 
+        See Also
+        --------
+        to_string : Convert DataFrame to a string.
+
         Examples
         --------
         Create, write to and save a workbook:
@@ -3108,10 +3112,6 @@ class DataFrame(NDFrame, OpsMixin):
         ...                    index=['row 1', 'row 2'],
         ...                    columns=['col 1', 'col 2'])
         >>> df1.to_html("output.html")  # doctest: +SKIP
-
-        See Also
-        --------
-        to_string : Convert DataFrame to a string.
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
