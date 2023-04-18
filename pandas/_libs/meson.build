@@ -99,7 +99,6 @@ libs_sources = {
                          'src/ujson/lib/ultrajsonenc.c',
                          'src/ujson/lib/ultrajsondec.c'],
              'include_dirs': ['tslibs/src/datetime', 'src/ujson/lib', 'src/ujson/python']},
-    'reduction': {'sources': ['reduction.pyx']},
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
     'properties': {'sources': ['properties.pyx']},
