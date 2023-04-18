@@ -14,11 +14,12 @@ This PDEP proposes that:
 - PyArrow becomes a runtime dependency starting pandas 2.1
 - The minimum version of PyArrow supported starting pandas 2.1 is version 7.
 - The minimum version of PyArrow will be bumped every major pandas release to the highest
-  PyArrow version that has been released for at least 2 years.
+  PyArrow version that has been released for at least 2 years, and the minimum PyArrow version will be
+  maintained for every minor version in the major version series.
 
 ## Background
 
-PyArrow is an optional dependency of pandas that provides a wide range of supplimental feature to pandas:
+PyArrow is an optional dependency of pandas that provides a wide range of supplemental features to pandas:
 
 - Since pandas 0.21.0, PyArrow provided I/O reading functionality for Parquet
 - Since pandas 1.2.0, pandas integrated PyArrow into the `ExtensionArray` interface to provide an optional string data type backed by PyArrow
