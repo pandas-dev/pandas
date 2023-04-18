@@ -246,6 +246,8 @@ if TYPE_CHECKING:
         ValueKeyFunc,
         WriteBuffer,
         npt,
+        ReindexMethod,
+        XMLParsers,
     )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
@@ -2772,7 +2774,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: None = ...,
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2785,7 +2787,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes],
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2798,7 +2800,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
-        engine: str = "auto",
+        engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
         compression: str | None = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2928,7 +2930,7 @@ class DataFrame(NDFrame, OpsMixin):
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
-        engine : str, default 'pyarrow'
+        engine : {'pyarrow'}, default 'pyarrow'
             ORC library to use. Pyarrow must be >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
@@ -3164,7 +3166,7 @@ class DataFrame(NDFrame, OpsMixin):
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
-        parser: str | None = "lxml",
+        parser: XMLParsers | None = "lxml",
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
@@ -4997,7 +4999,7 @@ class DataFrame(NDFrame, OpsMixin):
         index=None,
         columns=None,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
