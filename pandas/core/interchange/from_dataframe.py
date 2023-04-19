@@ -182,7 +182,13 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     cat_column = categorical["categories"]
     # Item "Column" of "Optional[Column]" has no attribute "_col"
     # Item "None" of "Optional[Column]" has no attribute "_col"
-    categories = np.array(cat_column._col)  # type: ignore[union-attr]
+    if hasattr(cat_column, "_col"):
+        categories = np.array(cat_column._col)  # type: ignore[union-attr]
+    else:
+        raise NotImplementedError(
+            "`from_dataframe` when `cat_column` does not have `_col` "
+            "attribute is not yet implemented"
+        )
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
