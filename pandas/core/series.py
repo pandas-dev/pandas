@@ -4368,7 +4368,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if func is None:
             func = dict(kwargs.items())
 
-        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4384,9 +4384,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(
-            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
-        ).transform()
+        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4508,17 +4506,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(
+            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+        ).apply()
 
     def _reindex_indexer(
         self,
