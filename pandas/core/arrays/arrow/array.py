@@ -434,11 +434,16 @@ class ArrowExtensionArray(
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowExtensionArray):
             result = pc_func(self._data, other._data)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, other)
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._data, other.__arrow_array__())
         elif is_scalar(other):
             try:
                 result = pc_func(self._data, pa.scalar(other))
@@ -456,6 +461,8 @@ class ArrowExtensionArray(
         return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
+        from pandas.core.arrays.masked import BaseMaskedArray
+
         pa_type = self._data.type
         if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
             operator.add,
@@ -486,6 +493,9 @@ class ArrowExtensionArray(
             result = pc_func(self._data, other._data)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, pa.array(other, from_pandas=True))
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._data, other.__arrow_array__())
         elif is_scalar(other):
             if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
                 # pyarrow kleene ops require null to be typed
