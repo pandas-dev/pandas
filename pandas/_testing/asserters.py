@@ -16,7 +16,6 @@ from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -316,7 +315,7 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
-            if is_extension_array_dtype(mismatch):
+            if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
