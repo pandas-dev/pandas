@@ -4,6 +4,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -234,6 +235,7 @@ def concatenate_managers(
     concat_plan = _get_combined_plan([mgr for mgr, _ in mgrs_indexers])
 
     blocks = []
+    values: ArrayLike
 
     for placement, join_units in concat_plan:
         unit = join_units[0]
@@ -542,7 +544,7 @@ class JoinUnit:
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = self.block.values
+                    values = cast(np.ndarray, self.block.values)
                     if values.size and values[0, 0] is None:
                         fill_value = None
 
