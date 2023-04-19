@@ -181,7 +181,12 @@ def concatenate_managers(
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
-        return _concatenate_array_managers(mgrs, axes, concat_axis)
+        # error: Argument 1 to "_concatenate_array_managers" has incompatible
+        # type "List[BlockManager]"; expected "List[Union[ArrayManager,
+        # SingleArrayManager, BlockManager, SingleBlockManager]]"
+        return _concatenate_array_managers(
+            mgrs, axes, concat_axis  # type: ignore[arg-type]
+        )
 
     # Assertions disabled for performance
     # for tup in mgrs_indexers:
