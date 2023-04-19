@@ -76,7 +76,7 @@ def test_categorical_dtype(data):
 
 def test_categorical_pyarrow():
     # GH 49889
-    pa = pytest.importorskip("pyarrow")
+    pa = pytest.importorskip("pyarrow", "11.0.0")
 
     arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
     table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
