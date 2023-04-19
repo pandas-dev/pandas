@@ -180,9 +180,9 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
         raise NotImplementedError("Non-dictionary categoricals not supported yet")
 
     cat_column = categorical["categories"]
-    # Item "Column" of "Optional[Column]" has no attribute "_col"
-    # Item "None" of "Optional[Column]" has no attribute "_col"
     if hasattr(cat_column, "_col"):
+        # Item "Column" of "Optional[Column]" has no attribute "_col"
+        # Item "None" of "Optional[Column]" has no attribute "_col"
         categories = np.array(cat_column._col)  # type: ignore[union-attr]
     else:
         raise NotImplementedError(
