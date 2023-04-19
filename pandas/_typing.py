@@ -425,7 +425,7 @@ UpdateJoin = Literal["left"]
 # applymap
 NaAction = Literal["ignore"]
 
-# from_dict[
+# from_dict
 FromDictOrient = Literal["columns", "index", "tight"]
 
 # to_gbc
