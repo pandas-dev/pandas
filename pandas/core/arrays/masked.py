@@ -41,13 +41,10 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
@@ -1122,19 +1119,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, name: str, result, skipna, min_count, **kwargs
     ):
         if min_count == 0 and isinstance(result, np.ndarray):
-            return self._maybe_mask_result(result, np.zeros(1, dtype=bool))
+            return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
         return self._wrap_reduction_result(name, result, skipna, **kwargs)
 
     def _wrap_na_result(self, name):
         mask = np.ones(1, dtype=bool)
 
-        if is_float_dtype(self.dtype):
+        if self.dtype.kind == "f":
             np_dtype = np.float64
         elif name in ["mean", "median", "var", "std", "skew"]:
             np_dtype = np.float64
-        elif is_signed_integer_dtype(self.dtype):
+        elif self.dtype.kind == "i":
             np_dtype = np.int64
-        elif is_unsigned_integer_dtype(self.dtype):
+        elif self.dtype.kind == "u":
             np_dtype = np.uint64
         else:
             raise TypeError(self.dtype)

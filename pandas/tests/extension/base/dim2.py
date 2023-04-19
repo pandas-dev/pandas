@@ -197,6 +197,8 @@ class Dim2CompatTests(BaseExtensionTests):
         if method in ["std", "var"]:
             # pass ddof=0 so we get all-zero std instead of all-NA std
             kwargs["ddof"] = 0
+        elif method in ["prod", "sum"]:
+            kwargs["min_count"] = 1
 
         try:
             result = getattr(arr2d, method)(axis=0, **kwargs)
