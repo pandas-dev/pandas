@@ -5633,7 +5633,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        idx = ensure_key_mapped(self, key)
+        idx = cast(Index, ensure_key_mapped(self, key))
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex

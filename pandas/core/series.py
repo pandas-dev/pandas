@@ -3535,7 +3535,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
+        if key:
+            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+        else:
+            values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
