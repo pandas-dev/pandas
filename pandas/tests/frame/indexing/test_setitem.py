@@ -1251,3 +1251,12 @@ class TestDataFrameSetitemCopyViewSemantics:
                     df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_iloc_with_numpy_array(self, dtype):
+        # GH-33828
+        df = DataFrame({"a": np.ones(3)}, dtype=dtype)
+        df.iloc[np.array([0]), np.array([0])] = np.array([[2]])
+
+        expected = DataFrame({"a": [2, 1, 1]}, dtype=dtype)
+        tm.assert_frame_equal(df, expected)
