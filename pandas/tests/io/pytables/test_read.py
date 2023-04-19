@@ -42,6 +42,20 @@ def test_read_missing_key_close_store(tmp_path, setup_path):
     df.to_hdf(path, "k2")
 
 
+def test_read_index_error_close_store(tmp_path, setup_path):
+    # GH 25766
+    path = tmp_path / setup_path
+    df = DataFrame({"A": [], "B": []}, index=[])
+    df.to_hdf(path, "k1")
+
+    with pytest.raises(IndexError, match=r"list index out of range"):
+        read_hdf(path, "k1", stop=0)
+
+    # smoke test to test that file is properly closed after
+    # read with IndexError before another write
+    df.to_hdf(path, "k1")
+
+
 def test_read_missing_key_opened_store(tmp_path, setup_path):
     # GH 28699
     path = tmp_path / setup_path
