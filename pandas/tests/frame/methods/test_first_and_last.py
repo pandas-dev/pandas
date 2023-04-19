@@ -95,3 +95,13 @@ class TestFirst:
         result = getattr(df, func)(offset=1)
         tm.assert_frame_equal(df, result)
         assert df is not result
+
+    @pytest.mark.parametrize("start, periods, freq", [("2018-02-01", 3000, '1H')])
+    def test_first_with_offsets_in_month(self, frame_or_series, start, periods, freq):
+        # GH#51285
+        x = frame_or_series([1] * periods, index=bdate_range(start, periods=periods, freq=freq))
+        result = x.first('1M')
+        expected = frame_or_series(
+            [1] * 672, index=bdate_range(start, periods=672, freq=freq)
+        )
+        tm.assert_equal(result, expected)

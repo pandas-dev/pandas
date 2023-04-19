@@ -189,6 +189,11 @@ from pandas.io.formats.format import (
 )
 from pandas.io.formats.printing import pprint_thing
 
+from pandas.tseries.offsets import (
+    Day,
+    MonthEnd,
+)
+
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
@@ -9071,6 +9076,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # Tick-like, e.g. 3 weeks
         if isinstance(offset, Tick) and end_date in self.index:
+            end = self.index.searchsorted(end_date, side="left")
+            return self.iloc[:end]
+
+        # if original offset is "#M", MonthEnd only includes 
+        # the first timestamp of the last day of the month
+        # however, first() should return the rest timestamps of the day as well
+        if isinstance(offset, MonthEnd):
+            end_date = end_date.date() + Day()
             end = self.index.searchsorted(end_date, side="left")
             return self.iloc[:end]
 
