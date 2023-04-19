@@ -379,7 +379,7 @@ class TestDataFrameSetItem:
         assert expected["d"].dtype == arr.dtype
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_periodd_dtype(self):
+    def test_setitem_period_d_dtype(self):
         # GH 39763
         rng = period_range("2016-01-01", periods=9, freq="D", name="A")
         result = DataFrame(rng)
