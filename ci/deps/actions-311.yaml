@@ -43,7 +43,7 @@ dependencies:
   - pyarrow>=7.0.0
   - pymysql>=1.0.2
   - pyreadstat>=1.1.5
-  # - pytables>=3.7.0, 3.8.0 is first version that supports 3.11
+  - pytables>=3.8.0
   - python-snappy>=0.6.1
   - pyxlsb>=1.0.9
   - s3fs>=2022.05.0
