@@ -63,6 +63,15 @@ def using_nullable_dtypes() -> bool:
     Note: This function assumes that the global pandas configuration settings have already been initialized. 
     If you are not sure whether the settings have been initialized, you can call the `pandas.api.types.is_extension_type()` function to force initialization.
 
+    Examples:
+    >>> import pandas as pd
+    >>> pd.set_option('mode.use_inf_as_na', True)
+    >>> pd.set_option('mode.use_nullable_dtypes', True)
+    >>> using_nullable_dtypes()
+    True
+    >>> pd.set_option('mode.use_nullable_dtypes', False)
+    >>> using_nullable_dtypes()
+    False
     """
     _mode_options = _global_config["mode"]
     return _mode_options["nullable_dtypes"]
