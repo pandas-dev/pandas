@@ -186,8 +186,8 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
         categories = np.array(cat_column._col)  # type: ignore[union-attr]
     else:
         raise NotImplementedError(
-            "`from_dataframe` when `cat_column` does not have `_col` "
-            "attribute is not yet implemented"
+            "Interchanging categorical columns isn't supported yet, and our "
+            "fallback of using the `col._col` attribute (a ndarray) failed."
         )
     buffers = col.get_buffers()
 
