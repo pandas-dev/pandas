@@ -83,7 +83,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_all_strings,
-    is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer_dtype,
     is_list_like,
@@ -1390,8 +1389,11 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     def __rsub__(self, other):
         other_dtype = getattr(other, "dtype", None)
+        other_is_dt64 = lib.is_np_dtype(other_dtype, "M") or isinstance(
+            other_dtype, DatetimeTZDtype
+        )
 
-        if is_datetime64_any_dtype(other_dtype) and lib.is_np_dtype(self.dtype, "m"):
+        if other_is_dt64 and lib.is_np_dtype(self.dtype, "m"):
             # ndarray[datetime64] cannot be subtracted from self, so
             # we need to wrap in DatetimeArray/Index and flip the operation
             if lib.is_scalar(other):
@@ -1403,11 +1405,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
                 other = DatetimeArray(other)
             return other - self
-        elif (
-            is_datetime64_any_dtype(self.dtype)
-            and hasattr(other, "dtype")
-            and not is_datetime64_any_dtype(other.dtype)
-        ):
+        elif self.dtype.kind == "M" and hasattr(other, "dtype") and not other_is_dt64:
             # GH#19959 datetime - datetime is well-defined as timedelta,
             # but any other type - datetime is not well-defined.
             raise TypeError(
