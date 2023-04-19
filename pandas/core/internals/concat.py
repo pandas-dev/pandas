@@ -462,8 +462,7 @@ class JoinUnit:
 
         if upcasted_na is None and self.block.dtype.kind != "V":
             # No upcasting is necessary
-            fill_value = self.block.fill_value
-            values = self.block.values
+            return self.block.values
         else:
             fill_value = upcasted_na
 
@@ -475,30 +474,13 @@ class JoinUnit:
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = self.block.values.ravel(order="K")
-                    if len(values) and values[0] is None:
+                    values = self.block.values
+                    if values.size and values[0, 0] is None:
                         fill_value = None
 
                 return make_na_array(empty_dtype, self.block.shape, fill_value)
 
-            if not self.block._can_consolidate:
-                # preserve these for validation in concat_compat
-                return self.block.values
-
-            if self.block.is_bool:
-                # External code requested filling/upcasting, bool values must
-                # be upcasted to object to avoid being upcasted to numeric.
-                values = self.block.astype(np.dtype("object")).values
-            else:
-                # No dtype upcasting is done here, it will be performed during
-                # concatenation itself.
-                values = self.block.values
-
-        # If there's no indexing to be done, we want to signal outside
-        # code that this array must be copied explicitly.  This is done
-        # by returning a view and checking `retval.base`.
-        values = values.view()
-        return values
+            return self.block.values
 
 
 def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
