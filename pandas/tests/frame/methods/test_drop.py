@@ -535,3 +535,13 @@ class TestDataFrameDrop:
             {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_parse_strings_datetime_index(self):
+        # GH #5355
+        df = DataFrame(
+            {"a": [1, 2], "b": [1, 2]},
+            index=[Timestamp("2000-01-03"), Timestamp("2000-01-04")],
+        )
+        result = df.drop("2000-01-03", axis=0)
+        expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
+        tm.assert_frame_equal(result, expected)
