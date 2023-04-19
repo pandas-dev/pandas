@@ -3351,8 +3351,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Series:
@@ -3365,8 +3365,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -3378,8 +3378,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> Series | None:
@@ -5539,6 +5539,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
 
         To change the index labels of an existing Series:
+
         >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
         >>> city_series.index
         Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
