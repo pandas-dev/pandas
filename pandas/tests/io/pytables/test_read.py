@@ -45,7 +45,7 @@ def test_read_missing_key_close_store(tmp_path, setup_path):
 def test_read_index_error_close_store(tmp_path, setup_path):
     # GH 25766
     path = tmp_path / setup_path
-    df = pd.DataFrame({"A": [], "B": []}, index=[])
+    df = DataFrame({"A": [], "B": []}, index=[])
     df.to_hdf(path, "k1")
 
     with pytest.raises(IndexError, match=r"list index out of range"):
