@@ -676,7 +676,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     num = 101
-    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
@@ -684,6 +683,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @property
     def na_value(self) -> NaTType:
         return NaT
+
+    @cache_readonly
+    def base(self) -> DtypeObj:  # type: ignore[override]
+        return np.dtype(f"M8[{self.unit}]")
 
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
@@ -816,6 +819,40 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and self.unit == other.unit
             and tz_compare(self.tz, other.tz)
         )
+
+    def __from_arrow__(
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ) -> DatetimeArray:
+        """
+        Construct DatetimeArray from pyarrow Array/ChunkedArray.
+
+        Note: If the units in the pyarrow Array are the same as this
+        DatetimeDtype, then values corresponding to the integer representation
+        of ``NaT`` (e.g. one nanosecond before :attr:`pandas.Timestamp.min`)
+        are converted to ``NaT``, regardless of the null indicator in the
+        pyarrow array.
+
+        Parameters
+        ----------
+        array : pyarrow.Array or pyarrow.ChunkedArray
+            The Arrow array to convert to DatetimeArray.
+
+        Returns
+        -------
+        extension array : DatetimeArray
+        """
+        import pyarrow
+
+        from pandas.core.arrays import DatetimeArray
+
+        array = array.cast(pyarrow.timestamp(unit=self._unit), safe=True)
+
+        if isinstance(array, pyarrow.Array):
+            np_arr = array.to_numpy(zero_copy_only=False)
+        else:
+            np_arr = array.to_numpy()
+
+        return DatetimeArray(np_arr, dtype=self, copy=False)
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the

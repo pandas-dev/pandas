@@ -122,7 +122,7 @@ def classes(*klasses) -> Callable:
     return lambda tipo: issubclass(tipo, klasses)
 
 
-def classes_and_not_datetimelike(*klasses) -> Callable:
+def _classes_and_not_datetimelike(*klasses) -> Callable:
     """
     Evaluate if the tipo is a subclass of the klasses
     and not a datetimelike.
@@ -654,7 +654,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     False
     """
     return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.integer)
+        arr_or_dtype, _classes_and_not_datetimelike(np.integer)
     ) or _is_dtype(
         arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind in "iu"
     )
@@ -713,7 +713,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     False
     """
     return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.signedinteger)
+        arr_or_dtype, _classes_and_not_datetimelike(np.signedinteger)
     ) or _is_dtype(
         arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind == "i"
     )
@@ -763,7 +763,7 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     True
     """
     return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.unsignedinteger)
+        arr_or_dtype, _classes_and_not_datetimelike(np.unsignedinteger)
     ) or _is_dtype(
         arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ.kind == "u"
     )
@@ -958,44 +958,6 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
 
 
-def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
-    """
-    Check whether the provided array or dtype is of
-    a timedelta64 or datetime64 dtype.
-
-    Parameters
-    ----------
-    arr_or_dtype : array-like or dtype
-        The array or dtype to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array or dtype is of a timedelta64,
-        or datetime64 dtype.
-
-    Examples
-    --------
-    >>> is_datetime_or_timedelta_dtype(str)
-    False
-    >>> is_datetime_or_timedelta_dtype(int)
-    False
-    >>> is_datetime_or_timedelta_dtype(np.datetime64)
-    True
-    >>> is_datetime_or_timedelta_dtype(np.timedelta64)
-    True
-    >>> is_datetime_or_timedelta_dtype(np.array(['a', 'b']))
-    False
-    >>> is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
-    False
-    >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
-    True
-    >>> is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-    True
-    """
-    return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
-
-
 # This exists to silence numpy deprecation warnings, see GH#29553
 def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     """
@@ -1125,7 +1087,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     False
     """
     return _is_dtype_type(
-        arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
+        arr_or_dtype, _classes_and_not_datetimelike(np.number, np.bool_)
     ) or _is_dtype(
         arr_or_dtype, lambda typ: isinstance(typ, ExtensionDtype) and typ._is_numeric
     )
@@ -1257,7 +1219,18 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     if isinstance(arr_or_dtype, ABCIndex):
         # Allow Index[object] that is all-bools or Index["boolean"]
-        return arr_or_dtype.inferred_type == "boolean"
+        if arr_or_dtype.inferred_type == "boolean":
+            if not is_bool_dtype(arr_or_dtype.dtype):
+                # GH#52680
+                warnings.warn(
+                    "The behavior of is_bool_dtype with an object-dtype Index "
+                    "of bool objects is deprecated. In a future version, "
+                    "this will return False. Cast the Index to a bool dtype instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            return True
+        return False
     elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 
@@ -1517,7 +1490,7 @@ def infer_dtype_from_object(dtype) -> type:
     except TypeError:
         pass
 
-    if is_extension_array_dtype(dtype):
+    if isinstance(dtype, ExtensionDtype):
         return dtype.type
     elif isinstance(dtype, str):
         # TODO(jreback)
@@ -1671,7 +1644,6 @@ def is_all_strings(value: ArrayLike) -> bool:
 
 __all__ = [
     "classes",
-    "classes_and_not_datetimelike",
     "DT64NS_DTYPE",
     "ensure_float64",
     "ensure_python_int",
@@ -1693,7 +1665,6 @@ __all__ = [
     "is_datetime64_dtype",
     "is_datetime64_ns_dtype",
     "is_datetime64tz_dtype",
-    "is_datetime_or_timedelta_dtype",
     "is_decimal",
     "is_dict_like",
     "is_dtype_equal",

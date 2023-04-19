@@ -3376,8 +3376,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Series:
@@ -3390,8 +3390,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -3403,8 +3403,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> Series | None:
@@ -4292,7 +4292,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.apply : For applying more complex functions on a Series.
         Series.replace: Replace values given in `to_replace` with `value`.
         DataFrame.apply : Apply a function row-/column-wise.
-        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        DataFrame.map : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -5528,7 +5528,47 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
-        axis=0, doc="The index (axis labels) of the Series."
+        axis=0,
+        doc="""
+        The index (axis labels) of the Series.
+
+        The index of a Series is used to label and identify each element of the
+        underlying data. The index can be thought of as an immutable ordered set
+        (technically a multi-set, as it may contain duplicate labels), and is
+        used to index and align data in pandas.
+
+        Returns
+        -------
+        Index
+            The index labels of the Series.
+
+        See Also
+        --------
+        Series.reindex : Conform Series to new index.
+        Series.set_index : Set Series as DataFrame index.
+        Index : The base pandas index type.
+
+        Notes
+        -----
+        For more information on pandas indexing, see the `indexing user guide
+        <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
+
+        Examples
+        --------
+        To create a Series with a custom index and view the index labels:
+
+        >>> cities = ['Kolkata', 'Chicago', 'Toronto', 'Lisbon']
+        >>> populations = [14.85, 2.71, 2.93, 0.51]
+        >>> city_series = pd.Series(populations, index=cities)
+        >>> city_series.index
+        Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
+
+        To change the index labels of an existing Series:
+
+        >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
+        >>> city_series.index
+        Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------

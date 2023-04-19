@@ -30,7 +30,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.fields import (
+    get_timedelta_days,
+    get_timedelta_field,
+)
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     floordiv_object_array,
@@ -44,15 +47,14 @@ from pandas.util._validators import validate_endpoints
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -81,7 +83,13 @@ if TYPE_CHECKING:
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._creso)
+        if alias == "days":
+            result = get_timedelta_days(values, reso=self._creso)
+        else:
+            # error: Incompatible types in assignment (
+            # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
+            # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -128,7 +136,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = is_timedelta64_dtype
+    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -903,7 +911,7 @@ def sequence_to_td64ns(
         inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
+    if data.dtype == object or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = _objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
@@ -916,7 +924,7 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        if is_extension_array_dtype(data):
+        if isinstance(data.dtype, ExtensionDtype):
             mask = data._mask
             data = data._data
         else:
