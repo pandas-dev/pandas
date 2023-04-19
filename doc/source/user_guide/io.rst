@@ -5334,7 +5334,7 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 
 .. note::
 
-   Note that this is not support for ``fastparquet``.
+   Note that this is not supported for ``fastparquet``.
 
 
 Read only certain columns of a parquet file.
