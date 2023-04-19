@@ -878,15 +878,14 @@ class TestIsin:
             r"only list-like objects are allowed to be passed to isin\(\), "
             r"you passed a"
         )
-        with pytest.raises(TypeError, match=f"{msg} \[int\]"):
+        with pytest.raises(TypeError, match=f"{msg} \\[int\\]"):
             algos.isin(1, 1)
-        with pytest.raises(TypeError, match=f"{msg} \[int\]"):
+        with pytest.raises(TypeError, match=f"{msg} \\[int\\]"):
             algos.isin(1, [1])
-        with pytest.raises(TypeError, match=f"{msg} \[int\]"):
+        with pytest.raises(TypeError, match=f"{msg} \\[int\\]"):
             algos.isin([1], 1)
-        with pytest.raises(TypeError, match=f"{msg} \[DataFrame\]"):
+        with pytest.raises(TypeError, match=f"{msg} \\[DataFrame\\]"):
             algos.isin([1], DataFrame({"Column": [1]}))
-
 
     def test_basic(self):
         result = algos.isin([1, 2], [1])
