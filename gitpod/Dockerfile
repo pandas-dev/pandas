@@ -13,7 +13,7 @@
 # are visible in the host and container.
 # The docker image is retrieved from the pandas dockerhub repository
 #
-# docker run --rm -it -v $(pwd):/home/pandas pythonpandas/pandas-dev:<image-tag>
+# docker run --rm -it -v $(pwd):/home/pandas pandas/pandas-dev:<image-tag>
 #
 # By default the container will activate the conda environment pandas-dev
 # which contains all the dependencies needed for pandas development
