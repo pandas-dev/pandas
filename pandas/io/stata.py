@@ -33,6 +33,7 @@ import warnings
 from dateutil.relativedelta import relativedelta
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
 from pandas.errors import (
@@ -49,7 +50,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_datetime64_dtype,
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -156,7 +156,7 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or StataReader
+DataFrame or pandas.api.typing.StataReader
 
 See Also
 --------
@@ -418,7 +418,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         dates, delta: bool = False, year: bool = False, days: bool = False
     ):
         d = {}
-        if is_datetime64_dtype(dates.dtype):
+        if lib.is_np_dtype(dates.dtype, "M"):
             if delta:
                 time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
@@ -464,7 +464,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
-        if is_datetime64_dtype(dates):
+        if lib.is_np_dtype(dates.dtype, "M"):
             dates[bad_loc] = to_datetime(stata_epoch)
         else:
             dates[bad_loc] = stata_epoch
@@ -2619,7 +2619,7 @@ class StataWriter(StataParser):
         for col in data:
             if col in self._convert_dates:
                 continue
-            if is_datetime64_dtype(data[col]):
+            if lib.is_np_dtype(data[col].dtype, "M"):
                 self._convert_dates[col] = "tc"
 
         self._convert_dates = _maybe_convert_to_int_keys(
