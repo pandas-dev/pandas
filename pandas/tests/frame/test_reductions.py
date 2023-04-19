@@ -1747,12 +1747,12 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_dtype",
         [
-            ("sum", "Int8", "Int64"),
-            ("prod", "Int8", "Int64"),
+            ("sum", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
             ("sum", "Int64", "Int64"),
             ("prod", "Int64", "Int64"),
-            ("sum", "UInt8", "UInt64"),
-            ("prod", "UInt8", "UInt64"),
+            ("sum", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
             ("sum", "UInt64", "UInt64"),
             ("prod", "UInt64", "UInt64"),
             ("sum", "Float32", "Float32"),
