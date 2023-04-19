@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_sparse,
@@ -191,7 +190,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
-    _is_recognized_dtype = is_datetime64_any_dtype
+    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "M") or isinstance(
+        x, DatetimeTZDtype
+    )
     _infer_matches = ("datetime", "datetime64", "date")
 
     @property

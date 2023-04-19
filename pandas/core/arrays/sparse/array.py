@@ -44,7 +44,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -559,7 +558,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
             # and return object.
-            if is_datetime64_any_dtype(self.sp_values.dtype):
+            if self.sp_values.dtype.kind == "M":
                 # However, we *do* special-case the common case of
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
