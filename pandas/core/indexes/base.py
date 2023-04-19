@@ -55,6 +55,7 @@ from pandas._typing import (
     IndexLabel,
     JoinHow,
     Level,
+    NaPosition,
     Self,
     Shape,
     npt,
@@ -926,7 +927,13 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
+        if (
+            (not isinstance(result, Index) and is_bool_dtype(result))
+            or lib.is_scalar(result)
+            or np.ndim(result) > 1
+        ):
+            # exclude Index to avoid warning from is_bool_dtype deprecation;
+            #  in the Index case it doesn't matter which path we go down.
             return result
 
         return Index(result, name=self.name)
@@ -1915,7 +1922,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str_t = "first",
+        na_position: NaPosition = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -5567,7 +5574,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str_t = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         """
@@ -6107,8 +6114,12 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (is_bool_dtype(other) and is_any_real_numeric_dtype(self)) or (
-            is_bool_dtype(self) and is_any_real_numeric_dtype(other)
+        # NB: we use inferred_type rather than is_bool_dtype to catch
+        #  object_dtype_of_bool and categorical[object_dtype_of_bool] cases
+        if (
+            other.inferred_type == "boolean" and is_any_real_numeric_dtype(self.dtype)
+        ) or (
+            self.inferred_type == "boolean" and is_any_real_numeric_dtype(other.dtype)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
@@ -6128,7 +6139,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -6158,7 +6169,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 

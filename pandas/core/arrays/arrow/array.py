@@ -55,6 +55,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -450,6 +451,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, other)
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, pa.scalar(other))
@@ -497,6 +501,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, pa.array(other, from_pandas=True))
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
                 # pyarrow kleene ops require null to be typed
@@ -2208,12 +2215,19 @@ class ArrowExtensionArray(
     ):
         if ambiguous != "raise":
             raise NotImplementedError(f"{ambiguous=} is not supported")
-        if nonexistent != "raise":
+        nonexistent_pa = {
+            "raise": "raise",
+            "shift_backward": "earliest",
+            "shift_forward": "latest",
+        }.get(
+            nonexistent, None  # type: ignore[arg-type]
+        )
+        if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
-            return type(self)(self._pa_array.cast(new_type))
-        pa_tz = str(tz)
-        return type(self)(
-            self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
-        )
+            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+        else:
+            result = pc.assume_timezone(
+                self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
+            )
+        return type(self)(result)

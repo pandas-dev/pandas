@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_hashable,
     is_integer_dtype,
     is_list_like,
@@ -618,7 +617,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if is_any_real_numeric_dtype(dtype.categories):
+            if is_any_real_numeric_dtype(dtype.categories.dtype):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif lib.is_np_dtype(dtype.categories.dtype, "M"):
                 cats = to_datetime(inferred_categories, errors="coerce")
@@ -701,7 +700,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
             raise ValueError(msg)
 
-        if is_extension_array_dtype(codes) and is_integer_dtype(codes):
+        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
             # Avoid the implicit conversion of Int to object
             if isna(codes).any():
                 raise ValueError("codes cannot contain NA values")
@@ -1598,7 +1597,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=NaT)
-        elif is_integer_dtype(self.categories) and -1 in self._codes:
+        elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
 
@@ -1809,7 +1808,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif is_any_real_numeric_dtype(self.categories):
+        elif is_any_real_numeric_dtype(self.categories.dtype):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
