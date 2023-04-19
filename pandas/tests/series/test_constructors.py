@@ -2131,7 +2131,7 @@ def test_numpy_array(input_dict, expected):
 
 
 def test_index_ordered_dict_keys():
-    from collections import OrderedDict
+    # GH 22077
 
     param_index = OrderedDict(
         [
