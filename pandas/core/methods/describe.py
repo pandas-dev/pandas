@@ -30,10 +30,12 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
@@ -361,7 +363,7 @@ def select_describe_func(
         return describe_categorical_1d
     elif is_numeric_dtype(data):
         return describe_numeric_1d
-    elif is_datetime64_any_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "M") or isinstance(data.dtype, DatetimeTZDtype):
         return describe_timestamp_1d
     elif lib.is_np_dtype(data.dtype, "m"):
         return describe_numeric_1d

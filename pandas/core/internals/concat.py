@@ -4,6 +4,7 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -214,22 +215,23 @@ def concatenate_managers(
                 return BlockManager((nb,), axes)
 
     mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+
+    if len(mgrs) == 1:
+        mgr = mgrs[0]
+        out = mgr.copy(deep=False)
+        out.axes = axes
+        return out
+
     concat_plan = _get_combined_plan(mgrs)
 
     blocks = []
+    values: ArrayLike
 
     for placement, join_units in concat_plan:
         unit = join_units[0]
         blk = unit.block
 
-        if len(join_units) == 1:
-            values = blk.values
-            if copy:
-                values = values.copy()
-            else:
-                values = values.view()
-            fastpath = True
-        elif _is_uniform_join_units(join_units):
+        if _is_uniform_join_units(join_units):
             vals = [ju.block.values for ju in join_units]
 
             if not blk.is_extension:
@@ -510,8 +512,7 @@ class JoinUnit:
 
         if upcasted_na is None and self.block.dtype.kind != "V":
             # No upcasting is necessary
-            fill_value = self.block.fill_value
-            values = self.block.values
+            return self.block.values
         else:
             fill_value = upcasted_na
 
@@ -523,30 +524,13 @@ class JoinUnit:
                     # we want to avoid filling with np.nan if we are
                     # using None; we already know that we are all
                     # nulls
-                    values = self.block.values.ravel(order="K")
-                    if len(values) and values[0] is None:
+                    values = cast(np.ndarray, self.block.values)
+                    if values.size and values[0, 0] is None:
                         fill_value = None
 
                 return make_na_array(empty_dtype, self.block.shape, fill_value)
 
-            if not self.block._can_consolidate:
-                # preserve these for validation in concat_compat
-                return self.block.values
-
-            if self.block.is_bool:
-                # External code requested filling/upcasting, bool values must
-                # be upcasted to object to avoid being upcasted to numeric.
-                values = self.block.astype(np.dtype("object")).values
-            else:
-                # No dtype upcasting is done here, it will be performed during
-                # concatenation itself.
-                values = self.block.values
-
-        # If there's no indexing to be done, we want to signal outside
-        # code that this array must be copied explicitly.  This is done
-        # by returning a view and checking `retval.base`.
-        values = values.view()
-        return values
+            return self.block.values
 
 
 def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
@@ -563,19 +547,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
         for ju in join_units
     ]
 
-    if len(to_concat) == 1:
-        # Only one block, nothing to concatenate.
-        concat_values = to_concat[0]
-        if copy:
-            if isinstance(concat_values, np.ndarray):
-                # non-reindexed (=not yet copied) arrays are made into a view
-                # in JoinUnit.get_reindexed_values
-                if concat_values.base is not None:
-                    concat_values = concat_values.copy()
-            else:
-                concat_values = concat_values.copy()
-
-    elif any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
+    if any(is_1d_only_ea_dtype(t.dtype) for t in to_concat):
         # TODO(EA2D): special case not needed if all EAs used HybridBlocks
 
         # error: No overload variant of "__getitem__" of "ExtensionArray" matches
@@ -641,10 +613,6 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj
     -------
     dtype
     """
-    if len(join_units) == 1:
-        blk = join_units[0].block
-        return blk.dtype, blk.dtype
-
     if lib.dtypes_all_equal([ju.block.dtype for ju in join_units]):
         empty_dtype = join_units[0].block.dtype
         return empty_dtype, empty_dtype
@@ -705,7 +673,4 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
         all(not ju.is_na or ju.block.is_extension for ju in join_units)
-        and
-        # only use this path when there is something to concatenate
-        len(join_units) > 1
     )
