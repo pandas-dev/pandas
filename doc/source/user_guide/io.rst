@@ -5323,6 +5323,20 @@ Read from a parquet file.
 
    result.dtypes
 
+By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
+
+.. ipython:: python
+   :okwarning:
+
+   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
+
+   result.dtypes
+
+.. note::
+
+   Note that this is not supported for ``fastparquet``.
+
+
 Read only certain columns of a parquet file.
 
 .. ipython:: python
