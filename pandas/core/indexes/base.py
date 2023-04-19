@@ -55,6 +55,7 @@ from pandas._typing import (
     IndexLabel,
     JoinHow,
     Level,
+    NaPosition,
     Self,
     Shape,
     npt,
@@ -1921,7 +1922,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str_t = "first",
+        na_position: NaPosition = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -5573,7 +5574,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str_t = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         """
@@ -6138,7 +6139,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -6168,7 +6169,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
