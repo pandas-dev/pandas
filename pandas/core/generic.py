@@ -68,6 +68,7 @@ from pandas._typing import (
     Manager,
     NaPosition,
     NDFrameT,
+    OpenFileErrors,
     RandomState,
     Renamer,
     Scalar,
@@ -2566,7 +2567,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nan_rep=None,
         dropna: bool_t | None = None,
         data_columns: Literal[True] | list[str] | None = None,
-        errors: str = "strict",
+        errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
     ) -> None:
         """
@@ -2713,7 +2714,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index_label: IndexLabel = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: str | None = None,
+        method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -3559,7 +3560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
-        errors: str = ...,
+        errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
     ) -> str:
         ...
@@ -3586,7 +3587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = ...,
         escapechar: str | None = ...,
         decimal: str = ...,
-        errors: str = ...,
+        errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
     ) -> None:
         ...
@@ -3617,7 +3618,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         doublequote: bool_t = True,
         escapechar: str | None = None,
         decimal: str = ".",
-        errors: str = "strict",
+        errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
     ) -> str | None:
         r"""
