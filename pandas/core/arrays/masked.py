@@ -45,9 +45,9 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
+    is_signed_integer_dtype,
     is_string_dtype,
     is_unsigned_integer_dtype,
-    is_signed_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
