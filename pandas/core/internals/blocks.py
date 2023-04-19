@@ -342,7 +342,10 @@ class Block(PandasObject):
 
         if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
-            res_values = np.array([[result]])
+            if isinstance(result, (np.ndarray, ExtensionArray)):
+                res_values = result
+            else:
+                res_values = np.array([[result]])
         else:
             res_values = result.reshape(-1, 1)
 

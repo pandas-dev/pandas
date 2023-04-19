@@ -1402,7 +1402,9 @@ class ExtensionArray:
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1432,7 +1434,14 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        return meth(skipna=skipna, **kwargs)
+        result = meth(skipna=skipna, **kwargs)
+
+        if keepdims:
+            # if subclasses want to avoid wrapping in np.array, do:
+            # super()._reduce(..., keepdims=False) and wrap that.
+            return np.array([[result]])
+        else:
+            return result
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class

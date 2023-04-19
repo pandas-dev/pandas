@@ -10848,7 +10848,7 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, **kwds)
+                return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -10893,7 +10893,7 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any():
             out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
+        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
             out = out.astype(np.float64)

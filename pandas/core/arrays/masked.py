@@ -41,10 +41,13 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_scalar,
     is_string_dtype,
+    is_unsigned_integer_dtype,
+    is_signed_integer_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
@@ -1079,7 +1082,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if keepdims:
+            res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
+            if res is libmissing.NA:
+                res = self._wrap_na_result(name)
+            return res
+
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
@@ -1107,6 +1118,30 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._maybe_mask_result(result, mask)
         return result
 
+    def _wrap_min_count_reduction_result(
+        self, name: str, result, skipna, min_count, **kwargs
+    ):
+        if min_count == 0 and isinstance(result, np.ndarray):
+            return self._maybe_mask_result(result, np.zeros(1, dtype=bool))
+        return self._wrap_reduction_result(name, result, skipna, **kwargs)
+
+    def _wrap_na_result(self, name):
+        mask = np.ones(1, dtype=bool)
+
+        if is_float_dtype(self.dtype):
+            np_dtype = np.float64
+        elif name in ["mean", "median", "var", "std", "skew"]:
+            np_dtype = np.float64
+        elif is_signed_integer_dtype(self.dtype):
+            np_dtype = np.int64
+        elif is_unsigned_integer_dtype(self.dtype):
+            np_dtype = np.uint64
+        else:
+            raise TypeError(self.dtype)
+
+        value = np.array([1], dtype=np_dtype)
+        return self._maybe_mask_result(value, mask=mask)
+
     def sum(
         self,
         *,
@@ -1124,8 +1159,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "sum", result, skipna=skipna, axis=axis, **kwargs
+        return self._wrap_min_count_reduction_result(
+            "sum", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
 
     def prod(
@@ -1144,8 +1179,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "prod", result, skipna=skipna, axis=axis, **kwargs
+        return self._wrap_min_count_reduction_result(
+            "sum", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
