@@ -4852,8 +4852,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> Self:
@@ -4866,8 +4866,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -4880,8 +4880,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = ...,
         ascending: bool_t | Sequence[bool_t] = ...,
         inplace: bool_t = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool_t = ...,
         key: ValueKeyFunc = ...,
     ) -> Self | None:
@@ -4893,8 +4893,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool_t = False,
         key: ValueKeyFunc = None,
     ) -> Self | None:
