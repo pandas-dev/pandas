@@ -1277,7 +1277,7 @@ class ArrowExtensionArray(
 
         else:
             pyarrow_name = {
-                "median": "approximate_median",
+                "median": "quantile",
                 "prod": "product",
                 "std": "stddev",
                 "var": "variance",
@@ -1293,6 +1293,9 @@ class ArrowExtensionArray(
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
+        elif name == "median":
+            # GH 52679: Use quantile instead of approximate_median
+            kwargs["q"] = 0.5
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -1304,6 +1307,9 @@ class ArrowExtensionArray(
                 f"upgrading pyarrow."
             )
             raise TypeError(msg) from err
+        if name == "median":
+            # GH 52679: Use quantile instead of approximate_median; returns array
+            result = result[0]
         if pc.is_null(result).as_py():
             return self.dtype.na_value
 
