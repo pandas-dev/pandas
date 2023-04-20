@@ -317,9 +317,9 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     return result
 
 
-def _has_record_inf_value(record: np.record) -> np.bool_:
-    is_inf_in_record = np.zeros(len(record), dtype=bool)
-    for i, value in enumerate(record):
+def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
+    is_inf_in_record = np.zeros(len(record_as_array), dtype=bool)
+    for i, value in enumerate(record_as_array):
         is_element_inf = False
         try:
             is_element_inf = np.isinf(value)
@@ -333,10 +333,11 @@ def _has_record_inf_value(record: np.record) -> np.bool_:
 def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
-        does_record_contain_nan = isna_all(np.array(record.tolist()))
+        record_as_array = np.array(record.tolist())
+        does_record_contain_nan = isna_all(record_as_array)
         does_record_contain_inf = False
         if inf_as_na:
-            does_record_contain_inf = _has_record_inf_value(record)
+            does_record_contain_inf = bool(_has_record_inf_value(record_as_array))
         result[i] = np.any(
             np.logical_or(does_record_contain_nan, does_record_contain_inf)
         )
