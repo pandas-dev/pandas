@@ -220,7 +220,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
                 return value
             # TODO: unsigned checks
-        
+
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
         raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
