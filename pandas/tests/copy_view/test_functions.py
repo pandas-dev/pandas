@@ -319,6 +319,7 @@ def test_join_on_key(using_copy_on_write):
 
     df1_orig = df1.copy()
     df2_orig = df2.copy()
+
     result = df1.join(df2, on="key")
 
     if using_copy_on_write:
@@ -338,7 +339,7 @@ def test_join_on_key(using_copy_on_write):
     result.iloc[0, 1] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
-        
+
     tm.assert_frame_equal(df1, df1_orig)
     tm.assert_frame_equal(df2, df2_orig)
 
