@@ -971,3 +971,16 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+def test_loc_multiindex_and_intervalindex():
+    #https://github.com/pandas-dev/pandas/issues/25298
+    #test to index the dataframe with a MultiIndex and IntervalIndex 
+    
+    #create an IntervalIndex
+    ii = pd.IntervalIndex.from_arrays([1, 5, 2, 6, 3, 7], [4, 8, 5, 9, 6, 10])
+    #create a MultiIndex using the IntervalIndex and an array of strings
+    mi = pd.MultiIndex.from_arrays([["aa", "aa", "bb", "bb", "cc", "cc"], ii])
+    data = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12)]
+    df = pd.DataFrame(data, columns=['k', 'l'], index=mi)
+    result = pd.DataFrame({'k': [5], 'l': [6]}, index=pd.MultiIndex.from_tuples([('bb', pd.Interval(2, 5))], names=[None, None]))
+    assert result.equals(df.loc[("bb", 3)])
