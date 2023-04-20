@@ -600,17 +600,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
-    def test_check_dtype(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype) and pa_version_under8p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=ValueError,
-                    reason="decimal string repr affects numpy comparison",
-                )
-            )
-        super().test_check_dtype(data)
-
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
