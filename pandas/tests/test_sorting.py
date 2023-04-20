@@ -156,61 +156,33 @@ class TestSorting:
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     @pytest.mark.parametrize(
-        "ascending, na_position, exp, box",
+        "ascending, na_position, exp",
         [
             [
                 True,
                 "last",
                 list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 True,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                list,
             ],
             [
                 False,
                 "last",
                 list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 False,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                list,
-            ],
-            [
-                True,
-                "last",
-                list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                True,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "last",
-                list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                lambda x: np.array(x, dtype="O"),
             ],
         ],
     )
-    def test_nargsort(self, ascending, na_position, exp, box):
+    def test_nargsort(self, ascending, na_position, exp):
         # list places NaNs last, np.array(..., dtype="O") may not place NaNs first
-        items = box([np.nan] * 5 + list(range(100)) + [np.nan] * 5)
+        items = np.array([np.nan] * 5 + list(range(100)) + [np.nan] * 5, dtype="O")
 
         # mergesort is the most difficult to get right because we want it to be
         # stable.

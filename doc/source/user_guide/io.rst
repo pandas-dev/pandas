@@ -2069,7 +2069,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
   seconds, milliseconds, microseconds or nanoseconds respectively.
 * ``lines`` : reads file as one json object per line.
 * ``encoding`` : The encoding to use to decode py3 bytes.
-* ``chunksize`` : when used in combination with ``lines=True``, return a JsonReader which reads in ``chunksize`` lines per iteration.
+* ``chunksize`` : when used in combination with ``lines=True``, return a ``pandas.api.typing.JsonReader`` which reads in ``chunksize`` lines per iteration.
 * ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
   The ``"pyarrow"`` is only available when ``lines=True``
 
@@ -3449,6 +3449,18 @@ Reading Excel files
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 
+When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
+engine. For this, it is important to know which function pandas is
+using internally.
+
+* For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
+
+* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+
+* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+
+* For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
 .. code-block:: python
 
    # Returns a DataFrame
@@ -3987,7 +3999,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to pandas version 0.20.3
+   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
 
 .. _io.pickle.compression:
 
@@ -5311,6 +5323,20 @@ Read from a parquet file.
 
    result.dtypes
 
+By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
+
+.. ipython:: python
+   :okwarning:
+
+   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
+
+   result.dtypes
+
+.. note::
+
+   Note that this is not supported for ``fastparquet``.
+
+
 Read only certain columns of a parquet file.
 
 .. ipython:: python
@@ -5910,11 +5936,6 @@ And then issue the following queries:
 Google BigQuery
 ---------------
 
-.. warning::
-
-   Starting in 0.20.0, pandas has split off Google BigQuery support into the
-   separate package ``pandas-gbq``. You can ``pip install pandas-gbq`` to get it.
-
 The ``pandas-gbq`` package provides functionality to read/write from Google BigQuery.
 
 pandas integrates with this external package. if ``pandas-gbq`` is installed, you can
@@ -5984,7 +6005,7 @@ Reading from Stata format
 '''''''''''''''''''''''''
 
 The top-level function ``read_stata`` will read a dta file and return
-either a ``DataFrame`` or a :class:`~pandas.io.stata.StataReader` that can
+either a ``DataFrame`` or a :class:`pandas.api.typing.StataReader` that can
 be used to read the file incrementally.
 
 .. ipython:: python
@@ -5992,7 +6013,7 @@ be used to read the file incrementally.
    pd.read_stata("stata.dta")
 
 Specifying a ``chunksize`` yields a
-:class:`~pandas.io.stata.StataReader` instance that can be used to
+:class:`pandas.api.typing.StataReader` instance that can be used to
 read ``chunksize`` lines from the file at a time.  The ``StataReader``
 object can be used as an iterator.
 
@@ -6102,7 +6123,7 @@ SAS formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-XPORT (.xpt) and (since *v0.18.0*) SAS7BDAT (.sas7bdat) format files.
+XPORT (.xpt) and SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,

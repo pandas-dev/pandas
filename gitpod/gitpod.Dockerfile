@@ -1,7 +1,7 @@
 # Doing a local shallow clone - keeps the container secure
 # and much slimmer than using COPY directly or making a
 # remote clone
-ARG BASE_CONTAINER="pythonpandas/pandas-dev:latest"
+ARG BASE_CONTAINER="pandas/pandas-dev:latest"
 FROM gitpod/workspace-base:latest as clone
 
 # the clone should be deep enough for versioneer to work
@@ -34,6 +34,7 @@ WORKDIR ${WORKSPACE}
 # Build pandas to populate the cache used by ccache
 RUN git config --global --add safe.directory /workspace/pandas
 RUN conda activate ${CONDA_ENV} && \
+    python -m pip install -e . --no-build-isolation && \
     python setup.py build_ext --inplace && \
     ccache -s
 
@@ -43,4 +44,5 @@ RUN rm -rf ${WORKSPACE}
 
 # -----------------------------------------------------------------------------
 # Always return to non privileged user
+RUN chown -R gitpod:gitpod /home/gitpod/.cache/
 USER gitpod
