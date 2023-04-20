@@ -23,7 +23,10 @@ on:
   - cron: "27 3 */1 * *"
   push:
   pull_request:
-      types: [labeled, opened, synchronize, reopened]
+    types: [labeled, opened, synchronize, reopened]
+    paths-ignore:
+      - "doc/**"
+      - "web/**"
   workflow_dispatch:
 
 concurrency:
