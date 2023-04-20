@@ -304,6 +304,12 @@ class DatetimeProperties(Properties):
         """
         Return the data as an array of :class:`datetime.datetime` objects.
 
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
+
         Timezone information is retained if present.
 
         .. warning::
@@ -328,19 +334,19 @@ class DatetimeProperties(Properties):
         1   2018-03-11
         dtype: datetime64[ns]
 
-        >>> s.dt.to_pydatetime()
+        >>> s.dt.to_pydatetime()  # doctest: +SKIP
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
 
         pandas' nanosecond precision is truncated to microseconds.
 
         >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
-        >>> s
+        >>> s  # doctest: +SKIP
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
         dtype: datetime64[ns]
 
-        >>> s.dt.to_pydatetime()
+        >>> s.dt.to_pydatetime()  # doctest: +SKIP
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
         """
