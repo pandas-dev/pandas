@@ -10848,7 +10848,7 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                return values._reduce_with_wrap(name, skipna=skipna, kwargs=kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 

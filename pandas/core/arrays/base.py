@@ -136,6 +136,7 @@ class ExtensionArray:
     _from_sequence_of_strings
     _hash_pandas_object
     _reduce
+    _reduce_with_wrap
     _values_for_argsort
     _values_for_factorize
 
@@ -1402,9 +1403,7 @@ class ExtensionArray:
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
-    ):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1416,21 +1415,21 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
-        keepdims : bool, default False
-            If True, wraps the reduced value in a ndarray/ExtensionArray before
-            returning it.
-            If False, returns the reduced value as-is.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
 
         Returns
         -------
-        scalar if keepdims is False else an ndarray/ExtensionArray
+        scalar
 
         Raises
         ------
         TypeError : subclass does not define reductions
+
+        See also
+        --------
+        ExtensionArray._reduce_with_wrap
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -1438,14 +1437,16 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        return meth(skipna=skipna, **kwargs)
 
-        if keepdims:
-            # if subclasses want to avoid wrapping in np.array, do:
-            # super()._reduce(..., keepdims=False) and wrap that.
-            return np.array([[result]])
-        else:
-            return result
+    def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
+        """Calls `_reduce` and wraps the result in a ndarray/extensionArray.
+
+        This is used to control the returned dtype when doing reductions in DataFrames,
+        and ensures the correct dtype for e.g. ``DataFrame({"a": extr_arr2}).sum()``.
+        """
+        result = self._reduce(name, skipna=skipna, **kwargs)
+        return np.array([[result]])
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class

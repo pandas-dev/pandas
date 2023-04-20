@@ -1079,15 +1079,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
     # Reductions
 
-    def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
-    ):
-        if keepdims:
-            res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
-            if res is libmissing.NA:
-                res = self._wrap_na_result(name)
-            return res
-
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
@@ -1102,6 +1094,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
+        res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
+        if res is libmissing.NA:
+            res = self._wrap_na_result(name)
+        return res
 
     def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
         if isinstance(result, np.ndarray):
@@ -1177,7 +1175,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_min_count_reduction_result(
-            "sum", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
+            "prod", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
         )
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
