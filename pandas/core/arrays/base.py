@@ -1416,7 +1416,7 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
-        keepdims: bool, default False
+        keepdims : bool, default False
             If True, wraps the reduced value in a ndarray/ExtensionArray before
             returning it.
             If False, returns the reduced value as-is.
