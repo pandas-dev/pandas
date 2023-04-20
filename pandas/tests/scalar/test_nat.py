@@ -11,8 +11,6 @@ import pytz
 from pandas._libs.tslibs import iNaT
 from pandas.compat import is_numpy_dev
 
-from pandas.core.dtypes.common import is_datetime64_any_dtype
-
 from pandas import (
     DatetimeIndex,
     DatetimeTZDtype,
@@ -444,7 +442,7 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+    if value.dtype.kind == "M" and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)

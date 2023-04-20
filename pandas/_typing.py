@@ -305,9 +305,6 @@ ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
 
-# Arguments for nsmalles and n_largest
-NsmallestNlargestKeep = Literal["first", "last", "all"]
-
 # Arguments for fillna()
 FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
 
@@ -418,6 +415,16 @@ CorrelationMethod = Union[
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
 DtypeBackend = Literal["pyarrow", "numpy_nullable"]
+
+OpenFileErrors = Literal[
+    "strict",
+    "ignore",
+    "replace",
+    "surrogateescape",
+    "xmlcharrefreplace",
+    "backslashreplace",
+    "namereplace",
+]
 
 # update
 UpdateJoin = Literal["left"]
