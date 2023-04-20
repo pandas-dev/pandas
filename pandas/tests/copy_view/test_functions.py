@@ -314,8 +314,10 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
 
 
 def test_join_on_key(using_copy_on_write):
-    df1 = DataFrame({"a": [1, 2, 3]}, index=Index(["a", "b", "c"], name="key"))
-    df2 = DataFrame({"b": [4, 5, 6]}, index=Index(["a", "b", "c"], name="key"))
+    df_index = Index(["a", "b", "c"], name="key")
+
+    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index.copy(deep=True))
+    df2 = DataFrame({"b": [4, 5, 6]}, index=df_index.copy(deep=True))
 
     df1_orig = df1.copy()
     df2_orig = df2.copy()
@@ -345,11 +347,12 @@ def test_join_on_key(using_copy_on_write):
 
 
 def test_join_multiple_dataframes_on_key(using_copy_on_write):
-    df1 = DataFrame({"a": [1, 2, 3]}, index=Index(["a", "b", "c"], name="key"))
+    df_index = Index(["a", "b", "c"], name="key")
 
+    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index.copy(deep=True))
     dfs_list = [
-        DataFrame({"b": [4, 5, 6]}, index=Index(["a", "b", "c"], name="key")),
-        DataFrame({"c": [7, 8, 9]}, index=Index(["a", "b", "c"], name="key")),
+        DataFrame({"b": [4, 5, 6]}, index=df_index.copy(deep=True)),
+        DataFrame({"c": [7, 8, 9]}, index=df_index.copy(deep=True)),
     ]
 
     df1_orig = df1.copy()
