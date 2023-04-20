@@ -1007,3 +1007,24 @@ def test_series_axis_param_depr():
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         test_series.resample("H", axis=0)
+
+
+def test_resample_empty():
+    # GH#52484
+    df = DataFrame(
+        index=pd.to_datetime(
+            ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+        )
+    )
+    expected = DataFrame(
+        index=pd.to_datetime(
+            [
+                "2018-01-01 00:00:00",
+                "2018-01-01 08:00:00",
+                "2018-01-01 16:00:00",
+                "2018-01-02 00:00:00",
+            ]
+        )
+    )
+    result = df.resample("8H").mean()
+    tm.assert_frame_equal(result, expected)
