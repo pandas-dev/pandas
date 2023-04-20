@@ -2773,3 +2773,16 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     result = df2.merge(df)
     expected = df2.copy()
     tm.assert_frame_equal(result, expected)
+
+def test_merge_perserve_categorical_index():
+    # gh37480
+    df1 = pd.DataFrame({'x': [i for i in range(10)], 'y': [i for i in range(10)],
+        'z': [i for i in range(10)], 'd': [i for i in range(10)]})
+    df2 = df1.astype({'x':'category', 'y':'category', 'z':'category'})
+
+    df3 = df2.iloc[:10, :].groupby(['z', 'x'], observed=True).agg({'d': 'sum'})
+    df4 = df2.iloc[1:, :].groupby(['z', 'x', 'y'], observed=True).agg({'d': 'sum'})
+
+    result = pd.merge(df3, df4, left_index=True, right_index=True, how='outer')
+
+    assert(result.index.dtypes == 'category').all()
