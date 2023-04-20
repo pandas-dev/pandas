@@ -1427,7 +1427,7 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
 
-        See also
+        See Also
         --------
         ExtensionArray._reduce_with_wrap
         """
