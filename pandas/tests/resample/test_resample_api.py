@@ -55,7 +55,7 @@ def test_api():
 def test_groupby_resample_api():
     # GH 12448
     # .groupby(...).resample(...) hitting warnings
-    # when appropriate
+    # whegit an appropriate
     df = DataFrame(
         {
             "date": date_range(start="2016-01-01", periods=4, freq="W"),
@@ -971,3 +971,24 @@ def test_args_kwargs_depr(method, raises):
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             with pytest.raises(TypeError, match=error_msg_type):
                 func(*args, 1, 2, 3)
+
+
+def test_resample_empty():
+    # GH#52484
+    df = DataFrame(
+        index=pd.to_datetime(
+            ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+        )
+    )
+    expected = DataFrame(
+        index=pd.to_datetime(
+            [
+                "2018-01-01 00:00:00",
+                "2018-01-01 08:00:00",
+                "2018-01-01 16:00:00",
+                "2018-01-02 00:00:00",
+            ]
+        )
+    )
+    result = df.resample("8H").mean()
+    tm.assert_frame_equal(result, expected)
