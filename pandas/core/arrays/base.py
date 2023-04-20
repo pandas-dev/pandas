@@ -1430,6 +1430,7 @@ class ExtensionArray:
         See Also
         --------
         ExtensionArray._reduce_with_wrap
+            Calls ``_reduce`` and wraps the result in a ndarray/extensionArray.
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -1440,7 +1441,7 @@ class ExtensionArray:
         return meth(skipna=skipna, **kwargs)
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        """Calls `_reduce` and wraps the result in a ndarray/extensionArray.
+        """Calls ``_reduce`` and wraps the result in a ndarray/extensionArray.
 
         This is used to control the returned dtype when doing reductions in DataFrames,
         and ensures the correct dtype for e.g. ``DataFrame({"a": extr_arr2}).sum()``.

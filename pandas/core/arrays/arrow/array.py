@@ -1537,7 +1537,7 @@ class ArrowExtensionArray(
         """Takes the result of `_reduce` and wraps it an a ndarray/extensionArray."""
         # TODO: is there a way to do this without .as_py()
         result = self._reduce(name, skipna=skipna, **kwargs)
-        result = pa.array([result.as_py()], type=result.type)
+        result = pa.array([result])
         return type(self)(result)
 
     def __setitem__(self, key, value) -> None:
