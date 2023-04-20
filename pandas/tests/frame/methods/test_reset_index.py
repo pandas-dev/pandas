@@ -786,5 +786,5 @@ def test_reset_index_false_index_name():
     result_frame = DataFrame(data=range(5, 10), index=range(0, 5))
     result_frame.index.name = False
     result_frame.reset_index()
-    expected_frame = DataFrame(range(5, 10), Index(range(0, 5), name=False))
+    expected_frame = DataFrame(range(5, 10), RangeIndex(range(0, 5), name=False))
     tm.assert_frame_equal(result_frame, expected_frame)
