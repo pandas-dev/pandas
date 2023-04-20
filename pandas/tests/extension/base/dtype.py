@@ -62,14 +62,7 @@ class BaseDtypeTests(BaseExtensionTests):
             {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
         )
         result = df.dtypes == str(dtype)
-
-        try:
-            new_numpy_behavior = np.dtype("int64") != "Int64"
-        except TypeError:
-            # numpy<=1.20.3 this comparison could raise or in some cases
-            #  come back True
-            new_numpy_behavior = True
-        assert new_numpy_behavior
+        assert np.dtype("int64") != "Int64"
 
         expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
