@@ -340,6 +340,14 @@ class TestReaders:
                 usecols=["A", "C"],
             )
 
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_index_col_empty(self, read_ext):
         # see gh-9208
         result = pd.read_excel(
