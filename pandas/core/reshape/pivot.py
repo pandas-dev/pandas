@@ -18,12 +18,12 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -326,7 +326,7 @@ def _add_margins(
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
             continue
 

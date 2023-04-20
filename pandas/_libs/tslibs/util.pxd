@@ -10,6 +10,7 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+    # TODO(cython3): cimport this, xref GH#49670
     # Note that following functions can potentially raise an exception,
     # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
     # potentially allocate memory inside in unlikely case of when underlying

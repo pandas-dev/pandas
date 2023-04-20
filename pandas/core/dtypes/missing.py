@@ -26,7 +26,6 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
     from pandas.core.indexes.base import Index
 
 
@@ -642,11 +642,11 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     return np.nan
 
 
-def remove_na_arraylike(arr):
+def remove_na_arraylike(arr: Series | Index | np.ndarray):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    if is_extension_array_dtype(arr):
+    if isinstance(arr.dtype, ExtensionDtype):
         return arr[notna(arr)]
     else:
         return arr[notna(np.asarray(arr))]

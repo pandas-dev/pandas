@@ -22,7 +22,7 @@ from numpy cimport (
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias tzinfo_type bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,

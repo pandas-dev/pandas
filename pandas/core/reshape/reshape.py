@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_extension_array_dtype,
     is_integer,
     needs_i8_conversion,
 )
@@ -47,6 +46,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
         Level,
         npt,
     )
@@ -591,13 +591,14 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
             verify_integrity=False,
         )
 
+    new_values: ArrayLike
     if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type(
                 [col._values for _, col in frame.items()]
@@ -753,7 +754,7 @@ def _stack_multi_columns(
         else:
             subset = this.iloc[:, loc]
             dtype = find_common_type(subset.dtypes.tolist())
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): won't need special case, can go through .values
                 #  paths below (might change to ._values)
                 value_slice = dtype.construct_array_type()._concat_same_type(
