@@ -61,7 +61,11 @@ class TestConcatenate:
 
         if not using_copy_on_write:
             for arr in result._mgr.arrays:
-                assert arr.base is None
+                assert not any(
+                    np.shares_memory(arr, y)
+                    for x in [df, df2, df3]
+                    for y in x._mgr.arrays
+                )
         else:
             for arr in result._mgr.arrays:
                 assert arr.base is not None

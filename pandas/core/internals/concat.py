@@ -72,7 +72,7 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
+    mgrs: list[Manager], axes: list[Index], concat_axis: AxisInt
 ) -> Manager:
     """
     Concatenate array managers into one.
@@ -82,27 +82,11 @@ def _concatenate_array_managers(
     mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
     axes : list of Index
     concat_axis : int
-    copy : bool
 
     Returns
     -------
     ArrayManager
     """
-    # reindex all arrays
-    mgrs = []
-    for mgr, indexers in mgrs_indexers:
-        axis1_made_copy = False
-        for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(
-                axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
-            )
-            if ax == 1 and indexer is not None:
-                axis1_made_copy = True
-        if copy and concat_axis == 0 and not axis1_made_copy:
-            # for concat_axis 1 we will always get a copy through concat_arrays
-            mgr = mgr.copy()
-        mgrs.append(mgr)
-
     if concat_axis == 1:
         # concatting along the rows -> concat the reindexed arrays
         # TODO(ArrayManager) doesn't yet preserve the correct dtype
@@ -192,9 +176,18 @@ def concatenate_managers(
     -------
     BlockManager
     """
+
+    needs_copy = copy and concat_axis == 0
+
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
+        mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+        # error: Argument 1 to "_concatenate_array_managers" has incompatible
+        # type "List[BlockManager]"; expected "List[Union[ArrayManager,
+        # SingleArrayManager, BlockManager, SingleBlockManager]]"
+        return _concatenate_array_managers(
+            mgrs, axes, concat_axis  # type: ignore[arg-type]
+        )
 
     # Assertions disabled for performance
     # for tup in mgrs_indexers:
@@ -203,7 +196,8 @@ def concatenate_managers(
     #    assert concat_axis not in indexers
 
     if concat_axis == 0:
-        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+        mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+        return _concat_managers_axis0(mgrs, axes)
 
     if len(mgrs_indexers) > 0 and mgrs_indexers[0][0].nblocks > 0:
         first_dtype = mgrs_indexers[0][0].blocks[0].dtype
@@ -220,19 +214,15 @@ def concatenate_managers(
                 nb = _concat_homogeneous_fastpath(mgrs_indexers, shape, first_dtype)
                 return BlockManager((nb,), axes)
 
-    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
-    if len(mgrs_indexers) == 1:
-        mgr, indexers = mgrs_indexers[0]
-        # Assertion correct but disabled for perf:
-        # assert not indexers
-        if copy:
-            out = mgr.copy(deep=True)
-        else:
-            out = mgr.copy(deep=False)
+    mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+
+    if len(mgrs) == 1:
+        mgr = mgrs[0]
+        out = mgr.copy(deep=False)
         out.axes = axes
         return out
 
-    concat_plan = _get_combined_plan([mgr for mgr, _ in mgrs_indexers])
+    concat_plan = _get_combined_plan(mgrs)
 
     blocks = []
     values: ArrayLike
@@ -277,35 +267,20 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
-def _concat_managers_axis0(
-    mgrs_indexers, axes: list[Index], copy: bool
-) -> BlockManager:
+def _concat_managers_axis0(mgrs: list[BlockManager], axes: list[Index]) -> BlockManager:
     """
     concat_managers specialized to concat_axis=0, with reindexing already
     having been done in _maybe_reindex_columns_na_proxy.
     """
-    had_reindexers = {
-        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
-    }
-    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
-
-    mgrs: list[BlockManager] = [x[0] for x in mgrs_indexers]
 
     offset = 0
     blocks: list[Block] = []
     for i, mgr in enumerate(mgrs):
-        # If we already reindexed, then we definitely don't need another copy
-        made_copy = had_reindexers[i]
-
         for blk in mgr.blocks:
-            if made_copy:
-                nb = blk.copy(deep=False)
-            elif copy:
-                nb = blk.copy()
-            else:
-                # by slicing instead of copy(deep=False), we get a new array
-                #  object, see test_concat_copy
-                nb = blk.getitem_block(slice(None))
+            # We need to do getitem_block here otherwise we would be altering
+            #  blk.mgr_locs in place, which would render it invalid. This is only
+            #  relevant in the copy=False case.
+            nb = blk.getitem_block(slice(None))
             nb._mgr_locs = nb._mgr_locs.add(offset)
             blocks.append(nb)
 
@@ -316,8 +291,10 @@ def _concat_managers_axis0(
 
 
 def _maybe_reindex_columns_na_proxy(
-    axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
-) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
+    axes: list[Index],
+    mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]],
+    needs_copy: bool,
+) -> list[BlockManager]:
     """
     Reindex along columns so that all of the BlockManagers being concatenated
     have matching columns.
@@ -325,7 +302,7 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
+    new_mgrs = []
 
     for mgr, indexers in mgrs_indexers:
         # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
@@ -340,8 +317,11 @@ def _maybe_reindex_columns_na_proxy(
                 allow_dups=True,
                 use_na_proxy=True,  # only relevant for i==0
             )
-        new_mgrs_indexers.append((mgr, {}))
-    return new_mgrs_indexers
+        if needs_copy and not indexers:
+            mgr = mgr.copy()
+
+        new_mgrs.append(mgr)
+    return new_mgrs
 
 
 def _is_homogeneous_mgr(mgr: BlockManager, first_dtype: DtypeObj) -> bool:
