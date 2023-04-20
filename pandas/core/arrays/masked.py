@@ -166,6 +166,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
+
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
@@ -219,7 +220,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
                 return value
             # TODO: unsigned checks
-        print(self.dtype)
+        
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
         raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")

@@ -6995,6 +6995,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "or Series, but you passed a "
                         f'"{type(value).__name__}"'
                     )
+
                 new_data = self._mgr.fillna(
                     value=value, limit=limit, inplace=inplace, downcast=downcast
                 )
@@ -8277,7 +8278,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
         isna_lower = isna(lower)
-        print(isna_lower)
         if not is_list_like(lower):
             if np.any(isna_lower):
                 lower = None
