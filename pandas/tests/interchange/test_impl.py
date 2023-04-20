@@ -100,6 +100,9 @@ def test_large_string_pyarrow():
     expected = pd.DataFrame({"weekday": ["Mon", "Tue"]})
     tm.assert_frame_equal(result, expected)
 
+    # check round-trip
+    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+
 
 @pytest.mark.parametrize(
     "data", [int_data, uint_data, float_data, bool_data, datetime_data]
