@@ -363,6 +363,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
+# Arguments for nsmalles and n_largest
+NsmallestNlargestKeep = Literal["first", "last", "all"]
+
 # quantile interpolation
 QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
 
