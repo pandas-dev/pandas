@@ -998,6 +998,7 @@ pass  ``format='mixed'``
 
 .. ipython:: python
 
+   import io
    data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
    df['date'] = pd.to_datetime(df['date'], format='mixed')
@@ -2166,6 +2167,17 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit="ns")
    dfju
+
+By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
+
+.. ipython:: python
+
+    data = (
+     '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
+     '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
+     '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
+    )
+    pd.read_json(StringIO(data), dtype_backend="pyarrow")
 
 .. _io.json_normalize:
 
