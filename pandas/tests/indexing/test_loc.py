@@ -2677,8 +2677,9 @@ class TestLocListlike:
     def test_loc_set_item_empty_list(self):
         # GH: 29707
         df = DataFrame({"a": [2, 3]})
+        expected = df.copy()
         df.loc[[]] = 0.1
-        assert df.a.dtype == "int64"
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("to_period", [True, False])
     def test_loc_getitem_listlike_of_datetimelike_keys(self, to_period):
