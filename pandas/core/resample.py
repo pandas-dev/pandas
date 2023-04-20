@@ -467,7 +467,7 @@ class Resampler(BaseGroupBy, PandasObject):
         obj = self.obj
         if (
             isinstance(result, ABCDataFrame)
-            and result.empty
+            and len(result) == 0
             and not isinstance(result.index, PeriodIndex)
         ):
             result = result.set_index(
