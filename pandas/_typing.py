@@ -391,5 +391,13 @@ CorrelationMethod = Union[
 AlignJoin = Literal["outer", "inner", "left", "right"]
 DtypeBackend = Literal["pyarrow", "numpy_nullable"]
 
-#TimeUnit
 TimeUnit = Literal["s", "ms", "us", "ns"]
+OpenFileErrors = Literal[
+    "strict",
+    "ignore",
+    "replace",
+    "surrogateescape",
+    "xmlcharrefreplace",
+    "backslashreplace",
+    "namereplace",
+]
