@@ -55,7 +55,7 @@ def test_api():
 def test_groupby_resample_api():
     # GH 12448
     # .groupby(...).resample(...) hitting warnings
-    # when an appropriate
+    # when appropriate
     df = DataFrame(
         {
             "date": date_range(start="2016-01-01", periods=4, freq="W"),
