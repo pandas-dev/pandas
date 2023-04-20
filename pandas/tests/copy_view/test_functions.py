@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     concat,
     merge,
@@ -313,13 +314,6 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
 
 
 def test_join_on_key(using_copy_on_write):
-    """Test if DataFrame.join applies Copy-On-Write optimization.
-
-    GIVEN two DataFrame instances
-    WHEN DataFrame.join is called for one of them
-    THEN check that the result DataFrame instance
-        shares the same memory with original dataframes until it is edited.
-    """
     df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]})
     df2 = DataFrame({"key": ["a", "b", "c"], "b": [4, 5, 6]})
     df1_orig = df1.copy()
@@ -349,17 +343,11 @@ def test_join_on_key(using_copy_on_write):
 
 
 def test_join_multiple_dataframes_on_key(using_copy_on_write):
-    """Test if DataFrame.join applies Copy-On-Write optimization.
-
-    GIVEN a DataFrame instance and a list of DataFrame instances to be joined
-    WHEN DataFrame.join is called for original DataFrame instance
-    THEN check that the result DataFrame instance
-        shares the same memory with original dataframes until it is edited.
-    """
-    df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]}).set_index("key")
+    df_index = Index(["a", "b", "c"], name="key")
+    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index)
     dfs_list = [
-        DataFrame({"key": ["a", "b", "c"], "b": [4, 5, 6]}).set_index("key"),
-        DataFrame({"key": ["a", "b", "c"], "c": [7, 8, 9]}).set_index("key"),
+        DataFrame({"b": [4, 5, 6]}, index=df_index),
+        DataFrame({"c": [7, 8, 9]}, index=df_index),
     ]
     df1_orig = df1.copy()
     dfs_list_orig = [df.copy() for df in dfs_list]
