@@ -319,7 +319,6 @@ def test_join_on_key(using_copy_on_write):
 
     df1_orig = df1.copy()
     df2_orig = df2.copy()
-
     result = df1.join(df2, on="key")
 
     if using_copy_on_write:
