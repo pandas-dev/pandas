@@ -224,7 +224,7 @@ class TestDataFrameConstructors:
         ],
     )
     def test_empty_constructor_object_index(self, constructor):
-        expected = DataFrame(columns=Index([]))
+        expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
         result = constructor()
         assert len(result.index) == 0
         assert len(result.columns) == 0
@@ -309,14 +309,14 @@ class TestDataFrameConstructors:
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
     @td.skip_array_manager_invalid_test
     def test_2d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
-        df = DataFrame(arr)
+        df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
     def test_constructor_dtype_list_data(self):
@@ -656,7 +656,7 @@ class TestDataFrameConstructors:
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
         with pytest.raises(ValueError, match=msg):
-            DataFrame(np.empty(0), columns=list("abc"))
+            DataFrame(np.empty(0), index=[1])
 
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
@@ -2107,13 +2107,18 @@ class TestDataFrameConstructors:
         cop.index = np.arange(len(cop))
         tm.assert_frame_equal(float_frame, orig)
 
-    def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
+    def test_constructor_ndarray_copy(
+        self, float_frame, using_array_manager, using_copy_on_write
+    ):
         if not using_array_manager:
             arr = float_frame.values.copy()
             df = DataFrame(arr)
 
             arr[5] = 5
-            assert (df.values[5] == 5).all()
+            if using_copy_on_write:
+                assert not (df.values[5] == 5).all()
+            else:
+                assert (df.values[5] == 5).all()
 
             df = DataFrame(arr, copy=True)
             arr[6] = 6
@@ -2630,9 +2635,15 @@ class TestDataFrameConstructors:
 
     def test_construction_empty_array_multi_column_raises(self):
         # GH#46822
-        msg = "Empty data passed with indices specified."
+        msg = r"Shape of passed values is \(0, 1\), indices imply \(0, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(data=np.array([]), columns=["a", "b"])
+
+    def test_construct_with_strings_and_none(self):
+        # GH#32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameConstructorIndexInference:

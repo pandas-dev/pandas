@@ -275,7 +275,7 @@ pc_max_info_rows_doc = """
 pc_large_repr_doc = """
 : 'truncate'/'info'
     For DataFrames exceeding max_rows/max_cols, the repr (and HTML repr) can
-    show a truncated table (the default from 0.13), or switch to the view from
+    show a truncated table, or switch to the view from
     df.info() (the behaviour in earlier versions of pandas).
 """
 
@@ -711,13 +711,13 @@ styler_max_elements = """
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satsify ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence.
 """
 
 styler_precision = """

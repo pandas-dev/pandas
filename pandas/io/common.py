@@ -243,7 +243,7 @@ def stringify_path(
 
     Notes
     -----
-    Objects supporting the fspath protocol (python 3.6+) are coerced
+    Objects supporting the fspath protocol are coerced
     according to its __fspath__ method.
 
     Any other object is passed through unchanged, which includes bytes,

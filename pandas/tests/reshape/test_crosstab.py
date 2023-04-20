@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -819,6 +818,27 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_margin_with_ordered_categorical_column(self):
+        # GH 25278
+        df = DataFrame(
+            {
+                "First": ["B", "B", "C", "A", "B", "C"],
+                "Second": ["C", "B", "B", "B", "C", "A"],
+            }
+        )
+        df["First"] = df["First"].astype(CategoricalDtype(ordered=True))
+        customized_categories_order = ["C", "A", "B"]
+        df["First"] = df["First"].cat.reorder_categories(customized_categories_order)
+        result = crosstab(df["First"], df["Second"], margins=True)
+
+        expected_index = Index(["C", "A", "B", "All"], name="First")
+        expected_columns = Index(["A", "B", "C", "All"], name="Second")
+        expected_data = [[1, 1, 0, 2], [0, 1, 0, 1], [0, 1, 2, 3], [1, 3, 2, 6]]
+        expected = DataFrame(
+            expected_data, index=expected_index, columns=expected_columns
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("a_dtype", ["category", "int64"])
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
@@ -836,7 +856,7 @@ def test_categoricals(a_dtype, b_dtype):
 
     # Verify when categorical does not have all values present
     a.loc[a == 1] = 2
-    a_is_cat = is_categorical_dtype(a.dtype)
+    a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
     values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]

@@ -160,8 +160,8 @@ class CleanCommand(Command):
 
         # clean the generated pxi files
         for pxifile in _pxifiles:
-            pxifile = pxifile.replace(".pxi.in", ".pxi")
-            self._clean_me.append(pxifile)
+            pxifile_replaced = pxifile.replace(".pxi.in", ".pxi")
+            self._clean_me.append(pxifile_replaced)
 
         for d in ("build", "dist"):
             if os.path.exists(d):
@@ -204,7 +204,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/interval.pyx",
         "pandas/_libs/hashing.pyx",
         "pandas/_libs/missing.pyx",
-        "pandas/_libs/reduction.pyx",
         "pandas/_libs/testing.pyx",
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
@@ -486,7 +485,6 @@ ext_data = {
             "pandas/_libs/src/pd_parser.h",
         ],
     },
-    "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},

@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -233,9 +229,9 @@ def test_numpy_array(arr):
 def test_numpy_array_all_dtypes(any_numpy_dtype):
     ser = Series(dtype=any_numpy_dtype)
     result = ser.array
-    if is_datetime64_dtype(any_numpy_dtype):
+    if np.dtype(any_numpy_dtype).kind == "M":
         assert isinstance(result, DatetimeArray)
-    elif is_timedelta64_dtype(any_numpy_dtype):
+    elif np.dtype(any_numpy_dtype).kind == "m":
         assert isinstance(result, TimedeltaArray)
     else:
         assert isinstance(result, PandasArray)
@@ -245,7 +241,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
-        (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_ndarray"),
+        (PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]"), "_ndarray"),
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),

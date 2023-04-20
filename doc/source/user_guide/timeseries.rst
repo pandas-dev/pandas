@@ -507,13 +507,17 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-Since pandas represents timestamps in nanosecond resolution, the time span that
+The limits of timestamp representation depend on the chosen resolution. For
+nanosecond resolution, the time span that
 can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+
+When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
+Different resolutions can be converted to each other through ``as_unit``.
 
 .. seealso::
 
@@ -1746,8 +1750,9 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
-a ``Resampler`` can be selectively resampled.
+The ``resample()`` method returns a ``pandas.api.typing.Resampler`` instance.  Similar to
+the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`,
+and the :ref:`window API <window.overview>`, a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 

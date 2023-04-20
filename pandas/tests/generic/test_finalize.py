@@ -158,9 +158,7 @@ _all_methods = [
         ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
-    ),
+    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))),
     pytest.param(
         (
             pd.DataFrame,
@@ -251,7 +249,6 @@ _all_methods = [
             operator.methodcaller("isin", pd.DataFrame({"A": [1]})),
         ),
     ),
-    (pd.DataFrame, frame_data, operator.methodcaller("swapaxes", 0, 1)),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
     pytest.param(
