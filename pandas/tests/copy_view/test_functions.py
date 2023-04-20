@@ -314,12 +314,15 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
 
 
 def test_join_on_key(using_copy_on_write):
-    df1 = DataFrame({"key": ["a", "b", "c"], "a": [1, 2, 3]})
-    df2 = DataFrame({"key": ["a", "b", "c"], "b": [4, 5, 6]})
+    df_index = Index(["a", "b", "c"], name="key")
+
+    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index)
+    df2 = DataFrame({"b": [4, 5, 6]}, index=df_index)
+
     df1_orig = df1.copy()
     df2_orig = df2.copy()
 
-    result = df1.join(df2.set_index("key"), on="key")
+    result = df1.join(df2, on="key")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
@@ -330,12 +333,12 @@ def test_join_on_key(using_copy_on_write):
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
 
-    result.iloc[0, 1] = 0
+    result.loc[0, 1] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
 
-    result.iloc[0, 2] = 0
+    result.loc[0, 2] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
     tm.assert_frame_equal(df1, df1_orig)
@@ -344,11 +347,13 @@ def test_join_on_key(using_copy_on_write):
 
 def test_join_multiple_dataframes_on_key(using_copy_on_write):
     df_index = Index(["a", "b", "c"], name="key")
+
     df1 = DataFrame({"a": [1, 2, 3]}, index=df_index)
     dfs_list = [
         DataFrame({"b": [4, 5, 6]}, index=df_index),
         DataFrame({"c": [7, 8, 9]}, index=df_index),
     ]
+
     df1_orig = df1.copy()
     dfs_list_orig = [df.copy() for df in dfs_list]
 
