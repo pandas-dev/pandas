@@ -314,10 +314,8 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
 
 
 def test_join_on_key(using_copy_on_write):
-    df_index = Index(["a", "b", "c"], name="key")
-
-    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index)
-    df2 = DataFrame({"b": [4, 5, 6]}, index=df_index)
+    df1 = DataFrame({"a": [1, 2, 3]}, index=Index(["a", "b", "c"], name="key"))
+    df2 = DataFrame({"b": [4, 5, 6]}, index=Index(["a", "b", "c"], name="key"))
 
     df1_orig = df1.copy()
     df2_orig = df2.copy()
@@ -327,31 +325,31 @@ def test_join_on_key(using_copy_on_write):
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
-        assert np.shares_memory(get_array(result, "key"), get_array(df1, "key"))
-        assert not np.shares_memory(get_array(result, "key"), get_array(df2, "key"))
+        assert np.shares_memory(get_array(result.index), get_array(df1.index))
+        assert not np.shares_memory(get_array(result.index), get_array(df2.index))
     else:
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
 
-    result.loc[0, 1] = 0
+    result.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
         assert np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
 
-    result.loc[0, 2] = 0
+    result.iloc[0, 1] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "b"), get_array(df2, "b"))
+        
     tm.assert_frame_equal(df1, df1_orig)
     tm.assert_frame_equal(df2, df2_orig)
 
 
 def test_join_multiple_dataframes_on_key(using_copy_on_write):
-    df_index = Index(["a", "b", "c"], name="key")
+    df1 = DataFrame({"a": [1, 2, 3]}, index=Index(["a", "b", "c"], name="key"))
 
-    df1 = DataFrame({"a": [1, 2, 3]}, index=df_index)
     dfs_list = [
-        DataFrame({"b": [4, 5, 6]}, index=df_index),
-        DataFrame({"c": [7, 8, 9]}, index=df_index),
+        DataFrame({"b": [4, 5, 6]}, index=Index(["a", "b", "c"], name="key")),
+        DataFrame({"c": [7, 8, 9]}, index=Index(["a", "b", "c"], name="key")),
     ]
 
     df1_orig = df1.copy()
