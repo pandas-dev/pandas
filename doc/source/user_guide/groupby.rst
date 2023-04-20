@@ -205,7 +205,7 @@ By default the group keys are sorted during the ``groupby`` operation. You may h
    df2.groupby(["X"], sort=False).sum()
 
 
-Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group .
+Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group.
 For example, the groups created by ``groupby()`` below are in the order they appeared in the original ``DataFrame``:
 
 .. ipython:: python
