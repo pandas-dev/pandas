@@ -844,8 +844,8 @@ Enhancements
      df
 
      df.pivot_table(values='Quantity',
-                    index=pd.Grouper(freq='M', key='Date'),
-                    columns=pd.Grouper(freq='M', key='PayDay'),
+                    index=pd.Grouper(freq='ME', key='Date'),
+                    columns=pd.Grouper(freq='ME', key='PayDay'),
                     aggfunc=np.sum)
 
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)

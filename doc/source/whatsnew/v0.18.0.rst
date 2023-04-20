@@ -818,7 +818,7 @@ Previously
 
 .. code-block:: ipython
 
-   In [6]: s.resample('M', fill_method='ffill')
+   In [6]: s.resample('ME', fill_method='ffill')
    Out[6]:
    2010-03-31    0
    2010-04-30    0
@@ -839,7 +839,7 @@ New API
 
 .. ipython:: python
 
-   s.resample('M').ffill()
+   s.resample('ME').ffill()
 
 .. note::
 

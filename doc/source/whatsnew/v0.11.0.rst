@@ -370,7 +370,7 @@ Enhancements
     .. ipython:: python
        :okexcept:
 
-        idx = pd.date_range("2001-10-1", periods=5, freq='M')
+        idx = pd.date_range("2001-10-1", periods=5, freq='ME')
         ts = pd.Series(np.random.rand(len(idx)), index=idx)
         ts['2001']
 

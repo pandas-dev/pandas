@@ -771,7 +771,7 @@ To create year and month cross tabulation:
 
    df = pd.DataFrame(
        {"value": np.random.randn(36)},
-       index=pd.date_range("2011-01-01", freq="M", periods=36),
+       index=pd.date_range("2011-01-01", freq="ME", periods=36),
    )
 
    pd.pivot_table(
@@ -888,7 +888,7 @@ Calculate the first day of the month for each entry in a DatetimeIndex
 .. ipython:: python
 
    dates = pd.date_range("2000-01-01", periods=5)
-   dates.to_period(freq="M").to_timestamp()
+   dates.to_period(freq="ME").to_timestamp()
 
 .. _cookbook.resample:
 

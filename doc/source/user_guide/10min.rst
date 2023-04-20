@@ -640,7 +640,7 @@ Converting between time span representations:
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=5, freq="M")
+   rng = pd.date_range("1/1/2012", periods=5, freq="ME")
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts
    ps = ts.to_period()
@@ -656,7 +656,7 @@ the quarter end:
 
    prng = pd.period_range("1990Q1", "2000Q4", freq="Q-NOV")
    ts = pd.Series(np.random.randn(len(prng)), prng)
-   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
+   ts.index = (prng.asfreq("ME", "e") + 1).asfreq("H", "s") + 9
    ts.head()
 
 Categoricals

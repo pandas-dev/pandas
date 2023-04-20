@@ -76,7 +76,7 @@ Below is a possibly non-exhaustive list of changes:
 
    .. ipython:: python
 
-       idx = pd.date_range(start='1/1/2018', periods=3, freq='M')
+       idx = pd.date_range(start='1/1/2018', periods=3, freq='ME')
        idx.array.year
        idx.year
 
