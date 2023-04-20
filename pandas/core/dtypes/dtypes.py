@@ -676,7 +676,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     num = 101
-    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
@@ -684,6 +683,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @property
     def na_value(self) -> NaTType:
         return NaT
+
+    @cache_readonly
+    def base(self) -> DtypeObj:  # type: ignore[override]
+        return np.dtype(f"M8[{self.unit}]")
 
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
