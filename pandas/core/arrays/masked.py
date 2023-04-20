@@ -1126,13 +1126,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(1, dtype=bool)
 
         if self.dtype.kind == "f":
-            np_dtype = np.float64
+            np_dtype = "float64"
         elif name in ["mean", "median", "var", "std", "skew"]:
-            np_dtype = np.float64
+            np_dtype = "float64"
         elif self.dtype.kind == "i":
-            np_dtype = np.int64
+            np_dtype = "int64"
         elif self.dtype.kind == "u":
-            np_dtype = np.uint64
+            np_dtype = "uint64"
         else:
             raise TypeError(self.dtype)
 

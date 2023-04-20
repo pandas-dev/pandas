@@ -1416,13 +1416,17 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        keepdims: bool, default False
+            If True, wraps the reduced value in a ndarray/ExtensionArray before
+            returning it.
+            If False, returns the reduced value as-is.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
 
         Returns
         -------
-        scalar
+        scalar if keepdims is False else an ndarray/ExtensionArray
 
         Raises
         ------
