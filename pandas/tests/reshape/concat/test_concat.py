@@ -61,7 +61,11 @@ class TestConcatenate:
 
         if not using_copy_on_write:
             for arr in result._mgr.arrays:
-                assert arr.base is None
+                assert not any(
+                    np.shares_memory(arr, y)
+                    for x in [df, df2, df3]
+                    for y in x._mgr.arrays
+                )
         else:
             for arr in result._mgr.arrays:
                 assert arr.base is not None
@@ -747,7 +751,9 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
+
     result = concat([empty, df])
+
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -764,7 +770,6 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
 def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame({"foo": [np.nan], "bar": [np.nan]}, dtype=empty_dtype)
-    result = concat([empty, df], ignore_index=True)
 
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -772,6 +777,17 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
             df_dtype = "object"
         else:
             df_dtype = "float64"
+
+    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    warn = None
+    if empty_dtype != df_dtype and empty_dtype is not None:
+        warn = FutureWarning
+    elif df_dtype == "datetime64[ns]":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = concat([empty, df], ignore_index=True)
+
     expected = DataFrame({"foo": [None, 1, 2], "bar": [None, 1, 2]}, dtype=df_dtype)
     tm.assert_frame_equal(result, expected)
 
@@ -782,7 +798,11 @@ def test_concat_ignore_empty_from_reindex():
     df1 = DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})
     df2 = DataFrame({"a": [2]})
 
-    result = concat([df1, df2.reindex(columns=df1.columns)], ignore_index=True)
+    aligned = df2.reindex(columns=df1.columns)
+
+    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = concat([df1, aligned], ignore_index=True)
     expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
     tm.assert_frame_equal(result, expected)
 

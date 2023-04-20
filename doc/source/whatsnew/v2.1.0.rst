@@ -94,6 +94,7 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
+- Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -130,6 +131,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
+| numpy           | 1.21.6          |    X     |    X    |
++-----------------+-----------------+----------+---------+
 | mypy (dev)      | 1.2             |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.11.1          |          |    X    |
@@ -233,6 +236,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or numpy array before operating instead (:issue:`51521`)
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
@@ -312,6 +316,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`DataFrame.style.to_latex` and :func:`DataFrame.style.to_html` if the DataFrame contains integers with more digits than can be represented by floating point double precision (:issue:`52272`)
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 -
@@ -345,6 +350,7 @@ I/O
 ^^^
 - :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 - :meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)
+- Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
 -

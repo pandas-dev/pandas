@@ -844,7 +844,7 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif is_any_real_numeric_dtype(index):
+            elif is_any_real_numeric_dtype(index.dtype):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime

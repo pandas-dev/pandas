@@ -455,7 +455,7 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, LookupError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
             with suppress(AttributeError):
@@ -2555,7 +2555,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values)):
+        if not is_object_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
