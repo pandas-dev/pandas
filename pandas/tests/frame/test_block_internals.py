@@ -20,10 +20,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import (
-    NumericBlock,
-    ObjectBlock,
-)
+from pandas.core.internals import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -387,7 +384,7 @@ class TestDataFrameBlockInternals:
         result = DataFrame({"A": arr})
         expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-        assert isinstance(result._mgr.blocks[0], NumericBlock)
+        assert isinstance(result._mgr.blocks[0], NumpyBlock)
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
@@ -400,8 +397,10 @@ class TestDataFrameBlockInternals:
                 "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
             }
         )
-        assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
-        assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
+        assert type(df["c"]._mgr.blocks[0]) == NumpyBlock
+        assert df["c"]._mgr.blocks[0].is_object
+        assert type(df2["c"]._mgr.blocks[0]) == NumpyBlock
+        assert df2["c"]._mgr.blocks[0].is_object
         tm.assert_frame_equal(df, df2)
 
 

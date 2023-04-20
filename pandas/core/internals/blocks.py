@@ -463,9 +463,8 @@ class Block(PandasObject):
         using_cow: bool = False,
     ) -> list[Block]:
         """
-        attempt to coerce any object types to better types return a copy
-        of the block (if copy = True) by definition we are not an ObjectBlock
-        here!
+        Attempt to coerce any object types to better types. Return a copy
+        of the block (if copy = True).
         """
         if not copy and using_cow:
             return [self.copy(deep=False)]
@@ -674,7 +673,7 @@ class Block(PandasObject):
         List[Block]
         """
         if not self._can_hold_element(to_replace):
-            # i.e. only ObjectBlock, but could in principle include a
+            # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
             if using_cow:
                 return [self.copy(deep=False)]
@@ -1267,7 +1266,7 @@ class Block(PandasObject):
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
-        ObjectBlock and try again
+        block to hold objects instead and try again
         """
         # Caller is responsible for validating limit; if int it is strictly positive
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -2058,7 +2057,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
-        # We override ObjectBlock._unstack, which unstacks directly on the
+        # We override Block._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
@@ -2094,6 +2093,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
+    __slots__ = ()
 
     @property
     def is_view(self) -> bool:
@@ -2112,10 +2112,56 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
     def values_for_json(self) -> np.ndarray:
         return self.values
 
+    @cache_readonly
+    def is_numeric(self) -> bool:
+        dtype = self.values.dtype
+        kind = dtype.kind
 
-class NumericBlock(NumpyBlock):
-    __slots__ = ()
-    is_numeric = True
+        if kind in "fciub":
+            return True
+        else:
+            return False
+
+    @cache_readonly
+    def is_object(self) -> bool:
+        if self.values.dtype.kind == "O":
+            return True
+        else:
+            return False
+
+    @maybe_split
+    def convert(
+        self,
+        *,
+        copy: bool = True,
+        using_cow: bool = False,
+    ) -> list[Block]:
+        """
+        Attempt to coerce any object types to better types. Return a copy
+        of the block (if copy = True).
+        """
+        if not self.is_object:
+            return super().convert(copy=copy, using_cow=using_cow)
+
+        values = self.values
+        if values.ndim == 2:
+            # maybe_split ensures we only get here with values.shape[0] == 1,
+            # avoid doing .ravel as that might make a copy
+            values = values[0]
+
+        res_values = lib.maybe_convert_objects(
+            values,
+            convert_non_numeric=True,
+        )
+        refs = None
+        if copy and res_values is values:
+            res_values = values.copy()
+        elif res_values is values and using_cow:
+            refs = self.refs
+
+        res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = maybe_coerce_values(res_values)
+        return [self.make_block(res_values, refs=refs)]
 
 
 class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
@@ -2251,49 +2297,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values_for_json = NDArrayBackedExtensionBlock.values_for_json
 
 
-class ObjectBlock(NumpyBlock):
-    __slots__ = ()
-    is_object = True
-
-    @maybe_split
-    def convert(
-        self,
-        *,
-        copy: bool = True,
-        using_cow: bool = False,
-    ) -> list[Block]:
-        """
-        attempt to cast any object types to better types return a copy of
-        the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
-        """
-        if self.dtype != _dtype_obj:
-            # GH#50067 this should be impossible in ObjectBlock, but until
-            #  that is fixed, we short-circuit here.
-            if using_cow:
-                return [self.copy(deep=False)]
-            return [self]
-
-        values = self.values
-        if values.ndim == 2:
-            # maybe_split ensures we only get here with values.shape[0] == 1,
-            # avoid doing .ravel as that might make a copy
-            values = values[0]
-
-        res_values = lib.maybe_convert_objects(
-            values,
-            convert_non_numeric=True,
-        )
-        refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
-        elif res_values is values and using_cow:
-            refs = self.refs
-
-        res_values = ensure_block_shape(res_values, self.ndim)
-        res_values = maybe_coerce_values(res_values)
-        return [self.make_block(res_values, refs=refs)]
-
-
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2352,10 +2355,8 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     kind = dtype.kind
     if kind in "Mm":
         return DatetimeLikeBlock
-    elif kind in "fciub":
-        return NumericBlock
 
-    return ObjectBlock
+    return NumpyBlock
 
 
 def new_block_2d(
