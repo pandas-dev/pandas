@@ -135,6 +135,24 @@ class TestDataFrameConstructors:
         result = Series(idx)
         tm.assert_series_equal(result, expected)
 
+    def test_columns_with_leading_underscore_work_with_to_dict(self):
+        col_underscore = "_b"
+        df = DataFrame({"a": [1, 2], col_underscore: [3, 4]})
+        d = df.to_dict(orient="records")
+
+        ref_d = [{"a": 1, col_underscore: 3}, {"a": 2, col_underscore: 4}]
+
+        assert ref_d == d
+
+    def test_columns_with_leading_number_and_underscore_work_with_to_dict(self):
+        col_with_num = "1_b"
+        df = DataFrame({"a": [1, 2], col_with_num: [3, 4]})
+        d = df.to_dict(orient="records")
+
+        ref_d = [{"a": 1, col_with_num: 3}, {"a": 2, col_with_num: 4}]
+
+        assert ref_d == d
+
     def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
         # GH#39462
         nat = np.datetime64("NaT", "ns")
