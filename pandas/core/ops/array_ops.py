@@ -22,7 +22,10 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    is_unitless,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -533,7 +536,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             from pandas.core.arrays import DatetimeArray
 
             # Avoid possible ambiguities with pd.NaT
-            obj = obj.astype("datetime64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("datetime64[ns]")
             right = np.broadcast_to(obj, shape)
             return DatetimeArray(right)
 
@@ -546,7 +551,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
-            obj = obj.astype("timedelta64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("timedelta64[ns]")
             right = np.broadcast_to(obj, shape)
             return TimedeltaArray(right)
 
