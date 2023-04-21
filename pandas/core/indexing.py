@@ -2167,8 +2167,8 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = np.arange(len(self.obj.columns))[column_indexer]
-        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
-            column_indexer.dtype
+        elif (
+            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):
             ilocs = np.arange(len(column_indexer))[column_indexer]
         else:
@@ -2257,7 +2257,7 @@ class _iLocIndexer(_LocationIndexer):
                     return ser.reindex(ax)._values
 
         elif is_integer(indexer) and self.ndim == 1:
-            if is_object_dtype(self.obj):
+            if is_object_dtype(self.obj.dtype):
                 return ser
             ax = self.obj._get_axis(0)
 

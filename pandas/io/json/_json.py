@@ -665,8 +665,9 @@ def read_json(
 
     Returns
     -------
-    Series or DataFrame
-        The type returned depends on the value of `typ`.
+    Series, DataFrame, or pandas.api.typing.JsonReader
+        A JsonReader is returned when ``chunksize`` is not ``0`` or ``None``.
+        Otherwise, the type returned depends on the value of ``typ``.
 
     See Also
     --------
