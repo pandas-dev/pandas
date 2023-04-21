@@ -334,19 +334,19 @@ class DatetimeProperties(Properties):
         1   2018-03-11
         dtype: datetime64[ns]
 
-        >>> s.dt.to_pydatetime()  # doctest: +SKIP
+        >>> s.dt.to_pydatetime()
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
 
         pandas' nanosecond precision is truncated to microseconds.
 
         >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
-        >>> s  # doctest: +SKIP
+        >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
         dtype: datetime64[ns]
 
-        >>> s.dt.to_pydatetime()  # doctest: +SKIP
+        >>> s.dt.to_pydatetime()
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
         """
