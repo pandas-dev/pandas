@@ -3596,8 +3596,10 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(dtypes[0], BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
                 from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
-
-                masked_arrays = [blk.values for blk in self._mgr.blocks]
+                if isinstance(self._mgr, ArrayManager):
+                    masked_arrays = [arr for arr in self._mgr.arrays]
+                else:
+                    masked_arrays = [blk.values for blk in self._mgr.blocks]
                 new_values = transpose_homogenous_masked_arrays(masked_arrays)
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
