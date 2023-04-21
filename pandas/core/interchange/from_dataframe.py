@@ -6,6 +6,8 @@ from typing import Any
 
 import numpy as np
 
+from pandas.compat._optional import import_optional_dependency
+
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
     Buffer,
@@ -23,7 +25,7 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
     DtypeKind.INT: {8: np.int8, 16: np.int16, 32: np.int32, 64: np.int64},
     DtypeKind.UINT: {8: np.uint8, 16: np.uint16, 32: np.uint32, 64: np.uint64},
     DtypeKind.FLOAT: {32: np.float32, 64: np.float64},
-    DtypeKind.BOOL: {8: bool},
+    DtypeKind.BOOL: {1: bool, 8: bool},
 }
 
 
@@ -406,15 +408,21 @@ def buffer_to_ndarray(
     # and size in the buffer plus the dtype on the column. Use DLPack as NumPy supports
     # it since https://github.com/numpy/numpy/pull/19083
     ctypes_type = np.ctypeslib.as_ctypes_type(column_dtype)
-    data_pointer = ctypes.cast(
-        buffer.ptr + (offset * bit_width // 8), ctypes.POINTER(ctypes_type)
-    )
 
     if bit_width == 1:
         assert length is not None, "`length` must be specified for a bit-mask buffer."
-        arr = np.ctypeslib.as_array(data_pointer, shape=(buffer.bufsize,))
-        return bitmask_to_bool_ndarray(arr, length, first_byte_offset=offset % 8)
+        pa = import_optional_dependency("pyarrow")
+        arr = pa.BooleanArray.from_buffers(
+            pa.bool_(),
+            length,
+            [None, pa.foreign_buffer(buffer.ptr, length)],
+            offset=offset,
+        )
+        return np.asarray(arr)
     else:
+        data_pointer = ctypes.cast(
+            buffer.ptr + (offset * bit_width // 8), ctypes.POINTER(ctypes_type)
+        )
         return np.ctypeslib.as_array(
             data_pointer, shape=(buffer.bufsize // (bit_width // 8),)
         )
