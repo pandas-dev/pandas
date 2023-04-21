@@ -11,6 +11,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -40,6 +41,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -1189,6 +1191,13 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, other)
         except (ValueError, TypeError, LossySetitemError):
             # we cannot coerce, return a compat dtype
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value {other} has dtype incompatible with {values.dtype}",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
