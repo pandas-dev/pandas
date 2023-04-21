@@ -376,7 +376,10 @@ class TestSetitemBooleanMask:
         tm.assert_series_equal(ser2, expected)
 
         ser3 = orig.copy()
-        res = ser3.where(~mask, Series(alt))
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            res = ser3.where(~mask, Series(alt))
         tm.assert_series_equal(res, expected)
 
     def test_setitem_mask_smallint_no_upcast(self):
@@ -776,6 +779,7 @@ class SetitemCastingEquivalents:
         indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_series_where(self, obj, key, expected, val, is_inplace):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
