@@ -141,7 +141,11 @@ class TestDataFrameIndexingWhere:
         # integers are upcast, so don't check the dtypes
         cond = df > 0
         check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
-        _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
+        if (df.dtypes == "int").any():
+            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+                _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
+        else:
+            _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
     def test_where_invalid(self):
         # invalid conditions
@@ -191,14 +195,17 @@ class TestDataFrameIndexingWhere:
             return
 
         cond = df > 0
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
         cond = df >= 0
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
         # aligning
         cond = (df >= 0)[1:]
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
     def test_where_series_slicing(self):
         # GH 10218
