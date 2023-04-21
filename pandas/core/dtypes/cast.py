@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_complex,
-    is_extension_array_dtype,
     is_float,
     is_integer,
     is_object_dtype,
@@ -903,7 +902,8 @@ def infer_dtype_from_array(
     if not is_list_like(arr):
         raise TypeError("'arr' must be list-like")
 
-    if pandas_dtype and is_extension_array_dtype(arr):
+    arr_dtype = getattr(arr, "dtype", None)
+    if pandas_dtype and isinstance(arr_dtype, ExtensionDtype):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
