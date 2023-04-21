@@ -466,9 +466,33 @@ class Block(PandasObject):
         Attempt to coerce any object types to better types. Return a copy
         of the block (if copy = True).
         """
-        if not copy and using_cow:
-            return [self.copy(deep=False)]
-        return [self.copy()] if copy else [self]
+        if not self.is_object:
+            if not copy and using_cow:
+                return [self.copy(deep=False)]
+            return [self.copy()] if copy else [self]
+
+        if self.ndim != 1 and self.shape[0] != 1:
+            return self.split_and_operate(Block.convert, copy=copy, using_cow=using_cow)
+
+        values = self.values
+        if values.ndim == 2:
+            # maybe_split ensures we only get here with values.shape[0] == 1,
+            # avoid doing .ravel as that might make a copy
+            values = values[0]
+
+        res_values = lib.maybe_convert_objects(
+            values,
+            convert_non_numeric=True,
+        )
+        refs = None
+        if copy and res_values is values:
+            res_values = values.copy()
+        elif res_values is values and using_cow:
+            refs = self.refs
+
+        res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = maybe_coerce_values(res_values)
+        return [self.make_block(res_values, refs=refs)]
 
     # ---------------------------------------------------------------------
     # Array-Like Methods
@@ -2117,51 +2141,11 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         dtype = self.values.dtype
         kind = dtype.kind
 
-        if kind in "fciub":
-            return True
-        else:
-            return False
+        return kind in "fciub"
 
     @cache_readonly
     def is_object(self) -> bool:
-        if self.values.dtype.kind == "O":
-            return True
-        else:
-            return False
-
-    @maybe_split
-    def convert(
-        self,
-        *,
-        copy: bool = True,
-        using_cow: bool = False,
-    ) -> list[Block]:
-        """
-        Attempt to coerce any object types to better types. Return a copy
-        of the block (if copy = True).
-        """
-        if not self.is_object:
-            return super().convert(copy=copy, using_cow=using_cow)
-
-        values = self.values
-        if values.ndim == 2:
-            # maybe_split ensures we only get here with values.shape[0] == 1,
-            # avoid doing .ravel as that might make a copy
-            values = values[0]
-
-        res_values = lib.maybe_convert_objects(
-            values,
-            convert_non_numeric=True,
-        )
-        refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
-        elif res_values is values and using_cow:
-            refs = self.refs
-
-        res_values = ensure_block_shape(res_values, self.ndim)
-        res_values = maybe_coerce_values(res_values)
-        return [self.make_block(res_values, refs=refs)]
+        return self.values.dtype.kind == "O"
 
 
 class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
