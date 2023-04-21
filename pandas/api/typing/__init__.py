@@ -2,6 +2,7 @@
 """
 Public API classes that store intermediate results useful for type-hinting.
 """
+from __future__ import annotations
 
 from pandas.core.groupby import (
     DataFrameGroupBy,
