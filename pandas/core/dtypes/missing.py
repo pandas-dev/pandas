@@ -690,6 +690,12 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     if not lib.is_scalar(obj) or not isna(obj):
         return False
+    elif lib.is_pyarrow_scalar(obj):
+        return (
+            obj.is_null()
+            and hasattr(dtype, "pyarrow_dtype")
+            and dtype.pyarrow_dtype == obj.type
+        )
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
             # i.e. not tzaware

@@ -2418,3 +2418,26 @@ def test_describe_numeric_data(pa_type):
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, target_value, dtype",
+    [
+        (pa.scalar(4, type="int32"), 4, "int32[pyarrow]"),
+        (pa.scalar(4, type="int64"), 4, "int32[pyarrow]"),
+        # (pa.scalar(4.5, type="float64"), 4, "int32[pyarrow]"),
+        (4, 4, "int32[pyarrow]"),
+        (pd.NA, None, "int32[pyarrow]"),
+        (None, None, "int32[pyarrow]"),
+        (pa.scalar(None, type="int32"), None, "int32[pyarrow]"),
+        (pa.scalar(None, type="int64"), None, "int32[pyarrow]"),
+    ],
+)
+def test_series_setitem_with_enlargement(value, target_value, dtype):
+    # GH-52235
+    # similar to series/inedexing/test_setitem.py::test_setitem_keep_precision
+    # and test_setitem_enlarge_with_na, but for arrow dtypes
+    ser = pd.Series([1, 2, 3], dtype=dtype)
+    ser[3] = value
+    expected = pd.Series([1, 2, 3, target_value], dtype=dtype)
+    tm.assert_series_equal(ser, expected)

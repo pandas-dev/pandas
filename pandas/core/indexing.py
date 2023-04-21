@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
+from pandas._libs import lib
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
@@ -2098,8 +2099,15 @@ class _iLocIndexer(_LocationIndexer):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
                 curr_dtype = self.obj.dtype
-                curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
-                new_dtype = maybe_promote(curr_dtype, value)[0]
+                if lib.is_pyarrow_scalar(value) and hasattr(
+                    curr_dtype, "pyarrow_dtype"
+                ):
+                    # TODO promote arrow scalar and type
+                    new_dtype = curr_dtype
+                    value = value.as_py()
+                else:
+                    curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
+                    new_dtype = maybe_promote(curr_dtype, value)[0]
             else:
                 new_dtype = None
 

@@ -145,6 +145,32 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
+cdef bint PYARROW_INSTALLED = False
+
+try:
+    import pyarrow as pa
+
+    PYARROW_INSTALLED = True
+except ImportError:
+    pa = None
+
+
+cpdef is_pyarrow_array(obj):
+    if PYARROW_INSTALLED:
+        return isinstance(obj, (pa.Array, pa.ChunkedArray))
+    return False
+
+
+cpdef is_pyarrow_scalar(obj):
+    if PYARROW_INSTALLED:
+        return isinstance(obj, pa.Scalar)
+    return False
+
+
+def is_pyarrow_installed():
+    return PYARROW_INSTALLED
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(arr: object[:]) -> int64_t:
@@ -238,6 +264,7 @@ def is_scalar(val: object) -> bool:
 
     # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
     return (PyNumber_Check(val)
+            or is_pyarrow_scalar(val)
             or is_period_object(val)
             or is_interval(val)
             or is_offset_object(val))
