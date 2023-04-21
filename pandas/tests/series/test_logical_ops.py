@@ -217,8 +217,6 @@ class TestSeriesLogicalOps:
     def test_logical_operators_int_dtype_with_bool_dtype_and_reindex(self):
         # GH#9016: support bitwise op for integer types
 
-        # with non-matching indexes, logical operators will cast to object
-        #  before operating
         index = list("bca")
 
         s_tft = Series([True, False, True], index=index)
@@ -232,9 +230,10 @@ class TestSeriesLogicalOps:
         result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
-        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        result = s_0123 & s_tft
-        tm.assert_series_equal(result, expected)
+        # GH 52538: No longer cast to object type when reindex is needed;
+        # matches DataFrame behavior
+        with pytest.raises(TypeError, match="unsupported operand"):
+            result = s_0123 & s_tft
 
         s_a0b1c0 = Series([1], list("b"))
 
@@ -496,3 +495,14 @@ class TestSeriesLogicalOps:
 
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
+
+    def test_int_dtype_different_index_not_bool(self):
+        # GH 52500
+        ser1 = Series([1, 2, 3], index=[10, 11, 23], name="a")
+        ser2 = Series([10, 20, 30], index=[11, 10, 23], name="a")
+        result = np.bitwise_xor(ser1, ser2)
+        expected = Series([21, 8, 29], index=[10, 11, 23], name="a")
+        tm.assert_series_equal(result, expected)
+
+        result = ser1 ^ ser2
+        tm.assert_series_equal(result, expected)

@@ -313,7 +313,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
--
+- Bug in :class:`Series` logical operation between objects with different indexes always coercing the result to bool dtype (:issue:`52500`, :issue:`52538`)
 
 Conversion
 ^^^^^^^^^^
