@@ -1709,7 +1709,7 @@ Colormaps can also be used other plot types, like bar charts:
 
 .. ipython:: python
 
-   dd = pd.DataFrame(np.random.randn(10, 10)).applymap(abs)
+   dd = pd.DataFrame(np.random.randn(10, 10)).map(abs)
    dd = dd.cumsum()
 
    plt.figure();
