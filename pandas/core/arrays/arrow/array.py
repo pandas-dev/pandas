@@ -2103,6 +2103,68 @@ class ArrowExtensionArray(
         return type(self)(pc.is_leap_year(self._pa_array))
 
     @property
+    def _dt_is_month_start(self):
+        return type(self)(pc.equal(pc.day(self._pa_array), 1))
+
+    @property
+    def _dt_is_month_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="month"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_year_start(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 1),
+                pc.equal(pc.day(self._pa_array), 1),
+            )
+        )
+
+    @property
+    def _dt_is_year_end(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 12),
+                pc.equal(pc.day(self._pa_array), 31),
+            )
+        )
+
+    @property
+    def _dt_is_quarter_start(self):
+        result = pc.equal(
+            pc.floor_temporal(self._pa_array, unit="quarter"),
+            pc.floor_temporal(self._pa_array, unit="day"),
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_quarter_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="quarter"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_days_in_month(self):
+        result = pc.days_between(
+            pc.floor_temporal(self._pa_array, unit="month"),
+            pc.ceil_temporal(self._pa_array, unit="month"),
+        )
+        return type(self)(result)
+
+    _dt_daysinmonth = _dt_days_in_month
+
+    @property
     def _dt_microsecond(self):
         return type(self)(pc.microsecond(self._pa_array))
 
@@ -2142,6 +2204,13 @@ class ArrowExtensionArray(
     @property
     def _dt_tz(self):
         return self.dtype.pyarrow_dtype.tz
+
+    @property
+    def _dt_unit(self):
+        return self.dtype.pyarrow_dtype.unit
+
+    def _dt_normalize(self):
+        return type(self)(pc.floor_temporal(self._pa_array, 1, "day"))
 
     def _dt_strftime(self, format: str):
         return type(self)(pc.strftime(self._pa_array, format=format))
@@ -2207,6 +2276,16 @@ class ArrowExtensionArray(
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
+    def _dt_day_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%A", locale=locale))
+
+    def _dt_month_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
+
     def _dt_to_pydatetime(self):
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
@@ -2236,4 +2315,13 @@ class ArrowExtensionArray(
             result = pc.assume_timezone(
                 self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
             )
+        return type(self)(result)
+
+    def _dt_tz_convert(self, tz):
+        if self.dtype.pyarrow_dtype.tz is None:
+            raise TypeError(
+                "Cannot convert tz-naive timestamps, use tz_localize to localize"
+            )
+        current_unit = self.dtype.pyarrow_dtype.unit
+        result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
