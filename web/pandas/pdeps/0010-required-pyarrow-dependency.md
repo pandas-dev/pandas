@@ -25,7 +25,7 @@ PyArrow is an optional dependency of pandas that provides a wide range of supple
 - Since pandas 1.2.0, pandas integrated PyArrow into the `ExtensionArray` interface to provide an optional string data type backed by PyArrow
 - Since pandas 1.4.0, PyArrow provided I/0 reading functionality for CSV
 - Since pandas 1.5.0, pandas provided an `ArrowExtensionArray` and `ArrowDtype` to support all PyArrow data types within the `ExtensionArray` interface
-- Since pandas 2.0.0, All I/O readers have the option to return PyArrow-backed data types, and many methods now utilize PyArrow compute functions to
+- Since pandas 2.0.0, all I/O readers have the option to return PyArrow-backed data types, and many methods now utilize PyArrow compute functions to
 accelerate PyArrow-backed data in pandas, notibly string and datetime types.
 
 As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data representation to NumPy with advantages such as:
