@@ -236,6 +236,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data[key] = value
         self._mask[key] = mask
 
+    def __contains__(self, key) -> bool:
+        # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
+        if isna(key) and key is not self.dtype.na_value:
+            if self._data.dtype.kind == "f" and lib.is_float(key):
+                return (np.isnan(self._data) & ~self._mask).any()
+
+        return super().__contains__(key)
+
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
             if not self._hasna:
