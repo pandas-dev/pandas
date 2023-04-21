@@ -489,21 +489,23 @@ class _DeprecationConfig(NamedTuple):
 
 
 @overload
-def validate_integer(name, val: None, min_val: int = ...) -> None:
+def validate_integer(name: str, val: None, min_val: int = ...) -> None:
     ...
 
 
 @overload
-def validate_integer(name, val: float, min_val: int = ...) -> int:
+def validate_integer(name: str, val: float, min_val: int = ...) -> int:
     ...
 
 
 @overload
-def validate_integer(name, val: int | None, min_val: int = ...) -> int | None:
+def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None:
     ...
 
 
-def validate_integer(name, val: int | float | None, min_val: int = 0) -> int | None:
+def validate_integer(
+    name: str, val: int | float | None, min_val: int = 0
+) -> int | None:
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -1458,7 +1460,10 @@ class TextFileReader(abc.Iterator):
                 value = kwds[argname]
 
                 if engine != "c" and value != default:
+                    # TODO: Refactor this logic, its pretty convoluted
                     if "python" in engine and argname not in _python_unsupported:
+                        pass
+                    elif "pyarrow" in engine and argname not in _pyarrow_unsupported:
                         pass
                     else:
                         raise ValueError(

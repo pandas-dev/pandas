@@ -288,7 +288,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
     def test_fillna_copy_series(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
-        ser = pd.Series(arr)
+        ser = pd.Series(arr, copy=False)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)

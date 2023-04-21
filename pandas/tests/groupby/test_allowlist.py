@@ -1,6 +1,6 @@
 """
-test methods relating to generic function evaluation
-the so-called white/black lists
+TODO: Existing tests should be moved or deduplicated
+Do not add tests here!
 """
 
 from string import ascii_lowercase
@@ -14,11 +14,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import (
-    groupby_other_methods,
-    reduction_kernels,
-    transformation_kernels,
-)
 
 AGG_FUNCTIONS = [
     "sum",
@@ -100,131 +95,6 @@ def test_regression_allowlist_methods(raw_frame, op, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_blocklist(df_letters):
-    df = df_letters
-    s = df_letters.floats
-
-    blocklist = [
-        "eval",
-        "query",
-        "abs",
-        "where",
-        "mask",
-        "align",
-        "groupby",
-        "clip",
-        "astype",
-        "at",
-        "combine",
-        "consolidate",
-        "convert_objects",
-    ]
-    to_methods = [method for method in dir(df) if method.startswith("to_")]
-
-    blocklist.extend(to_methods)
-
-    for bl in blocklist:
-        for obj in (df, s):
-            gb = obj.groupby(df.letters)
-
-            # e.g., to_csv
-            defined_but_not_allowed = (
-                f"(?:^Cannot.+{repr(bl)}.+'{type(gb).__name__}'.+try "
-                f"using the 'apply' method$)"
-            )
-
-            # e.g., query, eval
-            not_defined = (
-                f"(?:^'{type(gb).__name__}' object has no attribute {repr(bl)}$)"
-            )
-
-            msg = f"{defined_but_not_allowed}|{not_defined}"
-
-            with pytest.raises(AttributeError, match=msg):
-                getattr(gb, bl)
-
-
-def test_tab_completion(mframe):
-    grp = mframe.groupby(level="second")
-    results = {v for v in dir(grp) if not v.startswith("_")}
-    expected = {
-        "A",
-        "B",
-        "C",
-        "agg",
-        "aggregate",
-        "apply",
-        "boxplot",
-        "filter",
-        "first",
-        "get_group",
-        "groups",
-        "hist",
-        "indices",
-        "last",
-        "max",
-        "mean",
-        "median",
-        "min",
-        "ngroups",
-        "nth",
-        "ohlc",
-        "plot",
-        "prod",
-        "size",
-        "std",
-        "sum",
-        "transform",
-        "var",
-        "sem",
-        "count",
-        "nunique",
-        "head",
-        "describe",
-        "cummax",
-        "quantile",
-        "rank",
-        "cumprod",
-        "tail",
-        "resample",
-        "cummin",
-        "fillna",
-        "cumsum",
-        "cumcount",
-        "ngroup",
-        "all",
-        "shift",
-        "skew",
-        "take",
-        "pct_change",
-        "any",
-        "corr",
-        "corrwith",
-        "cov",
-        "dtypes",
-        "ndim",
-        "diff",
-        "idxmax",
-        "idxmin",
-        "ffill",
-        "bfill",
-        "rolling",
-        "expanding",
-        "pipe",
-        "sample",
-        "ewm",
-        "value_counts",
-    }
-    assert results == expected
-
-
-def test_groupby_function_rename(mframe):
-    grp = mframe.groupby(level="second")
-    for name in ["sum", "prod", "min", "max", "first", "last"]:
-        f = getattr(grp, name)
-        assert f.__name__ == name
-
-
 @pytest.mark.parametrize(
     "method",
     [
@@ -285,47 +155,3 @@ def test_groupby_selection_other_methods(df):
     tm.assert_frame_equal(
         g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
     )
-
-
-def test_all_methods_categorized(mframe):
-    grp = mframe.groupby(mframe.iloc[:, 0])
-    names = {_ for _ in dir(grp) if not _.startswith("_")} - set(mframe.columns)
-    new_names = set(names)
-    new_names -= reduction_kernels
-    new_names -= transformation_kernels
-    new_names -= groupby_other_methods
-
-    assert not reduction_kernels & transformation_kernels
-    assert not reduction_kernels & groupby_other_methods
-    assert not transformation_kernels & groupby_other_methods
-
-    # new public method?
-    if new_names:
-        msg = f"""
-There are uncategorized methods defined on the Grouper class:
-{new_names}.
-
-Was a new method recently added?
-
-Every public method On Grouper must appear in exactly one the
-following three lists defined in pandas.core.groupby.base:
-- `reduction_kernels`
-- `transformation_kernels`
-- `groupby_other_methods`
-see the comments in pandas/core/groupby/base.py for guidance on
-how to fix this test.
-        """
-        raise AssertionError(msg)
-
-    # removed a public method?
-    all_categorized = reduction_kernels | transformation_kernels | groupby_other_methods
-    if names != all_categorized:
-        msg = f"""
-Some methods which are supposed to be on the Grouper class
-are missing:
-{all_categorized - names}.
-
-They're still defined in one of the lists that live in pandas/core/groupby/base.py.
-If you removed a method, you should update them
-"""
-        raise AssertionError(msg)

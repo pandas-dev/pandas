@@ -103,9 +103,9 @@ if compat.PY39:
 
 def pytest_addoption(parser) -> None:
     parser.addoption(
-        "--no-strict-data-files",
-        action="store_false",
-        help="Don't fail if a test is skipped for missing data file.",
+        "--strict-data-files",
+        action="store_true",
+        help="Fail if a test is skipped for missing data file.",
     )
 
 
@@ -135,8 +135,21 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
+        ("is_int64_dtype", "is_int64_dtype is deprecated"),
+        ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "to_pydatetime",
+            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
+        ),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
     ]
 
     for item in items:
@@ -708,7 +721,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -758,6 +771,29 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=True)
+
+
+_typ_objects_series = {
+    f"{dtype.__name__}-series": Series(dtype) for dtype in tm.PYTHON_DATA_TYPES
+}
+
+
+_index_or_series_memory_objs = {
+    **indices_dict,
+    **_series,
+    **_narrow_series,
+    **_typ_objects_series,
+}
+
+
+@pytest.fixture(params=_index_or_series_memory_objs.keys())
+def index_or_series_memory_obj(request):
+    """
+    Fixture for tests on indexes, series, series with a narrow dtype and
+    series with empty objects type
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_memory_objs[request.param].copy(deep=True)
 
 
 # ----------------------------------------------------------------
@@ -1112,9 +1148,9 @@ def all_numeric_accumulations(request):
 @pytest.fixture
 def strict_data_files(pytestconfig):
     """
-    Returns the configuration for the test setting `--no-strict-data-files`.
+    Returns the configuration for the test setting `--strict-data-files`.
     """
-    return pytestconfig.getoption("--no-strict-data-files")
+    return pytestconfig.getoption("--strict-data-files")
 
 
 @pytest.fixture
@@ -1134,7 +1170,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     Raises
     ------
     ValueError
-        If the path doesn't exist and the --no-strict-data-files option is not set.
+        If the path doesn't exist and the --strict-data-files option is set.
     """
     BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
 
@@ -1143,7 +1179,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         if not os.path.exists(path):
             if strict_data_files:
                 raise ValueError(
-                    f"Could not find file {path} and --no-strict-data-files is not set."
+                    f"Could not find file {path} and --strict-data-files is set."
                 )
             pytest.skip(f"Could not find {path}.")
         return path

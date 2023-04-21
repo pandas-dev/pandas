@@ -174,7 +174,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return False
         if not is_dtype_equal(self.dtype, other.dtype):
             return False
-        return bool(array_equivalent(self._ndarray, other._ndarray))
+        return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -224,13 +224,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         to_concat: Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
-        dtypes = {str(x.dtype) for x in to_concat}
-        if len(dtypes) != 1:
-            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+        if not lib.dtypes_all_equal([x.dtype for x in to_concat]):
+            dtypes = {str(x.dtype) for x in to_concat}
+            raise ValueError("to_concat must have the same dtype", dtypes)
 
-        new_values = [x._ndarray for x in to_concat]
-        new_arr = np.concatenate(new_values, axis=axis)
-        return to_concat[0]._from_backing_data(new_arr)
+        return super()._concat_same_type(to_concat, axis=axis)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -291,14 +289,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return result
 
     def _fill_mask_inplace(
-        self, method: str, limit, mask: npt.NDArray[np.bool_]
+        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
     ) -> None:
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit=None) -> Self:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         value, method = validate_fillna_kwargs(
             value, method, validate_scalar_dict_value=False
         )
@@ -447,7 +445,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
-        return Series(result._values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(
         self,

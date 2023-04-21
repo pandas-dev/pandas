@@ -86,6 +86,11 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
+        warn_msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+
         msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_0123 & np.NaN
@@ -93,7 +98,8 @@ class TestSeriesLogicalOps:
             s_0123 & 3.14
         msg = "unsupported operand type.+for &:"
         with pytest.raises(TypeError, match=msg):
-            s_0123 & [0.1, 4, 3.14, 2]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                s_0123 & [0.1, 4, 3.14, 2]
         with pytest.raises(TypeError, match=msg):
             s_0123 & np.array([0.1, 4, 3.14, 2])
         with pytest.raises(TypeError, match=msg):
@@ -101,11 +107,18 @@ class TestSeriesLogicalOps:
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
+
+        warn_msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+
         msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
         with pytest.raises(TypeError, match="unsupported operand.+for &"):
-            s_1111 & ["a", "b", "c", "d"]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
         # GH#9016: support bitwise op for integer types
@@ -116,10 +129,16 @@ class TestSeriesLogicalOps:
         result = s_0123 & False
         tm.assert_series_equal(result, expected)
 
-        result = s_0123 & [False]
+        warn_msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = s_0123 & [False]
         tm.assert_series_equal(result, expected)
 
-        result = s_0123 & (False,)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = s_0123 & (False,)
         tm.assert_series_equal(result, expected)
 
         result = s_0123 ^ False
@@ -157,8 +176,14 @@ class TestSeriesLogicalOps:
         left = Series([True, True, True, False, True])
         right = [True, False, None, True, np.nan]
 
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+
         expected = Series([True, False, False, False, False])
-        result = left & right
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left & right
         tm.assert_series_equal(result, expected)
         result = left & np.array(right)
         tm.assert_series_equal(result, expected)
@@ -168,7 +193,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         expected = Series([True, True, True, True, True])
-        result = left | right
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left | right
         tm.assert_series_equal(result, expected)
         result = left | np.array(right)
         tm.assert_series_equal(result, expected)
@@ -178,7 +204,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         expected = Series([False, True, True, True, True])
-        result = left ^ right
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left ^ right
         tm.assert_series_equal(result, expected)
         result = left ^ np.array(right)
         tm.assert_series_equal(result, expected)
@@ -231,7 +258,13 @@ class TestSeriesLogicalOps:
 
         expected = Series(True, index=s.index)
         expected[::2] = False
-        result = s & list(s)
+
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s & list(s)
         tm.assert_series_equal(result, expected)
 
     def test_scalar_na_logical_ops_corners_aligns(self):

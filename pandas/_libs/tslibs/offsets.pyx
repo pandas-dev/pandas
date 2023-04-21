@@ -1350,18 +1350,18 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
     valid date, first it is moved to a valid date.  Thus pseudo code
-    is:
+    is::
 
-    def __add__(date):
-      date = rollback(date) # does nothing if date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollback(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     When a date offset is created for a negative number of periods,
-    the date is first rolled forward.  The pseudo code is:
+    the date is first rolled forward.  The pseudo code is::
 
-    def __add__(date):
-      date = rollforward(date) # does nothing is date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollforward(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     Zero presents a problem.  Should it roll forward or back?  We
     arbitrarily have it rollforward:
@@ -2313,12 +2313,28 @@ cdef class YearEnd(YearOffset):
 
 cdef class YearBegin(YearOffset):
     """
-    DateOffset increments between calendar year begin dates.
+    DateOffset of one year at beginning.
+
+    YearBegin goes to the next date which is a start of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 12, 1)
     >>> ts + pd.offsets.YearBegin()
+    Timestamp('2023-01-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2023, 1, 1)
+    >>> ts + pd.offsets.YearBegin()
+    Timestamp('2024-01-01 00:00:00')
+
+    If you want to get the start of the current year:
+
+    >>> ts = pd.Timestamp(2023, 1, 1)
+    >>> pd.offsets.YearBegin().rollback(ts)
     Timestamp('2023-01-01 00:00:00')
     """
 
@@ -2546,7 +2562,6 @@ cdef class MonthEnd(MonthOffset):
     DateOffset of one month end.
 
     MonthEnd goes to the next date which is an end of the month.
-    To get the end of the current month pass the parameter n equals 0.
 
     See Also
     --------
@@ -2562,10 +2577,10 @@ cdef class MonthEnd(MonthOffset):
     >>> ts + pd.offsets.MonthEnd()
     Timestamp('2022-02-28 00:00:00')
 
-    If you want to get the end of the current month pass the parameter n equals 0:
+    If you want to get the end of the current month:
 
     >>> ts = pd.Timestamp(2022, 1, 31)
-    >>> ts + pd.offsets.MonthEnd(0)
+    >>> pd.offsets.MonthEnd().rollforward(ts)
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
@@ -2578,7 +2593,6 @@ cdef class MonthBegin(MonthOffset):
     DateOffset of one month at beginning.
 
     MonthBegin goes to the next date which is a start of the month.
-    To get the start of the current month pass the parameter n equals 0.
 
     See Also
     --------
@@ -2594,10 +2608,10 @@ cdef class MonthBegin(MonthOffset):
     >>> ts + pd.offsets.MonthBegin()
     Timestamp('2023-01-01 00:00:00')
 
-    If you want to get the start of the current month pass the parameter n equals 0:
+    If you want to get the start of the current month:
 
     >>> ts = pd.Timestamp(2022, 12, 1)
-    >>> ts + pd.offsets.MonthBegin(0)
+    >>> pd.offsets.MonthBegin().rollback(ts)
     Timestamp('2022-12-01 00:00:00')
     """
     _prefix = "MS"
@@ -2609,7 +2623,6 @@ cdef class BusinessMonthEnd(MonthOffset):
     DateOffset increments between the last business day of the month.
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
-    To get the last business day of the current month pass the parameter n equals 0.
 
     Examples
     --------
@@ -2621,11 +2634,10 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts + pd.offsets.BMonthEnd()
     Timestamp('2022-12-30 00:00:00')
 
-    If you want to get the end of the current business month
-    pass the parameter n equals 0:
+    If you want to get the end of the current business month:
 
     >>> ts = pd.Timestamp(2022, 11, 30)
-    >>> ts + pd.offsets.BMonthEnd(0)
+    >>> pd.offsets.BMonthEnd().rollforward(ts)
     Timestamp('2022-11-30 00:00:00')
     """
     _prefix = "BM"
@@ -2637,8 +2649,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     DateOffset of one month at the first business day.
 
     BusinessMonthBegin goes to the next date which is the first business day
-    of the month. To get the first business day of the current month pass
-    the parameter n equals 0.
+    of the month.
 
     Examples
     --------
@@ -2650,11 +2661,10 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts + pd.offsets.BMonthBegin()
     Timestamp('2023-01-02 00:00:00')
 
-    If you want to get the start of the current business month pass
-    the parameter n equals 0:
+    If you want to get the start of the current business month:
 
     >>> ts = pd.Timestamp(2022, 12, 1)
-    >>> ts + pd.offsets.BMonthBegin(0)
+    >>> pd.offsets.BMonthBegin().rollback(ts)
     Timestamp('2022-12-01 00:00:00')
     """
     _prefix = "BMS"
@@ -2821,10 +2831,10 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> ts + pd.offsets.SemiMonthEnd()
     Timestamp('2022-02-15 00:00:00')
 
-    If you want to get the result for the current month pass the parameter n equals 0:
+    If you want to get the result for the current month:
 
     >>> ts = pd.Timestamp(2022, 1, 15)
-    >>> ts + pd.offsets.SemiMonthEnd(0)
+    >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
     _prefix = "SM"
@@ -3767,6 +3777,13 @@ cdef class CustomBusinessDay(BusinessDay):
     _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
+
+    @property
+    def _period_dtype_code(self):
+        # GH#52534
+        raise TypeError(
+            "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        )
 
     _apply_array = BaseOffset._apply_array
 

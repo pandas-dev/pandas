@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -29,7 +30,7 @@ def test_series_from_series(dtype, using_copy_on_write):
     result = Series(ser, dtype=dtype)
 
     # the shallow copy still shares memory
-    assert np.shares_memory(ser.values, result.values)
+    assert np.shares_memory(get_array(ser), get_array(result))
 
     if using_copy_on_write:
         assert result._mgr.blocks[0].refs.has_reference()
@@ -39,13 +40,13 @@ def test_series_from_series(dtype, using_copy_on_write):
         result.iloc[0] = 0
         assert ser.iloc[0] == 1
         # mutating triggered a copy-on-write -> no longer shares memory
-        assert not np.shares_memory(ser.values, result.values)
+        assert not np.shares_memory(get_array(ser), get_array(result))
     else:
         # mutating shallow copy does mutate original
         result.iloc[0] = 0
         assert ser.iloc[0] == 0
         # and still shares memory
-        assert np.shares_memory(ser.values, result.values)
+        assert np.shares_memory(get_array(ser), get_array(result))
 
     # the same when modifying the parent
     result = Series(ser, dtype=dtype)
@@ -89,6 +90,38 @@ def test_series_from_series_with_reindex(using_copy_on_write):
         assert not result._mgr.blocks[0].refs.has_reference()
 
 
+@pytest.mark.parametrize("fastpath", [False, True])
+@pytest.mark.parametrize("dtype", [None, "int64"])
+@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
+@pytest.mark.parametrize(
+    "arr", [np.array([1, 2, 3], dtype="int64"), pd.array([1, 2, 3], dtype="Int64")]
+)
+def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
+    if idx is None or dtype is not None:
+        fastpath = False
+    ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
+    ser_orig = ser.copy()
+    data = getattr(arr, "_data", arr)
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(ser), data)
+    else:
+        assert np.shares_memory(get_array(ser), data)
+
+    arr[0] = 100
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        expected = Series([100, 2, 3], dtype=dtype if dtype is not None else arr.dtype)
+        tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("copy", [True, False, None])
+def test_series_from_array_different_dtype(using_copy_on_write, copy):
+    arr = np.array([1, 2, 3], dtype="int64")
+    ser = Series(arr, dtype="int32", copy=copy)
+    assert not np.shares_memory(get_array(ser), arr)
+
+
 @pytest.mark.parametrize(
     "idx",
     [
@@ -116,6 +149,33 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
     assert not np.shares_memory(get_array(ser), get_array(idx))
     if using_copy_on_write:
         assert ser._mgr._has_no_reference(0)
+
+
+@pytest.mark.parametrize("fastpath", [False, True])
+@pytest.mark.parametrize("dtype", [None, "int64"])
+@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
+def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
+    ser = Series([1, 2, 3], dtype="int64")
+    ser_orig = ser.copy()
+    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+    assert np.shares_memory(get_array(ser), get_array(ser2))
+    if using_copy_on_write:
+        assert not ser2._mgr._has_no_reference(0)
+
+    ser2.iloc[0] = 100
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
+        expected = Series([100, 2, 3])
+        tm.assert_series_equal(ser, expected)
+
+
+def test_series_from_block_manager_different_dtype(using_copy_on_write):
+    ser = Series([1, 2, 3], dtype="int64")
+    ser2 = Series(ser._mgr, dtype="int32")
+    assert not np.shares_memory(get_array(ser), get_array(ser2))
+    if using_copy_on_write:
+        assert ser2._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
@@ -198,6 +258,40 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     df.iloc[0, 0] = 100
     arr_after = get_array(df, "a")
     assert np.shares_memory(arr_before, arr_after)
+
+
+@pytest.mark.parametrize("cons", [Series, Index])
+@pytest.mark.parametrize(
+    "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
+)
+def test_dataframe_from_series_or_index(using_copy_on_write, data, dtype, cons):
+    obj = cons(data, dtype=dtype)
+    obj_orig = obj.copy()
+    df = DataFrame(obj, dtype=dtype)
+    assert np.shares_memory(get_array(obj), get_array(df, 0))
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
+
+    df.iloc[0, 0] = data[-1]
+    if using_copy_on_write:
+        tm.assert_equal(obj, obj_orig)
+
+
+@pytest.mark.parametrize("cons", [Series, Index])
+def test_dataframe_from_series_or_index_different_dtype(using_copy_on_write, cons):
+    obj = cons([1, 2], dtype="int64")
+    df = DataFrame(obj, dtype="int32")
+    assert not np.shares_memory(get_array(obj), get_array(df, 0))
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
+
+
+def test_dataframe_from_series_infer_datetime(using_copy_on_write):
+    ser = Series([Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype=object)
+    df = DataFrame(ser)
+    assert not np.shares_memory(get_array(ser), get_array(df, 0))
+    if using_copy_on_write:
+        assert df._mgr._has_no_reference(0)
 
 
 @pytest.mark.parametrize("index", [None, [0, 1, 2]])

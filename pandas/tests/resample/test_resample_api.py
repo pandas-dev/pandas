@@ -71,7 +71,9 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -568,9 +570,13 @@ def test_multi_agg_axis_1_raises(func):
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
-    res = df.resample("M", axis=1)
-    with pytest.raises(NotImplementedError, match="axis other than 0 is not supported"):
-        res.agg(func)
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        res = df.resample("M", axis=1)
+        with pytest.raises(
+            NotImplementedError, match="axis other than 0 is not supported"
+        ):
+            res.agg(func)
 
 
 def test_agg_nested_dicts():
@@ -971,3 +977,54 @@ def test_args_kwargs_depr(method, raises):
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             with pytest.raises(TypeError, match=error_msg_type):
                 func(*args, 1, 2, 3)
+
+
+def test_df_axis_param_depr():
+    np.random.seed(1234)
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index.name = "date"
+    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+
+    # Deprecation error when axis=1 is explicitly passed
+    warning_msg = "DataFrame.resample with axis=1 is deprecated."
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.resample("M", axis=1)
+
+    # Deprecation error when axis=0 is explicitly passed
+    df = df.T
+    warning_msg = (
+        "The 'axis' keyword in DataFrame.resample is deprecated and "
+        "will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        df.resample("M", axis=0)
+
+
+def test_series_axis_param_depr():
+    warning_msg = (
+        "The 'axis' keyword in Series.resample is "
+        "deprecated and will be removed in a future version."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        test_series.resample("H", axis=0)
+
+
+def test_resample_empty():
+    # GH#52484
+    df = DataFrame(
+        index=pd.to_datetime(
+            ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+        )
+    )
+    expected = DataFrame(
+        index=pd.to_datetime(
+            [
+                "2018-01-01 00:00:00",
+                "2018-01-01 08:00:00",
+                "2018-01-01 16:00:00",
+                "2018-01-02 00:00:00",
+            ]
+        )
+    )
+    result = df.resample("8H").mean()
+    tm.assert_frame_equal(result, expected)

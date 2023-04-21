@@ -1231,8 +1231,7 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
@@ -1307,7 +1306,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-    def test_dropna(self):
+    def test_value_counts_dropna(self):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(

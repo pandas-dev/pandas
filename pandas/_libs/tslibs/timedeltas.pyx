@@ -4,6 +4,10 @@ import warnings
 cimport cython
 from cpython.object cimport (
     Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
     Py_NE,
     PyObject,
     PyObject_RichCompare,
@@ -771,7 +775,7 @@ def _binary_op_method_timedeltalike(op, name):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return f(self, item)
 
-            elif other.dtype.kind in ["m", "M"]:
+            elif other.dtype.kind in "mM":
                 return op(self.to_timedelta64(), other)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
@@ -1154,8 +1158,27 @@ cdef class _Timedelta(timedelta):
         if isinstance(other, _Timedelta):
             ots = other
         elif is_any_td_scalar(other):
-            ots = Timedelta(other)
-            # TODO: watch out for overflows
+            try:
+                ots = Timedelta(other)
+            except OutOfBoundsTimedelta as err:
+                # GH#49021 pytimedelta.max overflows
+                if not PyDelta_Check(other):
+                    # TODO: handle this case
+                    raise
+                ltup = (self.days, self.seconds, self.microseconds, self.nanoseconds)
+                rtup = (other.days, other.seconds, other.microseconds, 0)
+                if op == Py_EQ:
+                    return ltup == rtup
+                elif op == Py_NE:
+                    return ltup != rtup
+                elif op == Py_LT:
+                    return ltup < rtup
+                elif op == Py_LE:
+                    return ltup <= rtup
+                elif op == Py_GT:
+                    return ltup > rtup
+                elif op == Py_GE:
+                    return ltup >= rtup
 
         elif other is NaT:
             return op == Py_NE
@@ -2005,7 +2028,7 @@ class Timedelta(_Timedelta):
                     result[mask] = np.nan
                 return result
 
-            elif other.dtype.kind in ["i", "u", "f"]:
+            elif other.dtype.kind in "iuf":
                 if other.ndim == 0:
                     return self // other.item()
                 else:
