@@ -6,6 +6,10 @@ import pandas as pd
 from pandas import api
 import pandas._testing as tm
 from pandas.api import typing as api_typing
+from pandas.api import types as api_types
+from pandas.api import interchange as api_interchange
+from pandas.api import indexers as api_indexers
+from pandas.api import extensions as api_extensions
 
 
 class Base:
@@ -17,10 +21,12 @@ class Base:
         result = sorted(
             f for f in dir(namespace) if not f.startswith("__") and f != "annotations"
         )
+
         if ignored is not None:
             result = sorted(set(result) - set(ignored))
 
         expected = sorted(expected)
+
         tm.assert_almost_equal(result, expected)
 
 
@@ -256,13 +262,94 @@ class TestApi(Base):
         "TimeGrouper",
         "Window",
     ]
+    allowed_api_types = [
+        "is_any_real_numeric_dtype",
+        "is_array_like",
+        "is_bool",
+        "is_bool_dtype",
+        "is_categorical_dtype",
+        "is_complex",
+        "is_complex_dtype",
+        "is_datetime64_any_dtype",
+        "is_datetime64_dtype",
+        "is_datetime64_ns_dtype",
+        "is_datetime64tz_dtype",
+        "is_dict_like",
+        "is_dtype_equal",
+        "is_extension_array_dtype",
+        "is_file_like",
+        "is_float",
+        "is_float_dtype",
+        "is_hashable",
+        "is_int64_dtype",
+        "is_integer",
+        "is_integer_dtype",
+        "is_interval",
+        "is_interval_dtype",
+        "is_iterator",
+        "is_list_like",
+        "is_named_tuple",
+        "is_number",
+        "is_numeric_dtype",
+        "is_object_dtype",
+        "is_period_dtype",
+        "is_re",
+        "is_re_compilable",
+        "is_scalar",
+        "is_signed_integer_dtype",
+        "is_sparse",
+        "is_string_dtype",
+        "is_timedelta64_dtype",
+        "is_timedelta64_ns_dtype",
+        "is_unsigned_integer_dtype",
+        "pandas_dtype",
+        "infer_dtype",
+        "union_categoricals",
+        "CategoricalDtype",
+        "DatetimeTZDtype",
+        "IntervalDtype",
+        "PeriodDtype",
+    ]
+    allowed_api_interchange = [
+        "from_dataframe",
+        "DataFrame"
+    ]
+    allowed_api_indexers = [
+        "check_array_indexer",
+        "BaseIndexer",
+        "FixedForwardWindowIndexer",
+        "VariableOffsetWindowIndexer",
+    ]
+    allowed_api_extensions = [
+        "no_default",
+        "ExtensionDtype",
+        "register_extension_dtype",
+        "register_dataframe_accessor",
+        "register_index_accessor",
+        "register_series_accessor",
+        "take",
+        "ExtensionArray",
+        "ExtensionScalarOpsMixin",
+    ]
+
 
     def test_api(self):
         self.check(api, self.allowed)
 
     def test_api_typing(self):
         self.check(api_typing, self.allowed_typing)
+    
+    def test_api_types(self):
+        self.check(api_types, self.allowed_api_types)
 
+    def test_api_interchange(self):
+        self.check(api_interchange, self.allowed_api_interchange)
+    
+    def test_api_indexers(self):
+        self.check(api_indexers, self.allowed_api_indexers)
+    
+    def test_api_extensions(self):
+        self.check(api_extensions, self.allowed_api_extensions)
 
 class TestTesting(Base):
     funcs = [
