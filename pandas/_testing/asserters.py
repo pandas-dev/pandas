@@ -16,7 +16,6 @@ from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -316,7 +315,7 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
-            if is_extension_array_dtype(mismatch):
+            if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
@@ -547,7 +546,7 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    assert_attr_equal("freq", left, right, obj=obj)
+    assert_attr_equal("dtype", left, right, obj=obj)
 
 
 def assert_datetime_array_equal(

@@ -422,7 +422,7 @@ repos:
         files: ^pandas/tests
         language: python
     -   id: sort-whatsnew-items
-        name: sort whatsnew entries by issue number
+        name: sort whatsnew entries alphabetically
         entry: python -m scripts.sort_whatsnew_note
         types: [rst]
         language: python

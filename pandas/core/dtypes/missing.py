@@ -25,11 +25,8 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
-    is_bool_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_integer_dtype,
-    is_object_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -431,23 +428,6 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 notnull = notna
 
 
-def isna_compat(arr, fill_value=np.nan) -> bool:
-    """
-    Parameters
-    ----------
-    arr: a numpy array
-    fill_value: fill value, default to np.nan
-
-    Returns
-    -------
-    True if we can fill using this fill_value
-    """
-    if isna(fill_value):
-        dtype = arr.dtype
-        return not (is_bool_dtype(dtype) or is_integer_dtype(dtype))
-    return True
-
-
 def array_equivalent(
     left,
     right,
@@ -600,7 +580,7 @@ def infer_fill_value(val):
     val = np.array(val, copy=False)
     if val.dtype.kind in "mM":
         return np.array("NaT", dtype=val.dtype)
-    elif is_object_dtype(val.dtype):
+    elif val.dtype == object:
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ["datetime", "datetime64"]:
             return np.array("NaT", dtype=DT64NS_DTYPE)

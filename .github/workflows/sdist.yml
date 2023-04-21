@@ -81,11 +81,11 @@ jobs:
       run: |
         case "${{matrix.python-version}}" in
         3.8)
-          pip install numpy==1.20.3 ;;
+          pip install numpy==1.21.6 ;;
         3.9)
-          pip install numpy==1.20.3 ;;
+          pip install numpy==1.21.6 ;;
         3.10)
-          pip install numpy==1.21.2 ;;
+          pip install numpy==1.21.6 ;;
         3.11)
           pip install numpy==1.23.2 ;;
         esac
