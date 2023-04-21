@@ -227,7 +227,8 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        result = s_tft & s_0123
+        with tm.assert_produces_warning(FutureWarning):
+            result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
         # GH 52538: Deprecate casting to object type when reindex is needed;
@@ -239,11 +240,13 @@ class TestSeriesLogicalOps:
 
         s_a0b1c0 = Series([1], list("b"))
 
-        res = s_tft & s_a0b1c0
+        with tm.assert_produces_warning(FutureWarning):
+            res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        res = s_tft | s_a0b1c0
+        with tm.assert_produces_warning(FutureWarning):
+            res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
@@ -397,24 +400,27 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        result = a & Series([1], ["z"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = a & Series([1], ["z"])
         expected = Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        result = a | Series([1], ["z"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = a | Series([1], ["z"])
         expected = Series([True, True, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        for e in [
-            empty.copy(),
-            Series([1], ["z"]),
-            Series(np.nan, b.index),
-            Series(np.nan, a.index),
-        ]:
-            result = a[a | e]
-            tm.assert_series_equal(result, a[a])
+        with tm.assert_produces_warning(FutureWarning):
+            for e in [
+                empty.copy(),
+                Series([1], ["z"]),
+                Series(np.nan, b.index),
+                Series(np.nan, a.index),
+            ]:
+                result = a[a | e]
+                tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
             result = a[a | e]

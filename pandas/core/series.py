@@ -5579,7 +5579,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # avoid repeated alignment
             if not left.index.equals(right.index):
                 if align_asobject:
-                    if left.dtype != np.bool_ and right.dtype != np.bool_:
+                    if left.dtype not in (object, np.bool_) or right.dtype not in (
+                        object,
+                        np.bool_,
+                    ):
                         warnings.warn(
                             "Operation between non boolean Series with different "
                             "indexes will no longer return a boolean result in "
