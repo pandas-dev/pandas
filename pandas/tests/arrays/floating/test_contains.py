@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def test_contains_nan():
-    # GH#51378
+    # GH#52840
     arr = pd.array(range(5)) / 0
 
     assert np.isnan(arr._data[0])
