@@ -2567,3 +2567,10 @@ def test_quantile_temporal(pa_type):
     result = ser.quantile(0.1)
     expected = ser[0]
     assert result == expected
+
+
+def test_date32_repr():
+    # GH48238
+    arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
+    ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
+    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
