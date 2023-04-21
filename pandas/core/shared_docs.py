@@ -39,6 +39,13 @@ scalar, Series or DataFrame
 {see_also}
 Notes
 -----
+The aggregation operations are always performed over an axis, either the
+index (default) or the column axis. This behavior is different from
+`numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+`var`), where the default is to compute the aggregation of the flattened
+array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+``numpy.mean(arr_2d, axis=0)``.
+
 `agg` is an alias for `aggregate`. Use the alias.
 
 Functions that mutate the passed object can produce unexpected
@@ -123,7 +130,8 @@ as_index : bool, default True
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
     This argument has no effect on filtrations (see the `filtrations in the user guide
     <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
     such as ``head()``, ``tail()``, ``nth()`` and in transformations
@@ -135,25 +143,33 @@ sort : bool, default True
         Specifying ``sort=False`` with an ordered categorical grouper will no
         longer sort the values.
 
-group_keys : bool, optional
+group_keys : bool, default True
     When calling apply and the ``by`` argument produces a like-indexed
     (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
-    are included otherwise. This argument has no effect if the result produced
-    is not like-indexed with respect to the input.
+    are included otherwise.
 
     .. versionchanged:: 1.5.0
 
-       Warns that `group_keys` will no longer be ignored when the
+       Warns that ``group_keys`` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
        Specify ``group_keys`` explicitly to include the group keys or
        not.
+
+    .. versionchanged:: 2.0.0
+
+       ``group_keys`` now defaults to ``True``.
 
 observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
+
+    .. deprecated:: 2.1.0
+
+        The default value will change to True in a future version of pandas.
+
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
@@ -163,7 +179,7 @@ dropna : bool, default True
 
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -485,7 +501,8 @@ _shared_docs[
     Replace values given in `to_replace` with `value`.
 
     Values of the {klass} are replaced with other values dynamically.
-    {replace_iloc}
+    This differs from updating with ``.loc`` or ``.iloc``, which require
+    you to specify a location to update with some value.
 
     Parameters
     ----------
@@ -589,8 +606,12 @@ _shared_docs[
 
     See Also
     --------
-    {klass}.fillna : Fill NA values.
-    {klass}.where : Replace values based on boolean condition.
+    Series.fillna : Fill NA values.
+    DataFrame.fillna : Fill NA values.
+    Series.where : Replace values based on boolean condition.
+    DataFrame.where : Replace values based on boolean condition.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
+    Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
     Notes

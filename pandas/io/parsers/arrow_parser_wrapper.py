@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
@@ -9,6 +10,7 @@ from pandas.core.dtypes.inference import is_integer
 import pandas as pd
 from pandas import DataFrame
 
+from pandas.io._util import _arrow_dtype_mapping
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
@@ -53,6 +55,7 @@ class ArrowParserWrapper(ParserBase):
             "na_values": "null_values",
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
+            "decimal": "decimal_point",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
@@ -70,13 +73,21 @@ class ArrowParserWrapper(ParserBase):
             for option_name, option_value in self.kwds.items()
             if option_value is not None
             and option_name
-            in ("include_columns", "null_values", "true_values", "false_values")
+            in (
+                "include_columns",
+                "null_values",
+                "true_values",
+                "false_values",
+                "decimal_point",
+            )
         }
+        self.convert_options["strings_can_be_null"] = "" in self.kwds["null_values"]
         self.read_options = {
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
             if self.header is not None
             else self.kwds["skiprows"],
+            "encoding": self.encoding,
         }
 
     def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
@@ -140,6 +151,7 @@ class ArrowParserWrapper(ParserBase):
         DataFrame
             The DataFrame created from the CSV file.
         """
+        pa = import_optional_dependency("pyarrow")
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
@@ -149,8 +161,30 @@ class ArrowParserWrapper(ParserBase):
             parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
             convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
         )
-        if self.kwds["dtype_backend"] == "pyarrow":
+
+        dtype_backend = self.kwds["dtype_backend"]
+
+        # Convert all pa.null() cols -> float64 (non nullable)
+        # else Int64 (nullable case, see below)
+        if dtype_backend is lib.no_default:
+            new_schema = table.schema
+            new_type = pa.float64()
+            for i, arrow_type in enumerate(table.schema.types):
+                if pa.types.is_null(arrow_type):
+                    new_schema = new_schema.set(
+                        i, new_schema.field(i).with_type(new_type)
+                    )
+
+            table = table.cast(new_schema)
+
+        if dtype_backend == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
+        elif dtype_backend == "numpy_nullable":
+            # Modify the default mapping to also
+            # map null to Int64 (to match other engines)
+            dtype_mapping = _arrow_dtype_mapping()
+            dtype_mapping[pa.null()] = pd.Int64Dtype()
+            frame = table.to_pandas(types_mapper=dtype_mapping.get)
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

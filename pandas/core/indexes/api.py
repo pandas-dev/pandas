@@ -70,7 +70,11 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -223,9 +227,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     def _unique_indices(inds, dtype) -> Index:
         """
-        Convert indexes to lists and concatenate them, removing duplicates.
-
-        The final dtype is inferred.
+        Concatenate indices and remove duplicates.
 
         Parameters
         ----------
@@ -236,6 +238,12 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         -------
         Index
         """
+        if all(isinstance(ind, Index) for ind in inds):
+            result = inds[0].append(inds[1:]).unique()
+            result = result.astype(dtype, copy=False)
+            if sort:
+                result = result.sort_values()
+            return result
 
         def conv(i):
             if isinstance(i, Index):

@@ -500,10 +500,10 @@ def boxplot_frame(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     backend=None,
@@ -529,11 +529,11 @@ def boxplot_frame_groupby(
     grouped,
     subplots: bool = True,
     column=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
     ax=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = True,
@@ -797,7 +797,7 @@ class PlotAccessor(PandasObject):
         self._parent = data
 
     @staticmethod
-    def _get_call_args(backend_name, data, args, kwargs):
+    def _get_call_args(backend_name: str, data, args, kwargs):
         """
         This function makes calls to this accessor `__call__` method compatible
         with the previous `SeriesPlotMethods.__call__` and

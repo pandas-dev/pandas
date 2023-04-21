@@ -555,4 +555,19 @@ class ReadCSVIndexCol(StringIORewind):
         read_csv(self.StringIO_input, index_col="a")
 
 
+class ReadCSVDatePyarrowEngine(StringIORewind):
+    def setup(self):
+        count_elem = 100_000
+        data = "a\n" + "2019-12-31\n" * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_index_col(self):
+        read_csv(
+            self.StringIO_input,
+            parse_dates=["a"],
+            engine="pyarrow",
+            dtype_backend="pyarrow",
+        )
+
+
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
