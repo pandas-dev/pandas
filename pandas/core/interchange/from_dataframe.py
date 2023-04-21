@@ -156,7 +156,9 @@ def primitive_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     buffers = col.get_buffers()
 
     data_buff, data_dtype = buffers["data"]
-    data = buffer_to_ndarray(data_buff, data_dtype, col.offset, col.size())
+    data = buffer_to_ndarray(
+        data_buff, data_dtype, offset=col.offset, length=col.size()
+    )
 
     data = set_nulls(data, col, buffers["validity"])
     return data, buffers
@@ -194,7 +196,9 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
     buffers = col.get_buffers()
 
     codes_buff, codes_dtype = buffers["data"]
-    codes = buffer_to_ndarray(codes_buff, codes_dtype, col.offset, col.size())
+    codes = buffer_to_ndarray(
+        codes_buff, codes_dtype, offset=col.offset, length=col.size()
+    )
 
     # Doing module in order to not get ``IndexError`` for
     # out-of-bounds sentinel values in `codes`
@@ -263,14 +267,16 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     # meaning that it has more elements than in the data buffer, do `col.size() + 1`
     # here to pass a proper offsets buffer size
     offsets = buffer_to_ndarray(
-        offset_buff, offset_dtype, col.offset, length=col.size() + 1
+        offset_buff, offset_dtype, offset=col.offset, length=col.size() + 1
     )
 
     null_pos = None
     if null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
         assert buffers["validity"], "Validity buffers cannot be empty for masks"
         valid_buff, valid_dtype = buffers["validity"]
-        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size())
+        null_pos = buffer_to_ndarray(
+            valid_buff, valid_dtype, offset=col.offset, length=col.size()
+        )
         if sentinel_val == 0:
             null_pos = ~null_pos
 
@@ -358,8 +364,8 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
             getattr(ArrowCTypes, f"UINT{dtype[1]}"),
             Endianness.NATIVE,
         ),
-        col.offset,
-        col.size(),
+        offset=col.offset,
+        length=col.size(),
     )
 
     data = parse_datetime_format_str(format_str, data)
@@ -370,8 +376,9 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 def buffer_to_ndarray(
     buffer: Buffer,
     dtype: tuple[DtypeKind, int, str, str],
+    *,
+    length: int,
     offset: int = 0,
-    length: int | None = None,
 ) -> np.ndarray:
     """
     Build a NumPy array from the passed buffer.
@@ -464,7 +471,9 @@ def set_nulls(
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
         assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
-        null_pos = buffer_to_ndarray(valid_buff, valid_dtype, col.offset, col.size())
+        null_pos = buffer_to_ndarray(
+            valid_buff, valid_dtype, offset=col.offset, length=col.size()
+        )
         if sentinel_val == 0:
             null_pos = ~null_pos
     elif null_kind in (ColumnNullType.NON_NULLABLE, ColumnNullType.USE_NAN):
