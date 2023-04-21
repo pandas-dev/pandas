@@ -43,7 +43,7 @@ Additionally, requiring PyArrow would simplify the related development within pa
 by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
-- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as decimal, binary, and nested types
+- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as string, decimal, binary, and nested types
 
 ## Drawbacks
 
