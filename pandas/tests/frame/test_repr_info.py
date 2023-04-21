@@ -361,6 +361,71 @@ NaT   4"""
         result = repr(df)
         assert result == expected
 
+    def test_to_records_no_typeerror_in_repr(self):
+        # GH 48526
+        df = DataFrame([["a", "b"], ["c", "d"], ["e", "f"]], columns=["left", "right"])
+        df["record"] = df[["left", "right"]].to_records()
+        expected = """  left right     record
+0    a     b  [0, a, b]
+1    c     d  [1, c, d]
+2    e     f  [2, e, f]"""
+        result = repr(df)
+        assert result == expected
+
+    def test_to_records_with_na_record_value(self):
+        # GH 48526
+        df = DataFrame(
+            [["a", np.nan], ["c", "d"], ["e", "f"]], columns=["left", "right"]
+        )
+        df["record"] = df[["left", "right"]].to_records()
+        expected = """  left right       record
+0    a   NaN  [0, a, nan]
+1    c     d    [1, c, d]
+2    e     f    [2, e, f]"""
+        result = repr(df)
+        assert result == expected
+
+    def test_to_records_with_na_record(self):
+        # GH 48526
+        df = DataFrame(
+            [["a", "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, "right"]
+        )
+        df["record"] = df[[np.nan, "right"]].to_records()
+        expected = """   NaN right         record
+0    a     b      [0, a, b]
+1  NaN   NaN  [1, nan, nan]
+2    e     f      [2, e, f]"""
+        result = repr(df)
+        assert result == expected
+
+    def test_to_records_with_inf_as_na_record(self):
+        # GH 48526
+        with option_context("use_inf_as_na", True):
+            df = DataFrame(
+                [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, np.inf]
+            )
+            df["record"] = df[[np.nan, np.inf]].to_records()
+            expected = """   NaN  inf         record
+0  NaN    b    [0, inf, b]
+1  NaN  NaN  [1, nan, nan]
+2    e    f      [2, e, f]"""
+            result = repr(df)
+        assert result == expected
+
+    def test_to_records_with_inf_record(self):
+        # GH 48526
+        with option_context("use_inf_as_na", False):
+            df = DataFrame(
+                [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, np.inf]
+            )
+            df["record"] = df[[np.nan, np.inf]].to_records()
+            expected = """   NaN  inf         record
+0  inf    b    [0, inf, b]
+1  NaN  NaN  [1, nan, nan]
+2    e    f      [2, e, f]"""
+            result = repr(df)
+        assert result == expected
+
     def test_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
