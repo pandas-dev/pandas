@@ -70,6 +70,7 @@ from pandas._typing import (
     NDFrameT,
     OpenFileErrors,
     RandomState,
+    ReindexMethod,
     Renamer,
     Scalar,
     Self,
@@ -1473,6 +1474,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Return the bool of a single element Series or DataFrame.
 
+        .. deprecated:: 2.1.0
+
+           bool is deprecated and will be removed in future version of pandas
+
         This must be a boolean scalar value, either True or False. It will raise a
         ValueError if the Series or DataFrame does not have exactly 1 element, or that
         element is not boolean (integer values 0 and 1 will also raise an exception).
@@ -1492,14 +1497,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         The method will only work for single element objects with a boolean value:
 
-        >>> pd.Series([True]).bool()
+        >>> pd.Series([True]).bool()  # doctest: +SKIP
         True
-        >>> pd.Series([False]).bool()
+        >>> pd.Series([False]).bool()  # doctest: +SKIP
         False
 
-        >>> pd.DataFrame({'col': [True]}).bool()
+        >>> pd.DataFrame({'col': [True]}).bool()  # doctest: +SKIP
         True
-        >>> pd.DataFrame({'col': [False]}).bool()
+        >>> pd.DataFrame({'col': [False]}).bool()  # doctest: +SKIP
         False
         """
 
@@ -5154,7 +5159,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index=None,
         columns=None,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool_t | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
@@ -7524,7 +7529,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit: int | None = None,
         inplace: bool_t = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: str | None = None,
         **kwargs,
     ) -> Self | None:
@@ -8346,7 +8351,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         freq: Frequency,
         method: FillnaOptions | None = None,
-        how: str | None = None,
+        how: Literal["start", "end"] | None = None,
         normalize: bool_t = False,
         fill_value: Hashable = None,
     ) -> Self:

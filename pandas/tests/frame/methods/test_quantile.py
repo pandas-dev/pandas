@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import (
-    np_percentile_argname,
-    np_version_under1p21,
-)
+from pandas.compat.numpy import np_percentile_argname
 
 import pandas as pd
 from pandas import (
@@ -848,11 +845,6 @@ class TestQuantileExtensionDtype:
         qs = [0.5, 0, 1]
         result = self.compute_quantile(obj, qs)
 
-        if np_version_under1p21 and index.dtype == "timedelta64[ns]":
-            msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
-            request.node.add_marker(mark)
-
         exp_dtype = index.dtype
         if index.dtype == "Int64":
             # match non-nullable casting behavior
@@ -913,11 +905,6 @@ class TestQuantileExtensionDtype:
 
         qs = 0.5
         result = self.compute_quantile(obj, qs)
-
-        if np_version_under1p21 and index.dtype == "timedelta64[ns]":
-            msg = "failed on Numpy 1.20.3; TypeError: data type 'Int64' not understood"
-            mark = pytest.mark.xfail(reason=msg, raises=TypeError)
-            request.node.add_marker(mark)
 
         exp_dtype = index.dtype
         if index.dtype == "Int64":

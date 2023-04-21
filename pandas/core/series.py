@@ -167,6 +167,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
@@ -3900,7 +3901,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    def nsmallest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         """
         Return the smallest `n` elements.
 
@@ -4718,7 +4721,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=None,
         *,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = None,
