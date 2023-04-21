@@ -12,7 +12,7 @@
 This PDEP proposes that:
 
 - PyArrow becomes a runtime dependency starting with pandas 2.1
-- The minimum version of PyArrow supported starting pandas 2.1 is version 7.
+- The minimum version of PyArrow supported starting with pandas 2.1 is version 7 of PyArrow.
 - The minimum version of PyArrow will be bumped every major pandas release to the highest
   PyArrow version that has been released for at least 2 years, and the minimum PyArrow version will be
   maintained for every minor version in the major version series.
