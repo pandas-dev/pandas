@@ -1244,8 +1244,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
+            if name not in columns:
+                if in_axis:
+                    result.insert(0, name, lev)
+                else:
+                    msg = (
+                        "A grouping was used that is not in the columns of the "
+                        "DataFrame and so was excluded from the result. This grouping "
+                        "will be included in a future version of pandas. Add the "
+                        "grouping as a column of the DataFrame to silence this warning."
+                    )
+                    warnings.warn(
+                        message=msg,
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         return result
 
@@ -2628,8 +2641,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        Grouper
-            Return a new grouper with our resampler appended.
+        pandas.api.typing.DatetimeIndexResamplerGroupby,
+        pandas.api.typing.PeriodIndexResamplerGroupby, or
+        pandas.api.typing.TimedeltaIndexResamplerGroupby
+            Return a new groupby object, with type depending on the data
+            being resampled.
 
         See Also
         --------
@@ -2793,7 +2809,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        RollingGroupby
+        pandas.api.typing.RollingGroupby
             Return a new grouper with our rolling appended.
 
         See Also
@@ -2856,6 +2872,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding
         functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExpandingGroupby
         """
         from pandas.core.window import ExpandingGroupby
 
@@ -2872,6 +2892,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindowGroupby
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
@@ -3227,7 +3251,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals):
+            if is_object_dtype(vals.dtype):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
@@ -3253,7 +3277,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
                 # Optional[Union[dtype[Any], ExtensionDtype]]]")
                 return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:

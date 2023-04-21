@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -56,6 +55,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
@@ -363,9 +363,9 @@ class ArrowExtensionArray(
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
                 return type(self)(pa.chunked_array([], type=pa_dtype))
-            elif is_integer_dtype(item.dtype):
+            elif item.dtype.kind in "iu":
                 return self.take(item)
-            elif is_bool_dtype(item.dtype):
+            elif item.dtype.kind == "b":
                 return type(self)(self._pa_array.filter(item))
             else:
                 raise IndexError(
@@ -451,6 +451,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, other)
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, pa.scalar(other))
@@ -498,6 +501,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, pa.array(other, from_pandas=True))
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
                 # pyarrow kleene ops require null to be typed
@@ -1271,7 +1277,7 @@ class ArrowExtensionArray(
 
         else:
             pyarrow_name = {
-                "median": "approximate_median",
+                "median": "quantile",
                 "prod": "product",
                 "std": "stddev",
                 "var": "variance",
@@ -1287,6 +1293,9 @@ class ArrowExtensionArray(
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
+        elif name == "median":
+            # GH 52679: Use quantile instead of approximate_median
+            kwargs["q"] = 0.5
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -1298,6 +1307,9 @@ class ArrowExtensionArray(
                 f"upgrading pyarrow."
             )
             raise TypeError(msg) from err
+        if name == "median":
+            # GH 52679: Use quantile instead of approximate_median; returns array
+            result = result[0]
         if pc.is_null(result).as_py():
             return self.dtype.na_value
 
@@ -1495,6 +1507,8 @@ class ArrowExtensionArray(
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
             nbits = pa_dtype.bit_width
             if nbits == 32:
                 result = result.cast(pa.int32())
@@ -2089,6 +2103,68 @@ class ArrowExtensionArray(
         return type(self)(pc.is_leap_year(self._pa_array))
 
     @property
+    def _dt_is_month_start(self):
+        return type(self)(pc.equal(pc.day(self._pa_array), 1))
+
+    @property
+    def _dt_is_month_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="month"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_year_start(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 1),
+                pc.equal(pc.day(self._pa_array), 1),
+            )
+        )
+
+    @property
+    def _dt_is_year_end(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 12),
+                pc.equal(pc.day(self._pa_array), 31),
+            )
+        )
+
+    @property
+    def _dt_is_quarter_start(self):
+        result = pc.equal(
+            pc.floor_temporal(self._pa_array, unit="quarter"),
+            pc.floor_temporal(self._pa_array, unit="day"),
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_quarter_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="quarter"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_days_in_month(self):
+        result = pc.days_between(
+            pc.floor_temporal(self._pa_array, unit="month"),
+            pc.ceil_temporal(self._pa_array, unit="month"),
+        )
+        return type(self)(result)
+
+    _dt_daysinmonth = _dt_days_in_month
+
+    @property
     def _dt_microsecond(self):
         return type(self)(pc.microsecond(self._pa_array))
 
@@ -2128,6 +2204,13 @@ class ArrowExtensionArray(
     @property
     def _dt_tz(self):
         return self.dtype.pyarrow_dtype.tz
+
+    @property
+    def _dt_unit(self):
+        return self.dtype.pyarrow_dtype.unit
+
+    def _dt_normalize(self):
+        return type(self)(pc.floor_temporal(self._pa_array, 1, "day"))
 
     def _dt_strftime(self, format: str):
         return type(self)(pc.strftime(self._pa_array, format=format))
@@ -2193,6 +2276,16 @@ class ArrowExtensionArray(
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
+    def _dt_day_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%A", locale=locale))
+
+    def _dt_month_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
+
     def _dt_to_pydatetime(self):
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
@@ -2207,12 +2300,28 @@ class ArrowExtensionArray(
     ):
         if ambiguous != "raise":
             raise NotImplementedError(f"{ambiguous=} is not supported")
-        if nonexistent != "raise":
+        nonexistent_pa = {
+            "raise": "raise",
+            "shift_backward": "earliest",
+            "shift_forward": "latest",
+        }.get(
+            nonexistent, None  # type: ignore[arg-type]
+        )
+        if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
-            return type(self)(self._pa_array.cast(new_type))
-        pa_tz = str(tz)
-        return type(self)(
-            self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
-        )
+            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+        else:
+            result = pc.assume_timezone(
+                self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
+            )
+        return type(self)(result)
+
+    def _dt_tz_convert(self, tz):
+        if self.dtype.pyarrow_dtype.tz is None:
+            raise TypeError(
+                "Cannot convert tz-naive timestamps, use tz_localize to localize"
+            )
+        current_unit = self.dtype.pyarrow_dtype.unit
+        result = self._pa_array.cast(pa.timestamp(current_unit, tz))
+        return type(self)(result)

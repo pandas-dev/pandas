@@ -512,20 +512,6 @@ def test_is_timedelta64_ns_dtype():
     assert com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
 
 
-def test_is_datetime_or_timedelta_dtype():
-    assert not com.is_datetime_or_timedelta_dtype(int)
-    assert not com.is_datetime_or_timedelta_dtype(str)
-    assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
-    assert not com.is_datetime_or_timedelta_dtype(np.array(["a", "b"]))
-
-    assert not com.is_datetime_or_timedelta_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-
-    assert com.is_datetime_or_timedelta_dtype(np.datetime64)
-    assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-
-
 def test_is_numeric_v_string_like():
     assert not com.is_numeric_v_string_like(np.array([1]), 1)
     assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
