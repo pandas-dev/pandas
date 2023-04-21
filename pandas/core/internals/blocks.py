@@ -476,7 +476,7 @@ class Block(PandasObject):
 
         values = self.values
         if values.ndim == 2:
-            # maybe_split ensures we only get here with values.shape[0] == 1,
+            # the check above ensures we only get here with values.shape[0] == 1,
             # avoid doing .ravel as that might make a copy
             values = values[0]
 
