@@ -107,6 +107,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -3587,20 +3588,29 @@ class DataFrame(NDFrame, OpsMixin):
             )
             if using_copy_on_write() and len(self) > 0:
                 result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
-
         elif (
             self._is_homogeneous_type
             and dtypes
             and isinstance(dtypes[0], ExtensionDtype)
         ):
-            # We have EAs with the same dtype. We can preserve that dtype in transpose.
-            dtype = dtypes[0]
-            arr_type = dtype.construct_array_type()
-            values = self.values
+            if isinstance(dtypes[0], BaseMaskedDtype):
+                # We have masked arrays with the same dtype. We can transpose faster.
+                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+                masked_arrays = [blk.values for blk in self._mgr.blocks]
+                new_values = transpose_homogenous_masked_arrays(masked_arrays)
+            else:
+                # We have other EAs with the same dtype. We preserve dtype in transpose.
+                dtyp = dtypes[0]
+                arr_typ = dtyp.construct_array_type()
+                values = self.values
+                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values,
+                index=self.columns,
+                columns=self.index,
+                verify_integrity=False,
             )
 
         else:

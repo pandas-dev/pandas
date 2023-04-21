@@ -6,6 +6,7 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
+    TypeVar,
     overload,
 )
 import warnings
@@ -91,6 +92,8 @@ if TYPE_CHECKING:
     )
 
 from pandas.compat.numpy import function as nv
+
+_BaseMaskedArrayT = TypeVar("_BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -1424,3 +1427,34 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
         return self._maybe_mask_result(res_values, result_mask)
+
+
+def transpose_homogenous_masked_arrays(
+    masked_arrays: list[_BaseMaskedArrayT],
+) -> list[_BaseMaskedArrayT]:
+    """Transpose masked arrays in a list, but faster.
+
+    Input should be a list of 1-dim masked arrays of equal length and all have the
+    same dtype. The caller is responsible for ensuring validity of input data.
+    """
+    transposed_shape = len(masked_arrays), len(masked_arrays[0])
+    values = [arr._data for arr in masked_arrays]
+    transposed_values = np.empty(transposed_shape, dtype=values[0].dtype)
+    for i, val in enumerate(values):
+        transposed_values[i, :] = val
+    transposed_values = transposed_values.copy(order="F")
+
+    masks = [arr._mask for arr in masked_arrays]
+    transposed_masks = np.empty(transposed_shape, dtype=masks[0].dtype)
+    for i, mask in enumerate(masks):
+        transposed_masks[i, :] = mask
+    transposed_masks = transposed_masks.copy(order="F")
+
+    dtype = masked_arrays[0].dtype
+    arr_type = dtype.construct_array_type()
+    transposed_arrays = []
+    for i in range(transposed_values.shape[1]):
+        transposed_arr = arr_type(transposed_values[:, i], mask=transposed_masks[:, i])
+        transposed_arrays.append(transposed_arr)
+
+    return transposed_arrays
