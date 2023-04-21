@@ -2606,5 +2606,3 @@ class TestPivot:
 
         expected = pd.Index([], dtype="object", name="b")
         tm.assert_index_equal(pivot.columns, expected)
-
-
