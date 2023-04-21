@@ -43,7 +43,7 @@ Additionally, requiring PyArrow would simplify the related development within pa
 by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
-  - Currently, there are 17 `import_optiona_dependency("pyarrow")` checks throughout the pandas code base
+  - Currently, there are 17 `import_optional_dependency("pyarrow")` checks throughout the pandas code base
 - Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as string, decimal, binary, and nested types
 
 ## Drawbacks
