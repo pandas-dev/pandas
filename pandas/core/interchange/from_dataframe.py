@@ -254,7 +254,7 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
         Endianness.NATIVE,
     )
     # Specify zero offset as we don't want to chunk the string data
-    data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=col.size())
+    data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=data_buff.bufsize)
 
     # Retrieve the offsets buffer containing the index offsets demarcating
     # the beginning and the ending of each string
@@ -424,7 +424,8 @@ def buffer_to_ndarray(
             buffer.ptr + (offset * bit_width // 8), ctypes.POINTER(ctypes_type)
         )
         return np.ctypeslib.as_array(
-            data_pointer, shape=(buffer.bufsize // (bit_width // 8),)
+            data_pointer,
+            shape=(length,),
         )
 
 

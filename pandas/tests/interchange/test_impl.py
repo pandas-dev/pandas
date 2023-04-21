@@ -104,15 +104,26 @@ def test_large_string_pyarrow():
     assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
 
 
-def test_bitmasks_pyarrow():
+@pytest.mark.parametrize(
+    ("offset", "length", "expected_values"),
+    [
+        (0, None, [3.3, float("nan"), 2.1]),
+        (1, None, [float("nan"), 2.1]),
+        (2, None, [2.1]),
+        (0, 2, [3.3, float("nan")]),
+        (0, 1, [3.3]),
+        (1, 1, [float("nan")]),
+    ],
+)
+def test_bitmasks_pyarrow(offset, length, expected_values):
     # GH 52795
     pa = pytest.importorskip("pyarrow", "11.0.0")
 
     arr = [3.3, None, 2.1]
-    table = pa.table({"arr": arr})
+    table = pa.table({"arr": arr}).slice(offset, length)
     exchange_df = table.__dataframe__()
     result = from_dataframe(exchange_df)
-    expected = pd.DataFrame({"arr": [3.3, float("nan"), 2.1]})
+    expected = pd.DataFrame({"arr": expected_values})
     tm.assert_frame_equal(result, expected)
 
     # check round-trip
