@@ -1,7 +1,7 @@
 # PDEP-6: Ban upcasting in setitem-like operations
 
 - Created: 23 December 2022
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [#50402](https://github.com/pandas-dev/pandas/pull/50402)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli) ([original issue](https://github.com/pandas-dev/pandas/issues/39584) by [Joris Van den Bossche](https://github.com/jorisvandenbossche))
 - Revision: 1
