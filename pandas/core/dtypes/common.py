@@ -773,6 +773,11 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the int64 dtype.
 
+    .. deprecated:: 2.1.0
+
+       is_int64_dtype is deprecated and will be removed in a future
+       version. Use dtype == np.int64 instead.
+
     Parameters
     ----------
     arr_or_dtype : array-like or dtype
@@ -792,29 +797,29 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     Examples
     --------
     >>> from pandas.api.types import is_int64_dtype
-    >>> is_int64_dtype(str)
+    >>> is_int64_dtype(str)  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.int32)
+    >>> is_int64_dtype(np.int32)  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.int64)
+    >>> is_int64_dtype(np.int64)  # doctest: +SKIP
     True
-    >>> is_int64_dtype('int8')
+    >>> is_int64_dtype('int8')  # doctest: +SKIP
     False
-    >>> is_int64_dtype('Int8')
+    >>> is_int64_dtype('Int8')  # doctest: +SKIP
     False
-    >>> is_int64_dtype(pd.Int64Dtype)
+    >>> is_int64_dtype(pd.Int64Dtype)  # doctest: +SKIP
     True
-    >>> is_int64_dtype(float)
+    >>> is_int64_dtype(float)  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.uint64)  # unsigned
+    >>> is_int64_dtype(np.uint64)  # unsigned  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.array(['a', 'b']))
+    >>> is_int64_dtype(np.array(['a', 'b']))  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.array([1, 2], dtype=np.int64))
+    >>> is_int64_dtype(np.array([1, 2], dtype=np.int64))  # doctest: +SKIP
     True
-    >>> is_int64_dtype(pd.Index([1, 2.]))  # float
+    >>> is_int64_dtype(pd.Index([1, 2.]))  # float  # doctest: +SKIP
     False
-    >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
+    >>> is_int64_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned  # doctest: +SKIP
     False
     """
     # GH#52564
