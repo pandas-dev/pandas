@@ -30,10 +30,11 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_complex_dtype,
-    is_datetime64_any_dtype,
-    is_extension_array_dtype,
     is_numeric_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
 )
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype
@@ -229,14 +230,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     )
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
-    if is_extension_array_dtype(series.dtype):
+    if isinstance(series.dtype, ExtensionDtype):
         if isinstance(series.dtype, ArrowDtype):
             import pyarrow as pa
 
             dtype = ArrowDtype(pa.float64())
         else:
             dtype = Float64Dtype()
-    elif is_numeric_dtype(series.dtype) and not is_complex_dtype(series.dtype):
+    elif series.dtype.kind in "iufb":
+        # i.e. numeric but exclude complex dtype
         dtype = np.dtype("float")
     else:
         dtype = None
@@ -361,7 +363,7 @@ def select_describe_func(
         return describe_categorical_1d
     elif is_numeric_dtype(data):
         return describe_numeric_1d
-    elif is_datetime64_any_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "M") or isinstance(data.dtype, DatetimeTZDtype):
         return describe_timestamp_1d
     elif lib.is_np_dtype(data.dtype, "m"):
         return describe_numeric_1d

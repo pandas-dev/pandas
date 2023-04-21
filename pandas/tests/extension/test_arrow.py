@@ -21,6 +21,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import operator
 import pickle
 import re
 
@@ -504,6 +505,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
+    def test_median_not_approximate(self, typ):
+        # GH 52679
+        result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
+        assert result == 1.5
+
 
 class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
@@ -593,17 +600,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
 
 
 class TestBaseDtype(base.BaseDtypeTests):
-    def test_check_dtype(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype) and pa_version_under8p0:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=ValueError,
-                    reason="decimal string repr affects numpy comparison",
-                )
-            )
-        super().test_check_dtype(data)
-
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
@@ -1216,7 +1212,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_array(self, data, comparison_op, na_value, request):
+    def test_compare_array(self, data, comparison_op, na_value):
         ser = pd.Series(data)
         # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
         # since ser.iloc[0] is a python scalar
@@ -1254,6 +1250,20 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             NotImplementedError, match=".* not implemented for <class 'object'>"
         ):
             comparison_op(data, object())
+
+    @pytest.mark.parametrize("masked_dtype", ["boolean", "Int64", "Float64"])
+    def test_comp_masked_numpy(self, masked_dtype, comparison_op):
+        # GH 52625
+        data = [1, 0, None]
+        ser_masked = pd.Series(data, dtype=masked_dtype)
+        ser_pa = pd.Series(data, dtype=f"{masked_dtype.lower()}[pyarrow]")
+        result = comparison_op(ser_pa, ser_masked)
+        if comparison_op in [operator.lt, operator.gt, operator.ne]:
+            exp = [False, False, None]
+        else:
+            exp = [True, True, None]
+        expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+        tm.assert_series_equal(result, expected)
 
 
 class TestLogicalOps:
@@ -1398,6 +1408,23 @@ class TestLogicalOps:
         tm.assert_series_equal(
             a, pd.Series([True, False, None], dtype="boolean[pyarrow]")
         )
+
+    @pytest.mark.parametrize(
+        "op, exp",
+        [
+            ["__and__", True],
+            ["__or__", True],
+            ["__xor__", False],
+        ],
+    )
+    def test_logical_masked_numpy(self, op, exp):
+        # GH 52625
+        data = [True, False, None]
+        ser_masked = pd.Series(data, dtype="boolean")
+        ser_pa = pd.Series(data, dtype="boolean[pyarrow]")
+        result = getattr(ser_pa, op)(ser_masked)
+        expected = pd.Series([exp, False, None], dtype=ArrowDtype(pa.bool_()))
+        tm.assert_series_equal(result, expected)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
@@ -2392,16 +2419,56 @@ def test_dt_tz_localize_none():
 
 
 @pytest.mark.parametrize("unit", ["us", "ns"])
-def test_dt_tz_localize(unit):
+def test_dt_tz_localize(unit, request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit)),
     )
     result = ser.dt.tz_localize("US/Pacific")
-    expected = pd.Series(
-        [datetime(year=2023, month=1, day=2, hour=3), None],
-        dtype=ArrowDtype(pa.timestamp(unit, "US/Pacific")),
+    exp_data = pa.array(
+        [datetime(year=2023, month=1, day=2, hour=3), None], type=pa.timestamp(unit)
     )
+    exp_data = pa.compute.assume_timezone(exp_data, "US/Pacific")
+    expected = pd.Series(ArrowExtensionArray(exp_data))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "nonexistent, exp_date",
+    [
+        ["shift_forward", datetime(year=2023, month=3, day=12, hour=3)],
+        ["shift_backward", pd.Timestamp("2023-03-12 01:59:59.999999999")],
+    ],
+)
+def test_dt_tz_localize_nonexistent(nonexistent, exp_date, request):
+    if is_platform_windows() and is_ci_environment():
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=pa.ArrowInvalid,
+                reason=(
+                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                    "on CI to path to the tzdata for pyarrow."
+                ),
+            )
+        )
+    ser = pd.Series(
+        [datetime(year=2023, month=3, day=12, hour=2, minute=30), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+    )
+    result = ser.dt.tz_localize("US/Pacific", nonexistent=nonexistent)
+    exp_data = pa.array([exp_date, None], type=pa.timestamp("ns"))
+    exp_data = pa.compute.assume_timezone(exp_data, "US/Pacific")
+    expected = pd.Series(ArrowExtensionArray(exp_data))
     tm.assert_series_equal(result, expected)
 
 
@@ -2488,3 +2555,22 @@ def test_describe_numeric_data(pa_type):
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_quantile_temporal(pa_type):
+    # GH52678
+    data = [1, 2, 3]
+    ser = pd.Series(data, dtype=ArrowDtype(pa_type))
+    result = ser.quantile(0.1)
+    expected = ser[0]
+    assert result == expected
+
+
+def test_date32_repr():
+    # GH48238
+    arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
+    ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
+    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"

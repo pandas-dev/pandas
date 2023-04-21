@@ -49,7 +49,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
@@ -471,7 +470,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
         if (
             len(values) > 0
-            and is_numeric_dtype(values.dtype)
+            and values.dtype.kind in "iufcb"
             and not is_signed_integer_dtype(comps)
         ):
             # GH#46485 Use object to avoid upcast to float64 later
@@ -510,7 +509,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     if (
         len(comps_array) > 1_000_000
         and len(values) <= 26
-        and not is_object_dtype(comps_array)
+        and comps_array.dtype != object
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
@@ -766,7 +765,7 @@ def factorize(
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
 
-        if not use_na_sentinel and is_object_dtype(values):
+        if not use_na_sentinel and values.dtype == object:
             # factorize can now handle differentiating various types of null values.
             # These can only occur when the array has object dtype.
             # However, for backwards compatibility we only use the null for the
@@ -1317,7 +1316,7 @@ def searchsorted(
 
     if (
         isinstance(arr, np.ndarray)
-        and is_integer_dtype(arr.dtype)
+        and arr.dtype.kind in "iu"
         and (is_integer(value) or is_integer_dtype(value))
     ):
         # if `arr` and `value` have different dtypes, `arr` would be
@@ -1403,7 +1402,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
             )
 
     is_timedelta = False
-    if needs_i8_conversion(arr.dtype):
+    if arr.dtype.kind in "mM":
         dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
@@ -1413,7 +1412,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
         # We have to cast in order to be able to hold np.nan
         dtype = np.object_
 
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # We have to cast in order to be able to hold np.nan
 
         # int8, int16 are incompatible with float64,
