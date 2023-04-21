@@ -7,7 +7,9 @@ GroupBy
 =======
 .. currentmodule:: pandas.core.groupby
 
-GroupBy objects are returned by groupby calls: :func:`pandas.DataFrame.groupby`, :func:`pandas.Series.groupby`, etc.
+:class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
+instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
+:func:`pandas.Series.groupby` respectively.
 
 Indexing, iteration
 -------------------

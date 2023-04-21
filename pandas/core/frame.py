@@ -219,23 +219,34 @@ if TYPE_CHECKING:
         FloatFormatType,
         FormattersType,
         Frequency,
+        FromDictOrient,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
+        JoinValidate,
         Level,
         MergeHow,
+        MergeValidate,
+        NaAction,
         NaPosition,
+        NsmallestNlargestKeep,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
         SortKind,
         StorageOptions,
         Suffixes,
+        ToGbqIfexist,
+        ToStataByteorder,
+        ToTimestampHow,
+        UpdateJoin,
         ValueKeyFunc,
         WriteBuffer,
+        XMLParsers,
         npt,
     )
 
@@ -1637,7 +1648,7 @@ class DataFrame(NDFrame, OpsMixin):
     def from_dict(
         cls,
         data: dict,
-        orient: str = "columns",
+        orient: FromDictOrient = "columns",
         dtype: Dtype | None = None,
         columns: Axes | None = None,
     ) -> DataFrame:
@@ -1724,7 +1735,7 @@ class DataFrame(NDFrame, OpsMixin):
            c   2  4
         """
         index = None
-        orient = orient.lower()
+        orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
                 # TODO speed up Series case
@@ -1981,7 +1992,7 @@ class DataFrame(NDFrame, OpsMixin):
         project_id: str | None = None,
         chunksize: int | None = None,
         reauth: bool = False,
-        if_exists: str = "fail",
+        if_exists: ToGbqIfexist = "fail",
         auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
@@ -2535,7 +2546,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: str | None = None,
+        byteorder: ToStataByteorder | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
@@ -2763,7 +2774,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: None = ...,
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2776,7 +2787,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes],
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2789,7 +2800,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
-        engine: str = "auto",
+        engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
         compression: str | None = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2919,7 +2930,7 @@ class DataFrame(NDFrame, OpsMixin):
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
-        engine : str, default 'pyarrow'
+        engine : {'pyarrow'}, default 'pyarrow'
             ORC library to use. Pyarrow must be >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
@@ -3155,7 +3166,7 @@ class DataFrame(NDFrame, OpsMixin):
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
-        parser: str | None = "lxml",
+        parser: XMLParsers | None = "lxml",
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
@@ -4988,7 +4999,7 @@ class DataFrame(NDFrame, OpsMixin):
         index=None,
         columns=None,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
@@ -6521,8 +6532,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         ascending=...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> DataFrame:
@@ -7077,7 +7088,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
-    def nlargest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nlargest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -7184,7 +7197,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nsmallest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -8348,10 +8363,10 @@ class DataFrame(NDFrame, OpsMixin):
     def update(
         self,
         other,
-        join: str = "left",
+        join: UpdateJoin = "left",
         overwrite: bool = True,
         filter_func=None,
-        errors: str = "ignore",
+        errors: IgnoreRaise = "ignore",
     ) -> None:
         """
         Modify in place using non-NA values from another DataFrame.
@@ -9673,7 +9688,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        DataFrame.applymap: For elementwise operations.
+        DataFrame.map: For elementwise operations.
         DataFrame.aggregate: Only perform aggregating type operations.
         DataFrame.transform: Only perform transforming type operations.
 
@@ -9765,11 +9780,15 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return op.apply().__finalize__(self, method="apply")
 
-    def applymap(
+    def map(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
+
+        .. versionadded:: 2.1.0
+
+           DataFrame.applymap was deprecated and renamed to DataFrame.map.
 
         This method applies a function that accepts and returns a scalar
         to every element of a DataFrame.
@@ -9798,6 +9817,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
         DataFrame.replace: Replace values given in `to_replace` with `value`.
+        Series.map : Apply a function elementwise on a Series.
 
         Examples
         --------
@@ -9807,7 +9827,7 @@ class DataFrame(NDFrame, OpsMixin):
         0  1.000  2.120
         1  3.356  4.567
 
-        >>> df.applymap(lambda x: len(str(x)))
+        >>> df.map(lambda x: len(str(x)))
            0  1
         0  3  4
         1  5  5
@@ -9816,7 +9836,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
-        >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
+        >>> df_copy.map(lambda x: len(str(x)), na_action='ignore')
              0  1
         0  NaN  4
         1  5.0  5
@@ -9824,12 +9844,12 @@ class DataFrame(NDFrame, OpsMixin):
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
-        >>> df.applymap(lambda x: x**2)
+        >>> df.map(lambda x: x**2)
                    0          1
         0   1.000000   4.494400
         1  11.262736  20.857489
 
-        But it's better to avoid applymap in that case.
+        But it's better to avoid map in that case.
 
         >>> df ** 2
                    0          1
@@ -9849,7 +9869,61 @@ class DataFrame(NDFrame, OpsMixin):
         def infer(x):
             return x._map_values(func, na_action=na_action)
 
-        return self.apply(infer).__finalize__(self, "applymap")
+        return self.apply(infer).__finalize__(self, "map")
+
+    def applymap(
+        self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
+    ) -> DataFrame:
+        """
+        Apply a function to a Dataframe elementwise.
+
+        .. deprecated:: 2.1.0
+
+           DataFrame.applymap has been deprecated. Use DataFrame.map instead.
+
+        This method applies a function that accepts and returns a scalar
+        to every element of a DataFrame.
+
+        Parameters
+        ----------
+        func : callable
+            Python function, returns a single value from a single value.
+        na_action : {None, 'ignore'}, default None
+            If ‘ignore’, propagate NaN values, without passing them to func.
+        **kwargs
+            Additional keyword arguments to pass as keywords arguments to
+            `func`.
+
+        Returns
+        -------
+        DataFrame
+            Transformed DataFrame.
+
+        See Also
+        --------
+        DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.map : Apply a function along input axis of DataFrame.
+        DataFrame.replace: Replace values given in `to_replace` with `value`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.map(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
+        """
+        warnings.warn(
+            "DataFrame.applymap has been deprecated. Use DataFrame.map instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.map(func, na_action=na_action, **kwargs)
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
@@ -9910,7 +9984,7 @@ class DataFrame(NDFrame, OpsMixin):
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
-        validate: str | None = None,
+        validate: JoinValidate | None = None,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -10152,7 +10226,7 @@ class DataFrame(NDFrame, OpsMixin):
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool | None = None,
         indicator: str | bool = False,
-        validate: str | None = None,
+        validate: MergeValidate | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
@@ -11447,7 +11521,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_timestamp(
         self,
         freq: Frequency | None = None,
-        how: str = "start",
+        how: ToTimestampHow = "start",
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
