@@ -17,6 +17,7 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -29,7 +30,6 @@ from pandas.core.arrays.categorical import (
     contains,
 )
 from pandas.core.construction import extract_array
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -47,8 +47,6 @@ if TYPE_CHECKING:
         DtypeObj,
         npt,
     )
-_index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
 
 @inherit_names(
@@ -481,7 +479,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             )
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
-            from pandas.core.dtypes.concat import concat_compat
 
             res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)

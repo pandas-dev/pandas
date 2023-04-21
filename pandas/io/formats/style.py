@@ -1770,16 +1770,16 @@ class Styler(StylerRenderer):
         Using ``subset`` to restrict application to a single column or multiple columns
 
         >>> df.style.apply(highlight_max, color='red', subset="A")
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
         >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
-        ...  # doctest: +SKIP
+        ... # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None)))
-        ...  # doctest: +SKIP
-        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
-        ...  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=([0, 1, 2], slice(None)))
+        ... # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=(slice(0, 5, 2), "A"))
+        ... # doctest: +SKIP
 
         Using a function which returns a Series / DataFrame of unequal length but
         containing valid index labels
@@ -1813,7 +1813,7 @@ class Styler(StylerRenderer):
         if method == "apply":
             result = data.apply(func, axis=0, **kwargs)
         elif method == "applymap":
-            result = data.applymap(func, **kwargs)
+            result = data.map(func, **kwargs)
 
         self._update_ctx_header(result, axis)
         return self
@@ -1938,7 +1938,7 @@ class Styler(StylerRenderer):
         if subset is None:
             subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
-        result = self.data.loc[subset].applymap(func)
+        result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
 
