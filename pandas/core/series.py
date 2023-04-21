@@ -5556,7 +5556,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _logical_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
-        self, other = self._align_for_op(other)
+        self, other = self._align_for_op(other, align_asobject=True)
 
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
@@ -5568,7 +5568,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
 
-    def _align_for_op(self, right):
+    def _align_for_op(self, right, align_asobject: bool = False):
         """align lhs and rhs Series"""
         # TODO: Different from DataFrame._align_for_op, list, tuple and ndarray
         # are not coerced here
@@ -5578,6 +5578,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(right, Series):
             # avoid repeated alignment
             if not left.index.equals(right.index):
+                if align_asobject:
+                    if left.dtype != np.bool_ and left.dtype != np.bool_:
+                        warnings.warn(
+                            "Operation between non boolean Series with different "
+                            "indexes will no longer return a boolean result in "
+                            "a future version. Cast both Series to object type "
+                            "to maintain the prior behavior.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                    # to keep original value's dtype for bool ops
+                    left = left.astype(object)
+                    right = right.astype(object)
+
                 left, right = left.align(right, copy=False)
 
         return left, right

@@ -230,10 +230,12 @@ class TestSeriesLogicalOps:
         result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
-        # GH 52538: No longer cast to object type when reindex is needed;
+        # GH 52538: Deprecate casting to object type when reindex is needed;
         # matches DataFrame behavior
-        with pytest.raises(TypeError, match="unsupported operand"):
+        expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
+        with tm.assert_produces_warning(FutureWarning):
             result = s_0123 & s_tft
+        tm.assert_series_equal(result, expected)
 
         s_a0b1c0 = Series([1], list("b"))
 
@@ -496,6 +498,7 @@ class TestSeriesLogicalOps:
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
 
+    @pytest.mark.xfail(reason="Will pass once #52839 deprecation is enforced")
     def test_int_dtype_different_index_not_bool(self):
         # GH 52500
         ser1 = Series([1, 2, 3], index=[10, 11, 23], name="a")
