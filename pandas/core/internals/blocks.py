@@ -481,7 +481,7 @@ class Block(PandasObject):
             values = values[0]
 
         res_values = lib.maybe_convert_objects(
-            values,
+            values,  # type: ignore[arg-type]
             convert_non_numeric=True,
         )
         refs = None
@@ -2137,14 +2137,14 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         return self.values
 
     @cache_readonly
-    def is_numeric(self) -> bool:
+    def is_numeric(self) -> bool:  # type: ignore[override]
         dtype = self.values.dtype
         kind = dtype.kind
 
         return kind in "fciub"
 
     @cache_readonly
-    def is_object(self) -> bool:
+    def is_object(self) -> bool:  # type: ignore[override]
         return self.values.dtype.kind == "O"
 
 
