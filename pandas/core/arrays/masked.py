@@ -6,6 +6,7 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
+    TypeVar,
     overload,
 )
 import warnings
@@ -91,6 +92,8 @@ if TYPE_CHECKING:
     )
 
 from pandas.compat.numpy import function as nv
+
+_BaseMaskedArrayT = TypeVar("_BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
