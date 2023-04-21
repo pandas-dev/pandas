@@ -6,7 +6,6 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
-    TypeVar,
     overload,
 )
 import warnings
