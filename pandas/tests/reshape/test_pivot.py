@@ -2600,12 +2600,12 @@ class TestPivot:
         tm.assert_frame_equal(df, expected)
 
     def test_pivot_table_empty_dataframe_correct_index(self):
-    # GH 21932
-        df = DataFrame([], columns=['a', 'b', 'value'])
-        pivot = df.pivot_table(index='a', columns='b', values='value', 
-        aggfunc='count') 
+        # GH 21932
+        df = DataFrame([], columns=["a", "b", "value"])
+        pivot = df.pivot_table(index="a", columns="b", values="value", 
+        aggfunc="count") 
 
-        expected = pd.Index([], dtype='object', name='b')
+        expected = pd.Index([], dtype="object", name="b")
         tm.assert_index_equal(pivot.columns, expected)
 
 
