@@ -15,6 +15,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
 - Fixed regression in :meth:`DataFrame.pivot` changing :class:`Index` name of input object (:issue:`52629`)
+- Fixed regression in :meth:`DataFrame.resample` raising on a DataFrame with no columns (:issue:`52484`)
 - Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)
 - Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
@@ -27,7 +28,8 @@ Bug fixes
 - Bug in :attr:`Series.dt.days` that would overflow ``int32`` number of days (:issue:`52391`)
 - Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
 - Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)
-- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on-categorical dtypes (:issue:`49889`)
+- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)
+- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)
 - Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)
 - Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend="pyarrow"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)
