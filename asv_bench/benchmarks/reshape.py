@@ -93,7 +93,7 @@ class ReshapeExtensionDtype:
         self.df.T
 
 
-class ReshapeMaskedArrayDtype:
+class ReshapeMaskedArrayDtype(ReshapeExtensionDtype):
     params = ["Int64", "Float64"]
     param_names = ["dtype"]
 
@@ -110,20 +110,6 @@ class ReshapeMaskedArrayDtype:
 
         self.ser = ser
         self.df = df
-
-    def time_stack(self, dtype):
-        self.df.stack()
-
-    def time_unstack_fast(self, dtype):
-        # last level -> doesn't have to make copies
-        self.ser.unstack("bar")
-
-    def time_unstack_slow(self, dtype):
-        # first level -> must make copies
-        self.ser.unstack("foo")
-
-    def time_transpose(self, dtype):
-        self.df.T
 
 
 class Unstack:
