@@ -24,9 +24,11 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    get_supported_reso,
     get_unit_from_dtype,
     is_supported_unit,
     is_unitless,
+    npy_unit_to_abbrev,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -539,10 +541,12 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
 
             # Avoid possible ambiguities with pd.NaT
             # GH 52295
-            if is_unitless(obj.dtype) or not is_supported_unit(
-                get_unit_from_dtype(obj.dtype)
-            ):
+            if is_unitless(obj.dtype):
                 obj = obj.astype("datetime64[ns]")
+            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
+                unit = get_unit_from_dtype(obj.dtype)
+                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
+                obj = obj.astype(f"datetime64[{closest_unit}]")
             right = np.broadcast_to(obj, shape)
             return DatetimeArray(right)
 
@@ -556,10 +560,12 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
             # GH 52295
-            if is_unitless(obj.dtype) or not is_supported_unit(
-                get_unit_from_dtype(obj.dtype)
-            ):
+            if is_unitless(obj.dtype):
                 obj = obj.astype("timedelta64[ns]")
+            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
+                unit = get_unit_from_dtype(obj.dtype)
+                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
+                obj = obj.astype(f"timedelta64[{closest_unit}]")
             right = np.broadcast_to(obj, shape)
             return TimedeltaArray(right)
 
