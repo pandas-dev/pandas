@@ -17,6 +17,7 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -478,7 +479,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             )
         except TypeError:
             # not all to_concat elements are among our categories (or NA)
-            from pandas.core.dtypes.concat import concat_compat
 
             res = concat_compat([x._values for x in to_concat])
             return Index(res, name=name)

@@ -13,13 +13,6 @@ from pandas import (
 )
 
 
-def assert_series_or_index_equal(left, right):
-    if isinstance(left, Series):
-        tm.assert_series_equal(left, right)
-    else:  # Index
-        tm.assert_index_equal(left, right)
-
-
 @pytest.mark.parametrize("other", [None, Series, Index])
 def test_str_cat_name(index_or_series, other):
     # GH 21053
@@ -57,11 +50,11 @@ def test_str_cat(index_or_series):
 
     # Series/Index with array
     result = s.str.cat(t, na_rep="-")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with list
     result = s.str.cat(list(t), na_rep="-")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # errors for incorrect lengths
     rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
@@ -100,16 +93,16 @@ def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
 
     # Series/Index with unaligned Index -> t.values
     result = s.str.cat(t.values, sep=sep)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with Series having matching Index
     t = Series(t.values, index=s)
     result = s.str.cat(t, sep=sep)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with Series.values
     result = s.str.cat(t.values, sep=sep)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with Series having different Index
     t = Series(t.values, index=t.values)
@@ -117,7 +110,7 @@ def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
     expected = expected if box == Index else Series(expected, index=expected.str[:1])
 
     result = s.str.cat(t, sep=sep)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -155,37 +148,37 @@ def test_str_cat_mixed_inputs(index_or_series):
 
     # Series/Index with DataFrame
     result = s.str.cat(d)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with two-dimensional ndarray
     result = s.str.cat(d.values)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with list of Series
     result = s.str.cat([t, s])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with mixed list of Series/array
     result = s.str.cat([t, s.values])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with list of Series; different indexes
     t.index = ["b", "c", "d", "a"]
     expected = box(["aDa", "bAb", "cBc", "dCd"])
     expected = expected if box == Index else Series(expected.values, index=s.values)
     result = s.str.cat([t, s])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with mixed list; different index
     result = s.str.cat([t, s.values])
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # Series/Index with DataFrame; different indexes
     d.index = ["b", "c", "d", "a"]
     expected = box(["aDd", "bAa", "cBb", "dCc"])
     expected = expected if box == Index else Series(expected.values, index=s.values)
     result = s.str.cat(d)
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # errors for incorrect lengths
     rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
@@ -261,7 +254,7 @@ def test_str_cat_align_indexed(index_or_series, join):
         expected = Index(expected)
 
     result = s.str.cat(t, join=join, na_rep="-")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("join", ["left", "outer", "inner", "right"])
@@ -332,7 +325,7 @@ def test_str_cat_all_na(index_or_series, index_or_series2):
     else:  # box == Index
         expected = Index([np.nan] * 4, dtype=object)
     result = s.str.cat(t, join="left")
-    assert_series_or_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # all-NA caller (only for Series)
     if other == Series:
