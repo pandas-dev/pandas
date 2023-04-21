@@ -1691,6 +1691,8 @@ cdef class _Period(PeriodMixin):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = freq._freqstr
 
         freq = to_offset(freq)
 
@@ -1714,7 +1716,7 @@ cdef class _Period(PeriodMixin):
 
     def __richcmp__(self, other, op):
         if is_period_object(other):
-            if other.freq != self.freq:
+            if other._dtype != self._dtype:
                 if op == Py_EQ:
                     return False
                 elif op == Py_NE:
@@ -1788,7 +1790,7 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
-            ordinal = self.ordinal + other * self.freq.n
+            ordinal = self.ordinal + other * self._dtype._n
             return Period(ordinal=ordinal, freq=self.freq)
 
         elif is_period_object(other):
@@ -1873,7 +1875,7 @@ cdef class _Period(PeriodMixin):
         # self.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = self.ordinal + self.freq.n - 1
+            ordinal = self.ordinal + self._dtype._n - 1
         else:
             ordinal = self.ordinal
         ordinal = period_asfreq(ordinal, base1, base2, end)
@@ -2379,7 +2381,7 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
         """
-        return self.freq.freqstr
+        return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
@@ -2637,7 +2639,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
+            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:

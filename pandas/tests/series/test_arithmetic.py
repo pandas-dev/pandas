@@ -9,16 +9,13 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
 
 import pandas as pd
 from pandas import (
     Categorical,
+    DatetimeTZDtype,
     Index,
     Series,
     Timedelta,
@@ -27,10 +24,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -499,17 +493,6 @@ class TestSeriesComparison:
             assert result.name == names[2]
 
     def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid="ignore"):
-            expected = (left > right).astype("O")
-        expected[:3] = np.nan
-
-        tm.assert_almost_equal(result, expected)
-
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
@@ -921,7 +904,7 @@ def test_none_comparison(request, series_with_simple_index):
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+    if lib.is_np_dtype(series.dtype, "M") or isinstance(series.dtype, DatetimeTZDtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"

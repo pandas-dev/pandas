@@ -38,7 +38,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -49,6 +52,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 import pandas.core.common as com
@@ -915,16 +919,11 @@ class BaseBlockManager(DataManager):
 
         if fill_value is None:
             fill_value = np.nan
-        block_shape = list(self.shape)
-        block_shape[0] = len(placement)
 
-        dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
-        # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
-        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"
-        block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
-        block_values.fill(fill_value)
+        shape = (len(placement), self.shape[1])
+
+        dtype, fill_value = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        block_values = make_na_array(dtype, shape, fill_value)
         return new_block_2d(block_values, placement=placement)
 
     def take(
@@ -2190,10 +2189,7 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
-    # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
-    # raises instead of returning False. Once earlier numpy versions are dropped,
-    # this can be simplified to `return tup[1].dtype`
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
     dtype = tup[1].dtype
 
     if is_1d_only_ea_dtype(dtype):
@@ -2203,15 +2199,14 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
     else:
         sep = 0
 
-    return sep, isinstance(dtype, np.dtype), dtype
+    return sep, dtype
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = list(enumerate(arrays))
 
     if not consolidate:
-        nbs = _tuples_to_blocks_no_consolidate(tuples, refs)
-        return nbs
+        return _tuples_to_blocks_no_consolidate(tuples, refs)
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
@@ -2220,12 +2215,12 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
 
-    nbs = []
-    for (_, _, dtype), tup_block in grouper:
+    nbs: list[Block] = []
+    for (_, dtype), tup_block in grouper:
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
-            is_dtlike = dtype.kind in ["m", "M"]
+            is_dtlike = dtype.kind in "mM"
 
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)
@@ -2359,3 +2354,36 @@ def _preprocess_slice_or_indexer(
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
+
+
+def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
+    if isinstance(dtype, DatetimeTZDtype):
+        # NB: exclude e.g. pyarrow[dt64tz] dtypes
+        i8values = np.full(shape, fill_value._value)
+        return DatetimeArray(i8values, dtype=dtype)
+
+    elif is_1d_only_ea_dtype(dtype):
+        dtype = cast(ExtensionDtype, dtype)
+        cls = dtype.construct_array_type()
+
+        missing_arr = cls._from_sequence([], dtype=dtype)
+        ncols, nrows = shape
+        assert ncols == 1, ncols
+        empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
+        return missing_arr.take(empty_arr, allow_fill=True, fill_value=fill_value)
+    elif isinstance(dtype, ExtensionDtype):
+        # TODO: no tests get here, a handful would if we disabled
+        #  the dt64tz special-case above (which is faster)
+        cls = dtype.construct_array_type()
+        missing_arr = cls._empty(shape=shape, dtype=dtype)
+        missing_arr[:] = fill_value
+        return missing_arr
+    else:
+        # NB: we should never get here with dtype integer or bool;
+        #  if we did, the missing_arr.fill would cast to gibberish
+        missing_arr = np.empty(shape, dtype=dtype)
+        missing_arr.fill(fill_value)
+
+        if dtype.kind in "mM":
+            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
+        return missing_arr

@@ -217,7 +217,7 @@ class PandasArray(  # type: ignore[misc]
         return fill_value
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             fv = None
         else:
             fv = np.nan

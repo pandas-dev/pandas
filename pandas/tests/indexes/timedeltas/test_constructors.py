@@ -18,6 +18,12 @@ from pandas.core.arrays.timedeltas import (
 
 
 class TestTimedeltaIndex:
+    def test_closed_deprecated(self):
+        # GH#52628
+        msg = "The 'closed' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            TimedeltaIndex([], closed=True)
+
     def test_array_of_dt64_nat_raises(self):
         # GH#39462
         nat = np.datetime64("NaT", "ns")

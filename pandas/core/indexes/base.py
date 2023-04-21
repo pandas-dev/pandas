@@ -55,6 +55,7 @@ from pandas._typing import (
     IndexLabel,
     JoinHow,
     Level,
+    NaPosition,
     Self,
     Shape,
     npt,
@@ -135,6 +136,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     arraylike,
+    nanops,
     ops,
 )
 from pandas.core.accessor import CachedAccessor
@@ -430,7 +432,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def _can_hold_strings(self) -> bool:
-        return not is_numeric_dtype(self)
+        return not is_numeric_dtype(self.dtype)
 
     _engine_types: dict[np.dtype | ExtensionDtype, type[libindex.IndexEngine]] = {
         np.dtype(np.int8): libindex.Int8Engine,
@@ -505,7 +507,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
-            if data.dtype.kind not in ["i", "u", "f", "b", "c", "m", "M"]:
+            if data.dtype.kind not in "iufcbmM":
                 # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
@@ -673,7 +675,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
-            if values.dtype.kind in ["i", "u", "f", "b"]:
+            if values.dtype.kind in "iufb":
                 return Index(values, name=result.name)
 
         return result
@@ -920,12 +922,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.__array_wrap__(result)
 
+    @final
     def __array_wrap__(self, result, context=None):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
+        if (
+            (not isinstance(result, Index) and is_bool_dtype(result.dtype))
+            or lib.is_scalar(result)
+            or np.ndim(result) > 1
+        ):
+            # exclude Index to avoid warning from is_bool_dtype deprecation;
+            #  in the Index case it doesn't matter which path we go down.
+            # reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -1269,7 +1279,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif self.inferred_type == "categorical":
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories):
+            if is_object_dtype(self.categories.dtype):
                 is_justify = False
 
         return format_object_summary(
@@ -1914,7 +1924,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str_t = "first",
+        na_position: NaPosition = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -2119,7 +2129,7 @@ class Index(IndexOpsMixin, PandasObject):
                 #  in IntervalArray._cmp_method
                 return True
             return self.dtype._can_hold_na
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             return False
         return True
 
@@ -2685,7 +2695,7 @@ class Index(IndexOpsMixin, PandasObject):
         """The expected NA value to use with this index."""
         dtype = self.dtype
         if isinstance(dtype, np.dtype):
-            if dtype.kind in ["m", "M"]:
+            if dtype.kind in "mM":
                 return NaT
             return np.nan
         return dtype.na_value
@@ -3306,6 +3316,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def intersection(self, other, sort: bool = False):
+        # default sort keyword is different here from other setops intentionally
+        #  done in GH#25063
         """
         Form the intersection of two Index objects.
 
@@ -5098,7 +5110,7 @@ class Index(IndexOpsMixin, PandasObject):
             If the value cannot be inserted into an array of this dtype.
         """
         dtype = self.dtype
-        if isinstance(dtype, np.dtype) and dtype.kind not in ["m", "M"]:
+        if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
             # return np_can_hold_element(dtype, value)
             try:
                 return np_can_hold_element(dtype, value)
@@ -5311,7 +5323,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
         except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self):  # pragma: no cover
+            if is_object_dtype(self.dtype):  # pragma: no cover
                 raise err
 
             # See also: Block.coerce_to_target_dtype
@@ -5564,7 +5576,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str_t = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         """
@@ -5623,7 +5635,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        idx = ensure_key_mapped(self, key)
+        idx = cast(Index, ensure_key_mapped(self, key))
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -5900,7 +5912,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
-        if keyarr.dtype.kind in ["m", "M"]:
+        if keyarr.dtype.kind in "mM":
             # DTI/TDI.take can infer a freq in some cases when we dont want one
             if isinstance(key, list) or (
                 isinstance(key, type(self))
@@ -6104,8 +6116,12 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (is_bool_dtype(other) and is_any_real_numeric_dtype(self)) or (
-            is_bool_dtype(self) and is_any_real_numeric_dtype(other)
+        # NB: we use inferred_type rather than is_bool_dtype to catch
+        #  object_dtype_of_bool and categorical[object_dtype_of_bool] cases
+        if (
+            other.inferred_type == "boolean" and is_any_real_numeric_dtype(self.dtype)
+        ) or (
+            self.inferred_type == "boolean" and is_any_real_numeric_dtype(other.dtype)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
@@ -6125,7 +6141,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -6155,7 +6171,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
@@ -6755,6 +6771,59 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
+    def diff(self, periods: int = 1):
+        """
+        Computes the difference between consecutive values in the Index object.
+
+        If periods is greater than 1, computes the difference between values that
+        are `periods` number of positions apart.
+
+        Parameters
+        ----------
+        periods : int, optional
+            The number of positions between the current and previous
+            value to compute the difference with. Default is 1.
+
+        Returns
+        -------
+        Index
+            A new Index object with the computed differences.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10, 20, 30, 40, 50])
+        >>> idx.diff()
+        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().diff(periods))
+
+    def round(self, decimals: int = 0):
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+
+        Returns
+        -------
+        Index
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
+        >>> idx.round(decimals=2)
+        Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().round(decimals))
+
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
@@ -6984,8 +7053,46 @@ class Index(IndexOpsMixin, PandasObject):
                 return -1
         return super().argmax(skipna=skipna)
 
-    @doc(IndexOpsMixin.min)
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+        """
+        Return the minimum value of the Index.
+
+        Parameters
+        ----------
+        axis : {None}
+            Dummy argument for consistency with Series.
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar
+            Minimum value.
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.min()
+        1
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.min()
+        'a'
+
+        For a MultiIndex, the minimum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.min()
+        ('a', 1)
+        """
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7007,10 +7114,49 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return super().min(skipna=skipna)
+        return nanops.nanmin(self._values, skipna=skipna)
 
-    @doc(IndexOpsMixin.max)
     def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+        """
+        Return the maximum value of the Index.
+
+        Parameters
+        ----------
+        axis : int, optional
+            For compatibility with NumPy. Only 0 or None are allowed.
+        skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
+
+        Returns
+        -------
+        scalar
+            Maximum value.
+
+        See Also
+        --------
+        Index.min : Return the minimum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        DataFrame.max : Return the maximum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.max()
+        3
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.max()
+        'c'
+
+        For a MultiIndex, the maximum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.max()
+        ('b', 2)
+        """
+
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7032,7 +7178,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return super().max(skipna=skipna)
+        return nanops.nanmax(self._values, skipna=skipna)
 
     # --------------------------------------------------------------------
 

@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_timedelta64_ns_dtype,
@@ -749,14 +748,14 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if is_object_dtype(dtype):
+    if dtype == object:
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
     elif dtype.kind == "U":
-        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        # TODO: test cases with arr.dtype.kind in "mM"
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             shape = arr.shape
@@ -768,12 +767,12 @@ def _try_cast(
             shape
         )
 
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and
     # that we can convert the data to the requested dtype.
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)

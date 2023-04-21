@@ -35,13 +35,15 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
-    ExtensionArray,
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.floating import (
     FloatingArray,
-    IntegerArray,
+    FloatingDtype,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.integer import (
+    IntegerArray,
+    IntegerDtype,
+)
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer

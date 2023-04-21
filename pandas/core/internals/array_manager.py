@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_datetime64_ns_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
@@ -1125,7 +1124,7 @@ class ArrayManager(BaseArrayManager):
             dtype = dtype.subtype
         elif isinstance(dtype, PandasDtype):
             dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             dtype = "object"
         elif is_dtype_equal(dtype, str):
             dtype = "object"
@@ -1231,7 +1230,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     @property
     def _can_hold_na(self) -> bool:
         if isinstance(self.array, np.ndarray):
-            return self.array.dtype.kind not in ["b", "i", "u"]
+            return self.array.dtype.kind not in "iub"
         else:
             # ExtensionArray
             return self.array._can_hold_na

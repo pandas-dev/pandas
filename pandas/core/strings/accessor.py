@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -267,27 +268,39 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif (
-            expand is True
-            and is_object_dtype(result)
-            and not isinstance(self._orig, ABCIndex)
-        ):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
+            if isinstance(result.dtype, ArrowDtype):
+                import pyarrow as pa
 
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
-                else:
-                    return [x]
+                from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-            result = [cons_row(x) for x in result]
-            if result and not self._is_string:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
+                max_len = pa.compute.max(
+                    result._pa_array.combine_chunks().value_lengths()
+                ).as_py()
+                if result.isna().any():
+                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                result = {
+                    i: ArrowExtensionArray(pa.array(res))
+                    for i, res in enumerate(zip(*result.tolist()))
+                }
+            elif is_object_dtype(result):
+
+                def cons_row(x):
+                    if is_list_like(x):
+                        return x
+                    else:
+                        return [x]
+
+                result = [cons_row(x) for x in result]
+                if result and not self._is_string:
+                    # propagate nan values to match longest sequence (GH 18450)
+                    max_len = max(len(x) for x in result)
+                    result = [
+                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        for x in result
+                    ]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")

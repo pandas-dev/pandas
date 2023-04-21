@@ -365,8 +365,8 @@ class TestDataFrameCorrWith:
             tm.assert_series_equal(result, expected)
         else:
             with pytest.raises(
-                TypeError,
-                match=r"Could not convert \['a' 'b' 'c' 'd'\] to numeric",
+                ValueError,
+                match="could not convert string to float",
             ):
                 df.corrwith(s, numeric_only=numeric_only)
 

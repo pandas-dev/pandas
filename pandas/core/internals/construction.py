@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -349,7 +348,7 @@ def ndarray_to_mgr(
                 for i in range(values.shape[1])
             ]
         else:
-            if is_datetime_or_timedelta_dtype(values.dtype):
+            if lib.is_np_dtype(values.dtype, "mM"):
                 values = ensure_wrapped_if_datetimelike(values)
             arrays = [values[:, i] for i in range(values.shape[1])]
 
@@ -466,7 +465,7 @@ def dict_to_mgr(
 
     else:
         keys = list(data.keys())
-        columns = Index(keys)
+        columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
 
@@ -1042,11 +1041,11 @@ def convert_object_array(
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            elif dtype.kind in ["m", "M"]:
+            elif dtype.kind in "mM":
                 # This restriction is harmless bc these are the only cases
                 #  where maybe_cast_to_datetime is not a no-op.
                 # Here we know:
-                #  1) dtype.kind in ["m", "M"] and
+                #  1) dtype.kind in "mM" and
                 #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
 
