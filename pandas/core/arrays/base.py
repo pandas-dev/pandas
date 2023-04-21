@@ -1441,10 +1441,14 @@ class ExtensionArray:
         return meth(skipna=skipna, **kwargs)
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        """Calls ``_reduce`` and wraps the result in a ndarray/extensionArray.
+        """Call ``_reduce`` and wrap the result in a ndarray/extensionArray.
 
         This is used to control the returned dtype when doing reductions in DataFrames,
         and ensures the correct dtype for e.g. ``DataFrame({"a": extr_arr2}).sum()``.
+
+        Returns
+        -------
+        ndarray orx ExtensionArray
         """
         result = self._reduce(name, skipna=skipna, **kwargs)
         return np.array([[result]])
