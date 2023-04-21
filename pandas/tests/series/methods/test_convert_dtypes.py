@@ -152,7 +152,6 @@ class TestSeriesConvertDtypes:
         test_cases,
     )
     @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
-    @pytest.mark.filterwarnings("ignore:.*item of incompatible dtype.*:FutureWarning")
     def test_convert_dtypes(
         self, data, maindtype, params, expected_default, expected_other
     ):
@@ -194,7 +193,14 @@ class TestSeriesConvertDtypes:
         # Test that it is a copy
         copy = series.copy(deep=True)
 
-        result[result.notna()] = np.nan
+        if result.notna().sum() > 0 and result.dtype in [
+            "interval[int64, right]",
+        ]:
+            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+                result[result.notna()] = np.nan
+        else:
+            with tm.assert_produces_warning(None):
+                result[result.notna()] = np.nan
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
