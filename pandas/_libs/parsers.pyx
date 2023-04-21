@@ -10,7 +10,6 @@ import sys
 import time
 import warnings
 
-from pandas.errors import ParserError
 from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
@@ -106,15 +105,10 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_dict_like
 
 cdef:
@@ -229,9 +223,9 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        float64_t (*double_converter)(const char *, char **,
-                                      char, char, char,
-                                      int, int *, int *) nogil
+        double (*double_converter)(const char *, char **,
+                                   char, char, char,
+                                   int, int *, int *) nogil
 
         #  error handling
         char *warn_msg
@@ -248,6 +242,16 @@ cdef extern from "parser/tokenizer.h":
         int seen_sint
         int seen_uint
         int seen_null
+
+    void COLITER_NEXT(coliter_t, const char *) nogil
+
+cdef extern from "pd_parser.h":
+    void *new_rd_source(object obj) except NULL
+
+    int del_rd_source(void *src)
+
+    void* buffer_rd_bytes(void *source, size_t nbytes,
+                          size_t *bytes_read, int *status, const char *encoding_errors)
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -279,26 +283,49 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    float64_t xstrtod(const char *p, char **q, char decimal,
+    double xstrtod(const char *p, char **q, char decimal,
+                   char sci, char tsep, int skip_trailing,
+                   int *error, int *maybe_int) nogil
+    double precise_xstrtod(const char *p, char **q, char decimal,
+                           char sci, char tsep, int skip_trailing,
+                           int *error, int *maybe_int) nogil
+    double round_trip(const char *p, char **q, char decimal,
                       char sci, char tsep, int skip_trailing,
                       int *error, int *maybe_int) nogil
-    float64_t precise_xstrtod(const char *p, char **q, char decimal,
-                              char sci, char tsep, int skip_trailing,
-                              int *error, int *maybe_int) nogil
-    float64_t round_trip(const char *p, char **q, char decimal,
-                         char sci, char tsep, int skip_trailing,
-                         int *error, int *maybe_int) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
+    void PandasParser_IMPORT()
 
-cdef extern from "parser/io.h":
-    void *new_rd_source(object obj) except NULL
+PandasParser_IMPORT
 
-    int del_rd_source(void *src)
+# When not invoked directly but rather assigned as a function,
+# cdef extern'ed declarations seem to leave behind an undefined symbol
+cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
+                            char sci, char tsep, int skip_trailing,
+                            int *error, int *maybe_int) nogil:
+    return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
-    void* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+
+cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
+                                    char sci, char tsep, int skip_trailing,
+                                    int *error, int *maybe_int) nogil:
+    return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef double round_trip_wrapper(const char *p, char **q, char decimal,
+                               char sci, char tsep, int skip_trailing,
+                               int *error, int *maybe_int) nogil:
+    return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+
+
+cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
+                                   size_t *bytes_read, int *status,
+                                   const char *encoding_errors) noexcept:
+    return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
+
+cdef int del_rd_source_wrapper(void *src) noexcept:
+    return del_rd_source(src)
 
 
 cdef class TextReader:
@@ -485,11 +512,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            self.parser.double_converter = round_trip
+            self.parser.double_converter = round_trip_wrapper
         elif float_precision == "legacy":
-            self.parser.double_converter = xstrtod
+            self.parser.double_converter = xstrtod_wrapper
         elif float_precision == "high" or float_precision is None:
-            self.parser.double_converter = precise_xstrtod
+            self.parser.double_converter = precise_xstrtod_wrapper
         else:
             raise ValueError(f"Unrecognized float_precision option: "
                              f"{float_precision}")
@@ -607,8 +634,8 @@ cdef class TextReader:
 
         ptr = new_rd_source(source)
         self.parser.source = ptr
-        self.parser.cb_io = &buffer_rd_bytes
-        self.parser.cb_cleanup = &del_rd_source
+        self.parser.cb_io = buffer_rd_bytes_wrapper
+        self.parser.cb_cleanup = del_rd_source_wrapper
 
     cdef _get_header(self, list prelim_header):
         # header is now a list of lists, so field_count should use header[0]
@@ -1044,7 +1071,7 @@ cdef class TextReader:
 
             # don't try to upcast EAs
             if (
-                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                na_count > 0 and not isinstance(col_dtype, ExtensionDtype)
                 or self.dtype_backend != "numpy"
             ):
                 use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
@@ -1109,14 +1136,14 @@ cdef class TextReader:
             # (see _try_bool_flex()). Usually this would be taken care of using
             # _maybe_upcast(), but if col_dtype is a floating type we should just
             # take care of that cast here.
-            if col_res.dtype == np.bool_ and is_float_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind == "f":
                 mask = col_res.view(np.uint8) == na_values[np.uint8]
                 col_res = col_res.astype(col_dtype)
                 np.putmask(col_res, mask, np.nan)
                 return col_res, na_count
 
             # NaNs are already cast to True here, so can not use astype
-            if col_res.dtype == np.bool_ and is_integer_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind in "iu":
                 if na_count > 0:
                     raise ValueError(
                         f"cannot safely convert passed user dtype of "
@@ -1160,14 +1187,14 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                if is_bool_dtype(dtype):
+                if dtype.kind == "b":
                     true_values = [x.decode() for x in self.true_values]
                     false_values = [x.decode() for x in self.false_values]
                     result = array_type._from_sequence_of_strings(
@@ -1183,7 +1210,7 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_integer_dtype(dtype):
+        elif dtype.kind in "iu":
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1200,14 +1227,14 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_float_dtype(dtype):
+        elif dtype.kind == "f":
             result, na_count = _try_double(self.parser, i, start, end,
                                            na_filter, na_hashset, na_flist)
 
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
             return result, na_count
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
@@ -1234,10 +1261,10 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_object_dtype(dtype):
+        elif dtype == object:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_datetime64_dtype(dtype):
+        elif dtype.kind == "M":
             raise TypeError(f"the dtype {dtype} is not supported "
                             f"for parsing, pass this column "
                             f"using parse_dates instead")
@@ -1405,7 +1432,7 @@ def _maybe_upcast(
     -------
     The casted array.
     """
-    if is_extension_array_dtype(arr.dtype):
+    if isinstance(arr.dtype, ExtensionDtype):
         # TODO: the docstring says arr is an ndarray, in which case this cannot
         #  be reached. Is that incorrect?
         return arr

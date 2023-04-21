@@ -44,8 +44,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -54,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -228,7 +227,7 @@ def _sparse_array_op(
         if (
             name in ["floordiv", "mod"]
             and (right == 0).any()
-            and left.dtype.kind in ["i", "u"]
+            and left.dtype.kind in "iu"
         ):
             # Match the non-Sparse Series behavior
             opname = f"sparse_{name}_float64"
@@ -458,7 +457,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             data = extract_array(data, extract_numpy=True)
             if not isinstance(data, np.ndarray):
                 # EA
-                if is_datetime64tz_dtype(data.dtype):
+                if isinstance(data.dtype, DatetimeTZDtype):
                     warnings.warn(
                         f"Creating SparseArray from {data.dtype} data "
                         "loses timezone information. Cast to object before "
@@ -559,7 +558,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
             # and return object.
-            if is_datetime64_any_dtype(self.sp_values.dtype):
+            if self.sp_values.dtype.kind == "M":
                 # However, we *do* special-case the common case of
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
@@ -886,7 +885,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             index = Index(keys)
         else:
             index = keys
-        return Series(counts, index=index)
+        return Series(counts, index=index, copy=False)
 
     # --------
     # Indexing
@@ -1305,23 +1304,24 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([1, 2], dtype=int32)
         """
-        if na_action is not None:
-            raise NotImplementedError
+        is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 
-        # this is used in apply.
-        # We get hit since we're an "is_extension_array_dtype" but regular extension
-        # types are not hit. This may be worth adding to the interface.
-        if isinstance(mapper, ABCSeries):
-            mapper = mapper.to_dict()
+        fill_val = self.fill_value
 
-        if isinstance(mapper, abc.Mapping):
-            fill_value = mapper.get(self.fill_value, self.fill_value)
-            sp_values = [mapper.get(x, None) for x in self.sp_values]
-        else:
-            fill_value = mapper(self.fill_value)
-            sp_values = [mapper(x) for x in self.sp_values]
+        if na_action is None or notna(fill_val):
+            fill_val = mapper.get(fill_val, fill_val) if is_map else mapper(fill_val)
 
-        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+        def func(sp_val):
+            new_sp_val = mapper.get(sp_val, None) if is_map else mapper(sp_val)
+            # check identity and equality because nans are not equal to each other
+            if new_sp_val is fill_val or new_sp_val == fill_val:
+                msg = "fill value in the sparse values not supported"
+                raise ValueError(msg)
+            return new_sp_val
+
+        sp_values = [func(x) for x in self.sp_values]
+
+        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
 
     def to_dense(self) -> np.ndarray:
         """
@@ -1755,10 +1755,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _sparse_array_op(self, other, op, op_name)
         else:
             # scalar
-            with np.errstate(all="ignore"):
-                fill_value = op(self.fill_value, other)
-                result = np.full(len(self), fill_value, dtype=np.bool_)
-                result[self.sp_index.indices] = op(self.sp_values, other)
+            fill_value = op(self.fill_value, other)
+            result = np.full(len(self), fill_value, dtype=np.bool_)
+            result[self.sp_index.indices] = op(self.sp_values, other)
 
             return type(self)(
                 result,

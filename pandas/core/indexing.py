@@ -35,7 +35,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -46,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -734,14 +734,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
-                    if len(newkey) == 0:
-                        # FIXME: kludge for test_loc_setitem_boolean_mask_allfalse
-                        # TODO(GH#45333): may be fixed when deprecation is enforced
-
-                        value = value.iloc[:0]
-                    else:
-                        # test_loc_setitem_ndframe_values_alignment
-                        value = self.obj.iloc._align_series(indexer, value)
+                    # test_loc_setitem_ndframe_values_alignment
+                    value = self.obj.iloc._align_series(indexer, value)
                     indexer = (newkey, icols)
 
                 elif (
@@ -757,14 +751,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
-                        if len(newkey) == 0:
-                            # FIXME: kludge for
-                            #  test_loc_setitem_all_false_boolean_two_blocks
-                            #  TODO(GH#45333): may be fixed when deprecation is enforced
-                            value = value.iloc[:0]
-                        else:
-                            # test_loc_setitem_ndframe_values_alignment
-                            value = self.obj.iloc._align_frame(indexer, value)
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_frame(indexer, value)
                         indexer = (newkey, icols)
         elif com.is_bool_indexer(indexer):
             indexer = indexer.nonzero()[0]
@@ -1140,10 +1128,10 @@ class _LocIndexer(_LocationIndexer):
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(ax)
+            is_bool_dtype(ax.dtype)
             or ax.dtype.name == "boolean"
             or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0))
+            and is_bool_dtype(ax.get_level_values(0).dtype)
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -2179,8 +2167,8 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = np.arange(len(self.obj.columns))[column_indexer]
-        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
-            column_indexer.dtype
+        elif (
+            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):
             ilocs = np.arange(len(column_indexer))[column_indexer]
         else:
@@ -2255,7 +2243,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix) or not len(new_ix):
+                    if ser.index.equals(new_ix):
                         return ser._values.copy()
 
                     return ser.reindex(new_ix)._values
@@ -2269,7 +2257,7 @@ class _iLocIndexer(_LocationIndexer):
                     return ser.reindex(ax)._values
 
         elif is_integer(indexer) and self.ndim == 1:
-            if is_object_dtype(self.obj):
+            if is_object_dtype(self.obj.dtype):
                 return ser
             ax = self.obj._get_axis(0)
 
@@ -2502,7 +2490,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         result = result.take(indexer)
 
         # fall through for boolean
-        if not is_extension_array_dtype(result.dtype):
+        if not isinstance(result.dtype, ExtensionDtype):
             return result.astype(bool)._values
 
     if is_object_dtype(key):

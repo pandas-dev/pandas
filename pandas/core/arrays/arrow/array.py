@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -56,6 +55,8 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.masked import BaseMaskedArray
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.indexers import (
     check_array_indexer,
@@ -217,7 +218,7 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
-    _data: pa.ChunkedArray
+    _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
@@ -251,7 +252,7 @@ class ArrowExtensionArray(
             except pa.ArrowInvalid:
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
-        if pa_dtype:
+        if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
         return cls(scalars)
 
@@ -362,9 +363,9 @@ class ArrowExtensionArray(
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
                 return type(self)(pa.chunked_array([], type=pa_dtype))
-            elif is_integer_dtype(item.dtype):
+            elif item.dtype.kind in "iu":
                 return self.take(item)
-            elif is_bool_dtype(item.dtype):
+            elif item.dtype.kind == "b":
                 return type(self)(self._pa_array.filter(item))
             else:
                 raise IndexError(
@@ -450,6 +451,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, other)
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, pa.scalar(other))
@@ -497,6 +501,9 @@ class ArrowExtensionArray(
             result = pc_func(self._pa_array, other._pa_array)
         elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._pa_array, pa.array(other, from_pandas=True))
+        elif isinstance(other, BaseMaskedArray):
+            # GH 52625
+            result = pc_func(self._pa_array, other.__arrow_array__())
         elif is_scalar(other):
             if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
                 # pyarrow kleene ops require null to be typed
@@ -765,6 +772,10 @@ class ArrowExtensionArray(
         limit: int | None = None,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
+
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
 
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)
@@ -1040,14 +1051,22 @@ class ArrowExtensionArray(
             result = np.empty(len(self), dtype=object)
             mask = ~self.isna()
             result[mask] = np.asarray(self[mask]._pa_array)
+        elif pa.types.is_null(self._pa_array.type):
+            fill_value = None if isna(na_value) else na_value
+            return np.full(len(self), fill_value=fill_value, dtype=dtype)
         elif self._hasna:
-            data = self.copy()
-            data[self.isna()] = na_value
-            return np.asarray(data._pa_array, dtype=dtype)
+            data = self.fillna(na_value)
+            result = data._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
+            return result
         else:
-            result = np.asarray(self._pa_array, dtype=dtype)
+            result = self._pa_array.to_numpy()
+            if dtype is not None:
+                result = result.astype(dtype, copy=False)
             if copy:
                 result = result.copy()
+            return result
         if self._hasna:
             result[self.isna()] = na_value
         return result
@@ -1120,7 +1139,7 @@ class ArrowExtensionArray(
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count")
+        return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> Self:
@@ -1137,7 +1156,7 @@ class ArrowExtensionArray(
         """
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
-            # StringDtype has no attrivute pyarrow_dtype
+            # StringDtype has no attribute pyarrow_dtype
             pa_dtype = pa.string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
@@ -1258,7 +1277,7 @@ class ArrowExtensionArray(
 
         else:
             pyarrow_name = {
-                "median": "approximate_median",
+                "median": "quantile",
                 "prod": "product",
                 "std": "stddev",
                 "var": "variance",
@@ -1274,6 +1293,9 @@ class ArrowExtensionArray(
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
         if name in ["any", "all"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
+        elif name == "median":
+            # GH 52679: Use quantile instead of approximate_median
+            kwargs["q"] = 0.5
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -1285,6 +1307,9 @@ class ArrowExtensionArray(
                 f"upgrading pyarrow."
             )
             raise TypeError(msg) from err
+        if name == "median":
+            # GH 52679: Use quantile instead of approximate_median; returns array
+            result = result[0]
         if pc.is_null(result).as_py():
             return self.dtype.na_value
 
@@ -1482,6 +1507,8 @@ class ArrowExtensionArray(
         result = pc.quantile(data, q=qs, interpolation=interpolation)
 
         if pa.types.is_temporal(pa_dtype):
+            if pa.types.is_floating(result.type):
+                result = pc.floor(result)
             nbits = pa_dtype.bit_width
             if nbits == 32:
                 result = result.cast(pa.int32())
@@ -1630,6 +1657,10 @@ class ArrowExtensionArray(
                 indices = pa.array(indices, type=pa.int64())
                 replacements = replacements.take(indices)
             return cls._if_else(mask, replacements, values)
+        if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
+            # GH#52059 replace_with_mask segfaults for chunked array
+            # https://github.com/apache/arrow/issues/34634
+            values = values.combine_chunks()
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
@@ -1641,6 +1672,82 @@ class ArrowExtensionArray(
         result = np.array(values, dtype=object)
         result[mask] = replacements
         return pa.array(result, type=values.type, from_pandas=True)
+
+    # ------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _to_masked(self):
+        pa_dtype = self._pa_array.type
+        na_value = 1
+        from pandas.core.arrays import (
+            BooleanArray,
+            FloatingArray,
+            IntegerArray,
+        )
+
+        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
+        if pa.types.is_floating(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Float{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = FloatingArray
+        elif pa.types.is_unsigned_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"UInt{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_signed_integer(pa_dtype):
+            nbits = pa_dtype.bit_width
+            dtype = f"Int{nbits}"
+            np_dtype = dtype.lower()
+            arr_cls = IntegerArray
+
+        elif pa.types.is_boolean(pa_dtype):
+            dtype = "boolean"
+            np_dtype = "bool"
+            na_value = True
+            arr_cls = BooleanArray
+        else:
+            raise NotImplementedError
+
+        mask = self.isna()
+        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
+        return arr_cls(arr, mask)
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        if isinstance(self.dtype, StringDtype):
+            return super()._groupby_op(
+                how=how,
+                has_dropped_na=has_dropped_na,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                **kwargs,
+            )
+
+        masked = self._to_masked()
+
+        result = masked._groupby_op(
+            how=how,
+            has_dropped_na=has_dropped_na,
+            min_count=min_count,
+            ngroups=ngroups,
+            ids=ids,
+            **kwargs,
+        )
+        if isinstance(result, np.ndarray):
+            return result
+        return type(self)._from_sequence(result, copy=False)
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
@@ -1932,15 +2039,25 @@ class ArrowExtensionArray(
         )
 
     def _str_split(
-        self, pat=None, n=-1, expand: bool = False, regex: bool | None = None
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
     ):
-        raise NotImplementedError(
-            "str.split not supported with pd.ArrowDtype(pa.string())."
-        )
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return type(self)(split_func(self._pa_array, pat, max_splits=n))
 
-    def _str_rsplit(self, pat=None, n=-1):
-        raise NotImplementedError(
-            "str.rsplit not supported with pd.ArrowDtype(pa.string())."
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return type(self)(
+            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
     def _str_translate(self, table):
@@ -1948,10 +2065,14 @@ class ArrowExtensionArray(
             "str.translate not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_wrap(self, width, **kwargs):
+    def _str_wrap(self, width: int, **kwargs):
         raise NotImplementedError(
             "str.wrap not supported with pd.ArrowDtype(pa.string())."
         )
+
+    @property
+    def _dt_year(self):
+        return type(self)(pc.year(self._pa_array))
 
     @property
     def _dt_day(self):
@@ -2007,7 +2128,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_date(self):
-        return type(self)(self._pa_array.cast(pa.date64()))
+        return type(self)(self._pa_array.cast(pa.date32()))
 
     @property
     def _dt_time(self):
@@ -2087,7 +2208,10 @@ class ArrowExtensionArray(
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
     def _dt_to_pydatetime(self):
-        return np.array(self._pa_array.to_pylist(), dtype=object)
+        data = self._pa_array.to_pylist()
+        if self._dtype.pyarrow_dtype.unit == "ns":
+            data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
+        return np.array(data, dtype=object)
 
     def _dt_tz_localize(
         self,
@@ -2097,12 +2221,19 @@ class ArrowExtensionArray(
     ):
         if ambiguous != "raise":
             raise NotImplementedError(f"{ambiguous=} is not supported")
-        if nonexistent != "raise":
+        nonexistent_pa = {
+            "raise": "raise",
+            "shift_backward": "earliest",
+            "shift_forward": "latest",
+        }.get(
+            nonexistent, None  # type: ignore[arg-type]
+        )
+        if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")
         if tz is None:
-            new_type = pa.timestamp(self.dtype.pyarrow_dtype.unit)
-            return type(self)(self._pa_array.cast(new_type))
-        pa_tz = str(tz)
-        return type(self)(
-            self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit, pa_tz))
-        )
+            result = self._pa_array.cast(pa.timestamp(self.dtype.pyarrow_dtype.unit))
+        else:
+            result = pc.assume_timezone(
+                self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
+            )
+        return type(self)(result)

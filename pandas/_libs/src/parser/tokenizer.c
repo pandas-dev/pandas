@@ -105,7 +105,7 @@ void parser_set_default_options(parser_t *self) {
     self->skip_footer = 0;
 }
 
-parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
+parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 int parser_clear_data_buffers(parser_t *self) {
     free_if_not_null((void *)&self->stream);
@@ -664,9 +664,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
 
 // applied when in a field
-#define IS_DELIMITER(c)                                   \
-    ((!self->delim_whitespace && c == self->delimiter) || \
-     (self->delim_whitespace && isblank(c)))
+#define IS_DELIMITER(c) ((c == delimiter) || (delim_whitespace && isblank(c)))
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
@@ -720,6 +718,9 @@ int tokenize_bytes(parser_t *self,
 
     const char lineterminator = (self->lineterminator == '\0') ?
             '\n' : self->lineterminator;
+
+    const int delim_whitespace = self->delim_whitespace;
+    const char delimiter = self->delimiter;
 
     // 1000 is something that couldn't fit in "char"
     // thus comparing a char to it would always be "false"
