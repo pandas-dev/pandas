@@ -767,6 +767,33 @@ def test_groupby_nth_with_column_axis():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_nth_interval():
+    # GH24205
+    idx_result = pd.MultiIndex(
+        [pd.CategoricalIndex([pd.Interval(0, 1),pd.Interval(1, 2)]), 
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)])
+        ], 
+        [[0, 0, 0, 1, 1], 
+            [0, 1, 1, 0, -1]
+        ]
+    )
+    df_result = pd.DataFrame({'col': range(len(idx_result))}, index=idx_result)
+    
+    result = df_result.groupby(level=[0, 1],observed=False).nth(0)
+
+    val_expected = [0,1,3]
+    idx_expected = pd.MultiIndex(
+        [pd.CategoricalIndex([pd.Interval(0, 1),pd.Interval(1, 2)]), 
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)])
+        ], 
+        [[0, 0, 1], 
+            [0, 1, 0]
+        ]
+    )
+    expected = pd.DataFrame(val_expected,index=idx_expected,columns=['col'])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "start, stop, expected_values, expected_columns",
     [
