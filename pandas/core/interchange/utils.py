@@ -37,6 +37,7 @@ class ArrowCTypes:
     FLOAT32 = "f"
     FLOAT64 = "g"
     STRING = "u"  # utf-8
+    LARGE_STRING = "U"  # utf-8
     DATE32 = "tdD"
     DATE64 = "tdm"
     # Resoulution:
