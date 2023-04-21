@@ -64,7 +64,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
@@ -73,6 +72,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -167,6 +167,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
@@ -195,16 +196,12 @@ _shared_doc_kwargs = {
     "unique": "np.ndarray",
     "duplicated": "Series",
     "optional_by": "",
-    "optional_mapper": "",
     "optional_reindex": """
 index : array-like, optional
     New labels for the index. Preferably an Index object to avoid
     duplicating data.
 axis : int or str, optional
     Unused.""",
-    "replace_iloc": """
-    This differs from updating with ``.loc`` or ``.iloc``, which require
-    you to specify a location to update with some value.""",
 }
 
 
@@ -558,15 +555,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 values = []
             keys = index
         else:
-            keys, values = (), []
+            keys, values = default_index(0), []
 
         # Input is now list-like, so rely on "standard" construction:
-
-        s = self._constructor(
-            values,
-            index=keys,
-            dtype=dtype,
-        )
+        s = Series(values, index=keys, dtype=dtype)
 
         # Now we just make sure the order is respected, if any
         if data and index is not None:
@@ -1866,7 +1858,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        if is_object_dtype(self) or is_extension_array_dtype(self):
+        if is_object_dtype(self.dtype) or isinstance(self.dtype, ExtensionDtype):
             return into_c((k, maybe_box_native(v)) for k, v in self.items())
         else:
             # Not an object dtype => all types will be the same so let the default
@@ -2427,9 +2419,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmin(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmin" of "IndexOpsMixin" has incompatible type "Union
-        # [int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmin(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2498,9 +2489,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.idxmax(skipna=False)
         nan
         """
-        # error: Argument 1 to "argmax" of "IndexOpsMixin" has incompatible type
-        # "Union[int, Literal['index', 'columns']]"; expected "Optional[int]"
-        i = self.argmax(axis, skipna, *args, **kwargs)  # type: ignore[arg-type]
+        axis = self._get_axis_number(axis)
+        i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2902,7 +2892,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         one, or the Series and each columns of a DataFrame, or the Series and
         each columns of an array.
 
-        It can also be called using `self @ other` in Python >= 3.5.
+        It can also be called using `self @ other`.
 
         Parameters
         ----------
@@ -2974,13 +2964,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __matmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(np.transpose(other))
 
@@ -3345,8 +3335,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Series:
@@ -3359,8 +3349,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -3372,8 +3362,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> Series | None:
@@ -3546,7 +3536,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
+        if key:
+            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+        else:
+            values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
@@ -3908,7 +3901,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    def nsmallest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         """
         Return the smallest `n` elements.
 
@@ -4169,7 +4164,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self):
+        if not len(self) or not is_object_dtype(self.dtype):
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
 
@@ -4261,7 +4256,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.apply : For applying more complex functions on a Series.
         Series.replace: Replace values given in `to_replace` with `value`.
         DataFrame.apply : Apply a function row-/column-wise.
-        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        DataFrame.map : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -4376,7 +4371,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if func is None:
             func = dict(kwargs.items())
 
-        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4392,9 +4387,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(
-            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
-        ).transform()
+        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4516,17 +4509,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(
+            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+        ).apply()
 
     def _reindex_indexer(
         self,
@@ -4736,7 +4721,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=None,
         *,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = None,
@@ -5225,7 +5210,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         input_series = self
         if infer_objects:
             input_series = input_series.infer_objects()
-            if is_object_dtype(input_series):
+            if is_object_dtype(input_series.dtype):
                 input_series = input_series.copy(deep=None)
 
         if convert_string or convert_integer or convert_boolean or convert_floating:
@@ -5497,7 +5482,47 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
-        axis=0, doc="The index (axis labels) of the Series."
+        axis=0,
+        doc="""
+        The index (axis labels) of the Series.
+
+        The index of a Series is used to label and identify each element of the
+        underlying data. The index can be thought of as an immutable ordered set
+        (technically a multi-set, as it may contain duplicate labels), and is
+        used to index and align data in pandas.
+
+        Returns
+        -------
+        Index
+            The index labels of the Series.
+
+        See Also
+        --------
+        Series.reindex : Conform Series to new index.
+        Series.set_index : Set Series as DataFrame index.
+        Index : The base pandas index type.
+
+        Notes
+        -----
+        For more information on pandas indexing, see the `indexing user guide
+        <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
+
+        Examples
+        --------
+        To create a Series with a custom index and view the index labels:
+
+        >>> cities = ['Kolkata', 'Chicago', 'Toronto', 'Lisbon']
+        >>> populations = [14.85, 2.71, 2.93, 0.51]
+        >>> city_series = pd.Series(populations, index=cities)
+        >>> city_series.index
+        Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
+
+        To change the index labels of an existing Series:
+
+        >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
+        >>> city_series.index
+        Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------
@@ -5581,9 +5606,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
         """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
         this = self
 
         if not self.index.equals(other.index):
@@ -5649,7 +5671,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
-            result.name = res_name
+            result._name = res_name
             return result
         else:
             if fill_value is not None:

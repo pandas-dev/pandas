@@ -56,12 +56,9 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -458,7 +455,7 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, LookupError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
             with suppress(AttributeError):
@@ -516,7 +513,7 @@ class HDFStore:
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
         Specifies the compression library to be used.
-        As of v0.20.2 these additional compressors for Blosc are supported
+        These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
          'blosc:zlib', 'blosc:zstd'}.
@@ -2073,7 +2070,7 @@ class IndexCol:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
         factory: type[Index] | type[DatetimeIndex] = Index
-        if is_datetime64_dtype(values.dtype) or isinstance(
+        if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
             factory = DatetimeIndex
@@ -2378,9 +2375,9 @@ class DataCol(IndexCol):
         if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
-        elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
+        elif lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             atom = cls.get_atom_timedelta64(shape)
         elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
@@ -2558,7 +2555,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values)):
+        if not is_object_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -3082,7 +3079,7 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif is_datetime64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "M"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
         elif isinstance(value.dtype, DatetimeTZDtype):
@@ -3100,7 +3097,7 @@ class GenericFixed(Fixed):
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
-        elif is_timedelta64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
         elif empty_array:
@@ -4864,7 +4861,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     atom = DataIndexableCol._get_atom(converted)
 
     if (
-        (isinstance(index.dtype, np.dtype) and is_integer_dtype(index))
+        lib.is_np_dtype(index.dtype, "iu")
         or needs_i8_conversion(index.dtype)
         or is_bool_dtype(index.dtype)
     ):

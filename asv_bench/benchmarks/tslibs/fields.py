@@ -12,7 +12,7 @@ from .tslib import _sizes
 class TimeGetTimedeltaField:
     params = [
         _sizes,
-        ["days", "seconds", "microseconds", "nanoseconds"],
+        ["seconds", "microseconds", "nanoseconds"],
     ]
     param_names = ["size", "field"]
 
