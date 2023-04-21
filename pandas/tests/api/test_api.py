@@ -5,11 +5,13 @@ import pytest
 import pandas as pd
 from pandas import api
 import pandas._testing as tm
-from pandas.api import typing as api_typing
-from pandas.api import types as api_types
-from pandas.api import interchange as api_interchange
-from pandas.api import indexers as api_indexers
-from pandas.api import extensions as api_extensions
+from pandas.api import (
+    extensions as api_extensions,
+    indexers as api_indexers,
+    interchange as api_interchange,
+    types as api_types,
+    typing as api_typing,
+)
 
 
 class Base:
@@ -310,10 +312,7 @@ class TestApi(Base):
         "IntervalDtype",
         "PeriodDtype",
     ]
-    allowed_api_interchange = [
-        "from_dataframe",
-        "DataFrame"
-    ]
+    allowed_api_interchange = ["from_dataframe", "DataFrame"]
     allowed_api_indexers = [
         "check_array_indexer",
         "BaseIndexer",
@@ -332,24 +331,24 @@ class TestApi(Base):
         "ExtensionScalarOpsMixin",
     ]
 
-
     def test_api(self):
         self.check(api, self.allowed)
 
     def test_api_typing(self):
         self.check(api_typing, self.allowed_typing)
-    
+
     def test_api_types(self):
         self.check(api_types, self.allowed_api_types)
 
     def test_api_interchange(self):
         self.check(api_interchange, self.allowed_api_interchange)
-    
+
     def test_api_indexers(self):
         self.check(api_indexers, self.allowed_api_indexers)
-    
+
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
+
 
 class TestTesting(Base):
     funcs = [
