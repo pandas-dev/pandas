@@ -1,3 +1,4 @@
+# pylint: disable=undefined-all-variable
 """
 Public API classes that store intermediate results useful for type-hinting.
 """
@@ -25,8 +26,27 @@ from pandas.core.window import (
 
 # TODO: Can't import Styler without importing jinja2
 # from pandas.io.formats.style import Styler
-from pandas.io.json._json import JsonReader
-from pandas.io.stata import StataReader
+
+
+def __getattr__(key: str):
+    if key == "JsonReader":
+        from pandas.io.json._json import JsonReader
+
+        return JsonReader
+    elif key == "StataReader":
+        from pandas.io.stata import StataReader
+
+        return StataReader
+    else:
+        raise AttributeError(f"module 'pandas.api.typing' has no attribute '{key}'")
+
+
+def __dir__() -> list[str]:
+    # include lazy imports defined in __getattr__ in dir()
+    base = list(globals().keys())
+    result = base + ["JsonReader", "StataReader"]
+    return sorted(result)
+
 
 __all__ = [
     "DataFrameGroupBy",
@@ -35,13 +55,13 @@ __all__ = [
     "ExpandingGroupby",
     "ExponentialMovingWindow",
     "ExponentialMovingWindowGroupby",
-    "JsonReader",
+    "JsonReader",  # pyright: ignore[reportUnsupportedDunderAll]
     "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",
     "RollingGroupby",
     "SeriesGroupBy",
-    "StataReader",
+    "StataReader",  # pyright: ignore[reportUnsupportedDunderAll]
     # See TODO above
     # "Styler",
     "TimedeltaIndexResamplerGroupby",
