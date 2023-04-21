@@ -2148,6 +2148,16 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         return self.values.dtype.kind == "O"
 
 
+class NumericBlock(NumpyBlock):
+    # this Block type is kept for backwards-compatibility
+    __slots__ = ()
+
+
+class ObjectBlock(NumpyBlock):
+    # this Block type is kept for backwards-compatibility
+    __slots__ = ()
+
+
 class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray

@@ -36,3 +36,28 @@ __all__ = [
     # this is preserved here for downstream compatibility (GH-33892)
     "create_block_manager_from_blocks",
 ]
+
+
+def __getattr__(name: str):
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    if name in ["NumericBlock", "ObjectBlock"]:
+        if name == "NumericBlock":
+            from pandas.core.internals.blocks import NumericBlock
+
+            block_type = NumericBlock
+        elif name == "ObjectBlock":
+            from pandas.core.internals.blocks import ObjectBlock
+
+            block_type = ObjectBlock
+        warnings.warn(
+            f"{name} is deprecated and will be removed in a future version. "
+            "Use NumpyBlock instead.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
+        return block_type
+
+    raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")
