@@ -1217,7 +1217,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        other_nanos = 0
         if self._use_relativedelta:
+            if isinstance(other, _Timestamp):
+                other_nanos = other.nanosecond
             other = _as_datetime(other)
 
         if len(self.kwds) > 0:
@@ -1226,17 +1229,18 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if hasattr(self, "nanoseconds"):
-                td_nano = Timedelta(nanoseconds=self.nanoseconds)
-            else:
-                td_nano = Timedelta(0)
-
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset + td_nano
+                    other = other + self._offset
+                if hasattr(self, "nanoseconds"):
+                    other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+                    other = other + Timedelta(nanoseconds=other_nanos)
             else:
                 for i in range(-self.n):
-                    other = other - self._offset - td_nano
+                    other = other - self._offset
+                if hasattr(self, "nanoseconds"):
+                    other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+                    other = other + Timedelta(nanoseconds=other_nanos)
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation

@@ -2577,7 +2577,17 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit(unit)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Discarding nonzero nanoseconds in conversion",
+                    category=UserWarning,
+                )
+                next_date = offset._apply(cur)
+            # nanos = getattr(offset, "nanoseconds", 0)
+            # if nanos != 0:
+            #     next_date = next_date + Timedelta(nanoseconds=nanos)
+            next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2591,7 +2601,17 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit(unit)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Discarding nonzero nanoseconds in conversion",
+                    category=UserWarning,
+                )
+                next_date = offset._apply(cur)
+            # nanos = getattr(offset, "nanoseconds", 0)
+            # if nanos != 0:
+            #     next_date = next_date - Timedelta(nanoseconds=nanos)
+            next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
