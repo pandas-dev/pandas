@@ -32,7 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Bug in :class:`Index` where creating or converting to the numpy dtype S3 would raise ``NotImplementedError`` (:issue:`50127`)
+- Bug in :class:`Index` where creating or converting to numpy string dtypes would raise ``NotImplementedError`` (:issue:`50127`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:

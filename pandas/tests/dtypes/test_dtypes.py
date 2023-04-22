@@ -1141,7 +1141,7 @@ def test_multi_column_dtype_assignment():
 
 
 def test_numpy_s3_dtype_on_index():
-    # GH #50127
+    # GH#50127
     index = pd.Index(["abcd", "1234"], dtype="S3")
     expected = pd.Index(["abc", "123"], dtype="S3")
     assert index.dtype == pandas_dtype("object")
