@@ -14,6 +14,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -2007,3 +2008,50 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_agg_list(request, as_index, observed, reduction_func, test_series, keys):
+    # GH#52760
+    if test_series and reduction_func == "corrwith":
+        assert not hasattr(SeriesGroupBy, "corrwith")
+        pytest.skip("corrwith not implemented for SeriesGroupBy")
+    elif reduction_func == "corrwith":
+        msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    elif (
+        reduction_func == "nunique"
+        and not test_series
+        and len(keys) != 1
+        and not observed
+        and not as_index
+    ):
+        msg = "GH#52848 - raises a ValueError"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    df = df.astype({"a1": "category", "a2": "category"})
+    if "a2" not in keys:
+        df = df.drop(columns="a2")
+    gb = df.groupby(by=keys, as_index=as_index, observed=observed)
+    if test_series:
+        gb = gb["b"]
+    args = get_groupby_method_args(reduction_func, df)
+
+    result = gb.agg([reduction_func], *args)
+    expected = getattr(gb, reduction_func)(*args)
+
+    if as_index and (test_series or reduction_func == "size"):
+        expected = expected.to_frame(reduction_func)
+    if not test_series:
+        if not as_index:
+            # TODO: GH#52849 - as_index=False is not respected
+            expected = expected.set_index(keys)
+        expected.columns = MultiIndex(
+            levels=[["b"], [reduction_func]], codes=[[0], [0]]
+        )
+    elif not as_index:
+        expected.columns = keys + [reduction_func]
+
+    tm.assert_equal(result, expected)
