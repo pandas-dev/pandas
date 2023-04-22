@@ -2042,20 +2042,21 @@ def test_groupby_default_depr(cat_columns, keys):
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
 def test_agg_list(request, as_index, observed, reduction_func, test_series, keys):
+    # GH#52760
     if test_series and reduction_func == "corrwith":
         assert not hasattr(SeriesGroupBy, "corrwith")
         pytest.skip("corrwith not implemented for SeriesGroupBy")
     elif reduction_func == "corrwith":
-        msg = "DataFrameGroupBy.agg(['corrwith']) attempts to call SeriesGroupBy"
+        msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
     elif (
-        not test_series
-        and reduction_func == "nunique"
+        reduction_func == "nunique"
+        and not test_series
         and len(keys) != 1
         and not observed
         and not as_index
     ):
-        msg = "DataFrameGroupBy.nunique fails on categoricals"
+        msg = "GH#52848 - raises a ValueError"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
@@ -2074,7 +2075,7 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
         expected = expected.to_frame(reduction_func)
     if not test_series:
         if not as_index:
-            # TODO: Doesn't respect reset_index?
+            # TODO: GH#52849 - as_index=False is not respected
             expected = expected.set_index(keys)
         expected.columns = MultiIndex(
             levels=[["b"], [reduction_func]], codes=[[0], [0]]
