@@ -428,12 +428,10 @@ class TestPeriodDtype(Base):
         for s in ["period[D]", "Period[D]", "D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day()
-            assert is_period_dtype(dt)
 
         for s in ["period[3D]", "Period[3D]", "3D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day(3)
-            assert is_period_dtype(dt)
 
         for s in [
             "period[26H]",
@@ -445,7 +443,6 @@ class TestPeriodDtype(Base):
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)
-            assert is_period_dtype(dt)
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
@@ -531,20 +528,22 @@ class TestPeriodDtype(Base):
         assert not is_dtype_equal(PeriodDtype("D"), PeriodDtype("2D"))
 
     def test_basic(self, dtype):
-        assert is_period_dtype(dtype)
+        msg = "is_period_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_period_dtype(dtype)
 
-        pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
 
-        assert is_period_dtype(pidx.dtype)
-        assert is_period_dtype(pidx)
+            assert is_period_dtype(pidx.dtype)
+            assert is_period_dtype(pidx)
 
-        s = Series(pidx, name="A")
+            s = Series(pidx, name="A")
 
-        assert is_period_dtype(s.dtype)
-        assert is_period_dtype(s)
+            assert is_period_dtype(s.dtype)
+            assert is_period_dtype(s)
 
-        assert not is_period_dtype(np.dtype("float64"))
-        assert not is_period_dtype(1.0)
+            assert not is_period_dtype(np.dtype("float64"))
+            assert not is_period_dtype(1.0)
 
     def test_freq_argument_required(self):
         # GH#27388
@@ -1133,6 +1132,7 @@ def test_is_dtype_no_warning(check):
         check is is_categorical_dtype
         or check is is_interval_dtype
         or check is is_datetime64tz_dtype
+        or check is is_period_dtype
     ):
         warn = FutureWarning
 
