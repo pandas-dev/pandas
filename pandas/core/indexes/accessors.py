@@ -304,6 +304,12 @@ class DatetimeProperties(Properties):
         """
         Return the data as an array of :class:`datetime.datetime` objects.
 
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
+
         Timezone information is retained if present.
 
         .. warning::
