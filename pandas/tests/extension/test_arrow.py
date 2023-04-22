@@ -2832,6 +2832,11 @@ def test_date32_repr():
     assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
 
 
+@pytest.mark.xfail(
+    pa_version_under8p0,
+    reason="Function 'add_checked' has no kernel matching input types",
+    raises=pa.ArrowNotImplementedError,
+)
 def test_duration_overflow_from_ndarray_containing_nat():
     # GH52843
     data_ts = pd.to_datetime([1, None])
