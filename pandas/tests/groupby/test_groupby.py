@@ -3012,3 +3012,14 @@ def test_grouping_with_categorical_interval_columns():
         name="x",
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bug_var", [1, "a"])
+def test_groupby_sum_on_nan_should_return_nan(bug_var):
+    # GH 24196
+    df = DataFrame({"A": [bug_var, bug_var, bug_var, np.nan]})
+    dfgb = df.groupby(lambda x: x)
+    result = dfgb.sum(min_count=1)
+
+    expected_df = DataFrame([bug_var, bug_var, bug_var, np.nan], columns=["A"])
+    tm.assert_frame_equal(result, expected_df)
