@@ -31,17 +31,26 @@ from pandas._config.display import detect_console_encoding
 
 
 def using_copy_on_write() -> bool:
-    '''
-    This function examines the global pandas configuration 
-    settings to determine if copy-on-write mode is being used. 
-    Copy-on-write is a memory-saving technique that avoids copying 
-    data until it is actually modified, which can be particularly 
-    useful when working with large datasets.
-    Returns:
-    Bool: True if copy-on-write mode is enabled and the data manager is set to "block",
-    False otherwise.
+    """
+    This function examines the global pandas configuration settings to
+    determine if copy-on-write mode is being used. Copy-on-write is a
+    memory-saving technique that avoids copying data until it is actually
+    modified, which can be particularly useful when working with large
+    datasets.
 
-    Example:
+    Parameters
+    ----------
+    No arguments
+
+    Returns
+    ----------
+    Bool:
+        True if copy-on-write mode is enabled and the data manager
+        is set to "block",
+        False otherwise.
+
+    Example
+    ----------
     >>> import pandas as pd
     >>> pd.set_option('mode.chained_assignment', 'raise')
     >>> pd.set_option('mode.copy', True)
@@ -49,21 +58,29 @@ def using_copy_on_write() -> bool:
     >>> pd.set_option('compute.use_bottleneck', False)
     >>> pd.set_option('compute.use_numexpr', False)
     >>> using_copy_on_write()
-    True    
-    '''
+    True
+    """
     _mode_options = _global_config["mode"]
     return _mode_options["copy_on_write"] and _mode_options["data_manager"] == "block"
 
 
 def using_nullable_dtypes() -> bool:
     """
-    This function examines the global pandas configuration settings to determine if nullable data types are being used. 
-    If pandas is using nullable data types, the function will return True. Otherwise, it will return False.
+    This function examines the global pandas configuration settings to
+    determine if nullable data types are being used.
 
-    Note: This function assumes that the global pandas configuration settings have already been initialized. 
-    If you are not sure whether the settings have been initialized, you can call the `pandas.api.types.is_extension_type()` function to force initialization.
+    Parameters
+    ----------
+    No arguments
 
-    Examples:
+    Returns
+    ----------
+    Bool:
+        True if pandas is using nullable data types.
+        False otherwise
+
+    Example
+    ----------
     >>> import pandas as pd
     >>> pd.set_option('mode.use_inf_as_na', True)
     >>> pd.set_option('mode.use_nullable_dtypes', True)
@@ -72,6 +89,14 @@ def using_nullable_dtypes() -> bool:
     >>> pd.set_option('mode.use_nullable_dtypes', False)
     >>> using_nullable_dtypes()
     False
+
+    Notes
+    ----------
+    This function assumes that the global pandas configuration settings have
+    already been initialized. If you are not sure whether the settings
+    have been initialized, you can call the
+      pandas.api.types.is_extension_type() function to force initialization.
+
     """
     _mode_options = _global_config["mode"]
     return _mode_options["nullable_dtypes"]

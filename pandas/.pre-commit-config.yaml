@@ -1,0 +1,13 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.9.2
+    hooks:
+      - id: codespell
+      - id: check-added-large-files
+      - id: flake8
+      - id: pylint
+      - id: pytest
+-   repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+    -   id: black
