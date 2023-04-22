@@ -3,6 +3,10 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
+from libc.math cimport (
+    INFINITY as INF,
+    NAN as NaN,
+)
 from numpy cimport (
     float64_t,
     int8_t,
@@ -10,10 +14,6 @@ from numpy cimport (
     int64_t,
     ndarray,
     uint8_t,
-)
-from numpy.math cimport (
-    INFINITY as INF,
-    NAN as NaN,
 )
 
 cnp.import_array()

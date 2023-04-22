@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
     List,
@@ -2170,7 +2171,11 @@ class MultiIndex(Index):
             # lexsort is significantly faster than self._values.argsort()
             target = self._sort_levels_monotonic(raise_if_incomparable=True)
             return lexsort_indexer(
-                target._get_codes_for_sorting(), na_position=na_position
+                # error: Argument 1 to "lexsort_indexer" has incompatible type
+                # "List[Categorical]"; expected "Union[List[Union[ExtensionArray,
+                # ndarray[Any, Any]]], List[Series]]"
+                target._get_codes_for_sorting(),  # type: ignore[arg-type]
+                na_position=na_position,
             )
         return self._values.argsort(*args, **kwargs)
 
@@ -3772,6 +3777,9 @@ class MultiIndex(Index):
 
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+        if isinstance(values, Generator):
+            values = list(values)
+
         if level is None:
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
