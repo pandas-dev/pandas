@@ -27,6 +27,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :attr:`Series.dt.days` that would overflow ``int32`` number of days (:issue:`52391`)
 - Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
+- Bug in :class:`~arrays.ArrowExtensionArray` with duration dtype overflowing when constructed from data containing numpy ``NaT`` (:issue:`52843`)
 - Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)
@@ -41,7 +42,6 @@ Bug fixes
 - Bug in logical and comparison operations between :class:`ArrowDtype` and numpy masked types (e.g. ``"boolean"``) (:issue:`52625`)
 - Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
 - Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
-- Bug in :class:`~arrays.ArrowExtensionArray` with duration dtype overflowing when constructed from data containing numpy ``NaT`` (:issue:`#####`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:

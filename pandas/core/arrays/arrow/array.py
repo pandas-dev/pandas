@@ -260,7 +260,7 @@ class ArrowExtensionArray(
             scalars = scalars.cast(pa_dtype)
         arr = cls(scalars)
         if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
-            # GH#####: upstream bug for duration types when originally
+            # GH52843: upstream bug for duration types when originally
             # constructed with data containing numpy NaT.
             # https://github.com/apache/arrow/issues/35088
             arr = arr.fillna(arr.dtype.na_value)
