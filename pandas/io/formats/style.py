@@ -1056,7 +1056,9 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/latex_stocks.png
         """
-        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+        obj = Styler._copy(
+            self, deepcopy=True
+        )  # manipulate table_styles on obj, not self
 
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -1292,7 +1294,9 @@ class Styler(StylerRenderer):
         --------
         DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
         """
-        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+        obj = Styler._copy(
+            self, deepcopy=True
+        )  # manipulate table_styles on obj, not self
 
         if table_uuid:
             obj.set_uuid(table_uuid)
@@ -1404,7 +1408,7 @@ class Styler(StylerRenderer):
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
         """
-        obj = self._copy(deepcopy=True)
+        obj = Styler._copy(self, deepcopy=True)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -1554,7 +1558,8 @@ class Styler(StylerRenderer):
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
 
-    def _copy(self, deepcopy: bool = False) -> Styler:
+    @classmethod
+    def _copy(cls, self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
 
@@ -1579,7 +1584,7 @@ class Styler(StylerRenderer):
 
         """
         # GH 40675
-        styler = Styler(
+        styler = type(self)(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
         )
         shallow = [  # simple string or boolean immutables
@@ -1624,10 +1629,10 @@ class Styler(StylerRenderer):
         return styler
 
     def __copy__(self) -> Styler:
-        return self._copy(deepcopy=False)
+        return Styler._copy(self, deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
-        return self._copy(deepcopy=True)
+        return Styler._copy(self, deepcopy=True)
 
     def clear(self) -> None:
         """
