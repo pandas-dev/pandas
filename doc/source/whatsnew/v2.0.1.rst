@@ -51,6 +51,7 @@ Other
 - :class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 - :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 - Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- Implemented most ``str`` accessor methods for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:
