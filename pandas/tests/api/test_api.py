@@ -23,12 +23,10 @@ class Base:
         result = sorted(
             f for f in dir(namespace) if not f.startswith("__") and f != "annotations"
         )
-
         if ignored is not None:
             result = sorted(set(result) - set(ignored))
 
         expected = sorted(expected)
-
         tm.assert_almost_equal(result, expected)
 
 
@@ -245,14 +243,14 @@ class TestPDApi(Base):
 
 
 class TestApi(Base):
-    allowed_api_dirs: list[str] = [
+    allowed_api_dirs = [
         "types",
         "extensions",
         "indexers",
         "interchange",
         "typing",
     ]
-    allowed_typing: list[str] = [
+    allowed_typing = [
         "DataFrameGroupBy",
         "DatetimeIndexResamplerGroupby",
         "Expanding",
@@ -270,7 +268,7 @@ class TestApi(Base):
         "TimeGrouper",
         "Window",
     ]
-    allowed_api_types: list[str] = [
+    allowed_api_types = [
         "is_any_real_numeric_dtype",
         "is_array_like",
         "is_bool",
@@ -318,14 +316,14 @@ class TestApi(Base):
         "IntervalDtype",
         "PeriodDtype",
     ]
-    allowed_api_interchange: list[str] = ["from_dataframe", "DataFrame"]
-    allowed_api_indexers: list[str] = [
+    allowed_api_interchange = ["from_dataframe", "DataFrame"]
+    allowed_api_indexers = [
         "check_array_indexer",
         "BaseIndexer",
         "FixedForwardWindowIndexer",
         "VariableOffsetWindowIndexer",
     ]
-    allowed_api_extensions: list[str] = [
+    allowed_api_extensions = [
         "no_default",
         "ExtensionDtype",
         "register_extension_dtype",
@@ -337,22 +335,22 @@ class TestApi(Base):
         "ExtensionScalarOpsMixin",
     ]
 
-    def test_api(self) -> None:
+    def test_api(self):
         self.check(api, self.allowed_api_dirs)
 
-    def test_api_typing(self) -> None:
+    def test_api_typing(self):
         self.check(api_typing, self.allowed_typing)
 
-    def test_api_types(self) -> None:
+    def test_api_types(self):
         self.check(api_types, self.allowed_api_types)
 
-    def test_api_interchange(self) -> None:
+    def test_api_interchange(self):
         self.check(api_interchange, self.allowed_api_interchange)
 
-    def test_api_indexers(self) -> None:
+    def test_api_indexers(self):
         self.check(api_indexers, self.allowed_api_indexers)
 
-    def test_api_extensions(self) -> None:
+    def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
 
 
