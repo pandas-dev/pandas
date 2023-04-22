@@ -11785,7 +11785,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.columns : The column labels of the DataFrame.
-        DataFrame.values : Return a Numpy representation of the DataFrame.
+        DataFrame.to_numpy : Convert the DataFrame to a NumPy array.
 
         Examples
         --------
@@ -11799,7 +11799,7 @@ class DataFrame(NDFrame, OpsMixin):
         In this example, we create a DataFrame with 3 rows and 3 columns,
         including Name, Age, and Location information. We set the index labels to
         be the integers 10, 20, and 30. We then access the `index` attribute of the
-        DataFrame, which returns an `Int64Index` object containing the index labels.
+        DataFrame, which returns an `Index` object containing the index labels.
 
         >>> df.index = [100, 200, 300]
         >>> df
@@ -11810,7 +11810,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         In this example, we modify the index labels of the DataFrame by assigning
         a new list of labels to the `index` attribute. The DataFrame is then
-        reindexed with the new labels, and the output shows the modified DataFrame.
+        update with the new labels, and the output shows the modified DataFrame.
         """
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
