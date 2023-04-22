@@ -1441,14 +1441,24 @@ class ExtensionArray:
         return meth(skipna=skipna, **kwargs)
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        """Call ``_reduce`` and wrap the result in a ndarray/extensionArray.
+        """
+        Call ``_reduce`` and wrap the result in a ndarray/ExtensionArray.
 
         This is used to control the returned dtype when doing reductions in DataFrames,
         and ensures the correct dtype for e.g. ``DataFrame({"a": extr_arr2}).sum()``.
 
         Returns
         -------
-        ndarray orx ExtensionArray
+        ndarray or ExtensionArray
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> arr = pd.array([1, 2, pd.NA])
+        >>> arr._reduce_with_wrap("sum", kwargs={})
+        <IntegerArray>
+        [3]
+        Length: 1, dtype: Int64
         """
         result = self._reduce(name, skipna=skipna, **kwargs)
         return np.array([[result]])
