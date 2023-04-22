@@ -70,10 +70,9 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob=**/test_*.py"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    # TODO: re-enable these, need to patch pytest-cython
-    # MSG='Cython Doctests' ; echo $MSG
-    # python -c 'import pandas as pd; pd.test(extra_args=["--doctest-cython", "--ignore-glob=**/test_*.py"])'
-    # RET=$(($RET + $?)) ; echo $MSG "DONE"
+    MSG='Cython Doctests' ; echo $MSG
+    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-cython", "--ignore-glob=**/test_*.py"])'
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 

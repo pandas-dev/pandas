@@ -63,6 +63,8 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      with:
+        editable: false
 
     # The following checks are independent of each other and should still be run if one fails
     - name: Check for no warnings when building single-page docs

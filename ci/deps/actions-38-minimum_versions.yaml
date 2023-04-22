@@ -10,6 +10,7 @@ dependencies:
   - versioneer[toml]
   - cython>=0.29.33
   - meson[ninja]=1.0.1
+  - meson-python=0.13.0
 
   # test dependencies
   - pytest>=7.0.0

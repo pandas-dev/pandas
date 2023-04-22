@@ -53,8 +53,8 @@ jobs:
         - [ubuntu-20.04, manylinux_x86_64]
         # TODO: Consider re-enabling macos wheels, once meson-python makes it easy to
         # cross compile
-        #- [macos-11, macosx_*]
-        - [macos-11, macosx_x86_64]
+        - [macos-11, macosx_*]
+        #- [macos-11, macosx_x86_64]
         - [windows-2019, win_amd64]
         # Turn off for now
         # TODO: Re-enable after mesonbuild/meson-python#167 goes in
@@ -165,12 +165,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          # TODO: Remove once meson-python releases 0.11.0, also remove
-          # no-isolation from build flag
-          pip install "meson[ninja]==1.0.1"
-          pip install "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
-          pip install build Cython oldest-supported-numpy versioneer[toml]
-          python -m build --sdist --no-isolation
+          python -m build --sdist
       - name: Test the sdist
         shell: bash -el {0}
         run: |

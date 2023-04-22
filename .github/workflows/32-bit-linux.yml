@@ -40,7 +40,7 @@ jobs:
           python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
           python -m pip install versioneer[toml] && \
           python -m pip install "meson[ninja]==1.0.1" && \
-          python -m pip install "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e" && \
+          python -m pip install meson-python==0.13.0 && \
           python -m pip install cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1 && \
           python -m pip install --no-build-isolation -ve . && \
           python -m pip list && \
