@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
     is_signed_integer_dtype,
     needs_i8_conversion,
 )
@@ -1324,7 +1323,7 @@ def searchsorted(
         # Before searching below, we therefore try to give `value` the
         # same dtype as `arr`, while guarding against integer overflows.
         iinfo = np.iinfo(arr.dtype.type)
-        value_arr = np.array([value]) if is_scalar(value) else np.array(value)
+        value_arr = np.array([value]) if is_integer(value) else np.array(value)
         if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
             # value within bounds, so no overflow, so can convert value dtype
             # to dtype of arr
@@ -1332,7 +1331,7 @@ def searchsorted(
         else:
             dtype = value_arr.dtype
 
-        if is_scalar(value):
+        if is_integer(value):
             # We know that value is int
             value = cast(int, dtype.type(value))
         else:
