@@ -241,8 +241,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 assert columns is not None  # for mypy
                 ret.columns = columns
             if not self.as_index:
-                ret = self._insert_inaxis_grouper(ret)
-                ret.index = default_index(len(ret))
+                ret = ret.reset_index()
             return ret
 
         else:
@@ -328,7 +327,6 @@ class SeriesGroupBy(GroupBy[Series]):
         output = self.obj._constructor_expanddim(indexed_output, index=None)
         output.columns = Index(key.label for key in results)
 
-        output = self._reindex_output(output)
         return output
 
     def _wrap_applied_output(
