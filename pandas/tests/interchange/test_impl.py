@@ -84,7 +84,9 @@ def test_categorical_pyarrow():
     arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
     table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
     exchange_df = table.__dataframe__()
-    result = from_dataframe(exchange_df)
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = from_dataframe(exchange_df)
     weekday = pd.Categorical(
         arr, categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     )
@@ -99,7 +101,9 @@ def test_large_string_pyarrow():
     arr = ["Mon", "Tue"]
     table = pa.table({"weekday": pa.array(arr, "large_string")})
     exchange_df = table.__dataframe__()
-    result = from_dataframe(exchange_df)
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = from_dataframe(exchange_df)
     expected = pd.DataFrame({"weekday": ["Mon", "Tue"]})
     tm.assert_frame_equal(result, expected)
 
