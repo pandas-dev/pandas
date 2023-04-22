@@ -1097,8 +1097,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
         res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
-        if res is libmissing.NA:
-            res = self._wrap_na_result(name)
         return res
 
     def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
@@ -1119,23 +1117,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if min_count == 0 and isinstance(result, np.ndarray):
             return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
         return self._wrap_reduction_result(name, result, skipna, **kwargs)
-
-    def _wrap_na_result(self, name):
-        mask = np.ones(1, dtype=bool)
-
-        if self.dtype.kind == "f":
-            np_dtype = "float64"
-        elif name in ["mean", "median", "var", "std", "skew"]:
-            np_dtype = "float64"
-        elif self.dtype.kind == "i":
-            np_dtype = "int64"
-        elif self.dtype.kind == "u":
-            np_dtype = "uint64"
-        else:
-            raise TypeError(self.dtype)
-
-        value = np.array([1], dtype=np_dtype)
-        return self._maybe_mask_result(value, mask=mask)
 
     def sum(
         self,
