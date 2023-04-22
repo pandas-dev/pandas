@@ -554,7 +554,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
             elif dtype and dtype.kind == "S":
                 # GH#50127 we update data to a np.array with the correct dtype.
-                data = np.array(data, dtype=object, copy=copy)
+                data = np.array(data, dtype=dtype, copy=copy)
                 copy = False
                 dtype = _dtype_obj
 
