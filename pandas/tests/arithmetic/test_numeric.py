@@ -292,6 +292,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             np.datetime64("NaT", "ns"),
             pd.NaT,
         ],
+        ids=repr,
     )
     def test_add_sub_datetimedeltalike_invalid(
         self, numeric_idx, other, box_with_array
