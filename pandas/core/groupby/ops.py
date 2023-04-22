@@ -26,7 +26,6 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -47,12 +46,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -79,6 +72,31 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
+
+
+def check_result_array(obj, dtype):
+    # Our operation is supposed to be an aggregation/reduction. If
+    #  it returns an ndarray, this likely means an invalid operation has
+    #  been passed. See test_apply_without_aggregation, test_agg_must_agg
+    if isinstance(obj, np.ndarray):
+        if dtype != object:
+            # If it is object dtype, the function can be a reduction/aggregation
+            #  and still return an ndarray e.g. test_agg_over_numpy_arrays
+            raise ValueError("Must produce aggregated value")
+
+
+def extract_result(res):
+    """
+    Extract the result object, it might be a 0-dim ndarray
+    or a len-1 0-dim, or a scalar
+    """
+    if hasattr(res, "_values"):
+        # Preserve EA
+        res = res._values
+        if res.ndim == 1 and len(res) == 1:
+            # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
+            res = res[0]
+    return res
 
 
 class WrappedCythonOp:
@@ -248,7 +266,7 @@ class WrappedCythonOp:
         if how == "rank":
             out_dtype = "float64"
         else:
-            if is_numeric_dtype(dtype):
+            if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
             else:
                 out_dtype = "object"
@@ -274,9 +292,9 @@ class WrappedCythonOp:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var", "std", "sem"]:
-            if is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if dtype.kind in "fc":
                 return dtype
-            elif is_numeric_dtype(dtype):
+            elif dtype.kind in "iub":
                 return np.dtype(np.float64)
         return dtype
 
@@ -339,14 +357,14 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        is_numeric = dtype.kind in "iufcb"
 
-        is_datetimelike = needs_i8_conversion(dtype)
+        is_datetimelike = dtype.kind in "mM"
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             values = values.view("uint8")
         if values.dtype == "float16":
             values = values.astype(np.float32)
@@ -446,7 +464,7 @@ class WrappedCythonOp:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
-            if is_integer_dtype(result.dtype) and not is_datetimelike:
+            if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
@@ -842,11 +860,11 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = libreduction.extract_result(res)
+            res = extract_result(res)
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res, group.dtype)
+                check_result_array(res, group.dtype)
                 initialized = True
 
             result[i] = res
@@ -954,7 +972,7 @@ class BinGrouper(BaseGrouper):
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
-        #  with empty self.bins, which would raise in libreduction.
+        #  with empty self.bins, which would raise later.
         assert len(self.binlabels) == len(self.bins)
 
     @cache_readonly
@@ -968,6 +986,9 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
+
+    def __iter__(self) -> Iterator[Hashable]:
+        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:
