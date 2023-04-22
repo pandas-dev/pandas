@@ -27,6 +27,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :attr:`Series.dt.days` that would overflow ``int32`` number of days (:issue:`52391`)
 - Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
+- Bug in :func:`Series.dt.round` when passing a ``freq`` of equal or higher resolution compared to the :class:`Series` would raise a ``ZeroDivisionError`` (:issue:`52761`)
 - Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)
