@@ -22,7 +22,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -33,7 +32,10 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -567,9 +569,9 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (
-            is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
-        ) and is_extension_array_dtype(data.dtype):
+        if (is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)) and isinstance(
+            data.dtype, ExtensionDtype
+        ):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
@@ -844,7 +846,7 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif is_any_real_numeric_dtype(index):
+            elif is_any_real_numeric_dtype(index.dtype):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime

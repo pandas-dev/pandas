@@ -113,6 +113,7 @@ _index_doc_kwargs.update(
 
 
 def _get_next_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64[ns]"
@@ -129,6 +130,7 @@ def _get_next_label(label):
 
 
 def _get_prev_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64[ns]"
