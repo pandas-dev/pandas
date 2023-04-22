@@ -207,6 +207,12 @@ def is_sparse(arr) -> bool:
 
     Returns `False` if the parameter has more than one dimension.
     """
+    warnings.warn(
+        "is_sparse is deprecated and will be removed in a future "
+        "version. Check `isinstance(dtype, pd.SparseDtype)` instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     from pandas.core.arrays.sparse import SparseDtype
 
     dtype = getattr(arr, "dtype", arr)
@@ -399,6 +405,12 @@ def is_period_dtype(arr_or_dtype) -> bool:
     >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
     True
     """
+    warnings.warn(
+        "is_period_dtype is deprecated and will be removed in a future version. "
+        "Use `isinstance(dtype, pd.PeriodDtype)` instead",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Period
@@ -539,7 +551,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
     >>> is_string_dtype(pd.Series([1, 2], dtype=object))
     False
     """
-    if hasattr(arr_or_dtype, "dtype") and get_dtype(arr_or_dtype).kind == "O":
+    if hasattr(arr_or_dtype, "dtype") and _get_dtype(arr_or_dtype).kind == "O":
         return is_all_strings(arr_or_dtype)
 
     def condition(dtype) -> bool:
@@ -585,7 +597,7 @@ def is_dtype_equal(source, target) -> bool:
             # GH#38516 ensure we get the same behavior from
             #  is_dtype_equal(CDT, "category") and CDT == "category"
             try:
-                src = get_dtype(source)
+                src = _get_dtype(source)
                 if isinstance(src, ExtensionDtype):
                     return src == target
             except (TypeError, AttributeError, ImportError):
@@ -594,8 +606,8 @@ def is_dtype_equal(source, target) -> bool:
         return is_dtype_equal(target, source)
 
     try:
-        source = get_dtype(source)
-        target = get_dtype(target)
+        source = _get_dtype(source)
+        target = _get_dtype(target)
         return source == target
     except (TypeError, AttributeError, ImportError):
         # invalid comparison
@@ -875,7 +887,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         return False
 
     try:
-        tipo = get_dtype(arr_or_dtype)
+        tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
     return (isinstance(tipo, np.dtype) and tipo.kind == "M") or isinstance(
@@ -923,7 +935,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        tipo = get_dtype(arr_or_dtype)
+        tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
     return tipo == DT64NS_DTYPE or (
@@ -1214,7 +1226,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = get_dtype(arr_or_dtype)
+        dtype = _get_dtype(arr_or_dtype)
     except (TypeError, ValueError):
         return False
 
@@ -1373,13 +1385,13 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = get_dtype(arr_or_dtype)
+        dtype = _get_dtype(arr_or_dtype)
     except (TypeError, ValueError):
         return False
     return condition(dtype)
 
 
-def get_dtype(arr_or_dtype) -> DtypeObj:
+def _get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -1510,7 +1522,7 @@ def infer_dtype_from_object(dtype) -> type:
         try:
             return infer_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
-            # Handles cases like get_dtype(int) i.e.,
+            # Handles cases like _get_dtype(int) i.e.,
             # Python objects that are valid dtypes
             # (unlike user-defined types, in general)
             #
@@ -1653,7 +1665,6 @@ __all__ = [
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",
-    "get_dtype",
     "infer_dtype_from_object",
     "INT64_DTYPE",
     "is_1d_only_ea_dtype",
