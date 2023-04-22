@@ -2094,6 +2094,7 @@ def test_str_is_functions(value, method, exp):
         ["swapcase", "AbC Def"],
         ["lower", "abc def"],
         ["upper", "ABC DEF"],
+        ["casefold", "abc def"],
     ],
 )
 def test_str_transform_functions(method, exp):
@@ -2133,6 +2134,125 @@ def test_str_removesuffix(val):
     ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
     result = ser.str.removesuffix("123")
     expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", ["123abc", "abc"])
+def test_str_removeprefix(val):
+    ser = pd.Series([val, None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.removeprefix("123")
+    expected = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("errors", ["ignore", "strict"])
+@pytest.mark.parametrize(
+    "encoding, exp",
+    [
+        ["utf8", b"abc"],
+        ["utf32", b"\xff\xfe\x00\x00a\x00\x00\x00b\x00\x00\x00c\x00\x00\x00"],
+    ],
+)
+def test_str_encode(errors, encoding, exp):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.encode(encoding, errors)
+    expected = pd.Series([exp, None], dtype=ArrowDtype(pa.binary()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("flags", [0, 1])
+def test_str_findall(flags):
+    ser = pd.Series(["abc", "efg", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.findall("b", flags=flags)
+    expected = pd.Series([["b"], [], None], dtype=ArrowDtype(pa.list_(pa.string())))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["index", "rindex"])
+@pytest.mark.parametrize(
+    "start, end",
+    [
+        [0, None],
+        [1, 4],
+    ],
+)
+def test_str_r_index(method, start, end):
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)("c", start, end)
+    expected = pd.Series([2, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(ValueError, match="substring not found"):
+        getattr(ser.str, method)("foo", start, end)
+
+
+@pytest.mark.parametrize("form", ["NFC", "NFKC"])
+def test_str_normalize(form):
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.normalize(form)
+    expected = ser.copy()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, end",
+    [
+        [0, None],
+        [1, 4],
+    ],
+)
+def test_str_rfind(start, end):
+    ser = pd.Series(["abcba", "foo", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.rfind("c", start, end)
+    expected = pd.Series([2, -1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_translate():
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.translate({97: "b"})
+    expected = pd.Series(["bbcbb", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_wrap():
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.wrap(3)
+    expected = pd.Series(["abc\nba", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+def test_get_dummies():
+    ser = pd.Series(["a|b", None, "a|c"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.get_dummies()
+    expected = pd.DataFrame(
+        [[True, True, False], [False, False, False], [True, False, True]],
+        dtype=ArrowDtype(pa.bool_()),
+        columns=["a", "b", "c"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_str_partition():
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.partition("b")
+    expected = pd.DataFrame(
+        [["a", "b", "cba"], [None, None, None]], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.partition("b", expand=False)
+    expected = pd.Series(ArrowExtensionArray(pa.array([["a", "b", "cba"], None])))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.rpartition("b")
+    expected = pd.DataFrame(
+        [["abc", "b", "a"], [None, None, None]], dtype=ArrowDtype(pa.string())
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.rpartition("b", expand=False)
+    expected = pd.Series(ArrowExtensionArray(pa.array([["abc", "b", "a"], None])))
     tm.assert_series_equal(result, expected)
 
 
@@ -2192,31 +2312,12 @@ def test_str_rsplit():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "method, args",
-    [
-        ["partition", ("abc", False)],
-        ["rpartition", ("abc", False)],
-        ["removeprefix", ("abc",)],
-        ["casefold", ()],
-        ["encode", ("abc",)],
-        ["extract", (r"[ab](\d)",)],
-        ["findall", ("abc",)],
-        ["get_dummies", ()],
-        ["index", ("abc",)],
-        ["rindex", ("abc",)],
-        ["normalize", ("abc",)],
-        ["rfind", ("abc",)],
-        ["translate", ("abc",)],
-        ["wrap", ("abc",)],
-    ],
-)
-def test_str_unsupported_methods(method, args):
+def test_str_unsupported_extract():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(
-        NotImplementedError, match=f"str.{method} not supported with pd.ArrowDtype"
+        NotImplementedError, match="str.extract not supported with pd.ArrowDtype"
     ):
-        getattr(ser.str, method)(*args)
+        ser.str.extract(r"[ab](\d)")
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
