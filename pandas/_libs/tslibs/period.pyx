@@ -1688,6 +1688,8 @@ cdef class _Period(PeriodMixin):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = freq._freqstr
 
         freq = to_offset(freq)
 
@@ -2372,7 +2374,7 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
         """
-        return self.freq.freqstr
+        return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code

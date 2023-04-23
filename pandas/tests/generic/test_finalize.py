@@ -158,9 +158,7 @@ _all_methods = [
         ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
-    ),
+    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))),
     pytest.param(
         (
             pd.DataFrame,
