@@ -50,11 +50,8 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_complex,
-    is_extension_array_dtype,
     is_float,
     is_integer,
-    is_integer_dtype,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -472,7 +469,7 @@ def maybe_cast_pointwise_result(
             else:
                 result = maybe_cast_to_extension_array(cls, result)
 
-    elif (numeric_only and is_numeric_dtype(dtype)) or not numeric_only:
+    elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
 
     return result
@@ -905,7 +902,8 @@ def infer_dtype_from_array(
     if not is_list_like(arr):
         raise TypeError("'arr' must be list-like")
 
-    if pandas_dtype and is_extension_array_dtype(arr):
+    arr_dtype = getattr(arr, "dtype", None)
+    if pandas_dtype and isinstance(arr_dtype, ExtensionDtype):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
@@ -1041,13 +1039,13 @@ def convert_dtypes(
         if convert_integer:
             target_int_dtype = pandas_dtype_func("Int64")
 
-            if is_integer_dtype(input_array.dtype):
+            if input_array.dtype.kind in "iu":
                 from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
                 inferred_dtype = INT_STR_TO_DTYPE.get(
                     input_array.dtype.name, target_int_dtype
                 )
-            elif is_numeric_dtype(input_array.dtype):
+            elif input_array.dtype.kind in "fcb":
                 # TODO: de-dup with maybe_cast_to_integer_array?
                 arr = input_array[notna(input_array)]
                 if (arr.astype(int) == arr).all():
@@ -1062,9 +1060,8 @@ def convert_dtypes(
                 inferred_dtype = target_int_dtype
 
         if convert_floating:
-            if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
-                input_array.dtype
-            ):
+            if input_array.dtype.kind in "fcb":
+                # i.e. numeric but not integer
                 from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
 
                 inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
