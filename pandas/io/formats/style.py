@@ -1554,7 +1554,7 @@ class Styler(StylerRenderer):
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
 
-    @classmethod
+
     def _copy(cls, self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
