@@ -18,9 +18,11 @@ cdef class PeriodDtypeBase:
     """
     # cdef readonly:
     #    PeriodDtypeCode _dtype_code
+    #    int64_t _n
 
-    def __cinit__(self, PeriodDtypeCode code):
+    def __cinit__(self, PeriodDtypeCode code, int64_t n):
         self._dtype_code = code
+        self._n = n
 
     def __eq__(self, other):
         if not isinstance(other, PeriodDtypeBase):
@@ -28,7 +30,10 @@ cdef class PeriodDtypeBase:
         if not isinstance(self, PeriodDtypeBase):
             # cython semantics, this is a reversed op
             return False
-        return self._dtype_code == other._dtype_code
+        return self._dtype_code == other._dtype_code and self._n == other._n
+
+    def __hash__(self) -> int:
+        return hash((self._n, self._dtype_code))
 
     @property
     def _freq_group_code(self) -> int:
@@ -48,7 +53,10 @@ cdef class PeriodDtypeBase:
     @property
     def _freqstr(self) -> str:
         # Will be passed to to_offset in Period._maybe_convert_freq
-        return _reverse_period_code_map.get(self._dtype_code)
+        out = _reverse_period_code_map.get(self._dtype_code)
+        if self._n == 1:
+            return out
+        return str(self._n) + out
 
     cpdef int _get_to_timestamp_base(self):
         """

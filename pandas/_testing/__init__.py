@@ -29,7 +29,6 @@ from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
-    is_integer_dtype,
     is_sequence,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
@@ -175,6 +174,23 @@ NARROW_NP_DTYPES = [
     np.uint8,
     np.uint16,
     np.uint32,
+]
+
+PYTHON_DATA_TYPES = [
+    str,
+    int,
+    float,
+    complex,
+    list,
+    tuple,
+    range,
+    dict,
+    set,
+    frozenset,
+    bool,
+    bytes,
+    bytearray,
+    memoryview,
 ]
 
 ENDIAN = {"little": "<", "big": ">"}[byteorder]
@@ -372,11 +388,11 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
-    if is_integer_dtype(dtype):
+    if dtype.kind in "iu":
         values = np.arange(k, dtype=dtype)
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
-    elif is_float_dtype(dtype):
+    elif dtype.kind == "f":
         values = np.random.random_sample(k) - np.random.random_sample(1)
         values.sort()
         values = values * (10 ** np.random.randint(0, 9))

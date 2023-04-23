@@ -5,6 +5,7 @@ import pytest
 import pandas as pd
 from pandas import api
 import pandas._testing as tm
+from pandas.api import typing as api_typing
 
 
 class Base:
@@ -236,10 +237,31 @@ class TestPDApi(Base):
 
 
 class TestApi(Base):
-    allowed = ["types", "extensions", "indexers", "interchange"]
+    allowed = ["types", "extensions", "indexers", "interchange", "typing"]
+    allowed_typing = [
+        "DataFrameGroupBy",
+        "DatetimeIndexResamplerGroupby",
+        "Expanding",
+        "ExpandingGroupby",
+        "ExponentialMovingWindow",
+        "ExponentialMovingWindowGroupby",
+        "JsonReader",
+        "PeriodIndexResamplerGroupby",
+        "Resampler",
+        "Rolling",
+        "RollingGroupby",
+        "SeriesGroupBy",
+        "StataReader",
+        "TimedeltaIndexResamplerGroupby",
+        "TimeGrouper",
+        "Window",
+    ]
 
     def test_api(self):
         self.check(api, self.allowed)
+
+    def test_api_typing(self):
+        self.check(api_typing, self.allowed_typing)
 
 
 class TestTesting(Base):

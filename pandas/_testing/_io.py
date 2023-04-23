@@ -271,7 +271,10 @@ def can_connect(url, error_classes=None) -> bool:
     try:
         with urlopen(url, timeout=20) as response:
             # Timeout just in case rate-limiting is applied
-            if response.status != 200:
+            if (
+                response.info().get("Content-type") == "text/html"
+                and response.status != 200
+            ):
                 return False
     except error_classes:
         return False

@@ -124,9 +124,7 @@ def test_usecols_with_parse_dates4(all_parsers):
     }
     expected = DataFrame(cols, columns=["a_b"] + list("cdefghij"))
 
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Could not infer format",
+    result = parser.read_csv(
         StringIO(data),
         usecols=usecols,
         parse_dates=parse_dates,

@@ -274,7 +274,17 @@ class TestDataFrameCorr:
 
 
 class TestDataFrameCorrWith:
-    def test_corrwith(self, datetime_frame):
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float64",
+            "Float64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_corrwith(self, datetime_frame, dtype):
+        datetime_frame = datetime_frame.astype(dtype)
+
         a = datetime_frame
         noise = Series(np.random.randn(len(a)), index=a.index)
 
@@ -355,8 +365,8 @@ class TestDataFrameCorrWith:
             tm.assert_series_equal(result, expected)
         else:
             with pytest.raises(
-                TypeError,
-                match=r"Could not convert \['a' 'b' 'c' 'd'\] to numeric",
+                ValueError,
+                match="could not convert string to float",
             ):
                 df.corrwith(s, numeric_only=numeric_only)
 

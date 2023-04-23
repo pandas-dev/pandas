@@ -31,7 +31,7 @@ class TestCategoricalMissing:
         labels = np.random.randint(0, 10, 20)
         labels[::5] = -1
 
-        cat = Categorical(labels, categories, fastpath=True)
+        cat = Categorical(labels, categories)
         repr(cat)
 
         tm.assert_numpy_array_equal(isna(cat), labels == -1)
