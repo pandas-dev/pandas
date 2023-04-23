@@ -1579,9 +1579,7 @@ class Styler(StylerRenderer):
 
         """
         # GH 40675
-        styler = Styler(
-            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
-        )
+        styler = self.__class__(self.data)
         shallow = [  # simple string or boolean immutables
             "hide_index_",
             "hide_columns_",
