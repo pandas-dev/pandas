@@ -323,6 +323,7 @@ Conversion
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
+- Bug in :func:`array`  when given a ``datetime64`` or ``timedelta64`` dtype with unit of "s", "us", or "ms" returning :class:`PandasArray` instead of :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`??`)
 -
 
 Strings
