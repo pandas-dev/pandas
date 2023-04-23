@@ -345,6 +345,8 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
+        if isinstance(key, Hashable):
+            raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
 
