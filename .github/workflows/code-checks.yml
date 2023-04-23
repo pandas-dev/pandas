@@ -61,7 +61,7 @@ jobs:
       uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
-      id: build-regular
+      id: build
       uses: ./.github/actions/build_pandas
       with:
         editable: false
