@@ -532,7 +532,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.index \
         pandas.DataFrame.columns \
         pandas.DataFrame.__iter__ \
         pandas.DataFrame.keys \
