@@ -2099,6 +2099,23 @@ c  10  11  12  13  14\
         result = formatter.max_rows_fitted
         assert result == expected
 
+    def test_no_extra_space(self):
+        """Check that no extra space is given
+
+        GH #52690
+
+        """
+        # Expected Output
+        col1 = "TEST"
+        col2 = "PANDAS"
+        col3 = "to_string"
+        expected = f"{col1:<6s} {col2:<7s} {col3:<10s}"
+        # Testing
+        df = DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
+        d = {"col1": "{:<6s}".format, "col2": "{:<7s}".format, "col3": "{:<10s}".format}
+        result = df.to_string(index=False, header=False, formatters=d)
+        assert result == expected
+
 
 def gen_series_formatting():
     s1 = Series(["a"] * 100)
