@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 - Fixed regression in :meth:`SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
+- Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
@@ -57,6 +58,7 @@ Other
 - Bug in :class:`Index` where creating or converting to numpy string dtypes would raise ``NotImplementedError`` (:issue:`50127`)
 - Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
 - Implemented most ``str`` accessor methods for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- Supplying a non-integer hashable key that tests ``False`` in :func:`api.types.is_scalar` now raises a ``KeyError`` for :meth:`RangeIndex.get_loc`, like it does for :meth:`Index.get_loc`. Previously it raised an ``InvalidIndexError`` (:issue:`52652`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:
