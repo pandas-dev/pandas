@@ -61,7 +61,7 @@ jobs:
       uses: ./.github/actions/setup-conda
 
     - name: Build Pandas
-      id: build
+      id: build-regular
       uses: ./.github/actions/build_pandas
       with:
         editable: false
@@ -76,7 +76,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Install pandas in editable mode
-      id: build
+      id: build-editable
       uses: ./.github/actions/build_pandas
       with:
         editable: true
