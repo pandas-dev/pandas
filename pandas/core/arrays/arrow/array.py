@@ -252,6 +252,7 @@ class ArrowExtensionArray(
                 pa.types.is_large_binary(pa_dtype) or pa.types.is_large_string(pa_dtype)
             )
         ):
+            # See https://github.com/apache/arrow/issues/35289
             scalars = scalars.tolist()
 
         if isinstance(scalars, cls):
