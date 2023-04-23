@@ -11810,7 +11810,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         In this example, we modify the index labels of the DataFrame by assigning
         a new list of labels to the `index` attribute. The DataFrame is then
-        update with the new labels, and the output shows the modified DataFrame.
+        updated with the new labels, and the output shows the modified DataFrame.
         """,
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
