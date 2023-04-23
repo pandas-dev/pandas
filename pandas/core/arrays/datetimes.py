@@ -81,6 +81,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DateTimeErrorChoices,
         IntervalClosedType,
+        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -92,7 +93,9 @@ if TYPE_CHECKING:
 _midnight = time(0, 0)
 
 
-def tz_to_dtype(tz: tzinfo | None, unit: str = "ns"):
+def tz_to_dtype(
+    tz: tzinfo | None, unit: str = "ns"
+) -> np.dtype[np.datetime64] | DatetimeTZDtype:
     """
     Return a datetime64[ns] dtype appropriate for the given timezone.
 
@@ -151,7 +154,9 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
     return property(f)
 
 
-class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
@@ -252,7 +257,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Constructors
 
-    _dtype: np.dtype | DatetimeTZDtype
+    _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
@@ -267,10 +272,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @classmethod
     def _simple_new(  # type: ignore[override]
         cls,
-        values: np.ndarray,
+        values: npt.NDArray[np.datetime64],
         freq: BaseOffset | None = None,
-        dtype=DT64NS_DTYPE,
-    ) -> DatetimeArray:
+        dtype: np.dtype[np.datetime64] | DatetimeTZDtype = DT64NS_DTYPE,
+    ) -> Self:
         assert isinstance(values, np.ndarray)
         assert dtype.kind == "M"
         if isinstance(dtype, np.dtype):
@@ -384,7 +389,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         inclusive: IntervalClosedType = "both",
         *,
         unit: str | None = None,
-    ) -> DatetimeArray:
+    ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
@@ -533,7 +538,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
     # incompatible with return type "ExtensionDtype" in supertype
     # "ExtensionArray"
-    def dtype(self) -> np.dtype | DatetimeTZDtype:  # type: ignore[override]
+    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa:E501
         """
         The dtype for the DatetimeArray.
 
@@ -751,7 +756,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_offset(self, offset) -> DatetimeArray:
+    def _add_offset(self, offset) -> Self:
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
@@ -774,7 +779,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 return result.tz_localize(self.tz)
 
         else:
-            result = DatetimeArray._simple_new(result, dtype=result.dtype)
+            result = type(self)._simple_new(result, dtype=result.dtype)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
 
@@ -795,7 +800,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             return self.asi8
         return tz_convert_from_utc(self.asi8, self.tz, reso=self._creso)
 
-    def tz_convert(self, tz) -> DatetimeArray:
+    def tz_convert(self, tz) -> Self:
         """
         Convert tz-aware Datetime Array/Index from one time zone to another.
 
@@ -877,7 +882,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         tz,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ) -> DatetimeArray:
+    ) -> Self:
         """
         Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index.
 
@@ -1043,18 +1048,18 @@ default 'raise'
                 nonexistent=nonexistent,
                 creso=self._creso,
             )
-        new_dates = new_dates.view(f"M8[{self.unit}]")
+        new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
         freq = None
-        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates[0])):
+        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates_dt64[0])):
             # we can preserve freq
             # TODO: Also for fixed-offsets
             freq = self.freq
         elif tz is None and self.tz is None:
             # no-op
             freq = self.freq
-        return self._simple_new(new_dates, dtype=dtype, freq=freq)
+        return self._simple_new(new_dates_dt64, dtype=dtype, freq=freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1069,7 +1074,7 @@ default 'raise'
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
-    def normalize(self) -> DatetimeArray:
+    def normalize(self) -> Self:
         """
         Convert times to midnight.
 

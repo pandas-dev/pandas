@@ -6,6 +6,8 @@ from typing import (
     NamedTuple,
 )
 
+from pandas.core.dtypes.common import is_1d_only_ea_dtype
+
 if TYPE_CHECKING:
     from pandas._libs.internals import BlockPlacement
     from pandas._typing import ArrayLike
@@ -61,7 +63,12 @@ def operate_blockwise(
     all_inplace = type(left) == type(right)
     for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
         res_values = array_op(lvals, rvals)
-        if left_ea and not right_ea and hasattr(res_values, "reshape"):
+        if (
+            left_ea
+            and not right_ea
+            and hasattr(res_values, "reshape")
+            and not is_1d_only_ea_dtype(res_values.dtype)
+        ):
             res_values = res_values.reshape(1, -1)
         if res_values is not lvals:
             all_inplace = False

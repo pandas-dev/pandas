@@ -92,21 +92,17 @@ def _get_path_or_handle(
     if fs is not None:
         pa_fs = import_optional_dependency("pyarrow.fs", errors="ignore")
         fsspec = import_optional_dependency("fsspec", errors="ignore")
-        if pa_fs is None and fsspec is None:
+        if pa_fs is not None and isinstance(fs, pa_fs.FileSystem):
+            if storage_options:
+                raise NotImplementedError(
+                    "storage_options not supported with a pyarrow FileSystem."
+                )
+        elif fsspec is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
+            pass
+        else:
             raise ValueError(
                 f"filesystem must be a pyarrow or fsspec FileSystem, "
                 f"not a {type(fs).__name__}"
-            )
-        elif (pa_fs is not None and not isinstance(fs, pa_fs.FileSystem)) and (
-            fsspec is not None and not isinstance(fs, fsspec.spec.AbstractFileSystem)
-        ):
-            raise ValueError(
-                f"filesystem must be a pyarrow or fsspec FileSystem, "
-                f"not a {type(fs).__name__}"
-            )
-        elif pa_fs is not None and isinstance(fs, pa_fs.FileSystem) and storage_options:
-            raise NotImplementedError(
-                "storage_options not supported with a pyarrow FileSystem."
             )
     if is_fsspec_url(path_or_handle) and fs is None:
         if storage_options is None:

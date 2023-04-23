@@ -16,7 +16,6 @@ from pandas._libs import (
     tslibs,
 )
 from pandas._libs.tslibs import (
-    BaseOffset,
     NaT,
     NaTType,
     Tick,
@@ -72,6 +71,7 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
+        Self,
         npt,
     )
 
@@ -163,7 +163,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @property
     # error: Return type "dtype" of "dtype" incompatible with return type
     # "ExtensionDtype" in supertype "ExtensionArray"
-    def dtype(self) -> np.dtype:  # type: ignore[override]
+    def dtype(self) -> np.dtype[np.timedelta64]:  # type: ignore[override]
         """
         The dtype for the TimedeltaArray.
 
@@ -195,8 +195,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
-    ) -> TimedeltaArray:
+        cls,
+        values: npt.NDArray[np.timedelta64],
+        freq: Tick | None = None,
+        dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
+    ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
         assert isinstance(dtype, np.dtype) and dtype.kind == "m"
         assert not tslibs.is_unitless(dtype)
@@ -209,12 +212,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> TimedeltaArray:
+    def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
+        freq = cast("Tick | None", freq)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -230,7 +234,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
-    ) -> TimedeltaArray:
+    ) -> Self:
         """
         A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
         """
@@ -246,6 +250,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        freq = cast("Tick | None", freq)
         if explicit_none:
             freq = None
 
@@ -270,7 +275,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _generate_range(  # type: ignore[override]
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
-    ):
+    ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
@@ -464,7 +469,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         )
 
     @unpack_zerodim_and_defer("__mul__")
-    def __mul__(self, other) -> TimedeltaArray:
+    def __mul__(self, other) -> Self:
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
@@ -510,9 +515,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             # github.com/python/mypy/issues/1020
             if cast("Timedelta | NaTType", other) is NaT:
                 # specifically timedelta64-NaT
-                result = np.empty(self.shape, dtype=np.float64)
-                result.fill(np.nan)
-                return result
+                res = np.empty(self.shape, dtype=np.float64)
+                res.fill(np.nan)
+                return res
 
             # otherwise, dispatch to Timedelta implementation
             return op(self._ndarray, other)
@@ -549,7 +554,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("Cannot divide vectors with unequal lengths")
         return other
 
-    def _vector_divlike_op(self, other, op) -> np.ndarray | TimedeltaArray:
+    def _vector_divlike_op(self, other, op) -> np.ndarray | Self:
         """
         Shared logic for __truediv__, __floordiv__, and their reversed versions
         with timedelta64-dtype ndarray other.

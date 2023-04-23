@@ -1124,7 +1124,7 @@ class ArrowExtensionArray(
 
         index = Index(type(self)(values))
 
-        return Series(counts, index=index, name="count")
+        return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> Self:
@@ -1962,6 +1962,10 @@ class ArrowExtensionArray(
         )
 
     @property
+    def _dt_year(self):
+        return type(self)(pc.year(self._pa_array))
+
+    @property
     def _dt_day(self):
         return type(self)(pc.day(self._pa_array))
 
@@ -2015,7 +2019,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_date(self):
-        return type(self)(self._pa_array.cast(pa.date64()))
+        return type(self)(self._pa_array.cast(pa.date32()))
 
     @property
     def _dt_time(self):

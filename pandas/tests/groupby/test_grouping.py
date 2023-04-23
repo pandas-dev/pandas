@@ -486,7 +486,9 @@ class TestGrouping:
         df.columns = np.arange(len(df.columns))
 
         # it works!
-        df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
+        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]

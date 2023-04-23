@@ -921,8 +921,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         values = self._values
         arr = np.asarray(values, dtype=dtype)
-        if arr is values and using_copy_on_write():
-            # TODO(CoW) also properly handle extension dtypes
+        if using_copy_on_write() and astype_is_view(values.dtype, arr.dtype):
             arr = arr.view()
             arr.flags.writeable = False
         return arr
@@ -3182,10 +3181,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
-            for i, idx in enumerate(new_index):
-                lv = self.get(idx, fill_value)
-                rv = other.get(idx, fill_value)
-                with np.errstate(all="ignore"):
+            with np.errstate(all="ignore"):
+                for i, idx in enumerate(new_index):
+                    lv = self.get(idx, fill_value)
+                    rv = other.get(idx, fill_value)
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
@@ -4405,7 +4404,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def apply(
         self,
         func: AggFuncType,
-        convert_dtype: bool = True,
+        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         **kwargs,
     ) -> DataFrame | Series:
@@ -4423,6 +4422,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object. Note that the dtype is always
             preserved for some extension array dtypes, such as Categorical.
+
+            .. deprecated:: 2.1.0
+                The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
+                instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4512,6 +4515,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
+        if convert_dtype is lib.no_default:
+            convert_dtype = True
+        else:
+            warnings.warn(
+                "the convert_dtype parameter is deprecated and will be removed in a "
+                "future version.  Do ``ser.astype(object).apply()`` "
+                "instead if you want ``convert_dtype=False``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
 
     def _reduce(
@@ -4551,8 +4564,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Series.{name} does not allow {kwd_name}={numeric_only} "
                     "with non-numeric dtypes."
                 )
-            with np.errstate(all="ignore"):
-                return op(delegate, skipna=skipna, **kwds)
+            return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
         self,
@@ -5759,8 +5771,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         lvalues = self._values
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
-        with np.errstate(all="ignore"):
-            res_values = ops.comparison_op(lvalues, rvalues, op)
+        res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 

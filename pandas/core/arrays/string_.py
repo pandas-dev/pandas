@@ -228,7 +228,9 @@ class BaseStringArray(ExtensionArray):
         return list(self.to_numpy())
 
 
-class StringArray(BaseStringArray, PandasArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     """
     Extension array for string data.
 

@@ -2110,6 +2110,7 @@ def test_unsupported_dt(data):
 @pytest.mark.parametrize(
     "prop, expected",
     [
+        ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
         ["dayofweek", 0],
@@ -2156,7 +2157,7 @@ def test_dt_properties(prop, expected):
     result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
-        exp_type = pa.date64()
+        exp_type = pa.date32()
     elif isinstance(expected, time):
         exp_type = pa.time64("ns")
     expected = pd.Series(ArrowExtensionArray(pa.array([expected, None], type=exp_type)))

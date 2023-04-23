@@ -349,7 +349,7 @@ If using :ref:`mamba <contributing.mamba>`, do::
 If using :ref:`pip <contributing.pip>` , do::
 
     # activate the virtual environment based on your platform
-    pythom -m pip install --upgrade -r requirements-dev.txt
+    python -m pip install --upgrade -r requirements-dev.txt
 
 Tips for a successful pull request
 ==================================

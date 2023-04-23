@@ -569,8 +569,14 @@ cpdef update_blklocs_and_blknos(
 def _unpickle_block(values, placement, ndim):
     # We have to do some gymnastics b/c "ndim" is keyword-only
 
-    from pandas.core.internals.blocks import new_block
+    from pandas.core.internals.blocks import (
+        maybe_coerce_values,
+        new_block,
+    )
+    values = maybe_coerce_values(values)
 
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
     return new_block(values, placement, ndim=ndim)
 
 
@@ -795,6 +801,7 @@ cdef class BlockManager:
         from pandas.core.construction import extract_array
         from pandas.core.internals.blocks import (
             ensure_block_shape,
+            maybe_coerce_values,
             new_block,
         )
         from pandas.core.internals.managers import ensure_index
@@ -808,7 +815,10 @@ cdef class BlockManager:
                 vals = blk["values"]
                 # older versions may hold e.g. DatetimeIndex instead of DTA
                 vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+                blk["values"] = maybe_coerce_values(ensure_block_shape(vals, ndim=ndim))
+
+                if not isinstance(blk["mgr_locs"], BlockPlacement):
+                    blk["mgr_locs"] = BlockPlacement(blk["mgr_locs"])
 
             nbs = [
                 new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
