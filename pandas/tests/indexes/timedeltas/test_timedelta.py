@@ -54,7 +54,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = Index([f(x) for x in rng], dtype=np.int32)
+        exp = Index([f(x) for x in rng], dtype=np.int64)
         tm.assert_index_equal(result, exp)
 
     def test_pass_TimedeltaIndex_to_index(self):

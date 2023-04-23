@@ -24,7 +24,6 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -480,6 +479,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
@@ -492,7 +496,21 @@ class Apply(metaclass=abc.ABCMeta):
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             if "axis" in arg_names:
-                self.kwargs["axis"] = self.axis
+                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
+                    # Try to avoid FutureWarning for deprecated axis keyword;
+                    # If self.axis matches the axis we would get by not passing
+                    #  axis, we safely exclude the keyword.
+
+                    default_axis = 0
+                    if f in ["idxmax", "idxmin"]:
+                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
+                        # whereas other axis keywords default to 0
+                        default_axis = self.obj.axis
+
+                    if default_axis != self.axis:
+                        self.kwargs["axis"] = self.axis
+                else:
+                    self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -637,10 +655,6 @@ class FrameApply(NDFrameApply):
     @cache_readonly
     def values(self):
         return self.obj.values
-
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
@@ -1063,20 +1077,12 @@ class SeriesApply(NDFrameApply):
         f = cast(Callable, self.f)
         obj = self.obj
 
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
+        if isinstance(f, np.ufunc):
+            with np.errstate(all="ignore"):
                 return f(obj)
 
-            # row-wise access
-            if is_extension_array_dtype(obj.dtype):
-                mapped = obj._values.map(f)
-            else:
-                values = obj.astype(object)._values
-                mapped = lib.map_infer(
-                    values,
-                    f,
-                    convert=self.convert_dtype,
-                )
+        # row-wise access
+        mapped = obj._map_values(mapper=f, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested

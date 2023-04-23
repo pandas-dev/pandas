@@ -696,6 +696,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # INFO(ArrayManager) by default copy the 2D input array to get
                 # contiguous 1D arrays
                 copy = True
+            elif using_copy_on_write() and not isinstance(
+                data, (Index, DataFrame, Series)
+            ):
+                copy = True
             else:
                 copy = False
 
@@ -2205,7 +2209,7 @@ class DataFrame(NDFrame, OpsMixin):
                 data = data.set_index(index)
             if exclude is not None:
                 data = data.drop(columns=exclude)
-            return data
+            return data.copy(deep=False)
 
         result_index = None
 
@@ -6794,14 +6798,13 @@ class DataFrame(NDFrame, OpsMixin):
         elif len(by):
             # len(by) == 1
 
-            by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis)
+            k = self._get_label_or_level_values(by[0], axis=axis)
 
             # need to rewrap column in Series to apply key function
             if key is not None:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "ndarray")
-                k = Series(k, name=by)  # type: ignore[assignment]
+                k = Series(k, name=by[0])  # type: ignore[assignment]
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -8017,116 +8020,118 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(
         _shared_docs["compare"],
+        dedent(
+            """
+        Returns
+        -------
+        DataFrame
+            DataFrame that shows the differences stacked side by side.
+
+            The resulting index will be a MultiIndex with 'self' and 'other'
+            stacked alternately at the inner level.
+
+        Raises
+        ------
+        ValueError
+            When the two DataFrames don't have identical labels or shape.
+
+        See Also
+        --------
+        Series.compare : Compare with another Series and show differences.
+        DataFrame.equals : Test whether two objects contain the same elements.
+
+        Notes
+        -----
+        Matching NaNs will not appear as a difference.
+
+        Can only compare identically-labeled
+        (i.e. same shape, identical row and column labels) DataFrames
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {{
+        ...         "col1": ["a", "a", "b", "b", "a"],
+        ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+        ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+        ...     }},
+        ...     columns=["col1", "col2", "col3"],
+        ... )
+        >>> df
+          col1  col2  col3
+        0    a   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   3.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        >>> df2 = df.copy()
+        >>> df2.loc[0, 'col1'] = 'c'
+        >>> df2.loc[2, 'col3'] = 4.0
+        >>> df2
+          col1  col2  col3
+        0    c   1.0   1.0
+        1    a   2.0   2.0
+        2    b   3.0   4.0
+        3    b   NaN   4.0
+        4    a   5.0   5.0
+
+        Align the differences on columns
+
+        >>> df.compare(df2)
+          col1       col3
+          self other self other
+        0    a     c  NaN   NaN
+        2  NaN   NaN  3.0   4.0
+
+        Assign result_names
+
+        >>> df.compare(df2, result_names=("left", "right"))
+          col1       col3
+          left right left right
+        0    a     c  NaN   NaN
+        2  NaN   NaN  3.0   4.0
+
+        Stack the differences on rows
+
+        >>> df.compare(df2, align_axis=0)
+                col1  col3
+        0 self     a   NaN
+          other    c   NaN
+        2 self   NaN   3.0
+          other  NaN   4.0
+
+        Keep the equal values
+
+        >>> df.compare(df2, keep_equal=True)
+          col1       col3
+          self other self other
+        0    a     c  1.0   1.0
+        2    b     b  3.0   4.0
+
+        Keep all original rows and columns
+
+        >>> df.compare(df2, keep_shape=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  NaN   NaN  NaN   NaN
+        1  NaN   NaN  NaN   NaN  NaN   NaN
+        2  NaN   NaN  NaN   NaN  3.0   4.0
+        3  NaN   NaN  NaN   NaN  NaN   NaN
+        4  NaN   NaN  NaN   NaN  NaN   NaN
+
+        Keep all original rows and columns and also all original values
+
+        >>> df.compare(df2, keep_shape=True, keep_equal=True)
+          col1       col2       col3
+          self other self other self other
+        0    a     c  1.0   1.0  1.0   1.0
+        1    a     a  2.0   2.0  2.0   2.0
+        2    b     b  3.0   3.0  3.0   4.0
+        3    b     b  NaN   NaN  4.0   4.0
+        4    a     a  5.0   5.0  5.0   5.0
         """
-Returns
--------
-DataFrame
-    DataFrame that shows the differences stacked side by side.
-
-    The resulting index will be a MultiIndex with 'self' and 'other'
-    stacked alternately at the inner level.
-
-Raises
-------
-ValueError
-    When the two DataFrames don't have identical labels or shape.
-
-See Also
---------
-Series.compare : Compare with another Series and show differences.
-DataFrame.equals : Test whether two objects contain the same elements.
-
-Notes
------
-Matching NaNs will not appear as a difference.
-
-Can only compare identically-labeled
-(i.e. same shape, identical row and column labels) DataFrames
-
-Examples
---------
->>> df = pd.DataFrame(
-...     {{
-...         "col1": ["a", "a", "b", "b", "a"],
-...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
-...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     }},
-...     columns=["col1", "col2", "col3"],
-... )
->>> df
-  col1  col2  col3
-0    a   1.0   1.0
-1    a   2.0   2.0
-2    b   3.0   3.0
-3    b   NaN   4.0
-4    a   5.0   5.0
-
->>> df2 = df.copy()
->>> df2.loc[0, 'col1'] = 'c'
->>> df2.loc[2, 'col3'] = 4.0
->>> df2
-  col1  col2  col3
-0    c   1.0   1.0
-1    a   2.0   2.0
-2    b   3.0   4.0
-3    b   NaN   4.0
-4    a   5.0   5.0
-
-Align the differences on columns
-
->>> df.compare(df2)
-  col1       col3
-  self other self other
-0    a     c  NaN   NaN
-2  NaN   NaN  3.0   4.0
-
-Assign result_names
-
->>> df.compare(df2, result_names=("left", "right"))
-  col1       col3
-  left right left right
-0    a     c  NaN   NaN
-2  NaN   NaN  3.0   4.0
-
-Stack the differences on rows
-
->>> df.compare(df2, align_axis=0)
-        col1  col3
-0 self     a   NaN
-  other    c   NaN
-2 self   NaN   3.0
-  other  NaN   4.0
-
-Keep the equal values
-
->>> df.compare(df2, keep_equal=True)
-  col1       col3
-  self other self other
-0    a     c  1.0   1.0
-2    b     b  3.0   4.0
-
-Keep all original rows and columns
-
->>> df.compare(df2, keep_shape=True)
-  col1       col2       col3
-  self other self other self other
-0    a     c  NaN   NaN  NaN   NaN
-1  NaN   NaN  NaN   NaN  NaN   NaN
-2  NaN   NaN  NaN   NaN  3.0   4.0
-3  NaN   NaN  NaN   NaN  NaN   NaN
-4  NaN   NaN  NaN   NaN  NaN   NaN
-
-Keep all original rows and columns and also all original values
-
->>> df.compare(df2, keep_shape=True, keep_equal=True)
-  col1       col2       col3
-  self other self other self other
-0    a     c  1.0   1.0  1.0   1.0
-1    a     a  2.0   2.0  2.0   2.0
-2    b     b  3.0   3.0  3.0   4.0
-3    b     b  NaN   NaN  4.0   4.0
-4    a     a  5.0   5.0  5.0   5.0
-""",
+        ),
         klass=_shared_doc_kwargs["klass"],
     )
     def compare(
@@ -8555,108 +8560,110 @@ Keep all original rows and columns and also all original values
     # ----------------------------------------------------------------------
     # Data reshaping
     @Appender(
-        """
-Examples
---------
->>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-...                               'Parrot', 'Parrot'],
-...                    'Max Speed': [380., 370., 24., 26.]})
->>> df
-   Animal  Max Speed
-0  Falcon      380.0
-1  Falcon      370.0
-2  Parrot       24.0
-3  Parrot       26.0
->>> df.groupby(['Animal']).mean()
-        Max Speed
-Animal
-Falcon      375.0
-Parrot       25.0
-
-**Hierarchical Indexes**
-
-We can groupby different levels of a hierarchical index
-using the `level` parameter:
-
->>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-...           ['Captive', 'Wild', 'Captive', 'Wild']]
->>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
->>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-...                   index=index)
->>> df
+        dedent(
+            """
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+        ...                               'Parrot', 'Parrot'],
+        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        >>> df.groupby(['Animal']).mean()
                 Max Speed
-Animal Type
-Falcon Captive      390.0
-       Wild         350.0
-Parrot Captive       30.0
-       Wild          20.0
->>> df.groupby(level=0).mean()
-        Max Speed
-Animal
-Falcon      370.0
-Parrot       25.0
->>> df.groupby(level="Type").mean()
-         Max Speed
-Type
-Captive      210.0
-Wild         185.0
+        Animal
+        Falcon      375.0
+        Parrot       25.0
 
-We can also choose to include NA in group keys or not by setting
-`dropna` parameter, the default setting is `True`.
+        **Hierarchical Indexes**
 
->>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
->>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        We can groupby different levels of a hierarchical index
+        using the `level` parameter:
 
->>> df.groupby(by=["b"]).sum()
-    a   c
-b
-1.0 2   3
-2.0 2   5
+        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
+        ...                   index=index)
+        >>> df
+                        Max Speed
+        Animal Type
+        Falcon Captive      390.0
+               Wild         350.0
+        Parrot Captive       30.0
+               Wild          20.0
+        >>> df.groupby(level=0).mean()
+                Max Speed
+        Animal
+        Falcon      370.0
+        Parrot       25.0
+        >>> df.groupby(level="Type").mean()
+                 Max Speed
+        Type
+        Captive      210.0
+        Wild         185.0
 
->>> df.groupby(by=["b"], dropna=False).sum()
-    a   c
-b
-1.0 2   3
-2.0 2   5
-NaN 1   4
+        We can also choose to include NA in group keys or not by setting
+        `dropna` parameter, the default setting is `True`.
 
->>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
->>> df = pd.DataFrame(l, columns=["a", "b", "c"])
+        >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
 
->>> df.groupby(by="a").sum()
-    b     c
-a
-a   13.0   13.0
-b   12.3  123.0
+        >>> df.groupby(by=["b"]).sum()
+            a   c
+        b
+        1.0 2   3
+        2.0 2   5
 
->>> df.groupby(by="a", dropna=False).sum()
-    b     c
-a
-a   13.0   13.0
-b   12.3  123.0
-NaN 12.3   33.0
+        >>> df.groupby(by=["b"], dropna=False).sum()
+            a   c
+        b
+        1.0 2   3
+        2.0 2   5
+        NaN 1   4
 
-When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
-The ``group_keys`` argument defaults to ``True`` (include).
+        >>> l = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
 
->>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-...                               'Parrot', 'Parrot'],
-...                    'Max Speed': [380., 370., 24., 26.]})
->>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-          Animal  Max Speed
-Animal
-Falcon 0  Falcon      380.0
-       1  Falcon      370.0
-Parrot 2  Parrot       24.0
-       3  Parrot       26.0
+        >>> df.groupby(by="a").sum()
+            b     c
+        a
+        a   13.0   13.0
+        b   12.3  123.0
 
->>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-   Animal  Max Speed
-0  Falcon      380.0
-1  Falcon      370.0
-2  Parrot       24.0
-3  Parrot       26.0
-"""
+        >>> df.groupby(by="a", dropna=False).sum()
+            b     c
+        a
+        a   13.0   13.0
+        b   12.3  123.0
+        NaN 12.3   33.0
+
+        When using ``.apply()``, use ``group_keys`` to include or exclude the
+        group keys. The ``group_keys`` argument defaults to ``True`` (include).
+
+        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+        ...                               'Parrot', 'Parrot'],
+        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
+                  Animal  Max Speed
+        Animal
+        Falcon 0  Falcon      380.0
+               1  Falcon      370.0
+        Parrot 2  Parrot       24.0
+               3  Parrot       26.0
+
+        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        """
+        )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
@@ -8667,7 +8674,7 @@ Parrot 2  Parrot       24.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> DataFrameGroupBy:
         if axis is not lib.no_default:
@@ -9506,11 +9513,7 @@ Parrot 2  Parrot       24.0
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
         if not lib.is_integer(periods):
-            if not (
-                is_float(periods)
-                # error: "int" has no attribute "is_integer"
-                and periods.is_integer()  # type: ignore[attr-defined]
-            ):
+            if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 
@@ -10167,26 +10170,6 @@ Parrot 2  Parrot       24.0
         4  K0  A4   B0
         5  K1  A5   B1
         """
-        return self._join_compat(
-            other,
-            on=on,
-            how=how,
-            lsuffix=lsuffix,
-            rsuffix=rsuffix,
-            sort=sort,
-            validate=validate,
-        )
-
-    def _join_compat(
-        self,
-        other: DataFrame | Series | Iterable[DataFrame | Series],
-        on: IndexLabel | None = None,
-        how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
-        sort: bool = False,
-        validate: str | None = None,
-    ):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
 
@@ -10402,8 +10385,13 @@ Parrot 2  Parrot       24.0
             new_cols = list(_dict_round(self, decimals))
         elif is_integer(decimals):
             # Dispatch to Block.round
+            # Argument "decimals" to "round" of "BaseBlockManager" has incompatible
+            # type "Union[int, integer[Any]]"; expected "int"
             return self._constructor(
-                self._mgr.round(decimals=decimals, using_cow=using_copy_on_write()),
+                self._mgr.round(
+                    decimals=decimals,  # type: ignore[arg-type]
+                    using_cow=using_copy_on_write(),
+                ),
             ).__finalize__(self, method="round")
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
@@ -11390,8 +11378,7 @@ Parrot 2  Parrot       24.0
                 keys = [data._get_label_or_level_values(x) for x in by]
                 indexer = lexsort_indexer(keys)
             else:
-                by = by[0]
-                k = data._get_label_or_level_values(by)  # type: ignore[arg-type]
+                k = data._get_label_or_level_values(by[0])
                 indexer = nargsort(k)
 
             res = data._mgr.take(indexer[q_idx], verify=False)
@@ -11430,7 +11417,7 @@ Parrot 2  Parrot       24.0
         level: Level = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | lib.NoDefault = no_default,
+        group_keys: bool = False,
     ) -> Resampler:
         return super().resample(
             rule=rule,
@@ -11671,10 +11658,12 @@ Parrot 2  Parrot       24.0
             # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
             # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
             # ndarray[Any, Any]], Index, Series]"
+            res_values = algorithms.isin(
+                self.values.ravel(),
+                values,  # type: ignore[arg-type]
+            )
             result = self._constructor(
-                algorithms.isin(
-                    self.values.ravel(), values  # type: ignore[arg-type]
-                ).reshape(self.shape),
+                res_values.reshape(self.shape),
                 self.index,
                 self.columns,
                 copy=False,
@@ -11799,232 +11788,6 @@ Parrot 2  Parrot       24.0
                ['monkey', nan, None]], dtype=object)
         """
         return self._mgr.as_array()
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        downcast: dict | None = ...,
-    ) -> DataFrame | None:
-        ...
-
-    def ffill(
-        self,
-        *,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast: dict | None = None,
-    ) -> DataFrame | None:
-        return super().ffill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = ...,
-        inplace: bool = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> DataFrame | None:
-        ...
-
-    def bfill(
-        self,
-        *,
-        axis: None | Axis = None,
-        inplace: bool = False,
-        limit: None | int = None,
-        downcast=None,
-    ) -> DataFrame | None:
-        return super().bfill(axis=axis, inplace=inplace, limit=limit, downcast=downcast)
-
-    def clip(
-        self: DataFrame,
-        lower: float | None = None,
-        upper: float | None = None,
-        *,
-        axis: Axis | None = None,
-        inplace: bool = False,
-        **kwargs,
-    ) -> DataFrame | None:
-        return super().clip(lower, upper, axis=axis, inplace=inplace, **kwargs)
-
-    def interpolate(
-        self: DataFrame,
-        method: str = "linear",
-        *,
-        axis: Axis = 0,
-        limit: int | None = None,
-        inplace: bool = False,
-        limit_direction: str | None = None,
-        limit_area: str | None = None,
-        downcast: str | None = None,
-        **kwargs,
-    ) -> DataFrame | None:
-        return super().interpolate(
-            method=method,
-            axis=axis,
-            limit=limit,
-            inplace=inplace,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            downcast=downcast,
-            **kwargs,
-        )
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def where(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> DataFrame | None:
-        ...
-
-    def where(
-        self,
-        cond,
-        other=lib.no_default,
-        *,
-        inplace: bool = False,
-        axis: Axis | None = None,
-        level: Level = None,
-    ) -> DataFrame | None:
-        return super().where(
-            cond,
-            other,
-            inplace=inplace,
-            axis=axis,
-            level=level,
-        )
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[False] = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> DataFrame:
-        ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: Literal[True],
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> None:
-        ...
-
-    @overload
-    def mask(
-        self,
-        cond,
-        other=...,
-        *,
-        inplace: bool = ...,
-        axis: Axis | None = ...,
-        level: Level = ...,
-    ) -> DataFrame | None:
-        ...
-
-    def mask(
-        self,
-        cond,
-        other=lib.no_default,
-        *,
-        inplace: bool = False,
-        axis: Axis | None = None,
-        level: Level = None,
-    ) -> DataFrame | None:
-        return super().mask(
-            cond,
-            other,
-            inplace=inplace,
-            axis=axis,
-            level=level,
-        )
 
 
 DataFrame._add_numeric_operations()

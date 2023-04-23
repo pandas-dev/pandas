@@ -86,6 +86,7 @@ def group_var(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,
+    name: str = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]

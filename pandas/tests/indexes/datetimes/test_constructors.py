@@ -285,6 +285,10 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
 
+        msg = "DatetimeIndex has mixed timezones"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
+
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
         exp = DatetimeIndex([Timestamp("2011-01-01")], name="idx")

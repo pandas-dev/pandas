@@ -103,9 +103,9 @@ if compat.PY39:
 
 def pytest_addoption(parser) -> None:
     parser.addoption(
-        "--strict-data-files",
-        action="store_true",
-        help="Fail if a test is skipped for missing data file.",
+        "--no-strict-data-files",
+        action="store_false",
+        help="Don't fail if a test is skipped for missing data file.",
     )
 
 
@@ -1112,9 +1112,9 @@ def all_numeric_accumulations(request):
 @pytest.fixture
 def strict_data_files(pytestconfig):
     """
-    Returns the configuration for the test setting `--strict-data-files`.
+    Returns the configuration for the test setting `--no-strict-data-files`.
     """
-    return pytestconfig.getoption("--strict-data-files")
+    return pytestconfig.getoption("--no-strict-data-files")
 
 
 @pytest.fixture
@@ -1134,7 +1134,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     Raises
     ------
     ValueError
-        If the path doesn't exist and the --strict-data-files option is set.
+        If the path doesn't exist and the --no-strict-data-files option is not set.
     """
     BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
 
@@ -1143,7 +1143,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         if not os.path.exists(path):
             if strict_data_files:
                 raise ValueError(
-                    f"Could not find file {path} and --strict-data-files is set."
+                    f"Could not find file {path} and --no-strict-data-files is not set."
                 )
             pytest.skip(f"Could not find {path}.")
         return path

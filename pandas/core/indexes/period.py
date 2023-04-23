@@ -303,9 +303,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             raise raise_on_incompatible(self, other)
         elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
+            assert isinstance(other, int)
             return other
 
         # raise when input doesn't have freq

@@ -734,14 +734,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
                 if is_scalar_indexer(icols, self.ndim - 1) and ndim == 1:
                     # e.g. test_loc_setitem_boolean_mask_allfalse
-                    if len(newkey) == 0:
-                        # FIXME: kludge for test_loc_setitem_boolean_mask_allfalse
-                        # TODO(GH#45333): may be fixed when deprecation is enforced
-
-                        value = value.iloc[:0]
-                    else:
-                        # test_loc_setitem_ndframe_values_alignment
-                        value = self.obj.iloc._align_series(indexer, value)
+                    # test_loc_setitem_ndframe_values_alignment
+                    value = self.obj.iloc._align_series(indexer, value)
                     indexer = (newkey, icols)
 
                 elif (
@@ -757,14 +751,8 @@ class _LocationIndexer(NDFrameIndexerBase):
                         indexer = (newkey, icols)
 
                     elif ndim == 2 and value.shape[1] == 1:
-                        if len(newkey) == 0:
-                            # FIXME: kludge for
-                            #  test_loc_setitem_all_false_boolean_two_blocks
-                            #  TODO(GH#45333): may be fixed when deprecation is enforced
-                            value = value.iloc[:0]
-                        else:
-                            # test_loc_setitem_ndframe_values_alignment
-                            value = self.obj.iloc._align_frame(indexer, value)
+                        # test_loc_setitem_ndframe_values_alignment
+                        value = self.obj.iloc._align_frame(indexer, value)
                         indexer = (newkey, icols)
         elif com.is_bool_indexer(indexer):
             indexer = indexer.nonzero()[0]
@@ -1565,7 +1553,7 @@ class _iLocIndexer(_LocationIndexer):
 
         return all(is_integer(k) for k in key)
 
-    def _validate_integer(self, key: int, axis: AxisInt) -> None:
+    def _validate_integer(self, key: int | np.integer, axis: AxisInt) -> None:
         """
         Check that 'key' is a valid position in the desired axis.
 
@@ -2174,7 +2162,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int] | np.ndarray
+        ilocs: Sequence[int | np.integer] | np.ndarray
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
@@ -2255,7 +2243,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if ser.index.equals(new_ix) or not len(new_ix):
+                    if ser.index.equals(new_ix):
                         return ser._values.copy()
 
                     return ser.reindex(new_ix)._values

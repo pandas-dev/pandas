@@ -97,6 +97,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
         pandas.Series.backfill \
+        pandas.Series.bfill \
+        pandas.Series.ffill \
         pandas.Series.pad \
         pandas.Series.argsort \
         pandas.Series.reorder_levels \
@@ -541,14 +543,14 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
         pandas.DataFrame.backfill \
+        pandas.DataFrame.bfill \
+        pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.first_valid_index \
         pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
-        pandas.DataFrame.sparse.density \
-        pandas.DataFrame.sparse.to_coo \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__

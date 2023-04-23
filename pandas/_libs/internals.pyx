@@ -877,8 +877,11 @@ cdef class BlockValuesRefs:
     cdef:
         public list referenced_blocks
 
-    def __cinit__(self, blk: SharedBlock) -> None:
-        self.referenced_blocks = [weakref.ref(blk)]
+    def __cinit__(self, blk: SharedBlock | None = None) -> None:
+        if blk is not None:
+            self.referenced_blocks = [weakref.ref(blk)]
+        else:
+            self.referenced_blocks = []
 
     def add_reference(self, blk: SharedBlock) -> None:
         """Adds a new reference to our reference collection.

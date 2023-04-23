@@ -30,7 +30,7 @@ runs:
         environment-name: ${{ inputs.environment-name }}
         extra-specs: ${{ inputs.extra-specs }}
         channels: conda-forge
-        channel-priority: ${{ runner.os == 'macOS' && 'flexible' || 'strict' }}
+        channel-priority: 'strict'
         condarc-file: ci/condarc.yml
         cache-env: true
         cache-downloads: true

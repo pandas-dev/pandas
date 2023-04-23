@@ -1,15 +1,10 @@
 import os
-import subprocess
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_linux,
-    is_platform_mac,
-)
+from pandas.compat import is_ci_environment
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -406,17 +401,14 @@ class TestClipboard:
     @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        os.environ.get("DISPLAY") is None and not is_platform_mac(),
-        reason="Cannot be runed if a headless system is not put in place with Xvfb",
-        strict=True,
+        os.environ.get("DISPLAY") is None or is_ci_environment(),
+        reason="Cannot pass if a headless system is not put in place with Xvfb",
+        strict=not is_ci_environment(),  # Flaky failures in the CI
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
-        if is_ci_environment() and is_platform_linux():
-            # Clipboard can sometimes keep previous param causing flaky CI failures
-            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(

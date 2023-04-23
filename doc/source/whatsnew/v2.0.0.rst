@@ -190,6 +190,16 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
+- The :class:`DataFrame` constructor, when constructing from a NumPy array,
+  will now copy the array by default to avoid mutating the :class:`DataFrame`
+  when mutating the array. Specify ``copy=False`` to get the old behavior.
+  When setting ``copy=False`` pandas does not guarantee correct Copy-on-Write
+  behavior when the NumPy array is modified after creation of the
+  :class:`DataFrame`.
+
+- The :meth:`DataFrame.from_records` will now respect Copy-on-Write when called
+  with a :class:`DataFrame`.
+
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
   will now always raise an warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
@@ -813,6 +823,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
 - Deprecated :meth:`~pandas.io.stata.StataReader.close`. Use :class:`~pandas.io.stata.StataReader` as a context manager instead (:issue:`49228`)
+- Deprecated producing a scalar when iterating over a :class:`.DataFrameGroupBy` or a :class:`.SeriesGroupBy` that has been grouped by a ``level`` parameter that is a list of length 1; a tuple of length one will be returned instead (:issue:`51583`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -1186,6 +1197,7 @@ Timezones
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 - Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
 - Bug in string parsing incorrectly allowing a :class:`Timestamp` to be constructed with an invalid timezone, which would raise when trying to print (:issue:`50668`)
+- Corrected TypeError message in :func:`objects_to_datetime64ns` to inform that DatetimeIndex has mixed timezones (:issue:`50974`)
 
 Numeric
 ^^^^^^^
@@ -1212,6 +1224,7 @@ Conversion
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising for extension array dtypes (:issue:`29618`, :issue:`50261`, :issue:`31913`)
+- Bug in :meth:`Series` not copying data when created from :class:`Index` and ``dtype`` is equal to ``dtype`` from :class:`Index` (:issue:`52008`)
 
 Strings
 ^^^^^^^
@@ -1295,6 +1308,7 @@ I/O
 - Bug in :func:`read_csv` when ``engine="pyarrow"`` where ``encoding`` parameter was not handled correctly (:issue:`51302`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 - Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
+- Bug in :meth:`DataFrame.to_parquet` where non-string index or columns were raising a ``ValueError`` when ``engine="pyarrow"`` (:issue:`52036`)
 
 Period
 ^^^^^^

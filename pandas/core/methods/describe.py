@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 
-import pandas as pd
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
@@ -230,7 +230,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
     if is_extension_array_dtype(series):
-        dtype = pd.Float64Dtype()
+        dtype = Float64Dtype()
     elif is_numeric_dtype(series) and not is_complex_dtype(series):
         dtype = np.dtype("float")
     else:

@@ -70,7 +70,11 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the

@@ -3126,7 +3126,7 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name)
+        return Series(values, index=index, name=self.name, copy=False)
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3193,7 +3193,7 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
 
             columns = items[items.get_indexer(blk_items)]
-            df = DataFrame(values.T, columns=columns, index=axes[1])
+            df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3461,7 +3461,7 @@ class Table(Fixed):
         """
         self.parent.put(
             self._get_metadata_path(key),
-            Series(values),
+            Series(values, copy=False),
             format="table",
             encoding=self.encoding,
             errors=self.errors,
@@ -4221,7 +4221,7 @@ class Table(Fixed):
                     encoding=self.encoding,
                     errors=self.errors,
                 )
-                return Series(_set_tz(col_values[1], a.tz), name=column)
+                return Series(_set_tz(col_values[1], a.tz), name=column, copy=False)
 
         raise KeyError(f"column [{column}] not found in the table")
 
@@ -4448,7 +4448,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values).sort_values()
+        sorted_series = Series(values, copy=False).sort_values()
         ln = len(sorted_series)
 
         if ln:
@@ -4561,7 +4561,7 @@ class AppendableFrameTable(AppendableTable):
                 values = values.reshape((1, values.shape[0]))
 
             if isinstance(values, np.ndarray):
-                df = DataFrame(values.T, columns=cols_, index=index_)
+                df = DataFrame(values.T, columns=cols_, index=index_, copy=False)
             elif isinstance(values, Index):
                 df = DataFrame(values, columns=cols_, index=index_)
             else:
@@ -5017,7 +5017,7 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel())
+            Series(data.ravel(), copy=False)
             .str.encode(encoding, errors)
             ._values.reshape(data.shape)
         )
@@ -5057,7 +5057,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors)._values
+            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 

@@ -228,14 +228,18 @@ def test_std_masked_dtype(any_numeric_ea_dtype):
 
 def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     gb = df.groupby(level=0)
+    warn_msg = f"DataFrameGroupBy.{reduction_func} with axis=1 is deprecated"
     if reduction_func in ("idxmax", "idxmin"):
         error = TypeError
         msg = "reduction operation '.*' not allowed for this dtype"
+        warn = FutureWarning
     else:
         error = ValueError
         msg = f"Operation {reduction_func} does not support axis=1"
+        warn = None
     with pytest.raises(error, match=msg):
-        gb.agg(reduction_func, axis=1)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            gb.agg(reduction_func, axis=1)
 
 
 @pytest.mark.parametrize(
@@ -1250,7 +1254,7 @@ def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
@@ -1289,7 +1293,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg(grp_col_dict)
+    result_df = input_df.groupby("cat", observed=False).agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(

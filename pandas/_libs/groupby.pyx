@@ -3,6 +3,7 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.math cimport sqrt
 from libc.stdlib cimport (
     free,
     malloc,
@@ -565,11 +566,11 @@ def group_any_all(
     const uint8_t[:, :] mask,
     str val_test,
     bint skipna,
-    bint nullable,
+    uint8_t[:, ::1] result_mask,
 ) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements. If the
-    input is a nullable type (nullable=True), the result will be computed
+    input is a nullable type (result_mask is not None), the result will be computed
     using Kleene logic.
 
     Parameters
@@ -587,9 +588,9 @@ def group_any_all(
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
-    nullable : bool
-        Whether or not the input is a nullable type. If True, the
-        result will be computed using Kleene logic
+    result_mask : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
 
     Notes
     -----
@@ -601,6 +602,7 @@ def group_any_all(
         Py_ssize_t i, j, N = len(labels), K = out.shape[1]
         intp_t lab
         int8_t flag_val, val
+        bint uses_mask = result_mask is not None
 
     if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -627,12 +629,12 @@ def group_any_all(
                 if skipna and mask[i, j]:
                     continue
 
-                if nullable and mask[i, j]:
+                if uses_mask and mask[i, j]:
                     # Set the position as masked if `out[lab] != flag_val`, which
                     # would indicate True/False has not yet been seen for any/all,
                     # so by Kleene logic the result is currently unknown
                     if out[lab, j] != flag_val:
-                        out[lab, j] = -1
+                        result_mask[lab, j] = 1
                     continue
 
                 val = values[i, j]
@@ -641,6 +643,8 @@ def group_any_all(
                 # already determined
                 if val == flag_val:
                     out[lab, j] = flag_val
+                    if uses_mask:
+                        result_mask[lab, j] = 0
 
 
 # ----------------------------------------------------------------------
@@ -819,6 +823,7 @@ def group_var(
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    str name="var",
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -827,6 +832,8 @@ def group_var(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
+        bint is_std = name == "std"
+        bint is_sem = name == "sem"
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -876,7 +883,13 @@ def group_var(
                     else:
                         out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - ddof)
+                    if is_std:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof))
+                    elif is_sem:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof) / ct)
+                    else:
+                        # just "var"
+                        out[i, j] /= (ct - ddof)
 
 
 @cython.wraparound(False)

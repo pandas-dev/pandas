@@ -105,7 +105,7 @@ void parser_set_default_options(parser_t *self) {
     self->skip_footer = 0;
 }
 
-parser_t *parser_new() { return (parser_t *)calloc(1, sizeof(parser_t)); }
+parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
 int parser_clear_data_buffers(parser_t *self) {
     free_if_not_null((void *)&self->stream);

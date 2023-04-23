@@ -883,7 +883,7 @@ def test_apply_multi_level_name(category):
     df = DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
-    result = df.groupby("B").apply(lambda x: x.sum())
+    result = df.groupby("B", observed=False).apply(lambda x: x.sum())
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 

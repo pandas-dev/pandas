@@ -217,7 +217,7 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
-    _data: pa.ChunkedArray
+    _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
@@ -433,11 +433,15 @@ class ArrowExtensionArray(
     # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["_data"] = self._pa_array.combine_chunks()
+        state["_pa_array"] = self._pa_array.combine_chunks()
         return state
 
     def __setstate__(self, state) -> None:
-        state["_pa_array"] = pa.chunked_array(state["_data"])
+        if "_data" in state:
+            data = state.pop("_data")
+        else:
+            data = state["_pa_array"]
+        state["_pa_array"] = pa.chunked_array(data)
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op):
@@ -761,6 +765,10 @@ class ArrowExtensionArray(
         limit: int | None = None,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
+
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
 
         if limit is not None:
             return super().fillna(value=value, method=method, limit=limit)

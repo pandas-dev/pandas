@@ -37,10 +37,7 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
-EXCLUSION_LIST = {
-    "python=3.8[build=*_pypy]": None,
-    "pyarrow": None,
-}
+EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]", "pyarrow"])
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -166,9 +163,7 @@ def pin_min_versions_to_yaml_file(
             continue
         old_dep = yaml_package
         if yaml_versions is not None:
-            for yaml_version in yaml_versions:
-                old_dep += yaml_version + ", "
-            old_dep = old_dep[:-2]
+            old_dep = old_dep + ", ".join(yaml_versions)
         if RENAME.get(yaml_package, yaml_package) in toml_map:
             min_dep = toml_map[RENAME.get(yaml_package, yaml_package)]
         elif yaml_package in toml_map:
@@ -180,11 +175,11 @@ def pin_min_versions_to_yaml_file(
             data = data.replace(old_dep, new_dep, 1)
             continue
         toml_version = version.parse(min_dep)
-        yaml_versions = clean_version_list(yaml_versions, toml_version)
-        cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
+        yaml_versions_list = clean_version_list(yaml_versions, toml_version)
+        cleaned_yaml_versions = [x for x in yaml_versions_list if "-" not in x]
         new_dep = yaml_package
-        for yaml_version in cleaned_yaml_versions:
-            new_dep += yaml_version + ", "
+        for clean_yaml_version in cleaned_yaml_versions:
+            new_dep += clean_yaml_version + ", "
         operator = get_operator_from(new_dep)
         if operator != "=":
             new_dep += ">=" + min_dep

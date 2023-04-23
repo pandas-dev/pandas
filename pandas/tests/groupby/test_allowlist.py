@@ -274,7 +274,9 @@ def test_groupby_selection_other_methods(df):
 
     # methods which aren't just .foo()
     tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
-    tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
+    msg = "DataFrameGroupBy.dtypes is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
     tm.assert_frame_equal(g.apply(lambda x: x.sum()), g_exp.apply(lambda x: x.sum()))
 
     tm.assert_frame_equal(g.resample("D").mean(), g_exp.resample("D").mean())

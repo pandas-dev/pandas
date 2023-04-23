@@ -250,7 +250,7 @@ def validate_bool_kwarg(
     """
     good_value = is_bool(value)
     if none_allowed:
-        good_value = good_value or value is None
+        good_value = good_value or (value is None)
 
     if int_allowed:
         good_value = good_value or isinstance(value, int)
@@ -260,7 +260,7 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value
+    return value  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -438,7 +438,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc
+    return loc  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def check_dtype_backend(dtype_backend) -> None:

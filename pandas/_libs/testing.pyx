@@ -95,6 +95,10 @@ cpdef assert_almost_equal(a, b,
     if robj is None:
         robj = b
 
+    if isinstance(a, set) or isinstance(b, set):
+        assert a == b, f"{a} != {b}"
+        return True
+
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
