@@ -1428,7 +1428,10 @@ class GenericArrayFormatter:
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space or self.formatter is not None:
-                fmt_values.append(f" {_format(v)}")
+                if leading_space:
+                    fmt_values.append(f" {_format(v)}")
+                else:
+                    fmt_values.append(f"{_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
