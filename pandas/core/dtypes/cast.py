@@ -1107,15 +1107,14 @@ def convert_dtypes(
         from pandas.core.arrays.string_ import StringDtype
 
         if (
-            convert_integer
-            and inferred_dtype.kind in "iu"
+            (convert_integer and inferred_dtype.kind in "iu")
             or (convert_floating and inferred_dtype.kind in "fc")
-            or convert_boolean
-            and inferred_dtype.kind == "b"
-            or convert_string
-            and is_string_dtype(inferred_dtype)
-            or inferred_dtype.kind not in "iufcb"
-            and not is_string_dtype(inferred_dtype)
+            or (convert_boolean and inferred_dtype.kind == "b")
+            or (convert_string and is_string_dtype(inferred_dtype))
+            or (
+                inferred_dtype.kind not in "iufcb"
+                and not is_string_dtype(inferred_dtype)
+            )
         ):
             if isinstance(inferred_dtype, PandasExtensionDtype):
                 base_dtype = inferred_dtype.base
