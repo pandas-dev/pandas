@@ -67,11 +67,17 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests' ; echo $MSG
     # Ignore test_*.py files or else the unit tests will run
-    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob=**/test_*.py"])'
+    # TODO:
+    # Don't hardcode the glob path.
+    # This is unlikely to break on CI though.
+    #
+    # When pytest-cython supports extension modules being not inplace
+    # the glob can be changed to **/test_*.py
+    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-modules", "--ignore-glob=../../**/test_*.py"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Cython Doctests' ; echo $MSG
-    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-cython", "--ignore-glob=**/test_*.py"])'
+    python -c 'import pandas as pd; pd.test(extra_args=["--doctest-cython", "--ignore-glob=../../**/tests/**"])'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
