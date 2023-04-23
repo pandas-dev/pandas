@@ -206,3 +206,11 @@ class TestMultiIndexBasic:
         )
         with pytest.raises(KeyError, match="missing_key"):
             df[[("missing_key",)]]
+
+    def test_multiindex_from_tuples_with_nan(self):
+        # GH#23578
+        result = MultiIndex.from_tuples([("a", "b", "c"), np.nan, ("d", "", "")])
+        expected = MultiIndex.from_tuples(
+            [("a", "b", "c"), (np.nan, np.nan, np.nan), ("d", "", "")]
+        )
+        tm.assert_index_equal(result, expected)
