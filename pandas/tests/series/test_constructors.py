@@ -17,10 +17,7 @@ from pandas._libs import (
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -28,6 +25,7 @@ from pandas import (
     Categorical,
     DataFrame,
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     Interval,
     IntervalIndex,
@@ -1104,7 +1102,7 @@ class TestSeriesConstructors:
         s = Series(dr)
         assert s.dtype.name == "datetime64[ns, US/Eastern]"
         assert s.dtype == "datetime64[ns, US/Eastern]"
-        assert is_datetime64tz_dtype(s.dtype)
+        assert isinstance(s.dtype, DatetimeTZDtype)
         assert "datetime64[ns, US/Eastern]" in str(s)
 
         # export
@@ -1348,8 +1346,7 @@ class TestSeriesConstructors:
 
     def test_constructor_dict_order(self):
         # GH19018
-        # initialization ordering: by insertion order if python>= 3.6, else
-        # order by value
+        # initialization ordering: by insertion order
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
         expected = Series([1, 0, 2], index=list("bac"))
@@ -2131,3 +2128,22 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_index_ordered_dict_keys():
+    # GH 22077
+
+    param_index = OrderedDict(
+        [
+            ((("a", "b"), ("c", "d")), 1),
+            ((("a", None), ("c", "d")), 2),
+        ]
+    )
+    series = Series([1, 2], index=param_index.keys())
+    expected = Series(
+        [1, 2],
+        index=MultiIndex.from_tuples(
+            [(("a", "b"), ("c", "d")), (("a", None), ("c", "d"))]
+        ),
+    )
+    tm.assert_series_equal(series, expected)

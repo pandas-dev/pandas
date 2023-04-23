@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import (
     Timedelta,
     Timestamp,
+    lib,
 )
 from pandas._libs.lib import infer_dtype
 
@@ -22,14 +23,10 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -285,7 +282,7 @@ def cut(
             raise ValueError("Overlapping IntervalIndex is not accepted.")
 
     else:
-        if is_datetime64tz_dtype(bins):
+        if isinstance(getattr(bins, "dtype", None), DatetimeTZDtype):
             bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
@@ -488,10 +485,10 @@ def _coerce_to_type(x):
 
     if isinstance(x.dtype, DatetimeTZDtype):
         dtype = x.dtype
-    elif is_datetime64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "M"):
         x = to_datetime(x).astype("datetime64[ns]", copy=False)
         dtype = np.dtype("datetime64[ns]")
-    elif is_timedelta64_dtype(x.dtype):
+    elif lib.is_np_dtype(x.dtype, "m"):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x.dtype):
@@ -526,15 +523,15 @@ def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
     ValueError if bins are not of a compat dtype to dtype
     """
     bins_dtype = infer_dtype(bins, skipna=False)
-    if is_timedelta64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m"):
         if bins_dtype in ["timedelta", "timedelta64"]:
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
+    elif lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
         if bins_dtype in ["datetime", "datetime64"]:
             bins = to_datetime(bins)
-            if is_datetime64_dtype(bins):
+            if lib.is_np_dtype(bins.dtype, "M"):
                 # As of 2.0, to_datetime may give non-nano, so we need to convert
                 #  here until the rest of this file recognizes non-nano
                 bins = bins.astype("datetime64[ns]", copy=False)
@@ -562,7 +559,7 @@ def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
     """
     if isinstance(dtype, DatetimeTZDtype):
         bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "mM"):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
@@ -582,10 +579,10 @@ def _format_labels(
     if isinstance(dtype, DatetimeTZDtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
-    elif is_datetime64_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "M"):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta("1ns")
-    elif is_timedelta64_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "m"):
         formatter = Timedelta
         adjust = lambda x: x - Timedelta("1ns")
     else:
