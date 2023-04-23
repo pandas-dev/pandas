@@ -2216,6 +2216,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return np.array_equal(self._codes, other._codes)
         return False
 
+    def _accumulate(self, name: str, skipna: bool = True, **kwargs):
+        if self.ordered:
+            if name == "cummin":
+                func = np.minimum.accumulate
+            elif name == "cummax":
+                func = np.maximum.accumulate
+            else:
+                raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
+            codes = self.codes.copy()
+            mask = self.codes == -1
+            codes[mask] = self.max()
+            result_codes = func(codes)
+
+            # Restore the original NaN values
+            result_codes[mask] = -1
+
+            return pd.Categorical.from_codes(
+                result_codes, categories=self.categories, ordered=self.ordered
+            )
+        else:
+            raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
+
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
