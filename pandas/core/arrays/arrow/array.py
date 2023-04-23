@@ -260,7 +260,13 @@ class ArrowExtensionArray(
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype:
             scalars = scalars.cast(pa_dtype)
-        return cls(scalars)
+        arr = cls(scalars)
+        if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
+            # GH52843: upstream bug for duration types when originally
+            # constructed with data containing numpy NaT.
+            # https://github.com/apache/arrow/issues/35088
+            arr = arr.fillna(arr.dtype.na_value)
+        return arr
 
     @classmethod
     def _from_sequence_of_strings(
