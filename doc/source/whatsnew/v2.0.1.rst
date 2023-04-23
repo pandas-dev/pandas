@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)
 - Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
+- Fixed regression in :meth:`SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
 - Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
 
 .. ---------------------------------------------------------------------------
