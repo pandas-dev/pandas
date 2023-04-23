@@ -134,3 +134,13 @@ class TestConvertDtypes:
         )
         with pytest.raises(ValueError, match=msg):
             df.convert_dtypes(dtype_backend="numpy")
+
+    @pytest.mark.xfail(
+        reason="The pyarrow doesn't currentely support rounding of large integers",
+    )
+    def test_pyarrow_dtype_backend_for_int64(self):
+        with tm.ensure_clean("__tmp_to_csv_from_csv3__") as path:
+            # GH 52827
+            pytest.importorskip("pyarrow")
+            pd.DataFrame({"x": ["1372636858620000589"]}).to_csv(path, index=False)
+            pd.read_csv("x.csv", dtype_backend="pyarrow")["x"].round()
