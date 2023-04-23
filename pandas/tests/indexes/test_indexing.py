@@ -182,7 +182,7 @@ class TestGetLoc:
             index.get_loc(slice(0, 1))
 
     def test_get_loc_non_scalar_hashable(self, index):
-        # GHXXXXX
+        # GH52877
         from enum import Enum
 
         class E(Enum):
