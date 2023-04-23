@@ -19,6 +19,21 @@ def fallback_performancewarning(version: str | None = None) -> None:
         msg += f" Upgrade to pyarrow >={version} to possibly suppress this warning."
     warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
 
+# pandas/core/arrays/arrow_utils.py
+
+def arrow_timestamparray_mean(array):
+    """
+    Calculate the mean of an Arrow TimestampArray.
+    """
+    # Convert to a NumPy array
+    np_array = array.to_numpy()
+
+    # Calculate the mean without overflow
+    mean = np_array.astype("int64").mean()
+
+    # Convert the mean back to a Timestamp
+    return pd.Timestamp(mean, unit="ns")
+
 
 def pyarrow_array_to_numpy_and_mask(
     arr, dtype: np.dtype
@@ -41,7 +56,10 @@ def pyarrow_array_to_numpy_and_mask(
         a boolean mask (validity mask, so False means missing)
     """
     dtype = np.dtype(dtype)
-
+    
+    if pa.types.is_timestamp(array.type):
+        return arrow_timestamparray_mean(array)
+    
     if pyarrow.types.is_null(arr.type):
         # No initialization of data is needed since everything is null
         data = np.empty(len(arr), dtype=dtype)
