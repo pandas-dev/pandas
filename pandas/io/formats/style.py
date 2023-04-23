@@ -1554,7 +1554,7 @@ class Styler(StylerRenderer):
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
 
-    def _copy(self, deepcopy: bool = False) -> Styler:
+    def _copy(cls, self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
 
@@ -1579,9 +1579,8 @@ class Styler(StylerRenderer):
 
         """
         # GH 40675
-        styler = Styler(
-            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
-        )
+        styler = cls(self.data)  # populates attributes 'data', 'columns', 'index' as shallow
+
         shallow = [  # simple string or boolean immutables
             "hide_index_",
             "hide_columns_",
@@ -1624,10 +1623,10 @@ class Styler(StylerRenderer):
         return styler
 
     def __copy__(self) -> Styler:
-        return self._copy(deepcopy=False)
+        return self._copy(self.__class__, deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
-        return self._copy(deepcopy=True)
+        return self._copy(self.__class__, deepcopy=True)
 
     def clear(self) -> None:
         """
