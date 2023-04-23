@@ -137,6 +137,7 @@ class TestConvertDtypes:
 
     def test_pyarrow_backend_no_convesion(self):
         # GH#52871
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
         expected = df.copy()
         result = df.convert_dtypes(

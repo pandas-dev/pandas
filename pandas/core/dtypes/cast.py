@@ -1109,8 +1109,7 @@ def convert_dtypes(
         if (
             convert_integer
             and inferred_dtype.kind in "iu"
-            or inferred_dtype.kind in "fc"
-            and convert_floating
+            or (convert_floating and inferred_dtype.kind in "fc")
             or convert_boolean
             and inferred_dtype.kind == "b"
             or convert_string
