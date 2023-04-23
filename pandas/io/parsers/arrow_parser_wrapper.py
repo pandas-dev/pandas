@@ -163,5 +163,8 @@ class ArrowParserWrapper(ParserBase):
         elif self.kwds["dtype_backend"] == "numpy_nullable":
             frame = table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
         else:
-            frame = table.to_pandas()
+            if self.kwds.get("dtype") is not None and isinstance(self.kwds.get("dtype"), dict):
+                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
+            else:
+                frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

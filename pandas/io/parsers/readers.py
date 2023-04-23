@@ -587,9 +587,6 @@ def _read(
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
             )
-        
-        if kwds.get("dtype_backend") is None or kwds.get("dtype_backend").value == 'NO_DEFAULT':
-            kwds["dtype_backend"] = "pyarrow"
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
 
