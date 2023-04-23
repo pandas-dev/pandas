@@ -9,7 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -525,24 +525,29 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        Timedelta(0).to_timedelta64(),
+        pytest.param(
+            Timedelta(0).to_timedelta64(),
+            marks=pytest.mark.xfail(
+                not np_version_gte1p24p3,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
+            ),
+        ),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        Timestamp(0).to_datetime64(),
+        pytest.param(
+            Timestamp(0).to_datetime64(),
+            marks=pytest.mark.xfail(
+                not np_version_gte1p24p3,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
+            ),
+        ),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
 )
-def test_nat_comparisons(compare_operators_no_eq_ne, other, request):
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
     opname = compare_operators_no_eq_ne
-    if isinstance(other, (np.datetime64, np.timedelta64)) and (
-        opname in ["__eq__", "__ne__"] or not is_numpy_dev
-    ):
-        mark = pytest.mark.xfail(
-            reason="dt64/td64 don't return NotImplemented, see numpy#17017",
-        )
-        request.node.add_marker(mark)
 
     assert getattr(NaT, opname)(other) is False
 
