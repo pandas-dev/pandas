@@ -46,7 +46,6 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
-from pandas.util.version import Version
 
 PARSING_ERR_MSG = (
     r"You might want to try:\n"
@@ -1250,23 +1249,13 @@ class TestToDatetime:
         result = to_datetime(Series([date], dtype=dtype), utc=True, cache=cache)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no("psycopg2")
     def test_to_datetime_tz_psycopg2(self, request, cache):
         # xref 8260
-        import psycopg2
-
-        # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
-        request.node.add_marker(
-            pytest.mark.xfail(
-                Version(psycopg2.__version__.split()[0]) > Version("2.8.7"),
-                raises=AttributeError,
-                reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
-            )
-        )
+        psycopg2_tz = pytest.importorskip("psycopg2.tz")
 
         # misc cases
-        tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
-        tz2 = psycopg2.tz.FixedOffsetTimezone(offset=-240, name=None)
+        tz1 = psycopg2_tz.FixedOffsetTimezone(offset=-300, name=None)
+        tz2 = psycopg2_tz.FixedOffsetTimezone(offset=-240, name=None)
         arr = np.array(
             [
                 datetime(2000, 1, 1, 3, 0, tzinfo=tz1),
@@ -1286,7 +1275,7 @@ class TestToDatetime:
         # dtype coercion
         i = DatetimeIndex(
             ["2000-01-01 08:00:00"],
-            tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None),
+            tz=psycopg2_tz.FixedOffsetTimezone(offset=-300, name=None),
         )
         assert is_datetime64_ns_dtype(i)
 
@@ -3586,3 +3575,12 @@ def test_ignoring_unknown_tz_deprecated():
     with tm.assert_produces_warning(FutureWarning):
         res = to_datetime([dtstr])
     tm.assert_index_equal(res, to_datetime([dtstr[:-5]]))
+
+
+def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
+    # GH 52425
+    pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
+    result = to_datetime(ser)
+    expected = Series([1, 2], dtype="datetime64[ns]")
+    tm.assert_series_equal(result, expected)

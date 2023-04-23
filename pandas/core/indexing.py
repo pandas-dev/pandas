@@ -35,7 +35,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -46,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -1128,10 +1128,10 @@ class _LocIndexer(_LocationIndexer):
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(ax)
+            is_bool_dtype(ax.dtype)
             or ax.dtype.name == "boolean"
             or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0))
+            and is_bool_dtype(ax.get_level_values(0).dtype)
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
@@ -2167,8 +2167,8 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = np.arange(len(self.obj.columns))[column_indexer]
-        elif isinstance(column_indexer, np.ndarray) and is_bool_dtype(
-            column_indexer.dtype
+        elif (
+            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
         ):
             ilocs = np.arange(len(column_indexer))[column_indexer]
         else:
@@ -2257,7 +2257,7 @@ class _iLocIndexer(_LocationIndexer):
                     return ser.reindex(ax)._values
 
         elif is_integer(indexer) and self.ndim == 1:
-            if is_object_dtype(self.obj):
+            if is_object_dtype(self.obj.dtype):
                 return ser
             ax = self.obj._get_axis(0)
 
@@ -2490,7 +2490,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         result = result.take(indexer)
 
         # fall through for boolean
-        if not is_extension_array_dtype(result.dtype):
+        if not isinstance(result.dtype, ExtensionDtype):
             return result.astype(bool)._values
 
     if is_object_dtype(key):
