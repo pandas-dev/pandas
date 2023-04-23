@@ -1453,7 +1453,6 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> import pandas as pd
         >>> arr = pd.array([1, 2, pd.NA])
         >>> arr._reduce_with_wrap("sum", kwargs={})
         <IntegerArray>
