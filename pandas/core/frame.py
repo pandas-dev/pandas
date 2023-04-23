@@ -132,6 +132,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -4718,6 +4719,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
+            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
             return issubclass(dtype.type, tuple(dtypes_set)) or (
                 np.number in dtypes_set
                 and getattr(dtype, "_is_numeric", False)
