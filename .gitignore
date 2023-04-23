@@ -50,6 +50,7 @@ dist
 *.egg-info
 .eggs
 .pypirc
+
 # type checkers
 pandas/py.typed
 
@@ -58,21 +59,26 @@ pandas/py.typed
 
 # tox testing tool
 .tox
+
 # rope
 .ropeproject
+
 # wheel files
 *.whl
 **/wheelhouse/*
 pip-wheel-metadata
+
 # coverage
 .coverage
 coverage.xml
 coverage_html_report
 .mypy_cache
 *.pytest_cache
+
 # hypothesis test database
 .hypothesis/
 __pycache__
+
 # pytest-monkeytype
 monkeytype.sqlite3
 
