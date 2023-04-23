@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import functools
 import operator
 import re
+import sys
+import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -10,6 +13,7 @@ from typing import (
     Sequence,
     cast,
 )
+import unicodedata
 
 import numpy as np
 
@@ -254,7 +258,13 @@ class ArrowExtensionArray(
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
-        return cls(scalars)
+        arr = cls(scalars)
+        if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
+            # GH52843: upstream bug for duration types when originally
+            # constructed with data containing numpy NaT.
+            # https://github.com/apache/arrow/issues/35088
+            arr = arr.fillna(arr.dtype.na_value)
+        return arr
 
     @classmethod
     def _from_sequence_of_strings(
@@ -1749,6 +1759,16 @@ class ArrowExtensionArray(
             return result
         return type(self)._from_sequence(result, copy=False)
 
+    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
+        """Apply a callable to each element while maintaining the chunking structure."""
+        return [
+            [
+                None if val is None else func(val)
+                for val in chunk.to_numpy(zero_copy_only=False)
+            ]
+            for chunk in self._pa_array.iterchunks()
+        ]
+
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
@@ -1882,14 +1902,14 @@ class ArrowExtensionArray(
         return type(self)(pc.binary_join(self._pa_array, sep))
 
     def _str_partition(self, sep: str, expand: bool):
-        raise NotImplementedError(
-            "str.partition not supported with pd.ArrowDtype(pa.string())."
-        )
+        predicate = lambda val: val.partition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_rpartition(self, sep: str, expand: bool):
-        raise NotImplementedError(
-            "str.rpartition not supported with pd.ArrowDtype(pa.string())."
-        )
+        predicate = lambda val: val.rpartition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
@@ -1978,14 +1998,21 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_removeprefix(self, prefix: str):
-        raise NotImplementedError(
-            "str.removeprefix not supported with pd.ArrowDtype(pa.string())."
-        )
         # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
         # starts_with = pc.starts_with(self._pa_array, pattern=prefix)
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
+        if sys.version_info < (3, 9):
+            # NOTE pyupgrade will remove this when we run it with --py39-plus
+            # so don't remove the unnecessary `else` statement below
+            from pandas.util._str_methods import removeprefix
+
+            predicate = functools.partial(removeprefix, prefix=prefix)
+        else:
+            predicate = lambda val: val.removeprefix(prefix)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
@@ -1994,49 +2021,59 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_casefold(self):
-        raise NotImplementedError(
-            "str.casefold not supported with pd.ArrowDtype(pa.string())."
-        )
+        predicate = lambda val: val.casefold()
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
-    def _str_encode(self, encoding, errors: str = "strict"):
-        raise NotImplementedError(
-            "str.encode not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_encode(self, encoding: str, errors: str = "strict"):
+        predicate = lambda val: val.encode(encoding, errors)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         raise NotImplementedError(
             "str.extract not supported with pd.ArrowDtype(pa.string())."
         )
 
-    def _str_findall(self, pat, flags: int = 0):
-        raise NotImplementedError(
-            "str.findall not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_findall(self, pat: str, flags: int = 0):
+        regex = re.compile(pat, flags=flags)
+        predicate = lambda val: regex.findall(val)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_get_dummies(self, sep: str = "|"):
-        raise NotImplementedError(
-            "str.get_dummies not supported with pd.ArrowDtype(pa.string())."
-        )
+        split = pc.split_pattern(self._pa_array, sep).combine_chunks()
+        uniques = split.flatten().unique()
+        uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
+        result_data = []
+        for lst in split.to_pylist():
+            if lst is None:
+                result_data.append([False] * len(uniques_sorted))
+            else:
+                res = pc.is_in(uniques_sorted, pa.array(set(lst)))
+                result_data.append(res.to_pylist())
+        result = type(self)(pa.array(result_data))
+        return result, uniques_sorted.to_pylist()
 
-    def _str_index(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.index not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_index(self, sub: str, start: int = 0, end: int | None = None):
+        predicate = lambda val: val.index(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
-    def _str_rindex(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.rindex not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_rindex(self, sub: str, start: int = 0, end: int | None = None):
+        predicate = lambda val: val.rindex(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
-    def _str_normalize(self, form):
-        raise NotImplementedError(
-            "str.normalize not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_normalize(self, form: str):
+        predicate = lambda val: unicodedata.normalize(form, val)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
-    def _str_rfind(self, sub, start: int = 0, end=None):
-        raise NotImplementedError(
-            "str.rfind not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_rfind(self, sub: str, start: int = 0, end=None):
+        predicate = lambda val: val.rfind(sub, start, end)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_split(
         self,
@@ -2060,15 +2097,17 @@ class ArrowExtensionArray(
             pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
         )
 
-    def _str_translate(self, table):
-        raise NotImplementedError(
-            "str.translate not supported with pd.ArrowDtype(pa.string())."
-        )
+    def _str_translate(self, table: dict[int, str]):
+        predicate = lambda val: val.translate(table)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_wrap(self, width: int, **kwargs):
-        raise NotImplementedError(
-            "str.wrap not supported with pd.ArrowDtype(pa.string())."
-        )
+        kwargs["width"] = width
+        tw = textwrap.TextWrapper(**kwargs)
+        predicate = lambda val: "\n".join(tw.wrap(val))
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     @property
     def _dt_year(self):
@@ -2101,6 +2140,68 @@ class ArrowExtensionArray(
     @property
     def _dt_is_leap_year(self):
         return type(self)(pc.is_leap_year(self._pa_array))
+
+    @property
+    def _dt_is_month_start(self):
+        return type(self)(pc.equal(pc.day(self._pa_array), 1))
+
+    @property
+    def _dt_is_month_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="month"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_year_start(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 1),
+                pc.equal(pc.day(self._pa_array), 1),
+            )
+        )
+
+    @property
+    def _dt_is_year_end(self):
+        return type(self)(
+            pc.and_(
+                pc.equal(pc.month(self._pa_array), 12),
+                pc.equal(pc.day(self._pa_array), 31),
+            )
+        )
+
+    @property
+    def _dt_is_quarter_start(self):
+        result = pc.equal(
+            pc.floor_temporal(self._pa_array, unit="quarter"),
+            pc.floor_temporal(self._pa_array, unit="day"),
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_is_quarter_end(self):
+        result = pc.equal(
+            pc.days_between(
+                pc.floor_temporal(self._pa_array, unit="day"),
+                pc.ceil_temporal(self._pa_array, unit="quarter"),
+            ),
+            1,
+        )
+        return type(self)(result)
+
+    @property
+    def _dt_days_in_month(self):
+        result = pc.days_between(
+            pc.floor_temporal(self._pa_array, unit="month"),
+            pc.ceil_temporal(self._pa_array, unit="month"),
+        )
+        return type(self)(result)
+
+    _dt_daysinmonth = _dt_days_in_month
 
     @property
     def _dt_microsecond(self):
@@ -2142,6 +2243,13 @@ class ArrowExtensionArray(
     @property
     def _dt_tz(self):
         return self.dtype.pyarrow_dtype.tz
+
+    @property
+    def _dt_unit(self):
+        return self.dtype.pyarrow_dtype.unit
+
+    def _dt_normalize(self):
+        return type(self)(pc.floor_temporal(self._pa_array, 1, "day"))
 
     def _dt_strftime(self, format: str):
         return type(self)(pc.strftime(self._pa_array, format=format))
@@ -2207,6 +2315,16 @@ class ArrowExtensionArray(
     ):
         return self._round_temporally("round", freq, ambiguous, nonexistent)
 
+    def _dt_day_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%A", locale=locale))
+
+    def _dt_month_name(self, locale: str | None = None):
+        if locale is None:
+            locale = "C"
+        return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
+
     def _dt_to_pydatetime(self):
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
@@ -2236,4 +2354,13 @@ class ArrowExtensionArray(
             result = pc.assume_timezone(
                 self._pa_array, str(tz), ambiguous=ambiguous, nonexistent=nonexistent_pa
             )
+        return type(self)(result)
+
+    def _dt_tz_convert(self, tz):
+        if self.dtype.pyarrow_dtype.tz is None:
+            raise TypeError(
+                "Cannot convert tz-naive timestamps, use tz_localize to localize"
+            )
+        current_unit = self.dtype.pyarrow_dtype.unit
+        result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
