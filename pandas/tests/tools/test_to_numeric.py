@@ -510,6 +510,8 @@ def test_ignore_downcast_neg_to_unsigned():
     tm.assert_numpy_array_equal(res, expected)
 
 
+# Warning in 32 bit platforms
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.parametrize("downcast", ["integer", "signed", "unsigned"])
 @pytest.mark.parametrize(
     "data,expected",
