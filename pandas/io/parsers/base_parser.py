@@ -62,8 +62,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import (
     ArrowDtype,
+    DataFrame,
     DatetimeIndex,
     StringDtype,
+    concat,
 )
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -92,8 +94,6 @@ if TYPE_CHECKING:
         DtypeObj,
         Scalar,
     )
-
-    from pandas import DataFrame
 
 
 class ParserBase:

@@ -544,7 +544,6 @@ def test_multiple_date_cols_int_cast(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_multiple_date_col_timestamp_parse(all_parsers):
     parser = all_parsers
     data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
