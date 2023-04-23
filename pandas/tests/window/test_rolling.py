@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    IS64,
     is_platform_arm,
     is_platform_mac,
     is_platform_power,

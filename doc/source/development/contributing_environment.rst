@@ -223,7 +223,6 @@ Because the meson build system is newer, you may find bugs/minor issues as it ma
 To compile pandas with meson, run::
 
    # Build and install pandas
-<<<<<<< HEAD
    python -m pip install -ve . --no-build-isolation
 
 ** Build options **
