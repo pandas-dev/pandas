@@ -35,7 +35,7 @@ dependencies:
   - ipython
   - jinja2>=3.1.2
   - lxml>=4.8.0
-  - matplotlib>=3.6.1, <3.7.0
+  - matplotlib>=3.6.1
   - numba>=0.55.2
   - numexpr>=2.8.0  # pin for "Run checks on imported code" job
   - openpyxl<3.1.1, >=3.0.7
