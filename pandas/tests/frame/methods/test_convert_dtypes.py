@@ -143,4 +143,4 @@ class TestConvertDtypes:
             # GH 52827
             pytest.importorskip("pyarrow")
             pd.DataFrame({"x": ["1372636858620000589"]}).to_csv(path, index=False)
-            pd.read_csv("x.csv", dtype_backend="pyarrow")["x"].round()
+            pd.read_csv(path, dtype_backend="pyarrow")["x"].round()
