@@ -1110,7 +1110,7 @@ def convert_dtypes(
             (convert_integer and inferred_dtype.kind in "iu")
             or (convert_floating and inferred_dtype.kind in "fc")
             or (convert_boolean and inferred_dtype.kind == "b")
-            or (convert_string and is_string_dtype(inferred_dtype))
+            or (convert_string and isinstance(inferred_dtype, StringDtype)
             or (
                 inferred_dtype.kind not in "iufcb"
                 and not is_string_dtype(inferred_dtype)
