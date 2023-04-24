@@ -242,6 +242,9 @@ def _guess_datetime_format_for_array(
     step_check = max(len(arr_non_null) // n_check_format, 1)
     sample_check = arr_non_null[np.arange(0, len(arr_non_null), step_check)]
     sample_find = arr_non_null[np.arange(0, len(arr_non_null), step_find)]
+    if not np.any([type(e) is str for e in sample_find]):
+        # GH#32264 np.str_ objects
+        return None
     # try formats
     formats_found = []
     for datetime_string in sample_find:
@@ -274,20 +277,15 @@ def _guess_datetime_format_for_array(
         formats_checked.append(
             (format_, int(100 * np.sum(~np.isnan(converted)) / len(converted)))
         )
-    if (
-        len(formats_checked) == 0
-        and len(sample_check) > 1
-        and np.any([type(e) is str for e in sample_find])
-        # GH#32264 np.str_ objects
-    ):
-        warnings.warn(
-            "Could not infer format, so each element will be parsed "
-            "individually, falling back to `dateutil`. To ensure parsing is "
-            "consistent and as-expected, please specify a format.",
-            UserWarning,
-            stacklevel=find_stack_level(),
-        )
     if not len(formats_checked):
+        if len(sample_check) > 1:
+            warnings.warn(
+                "Could not infer format, so each element will be parsed "
+                "individually, falling back to `dateutil`. To ensure parsing is "
+                "consistent and as-expected, please specify a format.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
         return None
     else:
         # Sort by the number of strings that match the format
