@@ -746,9 +746,6 @@ class SetitemCastingEquivalents:
             # otherwise original array should be unchanged
             tm.assert_equal(arr, orig._values)
 
-    # @pytest.mark.filterwarnings(
-    #     "ignore:Setting an item of incompatible dtype:FutureWarning"
-    # )
     def test_int_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, int):
             return
@@ -1348,14 +1345,14 @@ class TestCoercionComplex(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
+    "val,exp_dtype,warn",
     [
-        (1, object),
-        ("3", object),
-        (3, object),
-        (1.1, object),
-        (1 + 1j, object),
-        (True, bool),
+        (1, object, FutureWarning),
+        ("3", object, FutureWarning),
+        (3, object, FutureWarning),
+        (1.1, object, FutureWarning),
+        (1 + 1j, object, FutureWarning),
+        (True, bool, None),
     ],
 )
 class TestCoercionBool(CoercionTest):
@@ -1366,8 +1363,13 @@ class TestCoercionBool(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
+    "val,exp_dtype,warn",
+    [
+        (1, np.int64, None),
+        (1.1, np.float64, FutureWarning),
+        (1 + 1j, np.complex128, FutureWarning),
+        (True, object, FutureWarning),
+    ],
 )
 class TestCoercionInt64(CoercionTest):
     # previously test_setitem_series_int64 in tests.indexing.test_coercion
@@ -1377,8 +1379,13 @@ class TestCoercionInt64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
+    "val,exp_dtype,warn",
+    [
+        (1, np.float64, None),
+        (1.1, np.float64, None),
+        (1 + 1j, np.complex128, FutureWarning),
+        (True, object, FutureWarning),
+    ],
 )
 class TestCoercionFloat64(CoercionTest):
     # previously test_setitem_series_float64 in tests.indexing.test_coercion
@@ -1388,27 +1395,28 @@ class TestCoercionFloat64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
+    "val,exp_dtype,warn",
     [
-        (1, np.float32),
+        (1, np.float32, None),
         pytest.param(
             1.1,
             np.float32,
+            None,
             marks=pytest.mark.xfail(
                 reason="np.float32(1.1) ends up as 1.100000023841858, so "
                 "np_can_hold_element raises and we cast to float64",
             ),
         ),
-        (1 + 1j, np.complex128),
-        (True, object),
-        (np.uint8(2), np.float32),
-        (np.uint32(2), np.float32),
+        (1 + 1j, np.complex128, FutureWarning),
+        (True, object, FutureWarning),
+        (np.uint8(2), np.float32, None),
+        (np.uint32(2), np.float32, None),
         # float32 cannot hold np.iinfo(np.uint32).max exactly
         # (closest it can hold is 4294967300.0 which off by 5.0), so
         # we cast to float64
-        (np.uint32(np.iinfo(np.uint32).max), np.float64),
-        (np.uint64(2), np.float32),
-        (np.int64(2), np.float32),
+        (np.uint32(np.iinfo(np.uint32).max), np.float64, FutureWarning),
+        (np.uint64(2), np.float32, None),
+        (np.int64(2), np.float32, None),
     ],
 )
 class TestCoercionFloat32(CoercionTest):
@@ -1417,7 +1425,7 @@ class TestCoercionFloat32(CoercionTest):
         return Series([1.1, 2.2, 3.3, 4.4], dtype=np.float32)
 
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
-        super().test_slice_key(obj, key, expected, val, indexer_sli, is_inplace)
+        super().test_slice_key(obj, key, expected, warn, val, indexer_sli, is_inplace)
 
         if type(val) is float:
             # the xfail would xpass bc test_slice_key short-circuits
@@ -1434,6 +1442,10 @@ class TestCoercionDatetime64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(date_range("2011-01-01", freq="D", periods=4))
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 @pytest.mark.parametrize(
@@ -1453,6 +1465,10 @@ class TestCoercionDatetime64TZ(CoercionTest):
         tz = "US/Eastern"
         return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 @pytest.mark.parametrize(
     "val,exp_dtype",
@@ -1463,6 +1479,10 @@ class TestCoercionTimedelta64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(timedelta_range("1 day", periods=4))
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 @pytest.mark.parametrize(
@@ -1479,6 +1499,10 @@ class TestPeriodIntervalCoercion(CoercionTest):
     )
     def obj(self, request):
         return Series(request.param)
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 def test_20643():
