@@ -251,7 +251,8 @@ class TestSetitemBooleanMask:
         # GH#2746
         # need to upcast
         ser = Series([1, 2], index=[1, 2], dtype="int64")
-        ser[[True, False]] = Series([0], index=[1], dtype="int64")
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser[[True, False]] = Series([0], index=[1], dtype="int64")
         expected = Series([0, 2], index=[1, 2], dtype="int64")
 
         tm.assert_series_equal(ser, expected)
@@ -409,12 +410,14 @@ class TestSetitemBooleanMask:
         mask = np.array([True, False, True])
 
         ser = orig.copy()
-        ser[mask] = alt
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser[mask] = alt
         expected = Series([245, 2, 246], dtype="uint8")
         tm.assert_series_equal(ser, expected)
 
         ser2 = orig.copy()
-        ser2.mask(mask, alt, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser2.mask(mask, alt, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
         # FIXME: don't leave commented-out
@@ -481,7 +484,8 @@ class TestSetitemCallable:
         inc = lambda x: x + 1
 
         ser = Series([1, 2, -1, 4])
-        ser[ser < 0] = inc
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser[ser < 0] = inc
 
         expected = Series([1, 2, inc, 4])
         tm.assert_series_equal(ser, expected)
@@ -750,36 +754,36 @@ class SetitemCastingEquivalents:
         if not isinstance(key, int):
             return
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is tm.loc:
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
                 self.check_indexer(obj, key, expected, val, tm.at, is_inplace)
         elif indexer_sli is tm.iloc:
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
                 self.check_indexer(obj, key, expected, val, tm.iat, is_inplace)
 
         rng = range(key, key + 1)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, rng, expected, val, indexer_sli, is_inplace)
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
             slc = slice(key, key + 1)
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
                 self.check_indexer(obj, slc, expected, val, indexer_sli, is_inplace)
 
         ilkey = [key]
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
 
         indkey = np.array(ilkey)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
         genkey = (x for x in [key])
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
@@ -790,19 +794,19 @@ class SetitemCastingEquivalents:
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
                 self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         ilkey = list(range(len(obj)))[key]
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
 
         indkey = np.array(ilkey)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
         genkey = (x for x in indkey)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, warn, val, indexer_sli):
@@ -818,7 +822,8 @@ class SetitemCastingEquivalents:
                 indexer_sli(obj)[mask] = val
             return
 
-        indexer_sli(obj)[mask] = val
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
     def test_series_where(self, obj, key, expected, warn, val, is_inplace):

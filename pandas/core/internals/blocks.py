@@ -1123,6 +1123,14 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value '{new}' has dtype incompatible with {values.dtype}, "
+                "please explicitly cast to a compatible dtype first.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
