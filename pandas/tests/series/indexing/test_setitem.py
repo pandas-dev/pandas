@@ -1009,6 +1009,10 @@ class TestSetitemDT64IntoInt(SetitemCastingEquivalents):
             return scalar
         return box([scalar, scalar])
 
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
+
 
 class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     # Setting compatible NA values into Series with PeriodDtype
@@ -1031,6 +1035,10 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture(params=[None, np.nan])
     def val(self, request):
         return request.param
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
@@ -1081,6 +1089,10 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     def key(self):
         return 0
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
     # GH#24024
@@ -1109,20 +1121,25 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
         )
         return expected
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 @pytest.mark.parametrize(
-    "obj,expected",
+    "obj,expected,warn",
     [
         # For numeric series, we should coerce to NaN.
-        (Series([1, 2, 3]), Series([np.nan, 2, 3])),
-        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0])),
+        (Series([1, 2, 3]), Series([np.nan, 2, 3]), FutureWarning),
+        (Series([1.0, 2.0, 3.0]), Series([np.nan, 2.0, 3.0]), None),
         # For datetime series, we should coerce to NaT.
         (
             Series([datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]),
             Series([NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)]),
+            None,
         ),
         # For objects, we should preserve the None value.
-        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"])),
+        (Series(["foo", "bar", "baz"]), Series([None, "bar", "baz"]), None),
     ],
 )
 class TestSeriesNoneCoercion(SetitemCastingEquivalents):
@@ -1166,6 +1183,10 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     # GH#44261 Setting a range with sufficiently-small integers into
@@ -1190,6 +1211,10 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
         dtype = np.dtype(any_int_numpy_dtype)
         exp = Series([2, 3, 2, 3, 4], dtype=dtype)
         return exp
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 @pytest.mark.parametrize(
@@ -1220,6 +1245,10 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
         res_values[:2] = val
         return Series(res_values)
 
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
+
 
 @pytest.mark.parametrize("val", [512, np.int16(512)])
 class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
@@ -1234,6 +1263,10 @@ class TestSetitemIntoIntegerSeriesNeedsUpcast(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self):
         return Series([1, 512, 3], dtype=np.int16)
+
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
 
 
 @pytest.mark.parametrize("val", [2**33 + 1.0, 2**33 + 1.1, 2**62])
@@ -1255,6 +1288,10 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
             dtype = "i8"
         return Series([val, 2, 3], dtype=dtype)
 
+    @pytest.fixture
+    def warn(self):
+        return FutureWarning
+
 
 class CoercionTest(SetitemCastingEquivalents):
     # Tests ported from tests.indexing.test_coercion
@@ -1271,7 +1308,8 @@ class CoercionTest(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2**9), np.int16)]
+    "val,exp_dtype,warn",
+    [(np.int32(1), np.int8, None), (np.int16(2**9), np.int16, FutureWarning)],
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion
@@ -1288,10 +1326,19 @@ class TestCoercionObject(CoercionTest):
     def obj(self):
         return Series(["a", "b", "c", "d"], dtype=object)
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(1, np.complex128), (1.1, np.complex128), (1 + 1j, np.complex128), (True, object)],
+    "val,exp_dtype,warn",
+    [
+        (1, np.complex128, None),
+        (1.1, np.complex128, None),
+        (1 + 1j, np.complex128, None),
+        (True, object, FutureWarning),
+    ],
 )
 class TestCoercionComplex(CoercionTest):
     # previously test_setitem_series_complex128 in tests.indexing.test_coercion
