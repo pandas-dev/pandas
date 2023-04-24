@@ -1367,7 +1367,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
-        result = self._reduce(name, skipna=skipna, **kwargs)
+        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if pc.is_null(result).as_py():
             return self.dtype.na_value
