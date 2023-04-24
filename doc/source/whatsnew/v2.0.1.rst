@@ -32,8 +32,6 @@ Bug fixes
 - Bug in :class:`~arrays.ArrowExtensionArray` with duration dtype overflowing when constructed from data containing numpy ``NaT`` (:issue:`52843`)
 - Bug in :func:`Series.dt.round` when passing a ``freq`` of equal or higher resolution compared to the :class:`Series` would raise a ``ZeroDivisionError`` (:issue:`52761`)
 - Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)
-- Bug in :func:`api.interchange.from_dataframe` was returning :class:`DataFrame`'s of incorrect sizes when called on slices (:issue:`52824`)
-- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)
 - Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)
