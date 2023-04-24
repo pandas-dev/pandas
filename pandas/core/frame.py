@@ -40,6 +40,7 @@ from pandas._config import (
     get_option,
     using_copy_on_write,
 )
+from pandas._config.config import option_context
 
 from pandas._libs import (
     algos as libalgos,
@@ -134,7 +135,6 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
-from pandas.core.computation.expressions import _inplace_ops
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -7452,17 +7452,20 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Literal[1] = 1  # only relevant for Series other case
         other = ops.maybe_prepare_scalar_for_op(other, (self.shape[axis],))
 
-        left, other = self._align_for_op(other, axis, flex=True, level=None)
+        # Disable copy on write, since align will make a shallow copy
+        # (preventing it from going inplace when it should be able to)
+        # TODO: better way of doing this?
+        with option_context("mode.copy_on_write", False):
+            left, other = self._align_for_op(other, axis, flex=True, level=None)
 
-        new_data = left._dispatch_frame_op(other, op, axis=axis)
+        new_data = left._dispatch_frame_op(other, op, axis=axis, inplace=inplace)
         if inplace:
             # Need to reindex if not aligned correctly, if inplace requested
             # even if we were not able to operate on the underlying arrays inplace
-            is_inplace = new_data is left
             if not new_data._indexed_same(self):
+                # Print triggered
                 new_data = new_data.reindex_like(self, copy=False)
-                if is_inplace:
-                    self._update_inplace(new_data, verify_is_copy=False)
+            self._update_inplace(new_data, verify_is_copy=False)
             return self
 
         return left._construct_result(new_data)
@@ -7470,7 +7473,7 @@ class DataFrame(NDFrame, OpsMixin):
     _logical_method = _arith_method
 
     def _dispatch_frame_op(
-        self, right, func: Callable, axis: AxisInt | None = None
+        self, right, func: Callable, axis: AxisInt | None = None, inplace=False
     ) -> DataFrame:
         """
         Evaluate the frame operation func(left, right) by evaluating
@@ -7496,8 +7499,8 @@ class DataFrame(NDFrame, OpsMixin):
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right)
-            if func in _inplace_ops:
+            bm = self._mgr.apply(array_op, right=right, inplace=inplace)
+            if inplace:
                 self._mgr = bm
                 return self
 
@@ -7520,8 +7523,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # "BlockManager"
                 right._mgr,  # type: ignore[arg-type]
                 array_op,
+                inplace=inplace,
             )
-            if bm is self._mgr:
+            if inplace:
+                self._mgr = bm
                 return self
             return self._constructor(bm)
 

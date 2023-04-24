@@ -312,6 +312,7 @@ class BaseBlockManager(DataManager):
         self,
         f,
         align_keys: list[str] | None = None,
+        inplace=False,
         **kwargs,
     ) -> Self:
         """
@@ -322,6 +323,10 @@ class BaseBlockManager(DataManager):
         f : str or callable
             Name of the Block method to apply.
         align_keys: List[str] or None, default None
+        inplace:
+            Whether to do the operation inplace.
+            Note: This will always obey Copy on Write rules
+            (so a black sharing references will never be operated inplace on)
         **kwargs
             Keywords to pass to `f`
 
@@ -338,6 +343,10 @@ class BaseBlockManager(DataManager):
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
+            if inplace:
+                # Check for references on block
+                if using_copy_on_write() and b.refs.has_reference():
+                    b = b.copy()  # Copy the block
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
@@ -1532,11 +1541,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
-    def operate_blockwise(self, other: BlockManager, array_op) -> BlockManager:
+    def operate_blockwise(
+        self, other: BlockManager, array_op, inplace=False
+    ) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
         """
-        return operate_blockwise(self, other, array_op)
+        return operate_blockwise(self, other, array_op, inplace=inplace)
 
     def _equal_values(self: BlockManager, other: BlockManager) -> bool:
         """

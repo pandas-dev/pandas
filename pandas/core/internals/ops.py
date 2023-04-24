@@ -6,6 +6,8 @@ from typing import (
     NamedTuple,
 )
 
+from pandas._config import using_copy_on_write
+
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
 
 if TYPE_CHECKING:
@@ -26,7 +28,7 @@ class BlockPairInfo(NamedTuple):
 
 
 def _iter_block_pairs(
-    left: BlockManager, right: BlockManager
+    left: BlockManager, right: BlockManager, inplace=False
 ) -> Iterator[BlockPairInfo]:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
@@ -35,6 +37,10 @@ def _iter_block_pairs(
         locs = blk.mgr_locs
         blk_vals = blk.values
 
+        if inplace:
+            # Check if we need to copy according to CoW
+            if using_copy_on_write() and blk.refs.has_reference():
+                blk = blk.copy()
         left_ea = blk_vals.ndim == 1
 
         rblks = right._slice_take_blocks_ax0(locs.indexer, only_slice=True)
@@ -54,14 +60,15 @@ def _iter_block_pairs(
 
 
 def operate_blockwise(
-    left: BlockManager, right: BlockManager, array_op
+    left: BlockManager, right: BlockManager, array_op, inplace=False
 ) -> BlockManager:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
     res_blks: list[Block] = []
-    all_inplace = type(left) == type(right)
-    for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
+    for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(
+        left, right, inplace
+    ):
         res_values = array_op(lvals, rvals)
         if (
             left_ea
@@ -70,8 +77,6 @@ def operate_blockwise(
             and not is_1d_only_ea_dtype(res_values.dtype)
         ):
             res_values = res_values.reshape(1, -1)
-        if res_values is not lvals:
-            all_inplace = False
         nbs = rblk._split_op_result(res_values)
 
         # Assertions are disabled for performance, but should hold:
@@ -90,14 +95,6 @@ def operate_blockwise(
     #  assert nlocs == len(left.items), (nlocs, len(left.items))
     #  assert len(slocs) == nlocs, (len(slocs), nlocs)
     #  assert slocs == set(range(nlocs)), slocs
-
-    if all_inplace:
-        # Reinitialize left with res_blks
-        # TODO: Is this even necessary?
-        # res_blks should be the same as the original manager blocks modified inplace
-        # only thing to consider is the axes? If they are indexed
-        left.__init__(res_blks, right.axes, verify_integrity=False)
-        return left
 
     new_mgr = type(right)(tuple(res_blks), axes=right.axes, verify_integrity=False)
     return new_mgr
