@@ -9,7 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
@@ -526,7 +526,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                not is_numpy_dev,
+                not np_version_gte1p24p3,
                 reason="td64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
@@ -535,7 +535,7 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                not is_numpy_dev,
+                not np_version_gte1p24p3,
                 reason="dt64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),

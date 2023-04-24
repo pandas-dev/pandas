@@ -234,6 +234,8 @@ Deprecations
 - Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
+- Deprecated :func:`is_period_dtype`, check ``isinstance(dtype, pd.PeriodDtype)`` instead (:issue:`52642`)
+- Deprecated :func:`is_sparse`, check ``isinstance(dtype, pd.SparseDtype)`` instead (:issue:`52642`)
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
@@ -311,8 +313,11 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug in :meth:`Series.mean`, :meth:`DataFrame.mean` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`36703`, :issue:`44008`)
 - Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)
 -
 
 Conversion
