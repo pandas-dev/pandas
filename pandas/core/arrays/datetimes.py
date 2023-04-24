@@ -2588,9 +2588,6 @@ def _generate_range(
                     category=UserWarning,
                 )
                 next_date = offset._apply(cur)
-            # nanos = getattr(offset, "nanoseconds", 0)
-            # if nanos != 0:
-            #     next_date = next_date + Timedelta(nanoseconds=nanos)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -2612,9 +2609,6 @@ def _generate_range(
                     category=UserWarning,
                 )
                 next_date = offset._apply(cur)
-            # nanos = getattr(offset, "nanoseconds", 0)
-            # if nanos != 0:
-            #     next_date = next_date - Timedelta(nanoseconds=nanos)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
