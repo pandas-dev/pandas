@@ -1535,8 +1535,8 @@ class ArrowExtensionArray(
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
         """Takes the result of ``_reduce`` and wraps it an a ndarray/extensionArray."""
-        result = self._reduce(name, skipna=skipna, **kwargs)
-        result = pa.array([result])
+        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+        result = pa.array([result.as_py()], type=result.type)
         return type(self)(result)
 
     def __setitem__(self, key, value) -> None:

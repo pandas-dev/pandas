@@ -2099,6 +2099,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Reductions
 
+    def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
+        result = self._reduce(name, skipna=skipna, **kwargs)
+        return type(self)([result], dtype=self.dtype)
+
     def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.

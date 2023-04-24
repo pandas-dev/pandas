@@ -1820,7 +1820,9 @@ def test_minmax_extensionarray(method, numeric_only):
     df = DataFrame({"Int64": ser})
     result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
-        [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
+        [getattr(int64_info, method)],
+        dtype="Int64",
+        index=Index(["Int64"], dtype="object"),
     )
     tm.assert_series_equal(result, expected)
 

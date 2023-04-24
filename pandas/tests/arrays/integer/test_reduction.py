@@ -42,4 +42,3 @@ def test_dataframe_reductions(op):
     df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
     result = getattr(df, op)()
     assert isinstance(result["a"], np.int64)
-

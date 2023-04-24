@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+import pandas as pd
 from pandas.core import (
     algorithms as algos,
     arraylike,
@@ -1088,20 +1089,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # median, skew, kurt, sem
         op = getattr(nanops, f"nan{name}")
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
+        axis = kwargs.pop("axis", None)
+        result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
         if np.isnan(result):
-            return libmissing.NA
+            result = libmissing.NA
 
-        return result
+        return self._wrap_reduction_result(
+            name, result, skipna=skipna, axis=axis, **kwargs
+        )
 
     def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, **kwargs)
+        res = self.reshape(-1, 1)._reduce(name=name, skipna=skipna, axis=0, **kwargs)
         return res
 
     def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
+        axis = kwargs["axis"]
         if isinstance(result, np.ndarray):
-            axis = kwargs["axis"]
             if skipna:
                 # we only retain mask for all-NA rows/columns
                 mask = self._mask.all(axis=axis)
@@ -1109,7 +1112,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = self._mask.any(axis=axis)
 
             return self._maybe_mask_result(result, mask)
+        elif result is pd.NA and self.ndim == 2:
+            result = self._wrap_na_result(name=name, axis=axis)
+            return result
         return result
+
+    def _wrap_na_result(self, *, name, axis):
+        mask_size = self.shape[1] if axis == 0 else self.shape[0]
+        mask = np.ones(mask_size, dtype=bool)
+
+        if name in ["mean", "median", "var", "std", "skew"]:
+            np_dtype = "float64"
+        elif name in ["min", "max"]:
+            np_dtype = self.dtype.type
+        else:
+            np_dtype = {"i": "int64", "u": "uint64", "f": "float64"}[self.dtype.kind]
+
+        value = np.array([1], dtype=np_dtype)
+        return self._maybe_mask_result(value, mask=mask)
 
     def _wrap_min_count_reduction_result(
         self, name: str, result, skipna, min_count, **kwargs
@@ -1203,20 +1223,26 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return masked_reductions.min(
+        result = masked_reductions.min(
             self._data,
             self._mask,
             skipna=skipna,
             axis=axis,
         )
+        return self._wrap_reduction_result(
+            "min", result, skipna=skipna, axis=axis, **kwargs
+        )
 
     def max(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return masked_reductions.max(
+        result = masked_reductions.max(
             self._data,
             self._mask,
             skipna=skipna,
             axis=axis,
+        )
+        return self._wrap_reduction_result(
+            "max", result, skipna=skipna, axis=axis, **kwargs
         )
 
     def any(self, *, skipna: bool = True, **kwargs):

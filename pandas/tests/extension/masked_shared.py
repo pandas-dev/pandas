@@ -64,6 +64,27 @@ class NumericReduce(base.BaseNumericReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
+    def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
+        if op_name in ["count", "kurt", "sem"]:
+            pytest.skip(f"{op_name} not an array method")
+
+        arr = ser.array
+
+        if op_name in ["mean", "median", "var", "std", "skew"]:
+            cmp_dtype = "Float64"
+        elif op_name in ["max", "min"]:
+            cmp_dtype = arr.dtype
+        else:
+            cmp_dtype = {"i": "Int64", "u": "UInt64", "f": "Float64"}[arr.dtype.kind]
+
+        result = arr._reduce_with_wrap(op_name, skipna=skipna, kwargs={})
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+        tm.assert_extension_array_equal(result, expected)
+
 
 class Accumulation(base.BaseAccumulateTests):
     @pytest.mark.parametrize("skipna", [True, False])
