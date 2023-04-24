@@ -782,29 +782,29 @@ class SetitemCastingEquivalents:
         with tm.assert_produces_warning(warn):
             self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Setting an item of incompatible dtype:FutureWarning"
-    )
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
+        # if isinstance(key, slice) and key.start is None and key.stop is None:
+        #     warn = None
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
-            self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
+            with tm.assert_produces_warning(warn):
+                self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
 
         ilkey = list(range(len(obj)))[key]
-        self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
+        with tm.assert_produces_warning(warn):
+            self.check_indexer(obj, ilkey, expected, val, indexer_sli, is_inplace)
 
         indkey = np.array(ilkey)
-        self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
+        with tm.assert_produces_warning(warn):
+            self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
         genkey = (x for x in indkey)
-        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+        with tm.assert_produces_warning(warn):
+            self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Setting an item of incompatible dtype:FutureWarning"
-    )
     def test_mask_key(self, obj, key, expected, warn, val, indexer_sli):
         # setitem with boolean mask
         mask = np.zeros(obj.shape, dtype=bool)
@@ -877,14 +877,14 @@ class SetitemCastingEquivalents:
             Series([2, 3, 4, 5, 6, 7, 8, 9, 10]),
             Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan]),
             slice(None, None, 2),
-            None,
+            FutureWarning,
             id="int_series_slice_key_step",
         ),
         pytest.param(
             Series([True, True, False, False]),
             Series([np.nan, True, np.nan, False], dtype=object),
             slice(None, None, 2),
-            None,
+            FutureWarning,
             id="bool_series_slice_key_step",
         ),
         pytest.param(
@@ -892,7 +892,7 @@ class SetitemCastingEquivalents:
             Series(np.arange(10)),
             Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9]),
             slice(None, 5),
-            None,
+            FutureWarning,
             id="int_series_slice_key",
         ),
         pytest.param(
@@ -1215,11 +1215,14 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
 
 
 @pytest.mark.parametrize(
-    "val",
+    "val, warn",
     [
-        np.array([2.0, 3.0]),
-        np.array([2.5, 3.5]),
-        np.array([2**65, 2**65 + 1], dtype=np.float64),  # all ints, but can't cast
+        (np.array([2.0, 3.0]), None),
+        (np.array([2.5, 3.5]), FutureWarning),
+        (
+            np.array([2**65, 2**65 + 1], dtype=np.float64),
+            FutureWarning,
+        ),  # all ints, but can't cast
     ],
 )
 class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1241,10 +1244,6 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
         res_values = np.array(range(5), dtype=dtype)
         res_values[:2] = val
         return Series(res_values)
-
-    @pytest.fixture
-    def warn(self):
-        return FutureWarning
 
 
 @pytest.mark.parametrize("val", [512, np.int16(512)])
