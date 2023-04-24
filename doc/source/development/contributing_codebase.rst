@@ -957,10 +957,6 @@ regarding :ref:`documentation <contributing_documentation>`.
 Further, to let users know when this feature was added, the ``versionadded``
 directive is used. The sphinx syntax for that is:
 
-.. code-block:: rst
-
-  .. versionadded:: 1.1.0
-
 This will put the text *New in version 1.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)

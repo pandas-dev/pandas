@@ -237,8 +237,6 @@ from present information back to past information. This allows the rolling windo
 Custom window rolling
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.0
-
 In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
 a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
 The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
@@ -357,8 +355,6 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
 
 Numba engine
 ~~~~~~~~~~~~
-
-.. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
 if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
@@ -592,8 +588,6 @@ and **alpha** to the EW functions:
 * **Half-life** is the period of time for the exponential weight to reduce to
   one half.
 * **Alpha** specifies the smoothing factor directly.
-
-.. versionadded:: 1.1.0
 
 You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
 time it takes for an observation to decay to half its value when also specifying a sequence
