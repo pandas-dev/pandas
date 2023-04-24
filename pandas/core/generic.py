@@ -8546,7 +8546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         start_time,
         end_time,
-        inclusive = "both",
+        inclusive="both",
         axis: Axis | None = None,
     ) -> Self:
         """
