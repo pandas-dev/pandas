@@ -42,6 +42,7 @@ import jinja2
 import markdown
 import requests
 import yaml
+from packaging import version
 
 api_token = os.environ.get("GITHUB_TOKEN")
 if api_token is not None:
@@ -223,7 +224,19 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        for release in releases:
+        # Sort the releases in descending order
+        sorted_releases = sorted(releases, key=lambda release:version.parse(release["tag_name"]), reverse=True)
+
+        # Gathers minor versions
+        latest_releases = []
+        minor_versions = set()
+        for release in sorted_releases:
+            minor_version = ".".join(release["tag_name"].split(".")[:2])
+            if minor_version not in minor_versions:
+                latest_releases.append(release)
+                minor_versions.add(minor_version)
+
+        for release in latest_releases:
             if release["prerelease"]:
                 continue
             published = datetime.datetime.strptime(
