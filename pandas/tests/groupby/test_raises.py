@@ -147,8 +147,21 @@ def test_groupby_raises_string(
         "idxmin": (TypeError, "'argmin' not allowed for this dtype"),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
-        "median": (TypeError, "could not convert string to float"),
+        "mean": (
+            TypeError,
+            "Could not convert string '(xy|xyzwt|xyz|xztuo)' to numeric",
+        ),
+        "median": (
+            TypeError,
+            "|".join(
+                [
+                    r"Cannot convert \['x' 'y' 'z'\] to numeric",
+                    r"Cannot convert \['x' 'y'\] to numeric",
+                    r"Cannot convert \['x' 'y' 'z' 'w' 't'\] to numeric",
+                    r"Cannot convert \['x' 'z' 't' 'u' 'o'\] to numeric",
+                ]
+            ),
+        ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
@@ -197,7 +210,10 @@ def test_groupby_raises_string_np(
 
     klass, msg = {
         np.sum: (None, ""),
-        np.mean: (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
+        np.mean: (
+            TypeError,
+            "Could not convert string '(xyzwt|xy|xyz|xztuo)' to numeric",
+        ),
     }[groupby_func_np]
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())

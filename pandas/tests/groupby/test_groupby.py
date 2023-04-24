@@ -655,7 +655,8 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+    msg = "Could not convert string 'dullshinyshiny' to numeric"
+    with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
 
@@ -974,6 +975,8 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
         # columns when numeric_only is False
         klass = ValueError if agg_function in ("std", "sem") else TypeError
         msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
+        if agg_function == "median":
+            msg = r"Cannot convert \['one' 'three' 'two'\] to numeric"
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:

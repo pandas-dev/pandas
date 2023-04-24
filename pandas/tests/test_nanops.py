@@ -850,7 +850,9 @@ class TestEnsureNumeric:
 
         # Test convertible string ndarray
         s_values = np.array(["1", "2", "3"], dtype=object)
-        assert np.allclose(nanops._ensure_numeric(s_values), values)
+        msg = r"Could not convert \['1' '2' '3'\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric(s_values)
 
         # Test non-convertible string ndarray
         s_values = np.array(["foo", "bar", "baz"], dtype=object)
@@ -859,12 +861,19 @@ class TestEnsureNumeric:
             nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
-        assert np.allclose(nanops._ensure_numeric("1"), 1.0)
-        assert np.allclose(nanops._ensure_numeric("1.1"), 1.1)
-        assert np.allclose(nanops._ensure_numeric("1+1j"), 1 + 1j)
+        with pytest.raises(TypeError, match="Could not convert string '1' to numeric"):
+            nanops._ensure_numeric("1")
+        with pytest.raises(
+            TypeError, match="Could not convert string '1.1' to numeric"
+        ):
+            nanops._ensure_numeric("1.1")
+        with pytest.raises(
+            TypeError, match=r"Could not convert string '1\+1j' to numeric"
+        ):
+            nanops._ensure_numeric("1+1j")
 
     def test_non_convertable_values(self):
-        msg = "Could not convert foo to numeric"
+        msg = "Could not convert string 'foo' to numeric"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric("foo")
 
