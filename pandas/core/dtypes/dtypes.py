@@ -1138,7 +1138,7 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'closed' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed = gd["closed"]
+                        closed: IntervalClosedType = gd["closed"]
 
             try:
                 subtype = pandas_dtype(subtype)
