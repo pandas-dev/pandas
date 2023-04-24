@@ -130,7 +130,8 @@ as_index : bool, default True
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
     This argument has no effect on filtrations (see the `filtrations in the user guide
     <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
     such as ``head()``, ``tail()``, ``nth()`` and in transformations
@@ -178,7 +179,7 @@ dropna : bool, default True
 
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -609,7 +610,7 @@ _shared_docs[
     DataFrame.fillna : Fill NA values.
     Series.where : Replace values based on boolean condition.
     DataFrame.where : Replace values based on boolean condition.
-    DataFrame.applymap: Apply a function to a Dataframe elementwise.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
