@@ -7458,7 +7458,8 @@ class DataFrame(NDFrame, OpsMixin):
         with option_context("mode.copy_on_write", False):
             left, other = self._align_for_op(other, axis, flex=True, level=None)
 
-        new_data = left._dispatch_frame_op(other, op, axis=axis, inplace=inplace)
+        with np.errstate(all="ignore"):
+            new_data = left._dispatch_frame_op(other, op, axis=axis, inplace=inplace)
         if inplace:
             # Need to reindex if not aligned correctly, if inplace requested
             # even if we were not able to operate on the underlying arrays inplace
