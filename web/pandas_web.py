@@ -43,6 +43,9 @@ import markdown
 import requests
 import yaml
 
+from packaging import version
+from itertools import groupby
+
 api_token = os.environ.get("GITHUB_TOKEN")
 if api_token is not None:
     GITHUB_API_HEADERS = {"Authorization": f"Bearer {api_token}"}
@@ -205,6 +208,11 @@ class Preprocessors:
     @staticmethod
     def home_add_releases(context):
         context["releases"] = []
+        non_obsolete_releases = []
+        
+        # create a set of tuples,
+        # if already inside, don't add
+        
 
         github_repo_url = context["main"]["github_repo_url"]
         resp = requests.get(
@@ -223,9 +231,10 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        for release in releases:
+        for release in non_obsolete_releases:
             if release["prerelease"]:
                 continue
+
             published = datetime.datetime.strptime(
                 release["published_at"], "%Y-%m-%dT%H:%M:%SZ"
             )

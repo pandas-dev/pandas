@@ -658,7 +658,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         # error: Incompatible return value type (got "signedinteger[_64Bit]",
         # expected "int")  [return-value]
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return int(np.prod(self.shape))  # type: ignore[return-value]
 
     def set_axis(
         self,
