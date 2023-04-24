@@ -18,10 +18,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_float_dtype,
     is_integer_dtype,
-    is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -76,11 +73,13 @@ class NumericDtype(BaseMaskedDtype):
         array_class = self.construct_array_type()
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
-        if not array.type.equals(pyarrow_type):
+        if not array.type.equals(pyarrow_type) and not pyarrow.types.is_null(
+            array.type
+        ):
             # test_from_arrow_type_error raise for string, but allow
             #  through itemsize conversion GH#31896
             rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
-            if rt_dtype.kind not in ["i", "u", "f"]:
+            if rt_dtype.kind not in "iuf":
                 # Could allow "c" or potentially disallow float<->int conversion,
                 #  but at the moment we specifically test that uint<->int works
                 raise TypeError(
@@ -169,16 +168,16 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     original = values
     values = np.array(values, copy=copy)
     inferred_type = None
-    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+    if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "boolean" and dtype is None:
             name = dtype_cls.__name__.strip("_")
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
-    elif is_bool_dtype(values) and checker(dtype):
+    elif values.dtype.kind == "b" and checker(dtype):
         values = np.array(values, dtype=default_dtype, copy=copy)
 
-    elif not (is_integer_dtype(values) or is_float_dtype(values)):
+    elif values.dtype.kind not in "iuf":
         name = dtype_cls.__name__.strip("_")
         raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
@@ -186,7 +185,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         raise TypeError("values must be a 1D list-like")
 
     if mask is None:
-        if is_integer_dtype(values):
+        if values.dtype.kind in "iu":
             # fastpath
             mask = np.zeros(len(values), dtype=np.bool_)
         else:
@@ -203,7 +202,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     else:
         dtype = dtype.type
 
-    if is_integer_dtype(dtype) and is_float_dtype(values.dtype) and len(values) > 0:
+    if is_integer_dtype(dtype) and values.dtype.kind == "f" and len(values) > 0:
         if mask.all():
             values = np.ones(values.shape, dtype=dtype)
         else:

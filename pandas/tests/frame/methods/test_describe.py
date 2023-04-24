@@ -388,12 +388,30 @@ class TestDataFrameDescribe:
         # GH#48778
 
         df = DataFrame({"a": [1, pd.NA, pd.NA], "b": pd.NA}, dtype=any_numeric_ea_dtype)
-        # Warning from numpy for taking std of single element
-        with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-            result = df.describe()
+        result = df.describe()
         expected = DataFrame(
             {"a": [1.0, 1.0, pd.NA] + [1.0] * 5, "b": [0.0] + [pd.NA] * 7},
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
             dtype="Float64",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_exclude_pa_dtype(self):
+        # GH#52570
+        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int8())),
+                "b": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int16())),
+                "c": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int32())),
+            }
+        )
+        result = df.describe(
+            include=pd.ArrowDtype(pa.int8()), exclude=pd.ArrowDtype(pa.int32())
+        )
+        expected = DataFrame(
+            {"a": [3, 2, 1, 1, 1.5, 2, 2.5, 3]},
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+            dtype=pd.ArrowDtype(pa.float64()),
         )
         tm.assert_frame_equal(result, expected)

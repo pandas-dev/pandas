@@ -82,11 +82,7 @@ def safe_import(mod_name: str, min_version: str | None = None):
     else:
         import sys
 
-        try:
-            version = getattr(sys.modules[mod_name], "__version__")
-        except AttributeError:
-            # xlrd uses a capitalized attribute name
-            version = getattr(sys.modules[mod_name], "__VERSION__")
+        version = getattr(sys.modules[mod_name], "__version__")
         if version and Version(version) >= Version(min_version):
             return mod
 

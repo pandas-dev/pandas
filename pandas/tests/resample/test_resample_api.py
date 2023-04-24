@@ -71,7 +71,9 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -983,12 +985,12 @@ def test_df_axis_param_depr():
     index.name = "date"
     df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
 
-    # Deprication error when axis=1 is explicitly passed
+    # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         df.resample("M", axis=1)
 
-    # Deprication error when axis=0 is explicitly passed
+    # Deprecation error when axis=0 is explicitly passed
     df = df.T
     warning_msg = (
         "The 'axis' keyword in DataFrame.resample is deprecated and "
@@ -1000,8 +1002,29 @@ def test_df_axis_param_depr():
 
 def test_series_axis_param_depr():
     warning_msg = (
-        "Series resample axis keyword is deprecated and will be removed in a "
-        "future version."
+        "The 'axis' keyword in Series.resample is "
+        "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         test_series.resample("H", axis=0)
+
+
+def test_resample_empty():
+    # GH#52484
+    df = DataFrame(
+        index=pd.to_datetime(
+            ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+        )
+    )
+    expected = DataFrame(
+        index=pd.to_datetime(
+            [
+                "2018-01-01 00:00:00",
+                "2018-01-01 08:00:00",
+                "2018-01-01 16:00:00",
+                "2018-01-02 00:00:00",
+            ]
+        )
+    )
+    result = df.resample("8H").mean()
+    tm.assert_frame_equal(result, expected)

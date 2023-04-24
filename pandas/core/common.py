@@ -35,9 +35,9 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_integer,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -122,7 +122,7 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
-        is_array_like(key) and is_extension_array_dtype(key.dtype)
+        is_array_like(key) and isinstance(key.dtype, ExtensionDtype)
     ):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
