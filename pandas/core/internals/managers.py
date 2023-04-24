@@ -312,7 +312,7 @@ class BaseBlockManager(DataManager):
         self,
         f,
         align_keys: list[str] | None = None,
-        inplace=False,
+        block_inplace=False,
         **kwargs,
     ) -> Self:
         """
@@ -323,7 +323,7 @@ class BaseBlockManager(DataManager):
         f : str or callable
             Name of the Block method to apply.
         align_keys: List[str] or None, default None
-        inplace:
+        block_inplace:
             Whether to do the operation inplace.
             Note: This will always obey Copy on Write rules
             (so a black sharing references will never be operated inplace on)
@@ -343,10 +343,10 @@ class BaseBlockManager(DataManager):
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:
-            if inplace:
-                # Check for references on block
+            if block_inplace:
+                # Check if inplace allowed according to CoW
                 if using_copy_on_write() and b.refs.has_reference():
-                    b = b.copy()  # Copy the block
+                    b = b.copy()
             if aligned_args:
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):

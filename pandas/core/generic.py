@@ -11709,7 +11709,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         return self
 
-
     @final
     def __isub__(self, other) -> Self:
         # error: Unsupported left operand type for - ("Type[NDFrame]")

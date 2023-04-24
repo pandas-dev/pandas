@@ -7495,12 +7495,12 @@ class DataFrame(NDFrame, OpsMixin):
         Caller is responsible for setting np.errstate where relevant.
         """
         # Get the appropriate array-op to apply to each column/block's values.
-        array_op = ops.get_array_op(func)
+        array_op = ops.get_array_op(func, inplace=inplace)
 
         right = lib.item_from_zerodim(right)
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
-            bm = self._mgr.apply(array_op, right=right, inplace=inplace)
+            bm = self._mgr.apply(array_op, right=right, block_inplace=inplace)
             if inplace:
                 self._mgr = bm
                 return self
