@@ -191,14 +191,17 @@ class TestDataFrameIndexingWhere:
             return
 
         cond = df > 0
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
         cond = df >= 0
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
         # aligning
         cond = (df >= 0)[1:]
-        _check_set(df, cond)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            _check_set(df, cond)
 
     def test_where_series_slicing(self):
         # GH 10218
@@ -336,7 +339,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(result > 2, np.nan, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(result > 2, np.nan, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -347,7 +351,8 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        expected[~do_not_replace] = b
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            expected[~do_not_replace] = b
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
@@ -357,7 +362,8 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        expected[~do_not_replace] = b
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            expected[~do_not_replace] = b
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
@@ -990,7 +996,8 @@ def test_where_dt64_2d():
 
     # setting all of one column, none of the other
     expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
-    _check_where_equivalences(df, mask, other, expected)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        _check_where_equivalences(df, mask, other, expected)
 
     # setting part of one column, none of the other
     mask[1, 0] = True
