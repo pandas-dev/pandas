@@ -1223,7 +1223,7 @@ class ArrowExtensionArray(
 
         return type(self)(result)
 
-    def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
         Return a pyarrow scalar result of performing the reduction operation.
 
