@@ -40,9 +40,9 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from packaging import version
 import requests
 import yaml
-from packaging import version
 
 api_token = os.environ.get("GITHUB_TOKEN")
 if api_token is not None:
@@ -225,7 +225,11 @@ class Preprocessors:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
         # Sort the releases in descending order
-        sorted_releases = sorted(releases, key=lambda release:version.parse(release["tag_name"]), reverse=True)
+        sorted_releases = sorted(
+            releases,
+            key=lambda release: version.parse(release["tag_name"]),
+            reverse=True,
+        )
 
         # Gathers minor versions
         latest_releases = []
