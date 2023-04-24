@@ -15,6 +15,7 @@ tasks:
       git fetch --tags
       python setup.py build_ext --inplace -j 4
       echo "🛠 Completed rebuilding Pandas!! 🛠 "
+      pre-commit install
       echo "✨ Pre-build complete! You can close this terminal ✨ "
 
 # --------------------------------------------------------
