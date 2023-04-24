@@ -85,7 +85,7 @@ from pandas._typing import (
     ValueKeyFunc,
     WriteBuffer,
     WriteExcelBuffer,
-    npt, 
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
