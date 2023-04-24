@@ -460,7 +460,6 @@ def test_finalize_called(ndframe_method):
     assert result.attrs == {"a": 1}
 
 
-@not_implemented_mark
 def test_finalize_called_eval_numexpr():
     pytest.importorskip("numexpr")
     df = pd.DataFrame({"A": [1, 2]})

@@ -4596,7 +4596,7 @@ class DataFrame(NDFrame, OpsMixin):
             kwargs["target"] = self
         kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
-        return _eval(expr, inplace=inplace, **kwargs)
+        return _eval(expr, inplace=inplace, **kwargs).__finalize__(self, method="eval")
 
     def select_dtypes(self, include=None, exclude=None) -> Self:
         """
