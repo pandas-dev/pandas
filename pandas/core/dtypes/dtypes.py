@@ -1100,7 +1100,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: IntervalClosedType | None = None):
+    def __new__(cls, subtype=None, closed=None):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1138,7 +1138,7 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'closed' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed: IntervalClosedType = gd["closed"]
+                        closed = gd["closed"]
 
             try:
                 subtype = pandas_dtype(subtype)
