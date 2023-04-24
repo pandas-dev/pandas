@@ -21,6 +21,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 - Fixed regression in :meth:`SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
 - Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
+- Regression with Bug in DataFrame.to_string() creates extra space for string dtypes in pandas >=2.0 (:issue:`52690`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
@@ -47,7 +48,6 @@ Bug fixes
 - Bug in logical and comparison operations between :class:`ArrowDtype` and numpy masked types (e.g. ``"boolean"``) (:issue:`52625`)
 - Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
 - Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
-- Bug in DataFrame.to_string() creates extra space for string dtypes in pandas >=2.0 (:issue:`52690`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.other:
