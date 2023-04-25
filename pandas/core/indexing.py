@@ -1754,9 +1754,9 @@ class _iLocIndexer(_LocationIndexer):
                                 # if not Series (in which case we need to align),
                                 #  we can short-circuit
                                 if (
-                                    isinstance(value, np.ndarray)
-                                    and value.ndim == 1
-                                    and len(value) == 1
+                                    isinstance(arr, np.ndarray)
+                                    and arr.ndim == 1
+                                    and len(arr) == 1
                                 ):
                                     # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                                     arr = arr[0]

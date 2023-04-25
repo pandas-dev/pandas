@@ -83,7 +83,7 @@ def assert_produces_warning(
 
     ..warn:: This is *not* thread-safe.
     """
-    # __tracebackhide__ = True
+    __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter(filter_level)
