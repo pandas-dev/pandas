@@ -516,10 +516,10 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
         if op_name in ["max", "min"]:
-            cmp_dtype = arr.dtype
+            cmp_dtype = arr.dtype.name
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
             if op_name not in ["median", "var", "std"]:
-                cmp_dtype = arr.dtype
+                cmp_dtype = arr.dtype.name
             else:
                 cmp_dtype = "float64[pyarrow]"
         elif op_name in ["median", "var", "std", "mean", "skew"]:

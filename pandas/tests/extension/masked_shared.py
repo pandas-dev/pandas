@@ -69,12 +69,14 @@ class NumericReduce(base.BaseNumericReduceTests):
             pytest.skip(f"{op_name} not an array method")
 
         arr = ser.array
-        float_dtype = "Float32" if arr.dtype == "Float32" else "Float64"
+
+        float32_cond = arr.dtype == "Float32" and not is_platform_windows()
+        float_dtype = "Float32" if float32_cond else "Float64"
 
         if op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = float_dtype
         elif op_name in ["max", "min"]:
-            cmp_dtype = arr.dtype
+            cmp_dtype = arr.dtype.name
         else:
             cmp_dtype = {"i": "Int64", "u": "UInt64", "f": float_dtype}[arr.dtype.kind]
 
