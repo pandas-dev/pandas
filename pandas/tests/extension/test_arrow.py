@@ -45,7 +45,6 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtypeType,
 )
 
-from pandas._typing import Dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
@@ -509,7 +508,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
-    def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
+    def check_reduce_with_wrap(self, ser, op_name, skipna):
         if op_name in ["count", "kurt", "sem", "skew"]:
             pytest.skip(f"{op_name} not an array method")
 
@@ -517,7 +516,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
         if op_name in ["max", "min"]:
-            cmp_dtype: Dtype = arr.dtype
+            cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
             if op_name not in ["median", "var", "std"]:
                 cmp_dtype = arr.dtype
