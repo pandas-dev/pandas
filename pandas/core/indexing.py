@@ -1753,6 +1753,13 @@ class _iLocIndexer(_LocationIndexer):
                             if not isinstance(value, ABCSeries):
                                 # if not Series (in which case we need to align),
                                 #  we can short-circuit
+                                if (
+                                    isinstance(value, np.ndarray)
+                                    and value.ndim == 1
+                                    and len(value) == 1
+                                ):
+                                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                                    arr = arr[0]
                                 empty_value[indexer[0]] = arr
                                 self.obj[key] = empty_value
                                 return
