@@ -1465,6 +1465,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         subclassed Series or DataFrame.
         """
 
+        @wraps(func)
         def inner(self, *args, **kwargs):
             if not (
                 getattr(type(self.obj), func.__name__) is getattr(Series, func.__name__)
