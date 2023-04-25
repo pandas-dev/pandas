@@ -587,7 +587,6 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-
       Can also accept a Numba JIT function with
       ``engine='numba'`` specified. Only passing a single function is supported
       with this engine.
