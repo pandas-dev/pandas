@@ -1459,6 +1459,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             res.index = default_index(len(res))
         return res
 
+    def _use_subclass_method(func):
+        """
+        Use the corresponding func method in the case of a
+        subclassed Series or DataFrame.
+        """
+
+        def inner(self, *args, **kwargs):
+            if not (
+                getattr(type(self.obj), func.__name__) is getattr(Series, func.__name__)
+                or getattr(type(self.obj), func.__name__)
+                is getattr(DataFrame, func.__name__)
+            ):
+                print("is a subclass")
+                result = self.agg(
+                    lambda df: getattr(self.obj._constructor(df), func.__name__)(
+                        *args, **kwargs
+                    )
+                )
+                return result.__finalize__(self.obj, method="groupby")
+            print("not a subclass")
+            return func(self, *args, **kwargs)
+
+        return inner
+
     # -----------------------------------------------------------------
     # apply/agg/transform
 
@@ -1898,6 +1922,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._reindex_output(result, fill_value=0)
 
     @final
+    @_use_subclass_method
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def mean(
@@ -1973,16 +1998,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-
-        if not (
-            type(self.obj).mean is Series.mean or type(self.obj).mean is DataFrame.mean
-        ):
-
-            def f(df, *args, **kwargs):
-                return self.obj._constructor(df).mean(numeric_only=numeric_only)
-
-            result = self.agg(f)
-            return result.__finalize__(self.obj, method="groupby")
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
