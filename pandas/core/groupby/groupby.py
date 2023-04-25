@@ -2433,6 +2433,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
+    @_use_subclass_method
     @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
     def max(
         self,
