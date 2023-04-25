@@ -8285,7 +8285,8 @@ class DataFrame(NDFrame, OpsMixin):
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
         """
@@ -8360,7 +8361,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtypes:
             combined = combined.astype(dtypes)
 
-        return combined
+        return combined.__finalize__(self, method="combine_first")
 
     def update(
         self,
