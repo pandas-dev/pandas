@@ -262,6 +262,8 @@ class TestNumericOnly:
                     "can't multiply sequence by non-int of type 'str'",
                 ]
             )
+            if method == "median":
+                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
@@ -279,6 +281,8 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
+            if method == "median":
+                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
@@ -1467,6 +1471,8 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 "function is not implemented for this dtype",
             ]
         )
+        if kernel == "median":
+            msg = r"Cannot convert \[<class 'object'> <class 'object'>\] to numeric"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
