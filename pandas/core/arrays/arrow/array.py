@@ -1223,9 +1223,9 @@ class ArrowExtensionArray(
 
         return type(self)(result)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
-        Return a scalar result of performing the reduction operation.
+        Return a pyarrow scalar result of performing the reduction operation.
 
         Parameters
         ----------
@@ -1241,7 +1241,7 @@ class ArrowExtensionArray(
 
         Returns
         -------
-        scalar
+        pyarrow scalar
 
         Raises
         ------
@@ -1321,7 +1321,7 @@ class ArrowExtensionArray(
             # GH 52679: Use quantile instead of approximate_median; returns array
             result = result[0]
         if pc.is_null(result).as_py():
-            return self.dtype.na_value
+            return result
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
@@ -1340,6 +1340,37 @@ class ArrowExtensionArray(
             else:
                 # i.e. timestamp
                 result = result.cast(pa.duration(pa_type.unit))
+
+        return result
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+
+        if pc.is_null(result).as_py():
+            return self.dtype.na_value
 
         return result.as_py()
 
