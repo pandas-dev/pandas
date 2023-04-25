@@ -41,13 +41,13 @@ class TestUpdate:
         "other, dtype, expected, warn",
         [
             # other is int
-            ([61, 63], "int32", Series([10, 61, 12], dtype="int32"), None),
-            ([61, 63], "int64", Series([10, 61, 12]), None),
+            ([61, 63], "int32", Series([10, 61, 12], dtype="int32"), FutureWarning),
+            ([61, 63], "int64", Series([10, 61, 12]), FutureWarning),
             ([61, 63], float, Series([10.0, 61.0, 12.0]), None),
             ([61, 63], object, Series([10, 61, 12], dtype=object), None),
             # other is float, but can be cast to int
-            ([61.0, 63.0], "int32", Series([10, 61, 12], dtype="int32"), None),
-            ([61.0, 63.0], "int64", Series([10, 61, 12]), None),
+            ([61.0, 63.0], "int32", Series([10, 61, 12], dtype="int32"), FutureWarning),
+            ([61.0, 63.0], "int64", Series([10, 61, 12]), FutureWarning),
             ([61.0, 63.0], float, Series([10.0, 61.0, 12.0]), None),
             ([61.0, 63.0], object, Series([10, 61.0, 12], dtype=object), None),
             # others is float, cannot be cast to int
@@ -85,7 +85,8 @@ class TestUpdate:
     )
     def test_update_from_non_series(self, series, other, expected):
         # GH 33215
-        series.update(other)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            series.update(other)
         tm.assert_series_equal(series, expected)
 
     @pytest.mark.parametrize(
