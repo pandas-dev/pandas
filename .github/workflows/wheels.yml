@@ -55,7 +55,7 @@ jobs:
         - [windows-2019, win_amd64]
         - [windows-2019, win32]
         # TODO: support PyPy?
-        python: [["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
+        python: [["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]#  "pp39"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
