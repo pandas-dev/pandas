@@ -958,7 +958,8 @@ Further, to let users know when this feature was added, the ``versionadded``
 directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
-  .. versionadded:: 2.1.0
+
+    .. versionadded:: 2.1.0
 
 This will put the text *New in version 2.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
