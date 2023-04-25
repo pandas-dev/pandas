@@ -4,10 +4,9 @@ import pytest
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -215,7 +214,7 @@ class TestMultiIndexBasic:
         columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
         df = DataFrame(["value"], columns=columns).astype("category")
         df_no_multiindex = df["A"]
-        assert is_categorical_dtype(df_no_multiindex["B"])
+        assert isinstance(df_no_multiindex["B"].dtype, CategoricalDtype)
 
         # geopandas 1763 analogue
         df = DataFrame(
