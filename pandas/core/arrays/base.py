@@ -1430,7 +1430,7 @@ class ExtensionArray:
         See Also
         --------
         ExtensionArray._reduce_with_wrap
-            Calls ``_reduce`` and wraps the result in a ndarray/extensionArray.
+            Calls ``_reduce`` and wraps the result in a ndarray/ExtensionArray.
         """
         meth = getattr(self, name, None)
         if meth is None:
