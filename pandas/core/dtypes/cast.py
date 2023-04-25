@@ -1106,6 +1106,8 @@ def convert_dtypes(
         from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
+        assert not isinstance(inferred_dtype, str)
+
         if (
             (convert_integer and inferred_dtype.kind in "iu")
             or (convert_floating and inferred_dtype.kind in "fc")
@@ -1123,10 +1125,7 @@ def convert_dtypes(
             elif isinstance(inferred_dtype, StringDtype):
                 base_dtype = np.dtype(str)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[str, Any, dtype[Any], ExtensionDtype]",
-                # variable has type "Union[dtype[Any], ExtensionDtype, None]")
-                base_dtype = inferred_dtype  # type: ignore[assignment]
+                base_dtype = inferred_dtype
             pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
