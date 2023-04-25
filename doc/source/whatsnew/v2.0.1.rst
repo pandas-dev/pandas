@@ -21,7 +21,7 @@ Fixed regressions
 - Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
 - Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
-- Fixed regression in :meth:`DataFrame.to_string` creates extra space for string dtypes (:issue:`52690`)
+- Fixed regression when :meth:`DataFrame.to_string` creates extra space for string dtypes (:issue:`52690`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
