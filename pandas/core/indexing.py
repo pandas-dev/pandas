@@ -1759,7 +1759,7 @@ class _iLocIndexer(_LocationIndexer):
                                     and len(arr) == 1
                                 ):
                                     # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-                                    arr = arr[0]
+                                    arr = arr[0, ...]
                                 empty_value[indexer[0]] = arr
                                 self.obj[key] = empty_value
                                 return
