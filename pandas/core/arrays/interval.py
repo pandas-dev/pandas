@@ -226,7 +226,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(
         cls,
         data,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
