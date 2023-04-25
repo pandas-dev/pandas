@@ -17,9 +17,6 @@ from pandas._config import get_option
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import can_hold_element
-from pandas.core.dtypes.inference import is_scalar
-
 from pandas.core import roperator
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -247,22 +244,15 @@ def evaluate(op, a, b, use_numexpr: bool = True, inplace=False):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     inplace: bool, default False
-        Whether to do the op inplace. If False, will replace
+        Whether to do the op inplace.
+        If False, will replace
         inplace op with the non-inplace version of it.
+        a must by an ndarray/EA in this case
     """
     op_str = _op_str_mapping[op]
     inplace = inplace and op in _inplace_ops
     if inplace:
-        if is_scalar(b):
-            # TODO: This is not right
-            # numpy cannot do e.g. an int + float inplace
-            # even if float can be losslessly cast to an int
-            inplace = can_hold_element(a, b)
-        else:
-            # Array-like
-            # TODO: Be more permissive here
-            # e.g. allow upcasting b if it is a smaller float/int dtypes?
-            inplace = a.dtype == b.dtype
+        inplace = np.result_type(a, b) == a.dtype
 
     if op in _inplace_ops and not inplace:
         # Replace with the non-inplace variant
