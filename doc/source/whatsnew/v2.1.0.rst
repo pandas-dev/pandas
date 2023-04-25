@@ -313,8 +313,11 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug in :meth:`Series.mean`, :meth:`DataFrame.mean` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`36703`, :issue:`44008`)
 - Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)
 -
 
 Conversion
@@ -421,7 +424,7 @@ Other
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
 - Bug in :meth:`Series.map` when giving a callable to an empty series, the returned series had ``object`` dtype. It now keeps the original dtype (:issue:`52384`)
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
--
+- Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
 
 .. ***DO NOT USE THIS SECTION***
 
