@@ -70,7 +70,7 @@ class NumericReduce(base.BaseNumericReduceTests):
 
         arr = ser.array
 
-        float32_cond = arr.dtype == "Float32" and not is_platform_windows()
+        float32_cond = arr.dtype == "Float32" and is_platform_windows() or not IS64
         float_dtype = "Float32" if float32_cond else "Float64"
 
         if op_name in ["mean", "median", "var", "std", "skew"]:

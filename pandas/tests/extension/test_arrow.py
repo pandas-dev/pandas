@@ -45,6 +45,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtypeType,
 )
 
+from pandas._typing import Dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
@@ -516,10 +517,10 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
         if op_name in ["max", "min"]:
-            cmp_dtype = arr.dtype.name
+            cmp_dtype: Dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
             if op_name not in ["median", "var", "std"]:
-                cmp_dtype = arr.dtype.name
+                cmp_dtype = arr.dtype
             else:
                 cmp_dtype = "float64[pyarrow]"
         elif op_name in ["median", "var", "std", "mean", "skew"]:

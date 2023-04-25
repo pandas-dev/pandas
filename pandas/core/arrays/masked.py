@@ -1125,7 +1125,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if name in ["mean", "median", "var", "std", "skew"]:
             np_dtype = float_dtype
         elif name in ["min", "max"]:
-            np_dtype = self.dtype.type
+            # Incompatible types in assignment (expression has type "str", variable has
+            # type "Union[dtype[Any], ExtensionDtype]")
+            np_dtype = self.dtype.type  # type: ignore[assignment]
         else:
             np_dtype = {"i": "int64", "u": "uint64", "f": float_dtype}[self.dtype.kind]
 
