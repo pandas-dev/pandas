@@ -45,7 +45,7 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
-    mi_styler = mi_styler._copy(deepcopy=True)
+    mi_styler = Styler._copy(mi_styler, deepcopy=True)
     mi_styler.css = {**mi_styler.css, "row": "ROW", "col": "COL"}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
@@ -311,6 +311,20 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
                 assert id(getattr(s2, attr)) == id(getattr(styler, attr))
             else:
                 assert id(getattr(s2, attr)) != id(getattr(styler, attr))
+
+
+@pytest.mark.parametrize("deepcopy", [True, False])
+def test_inherited_copy(mi_styler, deepcopy):
+    # Ensure that the inherited class is preserved when a Styler object is copied.
+    # GH 52728
+    class CustomStyler(Styler):
+        pass
+
+    custom_styler = CustomStyler(mi_styler.data)
+    custom_styler_copy = (
+        copy.deepcopy(custom_styler) if deepcopy else copy.copy(custom_styler)
+    )
+    assert isinstance(custom_styler_copy, CustomStyler)
 
 
 def test_clear(mi_styler_comp):

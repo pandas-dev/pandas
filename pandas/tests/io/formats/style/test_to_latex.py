@@ -605,7 +605,7 @@ def test_parse_latex_css_conversion_option():
 
 def test_styler_object_after_render(styler):
     # GH 42320
-    pre_render = styler._copy(deepcopy=True)
+    pre_render = Styler._copy(styler, deepcopy=True)
     styler.to_latex(
         column_format="rllr",
         position="h",

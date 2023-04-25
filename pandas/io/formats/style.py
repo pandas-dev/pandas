@@ -1583,7 +1583,7 @@ class Styler(StylerRenderer):
           - applied styles (_todo)
 
         """
-        # GH 40675
+        # GH 40675, 52728
         styler = type(self)(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
         )
