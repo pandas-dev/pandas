@@ -1346,8 +1346,7 @@ class TestSeriesConstructors:
 
     def test_constructor_dict_order(self):
         # GH19018
-        # initialization ordering: by insertion order if python>= 3.6, else
-        # order by value
+        # initialization ordering: by insertion order
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
         expected = Series([1, 0, 2], index=list("bac"))
@@ -2129,3 +2128,22 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_index_ordered_dict_keys():
+    # GH 22077
+
+    param_index = OrderedDict(
+        [
+            ((("a", "b"), ("c", "d")), 1),
+            ((("a", None), ("c", "d")), 2),
+        ]
+    )
+    series = Series([1, 2], index=param_index.keys())
+    expected = Series(
+        [1, 2],
+        index=MultiIndex.from_tuples(
+            [(("a", "b"), ("c", "d")), (("a", None), ("c", "d"))]
+        ),
+    )
+    tm.assert_series_equal(series, expected)

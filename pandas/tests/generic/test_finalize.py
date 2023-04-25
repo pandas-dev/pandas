@@ -115,21 +115,15 @@ _all_methods = [
         operator.methodcaller("add", pd.DataFrame(*frame_data)),
     ),
     # TODO: div, mul, etc.
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
     ),
     pytest.param(
         (
@@ -158,9 +152,7 @@ _all_methods = [
         ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
-    ),
+    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))),
     pytest.param(
         (
             pd.DataFrame,

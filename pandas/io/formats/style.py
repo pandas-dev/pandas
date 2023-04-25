@@ -65,6 +65,7 @@ if TYPE_CHECKING:
         AxisInt,
         FilePath,
         IndexLabel,
+        IntervalClosedType,
         Level,
         QuantileInterpolation,
         Scalar,
@@ -1813,7 +1814,7 @@ class Styler(StylerRenderer):
         if method == "apply":
             result = data.apply(func, axis=0, **kwargs)
         elif method == "applymap":
-            result = data.applymap(func, **kwargs)
+            result = data.map(func, **kwargs)
 
         self._update_ctx_header(result, axis)
         return self
@@ -1938,7 +1939,7 @@ class Styler(StylerRenderer):
         if subset is None:
             subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
-        result = self.data.loc[subset].applymap(func)
+        result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
 
@@ -3185,7 +3186,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3294,7 +3295,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """

@@ -50,6 +50,7 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
+        NaPosition,
         Self,
         npt,
     )
@@ -346,6 +347,8 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
+        if isinstance(key, Hashable):
+            raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
 
@@ -493,7 +496,7 @@ class RangeIndex(Index):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         if key is not None:
