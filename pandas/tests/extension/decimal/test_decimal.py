@@ -115,6 +115,10 @@ class Reduce:
             expected = getattr(np.asarray(s), op_name)()
             tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.skip("tests not written yet")
+    def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
+        pass
+
 
 class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
     pass

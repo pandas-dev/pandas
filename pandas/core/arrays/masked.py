@@ -1121,12 +1121,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask_size = self.shape[1] if axis == 0 else self.shape[0]
         mask = np.ones(mask_size, dtype=bool)
 
+        float_dtype = "float32" if self.dtype == "Float32" else "float64"
         if name in ["mean", "median", "var", "std", "skew"]:
-            np_dtype = "float64"
+            np_dtype = float_dtype
         elif name in ["min", "max"]:
             np_dtype = self.dtype.type
         else:
-            np_dtype = {"i": "int64", "u": "uint64", "f": "float64"}[self.dtype.kind]
+            np_dtype = {"i": "int64", "u": "uint64", "f": float_dtype}[self.dtype.kind]
 
         value = np.array([1], dtype=np_dtype)
         return self._maybe_mask_result(value, mask=mask)
