@@ -3588,6 +3588,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
             if using_copy_on_write() and len(self) > 0:
                 result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
+
         elif (
             self._is_homogeneous_type
             and dtypes
