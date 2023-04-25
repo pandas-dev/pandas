@@ -83,7 +83,7 @@ static int module_clear(PyObject *m);
 static void module_free(void *module);
 
 static struct PyModuleDef moduledef = {.m_base = PyModuleDef_HEAD_INIT,
-                                       .m_name = "_libjson",
+                                       .m_name = "pandas._libs.json",
                                        .m_methods = ujsonMethods,
                                        .m_size = sizeof(modulestate),
                                        .m_traverse = module_traverse,

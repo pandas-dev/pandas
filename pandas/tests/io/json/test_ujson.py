@@ -694,6 +694,10 @@ class TestUltraJSONTests:
         test_object = _TestObject(a=1, b=2, _c=3, d=4)
         assert ujson.decode(ujson.encode(test_object)) == {"a": 1, "b": 2, "d": 4}
 
+    def test_ujson__name__(self):
+        # GH 52898
+        assert ujson.__name__ == "pandas._libs.json"
+
 
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
