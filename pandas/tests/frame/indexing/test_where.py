@@ -191,16 +191,21 @@ class TestDataFrameIndexingWhere:
             return
 
         cond = df > 0
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        if (df.dtypes == "int").any():
+            warn = FutureWarning
+        else:
+            warn = None
+
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             _check_set(df, cond)
 
         cond = df >= 0
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             _check_set(df, cond)
 
         # aligning
         cond = (df >= 0)[1:]
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             _check_set(df, cond)
 
     def test_where_series_slicing(self):
@@ -996,8 +1001,7 @@ def test_where_dt64_2d():
 
     # setting all of one column, none of the other
     expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-        _check_where_equivalences(df, mask, other, expected)
+    _check_where_equivalences(df, mask, other, expected)
 
     # setting part of one column, none of the other
     mask[1, 0] = True
@@ -1041,6 +1045,7 @@ def test_where_inplace_no_other():
     # GH#51685
     df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
     cond = DataFrame({"a": [True, False], "b": [False, True]})
-    df.where(cond, inplace=True)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df.where(cond, inplace=True)
     expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
     tm.assert_frame_equal(df, expected)
