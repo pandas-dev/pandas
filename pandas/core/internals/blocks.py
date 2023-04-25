@@ -1063,6 +1063,7 @@ class Block(PandasObject):
                 self = self.make_block_same_class(
                     values.T if values.ndim == 2 else values
                 )
+
             values[indexer] = casted
         return self
 
