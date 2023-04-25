@@ -4383,7 +4383,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 _apply_groupings_depr = (
     "{}.apply operated on the grouping columns. This behavior is deprecated, "
     "and in a future version of pandas the grouping columns will be excluded "
-    "from the operation. Select the columns to operate on after groupby to"
+    "from the operation. Select the columns to operate on after groupby to "
     "either explicitly include or exclude the groupings and silence "
     "this warning."
 )
