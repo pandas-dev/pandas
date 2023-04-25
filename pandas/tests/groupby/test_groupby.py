@@ -135,9 +135,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     def max_value(group):
         return group.loc[group["value"].idxmax()]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        applied = df.groupby("A").apply(max_value)
+    applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
     expected = df.dtypes
     tm.assert_series_equal(result, expected)
@@ -158,9 +156,7 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     expected = df.groupby("A").first()[["B"]]
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_0)[["B"]]
+    result = df.groupby("A").apply(f_0)[["B"]]
     tm.assert_frame_equal(result, expected)
 
     def f_1(grp):
@@ -168,9 +164,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_1)[["B"]]
+    result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -180,9 +174,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_2)[["B"]]
+    result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
@@ -193,9 +185,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_3)[["C"]]
+    result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
@@ -206,9 +196,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0].loc["C"]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_4)
+    result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None
@@ -385,11 +373,8 @@ def test_indices_concatenation_order():
     df2 = DataFrame({"a": [3, 2, 2, 2], "b": range(4), "c": range(5, 9)})
 
     # correct result
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result1 = df.groupby("a").apply(f1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result2 = df2.groupby("a").apply(f1)
+    result1 = df.groupby("a").apply(f1)
+    result2 = df2.groupby("a").apply(f1)
     tm.assert_frame_equal(result1, result2)
 
     # should fail (not the same number of levels)
@@ -1286,15 +1271,11 @@ def test_groupby_name_propagation(df):
         # inconsistent.
         return Series({"count": 1, "mean": 2, "omissions": 3}, name=df.iloc[0]["A"])
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize)
+    metrics = df.groupby("A").apply(summarize)
     assert metrics.columns.name is None
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize, "metrics")
+    metrics = df.groupby("A").apply(summarize, "metrics")
     assert metrics.columns.name == "metrics"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize_random_name)
+    metrics = df.groupby("A").apply(summarize_random_name)
     assert metrics.columns.name is None
 
 
@@ -1565,9 +1546,7 @@ def test_dont_clobber_name_column():
         {"key": ["a", "a", "a", "b", "b", "b"], "name": ["foo", "bar", "baz"] * 2}
     )
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("key", group_keys=False).apply(lambda x: x)
+    result = df.groupby("key", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
 
@@ -1641,9 +1620,7 @@ def test_set_group_name(df, grouper):
     grouped = df.groupby(grouper, group_keys=False)
 
     # make sure all these work
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped.apply(f)
+    grouped.apply(f)
     grouped.aggregate(freduce)
     grouped.aggregate({"C": freduce, "D": freduce})
     grouped.transform(f)
@@ -1664,9 +1641,7 @@ def test_group_name_available_in_inference_pass():
         names.append(group.name)
         return group.copy()
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby("a", sort=False, group_keys=False).apply(f)
+    df.groupby("a", sort=False, group_keys=False).apply(f)
 
     expected_names = [0, 1, 2]
     assert names == expected_names
@@ -1875,9 +1850,7 @@ def test_groupby_preserves_sort(sort_column, group_column):
     def test_sort(x):
         tm.assert_frame_equal(x, x.sort_values(by=sort_column))
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        g.apply(test_sort)
+    g.apply(test_sort)
 
 
 def test_pivot_table_values_key_error():
@@ -2059,9 +2032,7 @@ def test_empty_groupby_apply_nonunique_columns():
     df[3] = df[3].astype(np.int64)
     df.columns = [0, 1, 2, 0]
     gb = df.groupby(df[1], group_keys=False)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = gb.apply(lambda x: x)
+    res = gb.apply(lambda x: x)
     assert (res.dtypes == df.dtypes).all()
 
 
