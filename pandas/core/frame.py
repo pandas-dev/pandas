@@ -4597,8 +4597,11 @@ class DataFrame(NDFrame, OpsMixin):
         kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
         result = _eval(expr, inplace=inplace, **kwargs)
-        return result.__finalize__(self, method="eval") if hasattr(result, '__finalize__') else result
-
+        return (
+            result.__finalize__(self, method="eval")
+            if hasattr(result, "__finalize__")
+            else result
+        )
 
     def select_dtypes(self, include=None, exclude=None) -> Self:
         """
