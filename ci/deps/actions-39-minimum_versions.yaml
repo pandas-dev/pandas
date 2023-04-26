@@ -4,7 +4,7 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.8.0
+  - python=3.9
 
   # build dependencies
   - versioneer[toml]

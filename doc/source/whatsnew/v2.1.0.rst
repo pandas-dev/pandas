@@ -124,6 +124,11 @@ Backwards incompatible API changes
 
 .. _whatsnew_210.api_breaking.deps:
 
+Increased minimum version for Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas 2.1.0 supports Python 3.9 and higher.
+
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Some minimum supported versions of dependencies were updated.

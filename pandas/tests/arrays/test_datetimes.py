@@ -1,13 +1,16 @@
 """
 Tests for DatetimeArray
 """
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 import numpy as np
 import pytest
@@ -712,7 +715,9 @@ class TestDatetimeArray:
             # no tzdata
             pass
         else:
-            easts.append(tz)
+            # Argument 1 to "append" of "list" has incompatible type "ZoneInfo";
+            # expected "str"
+            easts.append(tz)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):

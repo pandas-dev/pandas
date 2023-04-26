@@ -1,8 +1,9 @@
+# Non-dependencies that pandas utilizes or has compatibility with pandas objects
 name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.9
 
   # build dependencies
   - versioneer[toml]
@@ -42,7 +43,7 @@ dependencies:
   - psycopg2>=2.9.3
   - pyarrow>=7.0.0
   - pymysql>=1.0.2
-  # - pyreadstat>=1.1.5 not available on ARM
+  - pyreadstat>=1.1.5
   - pytables>=3.7.0
   - python-snappy>=0.6.1
   - pyxlsb>=1.0.9
@@ -54,3 +55,21 @@ dependencies:
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.3
   - zstandard>=0.17.0
+
+  # downstream packages
+  - botocore
+  - cftime
+  - dask
+  - ipython
+  - geopandas-base
+  - seaborn
+  - scikit-learn
+  - statsmodels
+  - coverage
+  - pandas-datareader
+  - pyyaml
+  - py
+
+  - pip:
+    - pyqt5>=5.15.6
+    - tzdata>=2022.1

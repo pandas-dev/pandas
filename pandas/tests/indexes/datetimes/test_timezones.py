@@ -22,7 +22,8 @@ import pytz
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type  [misc]
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 from pandas._libs.tslibs import (
     conversion,

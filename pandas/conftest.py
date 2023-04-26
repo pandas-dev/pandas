@@ -84,7 +84,7 @@ else:
 zoneinfo = None
 if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+    import zoneinfo  # type: ignore[assignment]
 
     # Although zoneinfo can be imported in Py39, it is effectively
     # "not available" without tzdata/IANA tz data.
@@ -1964,7 +1964,9 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(
+        zoneinfo.ZoneInfo("Europe/Warsaw")  # pyright: ignore[reportGeneralTypeIssues]
+    )
 
 
 @pytest.fixture(params=warsaws)

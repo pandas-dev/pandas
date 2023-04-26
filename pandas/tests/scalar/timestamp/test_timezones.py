@@ -34,7 +34,8 @@ from pandas import (
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 
 class TestTimestampTZOperations:
