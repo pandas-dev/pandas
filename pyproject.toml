@@ -21,7 +21,7 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.8'
+requires-python = '>=3.9'
 dependencies = [
   "numpy>=1.21.6; python_version<'3.11'",
   "numpy>=1.23.2; python_version>='3.11'",
@@ -39,7 +39,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
@@ -171,7 +170,7 @@ select = "*-win32"
 environment = { IS_32_BIT="true" }
 
 [tool.black]
-target-version = ['py38', 'py39']
+target-version = ['py39', 'py310']
 required-version = '23.1.0'
 exclude = '''
 (
@@ -194,7 +193,7 @@ exclude = '''
 [tool.ruff]
 line-length = 88
 update-check = false
-target-version = "py38"
+target-version = "py310"
 fix = true
 unfixable = ["E711"]
 
@@ -257,6 +256,8 @@ ignore = [
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
+  # Only works with python >=3.10
+  "B905",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
@@ -471,7 +472,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.8"
+python_version = "3.10"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -549,7 +550,7 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.8"
+pythonVersion = "3.10"
 typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]

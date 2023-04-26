@@ -59,12 +59,8 @@ cpdef assert_almost_equal(a, b,
     b : object
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -79,8 +75,6 @@ cpdef assert_almost_equal(a, b,
     index_values : ndarray, default None
         Specify shared index values of objects being compared, internally used
         to show appropriate assertion message.
-
-        .. versionadded:: 1.1.0
 
     """
     cdef:
