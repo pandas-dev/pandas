@@ -736,6 +736,15 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         iterator
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> for x in s.__iter__():
+        ...     print(x)
+        1
+        2
+        3
         """
         # We are explicitly making element iterators.
         if not isinstance(self._values, np.ndarray):
