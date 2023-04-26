@@ -10959,14 +10959,13 @@ class DataFrame(NDFrame, OpsMixin):
         # error: Incompatible return value type (got "Union[Series, bool]",
         # expected "Series")
 
-        result = self._logical_func(  # type: ignore[return-value]
+        result = self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
-        return (
-            result.__finalize__(self, method="any")
-            if hasattr(result, "__finalize__")
-            else result
-        )
+        if isinstance(result, (np.bool_, bool)):
+            return result  # type: ignore[return-value]
+
+        return result.__finalize__(self, method="any")
 
     @doc(make_doc("all", ndim=2))
     def all(
