@@ -620,7 +620,7 @@ def test_categorical_transformers(
     result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
     for iloc, value in zip(
-        df[df["x"].isnull()].index.tolist(), null_group_result.values
+        df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
     ):
         if expected.ndim == 1:
             expected.iloc[iloc] = value
