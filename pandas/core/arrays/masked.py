@@ -55,7 +55,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-import pandas as pd
 from pandas.core import (
     algorithms as algos,
     arraylike,
@@ -1112,7 +1111,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = self._mask.any(axis=axis)
 
             return self._maybe_mask_result(result, mask)
-        elif result is pd.NA and self.ndim == 2:
+        elif result is libmissing.NA and self.ndim == 2:
             result = self._wrap_na_result(name=name, axis=axis)
             return result
         return result
