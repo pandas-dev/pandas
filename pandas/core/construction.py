@@ -125,11 +125,6 @@ def array(
 
         For all other cases, NumPy's usual inference rules will be used.
 
-        .. versionchanged:: 1.2.0
-
-            Pandas now also infers nullable-floating dtype for float-like
-            input data
-
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require

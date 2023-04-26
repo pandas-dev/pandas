@@ -157,23 +157,17 @@ engine : str, default None
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
-    .. versionchanged:: 1.2.0
-        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        now only supports old-style ``.xls`` files.
-        When ``engine=None``, the following logic will be
-        used to determine the engine:
+    * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+    * Otherwise if ``path_or_buffer`` is an xls format,
+     ``xlrd`` will be used.
+    * Otherwise if ``path_or_buffer`` is in xlsb format,
+      ``pyxlsb`` will be used.
 
-       - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-         then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-       - Otherwise if ``path_or_buffer`` is an xls format,
-         ``xlrd`` will be used.
-       - Otherwise if ``path_or_buffer`` is in xlsb format,
-         ``pyxlsb`` will be used.
+      .. versionadded:: 1.3.0
+    * Otherwise ``openpyxl`` will be used.
 
-         .. versionadded:: 1.3.0
-       - Otherwise ``openpyxl`` will be used.
-
-         .. versionchanged:: 1.3.0
+      .. versionchanged:: 1.3.0
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -276,8 +270,6 @@ comment : str, default None
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
-
-    .. versionadded:: 1.2.0
 
 dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
     Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
@@ -955,8 +947,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         File mode to use (write or append). Append does not work with fsspec URLs.
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
     if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
@@ -1448,30 +1438,18 @@ class ExcelFile:
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
 
-        .. versionchanged:: 1.2.0
+        * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        * Otherwise if ``path_or_buffer`` is an xls format,
+          ``xlrd`` will be used.
+        * Otherwise if ``path_or_buffer`` is in xlsb format,
+          `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           now only supports old-style ``.xls`` files.
-           When ``engine=None``, the following logic will be
-           used to determine the engine:
+        .. versionadded:: 1.3.0
 
-           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is an xls format,
-             ``xlrd`` will be used.
-           - Otherwise if ``path_or_buffer`` is in xlsb format,
-             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
-
-           .. versionadded:: 1.3.0
-
-           - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
-             then ``openpyxl`` will be used.
-           - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
-
-           .. warning::
-
-            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
-            This is not supported, switch to using ``openpyxl`` instead.
+        * Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+          then ``openpyxl`` will be used.
+        * Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
     """

@@ -336,7 +336,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
-  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -1041,8 +1040,6 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 Writing CSVs to binary file objects
 +++++++++++++++++++++++++++++++++++
 
-.. versionadded:: 1.2.0
-
 ``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
 opened binary mode. In most cases, it is not necessary to specify
 ``mode`` as Pandas will auto-detect whether the file object is
@@ -1613,9 +1610,7 @@ value will be an iterable object of type ``TextFileReader``:
        for chunk in reader:
            print(chunk)
 
-.. versionchanged:: 1.2
-
-  ``read_csv/json/sas`` return a context-manager when iterating through a file.
+``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
@@ -1727,8 +1722,6 @@ distribution.
 You can also pass parameters directly to the backend driver. For example,
 if you do *not* have S3 credentials, you can still access public data by
 specifying an anonymous connection, such as
-
-.. versionadded:: 1.2.0
 
 .. code-block:: python
 

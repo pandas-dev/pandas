@@ -1760,8 +1760,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             .. versionadded:: 1.1.0
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.

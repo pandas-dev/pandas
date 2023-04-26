@@ -707,10 +707,6 @@ class PlotAccessor(PandasObject):
 
         .. versionadded:: 1.1.0
 
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
-
         .. versionchanged:: 2.0.0
 
             Now applicable to histograms.
@@ -720,10 +716,6 @@ class PlotAccessor(PandasObject):
         y-column name for planar plots.
 
         .. versionadded:: 1.1.0
-
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
 
         .. versionchanged:: 2.0.0
 

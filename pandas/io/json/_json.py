@@ -628,10 +628,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
 
-        .. versionchanged:: 1.2
-
-           ``JsonReader`` is a context manager.
-
     {decompression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -644,8 +640,6 @@ def read_json(
         .. versionadded:: 1.1
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
         Which dtype_backend to use, e.g. whether a DataFrame should have NumPy

@@ -327,8 +327,6 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
 
-      .. versionadded:: 1.2.0
-
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -2618,8 +2616,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
@@ -2823,11 +2819,6 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function. If None, the result is
             returned as bytes. If a string or path, it will be used as Root Directory
             path when writing a partitioned dataset.
-
-            .. versionchanged:: 1.2.0
-
-            Previously this was "fname"
-
         engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -2852,8 +2843,6 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -9792,9 +9781,6 @@ class DataFrame(NDFrame, OpsMixin):
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
-
-            .. versionadded:: 1.2
-
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10011,9 +9997,6 @@ class DataFrame(NDFrame, OpsMixin):
               of the calling's one.
             * cross: creates the cartesian product from both frames, preserves the order
               of the left keys.
-
-              .. versionadded:: 1.2.0
-
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''

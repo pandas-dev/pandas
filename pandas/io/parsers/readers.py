@@ -287,19 +287,11 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
-
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
-
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 {decompression_options}
 
     .. versionchanged:: 1.4.0 Zstandard support.
@@ -335,11 +327,9 @@ encoding : str, optional, default "utf-8"
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
 
-    .. versionchanged:: 1.2
-
-       When ``encoding`` is ``None``, ``errors="replace"`` is passed to
-       ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
-       This behavior was previously only the case for ``engine="python"``.
+    When ``encoding`` is ``None``, ``errors="replace"`` is passed to
+    ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
+    This behavior was previously only the case for ``engine="python"``.
 
     .. versionchanged:: 1.3.0
 
@@ -400,11 +390,7 @@ float_precision : str, optional
     'legacy' for the original lower precision pandas converter, and
     'round_trip' for the round-trip converter.
 
-    .. versionchanged:: 1.2
-
 {storage_options}
-
-    .. versionadded:: 1.2
 
 dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
     Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
@@ -1821,8 +1807,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
-
-        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)

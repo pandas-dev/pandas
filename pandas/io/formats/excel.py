@@ -920,8 +920,6 @@ class ExcelFormatter:
             or ``io.excel.xlsm.writer``.
 
         {storage_options}
-
-            .. versionadded:: 1.2.0
         """
         from pandas.io.excel import ExcelWriter
 

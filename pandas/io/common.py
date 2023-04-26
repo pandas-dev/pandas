@@ -310,11 +310,7 @@ def _get_filepath_or_buffer(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
-    ..versionchange:: 1.2.0
-
-      Returns the dataclass IOArgs.
+    Returns the dataclass IOArgs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -693,8 +689,6 @@ def get_handle(
         of options.
     storage_options: StorageOptions = None
         Passed to _get_filepath_or_buffer
-
-    .. versionchanged:: 1.2.0
 
     Returns the dataclass IOHandles
     """

@@ -2367,8 +2367,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         mode : str, default 'w' (writing)
             Specify the IO mode for output when supplying a path_or_buf.
             Accepted args are 'w' (writing) and 'a' (append) only.
@@ -2934,8 +2932,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         See Also
         --------
         read_pickle : Load pickled pandas object (or any object) from file.
@@ -3217,9 +3213,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         into a main LaTeX document or read from an external file
         with ``\input{{table.tex}}``.
 
-        .. versionchanged:: 1.2.0
-           Added position argument, changed meaning of caption argument.
-
         .. versionchanged:: 2.0.0
            Refactored to use the Styler implementation via jinja2 templating.
 
@@ -3310,10 +3303,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Tuple (full_caption, short_caption),
             which results in ``\caption[short_caption]{{full_caption}}``;
             if a single string is passed, no short caption will be set.
-
-            .. versionchanged:: 1.2.0
-               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
-
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
             This is used with ``\ref{{}}`` in the main ``.tex`` file.
@@ -3321,8 +3310,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
-
-            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -3641,11 +3628,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             returned as a string. If a non-binary file object is passed, it should
             be opened with `newline=''`, disabling universal newlines. If a binary
             file object is passed, `mode` might need to contain a `'b'`.
-
-            .. versionchanged:: 1.2.0
-
-               Support for binary file objects was introduced.
-
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
@@ -3691,15 +3673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                Passing compression options as keys in dict is
                supported for compression modes 'gzip', 'bz2', 'zstd', and 'zip'.
 
-            .. versionchanged:: 1.2.0
-
-                Compression is supported for binary file objects.
-
-            .. versionchanged:: 1.2.0
-
-                Previous versions forwarded dict entries for 'gzip' to
-                `gzip.open` instead of `gzip.GzipFile` which prevented
-                setting `mtime`.
+            Compression is supported for binary file objects.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3737,8 +3711,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionadded:: 1.1.0
 
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -6647,8 +6619,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether, if possible, conversion can be done to floating extension types.
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
-
-            .. versionadded:: 1.2.0
         dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
             Which dtype_backend to use, e.g. whether a DataFrame should use nullable
             dtypes for all dtypes that have a nullable
@@ -6690,10 +6660,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         If the dtype is numeric, and consists of all integers, convert to an
         appropriate integer extension type. Otherwise, convert to an
         appropriate floating extension type.
-
-        .. versionchanged:: 1.2
-            Starting with pandas 1.2, this method also converts float columns
-            to the nullable floating extension type.
 
         In the future, as new dtypes are added that support ``pd.NA``, the results
         of this method will change to support those new dtypes.

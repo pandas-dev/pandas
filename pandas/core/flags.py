@@ -7,8 +7,6 @@ class Flags:
     """
     Flags that apply to pandas objects.
 
-    .. versionadded:: 1.2.0
-
     Parameters
     ----------
     obj : Series or DataFrame
