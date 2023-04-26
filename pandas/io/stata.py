@@ -2266,8 +2266,6 @@ class StataWriter(StataParser):
         Each label must be 80 characters or smaller.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
@@ -3193,8 +3191,6 @@ class StataWriter117(StataWriter):
         characters, and either frequently repeated or sparse.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
@@ -3584,8 +3580,6 @@ class StataWriterUTF8(StataWriter117):
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
     {compression_options}
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.4.0 Zstandard support.
 

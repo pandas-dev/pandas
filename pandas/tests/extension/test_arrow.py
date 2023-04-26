@@ -130,7 +130,7 @@ def data(dtype):
 @pytest.fixture
 def data_missing(data):
     """Length-2 array with [NA, Valid]"""
-    return type(data)._from_sequence([None, data[0]])
+    return type(data)._from_sequence([None, data[0]], dtype=data.dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])
@@ -213,7 +213,8 @@ def data_for_sorting(data_for_grouping):
     A < B < C
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 
@@ -226,7 +227,8 @@ def data_missing_for_sorting(data_for_grouping):
     A < B and NA missing.
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 

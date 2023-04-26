@@ -85,12 +85,8 @@ def assert_almost_equal(
         equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -215,12 +211,8 @@ def assert_index_equal(
         If False, both indexes must contain the same elements, but in any order.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -709,12 +701,8 @@ def assert_extension_array_equal(
         Whether to compare number exactly.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'ExtensionArray'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -840,22 +828,14 @@ def assert_series_equal(
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
         Whether to compare category order of internal Categoricals.
-
-        .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1106,18 +1086,12 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.

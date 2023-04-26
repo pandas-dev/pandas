@@ -335,7 +335,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -3882,8 +3881,6 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
-
-.. versionadded:: 1.1.0
 
 Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
 

@@ -5601,8 +5601,6 @@ class Index(IndexOpsMixin, PandasObject):
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         sorted_index : pandas.Index
