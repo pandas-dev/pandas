@@ -1056,9 +1056,7 @@ class Styler(StylerRenderer):
 
         .. figure:: ../../_static/style/latex_stocks.png
         """
-        obj = Styler._copy(
-            self, deepcopy=True
-        )  # manipulate table_styles on obj, not self
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
 
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -1294,9 +1292,7 @@ class Styler(StylerRenderer):
         --------
         DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
         """
-        obj = Styler._copy(
-            self, deepcopy=True
-        )  # manipulate table_styles on obj, not self
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
 
         if table_uuid:
             obj.set_uuid(table_uuid)
@@ -1408,7 +1404,7 @@ class Styler(StylerRenderer):
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
         """
-        obj = Styler._copy(self, deepcopy=True)
+        obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -1558,8 +1554,7 @@ class Styler(StylerRenderer):
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
 
-    @classmethod
-    def _copy(cls, self, deepcopy: bool = False) -> Styler:
+    def _copy(self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
 
@@ -1629,10 +1624,10 @@ class Styler(StylerRenderer):
         return styler
 
     def __copy__(self) -> Styler:
-        return Styler._copy(self, deepcopy=False)
+        return self._copy(deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
-        return Styler._copy(self, deepcopy=True)
+        return self._copy(deepcopy=True)
 
     def clear(self) -> None:
         """
