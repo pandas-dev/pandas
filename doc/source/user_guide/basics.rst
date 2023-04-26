@@ -329,16 +329,6 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
    df.empty
    pd.DataFrame(columns=list("ABC")).empty
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 .. warning::
 
    You might be tempted to do the following:
@@ -696,8 +686,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s.value_counts()
    pd.value_counts(data)
 
-.. versionadded:: 1.1.0
-
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
 
@@ -768,7 +756,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
 2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
 3. `Aggregation API`_: :meth:`~DataFrame.agg` and :meth:`~DataFrame.transform`
-4. `Applying Elementwise Functions`_: :meth:`~DataFrame.applymap`
+4. `Applying Elementwise Functions`_: :meth:`~DataFrame.map`
 
 .. _basics.pipe:
 
@@ -827,20 +815,54 @@ In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 
 For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   import statsmodels.formula.api as sm
+   In [147]: import statsmodels.formula.api as sm
 
-   bb = pd.read_csv("data/baseball.csv", index_col="id")
+   In [148]: bb = pd.read_csv("data/baseball.csv", index_col="id")
 
-   (
-       bb.query("h > 0")
-       .assign(ln_h=lambda df: np.log(df.h))
-       .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
-       .fit()
-       .summary()
-   )
+   In [149]: (
+      .....:     bb.query("h > 0")
+      .....:     .assign(ln_h=lambda df: np.log(df.h))
+      .....:     .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
+      .....:     .fit()
+      .....:     .summary()
+      .....: )
+      .....:
+   Out[149]:
+   <class 'statsmodels.iolib.summary.Summary'>
+   """
+                              OLS Regression Results
+   ==============================================================================
+   Dep. Variable:                     hr   R-squared:                       0.685
+   Model:                            OLS   Adj. R-squared:                  0.665
+   Method:                 Least Squares   F-statistic:                     34.28
+   Date:                Tue, 22 Nov 2022   Prob (F-statistic):           3.48e-15
+   Time:                        05:34:17   Log-Likelihood:                -205.92
+   No. Observations:                  68   AIC:                             421.8
+   Df Residuals:                      63   BIC:                             432.9
+   Df Model:                           4
+   Covariance Type:            nonrobust
+   ===============================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+   -------------------------------------------------------------------------------
+   Intercept   -8484.7720   4664.146     -1.819      0.074   -1.78e+04     835.780
+   C(lg)[T.NL]    -2.2736      1.325     -1.716      0.091      -4.922       0.375
+   ln_h           -1.3542      0.875     -1.547      0.127      -3.103       0.395
+   year            4.2277      2.324      1.819      0.074      -0.417       8.872
+   g               0.1841      0.029      6.258      0.000       0.125       0.243
+   ==============================================================================
+   Omnibus:                       10.875   Durbin-Watson:                   1.999
+   Prob(Omnibus):                  0.004   Jarque-Bera (JB):               17.298
+   Skew:                           0.537   Prob(JB):                     0.000175
+   Kurtosis:                       5.225   Cond. No.                     1.49e+07
+   ==============================================================================
+
+   Notes:
+   [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+   [2] The condition number is large, 1.49e+07. This might indicate that there are
+   strong multicollinearity or other numerical problems.
+   """
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
@@ -1146,7 +1168,7 @@ Applying elementwise functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
-another array or value), the methods :meth:`~DataFrame.applymap` on DataFrame
+another array or value), the methods :meth:`~DataFrame.map` on DataFrame
 and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
@@ -1163,7 +1185,7 @@ a single value and returning a single value. For example:
        return len(str(x))
 
    df4["one"].map(f)
-   df4.applymap(f)
+   df4.map(f)
 
 :meth:`Series.map` has an additional feature; it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
@@ -1212,12 +1234,6 @@ With a DataFrame, you can simultaneously reindex the index and columns:
 
    df
    df.reindex(index=["c", "f", "b"], columns=["three", "two", "one"])
-
-You may also use ``reindex`` with an ``axis`` keyword:
-
-.. ipython:: python
-
-   df.reindex(["c", "f", "b"], axis="index")
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -1450,11 +1466,6 @@ you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
 
    df.rename({"one": "foo", "two": "bar"}, axis="columns")
    df.rename({"a": "apple", "b": "banana", "d": "durian"}, axis="index")
-
-
-The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
-parameter that is by default ``False`` and copies the underlying data. Pass
-``inplace=True`` to rename the data in place.
 
 Finally, :meth:`~Series.rename` also accepts a scalar or list-like
 for altering the ``Series.name`` attribute.
@@ -1799,8 +1810,6 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_index_key:
 
-.. versionadded:: 1.1.0
-
 Sorting by index also supports a ``key`` parameter that takes a callable
 function to apply to the index being sorted. For ``MultiIndex`` objects,
 the key is applied per-level to the levels specified by ``level``.
@@ -1853,8 +1862,6 @@ argument:
    s.sort_values(na_position="first")
 
 .. _basics.sort_value_key:
-
-.. versionadded:: 1.1.0
 
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.
@@ -2044,6 +2051,8 @@ documentation sections for more on each type.
 | :ref:`nullable integer <integer_na>`            | :class:`Int64Dtype`, ...  | (none)             | :class:`arrays.IntegerArray`  | ``'Int8'``, ``'Int16'``, ``'Int32'``,  |
 |                                                 |                           |                    |                               | ``'Int64'``, ``'UInt8'``, ``'UInt16'``,|
 |                                                 |                           |                    |                               | ``'UInt32'``, ``'UInt64'``             |
++-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
+| ``nullable float``                              | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
 | :ref:`Strings <text>`                           | :class:`StringDtype`      | :class:`str`       | :class:`arrays.StringArray`   | ``'string'``                           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
@@ -2284,6 +2293,7 @@ useful if you are reading in data which is mostly of the desired dtype (e.g. num
 non-conforming elements intermixed that you want to represent as missing:
 
 .. ipython:: python
+   :okwarning:
 
     import datetime
 
@@ -2300,6 +2310,7 @@ The ``errors`` parameter has a third option of ``errors='ignore'``, which will s
 encounters any errors with the conversion to a desired data type:
 
 .. ipython:: python
+    :okwarning:
 
     import datetime
 

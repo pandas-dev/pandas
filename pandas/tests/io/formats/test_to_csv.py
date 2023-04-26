@@ -3,6 +3,7 @@ import os
 import sys
 from zipfile import ZipFile
 
+from _csv import Error
 import numpy as np
 import pytest
 
@@ -93,8 +94,6 @@ $1$,$2$
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
             with open(path) as f:
                 assert f.read() == expected
-
-        from _csv import Error
 
         with tm.ensure_clean("test.csv") as path:
             with pytest.raises(Error, match="escapechar"):
@@ -509,7 +508,7 @@ $1$,$2$
         reason=(
             "Especially in Windows, file stream should not be passed"
             "to csv writer without newline='' option."
-            "(https://docs.python.org/3.6/library/csv.html#csv.writer)"
+            "(https://docs.python.org/3/library/csv.html#csv.writer)"
         ),
     )
     def test_to_csv_write_to_open_file(self):

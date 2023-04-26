@@ -4,10 +4,9 @@ import decimal
 import numbers
 import random
 import sys
+from typing import TYPE_CHECKING
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -32,6 +31,9 @@ from pandas.core.arrays import (
     ExtensionScalarOpsMixin,
 )
 from pandas.core.indexers import check_array_indexer
+
+if TYPE_CHECKING:
+    from pandas._typing import type_t
 
 
 @register_extension_dtype
@@ -233,7 +235,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return cls(np.concatenate([x._data for x in to_concat]))
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-
         if skipna:
             # If we don't have any NAs, we can ignore skipna
             if self.isna().any():

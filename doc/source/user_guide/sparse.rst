@@ -127,9 +127,6 @@ attributes and methods that are specific to sparse data.
 This accessor is available only on data with ``SparseDtype``, and on the :class:`Series`
 class itself for creating a Series with sparse data from a scipy COO matrix with.
 
-
-.. versionadded:: 0.25.0
-
 A ``.sparse`` accessor has been added for :class:`DataFrame` as well.
 See :ref:`api.frame.sparse` for more.
 
@@ -156,70 +153,14 @@ the correct dense result.
    np.abs(arr)
    np.abs(arr).to_dense()
 
-.. _sparse.migration:
-
-Migrating
----------
-
-.. note::
-
-   ``SparseSeries`` and ``SparseDataFrame`` were removed in pandas 1.0.0. This migration
-   guide is present to aid in migrating from previous versions.
-
-In older versions of pandas, the ``SparseSeries`` and ``SparseDataFrame`` classes (documented below)
-were the preferred way to work with sparse data. With the advent of extension arrays, these subclasses
-are no longer needed. Their purpose is better served by using a regular Series or DataFrame with
-sparse values instead.
-
-.. note::
-
-  There's no performance or memory penalty to using a Series or DataFrame with sparse values,
-  rather than a SparseSeries or SparseDataFrame.
-
-This section provides some guidance on migrating your code to the new style. As a reminder,
-you can use the Python warnings module to control warnings. But we recommend modifying
-your code, rather than ignoring the warning.
-
-**Construction**
-
-From an array-like, use the regular :class:`Series` or
-:class:`DataFrame` constructors with :class:`arrays.SparseArray` values.
-
-.. code-block:: python
-
-   # Previous way
-   >>> pd.SparseDataFrame({"A": [0, 1]})
-
-.. ipython:: python
-
-   # New way
-   pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
-
-From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
-
-.. code-block:: python
-
-   # Previous way
-   >>> from scipy import sparse
-   >>> mat = sparse.eye(3)
-   >>> df = pd.SparseDataFrame(mat, columns=['A', 'B', 'C'])
-
-.. ipython:: python
-
-   # New way
-   from scipy import sparse
-   mat = sparse.eye(3)
-   df = pd.DataFrame.sparse.from_spmatrix(mat, columns=['A', 'B', 'C'])
-   df.dtypes
 
 **Conversion**
 
-From sparse to dense, use the ``.sparse`` accessors
+To convert data from sparse to dense, use the ``.sparse`` accessors
 
 .. ipython:: python
 
-   df.sparse.to_dense()
-   df.sparse.to_coo()
+   sdf.sparse.to_dense()
 
 From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
 
@@ -229,40 +170,6 @@ From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`.
    dtype = pd.SparseDtype(int, fill_value=0)
    dense.astype(dtype)
 
-**Sparse Properties**
-
-Sparse-specific properties, like ``density``, are available on the ``.sparse`` accessor.
-
-.. ipython:: python
-
-   df.sparse.density
-
-**General differences**
-
-In a ``SparseDataFrame``, *all* columns were sparse. A :class:`DataFrame` can have a mixture of
-sparse and dense columns. As a consequence, assigning new columns to a :class:`DataFrame` with sparse
-values will not automatically convert the input to be sparse.
-
-.. code-block:: python
-
-   # Previous Way
-   >>> df = pd.SparseDataFrame({"A": [0, 1]})
-   >>> df['B'] = [0, 0]  # implicitly becomes Sparse
-   >>> df['B'].dtype
-   Sparse[int64, nan]
-
-Instead, you'll need to ensure that the values being assigned are sparse
-
-.. ipython:: python
-
-   df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
-   df['B'] = [0, 0]  # remains dense
-   df['B'].dtype
-   df['B'] = pd.arrays.SparseArray([0, 0])
-   df['B'].dtype
-
-The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
-have no replacement.
 
 .. _sparse.scipysparse:
 
@@ -270,8 +177,6 @@ Interaction with *scipy.sparse*
 -------------------------------
 
 Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with sparse values from a sparse matrix.
-
-.. versionadded:: 0.25.0
 
 .. ipython:: python
 

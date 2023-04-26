@@ -3,7 +3,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_sparse
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -28,7 +27,7 @@ class BaseMissingTests(BaseExtensionTests):
         result = pd.Series(data_missing)
         expected = result.copy()
         mask = getattr(result, na_func)()
-        if is_sparse(mask):
+        if isinstance(mask.dtype, pd.SparseDtype):
             mask = np.array(mask)
 
         mask[:] = True
@@ -55,7 +54,7 @@ class BaseMissingTests(BaseExtensionTests):
 
         # axis = 1
         result = df.dropna(axis="columns")
-        expected = pd.DataFrame(index=[0, 1])
+        expected = pd.DataFrame(index=pd.RangeIndex(2), columns=pd.Index([]))
         self.assert_frame_equal(result, expected)
 
         # multiple

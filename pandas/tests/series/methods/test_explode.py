@@ -76,13 +76,12 @@ def test_invert_array():
 @pytest.mark.parametrize(
     "s", [pd.Series([1, 2, 3]), pd.Series(pd.date_range("2019", periods=3, tz="UTC"))]
 )
-def non_object_dtype(s):
+def test_non_object_dtype(s):
     result = s.explode()
     tm.assert_series_equal(result, s)
 
 
 def test_typical_usecase():
-
     df = pd.DataFrame(
         [{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}],
         columns=["var1", "var2"],

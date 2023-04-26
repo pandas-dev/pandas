@@ -1,4 +1,6 @@
 from collections import abc
+import email
+from email.parser import Parser
 
 import numpy as np
 import pytest
@@ -58,9 +60,6 @@ class TestDataFrameToRecords:
         assert "one" not in r
 
     def test_to_records_with_Mapping_type(self):
-        import email
-        from email.parser import Parser
-
         abc.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr(
@@ -490,7 +489,7 @@ class TestDataFrameToRecords:
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         dtype_mappings = {
-            "column_dtypes": DictLike(**{"A": np.int8, "B": np.float32}),
+            "column_dtypes": DictLike(A=np.int8, B=np.float32),
             "index_dtypes": f"{tm.ENDIAN}U2",
         }
 

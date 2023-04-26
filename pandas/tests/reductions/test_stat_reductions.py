@@ -70,7 +70,7 @@ class TestDatetimeLikeStatReductions:
         tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D")
 
         tdarr = tdi._data
-        obj = box(tdarr)
+        obj = box(tdarr, copy=False)
 
         result = obj.mean()
         expected = np.array(tdarr).mean()
@@ -94,7 +94,6 @@ class TestSeriesStatReductions:
     def _check_stat_op(
         self, name, alternate, string_series_, check_objects=False, check_allna=False
     ):
-
         with pd.option_context("use_bottleneck", False):
             f = getattr(Series, name)
 

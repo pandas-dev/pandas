@@ -8,49 +8,29 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     RangeIndex,
     Series,
-    TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
 from pandas.api.types import (
-    is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
-)
-from pandas.core.api import (
-    Float64Index,
-    Int64Index,
-    UInt64Index,
 )
 
 
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = index.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = index.sort_values()
+    idx1 = index.sort_values()
+    idx2 = index.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
@@ -76,7 +56,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         # idx1 = Index(
         # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
         # )
-        # idx2 = Int64Index([0, 0, 1, 1, 2, 2], dtype='int64')
+        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )
@@ -109,18 +89,8 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx1.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = idx1.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx2.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = idx2.sort_values()
+    idx1 = idx1.sort_values()
+    idx2 = idx2.sort_values()
 
     with tm.assert_produces_warning(warn, match="'<' not supported between"):
         res1 = idx1.union(idx2)
@@ -222,7 +192,7 @@ class TestSetOps:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -249,7 +219,7 @@ class TestSetOps:
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -271,7 +241,7 @@ class TestSetOps:
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if index.is_boolean():
+        if index.inferred_type == "boolean":
             # i think (TODO: be sure) there assumptions baked in about
             #  the index fixture that don't hold here?
             answer = set(first).difference(set(second))
@@ -387,18 +357,8 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            union = first.union(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index.set_names(expected_name).sort_values()
+        union = first.union(second).sort_values()
+        expected = index.set_names(expected_name).sort_values()
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
@@ -464,18 +424,8 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            intersect = first.intersection(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index[1:].set_names(expected_name).sort_values()
+        intersect = first.intersection(second).sort_values()
+        expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
     def test_intersection_name_retention_with_nameless(self, index):
@@ -566,24 +516,15 @@ def test_intersection_duplicates_all_indexes(index):
     assert idx.intersection(idx_non_unique).is_unique
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        CategoricalIndex,
-        lambda x: CategoricalIndex(x, categories=set(x)),
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-        UInt64Index,
-    ],
-)
-def test_union_duplicate_index_subsets_of_each_other(cls):
+def test_union_duplicate_index_subsets_of_each_other(
+    any_dtype_for_small_pos_integer_indexes,
+):
     # GH#31326
-    a = cls([1, 2, 2, 3])
-    b = cls([3, 3, 4])
-    expected = cls([1, 2, 2, 3, 3, 4])
+    dtype = any_dtype_for_small_pos_integer_indexes
+    a = Index([1, 2, 2, 3], dtype=dtype)
+    b = Index([3, 3, 4], dtype=dtype)
+
+    expected = Index([1, 2, 2, 3, 3, 4], dtype=dtype)
     if isinstance(a, CategoricalIndex):
         expected = Index([1, 2, 2, 3, 3, 4])
     result = a.union(b)
@@ -592,22 +533,14 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        CategoricalIndex,
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-    ],
-)
-def test_union_with_duplicate_index_and_non_monotonic(cls):
+def test_union_with_duplicate_index_and_non_monotonic(
+    any_dtype_for_small_pos_integer_indexes,
+):
     # GH#36289
-    a = cls([1, 0, 0])
-    b = cls([0, 1])
-    expected = cls([0, 0, 1])
+    dtype = any_dtype_for_small_pos_integer_indexes
+    a = Index([1, 0, 0], dtype=dtype)
+    b = Index([0, 1], dtype=dtype)
+    expected = Index([0, 0, 1], dtype=dtype)
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -644,21 +577,16 @@ def test_union_nan_in_both(dup):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "cls",
-    [
-        Int64Index,
-        Float64Index,
-        DatetimeIndex,
-        TimedeltaIndex,
-        lambda x: Index(x, dtype=object),
-    ],
-)
-def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
+def test_union_with_duplicate_index_not_subset_and_non_monotonic(
+    any_dtype_for_small_pos_integer_indexes,
+):
     # GH#36289
-    a = cls([1, 0, 2])
-    b = cls([0, 0, 1])
-    expected = cls([0, 0, 1, 2])
+    dtype = any_dtype_for_small_pos_integer_indexes
+    a = Index([1, 0, 2], dtype=dtype)
+    b = Index([0, 0, 1], dtype=dtype)
+    expected = Index([0, 0, 1, 2], dtype=dtype)
+    if isinstance(a, CategoricalIndex):
+        expected = Index([0, 0, 1, 2])
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -864,16 +792,14 @@ class TestSetOpsUnsorted:
         result = op(a)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO(GH#25151): decide on True behaviour
-        # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b, sort=True)
 
-        with pytest.raises(TypeError, match="Cannot compare"):
+        msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+        with pytest.raises(TypeError, match=msg):
             op(a)
 
     def test_symmetric_difference_mi(self, sort):
@@ -914,3 +840,11 @@ class TestSetOpsUnsorted:
         result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
         assert tm.equalContents(result, expected)
         assert result.name == "new_name"
+
+    def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
+        # GH#51365
+        idx = Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
+        idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        result = idx.union(idx2)
+        expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)

@@ -7,29 +7,26 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.missing cimport checknull
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
     is_real_number_object,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
-    return hasattr(obj, '__iter__')
+    return hasattr(obj, "__iter__")
 
 
 cdef bint has_length(obj):
-    return hasattr(obj, '__len__')
+    return hasattr(obj, "__len__")
 
 
 cdef bint is_dictlike(obj):
-    return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
+    return hasattr(obj, "keys") and hasattr(obj, "__getitem__")
 
 
 cpdef assert_dict_equal(a, b, bint compare_keys=True):
@@ -62,12 +59,8 @@ cpdef assert_almost_equal(a, b,
     b : object
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -83,20 +76,22 @@ cpdef assert_almost_equal(a, b,
         Specify shared index values of objects being compared, internally used
         to show appropriate assertion message.
 
-        .. versionadded:: 1.1.0
-
     """
     cdef:
         double diff = 0.0
         Py_ssize_t i, na, nb
         double fa, fb
         bint is_unequal = False, a_is_ndarray, b_is_ndarray
-        str first_diff = ''
+        str first_diff = ""
 
     if lobj is None:
         lobj = a
     if robj is None:
         robj = b
+
+    if isinstance(a, set) or isinstance(b, set):
+        assert a == b, f"{a} != {b}"
+        return True
 
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -110,9 +105,9 @@ cpdef assert_almost_equal(a, b,
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
-            obj = 'numpy array'
+            obj = "numpy array"
         else:
-            obj = 'Iterable'
+            obj = "Iterable"
 
     if isiterable(a):
 
@@ -131,11 +126,11 @@ cpdef assert_almost_equal(a, b,
             if a.shape != b.shape:
                 from pandas._testing import raise_assert_detail
                 raise_assert_detail(
-                    obj, f'{obj} shapes are different', a.shape, b.shape)
+                    obj, f"{obj} shapes are different", a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
+            if check_dtype and a.dtype != b.dtype:
                 from pandas._testing import assert_attr_equal
-                assert_attr_equal('dtype', a, b, obj=obj)
+                assert_attr_equal("dtype", a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
                 return True
@@ -181,13 +176,13 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if isna(a) and isna(b):
+    if checknull(a) and checknull(b):
         # TODO: Should require same-dtype NA?
         # nan / None comparison
         return True
 
-    if isna(a) and not isna(b) or not isna(a) and isna(b):
-        # boolean value of pd.NA is ambigous
+    if (checknull(a) and not checknull(b)) or (not checknull(a) and checknull(b)):
+        # boolean value of pd.NA is ambiguous
         raise AssertionError(f"{a} != {b}")
 
     if a == b:
@@ -195,10 +190,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
@@ -207,10 +198,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_complex_object(a) and is_complex_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")

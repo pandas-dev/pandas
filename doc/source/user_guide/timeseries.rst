@@ -132,6 +132,8 @@ time.
 
 .. ipython:: python
 
+   import datetime
+
    pd.Timestamp(datetime.datetime(2012, 5, 1))
    pd.Timestamp("2012-05-01")
    pd.Timestamp(2012, 5, 1)
@@ -196,26 +198,25 @@ is converted to a ``DatetimeIndex``:
 
 .. ipython:: python
 
-    pd.to_datetime(pd.Series(["Jul 31, 2009", "2010-01-10", None]))
+    pd.to_datetime(pd.Series(["Jul 31, 2009", "Jan 10, 2010", None]))
 
-    pd.to_datetime(["2005/11/23", "2010.12.31"])
+    pd.to_datetime(["2005/11/23", "2010/12/31"])
 
 If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
-    pd.to_datetime(["14-01-2012", "01-14-2012"], dayfirst=True)
+    pd.to_datetime(["04-14-2012 10:00"], dayfirst=True)
 
 .. warning::
 
    You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False, and in the case of parsing delimited date strings
-   (e.g. ``31-12-2012``) then a warning will also be raised.
+   ``dayfirst`` were ``False`` and a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -291,7 +292,7 @@ The default behavior, ``errors='raise'``, is to raise when unparsable:
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
-    ValueError: Unknown string format
+    ValueError: Unknown datetime string format
 
 Pass ``errors='ignore'`` to return the original input when unparsable:
 
@@ -333,8 +334,6 @@ which can be specified. These are computed from the starting point specified by 
    The ``unit`` parameter does not use the same strings as the ``format`` parameter
    that was discussed :ref:`above<timeseries.converting.format>`). The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
-
-.. versionchanged:: 1.0.0
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
 with the ``tz`` argument specified will raise a ValueError. If you have
@@ -508,13 +507,17 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-Since pandas represents timestamps in nanosecond resolution, the time span that
+The limits of timestamp representation depend on the chosen resolution. For
+nanosecond resolution, the time span that
 can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+
+When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
+Different resolutions can be converted to each other through ``as_unit``.
 
 .. seealso::
 
@@ -646,8 +649,6 @@ We are stopping on the included end-point as it is part of the index:
    idx = pd.IndexSlice
    dft2 = dft2.swaplevel(0, 1).sort_index()
    dft2.loc[idx[:, "2013-01-05"], :]
-
-.. versionadded:: 0.25.0
 
 Slicing with string indexing also honors UTC offset.
 
@@ -820,8 +821,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
 Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
 on :ref:`.dt accessors<basics.dt_accessors>`.
-
-.. versionadded:: 1.1.0
 
 You may obtain the year, week and day components of the ISO year from the ISO 8601 standard:
 
@@ -1621,7 +1620,7 @@ The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
 operation.
 
-Any function available via :ref:`dispatching <groupby.dispatch>` is available as
+Any built-in method available via :ref:`GroupBy <api.groupby>` is available as
 a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
 ``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``:
 
@@ -1749,8 +1748,9 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
-a ``Resampler`` can be selectively resampled.
+The ``resample()`` method returns a ``pandas.api.typing.Resampler`` instance.  Similar to
+the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`,
+and the :ref:`window API <window.overview>`, a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
@@ -1867,8 +1867,6 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 Use ``origin`` or ``offset`` to adjust the start of the bins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.1.0
 
 The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like ``30D``) or that divide a day evenly (like ``90s`` or ``1min``). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
 
@@ -2115,8 +2113,6 @@ PeriodIndex partial string indexing
 
 PeriodIndex now supports partial string slicing with non-monotonic indexes.
 
-.. versionadded:: 1.1.0
-
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
@@ -2348,8 +2344,6 @@ To return ``dateutil`` time zone objects, append ``dateutil/`` before the string
    )
    rng_utc.tz
 
-.. versionadded:: 0.25.0
-
 .. ipython:: python
 
    # datetime.timezone
@@ -2490,8 +2484,6 @@ To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)
 
 Fold
 ~~~~
-
-.. versionadded:: 1.1.0
 
 For ambiguous times, pandas supports explicitly specifying the keyword-only fold argument.
 Due to daylight saving time, one wall clock time can occur twice when shifting

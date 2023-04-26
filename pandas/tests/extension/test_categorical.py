@@ -156,6 +156,12 @@ class TestReduce(base.BaseNoReduceTests):
     pass
 
 
+class TestAccumulate(base.BaseAccumulateTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
+        pass
+
+
 class TestMethods(base.BaseMethodsTests):
     @pytest.mark.xfail(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
@@ -177,6 +183,11 @@ class TestMethods(base.BaseMethodsTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        self.assert_extension_array_equal(result, data)
 
 
 class TestCasting(base.BaseCastingTests):

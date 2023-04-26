@@ -18,6 +18,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     ArrowStringArray,
+    IntegerArray,
     StringArray,
 )
 
@@ -401,8 +402,7 @@ def test_dtypes_defaultdict_invalid(all_parsers):
         parser.read_csv(StringIO(data), dtype=dtype)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
-def test_use_nullable_dtypes(all_parsers):
+def test_dtype_backend(all_parsers):
     # GH#36712
 
     parser = all_parsers
@@ -412,7 +412,7 @@ def test_use_nullable_dtypes(all_parsers):
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     result = parser.read_csv(
-        StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
+        StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"]
     )
     expected = DataFrame(
         {
@@ -431,7 +431,7 @@ def test_use_nullable_dtypes(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullabla_dtypes_and_dtype(all_parsers):
+def test_dtype_backend_and_dtype(all_parsers):
     # GH#36712
 
     parser = all_parsers
@@ -440,28 +440,27 @@ def test_use_nullabla_dtypes_and_dtype(all_parsers):
 1,2.5
 ,
 """
-    result = parser.read_csv(StringIO(data), use_nullable_dtypes=True, dtype="float64")
+    result = parser.read_csv(
+        StringIO(data), dtype_backend="numpy_nullable", dtype="float64"
+    )
     expected = DataFrame({"a": [1.0, np.nan], "b": [2.5, np.nan]})
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
-@pytest.mark.parametrize("storage", ["pyarrow", "python"])
-def test_use_nullable_dtypes_string(all_parsers, storage):
+def test_dtype_backend_string(all_parsers, string_storage):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
-    with pd.option_context("mode.string_storage", storage):
-
+    with pd.option_context("mode.string_storage", string_storage):
         parser = all_parsers
 
         data = """a,b
 a,x
 b,
 """
-        result = parser.read_csv(StringIO(data), use_nullable_dtypes=True)
+        result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-        if storage == "python":
+        if string_storage == "python":
             expected = DataFrame(
                 {
                     "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
@@ -478,18 +477,20 @@ b,
         tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes_ea_dtype_specified(all_parsers):
+def test_dtype_backend_ea_dtype_specified(all_parsers):
     # GH#491496
     data = """a,b
 1,2
 """
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), dtype="Int64", use_nullable_dtypes=True)
+    result = parser.read_csv(
+        StringIO(data), dtype="Int64", dtype_backend="numpy_nullable"
+    )
     expected = DataFrame({"a": [1], "b": 2}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
+def test_dtype_backend_pyarrow(all_parsers, request):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
@@ -498,29 +499,42 @@ def test_use_nullable_dtypes_pyarrow_backend(all_parsers, request):
 1,2.5,True,a,,,,,12-31-2019,
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
-    with pd.option_context("io.nullable_backend", "pyarrow"):
-        if parser.engine != "pyarrow":
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Not implemented with engine={parser.engine}",
-                )
-            )
-        result = parser.read_csv(
-            StringIO(data), use_nullable_dtypes=True, parse_dates=["i"]
-        )
-        expected = DataFrame(
-            {
-                "a": pd.Series([1, 3], dtype="int64[pyarrow]"),
-                "b": pd.Series([2.5, 4.5], dtype="float64[pyarrow]"),
-                "c": pd.Series([True, False], dtype="bool[pyarrow]"),
-                "d": pd.Series(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
-                "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
-                "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
-                "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
-                "h": pd.Series(["", "a"], dtype=pd.ArrowDtype(pa.string())),
-                "i": pd.Series([Timestamp("2019-12-31")] * 2),
-                "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
-            }
-        )
+    result = parser.read_csv(StringIO(data), dtype_backend="pyarrow", parse_dates=["i"])
+    expected = DataFrame(
+        {
+            "a": pd.Series([1, 3], dtype="int64[pyarrow]"),
+            "b": pd.Series([2.5, 4.5], dtype="float64[pyarrow]"),
+            "c": pd.Series([True, False], dtype="bool[pyarrow]"),
+            "d": pd.Series(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            "e": pd.Series([pd.NA, 6], dtype="int64[pyarrow]"),
+            "f": pd.Series([pd.NA, 7.5], dtype="float64[pyarrow]"),
+            "g": pd.Series([pd.NA, True], dtype="bool[pyarrow]"),
+            "h": pd.Series(
+                [pd.NA, "a"],
+                dtype=pd.ArrowDtype(pa.string()),
+            ),
+            "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_int_avoid_overflow(all_parsers):
+    # GH#32134
+    parser = all_parsers
+    data = """a,b
+1,1
+,1
+1582218195625938945,1
+"""
+    result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
+    expected = DataFrame(
+        {
+            "a": IntegerArray(
+                np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
+            ),
+            "b": 1,
+        }
+    )
     tm.assert_frame_equal(result, expected)

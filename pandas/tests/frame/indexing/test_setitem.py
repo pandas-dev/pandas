@@ -6,11 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -61,7 +57,8 @@ class TestDataFrameSetItem:
         "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
     )
     def test_setitem_dtype(self, dtype, float_frame):
-        arr = np.random.randn(len(float_frame))
+        # Use randint since casting negative floats to uints is undefined
+        arr = np.random.randint(1, 10, len(float_frame))
 
         float_frame[dtype] = np.array(arr, dtype=dtype)
         assert float_frame[dtype].dtype.name == dtype
@@ -72,7 +69,6 @@ class TestDataFrameSetItem:
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
     def test_setitem_error_msmgs(self):
-
         # GH 7432
         df = DataFrame(
             {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
@@ -85,8 +81,7 @@ class TestDataFrameSetItem:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df["newcol"] = ser
+            df["newcol"] = ser
 
         # GH 4107, more descriptive error message
         df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
@@ -322,7 +317,6 @@ class TestDataFrameSetItem:
         assert (df["dates"].values == ex_vals).all()
 
     def test_setitem_dt64tz(self, timezone_frame):
-
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -340,8 +334,8 @@ class TestDataFrameSetItem:
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
-        v1base = v1._data.base
-        v2base = v2._data.base
+        v1base = v1._ndarray.base
+        v2base = v2._ndarray.base
         assert v1base is None or (id(v1base) != id(v2base))
 
         # with nan
@@ -385,6 +379,17 @@ class TestDataFrameSetItem:
         assert expected["d"].dtype == arr.dtype
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_period_d_dtype(self):
+        # GH 39763
+        rng = period_range("2016-01-01", periods=9, freq="D", name="A")
+        result = DataFrame(rng)
+        expected = DataFrame(
+            {"A": ["NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT"]},
+            dtype="period[D]",
+        )
+        result.iloc[:] = rng._na_value
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
@@ -409,16 +414,12 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager):
+    def test_setitem_frame_duplicate_columns(self):
         # GH#15695
-        warn = FutureWarning if using_array_manager else None
-        msg = "will attempt to set the values inplace"
-
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
         df.loc[0, "A"] = (0, 3)
-        with tm.assert_produces_warning(warn, match=msg):
-            df.loc[:, "B"] = (1, 4)
+        df.loc[:, "B"] = (1, 4)
         df["C"] = (2, 5)
         expected = DataFrame(
             [
@@ -429,19 +430,10 @@ class TestDataFrameSetItem:
             dtype="object",
         )
 
-        if using_array_manager:
-            # setitem replaces column so changes dtype
-
-            expected.columns = cols
-            expected["C"] = expected["C"].astype("int64")
-            # TODO(ArrayManager) .loc still overwrites
-            expected["B"] = expected["B"].astype("int64")
-
-        else:
-            # set these with unique columns to be extra-unambiguous
-            expected[2] = expected[2].astype(np.int64)
-            expected[5] = expected[5].astype(np.int64)
-            expected.columns = cols
+        # set these with unique columns to be extra-unambiguous
+        expected[2] = expected[2].astype(np.int64)
+        expected[5] = expected[5].astype(np.int64)
+        expected.columns = cols
 
         tm.assert_frame_equal(df, expected)
 
@@ -486,7 +478,6 @@ class TestDataFrameSetItem:
             df[["a", "b"]] = rhs
 
     def test_setitem_intervals(self):
-
         df = DataFrame({"A": range(10)})
         ser = cut(df["A"], 5)
         assert isinstance(ser.cat.categories, IntervalIndex)
@@ -500,15 +491,15 @@ class TestDataFrameSetItem:
         df["E"] = np.array(ser.values)
         df["F"] = ser.astype(object)
 
-        assert is_categorical_dtype(df["B"].dtype)
-        assert is_interval_dtype(df["B"].cat.categories)
-        assert is_categorical_dtype(df["D"].dtype)
-        assert is_interval_dtype(df["D"].cat.categories)
+        assert isinstance(df["B"].dtype, CategoricalDtype)
+        assert isinstance(df["B"].cat.categories.dtype, IntervalDtype)
+        assert isinstance(df["D"].dtype, CategoricalDtype)
+        assert isinstance(df["D"].cat.categories.dtype, IntervalDtype)
 
         # These go through the Series constructor and so get inferred back
         #  to IntervalDtype
-        assert is_interval_dtype(df["C"])
-        assert is_interval_dtype(df["E"])
+        assert isinstance(df["C"].dtype, IntervalDtype)
+        assert isinstance(df["E"].dtype, IntervalDtype)
 
         # But the Series constructor doesn't do inference on Series objects,
         #  so setting df["F"] doesn't get cast back to IntervalDtype
@@ -1011,7 +1002,6 @@ class TestDataFrameSetItemBooleanMask:
         ids=["dataframe", "array"],
     )
     def test_setitem_boolean_mask(self, mask_type, float_frame):
-
         # Test for issue #18582
         df = float_frame.copy()
         mask = mask_type(df)
@@ -1020,8 +1010,9 @@ class TestDataFrameSetItemBooleanMask:
         result = df.copy()
         result[mask] = np.nan
 
-        expected = df.copy()
-        expected.values[np.array(mask)] = np.nan
+        expected = df.values.copy()
+        expected[np.array(mask)] = np.nan
+        expected = DataFrame(expected, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
@@ -1123,6 +1114,19 @@ class TestDataFrameSetItemBooleanMask:
         expected = df.copy()
         indexer = Series([False, False], name="c")
         df.loc[indexer, ["b"]] = DataFrame({"b": [5, 6]}, index=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_ea_boolean_mask(self):
+        # GH#47125
+        df = DataFrame([[-1, 2], [3, -4]])
+        expected = DataFrame([[0, 2], [3, 0]])
+        boolean_indexer = DataFrame(
+            {
+                0: Series([True, False], dtype="boolean"),
+                1: Series([pd.NA, True], dtype="boolean"),
+            }
+        )
+        df[boolean_indexer] = 0
         tm.assert_frame_equal(df, expected)
 
 
@@ -1246,12 +1250,35 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
-        for label in df.columns:
-            df[label][label] = 1
-
         if not using_copy_on_write:
+            for label in df.columns:
+                df[label][label] = 1
+
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
+            with tm.raises_chained_assignment_error():
+                for label in df.columns:
+                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
+
+    def test_setitem_column_frame_as_category(self):
+        # GH31581
+        df = DataFrame([1, 2, 3])
+        df["col1"] = DataFrame([1, 2, 3], dtype="category")
+        df["col2"] = Series([1, 2, 3], dtype="category")
+
+        expected_types = Series(
+            ["int64", "category", "category"], index=[0, "col1", "col2"]
+        )
+        tm.assert_series_equal(df.dtypes, expected_types)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_iloc_with_numpy_array(self, dtype):
+        # GH-33828
+        df = DataFrame({"a": np.ones(3)}, dtype=dtype)
+        df.iloc[np.array([0]), np.array([0])] = np.array([[2]])
+
+        expected = DataFrame({"a": [2, 1, 1]}, dtype=dtype)
+        tm.assert_frame_equal(df, expected)

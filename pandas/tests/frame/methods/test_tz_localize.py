@@ -1,3 +1,5 @@
+from datetime import timezone
+
 import numpy as np
 import pytest
 
@@ -23,7 +25,7 @@ class TestTZLocalize:
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
         expected = tm.get_obj(expected, frame_or_series)
 
-        assert result.index.tz.zone == "UTC"
+        assert result.index.tz is timezone.utc
         tm.assert_equal(result, expected)
 
     def test_tz_localize_axis1(self):
@@ -33,14 +35,13 @@ class TestTZLocalize:
 
         df = df.T
         result = df.tz_localize("utc", axis=1)
-        assert result.columns.tz.zone == "UTC"
+        assert result.columns.tz is timezone.utc
 
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
 
         tm.assert_frame_equal(result, expected.T)
 
     def test_tz_localize_naive(self, frame_or_series):
-
         # Can't localize if already tz-aware
         rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
         ts = Series(1, index=rng)

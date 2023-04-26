@@ -18,7 +18,11 @@ import itertools
 from numbers import Number
 import re
 import sys
-from typing import Iterator
+from typing import (
+    Generic,
+    Iterator,
+    TypeVar,
+)
 
 import numpy as np
 import pytest
@@ -229,6 +233,22 @@ def test_is_list_like_iter_is_none():
     assert not inference.is_list_like(NotListLike())
 
 
+def test_is_list_like_generic():
+    # GH 49649
+    # is_list_like was yielding false positives for Generic classes in python 3.11
+    T = TypeVar("T")
+
+    class MyDataFrame(DataFrame, Generic[T]):
+        ...
+
+    tstc = MyDataFrame[int]
+    tst = MyDataFrame[int]({"x": [1, 2, 3]})
+
+    assert not inference.is_list_like(tstc)
+    assert isinstance(tst, DataFrame)
+    assert inference.is_list_like(tst)
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
@@ -410,7 +430,6 @@ def test_is_names_tuple_fails(ll):
 
 
 def test_is_hashable():
-
     # all new-style classes are hashable by default
     class HashableClass:
         pass
@@ -859,9 +878,21 @@ class TestInference:
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
         arr = np.array([2, np.NaN], dtype=object)
-        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
 
         tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "dtype, val", [("int64", 1), ("uint64", np.iinfo(np.int64).max + 1)]
+    )
+    def test_maybe_convert_objects_nullable_none(self, dtype, val):
+        # GH#50043
+        arr = np.array([val, None, 3], dtype="object")
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        expected = IntegerArray(
+            np.array([val, 0, 3], dtype=dtype), np.array([False, True, False])
+        )
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "convert_to_masked_nullable, exp",
@@ -917,6 +948,28 @@ class TestInference:
         exp = np.array([True, False, np.nan], dtype=object)
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_nullable_boolean(self):
+        # GH50047
+        arr = np.array([True, False], dtype=object)
+        exp = np.array([True, False])
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_numpy_array_equal(out, exp)
+
+        arr = np.array([True, False, pd.NaT], dtype=object)
+        exp = np.array([True, False, pd.NaT], dtype=object)
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize("val", [None, np.nan])
+    def test_maybe_convert_objects_nullable_boolean_na(self, val):
+        # GH50047
+        arr = np.array([True, False, val], dtype=object)
+        exp = BooleanArray(
+            np.array([True, False, False]), np.array([False, False, True])
+        )
+        out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
+        tm.assert_extension_array_equal(out, exp)
 
     @pytest.mark.parametrize(
         "data0",
@@ -995,7 +1048,6 @@ class TestInference:
         ],
     )
     def test_maybe_convert_objects_ea(self, idx):
-
         result = lib.maybe_convert_objects(
             np.array(idx, dtype=object),
             convert_period=True,
@@ -1005,7 +1057,6 @@ class TestInference:
 
 
 class TestTypeInference:
-
     # Dummy class used for testing with Python objects
     class Dummy:
         pass
@@ -1210,7 +1261,6 @@ class TestTypeInference:
         assert result == expected
 
     def test_datetime(self):
-
         dates = [datetime(2012, 1, x) for x in range(1, 20)]
         index = Index(dates)
         assert index.inferred_type == "datetime64"
@@ -1479,7 +1529,6 @@ class TestTypeInference:
         assert not func(arr.reshape(2, 1))
 
     def test_date(self):
-
         dates = [date(2012, 1, day) for day in range(1, 20)]
         index = Index(dates)
         assert index.inferred_type == "date"
@@ -1507,7 +1556,6 @@ class TestTypeInference:
         assert result == "date"
 
     def test_is_numeric_array(self):
-
         assert lib.is_float_array(np.array([1, 2.0]))
         assert lib.is_float_array(np.array([1, 2.0, np.nan]))
         assert not lib.is_float_array(np.array([1, 2]))
@@ -1564,7 +1612,6 @@ class TestTypeInference:
         lib.to_object_array_tuples(values)
 
     def test_object(self):
-
         # GH 7431
         # cannot infer more than this as only a single element
         arr = np.array([None], dtype="O")
@@ -1599,7 +1646,6 @@ class TestTypeInference:
         assert not lib.is_period(np.nan)
 
     def test_categorical(self):
-
         # GH 8974
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
@@ -1632,7 +1678,6 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
     def test_interval_mismatched_closed(self, value):
-
         first = Interval(value, value, closed="left")
         second = Interval(value, value, closed="right")
 
@@ -1684,7 +1729,6 @@ class TestTypeInference:
 
 class TestNumberScalar:
     def test_is_number(self):
-
         assert is_number(True)
         assert is_number(1)
         assert is_number(1.1)
@@ -1774,9 +1818,10 @@ class TestNumberScalar:
         assert not is_float(Timedelta("1 days"))
 
     def test_is_datetime_dtypes(self):
-
         ts = pd.date_range("20130101", periods=3)
         tsa = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        msg = "is_datetime64tz_dtype is deprecated"
 
         assert is_datetime64_dtype("datetime64")
         assert is_datetime64_dtype("datetime64[ns]")
@@ -1793,16 +1838,20 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        assert not is_datetime64tz_dtype("datetime64")
-        assert not is_datetime64tz_dtype("datetime64[ns]")
-        assert not is_datetime64tz_dtype(ts)
-        assert is_datetime64tz_dtype(tsa)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert not is_datetime64tz_dtype("datetime64")
+            assert not is_datetime64tz_dtype("datetime64[ns]")
+            assert not is_datetime64tz_dtype(ts)
+            assert is_datetime64tz_dtype(tsa)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC"])
     def test_is_datetime_dtypes_with_tz(self, tz):
         dtype = f"datetime64[ns, {tz}]"
         assert not is_datetime64_dtype(dtype)
-        assert is_datetime64tz_dtype(dtype)
+
+        msg = "is_datetime64tz_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_datetime64tz_dtype(dtype)
         assert is_datetime64_ns_dtype(dtype)
         assert is_datetime64_any_dtype(dtype)
 
@@ -1817,7 +1866,6 @@ class TestNumberScalar:
         assert is_timedelta64_ns_dtype(tdi)
         assert is_timedelta64_ns_dtype(tdi.astype("timedelta64[ns]"))
 
-        # Conversion to Int64Index:
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.float64))
         assert not is_timedelta64_ns_dtype(Index([], dtype=np.int64))
 
@@ -1926,7 +1974,6 @@ def test_datetimeindex_from_empty_datetime64_array(unit):
 
 
 def test_nan_to_nat_conversions():
-
     df = DataFrame(
         {"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")}
     )

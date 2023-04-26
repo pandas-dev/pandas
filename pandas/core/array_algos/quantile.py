@@ -1,18 +1,22 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
 from pandas.compat.numpy import np_percentile_argname
 
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        npt,
+    )
 
 
 def quantile_compat(
@@ -176,7 +180,7 @@ def _nanpercentile(
     quantiles : scalar or array
     """
 
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
         result = _nanpercentile(
             values.view("i8"),
@@ -204,8 +208,10 @@ def _nanpercentile(
             result = np.array(result, copy=False).T
             if (
                 result.dtype != values.dtype
+                and not mask.all()
                 and (result == result.astype(values.dtype, copy=False)).all()
             ):
+                # mask.all() will never get cast back to int
                 # e.g. values id integer dtype and result is floating dtype,
                 #  only cast back to integer dtype if result values are all-integer.
                 result = result.astype(values.dtype, copy=False)

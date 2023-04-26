@@ -279,11 +279,11 @@ if one of the DataFrames was empty or had all-NA values, its dtype was
 *sometimes* ignored when finding the concatenated dtype.  These are now
 consistently *not* ignored (:issue:`43507`).
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
-    df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
-    res = pd.concat([df1, df2])
+    In [3]: df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
+    In [4]: df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
+    In [5]: res = pd.concat([df1, df2])
 
 Previously, the float-dtype in ``df2`` would be ignored so the result dtype
 would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to
@@ -293,8 +293,8 @@ would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to
 
 .. code-block:: ipython
 
-    In [4]: res
-    Out[4]:
+    In [6]: res
+    Out[6]:
              bar
     0 2013-01-01
     1        NaT
@@ -306,8 +306,8 @@ object, the ``np.nan`` is retained.
 
 .. code-block:: ipython
 
-    In [4]: res
-    Out[4]:
+    In [6]: res
+    Out[6]:
                        bar
     0  2013-01-01 00:00:00
     1                  NaN
@@ -320,7 +320,7 @@ Null-values are no longer coerced to NaN-value in value_counts and mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`Series.value_counts` and :meth:`Series.mode` no longer coerce ``None``,
-``NaT`` and other null-values to a NaN-value for ``np.object``-dtype. This
+``NaT`` and other null-values to a NaN-value for ``np.object_``-dtype. This
 behavior is now consistent with ``unique``, ``isin`` and others
 (:issue:`42688`).
 

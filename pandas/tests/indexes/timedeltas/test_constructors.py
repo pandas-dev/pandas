@@ -18,6 +18,12 @@ from pandas.core.arrays.timedeltas import (
 
 
 class TestTimedeltaIndex:
+    def test_closed_deprecated(self):
+        # GH#52628
+        msg = "The 'closed' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            TimedeltaIndex([], closed=True)
+
     def test_array_of_dt64_nat_raises(self):
         # GH#39462
         nat = np.datetime64("NaT", "ns")
@@ -47,7 +53,7 @@ class TestTimedeltaIndex:
         #  and copy=False
         arr = np.arange(10, dtype=np.int64)
         tdi = TimedeltaIndex(arr, copy=False)
-        assert tdi._data._data.base is arr
+        assert tdi._data._ndarray.base is arr
 
     def test_infer_from_tdi(self):
         # GH#23539
@@ -153,17 +159,6 @@ class TestTimedeltaIndex:
             ]
         )
         tm.assert_index_equal(result, expected)
-
-        # unicode
-        result = TimedeltaIndex(
-            [
-                "1 days",
-                "1 days, 00:00:05",
-                np.timedelta64(2, "D"),
-                timedelta(days=2, seconds=2),
-                pd.offsets.Second(3),
-            ]
-        )
 
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]

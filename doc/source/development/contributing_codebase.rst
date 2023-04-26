@@ -18,24 +18,19 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to pandas.
 
-There is a tool in pandas to help contributors verify their changes before
-contributing them to the project::
+There are a couple of tools in pandas to help contributors verify their changes
+before contributing to the project
 
-   ./ci/code_checks.sh
-
-The script validates the doctests, formatting in docstrings, and
-imported modules. It is possible to run the checks independently by using the
-parameters ``docstring``, ``code``, and ``doctests``
-(e.g. ``./ci/code_checks.sh doctests``).
+- ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
+  and imported modules. It is possible to run the checks independently by using the
+  parameters ``docstrings``, ``code``, and ``doctests``
+  (e.g. ``./ci/code_checks.sh doctests``);
+- ``pre-commit``, which we go into detail on in the next section.
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
-
-In addition to ``./ci/code_checks.sh``, some extra checks (including static type
-checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
-for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -43,15 +38,12 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``flake8`` (including a `pandas-dev-flaker <https://github.com/pandas-dev/pandas-dev-flaker>`_ plugin),
-``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+like ``black``, ``ruff``,
+``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
-can be done by installing ``pre-commit``::
-
-    pip install pre-commit
-
-and then running::
+can be done by installing ``pre-commit`` (which should already have happened if you followed the instructions
+in :ref:`Setting up your development environment <contributing_environment>`) and then running::
 
     pre-commit install
 
@@ -63,17 +55,17 @@ remain up-to-date with our code checks as they change.
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks with::
+to run its checks with one of the following::
 
     pre-commit run --files <files you have modified>
-
-without needing to have done ``pre-commit install`` beforehand.
-
-If you want to run checks on all recently committed files on upstream/main you can use::
-
     pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
+
+Finally, we also have some slow pre-commit checks, which don't run on each commit
+but which do run during continuous integration. You can trigger them manually with::
+
+    pre-commit run --hook-stage manual --all-files
 
 .. note::
 
@@ -88,6 +80,12 @@ without needing to have done ``pre-commit install`` beforehand.
     Also, due to a `bug in virtualenv <https://github.com/pypa/virtualenv/issues/1986>`_,
     you may run into issues if you're using conda. To solve this, you can downgrade
     ``virtualenv`` to version ``20.0.33``.
+
+.. note::
+
+    If you have recently merged in main from the upstream branch, some of the
+    dependencies used by ``pre-commit`` may have changed.  Make sure to
+    :ref:`update your development environment <contributing.update-dev>`.
 
 Optional dependencies
 ---------------------
@@ -164,43 +162,9 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
-
-.. code-block:: python
-
-   import typing
-
-   primes: typing.List[int] = []
-
-You should write
-
-.. code-block:: python
-
-   primes: list[int] = []
-
-``Optional`` should be  avoided in favor of the shorter ``| None``, so instead of
-
-.. code-block:: python
-
-   from typing import Union
-
-   maybe_primes: list[Union[int, None]] = []
-
-or
-
-.. code-block:: python
-
-   from typing import Optional
-
-   maybe_primes: list[Optional[int]] = []
-
-You should write
-
-.. code-block:: python
-
-   from __future__ import annotations  # noqa: F404
-
-   maybe_primes: list[int | None] = []
+Type imports should follow the ``from typing import ...`` convention.
+Your code may be automatically re-written to use some modern constructs (e.g. using the built-in ``list`` instead of ``typing.List``)
+by the :ref:`pre-commit checks <contributing.pre-commit>`.
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -266,17 +230,21 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are consistent by running
 
 .. code-block:: shell
 
+    pre-commit run --hook-stage manual --all-files mypy
+    pre-commit run --hook-stage manual --all-files pyright
+    pre-commit run --hook-stage manual --all-files pyright_reportGeneralTypeIssues
     # the following might fail if the installed pandas version does not correspond to your local git version
-    pre-commit run --hook-stage manual --all-files
+    pre-commit run --hook-stage manual --all-files stubtest
 
-    # if the above fails due to stubtest
-    SKIP=stubtest pre-commit run --hook-stage manual --all-files
+in your python environment.
 
-in your activated python environment. A recent version of ``numpy`` (>=1.22.0) is required for type validation.
+.. warning::
+
+    * Please be aware that the above commands will use the current python environment. If your python packages are older/newer than those installed by the pandas CI, the above commands might fail. This is often the case when the ``mypy`` or ``numpy`` versions do not match. Please see :ref:`how to setup the python environment <contributing.mamba>` or select a `recently succeeded workflow <https://github.com/pandas-dev/pandas/actions/workflows/code-checks.yml?query=branch%3Amain+is%3Asuccess>`_, select the "Docstring validation, typing, and other manual pre-commit hooks" job, then click on "Set up Conda" and "Environment info" to see which versions the pandas CI installs.
 
 .. _contributing.ci:
 
@@ -338,7 +306,22 @@ Writing tests
 
 All tests should go into the ``tests`` subdirectory of the specific package.
 This folder contains many current examples of tests, and we suggest looking to these for
-inspiration. Ideally, there should be one, and only one, obvious place for a test to reside.
+inspiration.
+
+As a general tip, you can use the search functionality in your integrated development
+environment (IDE) or the git grep command in a terminal to find test files in which the method
+is called. If you are unsure of the best location to put your test, take your best guess,
+but note that reviewers may request that you move the test to a different location.
+
+To use git grep, you can run the following command in a terminal:
+
+``git grep "function_name("``
+
+This will search through all files in your repository for the text ``function_name(``.
+This can be a useful way to quickly locate the function in the
+codebase and determine the best location to add a test for it.
+
+Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
@@ -768,6 +751,7 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
+.. _contributing.running_tests:
 
 Running the test suite
 ----------------------
@@ -786,7 +770,8 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite.
+entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage.herokuapp.com/)
+to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::
 
@@ -974,9 +959,9 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 1.1.0
+    .. versionadded:: 2.1.0
 
-This will put the text *New in version 1.1.0* wherever you put the sphinx
+This will put the text *New in version 2.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).

@@ -2,15 +2,6 @@
 from cpython.object cimport PyTypeObject
 
 
-cdef extern from *:
-    """
-    PyObject* char_to_string(const char* data) {
-        return PyUnicode_FromString(data);
-    }
-    """
-    object char_to_string(const char* data)
-
-
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
@@ -19,6 +10,7 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+    # TODO(cython3): cimport this, xref GH#49670
     # Note that following functions can potentially raise an exception,
     # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
     # potentially allocate memory inside in unlikely case of when underlying
@@ -83,7 +75,7 @@ cdef inline bint is_integer_object(object obj) nogil:
 
 cdef inline bint is_float_object(object obj) nogil:
     """
-    Cython equivalent of `isinstance(val, (float, np.complex_))`
+    Cython equivalent of `isinstance(val, (float, np.float_))`
 
     Parameters
     ----------

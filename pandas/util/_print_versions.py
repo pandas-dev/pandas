@@ -7,8 +7,11 @@ import os
 import platform
 import struct
 import sys
+from typing import TYPE_CHECKING
 
-from pandas._typing import JSONSerializable
+if TYPE_CHECKING:
+    from pandas._typing import JSONSerializable
+
 from pandas.compat._optional import (
     VERSIONS,
     get_version,
@@ -132,29 +135,3 @@ def show_versions(as_json: str | bool = False) -> None:
         print("")
         for k, v in deps.items():
             print(f"{k:<{maxlen}}: {v}")
-
-
-def main() -> int:
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    parser.add_option(
-        "-j",
-        "--json",
-        metavar="FILE",
-        nargs=1,
-        help="Save output as JSON into file, pass in '-' to output to stdout",
-    )
-
-    (options, args) = parser.parse_args()
-
-    if options.json == "-":
-        options.json = True
-
-    show_versions(as_json=options.json)
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

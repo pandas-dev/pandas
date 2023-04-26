@@ -141,10 +141,9 @@ class TestJoin:
 
         # overlap
         source_copy = source.copy()
-        source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If "
-            "you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns for key 'A'. "
+            "If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -434,7 +433,6 @@ class TestJoin:
             merge(new_df, other_df, left_index=True, right_index=True)
 
     def test_join_float64_float32(self):
-
         a = DataFrame(np.random.randn(10, 2), columns=["a", "b"], dtype=np.float64)
         b = DataFrame(np.random.randn(10, 1), columns=["c"], dtype=np.float32)
         joined = a.join(b)
@@ -616,7 +614,6 @@ class TestJoin:
         tm.assert_frame_equal(result, df)
 
     def test_join_dups(self):
-
         # joining dups
         df = concat(
             [
@@ -746,7 +743,6 @@ class TestJoin:
 
 
 def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix="_y"):
-
     # some smoke tests
     for c in join_col:
         assert result[c].notna().all()
@@ -933,7 +929,6 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
     ],
 )
 def test_join_empty(left_empty, how, exp):
-
     left = DataFrame({"A": [2, 1], "B": [3, 4]}, dtype="int64").set_index("A")
     right = DataFrame({"A": [1], "C": [5]}, dtype="int64").set_index("A")
 
@@ -951,8 +946,48 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
         expected = expected.set_index("A")
     elif exp == "empty":
-        expected = DataFrame(index=Index([]), columns=["B", "C"], dtype="int64")
+        expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how, values",
+    [
+        ("inner", [0, 1, 2]),
+        ("outer", [0, 1, 2]),
+        ("left", [0, 1, 2]),
+        ("right", [0, 2, 1]),
+    ],
+)
+def test_join_multiindex_categorical_output_index_dtype(how, values):
+    # GH#50906
+    df1 = DataFrame(
+        {
+            "a": Categorical([0, 1, 2]),
+            "b": Categorical([0, 1, 2]),
+            "c": [0, 1, 2],
+        }
+    ).set_index(["a", "b"])
+
+    df2 = DataFrame(
+        {
+            "a": Categorical([0, 2, 1]),
+            "b": Categorical([0, 2, 1]),
+            "d": [0, 2, 1],
+        }
+    ).set_index(["a", "b"])
+
+    expected = DataFrame(
+        {
+            "a": Categorical(values),
+            "b": Categorical(values),
+            "c": values,
+            "d": values,
+        }
+    ).set_index(["a", "b"])
+
+    result = df1.join(df2, how=how)
     tm.assert_frame_equal(result, expected)

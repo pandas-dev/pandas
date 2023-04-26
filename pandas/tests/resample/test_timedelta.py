@@ -46,7 +46,6 @@ def test_resample_as_freq_with_subperiod():
 
 
 def test_resample_with_timedeltas():
-
     expected = DataFrame({"A": np.arange(1480)})
     expected = expected.groupby(expected.index // 30).sum()
     expected.index = timedelta_range("0 days", freq="30T", periods=50)
@@ -64,7 +63,6 @@ def test_resample_with_timedeltas():
 
 
 def test_resample_single_period_timedelta():
-
     s = Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
     result = s.resample("2s").sum()
     expected = Series([1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3))
@@ -72,7 +70,6 @@ def test_resample_single_period_timedelta():
 
 
 def test_resample_timedelta_idempotency():
-
     # GH 12072
     index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)
@@ -174,10 +171,12 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_quantile_timedelta():
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_resample_quantile_timedelta(unit):
     # GH: 29485
+    dtype = np.dtype(f"m8[{unit}]")
     df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), unit="s")},
+        {"value": pd.to_timedelta(np.arange(4), unit="s").astype(dtype)},
         index=pd.date_range("20200101", periods=4, tz="UTC"),
     )
     result = df.resample("2D").quantile(0.99)
@@ -189,7 +188,7 @@ def test_resample_quantile_timedelta():
             ]
         },
         index=pd.date_range("20200101", periods=2, tz="UTC", freq="2D"),
-    )
+    ).astype(dtype)
     tm.assert_frame_equal(result, expected)
 
 

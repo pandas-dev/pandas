@@ -16,12 +16,10 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    RangeIndex,
     Series,
     _testing as tm,
     concat,
 )
-from pandas.core.api import Int64Index
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
@@ -51,7 +49,6 @@ def test_format_kwarg_in_constructor(tmp_path, setup_path):
 
 
 def test_api_default_format(tmp_path, setup_path):
-
     # default_format option
     with ensure_clean_store(setup_path) as store:
         df = tm.makeDataFrame()
@@ -94,9 +91,7 @@ def test_api_default_format(tmp_path, setup_path):
 
 
 def test_put(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         ts = tm.makeTimeSeries()
         df = tm.makeTimeDataFrame()
         store["a"] = ts
@@ -127,9 +122,7 @@ def test_put(setup_path):
 
 
 def test_put_string_index(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         index = Index([f"I am a very long string index: {i}" for i in range(20)])
         s = Series(np.arange(20), index=index)
         df = DataFrame({"A": s, "B": s})
@@ -155,7 +148,6 @@ def test_put_string_index(setup_path):
 
 
 def test_put_compression(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeTimeDataFrame()
 
@@ -173,7 +165,6 @@ def test_put_compression_blosc(setup_path):
     df = tm.makeTimeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
-
         # can't compress if format='fixed'
         msg = "Compression not supported on Fixed format stores"
         with pytest.raises(ValueError, match=msg):
@@ -197,7 +188,7 @@ def test_put_mixed_type(setup_path):
     df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
     df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
@@ -231,7 +222,6 @@ def test_store_index_types(setup_path, format, index):
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
         df.index = index(len(df))
 
@@ -248,12 +238,9 @@ def test_column_multiindex(setup_path):
         [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")], names=["first", "second"]
     )
     df = DataFrame(np.arange(12).reshape(3, 4), columns=index)
-    expected = df.copy()
-    if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+    expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
-
         store.put("df", df)
         tm.assert_frame_equal(
             store["df"], expected, check_index_type=True, check_column_type=True
@@ -280,12 +267,9 @@ def test_column_multiindex(setup_path):
 
     # non_index_axes name
     df = DataFrame(np.arange(12).reshape(3, 4), columns=Index(list("ABCD"), name="foo"))
-    expected = df.copy()
-    if isinstance(expected.index, RangeIndex):
-        expected.index = Int64Index(expected.index)
+    expected = df.set_axis(df.index.to_numpy())
 
     with ensure_clean_store(setup_path) as store:
-
         store.put("df1", df, format="table")
         tm.assert_frame_equal(
             store["df1"], expected, check_index_type=True, check_column_type=True
@@ -293,7 +277,6 @@ def test_column_multiindex(setup_path):
 
 
 def test_store_multiindex(setup_path):
-
     # validate multi-index names
     # GH 5527
     with ensure_clean_store(setup_path) as store:

@@ -115,21 +115,15 @@ _all_methods = [
         operator.methodcaller("add", pd.DataFrame(*frame_data)),
     ),
     # TODO: div, mul, etc.
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
-        ),
-        marks=not_implemented_mark,
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
     ),
     pytest.param(
         (
@@ -158,9 +152,7 @@ _all_methods = [
         ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
-    ),
+    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))),
     pytest.param(
         (
             pd.DataFrame,
@@ -185,7 +177,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("corrwith", pd.DataFrame(*frame_data)),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("count")),
@@ -251,7 +242,6 @@ _all_methods = [
             operator.methodcaller("isin", pd.DataFrame({"A": [1]})),
         ),
     ),
-    (pd.DataFrame, frame_data, operator.methodcaller("swapaxes", 0, 1)),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
     pytest.param(
@@ -423,7 +413,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("sum")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("std")),
@@ -489,16 +478,71 @@ def test_finalize_called_eval_numexpr():
         (pd.Series([1]), pd.DataFrame({"A": [1]})),
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
     ],
+    ids=lambda x: f"({type(x[0]).__name__},{type(x[1]).__name__})",
 )
 def test_binops(request, args, annotate, all_binary_operators):
     # This generates 624 tests... Is that needed?
     left, right = args
-    if annotate == "both" and isinstance(left, int) or isinstance(right, int):
-        return
+    if isinstance(left, (pd.DataFrame, pd.Series)):
+        left.attrs = {}
+    if isinstance(right, (pd.DataFrame, pd.Series)):
+        right.attrs = {}
 
+    if annotate == "left" and isinstance(left, int):
+        pytest.skip("left is an int and doesn't support .attrs")
+    if annotate == "right" and isinstance(right, int):
+        pytest.skip("right is an int and doesn't support .attrs")
+
+    if not (isinstance(left, int) or isinstance(right, int)) and annotate != "both":
+        if not all_binary_operators.__name__.startswith("r"):
+            if annotate == "right" and isinstance(left, type(right)):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"{all_binary_operators} doesn't work when right has "
+                        f"attrs and both are {type(left)}"
+                    )
+                )
+            if not isinstance(left, type(right)):
+                if annotate == "left" and isinstance(left, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+                elif annotate == "right" and isinstance(right, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+        else:
+            if annotate == "left" and isinstance(left, type(right)):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason=f"{all_binary_operators} doesn't work when left has "
+                        f"attrs and both are {type(left)}"
+                    )
+                )
+            if not isinstance(left, type(right)):
+                if annotate == "right" and isinstance(right, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
+                elif annotate == "left" and isinstance(left, pd.Series):
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            reason=f"{all_binary_operators} doesn't work when the "
+                            "objects are different Series has attrs"
+                        )
+                    )
     if annotate in {"left", "both"} and not isinstance(left, int):
         left.attrs = {"a": 1}
-    if annotate in {"left", "both"} and not isinstance(right, int):
+    if annotate in {"right", "both"} and not isinstance(right, int):
         right.attrs = {"a": 1}
 
     is_cmp = all_binary_operators in [

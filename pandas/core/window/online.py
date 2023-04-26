@@ -63,7 +63,6 @@ def generate_online_numba_ewma_func(
             for j in numba.prange(len(cur)):
                 if not np.isnan(weighted_avg[j]):
                     if is_observations[j] or not ignore_na:
-
                         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
                         # used in conjunction with vals[i+1]
                         old_wt[j] *= old_wt_factor ** deltas[j - 1]

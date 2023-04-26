@@ -18,14 +18,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -41,6 +33,15 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -102,7 +103,7 @@ class CSVFormatter:
         return self.fmt.decimal
 
     @property
-    def header(self) -> bool | Sequence[str]:
+    def header(self) -> bool | list[str]:
         return self.fmt.header
 
     @property
@@ -245,7 +246,6 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
-
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
                 handles.handle,

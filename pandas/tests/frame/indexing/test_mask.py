@@ -7,6 +7,7 @@ import numpy as np
 from pandas import (
     NA,
     DataFrame,
+    Float64Dtype,
     Series,
     StringDtype,
     Timedelta,
@@ -130,3 +131,22 @@ def test_mask_where_dtype_timedelta():
         [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")]
     )
     tm.assert_frame_equal(df.where(df > Timedelta(2, unit="d")), expected)
+
+
+def test_mask_return_dtype():
+    # GH#50488
+    ser = Series([0.0, 1.0, 2.0, 3.0], dtype=Float64Dtype())
+    cond = ~ser.isna()
+    other = Series([True, False, True, False])
+    excepted = Series([1.0, 0.0, 1.0, 0.0], dtype=ser.dtype)
+    result = ser.mask(cond, other)
+    tm.assert_series_equal(result, excepted)
+
+
+def test_mask_inplace_no_other():
+    # GH#51685
+    df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    cond = DataFrame({"a": [True, False], "b": [False, True]})
+    df.mask(cond, inplace=True)
+    expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
+    tm.assert_frame_equal(df, expected)

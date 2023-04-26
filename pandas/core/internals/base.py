@@ -5,19 +5,13 @@ inherit from this class.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Literal,
-    TypeVar,
     final,
 )
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeObj,
-    Shape,
-)
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import (
@@ -31,11 +25,17 @@ from pandas.core.indexes.api import (
     default_index,
 )
 
-T = TypeVar("T", bound="DataManager")
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeObj,
+        Self,
+        Shape,
+    )
 
 
 class DataManager(PandasObject):
-
     # TODO share more methods/attributes
 
     axes: list[Index]
@@ -74,7 +74,7 @@ class DataManager(PandasObject):
             )
 
     def reindex_indexer(
-        self: T,
+        self,
         new_axis,
         indexer,
         axis: AxisInt,
@@ -82,17 +82,17 @@ class DataManager(PandasObject):
         allow_dups: bool = False,
         copy: bool = True,
         only_slice: bool = False,
-    ) -> T:
+    ) -> Self:
         raise AbstractMethodError(self)
 
     @final
     def reindex_axis(
-        self: T,
+        self,
         new_index: Index,
         axis: AxisInt,
         fill_value=None,
         only_slice: bool = False,
-    ) -> T:
+    ) -> Self:
         """
         Conform data manager to new index.
         """
@@ -107,7 +107,7 @@ class DataManager(PandasObject):
             only_slice=only_slice,
         )
 
-    def _equal_values(self: T, other: T) -> bool:
+    def _equal_values(self, other: Self) -> bool:
         """
         To be implemented by the subclasses. Only check the column values
         assuming shape and indexes have already been checked.
@@ -131,15 +131,15 @@ class DataManager(PandasObject):
         return self._equal_values(other)
 
     def apply(
-        self: T,
+        self,
         f,
         align_keys: list[str] | None = None,
         **kwargs,
-    ) -> T:
+    ) -> Self:
         raise AbstractMethodError(self)
 
     @final
-    def isna(self: T, func) -> T:
+    def isna(self, func) -> Self:
         return self.apply("apply", func=func)
 
     # --------------------------------------------------------------------
@@ -148,7 +148,7 @@ class DataManager(PandasObject):
     def is_consolidated(self) -> bool:
         return True
 
-    def consolidate(self: T) -> T:
+    def consolidate(self) -> Self:
         return self
 
     def _consolidate_inplace(self) -> None:
@@ -186,6 +186,10 @@ class SingleDataManager(DataManager):
             # Note: checking for ndarray instead of np.dtype means we exclude
             #  dt64/td64, which do their own validation.
             value = np_can_hold_element(arr.dtype, value)
+
+        if isinstance(value, np.ndarray) and value.ndim == 1 and len(value) == 1:
+            # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+            value = value[0, ...]
 
         arr[indexer] = value
 

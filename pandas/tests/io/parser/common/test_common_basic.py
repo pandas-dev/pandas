@@ -57,8 +57,8 @@ def test_override_set_noconvert_columns():
             return CParserWrapper._set_noconvert_columns(self)
 
     data = """a,b,c,d,e
-0,1,20140101,0900,4
-0,1,20140102,1000,4"""
+0,1,2014-01-01,09:00,4
+0,1,2014-01-02,10:00,4"""
 
     parse_dates = [[1, 2]]
     cols = {

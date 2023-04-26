@@ -241,6 +241,12 @@ class TestBusinessHour:
 
         assert dt - offset2 == dt + _offset(-3)
 
+    def test_multiply_by_zero(self, dt, offset1, offset2):
+        assert dt - 0 * offset1 == dt
+        assert dt + 0 * offset1 == dt
+        assert dt - 0 * offset2 == dt
+        assert dt + 0 * offset2 == dt
+
     def testRollback1(
         self,
         dt,
@@ -971,6 +977,12 @@ class TestBusinessHour:
         expected = idx1
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
+
+    def test_short_datetimeindex_creation(self):
+        # gh-49835
+        idx4 = date_range(start="2014-07-01 10:00", freq="BH", periods=1)
+        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="BH")
+        tm.assert_index_equal(idx4, expected4)
 
     def test_bday_ignores_timedeltas(self):
         idx = date_range("2010/02/01", "2010/02/10", freq="12H")

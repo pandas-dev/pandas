@@ -54,7 +54,6 @@ class TestReindexSetIndex:
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):
-
         df = DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
@@ -120,6 +119,29 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    @td.skip_array_manager_not_yet_implemented
+    def test_reindex_tzaware_fill_value(self):
+        # GH#52586
+        df = DataFrame([[1]])
+
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        res = df.reindex([0, 1], axis=1, fill_value=ts)
+        assert res.dtypes[1] == pd.DatetimeTZDtype(tz="US/Pacific")
+        expected = DataFrame({0: [1], 1: [ts]})
+        tm.assert_frame_equal(res, expected)
+
+        per = ts.tz_localize(None).to_period("s")
+        res = df.reindex([0, 1], axis=1, fill_value=per)
+        assert res.dtypes[1] == pd.PeriodDtype("s")
+        expected = DataFrame({0: [1], 1: [per]})
+        tm.assert_frame_equal(res, expected)
+
+        interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
+        res = df.reindex([0, 1], axis=1, fill_value=interval)
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[ns, US/Pacific]", "right")
+        expected = DataFrame({0: [1], 1: [interval]})
+        tm.assert_frame_equal(res, expected)
+
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
@@ -133,6 +155,27 @@ class TestDataFrameSelectReindex:
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
+
+    def test_reindex_copies_ea(self, using_copy_on_write):
+        # https://github.com/pandas-dev/pandas/pull/51197
+        # also ensure to honor copy keyword for ExtensionDtypes
+        N = 10
+        df = DataFrame(np.random.randn(N * 10, N), dtype="Float64")
+        cols = np.arange(N)
+        np.random.shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result[0].array._data, df[0].array._data)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result2[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
@@ -674,7 +717,6 @@ class TestDataFrameSelectReindex:
         assert new_frame.empty
 
     def test_reindex_columns_method(self):
-
         # GH 14992, reindexing over columns ignored method
         df = DataFrame(
             data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
@@ -794,7 +836,6 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
-
         # GH4746, reindex on duplicate index error messages
         arr = np.random.randn(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
@@ -808,22 +849,18 @@ class TestDataFrameSelectReindex:
         # reindex fails
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(index=list(range(len(df))))
+            df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
-
         # reindex is invalid!
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar"])
+            df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df.reindex(columns=["bar", "foo"])
+            df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -840,23 +877,22 @@ class TestDataFrameSelectReindex:
         result = df.reindex([0, 1, 3], axis="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex_positional_warns(self):
+    def test_reindex_positional_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
+        # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        expected = DataFrame({"A": [1.0, 2], "B": [4.0, 5], "C": [np.nan, np.nan]})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.reindex([0, 1], ["A", "B", "C"])
-
-        tm.assert_frame_equal(result, expected)
+        msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+        with pytest.raises(TypeError, match=msg):
+            df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis=1)
+            df.reindex([0, 1], columns=["A"], axis=1)
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis="index")
+            df.reindex([0, 1], columns=["A"], axis="index")
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis="index")
@@ -871,7 +907,7 @@ class TestDataFrameSelectReindex:
             df.reindex(index=[0, 1], columns=[0, 1], axis="columns")
 
         with pytest.raises(TypeError, match="Cannot specify all"):
-            df.reindex([0, 1], [0], ["A"])
+            df.reindex(labels=[0, 1], index=[0], columns=["A"])
 
         # Mixing styles
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
@@ -914,9 +950,7 @@ class TestDataFrameSelectReindex:
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-        with tm.assert_produces_warning(FutureWarning) as m:
-            res1 = df.reindex(["b", "a"], ["e", "d"])
-        assert "reindex" in str(m[0].message)
+        res1 = df.reindex(index=["b", "a"], columns=["e", "d"])
         res2 = df.reindex(columns=["e", "d"], index=["b", "a"])
         res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
         for res in [res2, res3]:
@@ -1095,8 +1129,7 @@ class TestDataFrameSelectReindex:
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df2.reindex(["a", "b"])
+            df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"

@@ -156,8 +156,7 @@ class TestGetitemListLike:
 
         idx = idx_type(keys + [missing])
         with pytest.raises(KeyError, match="not in index"):
-            with tm.assert_produces_warning(FutureWarning):
-                frame[idx]
+            frame[idx]
 
     def test_getitem_iloc_generator(self):
         # GH#39614
@@ -246,7 +245,6 @@ class TestGetitemCallable:
 
 class TestGetitemBooleanMask:
     def test_getitem_bool_mask_categorical_index(self):
-
         df3 = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -357,8 +355,7 @@ class TestGetitemBooleanMask:
         df = df_dup_cols
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
-                df[df.A > 6]
+            df[df.A > 6]
 
     def test_getitem_boolean_series_with_duplicate_columns(self, df_dup_cols):
         # boolean indexing
@@ -377,7 +374,6 @@ class TestGetitemBooleanMask:
         str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
-
         # where
         df = DataFrame(
             np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"], dtype="float64"

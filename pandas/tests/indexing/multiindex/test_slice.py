@@ -1,3 +1,8 @@
+from datetime import (
+    datetime,
+    timedelta,
+)
+
 import numpy as np
 import pytest
 
@@ -17,7 +22,6 @@ from pandas.tests.indexing.common import _mklbl
 
 class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
-
         # GH6134
         # example test case
         ix = MultiIndex.from_product(
@@ -160,7 +164,6 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, df.iloc[[1, 3], :])
 
     def test_multiindex_slicers_non_unique(self):
-
         # GH 7106
         # non-unique mi index support
         df = (
@@ -245,15 +248,9 @@ class TestMultiIndexSlicers:
         tm.assert_series_equal(result, expected)
 
     def test_multiindex_slicers_datetimelike(self):
-
         # GH 7429
         # buggy/inconsistent behavior when slicing with datetime-like
-        import datetime
-
-        dates = [
-            datetime.datetime(2012, 1, 1, 12, 12, 12) + datetime.timedelta(days=i)
-            for i in range(6)
-        ]
+        dates = [datetime(2012, 1, 1, 12, 12, 12) + timedelta(days=i) for i in range(6)]
         freq = [1, 2]
         index = MultiIndex.from_product([dates, freq], names=["date", "frequency"])
 
@@ -386,7 +383,6 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
     def test_per_axis_per_level_doc_examples(self):
-
         # test index maker
         idx = pd.IndexSlice
 
@@ -462,7 +458,6 @@ class TestMultiIndexSlicers:
         df.loc(axis=0)[:, :, ["C1", "C3"]] = -10
 
     def test_loc_axis_arguments(self):
-
         index = MultiIndex.from_product(
             [_mklbl("A", 4), _mklbl("B", 2), _mklbl("C", 4), _mklbl("D", 2)]
         )
@@ -529,7 +524,6 @@ class TestMultiIndexSlicers:
                 df.loc(axis=i)[:, :, ["C1", "C3"]]
 
     def test_loc_axis_single_level_multi_col_indexing_multiindex_col_df(self):
-
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
@@ -541,7 +535,6 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_axis_single_level_single_col_indexing_multiindex_col_df(self):
-
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
@@ -554,7 +547,6 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_ax_single_level_indexer_simple_df(self):
-
         # GH29519
         # test single level indexing on single index column data frame
         df = DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
@@ -563,7 +555,6 @@ class TestMultiIndexSlicers:
         tm.assert_series_equal(result, expected)
 
     def test_per_axis_per_level_setitem(self):
-
         # test index maker
         idx = pd.IndexSlice
 
@@ -729,7 +720,7 @@ class TestMultiIndexSlicers:
     def test_multiindex_slice_first_level(self):
         # GH 12697
         freq = ["a", "b", "c", "d"]
-        idx = MultiIndex.from_product([freq, np.arange(500)])
+        idx = MultiIndex.from_product([freq, range(500)])
         df = DataFrame(list(range(2000)), index=idx, columns=["Test"])
         df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
         result = df_slice.loc["a"]
@@ -750,7 +741,7 @@ class TestMultiIndexSlicers:
 
         exp = ymd["A"].copy()
         s[5:] = 0
-        exp.values[5:] = 0
+        exp.iloc[5:] = 0
         tm.assert_numpy_array_equal(s.values, exp.values)
 
         result = ymd[5:]

@@ -20,20 +20,10 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import (
-    AxisInt,
-    IndexKeyFunc,
-    Level,
-    NaPosition,
-    Shape,
-    SortKind,
-    npt,
-)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_extension_array_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
@@ -44,7 +34,21 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas import MultiIndex
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        IndexKeyFunc,
+        Level,
+        NaPosition,
+        Shape,
+        SortKind,
+        npt,
+    )
+
+    from pandas import (
+        MultiIndex,
+        Series,
+    )
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
@@ -78,16 +82,22 @@ def get_indexer_indexer(
         The indexer for the new index.
     """
 
-    target = ensure_key_mapped(target, key, levels=level)
+    # error: Incompatible types in assignment (expression has type
+    # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
+    # type "Index")
+    target = ensure_key_mapped(target, key, levels=level)  # type:ignore[assignment]
     target = target._sort_levels_monotonic()
 
     if level is not None:
         _, indexer = target.sortlevel(
-            level, ascending=ascending, sort_remaining=sort_remaining
+            level,
+            ascending=ascending,
+            sort_remaining=sort_remaining,
+            na_position=na_position,
         )
     elif isinstance(target, ABCMultiIndex):
         indexer = lexsort_indexer(
-            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
+            target.codes, orders=ascending, na_position=na_position, codes_given=True
         )
     else:
         # Check monotonic-ness before sort an index (GH 11080)
@@ -149,7 +159,7 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
@@ -158,9 +168,7 @@ def get_group_index(
     lshape = list(shape)
     if not xnull:
         for i, (lab, size) in enumerate(zip(labels, shape)):
-            lab, size = maybe_lift(lab, size)
-            labels[i] = lab
-            lshape[i] = size
+            labels[i], lshape[i] = maybe_lift(lab, size)
 
     labels = list(labels)
 
@@ -302,15 +310,20 @@ def indexer_from_factorized(
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Callable | None = None
+    keys: list[ArrayLike] | list[Series],
+    orders=None,
+    na_position: str = "last",
+    key: Callable | None = None,
+    codes_given: bool = False,
 ) -> npt.NDArray[np.intp]:
     """
     Performs lexical sorting on a set of keys
 
     Parameters
     ----------
-    keys : sequence of arrays
+    keys : list[ArrayLike] | list[Series]
         Sequence of ndarrays to be sorted by the indexer
+        list[Series] is only if key is not None.
     orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
@@ -321,8 +334,8 @@ def lexsort_indexer(
         Determines placement of NA elements in the sorted list ("last" or "first")
     key : Callable, optional
         Callable key function applied to every element in keys before sorting
-
-        .. versionadded:: 1.0.0
+    codes_given: bool, False
+        Avoid categorical materialization if codes are already provided.
 
     Returns
     -------
@@ -337,39 +350,80 @@ def lexsort_indexer(
     elif orders is None:
         orders = [True] * len(keys)
 
-    keys = [ensure_key_mapped(k, key) for k in keys]
+    # error: Incompatible types in assignment (expression has type
+    # "List[Union[ExtensionArray, ndarray[Any, Any], Index, Series]]", variable
+    # has type "Union[List[Union[ExtensionArray, ndarray[Any, Any]]], List[Series]]")
+    keys = [ensure_key_mapped(k, key) for k in keys]  # type: ignore[assignment]
 
     for k, order in zip(keys, orders):
-        cat = Categorical(k, ordered=True)
-
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
 
-        n = len(cat.categories)
-        codes = cat.codes.copy()
+        if codes_given:
+            mask = k == -1
+            codes = k.copy()
+            n = len(codes)
+            mask_n = n
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "any"
+            if mask.any():  # type: ignore[union-attr]
+                n -= 1
 
-        mask = cat.codes == -1
+        else:
+            cat = Categorical(k, ordered=True)
+            n = len(cat.categories)
+            codes = cat.codes.copy()
+            mask = cat.codes == -1
+            if mask.any():
+                mask_n = n + 1
+            else:
+                mask_n = n
+
         if order:  # ascending
             if na_position == "last":
-                codes = np.where(mask, n, codes)
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(mask, n, codes)  # type: ignore[arg-type]
             elif na_position == "first":
-                codes += 1
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Any, int, ndarray[Any, dtype[signedinteger[Any]]]]",
+                # variable has type "Union[Series, ExtensionArray, ndarray[Any, Any]]")
+                # error: Unsupported operand types for + ("ExtensionArray" and "int")
+                codes += 1  # type: ignore[operator,assignment]
         else:  # not order means descending
             if na_position == "last":
-                codes = np.where(mask, n, n - codes - 1)
+                # error: Unsupported operand types for - ("int" and "ExtensionArray")
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(
+                    mask, n, n - codes - 1  # type: ignore[operator,arg-type]
+                )
             elif na_position == "first":
-                codes = np.where(mask, 0, n - codes)
-        if mask.any():
-            n += 1
+                # error: Unsupported operand types for - ("int" and "ExtensionArray")
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(mask, 0, n - codes)  # type: ignore[operator,arg-type]
 
-        shape.append(n)
+        shape.append(mask_n)
         labels.append(codes)
 
     return indexer_from_factorized(labels, tuple(shape))
 
 
 def nargsort(
-    items,
+    items: ArrayLike | Index | Series,
     kind: str = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
@@ -385,6 +439,7 @@ def nargsort(
 
     Parameters
     ----------
+    items : np.ndarray, ExtensionArray, Index, or Series
     kind : str, default 'quicksort'
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
@@ -398,6 +453,7 @@ def nargsort(
     """
 
     if key is not None:
+        # see TestDataFrameSortKey, TestRangeIndex::test_sort_values_key
         items = ensure_key_mapped(items, key)
         return nargsort(
             items,
@@ -409,16 +465,27 @@ def nargsort(
         )
 
     if isinstance(items, ABCRangeIndex):
-        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+        return items.argsort(ascending=ascending)
     elif not isinstance(items, ABCMultiIndex):
         items = extract_array(items)
-    if mask is None:
-        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
-
-    if is_extension_array_dtype(items):
-        return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
     else:
-        items = np.asanyarray(items)
+        raise TypeError(
+            "nargsort does not support MultiIndex. Use index.sort_values instead."
+        )
+
+    if mask is None:
+        mask = np.asarray(isna(items))
+
+    if not isinstance(items, np.ndarray):
+        # i.e. ExtensionArray
+        return items.argsort(
+            ascending=ascending,
+            # error: Argument "kind" to "argsort" of "ExtensionArray" has
+            # incompatible type "str"; expected "Literal['quicksort',
+            # 'mergesort', 'heapsort', 'stable']"
+            kind=kind,  # type: ignore[arg-type]
+            na_position=na_position,
+        )
 
     idx = np.arange(len(items))
     non_nans = items[~mask]
@@ -535,7 +602,9 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Callable | None, levels=None):
+def ensure_key_mapped(
+    values: ArrayLike | Index | Series, key: Callable | None, levels=None
+) -> ArrayLike | Index | Series:
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -568,8 +637,10 @@ def ensure_key_mapped(values, key: Callable | None, levels=None):
         ):  # convert to a new Index subclass, not necessarily the same
             result = Index(result)
         else:
+            # try to revert to original type otherwise
             type_of_values = type(values)
-            result = type_of_values(result)  # try to revert to original type otherwise
+            #  error: Too many arguments for "ExtensionArray"
+            result = type_of_values(result)  # type: ignore[call-arg]
     except TypeError:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \

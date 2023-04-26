@@ -46,10 +46,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         return getattr(self._parent.array, name)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         if name == "from_coo":
             return self.from_coo(*args, **kwargs)
         elif name == "to_coo":
@@ -193,8 +193,6 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a Series from sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         Series:
@@ -221,14 +219,13 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             self._parent.array.to_dense(),
             index=self._parent.index,
             name=self._parent.name,
+            copy=False,
         )
 
 
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
-
-    .. versionadded:: 0.25.0
     """
 
     def _validate(self, data):
@@ -240,8 +237,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def from_spmatrix(cls, data, index=None, columns=None) -> DataFrame:
         """
         Create a new DataFrame from a scipy sparse matrix.
-
-        .. versionadded:: 0.25.0
 
         Parameters
         ----------
@@ -297,8 +292,6 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Convert a DataFrame with sparse values to dense.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
         DataFrame
@@ -322,11 +315,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Return the contents of the frame as a sparse SciPy COO matrix.
 
-        .. versionadded:: 0.25.0
-
         Returns
         -------
-        coo_matrix : scipy.sparse.spmatrix
+        scipy.sparse.spmatrix
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
@@ -339,6 +330,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
+        >>> df.sparse.to_coo()
+        <4x1 sparse matrix of type '<class 'numpy.int64'>'
+                with 2 stored elements in COOrdinate format>
         """
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
@@ -367,6 +365,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
+        >>> df.sparse.density
+        0.5
         """
         tmp = np.mean([column.array.density for _, column in self._parent.items()])
         return tmp

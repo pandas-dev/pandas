@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -17,20 +16,26 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
+    NA,
     DataFrame,
     MultiIndex,
     Series,
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    ArrowStringArray,
+    StringArray,
+)
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -126,11 +131,66 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
+
+    def test_dtype_backend(self, string_storage, dtype_backend):
+        # GH#50286
+        df = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": [True, False, None],
+                "f": [True, False, True],
+                "g": ["a", "b", "c"],
+                "h": ["a", "b", None],
+            }
+        )
+
+        if string_storage == "python":
+            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
+            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+
+        else:
+            pa = pytest.importorskip("pyarrow")
+            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
+
+        out = df.to_html(index=False)
+        with pd.option_context("mode.string_storage", string_storage):
+            result = self.read_html(out, dtype_backend=dtype_backend)[0]
+
+        expected = DataFrame(
+            {
+                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "b": Series([1, 2, 3], dtype="Int64"),
+                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
+                "e": Series([True, False, NA], dtype="boolean"),
+                "f": Series([True, False, True], dtype="boolean"),
+                "g": string_array,
+                "h": string_array_na,
+            }
+        )
+
+        if dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            from pandas.arrays import ArrowExtensionArray
+
+            expected = DataFrame(
+                {
+                    col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
+                    for col in expected.columns
+                }
+            )
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
     @tm.network(
@@ -271,7 +331,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)
@@ -341,10 +400,8 @@ class TestReadHtml:
                 url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
-    def _bank_data(self, path, *args, **kwargs):
-        return self.read_html(
-            path, match="Metcalf", attrs={"id": "table"}, *args, **kwargs
-        )
+    def _bank_data(self, path, **kwargs):
+        return self.read_html(path, match="Metcalf", attrs={"id": "table"}, **kwargs)
 
     @pytest.mark.slow
     def test_multiindex_header(self, banklist_data):
@@ -625,9 +682,9 @@ class TestReadHtml:
             "Hamilton Bank, NA",
             "The Citizens Savings Bank",
         ]
-        dfnew = df.applymap(try_remove_ws).replace(old, new)
-        gtnew = ground_truth.applymap(try_remove_ws)
-        converted = dfnew._convert(datetime=True, numeric=True)
+        dfnew = df.map(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.map(try_remove_ws)
+        converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
         tm.assert_frame_equal(converted, gtnew)
@@ -1113,9 +1170,8 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_fallback_success(self, datapath):
         banklist_data = datapath("io", "data", "html", "banklist.html")
-        self.read_html(
-            banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"]
-        )  # pylint: disable=redundant-keyword-arg
+
+        self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
@@ -1181,6 +1237,28 @@ class TestReadHtml:
             tm.assert_frame_equal(dfs[1], exp1)
         else:
             assert len(dfs) == 1  # Should not parse hidden table
+
+    @pytest.mark.parametrize("displayed_only", [True, False])
+    def test_displayed_only_with_many_elements(self, displayed_only):
+        html_table = """
+        <table>
+            <tr>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td><span style="display:none"></span>4</td>
+                <td>5</td>
+            </tr>
+        </table>
+        """
+        result = read_html(html_table, displayed_only=displayed_only)[0]
+        expected = DataFrame({"A": [1, 4], "B": [2, 5]})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
@@ -1280,9 +1358,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
@@ -1411,4 +1486,37 @@ class TestReadHtml:
         """
         result = self.read_html(data, extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(data)[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)

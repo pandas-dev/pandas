@@ -31,13 +31,12 @@ class TestCategoricalMissing:
         labels = np.random.randint(0, 10, 20)
         labels[::5] = -1
 
-        cat = Categorical(labels, categories, fastpath=True)
+        cat = Categorical(labels, categories)
         repr(cat)
 
         tm.assert_numpy_array_equal(isna(cat), labels == -1)
 
     def test_nan_handling(self):
-
         # Nans are represented as -1 in codes
         c = Categorical(["a", "b", np.nan, "a"])
         tm.assert_index_equal(c.categories, Index(["a", "b"]))

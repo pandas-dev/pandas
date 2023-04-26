@@ -9,10 +9,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import jit_user_function
+
+if TYPE_CHECKING:
+    from pandas._typing import Scalar
 
 
 @functools.lru_cache(maxsize=None)
@@ -141,7 +143,6 @@ def generate_numba_ewm_func(
                 is_observation = not np.isnan(cur)
                 nobs += is_observation
                 if not np.isnan(weighted):
-
                     if is_observation or not ignore_na:
                         if normalize:
                             # note that len(deltas) = len(vals) - 1 and deltas[i]

@@ -38,7 +38,6 @@ class TestDatetime64:
             freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
         )
         for dti in [dti_naive, dti_tz]:
-
             assert dti.year[0] == 1998
             assert dti.month[0] == 1
             assert dti.day[0] == 1
@@ -281,8 +280,9 @@ class TestDatetime64:
 
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))
+        expected = Index(np.arange(10, dtype=np.int32))
 
-        tm.assert_index_equal(dti.nanosecond, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(dti.nanosecond, expected)
 
 
 def test_iter_readonly():

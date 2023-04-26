@@ -1,20 +1,21 @@
-from datetime import timedelta
+from datetime import (
+    date,
+    timedelta,
+    timezone,
+)
+from decimal import Decimal
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
 
 import pandas as pd
 from pandas import (
     Categorical,
+    DatetimeTZDtype,
     Index,
     Series,
     Timedelta,
@@ -23,11 +24,9 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core import (
-    nanops,
-    ops,
-)
+from pandas.core import ops
 from pandas.core.computation import expressions as expr
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -220,9 +219,6 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from datetime import date
-        from decimal import Decimal
-
         ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
@@ -286,8 +282,21 @@ class TestSeriesArithmetic:
         assert ser.index is dti
         assert ser_utc.index is dti_utc
 
-    def test_arithmetic_with_duplicate_index(self):
+    def test_alignment_categorical(self):
+        # GH13365
+        cat = Categorical(["3z53", "3z53", "LoJG", "LoJG", "LoJG", "N503"])
+        ser1 = Series(2, index=cat)
+        ser2 = Series(2, index=cat[:-1])
+        result = ser1 * ser2
 
+        exp_index = ["3z53"] * 4 + ["LoJG"] * 9 + ["N503"]
+        exp_index = pd.CategoricalIndex(exp_index, categories=cat.categories)
+        exp_values = [4.0] * 13 + [np.nan]
+        expected = Series(exp_values, exp_index)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_arithmetic_with_duplicate_index(self):
         # GH#8363
         # integer ops with a non-unique index
         index = [2, 2, 3, 3, 4]
@@ -303,6 +312,53 @@ class TestSeriesArithmetic:
         other = Series(date_range("20130101", periods=5), index=index)
         result = ser - other
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+    def test_masked_and_non_masked_propagate_na(self):
+        # GH#45810
+        ser1 = Series([0, np.nan], dtype="float")
+        ser2 = Series([0, 1], dtype="Int64")
+        result = ser1 * ser2
+        expected = Series([0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_mask_div_propagate_na_for_non_na_dtype(self):
+        # GH#42630
+        ser1 = Series([15, pd.NA, 5, 4], dtype="Int64")
+        ser2 = Series([15, 5, np.nan, 4])
+        result = ser1 / ser2
+        expected = Series([1.0, pd.NA, pd.NA, 1.0], dtype="Float64")
+        tm.assert_series_equal(result, expected)
+
+        result = ser2 / ser1
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
+    def test_add_list_to_masked_array(self, val, dtype):
+        # GH#22962
+        ser = Series([1, None, 3], dtype="Int64")
+        result = ser + [1, None, val]
+        expected = Series([2, None, 3 + val], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = [1, None, val] + ser
+        tm.assert_series_equal(result, expected)
+
+    def test_add_list_to_masked_array_boolean(self, request):
+        # GH#22962
+        warning = (
+            UserWarning
+            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            else None
+        )
+        ser = Series([True, None, False], dtype="boolean")
+        with tm.assert_produces_warning(warning):
+            result = ser + [True, None, True]
+        expected = Series([True, None, True], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(warning):
+            result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
 
@@ -437,17 +493,6 @@ class TestSeriesComparison:
             assert result.name == names[2]
 
     def test_comparisons(self):
-        left = np.random.randn(10)
-        right = np.random.randn(10)
-        left[:3] = np.nan
-
-        result = nanops.nangt(left, right)
-        with np.errstate(invalid="ignore"):
-            expected = (left > right).astype("O")
-        expected[:3] = np.nan
-
-        tm.assert_almost_equal(result, expected)
-
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
@@ -622,10 +667,19 @@ class TestSeriesComparison:
     )
     def test_comp_ops_df_compat(self, left, right, frame_or_series):
         # GH 1134
-        msg = f"Can only compare identically-labeled {frame_or_series.__name__} objects"
+        # GH 50083 to clarify that index and columns must be identically labeled
         if frame_or_series is not Series:
+            msg = (
+                rf"Can only compare identically-labeled \(both index and columns\) "
+                f"{frame_or_series.__name__} objects"
+            )
             left = left.to_frame()
             right = right.to_frame()
+        else:
+            msg = (
+                f"Can only compare identically-labeled {frame_or_series.__name__} "
+                f"objects"
+            )
 
         with pytest.raises(ValueError, match=msg):
             left == right
@@ -676,7 +730,7 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
-        assert result.index.tz == pytz.UTC
+        assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
@@ -730,6 +784,14 @@ class TestNamePreservation:
         name = op.__name__.strip("_")
         is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
 
+        msg = (
+            r"Logical ops \(and, or, xor\) between Pandas objects and "
+            "dtype-less sequences"
+        )
+        warn = None
+        if box in [list, tuple] and is_logical:
+            warn = FutureWarning
+
         right = box(right)
         if flex:
             if is_logical:
@@ -738,7 +800,8 @@ class TestNamePreservation:
             result = getattr(left, name)(right)
         else:
             # GH#37374 logical ops behaving as set ops deprecated
-            result = op(left, right)
+            with tm.assert_produces_warning(warn, match=msg):
+                result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
@@ -841,7 +904,7 @@ def test_none_comparison(request, series_with_simple_index):
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+    if lib.is_np_dtype(series.dtype, "M") or isinstance(series.dtype, DatetimeTZDtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"
@@ -879,4 +942,12 @@ def test_series_varied_multiindex_alignment():
             names=["xy", "num", "ab"],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_rmod_consistent_large_series():
+    # GH 29602
+    result = Series([2] * 10001).rmod(-1)
+    expected = Series([1] * 10001)
+
     tm.assert_series_equal(result, expected)

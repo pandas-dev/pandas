@@ -35,7 +35,6 @@ class SparseSeriesToFrame:
 
 
 class SparseArrayConstructor:
-
     params = ([0.1, 0.01], [0, np.nan], [np.int64, np.float64, object])
     param_names = ["dense_proportion", "fill_value", "dtype"]
 
@@ -106,7 +105,6 @@ class ToCooFrame:
 
 
 class Arithmetic:
-
     params = ([0.1, 0.01], [0, np.nan])
     param_names = ["dense_proportion", "fill_value"]
 
@@ -131,7 +129,6 @@ class Arithmetic:
 
 
 class ArithmeticBlock:
-
     params = [np.nan, 0]
     param_names = ["fill_value"]
 
@@ -167,7 +164,6 @@ class ArithmeticBlock:
 
 
 class MinMax:
-
     params = (["min", "max"], [0.0, np.nan])
     param_names = ["func", "fill_value"]
 
@@ -181,7 +177,6 @@ class MinMax:
 
 
 class Take:
-
     params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
     param_names = ["indices", "allow_fill"]
 
@@ -210,7 +205,6 @@ class GetItem:
 
 
 class GetItemMask:
-
     params = [True, False, np.nan]
     param_names = ["fill_value"]
 

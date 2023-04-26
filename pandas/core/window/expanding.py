@@ -7,17 +7,6 @@ from typing import (
     Callable,
 )
 
-from pandas._typing import (
-    Axis,
-    QuantileInterpolation,
-    WindowingRankType,
-)
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
-
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
@@ -25,12 +14,9 @@ from pandas.core.indexers.objects import (
     ExpandingIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.common import maybe_warn_args_and_kwargs
 from pandas.core.window.doc import (
     _shared_docs,
-    args_compat,
     create_section_header,
-    kwargs_compat,
     kwargs_numeric_only,
     numba_notes,
     template_header,
@@ -43,6 +29,19 @@ from pandas.core.window.rolling import (
     BaseWindowGroupby,
     RollingAndExpandingMixin,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -73,7 +72,7 @@ class Expanding(RollingAndExpandingMixin):
 
     Returns
     -------
-    ``Expanding`` subclass
+    pandas.api.typing.Expanding
 
     See Also
     --------
@@ -223,9 +222,7 @@ class Expanding(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters(),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -239,27 +236,20 @@ class Expanding(RollingAndExpandingMixin):
     def sum(
         self,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
-        nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters(),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -273,27 +263,20 @@ class Expanding(RollingAndExpandingMixin):
     def max(
         self,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
-        nv.validate_expanding_func("max", args, kwargs)
         return super().max(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters(),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -307,27 +290,20 @@ class Expanding(RollingAndExpandingMixin):
     def min(
         self,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
-        nv.validate_expanding_func("min", args, kwargs)
         return super().min(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters(),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -341,18 +317,13 @@ class Expanding(RollingAndExpandingMixin):
     def mean(
         self,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
-        nv.validate_expanding_func("mean", args, kwargs)
         return super().mean(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
@@ -360,7 +331,6 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         kwargs_numeric_only,
         window_agg_numba_parameters(),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -376,14 +346,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only: bool = False,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "median", None, kwargs)
         return super().median(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
@@ -397,9 +364,7 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters("1.4"),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -438,19 +403,14 @@ class Expanding(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
-        nv.validate_expanding_func("std", args, kwargs)
         return super().std(
             ddof=ddof,
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
@@ -464,9 +424,7 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        args_compat,
         window_agg_numba_parameters("1.4"),
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -505,19 +463,14 @@ class Expanding(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
-        nv.validate_expanding_func("var", args, kwargs)
         return super().var(
             ddof=ddof,
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
-            **kwargs,
         )
 
     @doc(
@@ -531,8 +484,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        args_compat,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -556,15 +507,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="standard error of mean",
         agg_method="sem",
     )
-    def sem(self, ddof: int = 1, numeric_only: bool = False, *args, **kwargs):
-        maybe_warn_args_and_kwargs(type(self), "sem", args, kwargs)
-        return super().sem(ddof=ddof, numeric_only=numeric_only, **kwargs)
+    def sem(self, ddof: int = 1, numeric_only: bool = False):
+        return super().sem(ddof=ddof, numeric_only=numeric_only)
 
     @doc(
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -576,15 +525,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="unbiased skewness",
         agg_method="skew",
     )
-    def skew(self, numeric_only: bool = False, **kwargs):
-        maybe_warn_args_and_kwargs(type(self), "skew", None, kwargs)
-        return super().skew(numeric_only=numeric_only, **kwargs)
+    def skew(self, numeric_only: bool = False):
+        return super().skew(numeric_only=numeric_only)
 
     @doc(
         template_header,
         create_section_header("Parameters"),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -618,9 +565,8 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="Fisher's definition of kurtosis without bias",
         agg_method="kurt",
     )
-    def kurt(self, numeric_only: bool = False, **kwargs):
-        maybe_warn_args_and_kwargs(type(self), "kurt", None, kwargs)
-        return super().kurt(numeric_only=numeric_only, **kwargs)
+    def kurt(self, numeric_only: bool = False):
+        return super().kurt(numeric_only=numeric_only)
 
     @doc(
         template_header,
@@ -642,7 +588,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -656,14 +601,11 @@ class Expanding(RollingAndExpandingMixin):
         quantile: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "quantile", None, kwargs)
         return super().quantile(
             quantile=quantile,
             interpolation=interpolation,
             numeric_only=numeric_only,
-            **kwargs,
         )
 
     @doc(
@@ -687,7 +629,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -734,15 +675,12 @@ class Expanding(RollingAndExpandingMixin):
         ascending: bool = True,
         pct: bool = False,
         numeric_only: bool = False,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "rank", None, kwargs)
         return super().rank(
             method=method,
             ascending=ascending,
             pct=pct,
             numeric_only=numeric_only,
-            **kwargs,
         )
 
     @doc(
@@ -766,7 +704,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -781,15 +718,12 @@ class Expanding(RollingAndExpandingMixin):
         pairwise: bool | None = None,
         ddof: int = 1,
         numeric_only: bool = False,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "cov", None, kwargs)
         return super().cov(
             other=other,
             pairwise=pairwise,
             ddof=ddof,
             numeric_only=numeric_only,
-            **kwargs,
         )
 
     @doc(
@@ -810,7 +744,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
-        kwargs_compat,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
@@ -855,15 +788,12 @@ class Expanding(RollingAndExpandingMixin):
         pairwise: bool | None = None,
         ddof: int = 1,
         numeric_only: bool = False,
-        **kwargs,
     ):
-        maybe_warn_args_and_kwargs(type(self), "corr", None, kwargs)
         return super().corr(
             other=other,
             pairwise=pairwise,
             ddof=ddof,
             numeric_only=numeric_only,
-            **kwargs,
         )
 
 

@@ -9,8 +9,6 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -55,18 +53,15 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            sort
-            and pa_version_under7p0
-            and getattr(obj.dtype, "storage", "") == "pyarrow",
-        ):
-            result_codes, result_uniques = obj.factorize(sort=sort)
+        result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
         if isinstance(obj, MultiIndex):
             constructor = MultiIndex.from_tuples
-        expected_uniques = constructor(obj.unique())
+        expected_arr = obj.unique()
+        if expected_arr.dtype == np.float16:
+            expected_arr = expected_arr.astype(np.float32)
+        expected_uniques = constructor(expected_arr)
         if (
             isinstance(obj, Index)
             and expected_uniques.dtype == bool
@@ -75,11 +70,7 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            with tm.maybe_produces_warning(
-                PerformanceWarning,
-                pa_version_under7p0 and getattr(obj.dtype, "storage", "") == "pyarrow",
-            ):
-                expected_uniques = expected_uniques.sort_values()
+            expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
@@ -103,7 +94,6 @@ class TestFactorize:
         tm.assert_index_equal(uniques, expected_uniques)
 
     def test_basic(self):
-
         codes, uniques = algos.factorize(["a", "b", "b", "a", "a", "c", "c", "c"])
         tm.assert_numpy_array_equal(uniques, np.array(["a", "b", "c"], dtype=object))
 
@@ -144,7 +134,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, exp)
 
     def test_mixed(self):
-
         # doc example reshaping.rst
         x = Series(["A", "A", np.nan, "B", 3.14, np.inf])
         codes, uniques = algos.factorize(x)
@@ -161,7 +150,6 @@ class TestFactorize:
         tm.assert_index_equal(uniques, exp)
 
     def test_datelike(self):
-
         # M8
         v1 = Timestamp("20130101 09:00:00.00004")
         v2 = Timestamp("20130101")
@@ -339,7 +327,7 @@ class TestFactorize:
 
     def test_datetime64_factorize(self, writable):
         # GH35650 Verify whether read-only datetime64 array can be factorized
-        data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
+        data = np.array([np.datetime64("2020-01-01T00:00:00.000")], dtype="M8[ns]")
         data.setflags(write=writable)
         expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
@@ -502,6 +490,32 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
         tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
 
+    @pytest.mark.parametrize(
+        "data, expected_codes, expected_uniques",
+        [
+            (
+                Index(Categorical(["a", "a", "b"])),
+                np.array([0, 0, 1], dtype=np.intp),
+                CategoricalIndex(["a", "b"], categories=["a", "b"], dtype="category"),
+            ),
+            (
+                Series(Categorical(["a", "a", "b"])),
+                np.array([0, 0, 1], dtype=np.intp),
+                CategoricalIndex(["a", "b"], categories=["a", "b"], dtype="category"),
+            ),
+            (
+                Series(DatetimeIndex(["2017", "2017"], tz="US/Eastern")),
+                np.array([0, 0], dtype=np.intp),
+                DatetimeIndex(["2017"], tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_factorize_mixed_values(self, data, expected_codes, expected_uniques):
+        # GH 19721
+        codes, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_index_equal(uniques, expected_uniques)
+
 
 class TestUnique:
     def test_ints(self):
@@ -522,7 +536,6 @@ class TestUnique:
             len(algos.unique(lst))
 
     def test_on_index_object(self):
-
         mindex = MultiIndex.from_arrays(
             [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
         )
@@ -607,13 +620,13 @@ class TestUnique:
     def test_datetime_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
         result = pd.unique(a)
-        expected = np.array(["2000", "2001"], dtype="datetime64[ns]")
+        expected = np.array(["2000", "2001"], dtype="datetime64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta_non_ns(self):
         a = np.array(["2000", "2000", "2001"], dtype="timedelta64[s]")
         result = pd.unique(a)
-        expected = np.array([2000000000000, 2001000000000], dtype="timedelta64[ns]")
+        expected = np.array([2000, 2001], dtype="timedelta64[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_timedelta64_dtype_array_returned(self):
@@ -647,7 +660,6 @@ class TestUnique:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_categorical(self):
-
         # we are expecting to return in the order
         # of appearance
         expected = Categorical(list("bac"))
@@ -852,9 +864,16 @@ class TestUnique:
         tm.assert_extension_array_equal(result, expected)
 
 
+def test_nunique_ints(index_or_series_or_array):
+    # GH#36327
+    values = index_or_series_or_array(np.random.randint(0, 20, 30))
+    result = algos.nunique_ints(values)
+    expected = len(algos.unique(values))
+    assert result == expected
+
+
 class TestIsin:
     def test_invalid(self):
-
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
             r"you passed a \[int\]"
@@ -867,7 +886,6 @@ class TestIsin:
             algos.isin([1], 1)
 
     def test_basic(self):
-
         result = algos.isin([1, 2], [1])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -905,7 +923,6 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_i8(self):
-
         arr = date_range("20130101", periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
@@ -1145,18 +1162,22 @@ class TestValueCounts:
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
         index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index)
+        expected = Series([1, 1, 1, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
         s = [1, 2, 3, 4]
         result = algos.value_counts(s, bins=1)
-        expected = Series([4], index=IntervalIndex.from_tuples([(0.996, 4.0)]))
+        expected = Series(
+            [4], index=IntervalIndex.from_tuples([(0.996, 4.0)]), name="count"
+        )
         tm.assert_series_equal(result, expected)
 
         result = algos.value_counts(s, bins=2, sort=False)
         expected = Series(
-            [2, 2], index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)])
+            [2, 2],
+            index=IntervalIndex.from_tuples([(0.996, 2.5), (2.5, 4.0)]),
+            name="count",
         )
         tm.assert_series_equal(result, expected)
 
@@ -1184,7 +1205,7 @@ class TestValueCounts:
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
-        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1})
+        exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, name="count")
         tm.assert_series_equal(algos.value_counts(dt), exp_dt)
         # TODO same for (timedelta)
 
@@ -1206,7 +1227,7 @@ class TestValueCounts:
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
             dtype=object,
         )
-        exp = Series([3, 2, 1], index=exp_index)
+        exp = Series([3, 2, 1], index=exp_index, name="count")
         tm.assert_series_equal(res, exp)
 
         # GH 12424
@@ -1217,7 +1238,9 @@ class TestValueCounts:
     def test_categorical(self):
         s = Series(Categorical(list("aaabbc")))
         result = s.value_counts()
-        expected = Series([3, 2, 1], index=CategoricalIndex(["a", "b", "c"]))
+        expected = Series(
+            [3, 2, 1], index=CategoricalIndex(["a", "b", "c"]), name="count"
+        )
 
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1234,10 +1257,13 @@ class TestValueCounts:
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"]),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
         result = s.value_counts(dropna=False)
-        expected = Series([4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]))
+        expected = Series(
+            [4, 3, 2, 1], index=CategoricalIndex(["a", "b", "c", np.nan]), name="count"
+        )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # out of order
@@ -1249,8 +1275,11 @@ class TestValueCounts:
         expected = Series(
             [4, 3, 2],
             index=CategoricalIndex(
-                ["a", "b", "c"], categories=["b", "a", "c"], ordered=True
+                ["a", "b", "c"],
+                categories=["b", "a", "c"],
+                ordered=True,
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1260,6 +1289,7 @@ class TestValueCounts:
             index=CategoricalIndex(
                 ["a", "b", "c", np.nan], categories=["b", "a", "c"], ordered=True
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -1272,45 +1302,46 @@ class TestValueCounts:
             index=Categorical(
                 ["b", "a", "c", "d"], categories=list("abcd"), ordered=True
             ),
+            name="count",
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-    def test_dropna(self):
+    def test_value_counts_dropna(self):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=True),
-            Series([2, 1], index=[True, False]),
+            Series([2, 1], index=[True, False], name="count"),
         )
         tm.assert_series_equal(
             Series([True, True, False]).value_counts(dropna=False),
-            Series([2, 1], index=[True, False]),
+            Series([2, 1], index=[True, False], name="count"),
         )
 
         tm.assert_series_equal(
             Series([True] * 3 + [False] * 2 + [None] * 5).value_counts(dropna=True),
-            Series([3, 2], index=Index([True, False], dtype=object)),
+            Series([3, 2], index=Index([True, False], dtype=object), name="count"),
         )
         tm.assert_series_equal(
             Series([True] * 5 + [False] * 3 + [None] * 2).value_counts(dropna=False),
-            Series([5, 3, 2], index=[True, False, np.nan]),
+            Series([5, 3, 2], index=[True, False, np.nan], name="count"),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=False),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
 
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0, None]).value_counts(dropna=True),
-            Series([2, 1], index=[5.0, 10.3]),
+            Series([2, 1], index=[5.0, 10.3], name="count"),
         )
 
         result = Series([10.3, 10.3, 5.0, 5.0, 5.0, None]).value_counts(dropna=False)
-        expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan])
+        expected = Series([3, 2, 1], index=[5.0, 10.3, np.nan], name="count")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", (np.float64, object, "M8[ns]"))
@@ -1320,23 +1351,27 @@ class TestValueCounts:
         s_typed = s.astype(dtype)
         result = s_typed.value_counts(normalize=True, dropna=False)
         expected = Series(
-            [0.5, 0.3, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=dtype)
+            [0.5, 0.3, 0.2],
+            index=Series([np.nan, 2.0, 1.0], dtype=dtype),
+            name="proportion",
         )
         tm.assert_series_equal(result, expected)
 
         result = s_typed.value_counts(normalize=True, dropna=True)
-        expected = Series([0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype))
+        expected = Series(
+            [0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype), name="proportion"
+        )
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
         arr = np.array([2**63], dtype=np.uint64)
-        expected = Series([1], index=[2**63])
+        expected = Series([1], index=[2**63], name="count")
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2**63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2**63])
+        expected = Series([1, 1], index=[-1, 2**63], name="count")
         result = algos.value_counts(arr)
 
         tm.assert_series_equal(result, expected)
@@ -1448,7 +1483,6 @@ class TestDuplicated:
             tm.assert_series_equal(res_false, Series(exp_false))
 
     def test_datetime_likes(self):
-
         dt = [
             "2011-01-01",
             "2011-01-02",
@@ -1714,7 +1748,6 @@ class TestRank:
 
 
 def test_pad_backfill_object_segfault():
-
     old = np.array([], dtype="O")
     new = np.array([datetime(2010, 12, 31)], dtype="O")
 
@@ -1764,7 +1797,7 @@ class TestTseriesUtil:
 
         # corner case
         old = Index([5, 10])
-        new = Index(np.arange(5))
+        new = Index(np.arange(5, dtype=np.int64))
         filler = libalgos.pad["int64_t"](old.values, new.values)
         expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
@@ -2151,8 +2184,7 @@ def test_int64_add_overflow():
             b_mask=np.array([False, True]),
         )
     with pytest.raises(OverflowError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
+        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
 
     # Check that the nan boolean arrays override whether or not
     # the addition overflows. We don't check the result but just

@@ -3,11 +3,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -131,7 +130,6 @@ class TestCategoricalIndex:
         tm.assert_series_equal(result, expected)
 
     def test_slicing_and_getting_ops(self):
-
         # systematically test the slicing operations:
         #  for all slicing ops:
         #   - returning a dataframe
@@ -167,7 +165,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
         # row
         res_row = df.iloc[2, :]
@@ -177,7 +175,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col.dtype)
+        assert isinstance(res_col.dtype, CategoricalDtype)
 
         # single value
         res_val = df.iloc[2, 0]
@@ -187,7 +185,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
         # row
         res_row = df.loc["j", :]
@@ -197,7 +195,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col.dtype)
+        assert isinstance(res_col.dtype, CategoricalDtype)
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -234,26 +232,25 @@ class TestCategoricalIndex:
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col.dtype)
+        assert isinstance(res_col.dtype, CategoricalDtype)
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
+        assert isinstance(res_df["cats"].dtype, CategoricalDtype)
 
     def test_slicing_doc_examples(self):
-
         # GH 7918
         cats = Categorical(
             ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c"]
@@ -425,7 +422,6 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
 
     def test_ix_categorical_index_non_unique(self):
-
         # non-unique
         df = DataFrame(np.random.randn(3, 3), index=list("ABA"), columns=list("XYX"))
         cdf = df.copy()

@@ -25,7 +25,6 @@ class TestConfig:
             yield
 
     def test_api(self):
-
         # the pandas object exposes the user API
         assert hasattr(pd, "get_option")
         assert hasattr(pd, "set_option")

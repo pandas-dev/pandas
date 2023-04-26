@@ -3,13 +3,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    PYPY,
-)
+from pandas.compat import PYPY
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_object_dtype,
 )
@@ -84,40 +80,30 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
-def test_array_wrap_compat():
-    # Note: at time of dask 2022.01.0, this is still used by eg dask
-    # (https://github.com/dask/dask/issues/8580).
-    # This test is a small dummy ensuring coverage
-    orig = Series([1, 2, 3], dtype="int64", index=["a", "b", "c"])
-    with tm.assert_produces_warning(DeprecationWarning):
-        result = orig.__array_wrap__(np.array([2, 4, 6], dtype="int64"))
-    expected = orig * 2
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-def test_memory_usage(index_or_series_obj):
-    obj = index_or_series_obj
+def test_memory_usage(index_or_series_memory_obj):
+    obj = index_or_series_memory_obj
+    # Clear index caches so that len(obj) == 0 report 0 memory usage
+    if isinstance(obj, Series):
+        is_ser = True
+        obj.index._engine.clear_mapping()
+    else:
+        is_ser = False
+        obj._engine.clear_mapping()
 
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
-    is_ser = isinstance(obj, Series)
-    is_object = is_object_dtype(obj) or (
-        isinstance(obj, Series) and is_object_dtype(obj.index)
-    )
-    is_categorical = is_categorical_dtype(obj.dtype) or (
-        isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
+    is_object = is_object_dtype(obj) or (is_ser and is_object_dtype(obj.index))
+    is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
+        is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
     )
     is_object_string = is_dtype_equal(obj, "string[python]") or (
         is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
 
     if len(obj) == 0:
-        if isinstance(obj, Index):
-            expected = 0
-        else:
-            expected = 108 if IS64 else 64
+        expected = 0
         assert res_deep == res == expected
     elif is_object or is_categorical or is_object_string:
         # only deep will pick them up

@@ -11,13 +11,15 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import (
     NumbaUtilError,
     jit_user_function,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import Scalar
 
 
 def validate_udf(func: Callable) -> None:
@@ -105,7 +107,6 @@ def generate_numba_agg_func(
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
-
         assert len(begin) == len(end)
         num_groups = len(begin)
 
@@ -166,7 +167,6 @@ def generate_numba_transform_func(
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
-
         assert len(begin) == len(end)
         num_groups = len(begin)
 

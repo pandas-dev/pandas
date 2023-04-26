@@ -17,11 +17,10 @@ class TestGetNumericData:
         # get the numeric data
         obj = DataFrame({"A": [1, "2", 3.0]})
         result = obj._get_numeric_data()
-        expected = DataFrame(index=[0, 1, 2], dtype=object)
+        expected = DataFrame(dtype=object, index=pd.RangeIndex(3), columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_get_numeric_data(self):
-
         datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
 

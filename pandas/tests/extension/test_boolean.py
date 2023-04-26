@@ -16,6 +16,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_bool_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -174,6 +176,8 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    _combine_le_expected_dtype = "boolean"
+
     def test_factorize(self, data_for_grouping):
         # override because we only have 2 unique values
         labels, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
@@ -182,23 +186,6 @@ class TestMethods(base.BaseMethodsTests):
 
         tm.assert_numpy_array_equal(labels, expected_labels)
         self.assert_extension_array_equal(uniques, expected_uniques)
-
-    def test_combine_le(self, data_repeated):
-        # override because expected needs to be boolean instead of bool dtype
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-            dtype="boolean",
-        )
-        self.assert_series_equal(result, expected)
-
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)], dtype="boolean")
-        self.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         # override because we only have 2 unique values
@@ -311,9 +298,13 @@ class TestGroupby(base.BaseGroupbyTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby("B", group_keys=False).apply(groupby_apply_op)
         df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
-        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby("A", group_keys=False).apply(groupby_apply_op)
         df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
@@ -391,6 +382,19 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestUnaryOps(base.BaseUnaryOpsTests):
     pass
+
+
+class TestAccumulation(base.BaseAccumulateTests):
+    def check_accumulate(self, s, op_name, skipna):
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
+        tm.assert_series_equal(result, expected, check_dtype=False)
+        if op_name in ("cummin", "cummax"):
+            assert is_bool_dtype(result)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
+        pass
 
 
 class TestParsing(base.BaseParsingTests):

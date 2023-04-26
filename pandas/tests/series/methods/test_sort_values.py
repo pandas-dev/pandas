@@ -10,8 +10,7 @@ import pandas._testing as tm
 
 
 class TestSeriesSortValues:
-    def test_sort_values(self, datetime_series):
-
+    def test_sort_values(self, datetime_series, using_copy_on_write):
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
         expected = Series([1, 2, 3, 4], ["D", "B", "A", "C"])
@@ -85,11 +84,14 @@ class TestSeriesSortValues:
             "This Series is a view of some other array, to sort in-place "
             "you must create a copy"
         )
-        with pytest.raises(ValueError, match=msg):
+        if using_copy_on_write:
             s.sort_values(inplace=True)
+            tm.assert_series_equal(s, df.iloc[:, 0].sort_values())
+        else:
+            with pytest.raises(ValueError, match=msg):
+                s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
-
         c = Categorical(["a", "b", "b", "a"], ordered=False)
         cat = Series(c.copy())
 
@@ -187,7 +189,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
-    def test_mergesort_decending_stability(self):
+    def test_mergesort_descending_stability(self):
         # GH 28697
         s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
         result = s.sort_values(ascending=False, kind="mergesort")

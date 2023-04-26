@@ -31,7 +31,7 @@ cdef class Localizer:
         int64_t delta
         int64_t* tdata
 
-    cdef inline int64_t utc_val_to_local_val(
+    cdef int64_t utc_val_to_local_val(
         self,
         int64_t utc_val,
         Py_ssize_t* pos,

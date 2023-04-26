@@ -686,11 +686,19 @@ Parsing mixed-timezones with :func:`read_csv`
 As can be seen, the ``dtype`` is object; each value in the column is a string.
 To convert the strings to an array of datetimes, the ``date_parser`` argument
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'],
-                    date_parser=lambda col: pd.to_datetime(col, utc=True))
-   df.a
+   In [3]: df = pd.read_csv(
+      ...:     io.StringIO(content),
+      ...:     parse_dates=['a'],
+      ...:     date_parser=lambda col: pd.to_datetime(col, utc=True),
+      ...: )
+
+   In [4]: df.a
+   Out[4]:
+   0   1999-12-31 19:00:00+00:00
+   1   1999-12-31 18:00:00+00:00
+   Name: a, dtype: datetime64[ns, UTC]
 
 See :ref:`whatsnew_0240.api.timezone_offset_parsing` for more.
 

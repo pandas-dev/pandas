@@ -13,7 +13,7 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"index_col": 0, "header": None, "parse_dates": True}
+        params = {"index_col": 0, "header": None}
         params.update(**kwargs)
 
         header = params.get("header")
@@ -30,7 +30,7 @@ class TestSeriesToCSV:
 
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
-            ts = self.read_csv(path)
+            ts = self.read_csv(path, parse_dates=True)
             tm.assert_series_equal(datetime_series, ts, check_names=False)
 
             assert ts.name is None
@@ -55,7 +55,7 @@ class TestSeriesToCSV:
             with open(path, "w") as outfile:
                 outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
-            series = self.read_csv(path, sep="|")
+            series = self.read_csv(path, sep="|", parse_dates=True)
             check_series = Series(
                 {datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0}
             )
@@ -66,7 +66,6 @@ class TestSeriesToCSV:
             tm.assert_series_equal(check_series, series)
 
     def test_to_csv(self, datetime_series):
-
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
 
@@ -89,7 +88,6 @@ class TestSeriesToCSV:
         tm.assert_series_equal(s, s2)
 
     def test_to_csv_float_format(self):
-
         with tm.ensure_clean() as filename:
             ser = Series([0.123456, 0.234567, 0.567567])
             ser.to_csv(filename, float_format="%.2f", header=False)
@@ -128,9 +126,7 @@ class TestSeriesToCSV:
         ],
     )
     def test_to_csv_compression(self, s, encoding, compression):
-
         with tm.ensure_clean() as filename:
-
             s.to_csv(filename, compression=compression, encoding=encoding, header=True)
             # test the round trip - to_csv -> read_csv
             result = pd.read_csv(

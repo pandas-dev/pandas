@@ -86,9 +86,9 @@ RUN chmod a+rx /usr/local/bin/workspace_config && \
 # the container to create a conda environment from it
 COPY environment.yml /tmp/environment.yml
 
-RUN mamba env create -f /tmp/environment.yml
 # ---- Create conda environment ----
-RUN conda activate $CONDA_ENV && \
+RUN mamba env create -f /tmp/environment.yml && \
+    conda activate $CONDA_ENV && \
     mamba install ccache -y && \
     # needed for docs rendering later on
     python -m pip install --no-cache-dir sphinx-autobuild && \

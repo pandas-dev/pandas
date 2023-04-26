@@ -3,7 +3,6 @@ timedelta support tools
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -30,6 +29,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
         ArrayLike,
@@ -97,9 +98,9 @@ def to_timedelta(
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
 
-        .. deprecated:: 1.2
+        .. versionchanged:: 2.0
             Strings with units 'M', 'Y' and 'y' do not represent
-            unambiguous timedelta values and will be removed in a future version
+            unambiguous timedelta values and will raise an exception.
 
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
@@ -115,10 +116,7 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        .. versionchanged:: 1.1.0
-
-           Must not be specified when `arg` context strings and
-           ``errors="raise"``.
+        Must not be specified when `arg` context strings and ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -240,7 +238,9 @@ def _convert_listlike(
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+        if not hasattr(arg, "__array__"):
+            arg = list(arg)
+        arg = np.array(arg, dtype=object)
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

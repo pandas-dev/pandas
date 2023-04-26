@@ -8,6 +8,7 @@ from pandas import (
     date_range,
 )
 from pandas.tests.plotting.common import TestPlotBase
+from pandas.util.version import Version
 
 
 class TestFrameLegend(TestPlotBase):
@@ -19,6 +20,7 @@ class TestFrameLegend(TestPlotBase):
     )
     def test_mixed_yerr(self):
         # https://github.com/pandas-dev/pandas/issues/39522
+        import matplotlib as mpl
         from matplotlib.collections import LineCollection
         from matplotlib.lines import Line2D
 
@@ -28,20 +30,29 @@ class TestFrameLegend(TestPlotBase):
         df.plot("x", "b", c="blue", yerr=None, ax=ax, label="blue")
 
         legend = ax.get_legend()
-        result_handles = legend.legendHandles
+        if Version(mpl.__version__) < Version("3.7"):
+            result_handles = legend.legendHandles
+        else:
+            result_handles = legend.legend_handles
 
         assert isinstance(result_handles[0], LineCollection)
         assert isinstance(result_handles[1], Line2D)
 
     def test_legend_false(self):
         # https://github.com/pandas-dev/pandas/issues/40044
+        import matplotlib as mpl
+
         df = DataFrame({"a": [1, 1], "b": [2, 3]})
         df2 = DataFrame({"d": [2.5, 2.5]})
 
         ax = df.plot(legend=True, color={"a": "blue", "b": "green"}, secondary_y="b")
         df2.plot(legend=True, color={"d": "red"}, ax=ax)
         legend = ax.get_legend()
-        result = [handle.get_color() for handle in legend.legendHandles]
+        if Version(mpl.__version__) < Version("3.7"):
+            handles = legend.legendHandles
+        else:
+            handles = legend.legend_handles
+        result = [handle.get_color() for handle in handles]
         expected = ["blue", "green", "red"]
         assert result == expected
 
@@ -54,7 +65,6 @@ class TestFrameLegend(TestPlotBase):
         df4 = DataFrame(np.random.rand(3, 3), columns=["j", "k", "l"])
 
         for kind in kinds:
-
             ax = df.plot(kind=kind, legend=True)
             self._check_legend_labels(ax, labels=df.columns)
 

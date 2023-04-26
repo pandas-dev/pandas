@@ -12,7 +12,6 @@ from typing import (
     List,
     Tuple,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -220,7 +219,6 @@ class TestCommon:
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
-
         if normalize and issubclass(offset, Tick):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
@@ -524,18 +522,21 @@ class TestCommon:
             # We don't have an optimized apply_index
             warn = PerformanceWarning
 
-        with tm.assert_produces_warning(warn):
+        # stacklevel checking is slow, and we have ~800 of variants of this
+        #  test, so let's only check the stacklevel in a subset of them
+        check_stacklevel = tz_naive_fixture is None
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
@@ -566,6 +567,9 @@ class TestCommon:
         off = _create_offset(offset_types)
         assert hash(off) is not None
 
+    @pytest.mark.filterwarnings(
+        "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
+    )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
     def test_add_dt64_ndarray_non_nano(self, offset_types, unit, request):
         # check that the result with non-nano matches nano
@@ -576,25 +580,14 @@ class TestCommon:
         arr = dti._data._ndarray.astype(f"M8[{unit}]")
         dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
 
-        with warnings.catch_warnings(record=True) as w:
-            expected = dti._data + off
-            result = dta + off
+        expected = dti._data + off
+        result = dta + off
 
         exp_unit = unit
         if isinstance(off, Tick) and off._creso > dta._creso:
             # cast to higher reso like we would with Timedelta scalar
             exp_unit = Timedelta(off).unit
         expected = expected.as_unit(exp_unit)
-
-        if len(w):
-            # PerformanceWarning was issued bc _apply_array raised, so we
-            #  fell back to object dtype, for which the code path does
-            #  not yet cast back to the original resolution
-            mark = pytest.mark.xfail(
-                reason="Goes through object dtype in DatetimeArray._add_offset, "
-                "doesn't restore reso in result"
-            )
-            request.node.add_marker(mark)
 
         tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
 
@@ -739,6 +732,33 @@ class TestDateOffset:
 
         assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
+    @pytest.mark.parametrize(
+        "offset_kwargs, expected_arg",
+        [
+            ({"microseconds": 1, "milliseconds": 1}, "2022-01-01 00:00:00.001001"),
+            ({"seconds": 1, "milliseconds": 1}, "2022-01-01 00:00:01.001"),
+            ({"minutes": 1, "milliseconds": 1}, "2022-01-01 00:01:00.001"),
+            ({"hours": 1, "milliseconds": 1}, "2022-01-01 01:00:00.001"),
+            ({"days": 1, "milliseconds": 1}, "2022-01-02 00:00:00.001"),
+            ({"weeks": 1, "milliseconds": 1}, "2022-01-08 00:00:00.001"),
+            ({"months": 1, "milliseconds": 1}, "2022-02-01 00:00:00.001"),
+            ({"years": 1, "milliseconds": 1}, "2023-01-01 00:00:00.001"),
+        ],
+    )
+    def test_milliseconds_combination(self, offset_kwargs, expected_arg):
+        # GH 49897
+        offset = DateOffset(**offset_kwargs)
+        ts = Timestamp("2022-01-01")
+        result = ts + offset
+        expected = Timestamp(expected_arg)
+
+        assert result == expected
+
+    def test_offset_invalid_arguments(self):
+        msg = "^Invalid argument/s or bad combination of arguments"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(picoseconds=1)
+
 
 class TestOffsetNames:
     def test_get_offset_name(self):
@@ -871,12 +891,6 @@ class TestReprNames:
         for name in names:
             offset = _get_offset(name)
             assert offset.freqstr == name
-
-
-def get_utc_offset_hours(ts):
-    # take a Timestamp and compute total hours of utc offset
-    o = ts.utcoffset()
-    return (o.days * 24 * 3600 + o.seconds) / 3600.0
 
 
 # ---------------------------------------------------------------------

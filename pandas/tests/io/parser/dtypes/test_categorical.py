@@ -118,7 +118,6 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
 def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     # see gh-10153
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
@@ -262,7 +261,7 @@ def test_categorical_coerces_timestamp(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype([Timestamp("2014")])}
 
-    data = "b\n2014-01-01\n2014-01-01T00:00:00"
+    data = "b\n2014-01-01\n2014-01-01"
     expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)

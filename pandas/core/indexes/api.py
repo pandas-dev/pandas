@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import textwrap
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -9,7 +12,6 @@ from pandas._libs import (
     NaT,
     lib,
 )
-from pandas._typing import Axis
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
@@ -26,16 +28,12 @@ from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
-from pandas.core.indexes.numeric import (
-    Float64Index,
-    Int64Index,
-    NumericIndex,
-    UInt64Index,
-)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas._typing import Axis
 _sort_msg = textwrap.dedent(
     """\
 Sorting because non-concatenation axis is not aligned. A future version
@@ -51,13 +49,9 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 __all__ = [
     "Index",
     "MultiIndex",
-    "NumericIndex",
-    "Float64Index",
-    "Int64Index",
     "CategoricalIndex",
     "IntervalIndex",
     "RangeIndex",
-    "UInt64Index",
     "InvalidIndexError",
     "TimedeltaIndex",
     "PeriodIndex",
@@ -76,7 +70,11 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -229,9 +227,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
 
     def _unique_indices(inds, dtype) -> Index:
         """
-        Convert indexes to lists and concatenate them, removing duplicates.
-
-        The final dtype is inferred.
+        Concatenate indices and remove duplicates.
 
         Parameters
         ----------
@@ -242,6 +238,12 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         -------
         Index
         """
+        if all(isinstance(ind, Index) for ind in inds):
+            result = inds[0].append(inds[1:]).unique()
+            result = result.astype(dtype, copy=False)
+            if sort:
+                result = result.sort_values()
+            return result
 
         def conv(i):
             if isinstance(i, Index):

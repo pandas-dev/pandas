@@ -343,6 +343,14 @@ def test_scalar_raises():
         pd.array(1)
 
 
+def test_dataframe_raises():
+    # GH#51167 don't accidentally cast to StringArray by doing inference on columns
+    df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+    msg = "Cannot pass DataFrame to 'pandas.array'"
+    with pytest.raises(TypeError, match=msg):
+        pd.array(df)
+
+
 def test_bounds_check():
     # GH21796
     with pytest.raises(
@@ -413,3 +421,11 @@ def test_array_not_registered(registry_without_decimal):
     result = pd.array(data, dtype=DecimalDtype)
     expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
+
+
+def test_array_to_numpy_na():
+    # GH#40638
+    arr = pd.array([pd.NA, 1], dtype="string")
+    result = arr.to_numpy(na_value=True, dtype=bool)
+    expected = np.array([True, True])
+    tm.assert_numpy_array_equal(result, expected)

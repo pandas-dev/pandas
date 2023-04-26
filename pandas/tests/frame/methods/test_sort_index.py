@@ -44,14 +44,12 @@ class TestDataFrameSortIndex:
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
-    # FIXME: the FutureWarning is issued on a setitem-with-expansion
-    #  which will *not* change behavior, so should not get a warning.
-    @pytest.mark.filterwarnings("ignore:.*will attempt to set.*:FutureWarning")
     def test_sort_index_non_existent_label_multiindex(self):
         # GH#12261
         df = DataFrame(0, columns=[], index=MultiIndex.from_product([[], []]))
-        df.loc["b", "2"] = 1
-        df.loc["a", "3"] = 1
+        with tm.assert_produces_warning(None):
+            df.loc["b", "2"] = 1
+            df.loc["a", "3"] = 1
         result = df.sort_index().index.is_monotonic_increasing
         assert result is True
 
@@ -305,7 +303,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_categorical_index(self):
-
         df = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
@@ -476,7 +473,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_ignore_index_multi_index(
         self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
-        # GH 30114, this is to test ignore_index on MulitIndex of index
+        # GH 30114, this is to test ignore_index on MultiIndex of index
         mi = MultiIndex.from_tuples([(2, 1), (3, 4)], names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
@@ -531,7 +528,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_and_reconstruction(self):
-
         # GH#15622
         # lexsortedness should be identical
         # across MultiIndex construction methods
@@ -612,7 +608,6 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
-
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
@@ -682,7 +677,6 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-
         np.random.seed(0)
         data = np.random.randn(3, 4)
 
@@ -912,4 +906,11 @@ class TestDataFrameSortIndexKey:
 
         result = expected.sort_index(level=0)
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_na_position(self):
+        # GH#51612
+        df = DataFrame([1, 2], index=MultiIndex.from_tuples([(1, 1), (1, pd.NA)]))
+        expected = df.copy()
+        result = df.sort_index(level=[0, 1], na_position="last")
         tm.assert_frame_equal(result, expected)

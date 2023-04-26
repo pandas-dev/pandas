@@ -85,7 +85,13 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame):
+    def test_modify_values(self, float_frame, using_copy_on_write):
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                float_frame.values[5] = 5
+            assert (float_frame.values[5] != 5).all()
+            return
+
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
 
@@ -207,7 +213,6 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_conversions(self):
-
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
@@ -259,7 +264,7 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "Unknown string format: aa present at position 0"
+        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
@@ -330,7 +335,6 @@ class TestDataFrameBlockInternals:
         assert float_string_frame._is_mixed_type
 
     def test_stale_cached_series_bug_473(self, using_copy_on_write):
-
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
@@ -340,7 +344,11 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            Y["g"]["c"] = np.NaN
+            if using_copy_on_write:
+                with tm.raises_chained_assignment_error():
+                    Y["g"]["c"] = np.NaN
+            else:
+                Y["g"]["c"] = np.NaN
             repr(Y)
             result = Y.sum()  # noqa
             exp = Y["g"].sum()  # noqa

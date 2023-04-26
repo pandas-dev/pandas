@@ -16,7 +16,6 @@ class TestSetValue:
                 assert float_frame[col][idx] == 1
 
     def test_set_value_resize(self, float_frame):
-
         res = float_frame._set_value("foobar", "B", 0)
         assert res is None
         assert float_frame.index[-1] == "foobar"

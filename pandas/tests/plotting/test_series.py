@@ -5,6 +5,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_linux
+from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -238,6 +240,11 @@ class TestSeriesPlots(TestPlotBase):
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
     def test_bar_log(self):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
@@ -449,8 +456,8 @@ class TestSeriesPlots(TestPlotBase):
     )
     def test_secondary_logy(self, input_logy, expected_scale):
         # GH 25545
-        s1 = Series(np.random.randn(30))
-        s2 = Series(np.random.randn(30))
+        s1 = Series(np.random.randn(100))
+        s2 = Series(np.random.randn(100))
 
         # GH 24980
         ax1 = s1.plot(logy=input_logy)
@@ -573,7 +580,6 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-
         s = Series(np.arange(10), name="x")
         s_err = np.abs(np.random.randn(10))
         d_err = DataFrame(
@@ -807,7 +813,7 @@ class TestSeriesPlots(TestPlotBase):
         "index_name, old_label, new_label",
         [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
-    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh"])
+    @pytest.mark.parametrize("kind", ["line", "area", "bar", "barh", "hist"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
         ser = Series([1, 2, 3, 4])
@@ -818,6 +824,9 @@ class TestSeriesPlots(TestPlotBase):
         if kind == "barh":
             assert ax.get_xlabel() == ""
             assert ax.get_ylabel() == old_label
+        elif kind == "hist":
+            assert ax.get_xlabel() == ""
+            assert ax.get_ylabel() == "Frequency"
         else:
             assert ax.get_ylabel() == ""
             assert ax.get_xlabel() == old_label
@@ -839,3 +848,10 @@ class TestSeriesPlots(TestPlotBase):
         xlims = (3, 1)
         ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
+
+    def test_series_none_color(self):
+        # GH51953
+        series = Series([1, 2, 3])
+        ax = series.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:1]
+        self._check_colors(ax.get_lines(), linecolors=expected)

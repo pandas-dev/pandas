@@ -245,7 +245,6 @@ class TestDataFrameDrop:
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
-
         # GH#19186
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
@@ -405,11 +404,11 @@ class TestDataFrameDrop:
         idx = Index([2, 3, 4, 4, 5], name="id")
         idxdt = pd.to_datetime(
             [
-                "201603231400",
-                "201603231500",
-                "201603231600",
-                "201603231600",
-                "201603231700",
+                "2016-03-23 14:00",
+                "2016-03-23 15:00",
+                "2016-03-23 16:00",
+                "2016-03-23 16:00",
+                "2016-03-23 17:00",
             ]
         )
         df = DataFrame(np.arange(10).reshape(5, 2), columns=list("ab"), index=idx)
@@ -535,4 +534,14 @@ class TestDataFrameDrop:
         expected = DataFrame(
             {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_drop_parse_strings_datetime_index(self):
+        # GH #5355
+        df = DataFrame(
+            {"a": [1, 2], "b": [1, 2]},
+            index=[Timestamp("2000-01-03"), Timestamp("2000-01-04")],
+        )
+        result = df.drop("2000-01-03", axis=0)
+        expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)

@@ -1080,11 +1080,11 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
 
         case JT_UTF8: {
             value = enc->getStringValue(obj, &tc, &szlen);
-            Buffer_Reserve(enc, RESERVE_STRING(szlen));
             if (enc->errorMsg) {
                 enc->endTypeContext(obj, &tc);
                 return;
             }
+            Buffer_Reserve(enc, RESERVE_STRING(szlen));
             Buffer_AppendCharUnchecked(enc, '\"');
 
             if (enc->forceASCII) {

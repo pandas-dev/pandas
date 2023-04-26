@@ -14,7 +14,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_keys(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
         store["b"] = tm.makeStringSeries()
@@ -62,12 +61,10 @@ def test_keys_illegal_include_keyword_value(setup_path):
 
 
 def test_keys_ignore_hdf_softlink(setup_path):
-
     # GH 20523
     # Puts a softlink into HDF file and rereads
 
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"A": range(5), "B": range(5)})
         store.put("df", df)
 

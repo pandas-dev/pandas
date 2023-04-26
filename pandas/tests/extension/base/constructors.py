@@ -22,7 +22,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
-        result = pd.Series(data)
+        result = pd.Series(data, copy=False)
         assert result.dtype == data.dtype
         assert len(result) == len(data)
         if hasattr(result._mgr, "blocks"):
@@ -119,7 +119,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         # GH 33623
         result = pd.DataFrame(columns=["a"], dtype=dtype)
         expected = pd.DataFrame(
-            {"a": pd.array([], dtype=dtype)}, index=pd.Index([], dtype="object")
+            {"a": pd.array([], dtype=dtype)}, index=pd.RangeIndex(0)
         )
         self.assert_frame_equal(result, expected)
 

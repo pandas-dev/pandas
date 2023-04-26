@@ -24,7 +24,7 @@ cdef class _TSObject:
         bint fold
         NPY_DATETIMEUNIT creso
 
-    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso) except? -1
+    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso, str val=*) except? -1
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
@@ -35,11 +35,15 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
                                             int32_t nanos=*,
                                             NPY_DATETIMEUNIT reso=*)
 
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+                                       bint dayfirst=*,
+                                       bint yearfirst=*)
+
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, tzinfo tz)
-cdef int64_t cast_from_unit(object ts, str unit) except? -1
-cpdef (int64_t, int) precision_from_unit(str unit)
+cdef int64_t cast_from_unit(object ts, str unit, NPY_DATETIMEUNIT out_reso=*) except? -1
+cpdef (int64_t, int) precision_from_unit(str unit, NPY_DATETIMEUNIT out_reso=*)
 
 cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso)
 
@@ -52,7 +56,7 @@ cdef tzinfo convert_timezone(
 )
 
 cdef int64_t parse_pydatetime(
-    object val,
+    datetime val,
     npy_datetimestruct *dts,
     bint utc_convert,
 ) except? -1

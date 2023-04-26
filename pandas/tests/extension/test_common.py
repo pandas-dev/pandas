@@ -54,7 +54,6 @@ class TestExtensionArrayDtype:
 
 
 def test_astype():
-
     arr = DummyArray(np.array([1, 2, 3]))
     expected = np.array([1, 2, 3], dtype=object)
 

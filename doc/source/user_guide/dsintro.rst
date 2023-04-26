@@ -413,8 +413,6 @@ first ``namedtuple``, a ``ValueError`` is raised.
 From a list of dataclasses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.1.0
-
 Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivalent to passing a list of dictionaries.
@@ -712,10 +710,8 @@ The ufunc is applied to the underlying array in a :class:`Series`.
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
 
-.. versionchanged:: 0.25.0
-
-   When multiple :class:`Series` are passed to a ufunc, they are aligned before
-   performing the operation.
+When multiple :class:`Series` are passed to a ufunc, they are aligned before
+performing the operation.
 
 Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`

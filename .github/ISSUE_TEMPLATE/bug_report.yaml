@@ -17,7 +17,9 @@ body:
             [latest version](https://pandas.pydata.org/docs/whatsnew/index.html) of pandas.
           required: true
         - label: >
-            I have confirmed this bug exists on the main branch of pandas.
+            I have confirmed this bug exists on the
+            [main branch](https://pandas.pydata.org/docs/dev/getting_started/install.html#installing-the-development-version-of-pandas)
+            of pandas.
   - type: textarea
     id: example
     attributes:

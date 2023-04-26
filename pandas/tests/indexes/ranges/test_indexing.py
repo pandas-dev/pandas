@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import RangeIndex
+from pandas import (
+    Index,
+    RangeIndex,
+)
 import pandas._testing as tm
-from pandas.core.api import Int64Index
 
 
 class TestGetIndexer:
@@ -55,7 +57,7 @@ class TestTake:
         # GH#12631
         idx = RangeIndex(1, 4, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = Int64Index([2, 1, 3], name="xxx")
+        expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value
@@ -65,7 +67,7 @@ class TestTake:
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = Int64Index([2, 1, 3], name="xxx")
+        expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = "Unable to fill values because RangeIndex cannot contain NA"
@@ -86,7 +88,7 @@ class TestWhere:
 
         mask = np.array([True, True, False, False, False])
         result = idx.putmask(mask, 10)
-        expected = Int64Index([10, 10, 2, 3, 4], name="test")
+        expected = Index([10, 10, 2, 3, 4], dtype=np.int64, name="test")
         tm.assert_index_equal(result, expected)
 
         result = idx.where(~mask, 10)

@@ -46,7 +46,7 @@ def mi_styler(mi_df):
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler = mi_styler._copy(deepcopy=True)
-    mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
+    mi_styler.css = {**mi_styler.css, "row": "ROW", "col": "COL"}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
@@ -707,13 +707,13 @@ class TestStyler:
             and isinstance(slice_[-1][-1], list)
             and "C" in slice_[-1][-1]
         ):
-            ctx = pytest.raises(KeyError, match="C")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="C")
         elif (
             isinstance(slice_[0], tuple)
             and isinstance(slice_[0][1], list)
             and 3 in slice_[0][1]
         ):
-            ctx = pytest.raises(KeyError, match="3")  # noqa: PDF010
+            ctx = pytest.raises(KeyError, match="3")
         else:
             ctx = contextlib.nullcontext()
 
@@ -1152,7 +1152,7 @@ class TestStyler:
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-        # test hiding mulitiple columns
+        # test hiding multiple columns
         ctx = df.style.hide(["A", "B"], axis="columns")._translate(True, True)
         assert not ctx["head"][0][1]["is_visible"]
         assert not ctx["head"][0][2]["is_visible"]

@@ -1,4 +1,7 @@
 import numpy as np
+import pytest
+
+from pandas.compat import is_numpy_dev
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -6,6 +9,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import (
+    NA,
     Period,
     Series,
     Timedelta,
@@ -35,7 +39,6 @@ class TestSeriesDescribe:
         tm.assert_series_equal(result, expected)
 
     def test_describe_strs(self):
-
         ser = Series(["a", "a", "b", "c", "d"], name="str_data")
         result = ser.describe()
         expected = Series(
@@ -163,6 +166,12 @@ class TestSeriesDescribe:
             dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
 
         ser = Series([0, 1], dtype=any_numeric_dtype)
+        if dtype == "complex128" and is_numpy_dev:
+            with pytest.raises(
+                TypeError, match=r"^a must be an array of real numbers$"
+            ):
+                ser.describe()
+            return
         result = ser.describe()
         expected = Series(
             [
@@ -177,5 +186,17 @@ class TestSeriesDescribe:
             ],
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
             dtype=dtype,
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_describe_one_element_ea(self):
+        # GH#52515
+        ser = Series([0.0], dtype="Float64")
+        with tm.assert_produces_warning(None):
+            result = ser.describe()
+        expected = Series(
+            [1, 0, NA, 0, 0, 0, 0, 0],
+            dtype="Float64",
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)

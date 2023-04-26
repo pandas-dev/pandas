@@ -9,29 +9,27 @@ _missing_dependencies = []
 for _dependency in _hard_dependencies:
     try:
         __import__(_dependency)
-    except ImportError as _e:
+    except ImportError as _e:  # pragma: no cover
         _missing_dependencies.append(f"{_dependency}: {_e}")
 
-if _missing_dependencies:
+if _missing_dependencies:  # pragma: no cover
     raise ImportError(
         "Unable to import required dependencies:\n" + "\n".join(_missing_dependencies)
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore # noqa:F401
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -135,7 +133,7 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing  # noqa:PDF015
+from pandas import testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -171,7 +169,7 @@ from pandas.io.api import (
     read_spss,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
+from pandas.io.json._normalize import json_normalize
 
 from pandas.util._tester import test
 

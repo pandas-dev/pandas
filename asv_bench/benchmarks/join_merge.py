@@ -23,7 +23,6 @@ except ImportError:
 
 
 class Concat:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -56,7 +55,6 @@ class Concat:
 
 
 class ConcatDataFrames:
-
     params = ([0, 1], [True, False])
     param_names = ["axis", "ignore_index"]
 
@@ -74,9 +72,15 @@ class ConcatDataFrames:
 
 
 class ConcatIndexDtype:
-
     params = (
-        ["datetime64[ns]", "int64", "Int64", "string[python]", "string[pyarrow]"],
+        [
+            "datetime64[ns]",
+            "int64",
+            "Int64",
+            "int64[pyarrow]",
+            "string[python]",
+            "string[pyarrow]",
+        ],
         ["monotonic", "non_monotonic", "has_na"],
         [0, 1],
         [True, False],
@@ -87,7 +91,7 @@ class ConcatIndexDtype:
         N = 10_000
         if dtype == "datetime64[ns]":
             vals = date_range("1970-01-01", periods=N)
-        elif dtype in ("int64", "Int64"):
+        elif dtype in ("int64", "Int64", "int64[pyarrow]"):
             vals = np.arange(N, dtype=np.int64)
         elif dtype in ("string[python]", "string[pyarrow]"):
             vals = tm.makeStringIndex(N)
@@ -114,7 +118,6 @@ class ConcatIndexDtype:
 
 
 class Join:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -223,7 +226,6 @@ class JoinNonUnique:
 
 
 class Merge:
-
     params = [True, False]
     param_names = ["sort"]
 
@@ -274,7 +276,6 @@ class Merge:
 
 
 class MergeEA:
-
     params = [
         "Int64",
         "Int32",
@@ -306,7 +307,6 @@ class MergeEA:
 
 
 class I8Merge:
-
     params = ["inner", "outer", "left", "right"]
     param_names = ["how"]
 

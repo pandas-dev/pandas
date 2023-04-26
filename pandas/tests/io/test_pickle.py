@@ -15,7 +15,6 @@ import bz2
 import datetime
 import functools
 from functools import partial
-import glob
 import gzip
 import io
 import os
@@ -24,10 +23,7 @@ import pickle
 import shutil
 import tarfile
 import uuid
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
+from warnings import catch_warnings
 import zipfile
 
 import numpy as np
@@ -37,8 +33,8 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
-from pandas.compat._compressors import flatten_buffer
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.compressors import flatten_buffer
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -56,7 +52,7 @@ from pandas.tseries.offsets import (
 )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
@@ -83,15 +79,6 @@ def compare_element(result, expected, typ):
     else:
         comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
-
-
-legacy_dirname = os.path.join(os.path.dirname(__file__), "data", "legacy_pickle")
-files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
-
-
-@pytest.fixture(params=files)
-def legacy_pickle(request, datapath):
-    return datapath(request.param)
 
 
 # ---------------------
@@ -128,12 +115,13 @@ def test_flatten_buffer(data):
         assert result.shape == (result.nbytes,)
 
 
-def test_pickles(legacy_pickle):
+def test_pickles(datapath):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    with catch_warnings(record=True):
-        simplefilter("ignore")
+    # For loop for compat with --strict-data-files
+    for legacy_pickle in Path(__file__).parent.glob("data/legacy_pickle/*/*.p*kl*"):
+        legacy_pickle = datapath(legacy_pickle)
 
         data = pd.read_pickle(legacy_pickle)
 
@@ -209,7 +197,6 @@ def test_round_trip_current(current_pickle_data, pickle_writer, writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
-
             with tm.ensure_clean() as path:
                 # test writing with each pickler
                 pickle_writer(expected, path)
@@ -254,8 +241,7 @@ def get_random_path():
 
 
 class TestCompression:
-
-    _extension_to_compression = icom._extension_to_compression
+    _extension_to_compression = icom.extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:
@@ -550,7 +536,6 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-
     unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
     assert unpickled.name == name
 
@@ -589,11 +574,17 @@ def test_pickle_big_dataframe_compression(protocol, compression):
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_frame_v124_unpickle_130():
+def test_pickle_frame_v124_unpickle_130(datapath):
     # GH#42345 DataFrame created in 1.2.x, unpickle in 1.3.x
-    path = os.path.join(legacy_dirname, "1.2.4", "empty_frame_v1_2_4-GH#42345.pkl")
+    path = datapath(
+        Path(__file__).parent,
+        "data",
+        "legacy_pickle",
+        "1.2.4",
+        "empty_frame_v1_2_4-GH#42345.pkl",
+    )
     with open(path, "rb") as fd:
         df = pickle.load(fd)
 
-    expected = pd.DataFrame()
+    expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)

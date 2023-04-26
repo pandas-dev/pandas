@@ -73,7 +73,6 @@ class TestRangeIndexConstructors:
             RangeIndex(args)
 
     def test_constructor_same(self):
-
         # pass thru w and w/o copy
         index = RangeIndex(1, 5, 2)
         result = RangeIndex(index, copy=False)
@@ -97,7 +96,6 @@ class TestRangeIndexConstructors:
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_constructor_range(self):
-
         result = RangeIndex.from_range(range(1, 5, 2))
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)

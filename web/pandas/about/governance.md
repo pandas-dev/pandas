@@ -3,7 +3,7 @@
 The official version of this document, along with a list of
 individuals and institutions in the roles defined in the governance
 section below, is contained in the
-[Project governance](https://pandas.pydata.org/about/governance.html)
+[Project governance]({{ base_url }}about/governance.html)
 page of the pandas website.
 
 ## The Project

@@ -7,6 +7,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
 )
 import pandas._testing as tm
@@ -85,7 +86,7 @@ class TestFromDict:
         expected = DataFrame.from_dict(sdict, orient="index")
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
-        result2 = DataFrame(data, index=np.arange(6))
+        result2 = DataFrame(data, index=np.arange(6, dtype=np.int64))
         tm.assert_frame_equal(result, result2)
 
         result = DataFrame([Series(dtype=object)])
@@ -152,21 +153,26 @@ class TestFromDict:
             DataFrame.from_dict({"A": [1, 2], "B": [4, 5]}, columns=["one", "two"])
 
     @pytest.mark.parametrize(
-        "data_dict, keys, orient",
+        "data_dict, orient, expected",
         [
-            ({}, [], "index"),
-            ([{("a",): 1}, {("a",): 2}], [("a",)], "columns"),
-            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)], "columns"),
-            ([{("a", "b"): 1}], [("a", "b")], "columns"),
+            ({}, "index", RangeIndex(0)),
+            (
+                [{("a",): 1}, {("a",): 2}],
+                "columns",
+                Index([("a",)], tupleize_cols=False),
+            ),
+            (
+                [OrderedDict([(("a",), 1), (("b",), 2)])],
+                "columns",
+                Index([("a",), ("b",)], tupleize_cols=False),
+            ),
+            ([{("a", "b"): 1}], "columns", Index([("a", "b")], tupleize_cols=False)),
         ],
     )
-    def test_constructor_from_dict_tuples(self, data_dict, keys, orient):
+    def test_constructor_from_dict_tuples(self, data_dict, orient, expected):
         # GH#16769
         df = DataFrame.from_dict(data_dict, orient)
-
         result = df.columns
-        expected = Index(keys, dtype="object", tupleize_cols=False)
-
         tm.assert_index_equal(result, expected)
 
     def test_frame_dict_constructor_empty_series(self):

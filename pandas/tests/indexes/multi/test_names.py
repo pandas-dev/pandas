@@ -84,7 +84,6 @@ def test_copy_names():
 
 
 def test_names(idx, index_names):
-
     # names are assigned in setup
     assert index_names == ["first", "second"]
     level_names = [level.name for level in idx.levels]
@@ -146,7 +145,6 @@ def test_setting_names_from_levels_raises():
         new.index.name = "bar"
 
     assert pd.Index._no_setting_name is False
-    assert pd.core.api.NumericIndex._no_setting_name is False
     assert pd.RangeIndex._no_setting_name is False
 
 

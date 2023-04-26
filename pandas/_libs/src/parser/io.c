@@ -67,7 +67,7 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
 
     func = PyObject_GetAttrString(src->obj, "read");
 
-    /* TODO: does this release the GIL? */
+    /* Note: PyObject_CallObject requires the GIL */
     result = PyObject_CallObject(func, args);
     Py_XDECREF(args);
     Py_XDECREF(func);

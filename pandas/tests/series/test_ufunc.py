@@ -5,6 +5,8 @@ import string
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -286,11 +288,10 @@ class TestNumpyReductions:
                 expected = obj.prod(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'prod'
+                # Index has no 'prod'
                 expected = obj._values.prod()
                 assert result == expected
             else:
-
                 expected = obj.prod()
                 assert result == expected
         else:
@@ -317,7 +318,7 @@ class TestNumpyReductions:
                 expected = obj.sum(numeric_only=False)
                 tm.assert_series_equal(result, expected)
             elif box is pd.Index:
-                # Int64Index, Index has no 'sum'
+                # Index has no 'sum'
                 expected = obj._values.sum()
                 assert result == expected
             else:
@@ -426,14 +427,10 @@ def test_np_matmul():
     # GH26650
     df1 = pd.DataFrame(data=[[-1, 1, 10]])
     df2 = pd.DataFrame(data=[-1, 1, 10])
-    expected_result = pd.DataFrame(data=[102])
+    expected = pd.DataFrame(data=[102])
 
-    with tm.assert_produces_warning(FutureWarning, match="on non-aligned"):
-        result = np.matmul(df1, df2)
-    tm.assert_frame_equal(
-        expected_result,
-        result,
-    )
+    result = np.matmul(df1, df2)
+    tm.assert_frame_equal(expected, result)
 
 
 def test_array_ufuncs_for_many_arguments():
@@ -456,3 +453,14 @@ def test_array_ufuncs_for_many_arguments():
     )
     with pytest.raises(NotImplementedError, match=re.escape(msg)):
         ufunc(ser, ser, df)
+
+
+# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
+@td.skip_copy_on_write_not_yet_implemented
+def test_np_fix():
+    # np.fix is not a ufunc but is composed of several ufunc calls under the hood
+    # with `out` and `where` keywords
+    ser = pd.Series([-1.5, -0.5, 0.5, 1.5])
+    result = np.fix(ser)
+    expected = pd.Series([-1.0, -0.0, 0.0, 1.0])
+    tm.assert_series_equal(result, expected)

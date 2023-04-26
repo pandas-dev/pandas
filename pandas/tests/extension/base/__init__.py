@@ -41,6 +41,7 @@ by defining the staticmethods ``assert_frame_equal`` and
 ``assert_series_equal`` on your base test class.
 
 """
+from pandas.tests.extension.base.accumulate import BaseAccumulateTests  # noqa
 from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
 from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
 from pandas.tests.extension.base.dim2 import (  # noqa

@@ -250,7 +250,6 @@ class TestJSONNormalize:
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
-
         result = json_normalize(
             deep_nested, ["states", "cities"], meta=["country", ["states", "name"]]
         )
@@ -398,7 +397,7 @@ class TestJSONNormalize:
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
-            + b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
+            b'{"\xc3\x9cnic\xc3\xb8de":1,"sub":{"A":3, "B":4}}]'
         ).decode("utf8")
 
         testdata = {
@@ -871,13 +870,6 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
-
-    def test_deprecated_import(self):
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.io.json import json_normalize  # pylint: disable=reimported
-
-            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
-            json_normalize(recs)
 
     def test_series_non_zero_index(self):
         # GH 19020

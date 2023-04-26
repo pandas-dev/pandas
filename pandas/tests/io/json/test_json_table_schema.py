@@ -190,7 +190,6 @@ class TestTableSchemaType:
     @pytest.mark.parametrize(
         "date_dtype",
         [
-            np.datetime64,
             np.dtype("<M8[ns]"),
             PeriodDtype("D"),
             DatetimeTZDtype("ns", "US/Central"),
@@ -200,7 +199,7 @@ class TestTableSchemaType:
         # TODO: datedate.date? datetime.time?
         assert as_json_table_type(date_dtype) == "datetime"
 
-    @pytest.mark.parametrize("td_dtype", [np.timedelta64, np.dtype("<m8[ns]")])
+    @pytest.mark.parametrize("td_dtype", [np.dtype("<m8[ns]")])
     def test_as_json_table_type_timedelta_dtypes(self, td_dtype):
         assert as_json_table_type(td_dtype) == "duration"
 
@@ -260,9 +259,6 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_to_json(self, df_table):
         df = df_table
         df.index.name = "idx"
@@ -439,9 +435,6 @@ class TestTableOrient:
 
         assert result == expected
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_date_format_raises(self, df_table):
         msg = (
             "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
@@ -785,9 +778,6 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.filterwarnings(
-        "ignore:an integer is required (got type float)*:DeprecationWarning"
-    )
     def test_comprehensive(self):
         df = DataFrame(
             {

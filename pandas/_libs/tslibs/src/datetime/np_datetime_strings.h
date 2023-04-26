@@ -19,12 +19,26 @@ This file implements string parsing and creation for NumPy datetime.
 
 */
 
-#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
-#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
+
+/* 'format_requirement' can be one of three values:
+ *      * PARTIAL_MATCH : Only require a partial match with 'format'.
+ *           For example, if the string is '2020-01-01 05:00:00' and
+ *           'format' is '%Y-%m-%d', then parse '2020-01-01';
+ *      * EXACT_MATCH : require an exact match with 'format'. If the
+ *           string is '2020-01-01', then the only format which will
+ *           be able to parse it without error is '%Y-%m-%d';
+ *      * INFER_FORMAT: parse without comparing 'format' (i.e. infer it).
+ */
+typedef enum  {
+    PARTIAL_MATCH,
+    EXACT_MATCH,
+    INFER_FORMAT
+} FormatRequirement;
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -61,7 +75,7 @@ parse_iso_8601_datetime(const char *str, int len, int want_exc,
                         int *out_tzoffset,
                         const char* format,
                         int format_len,
-                        int exact);
+                        FormatRequirement format_requirement);
 
 /*
  * Provides a string length to use for converting datetime
@@ -93,4 +107,3 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
  */
 int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
                             size_t *outlen);
-#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

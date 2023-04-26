@@ -430,7 +430,6 @@ class HTMLFormatter:
 
         row: list[str] = []
         for i in range(nrows):
-
             if is_truncated_vertically and i == (self.fmt.tr_row_num):
                 str_sep_row = ["..."] * len(row)
                 self.write_tr(

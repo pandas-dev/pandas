@@ -228,7 +228,6 @@ class TestMelt:
         tm.assert_frame_equal(result14, expected14)
 
     def test_custom_var_and_value_name(self, df, value_name, var_name):
-
         result15 = df.melt(var_name=var_name, value_name=value_name)
         assert result15.columns.tolist() == ["var", "val"]
 
@@ -417,6 +416,24 @@ class TestMelt:
         result = df.melt(id_vars=["a"], value_vars=["b"])
         expected = DataFrame(
             [["id", "b", 2], ["id", "b", 3]], columns=["a", "variable", "value"]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int8", "Int64"])
+    def test_melt_ea_dtype(self, dtype):
+        # GH#41570
+        df = DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="Int8"),
+                "b": pd.Series([3, 4], dtype=dtype),
+            }
+        )
+        result = df.melt()
+        expected = DataFrame(
+            {
+                "variable": ["a", "a", "b", "b"],
+                "value": pd.Series([1, 2, 3, 4], dtype=dtype),
+            }
         )
         tm.assert_frame_equal(result, expected)
 
@@ -640,9 +657,6 @@ class TestLreshape:
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            lreshape(df, spec, dropna=False, label="foo")
-
         spec = {
             "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
             "wt": [f"wt{i:d}" for i in range(1, 4)],
@@ -816,7 +830,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
@@ -879,7 +893,7 @@ class TestWideToLong:
             "A": [],
             "B": [],
         }
-        expected = DataFrame(exp_data).astype({"year": "int"})
+        expected = DataFrame(exp_data).astype({"year": np.int64})
 
         expected = expected.set_index(["id", "year"])
         expected.index = expected.index.set_levels([0, 1], level=0)

@@ -15,13 +15,21 @@ from pandas import (
     Interval,
     RangeIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
 
 class TestFromRecords:
-    def test_from_records_with_datetimes(self):
+    def test_from_records_dt64tz_frame(self):
+        # GH#51162 don't lose tz when calling from_records with DataFrame input
+        dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
+        df = DataFrame({i: dti for i in range(4)})
+        with tm.assert_produces_warning(FutureWarning):
+            res = DataFrame.from_records(df)
+        tm.assert_frame_equal(res, df)
 
+    def test_from_records_with_datetimes(self):
         # this may fail on certain platforms because of a numpy issue
         # related GH#6140
         if not is_platform_little_endian():
@@ -64,7 +72,7 @@ class TestFromRecords:
 
         # this is actually tricky to create the recordlike arrays and
         # have the dtypes be intact
-        blocks = df._to_dict_of_blocks()
+        blocks = df._to_dict_of_blocks(copy=False)
         tuples = []
         columns = []
         dtypes = []
@@ -129,7 +137,6 @@ class TestFromRecords:
         assert len(result.columns) == 0
 
     def test_from_records_dictlike(self):
-
         # test the dict methods
         df = DataFrame(
             {
@@ -146,7 +153,7 @@ class TestFromRecords:
 
         # columns is in a different order here than the actual items iterated
         # from the dict
-        blocks = df._to_dict_of_blocks()
+        blocks = df._to_dict_of_blocks(copy=False)
         columns = []
         for b in blocks.values():
             columns.extend(b.columns)
@@ -171,29 +178,34 @@ class TestFromRecords:
         df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
 
         data = np.random.randn(10)
-        df1 = DataFrame.from_records(df, index=data)
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index=data)
         tm.assert_index_equal(df1.index, Index(data))
 
     def test_from_records_bad_index_column(self):
         df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
 
         # should pass
-        df1 = DataFrame.from_records(df, index=["C"])
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index=["C"])
         tm.assert_index_equal(df1.index, Index(df.C))
 
-        df1 = DataFrame.from_records(df, index="C")
+        with tm.assert_produces_warning(FutureWarning):
+            df1 = DataFrame.from_records(df, index="C")
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
         msg = "|".join(
             [
-                r"Length of values \(10\) does not match length of index \(1\)",
+                r"'None of \[2\] are in the columns'",
             ]
         )
-        with pytest.raises(ValueError, match=msg):
-            DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=r"^2$"):
-            DataFrame.from_records(df, index=2)
+        with pytest.raises(KeyError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                DataFrame.from_records(df, index=[2])
+        with pytest.raises(KeyError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
         class Record:
@@ -359,7 +371,6 @@ class TestFromRecords:
         assert columns == original_columns
 
     def test_from_records_decimal(self):
-
         tuples = [(Decimal("1.5"),), (Decimal("2.5"),), (None,)]
 
         df = DataFrame.from_records(tuples, columns=["a"])

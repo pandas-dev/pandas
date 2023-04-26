@@ -2,6 +2,7 @@ from collections import (
     abc,
     deque,
 )
+from datetime import datetime
 from decimal import Decimal
 from typing import Iterator
 from warnings import (
@@ -50,7 +51,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_array_manager):
+    def test_concat_copy(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -58,8 +59,16 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for arr in result._mgr.arrays:
-            assert arr.base is None
+        if not using_copy_on_write:
+            for arr in result._mgr.arrays:
+                assert not any(
+                    np.shares_memory(arr, y)
+                    for x in [df, df2, df3]
+                    for y in x._mgr.arrays
+                )
+        else:
+            for arr in result._mgr.arrays:
+                assert arr.base is not None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
@@ -81,7 +90,7 @@ class TestConcatenate:
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_array_manager:
+                if using_array_manager or using_copy_on_write:
                     # this is a view on some array in either df or df4
                     assert any(
                         np.shares_memory(arr, other)
@@ -266,7 +275,6 @@ class TestConcatenate:
         concat([df1, df2], sort=sort)
 
     def test_concat_mixed_objs(self):
-
         # concat mixed series/frames
         # G2385
 
@@ -334,8 +342,7 @@ class TestConcatenate:
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_coerceion(self):
-
+    def test_dtype_coercion(self):
         # 12411
         df = DataFrame({"date": [pd.Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
 
@@ -343,11 +350,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
         # 12045
-        import datetime
-
-        df = DataFrame(
-            {"date": [datetime.datetime(2012, 1, 1), datetime.datetime(1012, 1, 2)]}
-        )
+        df = DataFrame({"date": [datetime(2012, 1, 1), datetime(1012, 1, 2)]})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
@@ -412,7 +415,6 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_3602(self):
-
         # GH 3602, duplicate columns
         df1 = DataFrame(
             {
@@ -745,11 +747,13 @@ def test_concat_retain_attrs(data):
 @td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
-def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
+def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     # https://github.com/pandas-dev/pandas/issues/45637
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
+
     result = concat([empty, df])
+
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -766,7 +770,6 @@ def test_concat_ignore_emtpy_object_float(empty_dtype, df_dtype):
 def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame({"foo": [np.nan], "bar": [np.nan]}, dtype=empty_dtype)
-    result = concat([empty, df], ignore_index=True)
 
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -774,6 +777,17 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
             df_dtype = "object"
         else:
             df_dtype = "float64"
+
+    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    warn = None
+    if empty_dtype != df_dtype and empty_dtype is not None:
+        warn = FutureWarning
+    elif df_dtype == "datetime64[ns]":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        result = concat([empty, df], ignore_index=True)
+
     expected = DataFrame({"foo": [None, 1, 2], "bar": [None, 1, 2]}, dtype=df_dtype)
     tm.assert_frame_equal(result, expected)
 
@@ -784,6 +798,27 @@ def test_concat_ignore_empty_from_reindex():
     df1 = DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})
     df2 = DataFrame({"a": [2]})
 
-    result = concat([df1, df2.reindex(columns=df1.columns)], ignore_index=True)
+    aligned = df2.reindex(columns=df1.columns)
+
+    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = concat([df1, aligned], ignore_index=True)
     expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_mismatched_keys_length():
+    # GH#43485
+    ser = Series(range(5))
+    sers = [ser + n for n in range(4)]
+    keys = ["A", "B", "C"]
+
+    msg = r"The behavior of pd.concat with len\(keys\) != len\(objs\) is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat(sers, keys=keys, axis=1)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat(sers, keys=keys, axis=0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=1)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        concat((x for x in sers), keys=(y for y in keys), axis=0)

@@ -173,7 +173,6 @@ def test_numpy_zero_dim_ndarray(other):
 
 
 def test_error_invalid_values(data, all_arithmetic_operators):
-
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
@@ -262,7 +261,6 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 
 
 def test_cross_type_arithmetic():
-
     df = pd.DataFrame(
         {
             "A": pd.Series([1, 2, np.nan], dtype="Int64"),

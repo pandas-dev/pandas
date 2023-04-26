@@ -44,16 +44,18 @@ class TestMultiIndexLoc:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self):
-
+    def test_loc_getitem_general(self, any_real_numpy_dtype):
         # GH#2817
+        dtype = any_real_numpy_dtype
         data = {
             "amount": {0: 700, 1: 600, 2: 222, 3: 333, 4: 444},
             "col": {0: 3.5, 1: 3.5, 2: 4.0, 3: 4.0, 4: 4.0},
-            "year": {0: 2012, 1: 2011, 2: 2012, 3: 2012, 4: 2012},
+            "num": {0: 12, 1: 11, 2: 12, 3: 12, 4: 12},
         }
-        df = DataFrame(data).set_index(keys=["col", "year"])
-        key = 4.0, 2012
+        df = DataFrame(data)
+        df = df.astype({"col": dtype, "num": dtype})
+        df = df.set_index(keys=["col", "num"])
+        key = 4.0, 12
 
         # emits a PerformanceWarning, ok
         with tm.assert_produces_warning(PerformanceWarning):
@@ -64,8 +66,10 @@ class TestMultiIndexLoc:
         assert return_value is None
         res = df.loc[key]
 
-        # col has float dtype, result should be Float64Index
-        index = MultiIndex.from_arrays([[4.0] * 3, [2012] * 3], names=["col", "year"])
+        # col has float dtype, result should be float64 Index
+        col_arr = np.array([4.0] * 3, dtype=dtype)
+        year_arr = np.array([12] * 3, dtype=dtype)
+        index = MultiIndex.from_arrays([col_arr, year_arr], names=["col", "num"])
         expected = DataFrame({"amount": [222, 333, 444]}, index=index)
         tm.assert_frame_equal(res, expected)
 
@@ -223,7 +227,6 @@ class TestMultiIndexLoc:
             s.loc["a", "d", "g", "j"]
 
     def test_loc_multiindex_indexer_none(self):
-
         # GH6788
         # multi-index indexer is None (meaning take all)
         attributes = ["Attribute" + str(i) for i in range(1)]
@@ -247,7 +250,6 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_multiindex_incomplete(self):
-
         # GH 7399
         # incomplete indexers
         s = Series(
@@ -418,6 +420,19 @@ class TestMultiIndexLoc:
         )
         tm.assert_frame_equal(res, expected)
 
+    def test_loc_multi_index_key_error(self):
+        # GH 51892
+        df = DataFrame(
+            {
+                (1, 2): ["a", "b", "c"],
+                (1, 3): ["d", "e", "f"],
+                (2, 2): ["g", "h", "i"],
+                (2, 4): ["j", "k", "l"],
+            }
+        )
+        with pytest.raises(KeyError, match=r"(1, 4)"):
+            df.loc[0, (1, 4)]
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
@@ -539,11 +554,8 @@ def test_loc_setitem_single_column_slice():
         columns=MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")]),
     )
     expected = df.copy()
-    msg = "will attempt to set the values inplace instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.loc[:, "B"] = np.arange(4)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected.iloc[:, 2] = np.arange(4)
+    df.loc[:, "B"] = np.arange(4)
+    expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
 
 

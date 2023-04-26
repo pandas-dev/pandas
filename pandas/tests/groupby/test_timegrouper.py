@@ -1,6 +1,10 @@
-""" test with the TimeGrouper / grouping with datetimes """
-
-from datetime import datetime
+"""
+test with the TimeGrouper / grouping with datetimes
+"""
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import StringIO
 
 import numpy as np
@@ -103,6 +107,8 @@ class TestGroupBy:
                     "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
             )
+            # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
+            expected = expected.astype({"Buyer": object})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
@@ -152,7 +158,6 @@ class TestGroupBy:
         assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
-
         # GH 3794
         # allow combination of timegrouper/reg groups
 
@@ -228,7 +233,6 @@ class TestGroupBy:
 
         df_sorted = df_original.sort_values(by="Quantity", ascending=False)
         for df in [df_original, df_sorted]:
-
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark Carl Joe".split(),
@@ -468,8 +472,12 @@ class TestGroupBy:
         def sumfunc_series(x):
             return Series([x["value"].sum()], ("sum",))
 
-        expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
-        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_series)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -485,8 +493,11 @@ class TestGroupBy:
         def sumfunc_value(x):
             return x.value.sum()
 
-        expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -595,7 +606,6 @@ class TestGroupBy:
         assert result["date"][3] == Timestamp("2012-07-03")
 
     def test_groupby_multi_timezone(self):
-
         # combining multiple / different timezones yields UTC
 
         data = """0,2000-01-28 16:47:00,America/Chicago
@@ -761,8 +771,6 @@ class TestGroupBy:
         # GH 10295
         # Verify that NaT is not in the result of max, min, first and last on
         # Dataframe with datetime or timedelta values.
-        from datetime import timedelta as td
-
         df_test = DataFrame(
             {
                 "dt": [
@@ -772,7 +780,13 @@ class TestGroupBy:
                     "2015-07-23 12:12",
                     np.nan,
                 ],
-                "td": [np.nan, td(days=1), td(days=2), td(days=3), np.nan],
+                "td": [
+                    np.nan,
+                    timedelta(days=1),
+                    timedelta(days=2),
+                    timedelta(days=3),
+                    np.nan,
+                ],
             }
         )
         df_test.dt = pd.to_datetime(df_test.dt)
@@ -889,7 +903,9 @@ class TestGroupBy:
         assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
 
         # function that returns a Series
-        res = gb.apply(lambda x: x["Quantity"] * 2)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = gb.apply(lambda x: x["Quantity"] * 2)
 
         expected = DataFrame(
             [[36, 6, 6, 10, 2]],

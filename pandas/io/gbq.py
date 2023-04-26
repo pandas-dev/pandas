@@ -130,14 +130,10 @@ def read_gbq(
         package. It also requires the ``google-cloud-bigquery-storage`` and
         ``fastavro`` packages.
 
-        .. versionadded:: 0.25.0
     max_results : int, optional
         If set, limit the maximum number of rows to fetch from the query
         results.
 
-        *New in version 0.12.0 of pandas-gbq*.
-
-        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -156,12 +152,6 @@ def read_gbq(
         ``'tqdm_gui'``
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
-
-        Note that this feature requires version 0.12.0 or later of the
-        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
-        different than ``pandas-gbq``, here the default is ``None``.
-
-        .. versionadded:: 1.0.0
 
     Returns
     -------

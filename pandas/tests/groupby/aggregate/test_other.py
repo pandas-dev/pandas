@@ -25,7 +25,6 @@ import pandas._testing as tm
 from pandas.io.formats.printing import pprint_thing
 
 
-@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 def test_agg_partial_failure_raises():
     # GH#43741
 
@@ -497,13 +496,17 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 
 def test_sum_uint64_overflow():
@@ -518,6 +521,7 @@ def test_sum_uint64_overflow():
     expected = DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
         index=index,
+        dtype=object,
     )
 
     expected.index.name = 0

@@ -15,7 +15,6 @@ from pandas.tseries.frequencies import to_offset
 
 
 class PeriodIndexConstructor:
-
     params = [["D"], [True, False]]
     param_names = ["freq", "is_offset"]
 
@@ -59,7 +58,6 @@ class DataFramePeriodColumn:
 
 
 class Algorithms:
-
     params = ["index", "series"]
     param_names = ["typ"]
 

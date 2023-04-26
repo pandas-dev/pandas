@@ -47,8 +47,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
 #include <ultrajson.h>
-#include "date_conversions.h"
 #include "datetime.h"
+#include "pd_datetime.h"
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -332,22 +332,33 @@ static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
     return PyBytes_AS_STRING(obj);
 }
 
-static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
+static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
                              size_t *_outLen) {
-    return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
+    char *encoded = (char *)PyUnicode_AsUTF8AndSize(_obj,
+                                                    (Py_ssize_t *)_outLen);
+    if (encoded == NULL) {
+        /* Something went wrong.
+          Set errorMsg(to tell encoder to stop),
+          and let Python exception propagate. */
+        JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
+        enc->errorMsg = "Encoding failed.";
+    }
+    return encoded;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-    return int64ToIso(GET_TC(tc)->longValue, base, len);
+    GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, base, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                        JSONTypeContext *tc, size_t *len) {
-    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, len);
+    return GET_TC(tc)->cStr;
 }
 
 /* JSON callback */
@@ -1295,9 +1306,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
-            if (PyObject_HasAttrString(item, "value")) {
+            if (PyObject_HasAttrString(item, "_value")) {
                 // see test_date_index_and_values for case with non-nano
-                nanosecVal = get_long_attr(item, "value");
+                nanosecVal = get_long_attr(item, "_value");
             } else {
                 if (PyDelta_Check(item)) {
                     nanosecVal = total_seconds(item) *
@@ -1543,8 +1554,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
         return;
     } else if (PyDelta_Check(obj)) {
-        if (PyObject_HasAttrString(obj, "value")) {
-            value = get_long_attr(obj, "value");
+        if (PyObject_HasAttrString(obj, "_value")) {
+            value = get_long_attr(obj, "_value");
         } else {
             value = total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
         }
@@ -1963,6 +1974,11 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
                     PyObject *kwargs) {
     PyDateTime_IMPORT;
     if (PyDateTimeAPI == NULL) {
+        return NULL;
+    }
+
+    PandasDateTime_IMPORT;
+    if (PandasDateTimeAPI == NULL) {
         return NULL;
     }
 

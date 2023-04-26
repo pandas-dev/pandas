@@ -26,7 +26,6 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_pass_spec_to_storer(setup_path):
-
     df = tm.makeDataFrame()
 
     with ensure_clean_store(setup_path) as store:
@@ -57,9 +56,7 @@ def test_table_index_incompatible_dtypes(setup_path):
 
 
 def test_unimplemented_dtypes_table_columns(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         dtypes = [("date", datetime.date(2001, 1, 2))]
 
         # currently not supported dtypes ####
@@ -75,7 +72,7 @@ def test_unimplemented_dtypes_table_columns(setup_path):
     df["obj1"] = "foo"
     df["obj2"] = "bar"
     df["datetime1"] = datetime.date(2001, 1, 2)
-    df = df._consolidate()._convert(datetime=True)
+    df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:
         # this fails because we have a date in the object block......
@@ -88,11 +85,8 @@ because its data contents are not [string] but [date] object dtype"""
 
 
 def test_invalid_terms(tmp_path, setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         with catch_warnings(record=True):
-
             df = tm.makeTimeDataFrame()
             df["string"] = "foo"
             df.loc[df.index[0:4], "string"] = "bar"

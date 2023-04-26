@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -21,7 +19,6 @@ def check(result, expected=None):
 
 class TestDataFrameNonuniqueIndexes:
     def test_setattr_columns_vs_construct_with_columns(self):
-
         # assignment
         # GH 3687
         arr = np.random.randn(3, 2)
@@ -203,7 +200,10 @@ class TestDataFrameNonuniqueIndexes:
         df2 = DataFrame([[0, 1], [2, 4], [2, np.nan], [4, 5]], columns=["A", "A"])
 
         # not-comparing like-labelled
-        msg = "Can only compare identically-labeled DataFrame objects"
+        msg = (
+            r"Can only compare identically-labeled \(both index and columns\) "
+            "DataFrame objects"
+        )
         with pytest.raises(ValueError, match=msg):
             df1 == df2
 
@@ -320,11 +320,9 @@ class TestDataFrameNonuniqueIndexes:
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
 
-    def test_set_value_by_index(self, using_array_manager):
+    def test_set_value_by_index(self):
         # See gh-12344
-        warn = (
-            FutureWarning if using_array_manager and not is_platform_windows() else None
-        )
+        warn = None
         msg = "will attempt to set the values inplace"
 
         df = DataFrame(np.arange(9).reshape(3, 3).T)

@@ -17,6 +17,10 @@ from pandas.tseries import offsets
 
 
 class TestAsFreq:
+    @pytest.fixture(params=["s", "ms", "us", "ns"])
+    def unit(self, request):
+        return request.param
+
     def test_asfreq2(self, frame_or_series):
         ts = frame_or_series(
             [0.0, 1.0, 2.0],
@@ -49,7 +53,9 @@ class TestAsFreq:
         if frame_or_series is Series:
             daily_ts = ts.asfreq("D", fill_value=-1)
             result = daily_ts.value_counts().sort_index()
-            expected = Series([60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
+            expected = Series(
+                [60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0], name="count"
+            ).sort_index()
             tm.assert_series_equal(result, expected)
 
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
@@ -159,7 +165,8 @@ class TestAsFreq:
 
         # setup
         rng = date_range("1/1/2016", periods=10, freq="2S")
-        ts = Series(np.arange(len(rng)), index=rng)
+        # Explicit cast to 'float' to avoid implicit cast when setting None
+        ts = Series(np.arange(len(rng)), index=rng, dtype="float")
         df = DataFrame({"one": ts})
 
         # insert pre-existing missing value
@@ -196,3 +203,11 @@ class TestAsFreq:
 
         result = result.asfreq("D")
         tm.assert_equal(result, expected)
+
+    def test_asfreq_after_normalize(self, unit):
+        # https://github.com/pandas-dev/pandas/issues/50727
+        result = DatetimeIndex(
+            date_range("2000", periods=2).as_unit(unit).normalize(), freq="D"
+        )
+        expected = DatetimeIndex(["2000-01-01", "2000-01-02"], freq="D").as_unit(unit)
+        tm.assert_index_equal(result, expected)
