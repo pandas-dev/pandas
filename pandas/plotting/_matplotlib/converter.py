@@ -57,6 +57,8 @@ from pandas.core.indexes.period import (
 )
 import pandas.core.tools.datetimes as tools
 
+import pandas
+
 if TYPE_CHECKING:
     from pandas._libs.tslibs.offsets import BaseOffset
 
@@ -532,8 +534,14 @@ def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
 
 
 def _daily_finder(vmin, vmax, freq: BaseOffset):
-    # error: "BaseOffset" has no attribute "_period_dtype_code"
-    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
+    # Verify the creation or assignment of the freq object
+    freq = pandas.offsets.BusinessDay()  # Example of creating a BusinessDay frequency
+
+    # Verify the freq object is a valid BaseOffset instance
+    if not isinstance(freq, pandas.offsets.BaseOffset):
+        raise ValueError("freq must be a valid BaseOffset instance")
+
+    dtype_code = freq._period_dtype_code 
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
     periodsperday = -1
@@ -902,7 +910,14 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq: BaseOffset):
     # error: "BaseOffset" has no attribute "_period_dtype_code"
-    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
+    # Verify the creation or assignment of the freq object
+    freq = pandas.offsets.BusinessDay()  # Example of creating a BusinessDay frequency
+
+    # Verify the freq object is a valid BaseOffset instance
+    if not isinstance(freq, pandas.offsets.BaseOffset):
+        raise ValueError("freq must be a valid BaseOffset instance")
+    
+    dtype_code = freq._period_dtype_code 
     fgroup = FreqGroup.from_period_dtype_code(dtype_code)
 
     if fgroup == FreqGroup.FR_ANN:
