@@ -418,7 +418,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("std")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mean")),
