@@ -15,6 +15,8 @@ from typing import (
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -467,7 +469,10 @@ def dict_to_mgr(
         keys = list(data.keys())
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
-        arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
+        if not using_copy_on_write():
+            arrays = [
+                arr if not isinstance(arr, Index) else arr._data for arr in arrays
+            ]
 
     if copy:
         if typ == "block":
@@ -580,10 +585,10 @@ def _homogenize(
     refs: list[Any] = []
 
     for val in data:
-        if isinstance(val, ABCSeries):
+        if isinstance(val, (ABCSeries, Index)):
             if dtype is not None:
                 val = val.astype(dtype, copy=False)
-            if val.index is not index:
+            if isinstance(val, ABCSeries) and val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
