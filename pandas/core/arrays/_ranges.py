@@ -181,9 +181,7 @@ def _generate_range_overflow_safe_signed(
                 # Putting this into a DatetimeArray/TimedeltaArray
                 #  would incorrectly be interpreted as NaT
                 raise OverflowError
-            # error: Incompatible return value type (got "signedinteger[_64Bit]",
-            # expected "int")
-            return result  # type: ignore[return-value]
+            return int(result)
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -204,9 +202,7 @@ def _generate_range_overflow_safe_signed(
             i64max = np.uint64(i8max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                # error: Incompatible return value type (got "unsignedinteger", expected
-                # "int")
-                return result  # type: ignore[return-value]
+                return int(result)
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"
