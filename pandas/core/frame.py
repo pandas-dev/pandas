@@ -10979,7 +10979,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="sum")
 
     @doc(make_doc("prod", ndim=2))
     def prod(
