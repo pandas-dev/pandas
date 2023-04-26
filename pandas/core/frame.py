@@ -11027,11 +11027,11 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().mean(axis, skipna, numeric_only, **kwargs)
-        return (
-            result.__finalize__(self, method="mean")
-            if hasattr(result, "__finalize__")
-            else result
-        )
+
+        if isinstance(result, np.float64):
+            return result
+        else:
+            return result.__finalize__(self, method="mean")
 
     @doc(make_doc("median", ndim=2))
     def median(
