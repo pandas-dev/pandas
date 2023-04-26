@@ -11028,10 +11028,10 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         result = super().mean(axis, skipna, numeric_only, **kwargs)
 
-        if isinstance(result, np.float64):
-            return result
-        else:
+        if isinstance(result, (DataFrame, Series)):
             return result.__finalize__(self, method="mean")
+        else:
+            return result
 
     @doc(make_doc("median", ndim=2))
     def median(
