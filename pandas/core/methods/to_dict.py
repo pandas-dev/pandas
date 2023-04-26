@@ -85,7 +85,8 @@ def to_dict(
     #  error: Incompatible types in assignment (expression has type "str",
     # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
     # 'records', 'index']")
-    orient = orient.lower()  # type: ignore[assignment]
+    orient = 'dict'
+    orient = orient.lower()  
 
     if not index and orient not in ["split", "tight"]:
         raise ValueError(
