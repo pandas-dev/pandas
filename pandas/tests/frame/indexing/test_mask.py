@@ -147,6 +147,7 @@ def test_mask_inplace_no_other():
     # GH#51685
     df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
     cond = DataFrame({"a": [True, False], "b": [False, True]})
-    df.mask(cond, inplace=True)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df.mask(cond, inplace=True)
     expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
     tm.assert_frame_equal(df, expected)
