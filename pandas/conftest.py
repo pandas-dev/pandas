@@ -64,7 +64,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -81,18 +80,16 @@ else:
     del pa
     has_pyarrow = True
 
-zoneinfo = None
-if compat.PY39:
-    # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[assignment]
+# Import "zoneinfo" could not be resolved (reportMissingImports)
+import zoneinfo  # type: ignore[assignment]
 
-    # Although zoneinfo can be imported in Py39, it is effectively
-    # "not available" without tzdata/IANA tz data.
-    # We will set zoneinfo to not found in this case
-    try:
-        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
-    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
-        zoneinfo = None
+# Although zoneinfo can be imported in Py39, it is effectively
+# "not available" without tzdata/IANA tz data.
+# We will set zoneinfo to not found in this case
+try:
+    zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
+except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
+    zoneinfo = None
 
 
 # ----------------------------------------------------------------
