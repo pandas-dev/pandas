@@ -1,6 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 from __future__ import annotations
+# import pandas as pd
 
 import functools
 from typing import (
@@ -9,6 +10,7 @@ from typing import (
 )
 
 import numpy as np
+import pandas
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -66,7 +68,9 @@ def maybe_resample(series: Series, ax: Axes, kwargs):
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
             # error: "Index" has no attribute "asfreq"
-            series.index = series.index.asfreq(  # type: ignore[attr-defined]
+            series.index = pandas.to_datetime(series.index)
+
+            series.index = series.index.asfreq( 
                 ax_freq, how="s"
             )
             freq = ax_freq
@@ -232,7 +236,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(freq_str)._period_dtype_code  # type: ignore[attr-defined]
+        base = pandas.to_offset(freq_str)._period_dtype_code 
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -248,7 +252,9 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
         freq = getattr(index, "inferred_freq", None)
         if freq == "B":
             # error: "Index" has no attribute "dayofweek"
-            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
+            index = pandas.to_datetime(index)
+
+            weekdays = np.unique(index.dayofweek) 
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
 
