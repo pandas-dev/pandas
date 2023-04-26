@@ -27,7 +27,7 @@ easy-to-use data structures and data analysis tools for the `Python <https://www
 programming language.
 
 {% if not single_doc -%}
-.. panels::
+.. grid::
     :card: + intro-card text-center
     :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 

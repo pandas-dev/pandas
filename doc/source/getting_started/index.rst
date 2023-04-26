@@ -9,7 +9,7 @@ Getting started
 Installation
 ------------
 
-.. panels::
+.. grid::
     :card: + install-card
     :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-3
 
@@ -536,7 +536,7 @@ Coming from...
 Are you familiar with other software for manipulating tabular data? Learn
 the pandas-equivalent operations compared to software you already know:
 
-.. panels::
+.. grid::
     :img-top-cls: dark-light
     :card: + comparison-card text-center shadow
     :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
