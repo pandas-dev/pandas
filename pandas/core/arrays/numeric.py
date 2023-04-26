@@ -89,7 +89,12 @@ class NumericDtype(BaseMaskedDtype):
             array = array.cast(pyarrow_type)
 
         if isinstance(array, pyarrow.ChunkedArray):
-            array = array.combine_chunks()
+            # TODO this "if" can be removed when requiring pyarrow >= 10.0, which fixed
+            # combine_chunks for empty arrays https://github.com/apache/arrow/pull/13757
+            if array.num_chunks == 0:
+                array = pyarrow.array([], type=array.type)
+            else:
+                array = array.combine_chunks()
 
         data, mask = pyarrow_array_to_numpy_and_mask(array, dtype=self.numpy_dtype)
         return array_class(data.copy(), ~mask, copy=False)
