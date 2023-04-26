@@ -182,6 +182,8 @@ def test_groupby_overridden_methods():
     udf["group"] = np.ones(4, dtype=int)
     udf.loc[2:, "group"] = 2
 
+    us = udf[["a", "group"]]
+
     assert np.all(udf.groupby("group").mean() == 1)
     assert np.all(udf.groupby("group").median() == 2)
     assert np.all(udf.groupby("group").std() == 3)
@@ -191,6 +193,15 @@ def test_groupby_overridden_methods():
     assert np.all(udf.groupby("group").min() == 7)
     assert np.all(udf.groupby("group").max() == 8)
 
+    assert np.all(us.groupby("group").mean() == 1)
+    assert np.all(us.groupby("group").median() == 2)
+    assert np.all(us.groupby("group").std() == 3)
+    assert np.all(us.groupby("group").var() == 4)
+    assert np.all(us.groupby("group").sem() == 5)
+    assert np.all(us.groupby("group").prod() == 6)
+    assert np.all(us.groupby("group").min() == 7)
+    assert np.all(us.groupby("group").max() == 8)
+
     assert np.all(udf.groupby("group").transform("mean") == 1)
     assert np.all(udf.groupby("group").transform("median") == 2)
     assert np.all(udf.groupby("group").transform("std") == 3)
@@ -199,3 +210,12 @@ def test_groupby_overridden_methods():
     assert np.all(udf.groupby("group").transform("prod") == 6)
     assert np.all(udf.groupby("group").transform("min") == 7)
     assert np.all(udf.groupby("group").transform("max") == 8)
+
+    assert np.all(us.groupby("group").transform("mean") == 1)
+    assert np.all(us.groupby("group").transform("median") == 2)
+    assert np.all(us.groupby("group").transform("std") == 3)
+    assert np.all(us.groupby("group").transform("var") == 4)
+    assert np.all(us.groupby("group").transform("sem") == 5)
+    assert np.all(us.groupby("group").transform("prod") == 6)
+    assert np.all(us.groupby("group").transform("min") == 7)
+    assert np.all(us.groupby("group").transform("max") == 8)
