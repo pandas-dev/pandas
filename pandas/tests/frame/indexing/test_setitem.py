@@ -988,7 +988,8 @@ class TestDataFrameSetItemCallable:
             return x + 1
 
         df = DataFrame([[-1, 1], [1, -1]])
-        df[df > 0] = inc
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df[df > 0] = inc
 
         expected = DataFrame([[-1, inc], [inc, -1]])
         tm.assert_frame_equal(df, expected)

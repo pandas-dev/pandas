@@ -334,7 +334,8 @@ def test_count_cross_type():
     )
 
     df = DataFrame(vals, columns=["a", "b", "c", "d"])
-    df[df == 2] = np.nan
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df[df == 2] = np.nan
     expected = df.groupby(["c", "d"]).count()
 
     for t in ["float32", "object"]:

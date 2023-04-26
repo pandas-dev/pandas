@@ -277,7 +277,8 @@ def test_underlying_data_conversion(using_copy_on_write):
     df["val"] = 0
     df_original = df.copy()
     df
-    df["val"].update(s)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df["val"].update(s)
 
     if using_copy_on_write:
         expected = df_original
