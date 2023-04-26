@@ -82,9 +82,6 @@ def to_dict(
     # GH16122
     into_c = com.standardize_mapping(into)
 
-    #  error: Incompatible types in assignment (expression has type "str",
-    # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-    # 'records', 'index']")
     orient = 'dict'
     orient = orient.lower()  
 

@@ -909,9 +909,8 @@ def _annual_finder(vmin, vmax, freq):
 
 
 def get_finder(freq: BaseOffset):
-    # error: "BaseOffset" has no attribute "_period_dtype_code"
     # Verify the creation or assignment of the freq object
-    freq = pandas.offsets.BusinessDay()  # Example of creating a BusinessDay frequency
+    freq = pandas.offsets.BusinessDay() 
 
     # Verify the freq object is a valid BaseOffset instance
     if not isinstance(freq, pandas.offsets.BaseOffset):
