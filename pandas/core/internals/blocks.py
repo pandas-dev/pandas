@@ -1061,7 +1061,9 @@ class Block(PandasObject):
                 self = self.make_block_same_class(
                     values.T if values.ndim == 2 else values
                 )
-
+            if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
+                # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                casted = casted[0, ...]
             values[indexer] = casted
         return self
 

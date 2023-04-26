@@ -1113,6 +1113,12 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
+    def unpack_if_single_element(arg):
+        # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+        if isinstance(arg, np.ndarray) and arg.ndim == 1 and len(arg) == 1:
+            return arg[0]
+        return arg
+
     def converter(*date_cols, col: Hashable):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
@@ -1136,7 +1142,9 @@ def _make_date_converter(
         else:
             try:
                 result = tools.to_datetime(
-                    date_parser(*date_cols), errors="ignore", cache=cache_dates
+                    date_parser(*(unpack_if_single_element(arg) for arg in date_cols)),
+                    errors="ignore",
+                    cache=cache_dates,
                 )
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
