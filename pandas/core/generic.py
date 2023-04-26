@@ -11756,8 +11756,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __ior__(self, other) -> Self:
-        # error: Unsupported left operand type for | ("Type[NDFrame]")
-        return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
+        return self._inplace_method(other, type(self).__or__)
 
     @final
     def __ixor__(self, other) -> Self:
