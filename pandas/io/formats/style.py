@@ -3053,8 +3053,6 @@ class Styler(StylerRenderer):
 
         %(subset)s
 
-            .. versionadded:: 1.1.0
-
         %(props)s
 
             .. versionadded:: 1.3.0

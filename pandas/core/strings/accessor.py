@@ -1300,8 +1300,6 @@ class StringMethods(NoNewAttributesMixin):
         """
         Determine if each string entirely matches a regular expression.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         pat : str

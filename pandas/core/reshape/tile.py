@@ -114,8 +114,6 @@ def cut(
         the resulting categorical will be ordered. If False, the resulting
         categorical will be unordered (labels must be provided).
 
-        .. versionadded:: 1.1.0
-
     Returns
     -------
     out : Categorical, Series, or ndarray

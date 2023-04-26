@@ -234,8 +234,6 @@ class DuplicateLabelError(ValueError):
 class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
-
-    .. versionadded:: 1.1.0
     """
 
 

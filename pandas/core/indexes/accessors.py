@@ -369,8 +369,6 @@ class DatetimeProperties(Properties):
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
-        .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame

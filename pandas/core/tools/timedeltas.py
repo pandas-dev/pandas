@@ -116,10 +116,7 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        .. versionchanged:: 1.1.0
-
-           Must not be specified when `arg` context strings and
-           ``errors="raise"``.
+        Must not be specified when `arg` context strings and ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

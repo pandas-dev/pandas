@@ -298,8 +298,6 @@ For instance,
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
 
-.. versionadded:: 1.1.0
-
 .. ipython:: python
 
    index = pd.MultiIndex.from_tuples([("person", "A"), ("person", "B")])

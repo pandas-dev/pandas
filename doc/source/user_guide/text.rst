@@ -62,8 +62,6 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s.astype("string")
 
 
-.. versionchanged:: 1.1.0
-
 You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
 it will be converted to ``string`` dtype:
 
@@ -665,8 +663,6 @@ Or whether elements match a pattern:
        ["1", "2", "3a", "3b", "03c", "4dx"],
        dtype="string",
    ).str.match(pattern)
-
-.. versionadded:: 1.1.0
 
 .. ipython:: python
 

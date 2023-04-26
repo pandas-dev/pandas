@@ -154,8 +154,6 @@ class ExponentialMovingWindow(BaseWindow):
         observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
 
-        .. versionadded:: 1.1.0
-
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly
 
@@ -208,8 +206,6 @@ class ExponentialMovingWindow(BaseWindow):
         For `Series` this parameter is unused and defaults to 0.
 
     times : np.ndarray, Series, default None
-
-        .. versionadded:: 1.1.0
 
         Only applicable to ``mean()``.
 

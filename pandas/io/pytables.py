@@ -654,8 +654,6 @@ class HDFStore:
                 When kind equals 'pandas' return pandas objects.
                 When kind equals 'native' return native HDF5 Table objects.
 
-                .. versionadded:: 1.1.0
-
         Returns
         -------
         list
@@ -1109,8 +1107,6 @@ class HDFStore:
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
-
-            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"

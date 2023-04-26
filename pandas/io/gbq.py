@@ -134,7 +134,6 @@ def read_gbq(
         If set, limit the maximum number of rows to fetch from the query
         results.
 
-        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the

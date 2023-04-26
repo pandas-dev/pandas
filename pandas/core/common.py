@@ -439,11 +439,6 @@ def random_state(state: RandomState | None = None):
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
 
-        .. versionchanged:: 1.1.0
-
-            array-like and BitGenerator object now passed to np.random.RandomState()
-            as seed
-
         Default None.
 
     Returns
