@@ -1860,7 +1860,7 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.str_)
+        return issubclass(self.dtype.type, (np.str_, str))
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):

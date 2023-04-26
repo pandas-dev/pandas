@@ -15,12 +15,19 @@ from .pandas_vb_common import tm
 
 
 class Dtypes:
-    params = ["str", "string[python]", "string[pyarrow]", StringDType()]
+    params = [
+        "str",
+        "string[python]",
+        "string[pyarrow]",
+        "string[numpy]",
+        StringDType(),
+    ]
     param_names = ["dtype"]
     dtype_mapping = {
         "str": "str",
         "string[python]": object,
         "string[pyarrow]": object,
+        "string[numpy]": StringDType(),
         StringDType(): StringDType(),
     }
 
@@ -37,7 +44,7 @@ class Dtypes:
 class Construction:
     params = (
         ["series", "frame", "categorical_series"],
-        ["str", "string[python]", "string[pyarrow]", StringDType()],
+        ["str", "string[python]", "string[pyarrow]", "string[numpy]", StringDType()],
     )
     param_names = ["pd_type", "dtype"]
     pd_mapping = {"series": Series, "frame": DataFrame, "categorical_series": Series}
@@ -45,6 +52,7 @@ class Construction:
         "str": "str",
         "string[python]": object,
         "string[pyarrow]": object,
+        "string[numpy]": StringDType(),
         StringDType(): StringDType(),
     }
 

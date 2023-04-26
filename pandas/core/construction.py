@@ -536,6 +536,7 @@ def sanitize_array(
     -------
     np.ndarray or ExtensionArray
     """
+
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 

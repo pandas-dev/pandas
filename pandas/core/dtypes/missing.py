@@ -11,7 +11,6 @@ from typing import (
 )
 
 import numpy as np
-from stringdtype import StringDType
 
 from pandas._config import get_option
 
@@ -26,6 +25,7 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
+    get_string_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -298,6 +298,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             result = np.isnan(values)
 
     return result
+
+
+StringDType = type(get_string_dtype())
 
 
 def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:

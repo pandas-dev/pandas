@@ -14,7 +14,6 @@ from typing import (
 import unicodedata
 
 import numpy as np
-from stringdtype import StringDType
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
@@ -82,10 +81,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         arr = np.asarray(self)
         mask = isna(arr)
-        type(arr.dtype)
-        map_convert = (
-            convert and not np.all(mask) and type(arr.dtype) is not StringDType
-        )
+        map_convert = convert and not np.all(mask)
         try:
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
         except (TypeError, AttributeError) as err:

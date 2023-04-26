@@ -17,6 +17,7 @@ from pandas._libs import (
     Period,
     algos,
     lib,
+    missing,
 )
 from pandas._libs.tslibs import conversion
 from pandas.util._exceptions import find_stack_level
@@ -516,6 +517,18 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     Faster alternative to is_string_dtype, assumes we have a np.dtype object.
     """
     return dtype == object or dtype.kind in "SU" or issubclass(dtype.type, str)
+
+
+def get_string_dtype():
+    import os
+    import sys
+
+    if not os.environ.get("NUMPY_EXPERIMENTAL_DTYPE_API", None) == "1":
+        sys.exit()
+
+    import stringdtype
+
+    return stringdtype.StringDType(na_object=missing.NA)
 
 
 def is_string_dtype(arr_or_dtype) -> bool:

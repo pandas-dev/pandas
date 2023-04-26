@@ -21,7 +21,6 @@ from typing import (
 import warnings
 
 import numpy as np
-from stringdtype import StringDType
 
 from pandas._config import get_option
 
@@ -507,7 +506,7 @@ class Index(IndexOpsMixin, PandasObject):
             if isinstance(data, ABCMultiIndex):
                 data = data._values
 
-            if data.dtype.kind not in "iufcbmM" and type(data.dtype) != StringDType:
+            if data.dtype.kind not in "iufcbmM":
                 # GH#11836 we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
                 # they are actually ints, e.g. '0' and 0.0
