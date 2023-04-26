@@ -17,7 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat import PY39
 from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
@@ -207,9 +206,6 @@ _handler_nodes = _filter_nodes(ast.excepthandler)
 _arguments_nodes = _filter_nodes(ast.arguments)
 _keyword_nodes = _filter_nodes(ast.keyword)
 _alias_nodes = _filter_nodes(ast.alias)
-
-if not PY39:
-    _slice_nodes = _filter_nodes(ast.slice)
 
 
 # nodes that we don't support directly but are needed for parsing
