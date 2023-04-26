@@ -410,7 +410,6 @@ _all_methods = [
     # Reductions
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("any")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("sum")),
