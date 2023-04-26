@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
+    is_scalar,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1101,7 +1102,10 @@ class Block(PandasObject):
             return [self]
 
         try:
-            casted = np_can_hold_element(values.dtype, new)
+            if is_scalar(new):
+                casted = np_can_hold_element(values.dtype, new)
+            else:
+                casted = np_can_hold_element(values.dtype, new[mask])
 
             if using_cow and self.refs.has_reference():
                 # Do this here to avoid copying twice
