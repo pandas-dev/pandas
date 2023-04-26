@@ -4598,10 +4598,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         result = _eval(expr, inplace=inplace, **kwargs)
 
-        if inplace or isinstance(result, np.longlong):
-            return result
-        else:
+        # Extract the engine from kwargs or use the default value "numexpr"
+        engine = kwargs.get("engine")
+
+        if engine == "numexpr" and inplace is False:
             return result.__finalize__(self, method="eval")
+        else:
+            return result
 
     def select_dtypes(self, include=None, exclude=None) -> Self:
         """
