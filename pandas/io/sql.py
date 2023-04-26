@@ -679,7 +679,7 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: Literal["fail", "replace", "append"] = "fail",
+    if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
     index: bool = True,
     index_label: IndexLabel = None,
     chunksize: int | None = None,
@@ -704,10 +704,11 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'
+    if_exists : {'fail', 'replace', 'append', 'truncate'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
+        - truncate: If table exists, truncate the table, then insert data.
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -757,7 +758,7 @@ def to_sql(
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
     """  # noqa:E501
-    if if_exists not in ("fail", "replace", "append"):
+    if if_exists not in ("fail", "replace", "append", "truncate"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
     if isinstance(frame, Series):
@@ -860,7 +861,7 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
@@ -911,6 +912,8 @@ class SQLTable(PandasObject):
             if self.if_exists == "replace":
                 self.pd_sql.drop_table(self.name, self.schema)
                 self._execute_create()
+            elif self.if_exists == "truncate":
+                self.pd_sql.trunc_table(self.name, self.schema)
             elif self.if_exists == "append":
                 pass
             else:
@@ -1399,7 +1402,7 @@ class PandasSQL(PandasObject, ABC):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1860,7 +1863,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -1878,7 +1881,7 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'truncate'}, default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
@@ -2333,10 +2336,11 @@ class SQLiteDatabase(PandasSQL):
         frame: DataFrame
         name: string
             Name of SQL table.
-        if_exists: {'fail', 'replace', 'append'}, default 'fail'
+        if_exists: {'fail', 'replace', 'append', 'truncate'}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
+            truncate: If table exists, truncate the table, then insert data.
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
