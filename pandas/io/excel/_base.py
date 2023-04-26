@@ -87,7 +87,6 @@ a single sheet or a list of sheets.
 
 Parameters
 ----------
-
 io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
@@ -166,6 +165,7 @@ engine : str, default None
       ``pyxlsb`` will be used.
 
       .. versionadded:: 1.3.0
+
     * Otherwise ``openpyxl`` will be used.
 
       .. versionchanged:: 1.3.0
