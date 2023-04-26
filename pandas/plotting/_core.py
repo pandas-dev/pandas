@@ -87,8 +87,6 @@ def hist_series(
     legend : bool, default False
         Whether to show the legend.
 
-        .. versionadded:: 1.1.0
-
     **kwargs
         To be passed to the actual plotting function.
 
@@ -196,8 +194,6 @@ def hist_frame(
 
     legend : bool, default False
         Whether to show the legend.
-
-        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -447,8 +443,6 @@ _bar_or_line_doc = """
                 colored accordingly. For example, if your columns are called `a` and
                 `b`, then passing {'a': 'green', 'b': 'red'} will color %(kind)ss for
                 column `a` in green and %(kind)ss for column `b` in red.
-
-            .. versionadded:: 1.1.0
 
         **kwargs
             Additional keyword arguments are documented in
@@ -705,8 +699,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
@@ -718,8 +710,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.2.0
 
@@ -1636,8 +1626,6 @@ class PlotAccessor(PandasObject):
             - A sequence of scalars, which will be used for each point's size
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
-
-              .. versionchanged:: 1.1.0
 
         c : str, int or array-like, optional
             The color of each point. Possible values are:
