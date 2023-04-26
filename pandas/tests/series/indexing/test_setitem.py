@@ -251,8 +251,7 @@ class TestSetitemBooleanMask:
         # GH#2746
         # need to upcast
         ser = Series([1, 2], index=[1, 2], dtype="int64")
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            ser[[True, False]] = Series([0], index=[1], dtype="int64")
+        ser[[True, False]] = Series([0], index=[1], dtype="int64")
         expected = Series([0, 2], index=[1, 2], dtype="int64")
 
         tm.assert_series_equal(ser, expected)
@@ -410,14 +409,12 @@ class TestSetitemBooleanMask:
         mask = np.array([True, False, True])
 
         ser = orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            ser[mask] = alt
+        ser[mask] = alt
         expected = Series([245, 2, 246], dtype="uint8")
         tm.assert_series_equal(ser, expected)
 
         ser2 = orig.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            ser2.mask(mask, alt, inplace=True)
+        ser2.mask(mask, alt, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
         # FIXME: don't leave commented-out

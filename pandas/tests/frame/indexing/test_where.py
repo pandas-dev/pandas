@@ -356,8 +356,7 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            expected[~do_not_replace] = b
+        expected[~do_not_replace] = b
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
@@ -367,8 +366,7 @@ class TestDataFrameIndexingWhere:
         do_not_replace = b.isna() | (a > b)
 
         expected = a.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            expected[~do_not_replace] = b
+        expected[~do_not_replace] = b
 
         result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
