@@ -646,3 +646,4 @@ material is enlisted in the community contributed :ref:`communitytutorials`.
     intro_tutorials/index
     comparison/index
     tutorials
+    ecosystem
