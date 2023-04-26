@@ -834,7 +834,7 @@ class IndexOpsMixin(OpsMixin):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. Preserve the order of the data when False.
         ascending : bool, default False
             Sort in ascending order.
         bins : int, optional

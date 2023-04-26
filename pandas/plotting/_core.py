@@ -393,7 +393,7 @@ the matplotlib axes on which the boxplot is drawn are returned:
 
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], return_type='axes')
     >>> type(boxplot)
-    <class 'matplotlib.axes._subplots.AxesSubplot'>
+    <class 'matplotlib.axes._axes.Axes'>
 
 When grouping with ``by``, a Series mapping columns to ``return_type``
 is returned:
@@ -1831,7 +1831,9 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
-        entry = eps.get(key, ())
+        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
+        # expected "EntryPoints"  [arg-type]
+        entry = eps.get(key, ())  # type: ignore[arg-type]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

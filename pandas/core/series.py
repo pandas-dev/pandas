@@ -5612,9 +5612,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
         """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
         this = self
 
         if not self.index.equals(other.index):
@@ -5680,7 +5677,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
-            result.name = res_name
+            result._name = res_name
             return result
         else:
             if fill_value is not None:

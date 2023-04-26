@@ -132,6 +132,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -3830,18 +3831,8 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
-            if self._is_mixed_type:
-                result = self.reindex(columns=new_columns)
-                result.columns = result_columns
-            else:
-                new_values = self._values[:, loc]
-                result = self._constructor(
-                    new_values, index=self.index, columns=result_columns, copy=False
-                )
-                if using_copy_on_write() and isinstance(loc, slice):
-                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
-
-                result = result.__finalize__(self)
+            result = self.iloc[:, loc]
+            result.columns = result_columns
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
@@ -4718,6 +4709,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
+            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
             return issubclass(dtype.type, tuple(dtypes_set)) or (
                 np.number in dtypes_set
                 and getattr(dtype, "_is_numeric", False)
@@ -6972,7 +6964,7 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. Sort by DataFrame column values when False.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -8283,7 +8275,8 @@ class DataFrame(NDFrame, OpsMixin):
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
         """
@@ -8358,7 +8351,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtypes:
             combined = combined.astype(dtypes)
 
-        return combined
+        return combined.__finalize__(self, method="combine_first")
 
     def update(
         self,
@@ -11768,7 +11761,50 @@ class DataFrame(NDFrame, OpsMixin):
     _info_axis_name: Literal["columns"] = "columns"
 
     index = properties.AxisProperty(
-        axis=1, doc="The index (row labels) of the DataFrame."
+        axis=1,
+        doc="""
+        The index (row labels) of the DataFrame.
+
+        The index of a DataFrame is a series of labels that identify each row.
+        The labels can be integers, strings, or any other hashable type. The index
+        is used for label-based access and alignment, and can be accessed or
+        modified using this attribute.
+
+        Returns
+        -------
+        pandas.Index
+            The index labels of the DataFrame.
+
+        See Also
+        --------
+        DataFrame.columns : The column labels of the DataFrame.
+        DataFrame.to_numpy : Convert the DataFrame to a NumPy array.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Name': ['Alice', 'Bob', 'Aritra'],
+        ...                    'Age': [25, 30, 35],
+        ...                    'Location': ['Seattle', 'New York', 'Kona']},
+        ...                   index=([10, 20, 30]))
+        >>> df.index
+        Index([10, 20, 30], dtype='int64')
+
+        In this example, we create a DataFrame with 3 rows and 3 columns,
+        including Name, Age, and Location information. We set the index labels to
+        be the integers 10, 20, and 30. We then access the `index` attribute of the
+        DataFrame, which returns an `Index` object containing the index labels.
+
+        >>> df.index = [100, 200, 300]
+        >>> df
+            Name  Age Location
+        100  Alice   25  Seattle
+        200    Bob   30 New York
+        300  Aritra  35    Kona
+
+        In this example, we modify the index labels of the DataFrame by assigning
+        a new list of labels to the `index` attribute. The DataFrame is then
+        updated with the new labels, and the output shows the modified DataFrame.
+        """,
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 

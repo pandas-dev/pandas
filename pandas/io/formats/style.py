@@ -65,6 +65,7 @@ if TYPE_CHECKING:
         AxisInt,
         FilePath,
         IndexLabel,
+        IntervalClosedType,
         Level,
         QuantileInterpolation,
         Scalar,
@@ -3185,7 +3186,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3294,7 +3295,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """
