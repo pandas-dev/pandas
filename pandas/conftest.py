@@ -84,7 +84,7 @@ else:
 zoneinfo = None
 if compat.PY39:
     # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+    import zoneinfo  # type: ignore[assignment]
 
     # Although zoneinfo can be imported in Py39, it is effectively
     # "not available" without tzdata/IANA tz data.
@@ -137,7 +137,10 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
+        ("is_sparse", "is_sparse is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -149,7 +152,6 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
-        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
     ]
 
     for item in items:
@@ -1962,7 +1964,9 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(
+        zoneinfo.ZoneInfo("Europe/Warsaw")  # pyright: ignore[reportGeneralTypeIssues]
+    )
 
 
 @pytest.fixture(params=warsaws)

@@ -304,6 +304,12 @@ class DatetimeProperties(Properties):
         """
         Return the data as an array of :class:`datetime.datetime` objects.
 
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
+
         Timezone information is retained if present.
 
         .. warning::
@@ -362,8 +368,6 @@ class DatetimeProperties(Properties):
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
-
-        .. versionadded:: 1.1.0
 
         Returns
         -------
