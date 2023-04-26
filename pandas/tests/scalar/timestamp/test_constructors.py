@@ -843,7 +843,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 try:
     _tzs = [
         "dateutil/Europe/London",
-        zoneinfo.ZoneInfo("Europe/London"),  # type: ignore[list-item]
+        zoneinfo.ZoneInfo("Europe/London"),
     ]
 except zoneinfo.ZoneInfoNotFoundError:
     _tzs = ["dateutil/Europe/London"]
