@@ -1979,6 +1979,13 @@ class SQLDatabase(PandasSQL):
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
+    
+    def trunc_table(self, table_name: str, schema: str | None = None) -> None:
+        schema = schema or self.meta.schema
+        if self.has_table(table_name, schema):
+            self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
+            self.execute(f"TRUNCATE TABLE {schema}.{table_name}")
+            self.meta.clear()
 
     def _create_sql_schema(
         self,
@@ -2337,11 +2344,10 @@ class SQLiteDatabase(PandasSQL):
         frame: DataFrame
         name: string
             Name of SQL table.
-        if_exists: {'fail', 'replace', 'append', 'truncate'}, default 'fail'
+        if_exists: {'fail', 'replace', 'append'}, default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
-            truncate: If table exists, truncate the table, then insert data.
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
