@@ -799,26 +799,24 @@ class TestMisc:
 class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
+        ([1, 2, 3], [np.nan, 2, 3], FutureWarning),
+        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0], None),
         # For datetime series, we should coerce to NaT.
         (
             [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
             [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            None,
         ),
         # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
+        (["foo", "bar", "baz"], [None, "bar", "baz"], None),
     ]
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_loc(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        if start_dataframe["foo"].dtype == "int":
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-                start_dataframe.loc[0, ["foo"]] = None
-        else:
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe.loc[0, ["foo"]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
@@ -826,15 +824,10 @@ class TestDataframeNoneCoercion:
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_setitem_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        if start_dataframe["foo"].dtype == "int":
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-                start_dataframe[
-                    start_dataframe["foo"] == start_dataframe["foo"][0]
-                ] = None
-        else:
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
@@ -842,15 +835,10 @@ class TestDataframeNoneCoercion:
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_none_coercion_loc_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        if start_dataframe["foo"].dtype == "int":
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-                start_dataframe.loc[
-                    start_dataframe["foo"] == start_dataframe["foo"][0]
-                ] = None
-        else:
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe.loc[
                 start_dataframe["foo"] == start_dataframe["foo"][0]
             ] = None
