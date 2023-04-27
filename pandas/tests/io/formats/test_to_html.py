@@ -896,3 +896,11 @@ def test_to_html_float_format_object_col(datapath):
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected
+
+
+def test_to_html_float_point_double(datapath):
+    # GH#52272
+    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
+    result = df.to_html()
+    expected = expected_html(datapath, "gh52272_expected_output")
+    assert result == expected

@@ -233,6 +233,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or numpy array before operating instead (:issue:`51521`)
 - Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
@@ -312,6 +313,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`DataFrame.style.to_latex` and :func:`DataFrame.style.to_html` if the DataFrame contains integers with more digits than can be represented by floating point double precision (:issue:`52272`)
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 -

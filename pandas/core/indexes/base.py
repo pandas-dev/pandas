@@ -6138,7 +6138,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
