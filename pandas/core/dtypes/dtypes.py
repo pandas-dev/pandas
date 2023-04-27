@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        IntervalClosedType,
         Ordered,
         npt,
         type_t,
@@ -1099,7 +1100,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: str_type | None = None):
+    def __new__(cls, subtype=None, closed: IntervalClosedType | None = None):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1137,7 +1138,7 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'closed' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed = gd["closed"]
+                        closed = gd["closed"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1175,7 +1176,7 @@ class IntervalDtype(PandasExtensionDtype):
         return True
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         return self._closed
 
     @property

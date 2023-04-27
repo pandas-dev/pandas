@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -13,10 +14,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import (
-    PY39,
-    PY310,
-)
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -24,9 +22,6 @@ from pandas import (
     Timedelta,
     Timestamp,
 )
-
-if PY39:
-    import zoneinfo
 
 
 class TestTimestampConstructors:
@@ -845,12 +840,13 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-_tzs = ["dateutil/Europe/London"]
-if PY39:
-    try:
-        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
-    except zoneinfo.ZoneInfoNotFoundError:
-        pass
+try:
+    _tzs = [
+        "dateutil/Europe/London",
+        zoneinfo.ZoneInfo("Europe/London"),
+    ]
+except zoneinfo.ZoneInfoNotFoundError:
+    _tzs = ["dateutil/Europe/London"]
 
 
 @pytest.mark.parametrize("tz", _tzs)
