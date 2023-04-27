@@ -313,6 +313,20 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
                 assert id(getattr(s2, attr)) != id(getattr(styler, attr))
 
 
+@pytest.mark.parametrize("deepcopy", [True, False])
+def test_inherited_copy(mi_styler, deepcopy):
+    # Ensure that the inherited class is preserved when a Styler object is copied.
+    # GH 52728
+    class CustomStyler(Styler):
+        pass
+
+    custom_styler = CustomStyler(mi_styler.data)
+    custom_styler_copy = (
+        copy.deepcopy(custom_styler) if deepcopy else copy.copy(custom_styler)
+    )
+    assert isinstance(custom_styler_copy, CustomStyler)
+
+
 def test_clear(mi_styler_comp):
     # NOTE: if this test fails for new features then 'mi_styler_comp' should be updated
     # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature

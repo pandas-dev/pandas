@@ -419,7 +419,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Bug in :meth:`Styler._copy` calling overridden methods in subclasses of :class:`Styler` (:issue:`52728`)
 -
 
 Other
