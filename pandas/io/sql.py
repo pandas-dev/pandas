@@ -159,7 +159,7 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     # sqlalchemy uses sqlalchemy.sql.quoted_name instead of str
-    # when using sqlalchemy.sql.select 
+    # when using sqlalchemy.sql.select
     # GH52816
     str_columns = map(str, columns)
     if arrays:
