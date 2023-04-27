@@ -740,7 +740,7 @@ class IndexOpsMixin(OpsMixin):
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> for x in s.__iter__():
+        >>> for x in s:
         ...     print(x)
         1
         2

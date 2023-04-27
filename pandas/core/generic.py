@@ -1904,7 +1904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-        >>> for x in df.__iter__():
+        >>> for x in df:
         ...     print(x)
         A
         B
