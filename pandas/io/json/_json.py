@@ -641,8 +641,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
 
-        .. versionadded:: 1.1
-
     {storage_options}
 
         .. versionadded:: 1.2.0
