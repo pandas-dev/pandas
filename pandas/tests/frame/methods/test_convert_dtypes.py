@@ -134,3 +134,17 @@ class TestConvertDtypes:
         )
         with pytest.raises(ValueError, match=msg):
             df.convert_dtypes(dtype_backend="numpy")
+
+    def test_pyarrow_backend_no_convesion(self):
+        # GH#52872
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
+        expected = df.copy()
+        result = df.convert_dtypes(
+            convert_floating=False,
+            convert_integer=False,
+            convert_boolean=False,
+            convert_string=False,
+            dtype_backend="pyarrow",
+        )
+        tm.assert_frame_equal(result, expected)
