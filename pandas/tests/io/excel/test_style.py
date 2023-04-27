@@ -131,7 +131,7 @@ shared_style_params = [
 def test_styler_to_excel_basic(engine, css, attrs, expected):
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: css)
+    styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -164,13 +164,13 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     df = DataFrame(np.random.randn(1, 1))
 
     styler = df.style
-    styler.applymap_index(lambda x: css, axis=0)
-    styler.applymap_index(lambda x: css, axis=1)
+    styler.map_index(lambda x: css, axis=0)
+    styler.map_index(lambda x: css, axis=1)
 
     null_styler = df.style
-    null_styler.applymap(lambda x: "null: css;")
-    null_styler.applymap_index(lambda x: "null: css;", axis=0)
-    null_styler.applymap_index(lambda x: "null: css;", axis=1)
+    null_styler.map(lambda x: "null: css;")
+    null_styler.map_index(lambda x: "null: css;", axis=0)
+    null_styler.map_index(lambda x: "null: css;", axis=1)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -231,7 +231,7 @@ def test_styler_to_excel_border_style(engine, border_style):
 
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: css)
+    styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -261,7 +261,7 @@ def test_styler_custom_converter():
         return {"font": {"color": {"rgb": "111222"}}}
 
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: "color: #888999")
+    styler = df.style.map(lambda x: "color: #888999")
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
             ExcelFormatter(styler, style_converter=custom_converter).write(
