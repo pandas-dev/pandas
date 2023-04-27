@@ -786,8 +786,6 @@ class SetitemCastingEquivalents:
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
-        # if isinstance(key, slice) and key.start is None and key.stop is None:
-        #     warn = None
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently

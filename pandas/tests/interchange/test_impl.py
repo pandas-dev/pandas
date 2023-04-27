@@ -174,10 +174,11 @@ def test_missing_from_masked():
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
         ]
         if is_float_dtype(df[col]):
-            warn = None
+            with tm.assert_produces_warning(
+                FutureWarning, match="item of incompatible dtype"
+            ):
+                df.loc[null_idx, col] = None
         else:
-            warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="item of incompatible dtype"):
             df.loc[null_idx, col] = None
 
     df2 = df.__dataframe__()
