@@ -260,6 +260,11 @@ jobs:
               git checkout $GITHUB_BASE_REF
               git -c user.email="you@example.com" merge --no-commit my_ref_name
           fi
+      - name: Configure System Packages
+        run: |
+          apk update
+          apk add musl-locales
+          apk add lang
       - name: Build environment and Run Tests
         run: |
           /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
