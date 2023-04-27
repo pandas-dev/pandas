@@ -2622,8 +2622,10 @@ def test_dt_to_pydatetime_date_error(date_type):
         [date(2022, 12, 31)],
         dtype=ArrowDtype(getattr(pa, f"date{date_type}")()),
     )
-    with pytest.raises(ValueError, match="to_pydatetime cannot be called with"):
-        ser.dt.to_pydatetime()
+    msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="to_pydatetime cannot be called with"):
+            ser.dt.to_pydatetime()
 
 
 def test_dt_tz_localize_unsupported_tz_options():
