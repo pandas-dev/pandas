@@ -65,7 +65,6 @@ numpydoc
 pydata-sphinx-theme<0.11
 pytest-cython
 sphinx
-sphinx-panels
 sphinx-design
 sphinx-copybutton
 types-python-dateutil

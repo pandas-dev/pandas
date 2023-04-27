@@ -90,7 +90,6 @@ dependencies:
   - pydata-sphinx-theme<0.11
   - pytest-cython  # doctest
   - sphinx
-  - sphinx-panels
   - sphinx-design
   - sphinx-copybutton
   - types-python-dateutil
