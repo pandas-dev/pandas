@@ -51,6 +51,7 @@ def test_series_groupby_nunique(n, m, sort, dropna):
     check_nunique(frame, ["jim"])
     check_nunique(frame, ["jim", "joe"])
 
+    frame = frame.astype({"julie": float})  # Explicit cast to avoid implicit cast below
     frame.loc[1::17, "jim"] = None
     frame.loc[3::37, "joe"] = None
     frame.loc[7::19, "julie"] = None
