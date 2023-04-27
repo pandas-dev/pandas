@@ -2214,10 +2214,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_to_sql_truncate(self, test_frame1):
         if self.flavor == "sqlite":
-            with pytest.raises(Exception):
-                sql.to_sql(
-                    test_frame1, "test_frame3", self.conn, if_exists="truncate"
-                )
+            msg = "TRUNCATE not implemented on 'SQLiteDatabase'"
+            with pytest.raises(NotImplementedError, match=msg):
+                sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists="truncate")
         else:
             sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists="fail")
             # Add to table again

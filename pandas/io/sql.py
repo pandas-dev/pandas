@@ -1979,7 +1979,7 @@ class SQLDatabase(PandasSQL):
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
-    
+
     def trunc_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
@@ -2414,6 +2414,9 @@ class SQLiteDatabase(PandasSQL):
     def drop_table(self, name: str, schema: str | None = None) -> None:
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
+
+    def trunc_table(self, name: str, schema: str | None = None) -> None:
+        raise NotImplementedError("TRUNCATE not implemented on 'SQLiteDatabase'")
 
     def _create_sql_schema(
         self,
