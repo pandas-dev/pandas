@@ -1786,7 +1786,7 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append"] = "fail",
+        if_exists: Literal["fail", "replace", "append", "truncate"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
@@ -1885,6 +1885,7 @@ class SQLDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
+            - truncate: If table exists, truncate the table, then insert data.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
