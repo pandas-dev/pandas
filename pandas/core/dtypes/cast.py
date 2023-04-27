@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_complex,
-    is_extension_array_dtype,
     is_float,
     is_integer,
     is_object_dtype,
@@ -903,7 +902,8 @@ def infer_dtype_from_array(
     if not is_list_like(arr):
         raise TypeError("'arr' must be list-like")
 
-    if pandas_dtype and is_extension_array_dtype(arr):
+    arr_dtype = getattr(arr, "dtype", None)
+    if pandas_dtype and isinstance(arr_dtype, ExtensionDtype):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
@@ -1106,20 +1106,29 @@ def convert_dtypes(
         from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
-        if isinstance(inferred_dtype, PandasExtensionDtype):
-            base_dtype = inferred_dtype.base
-        elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
-            base_dtype = inferred_dtype.numpy_dtype
-        elif isinstance(inferred_dtype, StringDtype):
-            base_dtype = np.dtype(str)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[str, Any, dtype[Any], ExtensionDtype]",
-            # variable has type "Union[dtype[Any], ExtensionDtype, None]")
-            base_dtype = inferred_dtype  # type: ignore[assignment]
-        pa_type = to_pyarrow_type(base_dtype)
-        if pa_type is not None:
-            inferred_dtype = ArrowDtype(pa_type)
+        assert not isinstance(inferred_dtype, str)
+
+        if (
+            (convert_integer and inferred_dtype.kind in "iu")
+            or (convert_floating and inferred_dtype.kind in "fc")
+            or (convert_boolean and inferred_dtype.kind == "b")
+            or (convert_string and isinstance(inferred_dtype, StringDtype))
+            or (
+                inferred_dtype.kind not in "iufcb"
+                and not isinstance(inferred_dtype, StringDtype)
+            )
+        ):
+            if isinstance(inferred_dtype, PandasExtensionDtype):
+                base_dtype = inferred_dtype.base
+            elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
+                base_dtype = inferred_dtype.numpy_dtype
+            elif isinstance(inferred_dtype, StringDtype):
+                base_dtype = np.dtype(str)
+            else:
+                base_dtype = inferred_dtype
+            pa_type = to_pyarrow_type(base_dtype)
+            if pa_type is not None:
+                inferred_dtype = ArrowDtype(pa_type)
 
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")

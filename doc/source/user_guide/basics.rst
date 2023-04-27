@@ -686,8 +686,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s.value_counts()
    pd.value_counts(data)
 
-.. versionadded:: 1.1.0
-
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
 
@@ -1812,8 +1810,6 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_index_key:
 
-.. versionadded:: 1.1.0
-
 Sorting by index also supports a ``key`` parameter that takes a callable
 function to apply to the index being sorted. For ``MultiIndex`` objects,
 the key is applied per-level to the levels specified by ``level``.
@@ -1866,8 +1862,6 @@ argument:
    s.sort_values(na_position="first")
 
 .. _basics.sort_value_key:
-
-.. versionadded:: 1.1.0
 
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.

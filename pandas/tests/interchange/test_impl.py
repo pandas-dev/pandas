@@ -89,6 +89,47 @@ def test_categorical_pyarrow():
     tm.assert_frame_equal(result, expected)
 
 
+def test_large_string_pyarrow():
+    # GH 52795
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = ["Mon", "Tue"]
+    table = pa.table({"weekday": pa.array(arr, "large_string")})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+    expected = pd.DataFrame({"weekday": ["Mon", "Tue"]})
+    tm.assert_frame_equal(result, expected)
+
+    # check round-trip
+    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+
+
+@pytest.mark.parametrize(
+    ("offset", "length", "expected_values"),
+    [
+        (0, None, [3.3, float("nan"), 2.1]),
+        (1, None, [float("nan"), 2.1]),
+        (2, None, [2.1]),
+        (0, 2, [3.3, float("nan")]),
+        (0, 1, [3.3]),
+        (1, 1, [float("nan")]),
+    ],
+)
+def test_bitmasks_pyarrow(offset, length, expected_values):
+    # GH 52795
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = [3.3, None, 2.1]
+    table = pa.table({"arr": arr}).slice(offset, length)
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+    expected = pd.DataFrame({"arr": expected_values})
+    tm.assert_frame_equal(result, expected)
+
+    # check round-trip
+    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+
+
 @pytest.mark.parametrize(
     "data", [int_data, uint_data, float_data, bool_data, datetime_data]
 )
