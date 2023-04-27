@@ -14,18 +14,25 @@ from pandas._libs.tslibs import (
     strptime,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import (
+    ISMUSL,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
 
-@td.skip_if_windows
+@pytest.mark.skipif(
+    is_platform_windows() or ISMUSL,
+    reason="TZ setting incorrect on Windows and MUSL Linux",
+)
 def test_parsing_tzlocal_deprecated():
     # GH#50791
     msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
     dtstr = "Jan 15 2004 03:00 EST"
 
-    with tm.set_timezone("EST5EDT"):
+    with tm.set_timezone("US/Eastern"):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res, _ = parse_datetime_string_with_reso(dtstr)
 

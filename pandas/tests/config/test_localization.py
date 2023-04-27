@@ -52,13 +52,13 @@ def test_can_set_locale_valid_set(lc_var):
     "lc_var",
     (
         locale.LC_ALL,
+        locale.LC_CTYPE,
         pytest.param(
-            locale.LC_CTYPE,
+            locale.LC_TIME,
             marks=pytest.mark.skipif(
-                ISMUSL, reason="MUSL allows setting invalid LC_CTYPE."
+                ISMUSL, reason="MUSL allows setting invalid LC_TIME."
             ),
         ),
-        locale.LC_TIME,
     ),
 )
 def test_can_set_locale_invalid_set(lc_var):
