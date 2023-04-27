@@ -73,11 +73,11 @@ class NumericReduce(base.BaseNumericReduceTests):
         arr = ser.array
 
         if tm.is_float_dtype(arr.dtype):
-            cmp_dtype = arr.dtype
+            cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
         elif op_name in ["max", "min"]:
-            cmp_dtype = arr.dtype
+            cmp_dtype = arr.dtype.name
         else:
             cmp_dtype = {"i": "Int64", "u": "UInt64", "f": "Float64"}[arr.dtype.kind]
 
