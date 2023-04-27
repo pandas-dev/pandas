@@ -1801,8 +1801,6 @@ class DataFrame(NDFrame, OpsMixin):
             The value to use for missing values. The default value depends
             on `dtype` and the dtypes of the DataFrame columns.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         numpy.ndarray
@@ -2612,8 +2610,6 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
         {compression_options}
 
-            .. versionadded:: 1.1.0
-
             .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
@@ -2708,8 +2704,6 @@ class DataFrame(NDFrame, OpsMixin):
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
-
-            .. versionadded:: 1.1.0
 
         Notes
         -----
@@ -3109,8 +3103,6 @@ class DataFrame(NDFrame, OpsMixin):
             Convert URLs to HTML links.
         encoding : str, default "utf-8"
             Set character encoding.
-
-            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -6596,8 +6588,6 @@ class DataFrame(NDFrame, OpsMixin):
             ``Series`` and return a Series with the same shape as the input.
             It will be applied to each column in `by` independently.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame or None
@@ -6885,8 +6875,6 @@ class DataFrame(NDFrame, OpsMixin):
             ``Index`` and return an ``Index`` of the same shape. For MultiIndex
             inputs, the key is applied *per level*.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame or None
@@ -6955,8 +6943,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a Series containing counts of unique rows in the DataFrame.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         subset : label or list of labels, optional
@@ -6964,7 +6950,7 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. Sort by DataFrame column values when False.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -8677,16 +8663,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------%s
         columns : str or object or a list of str
             Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
-
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If not given, uses existing index.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of index names.
-
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
@@ -9187,8 +9165,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -10514,8 +10490,6 @@ class DataFrame(NDFrame, OpsMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.
             This argument is applicable only when no ``nan`` is in the dataframe.
 
-            .. versionadded:: 1.1.0
-
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -11005,7 +10979,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="sum")
 
     @doc(make_doc("prod", ndim=2))
     def prod(
