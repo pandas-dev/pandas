@@ -19,7 +19,6 @@ import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import py_parse_datetime_string
-from pandas.compat.pyarrow import pa_version_under7p0
 
 import pandas as pd
 from pandas import (
@@ -462,7 +461,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         columns=["X0", "X2", "X3", "X4", "X5", "X6", "X7"],
         index=index,
     )
-    if parser.engine == "pyarrow" and not pa_version_under7p0:
+    if parser.engine == "pyarrow":
         # https://github.com/pandas-dev/pandas/issues/44231
         # pyarrow 6.0 starts to infer time type
         expected["X2"] = pd.to_datetime("1970-01-01" + expected["X2"]).dt.time
@@ -963,8 +962,6 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
 def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
-    if parser.engine == "pyarrow" and pa_version_under7p0:
-        request.node.add_marker(pytest.mark.xfail(reason="Fails for pyarrow < 7.0"))
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
@@ -1255,17 +1252,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    if parser.engine == "pyarrow":
-        # None in input gets converted to 'None', for which
-        # pandas tries to guess the datetime format, triggering
-        # the warning. TODO: parse dates directly in pyarrow, see
-        # https://github.com/pandas-dev/pandas/issues/48017
-        warn = UserWarning
-    else:
-        warn = None
-    parser.read_csv_check_warnings(
-        warn,
-        "Could not infer format",
+    parser.read_csv(
         s,
         header=None,
         names=["foo", "bar"],
@@ -1287,6 +1274,10 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         # pandas doesn't try to guess the datetime format
         # TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
+        warn = None
+    elif cache_dates:
+        # Note: warning is not raised if 'cache_dates', because here there is only a
+        # single unique date and hence no risk of inconsistent parsing.
         warn = None
     else:
         warn = UserWarning
@@ -1660,8 +1651,8 @@ date,time,prn,rxstatus
     datetimes = np.array(["2013-11-03T19:00:00"] * 3, dtype="datetime64[s]")
     expected = DataFrame(
         data={"rxstatus": ["00E80000"] * 3},
-        index=MultiIndex.from_tuples(
-            [(datetimes[0], 126), (datetimes[1], 23), (datetimes[2], 13)],
+        index=MultiIndex.from_arrays(
+            [datetimes, [126, 23, 13]],
             names=["datetime", "prn"],
         ),
     )
@@ -1740,9 +1731,7 @@ def test_parse_timezone(all_parsers):
 def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
     expected = DataFrame({0: [date_string]}, dtype="object")
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Could not infer format",
+    result = parser.read_csv(
         StringIO(date_string),
         header=None,
         parse_dates=[0],
@@ -2066,9 +2055,7 @@ def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers
     data = "a,b,c\n1970-01-01,2,3,4"
-    result = parser.read_csv_check_warnings(
-        UserWarning,
-        "Could not infer format",
+    result = parser.read_csv(
         StringIO(data),
         parse_dates=["a"],
     )

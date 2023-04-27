@@ -25,7 +25,10 @@ from pandas.core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
 )
-from pandas.tests.extension import base
+from pandas.tests.extension import (
+    base,
+    masked_shared,
+)
 
 
 def make_data():
@@ -92,11 +95,7 @@ class TestDtype(base.BaseDtypeTests):
     pass
 
 
-class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
-
+class TestArithmeticOps(masked_shared.Arithmetic):
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             sdtype = tm.get_dtype(s)
@@ -120,28 +119,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(s, other)
 
-    def _check_divmod_op(self, s, op, other, exc=None):
-        super()._check_divmod_op(s, op, other, None)
 
-
-class TestComparisonOps(base.BaseComparisonOpsTests):
-    # TODO: share with IntegerArray?
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
-        if exc is None:
-            result = op(s, other)
-            # Override to do the astype to boolean
-            expected = s.combine(other, op).astype("boolean")
-            self.assert_series_equal(result, expected)
-        else:
-            with pytest.raises(exc):
-                op(s, other)
-
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
-
-    def _compare_other(self, s, data, op, other):
-        op_name = f"__{op.__name__}__"
-        self.check_opname(s, op_name, other)
+class TestComparisonOps(masked_shared.Comparison):
+    pass
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -184,21 +164,8 @@ class TestGroupby(base.BaseGroupbyTests):
     pass
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
-    def check_reduce(self, s, op_name, skipna):
-        # overwrite to ensure pd.NA is tested instead of np.nan
-        # https://github.com/pandas-dev/pandas/issues/30958
-        if op_name == "count":
-            result = getattr(s, op_name)()
-            expected = getattr(s.dropna().astype(s.dtype.numpy_dtype), op_name)()
-        else:
-            result = getattr(s, op_name)(skipna=skipna)
-            expected = getattr(s.dropna().astype(s.dtype.numpy_dtype), op_name)(
-                skipna=skipna
-            )
-            if not skipna and s.isna().any():
-                expected = pd.NA
-        tm.assert_almost_equal(result, expected)
+class TestNumericReduce(masked_shared.NumericReduce):
+    pass
 
 
 @pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
@@ -219,7 +186,5 @@ class Test2DCompat(base.Dim2CompatTests):
     pass
 
 
-class TestAccumulation(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
+class TestAccumulation(masked_shared.Accumulation):
+    pass

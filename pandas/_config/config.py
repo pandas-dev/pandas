@@ -66,10 +66,8 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import (
-    F,
-    T,
-)
+from pandas._typing import F  # noqa: TCH001
+from pandas._typing import T  # noqa: TCH001
 from pandas.util._exceptions import find_stack_level
 
 
@@ -160,8 +158,8 @@ def _set_option(*args, **kwargs) -> None:
             o.validator(v)
 
         # walk the nested dict
-        root, k = _get_root(key)
-        root[k] = v
+        root, k_root = _get_root(key)
+        root[k_root] = v
 
         if o.cb:
             if silent:
@@ -739,7 +737,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

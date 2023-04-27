@@ -23,8 +23,10 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Iterator,
     Literal,
+    Mapping,
     cast,
     overload,
 )
@@ -32,25 +34,17 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_nullable_dtypes
-
 from pandas._libs import lib
-from pandas._typing import (
-    DateTimeErrorChoices,
-    DtypeArg,
-    IndexLabel,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
     is_dict_like,
-    is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -74,6 +68,13 @@ if TYPE_CHECKING:
         TextClause,
     )
 
+    from pandas._typing import (
+        DateTimeErrorChoices,
+        DtypeArg,
+        DtypeBackend,
+        IndexLabel,
+        Self,
+    )
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -110,7 +111,7 @@ def _handle_date_column(
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col.dtype):
+        elif isinstance(col.dtype, DatetimeTZDtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -129,7 +130,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
+        if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -143,16 +144,15 @@ def _convert_arrays_to_dataframe(
     data,
     columns,
     coerce_float: bool = True,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ) -> DataFrame:
     content = lib.to_object_array_tuples(data)
     arrays = convert_object_array(
         list(content.T),
         dtype=None,
         coerce_float=coerce_float,
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
     )
-    dtype_backend = get_option("mode.dtype_backend")
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
         arrays = [
@@ -171,12 +171,10 @@ def _wrap_result(
     coerce_float: bool = True,
     parse_dates=None,
     dtype: DtypeArg | None = None,
-    use_nullable_dtypes: bool = False,
+    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ):
     """Wrap result set of query in a DataFrame."""
-    frame = _convert_arrays_to_dataframe(
-        data, columns, coerce_float, use_nullable_dtypes
-    )
+    frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
     if dtype:
         frame = frame.astype(dtype)
@@ -226,7 +224,7 @@ def execute(sql, con, params=None):
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -234,14 +232,14 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: None = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
 
 @overload
 def read_sql_table(
-    table_name,
+    table_name: str,
     con,
     schema=...,
     index_col: str | list[str] | None = ...,
@@ -249,7 +247,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = ...,
     columns: list[str] | None = ...,
     chunksize: int = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -263,7 +261,7 @@ def read_sql_table(
     parse_dates: list[str] | dict[str, str] | None = None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
@@ -300,18 +298,13 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    use_nullable_dtypes : bool = False
-        Whether to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -334,11 +327,11 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+
+    check_dtype_backend(dtype_backend)
+    if dtype_backend is lib.no_default:
+        dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
@@ -351,7 +344,7 @@ def read_sql_table(
             parse_dates=parse_dates,
             columns=columns,
             chunksize=chunksize,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
 
     if table is not None:
@@ -366,11 +359,11 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -381,11 +374,11 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -395,11 +388,11 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    params: list[str] | dict[str, str] | None = None,
+    params: list[Any] | Mapping[str, Any] | None = None,
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Iterator[DataFrame]:
     """
     Read SQL query into a DataFrame.
@@ -420,7 +413,7 @@ def read_sql_query(
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Useful for SQL result sets.
-    params : list, tuple or dict, optional, default: None
+    params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
@@ -443,18 +436,13 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
-    use_nullable_dtypes : bool = False
-        Whether to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
 
@@ -472,11 +460,11 @@ def read_sql_query(
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
     """
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+
+    check_dtype_backend(dtype_backend)
+    if dtype_backend is lib.no_default:
+        dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
@@ -487,7 +475,7 @@ def read_sql_query(
             parse_dates=parse_dates,
             chunksize=chunksize,
             dtype=dtype,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
 
 
@@ -501,7 +489,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: None = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
 ) -> DataFrame:
     ...
@@ -517,7 +505,7 @@ def read_sql(
     parse_dates=...,
     columns: list[str] = ...,
     chunksize: int = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
 ) -> Iterator[DataFrame]:
     ...
@@ -532,7 +520,7 @@ def read_sql(
     parse_dates=None,
     columns: list[str] | None = None,
     chunksize: int | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     dtype: DtypeArg | None = None,
 ) -> DataFrame | Iterator[DataFrame]:
     """
@@ -581,18 +569,13 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    use_nullable_dtypes : bool = False
-        Whether to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        .. note::
-
-            The nullable dtype implementation can be configured by calling
-            ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-            numpy-backed nullable dtypes or
-            ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-            pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -643,11 +626,11 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
     """
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+
+    check_dtype_backend(dtype_backend)
+    if dtype_backend is lib.no_default:
+        dtype_backend = "numpy"  # type: ignore[assignment]
+    assert dtype_backend is not lib.no_default
 
     with pandasSQL_builder(con) as pandas_sql:
         if isinstance(pandas_sql, SQLiteDatabase):
@@ -658,7 +641,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
                 dtype=dtype,
             )
 
@@ -676,7 +659,7 @@ def read_sql(
                 parse_dates=parse_dates,
                 columns=columns,
                 chunksize=chunksize,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
         else:
             return pandas_sql.read_query(
@@ -686,7 +669,7 @@ def read_sql(
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 chunksize=chunksize,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
                 dtype=dtype,
             )
 
@@ -701,7 +684,7 @@ def to_sql(
     index_label: IndexLabel = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: str | None = None,
+    method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -904,6 +887,9 @@ class SQLTable(PandasObject):
         if self.table is None:
             raise ValueError(f"Could not init table '{name}'")
 
+        if not len(self.name):
+            raise ValueError("Empty table name specified")
+
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
 
@@ -982,14 +968,22 @@ class SQLTable(PandasObject):
         data_list: list[np.ndarray] = [None] * ncols  # type: ignore[list-item]
 
         for i, (_, ser) in enumerate(temp.items()):
-            vals = ser._values
-            if vals.dtype.kind == "M":
-                d = vals.to_pydatetime()
-            elif vals.dtype.kind == "m":
+            if ser.dtype.kind == "M":
+                if isinstance(ser._values, ArrowExtensionArray):
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=FutureWarning)
+                        # GH#52459 to_pydatetime will return Index[object]
+                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                else:
+                    d = ser._values.to_pydatetime()
+            elif ser.dtype.kind == "m":
+                vals = ser._values
+                if isinstance(vals, ArrowExtensionArray):
+                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
-                d = vals.astype(object)
+                d = ser._values.astype(object)
 
             assert isinstance(d, np.ndarray), type(d)
 
@@ -1003,7 +997,9 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(
-        self, chunksize: int | None = None, method: str | None = None
+        self,
+        chunksize: int | None = None,
+        method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1039,7 +1035,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
-                if is_integer(num_inserted):
+                if num_inserted is not None:
                     if total_inserted is None:
                         total_inserted = num_inserted
                     else:
@@ -1050,11 +1046,11 @@ class SQLTable(PandasObject):
         self,
         result,
         exit_stack: ExitStack,
-        chunksize: str | None,
+        chunksize: int | None,
         columns,
         coerce_float: bool = True,
         parse_dates=None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ):
         """Return generator through chunked result set."""
         has_read_data = False
@@ -1070,11 +1066,11 @@ class SQLTable(PandasObject):
 
                 has_read_data = True
                 self.frame = _convert_arrays_to_dataframe(
-                    data, columns, coerce_float, use_nullable_dtypes
+                    data, columns, coerce_float, dtype_backend
                 )
 
                 self._harmonize_columns(
-                    parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
+                    parse_dates=parse_dates, dtype_backend=dtype_backend
                 )
 
                 if self.index is not None:
@@ -1088,8 +1084,8 @@ class SQLTable(PandasObject):
         coerce_float: bool = True,
         parse_dates=None,
         columns=None,
-        chunksize=None,
-        use_nullable_dtypes: bool = False,
+        chunksize: int | None = None,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         from sqlalchemy import select
 
@@ -1112,16 +1108,16 @@ class SQLTable(PandasObject):
                 column_names,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
         else:
             data = result.fetchall()
             self.frame = _convert_arrays_to_dataframe(
-                data, column_names, coerce_float, use_nullable_dtypes
+                data, column_names, coerce_float, dtype_backend
             )
 
             self._harmonize_columns(
-                parse_dates=parse_dates, use_nullable_dtypes=use_nullable_dtypes
+                parse_dates=parse_dates, dtype_backend=dtype_backend
             )
 
             if self.index is not None:
@@ -1206,7 +1202,9 @@ class SQLTable(PandasObject):
         return Table(self.name, meta, *columns, schema=schema)
 
     def _harmonize_columns(
-        self, parse_dates=None, use_nullable_dtypes: bool = False
+        self,
+        parse_dates=None,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> None:
         """
         Make the DataFrame's column types align with the SQL table
@@ -1247,11 +1245,11 @@ class SQLTable(PandasObject):
                     # Convert tz-aware Datetime SQL columns to UTC
                     utc = col_type is DatetimeTZDtype
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
-                elif not use_nullable_dtypes and col_type is float:
+                elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)
 
-                elif not use_nullable_dtypes and len(df_col) == df_col.count():
+                elif dtype_backend == "numpy" and len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
                     if col_type is np.dtype("int64") or col_type is bool:
                         self.frame[col_name] = df_col.astype(col_type, copy=False)
@@ -1363,7 +1361,7 @@ class PandasSQL(PandasObject, ABC):
     Subclasses Should define read_query and to_sql.
     """
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args) -> None:
@@ -1378,7 +1376,7 @@ class PandasSQL(PandasObject, ABC):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         raise NotImplementedError
 
@@ -1392,7 +1390,7 @@ class PandasSQL(PandasObject, ABC):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         pass
 
@@ -1400,14 +1398,14 @@ class PandasSQL(PandasObject, ABC):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1439,10 +1437,10 @@ class BaseEngine:
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1463,10 +1461,10 @@ class SQLAlchemyEngine(BaseEngine):
         table: SQLTable,
         con,
         frame,
-        name,
+        name: str,
         index: bool | str | list[str] | None = True,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         method=None,
         **engine_kwargs,
     ) -> int | None:
@@ -1586,7 +1584,7 @@ class SQLDatabase(PandasSQL):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -1619,18 +1617,13 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        use_nullable_dtypes : bool = False
-            Whether to use nullable dtypes as default when reading data. If
-            set to True, nullable dtypes are used for all dtypes that have a nullable
-            implementation, even if no nulls are present.
+        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
+            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+            arrays, nullable dtypes are used for all dtypes that have a nullable
+            implementation when "numpy_nullable" is set, pyarrow is used for all
+            dtypes if "pyarrow" is set.
 
-            .. note::
-
-                The nullable dtype implementation can be configured by calling
-                ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-                numpy-backed nullable dtypes or
-                ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-                pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+            The dtype_backends are still experimential.
 
             .. versionadded:: 2.0
 
@@ -1654,7 +1647,7 @@ class SQLDatabase(PandasSQL):
             parse_dates=parse_dates,
             columns=columns,
             chunksize=chunksize,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
 
     @staticmethod
@@ -1667,7 +1660,7 @@ class SQLDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ):
         """Return generator through chunked result set"""
         has_read_data = False
@@ -1683,7 +1676,7 @@ class SQLDatabase(PandasSQL):
                             coerce_float=coerce_float,
                             parse_dates=parse_dates,
                             dtype=dtype,
-                            use_nullable_dtypes=use_nullable_dtypes,
+                            dtype_backend=dtype_backend,
                         )
                     break
 
@@ -1695,7 +1688,7 @@ class SQLDatabase(PandasSQL):
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
                     dtype=dtype,
-                    use_nullable_dtypes=use_nullable_dtypes,
+                    dtype_backend=dtype_backend,
                 )
 
     def read_query(
@@ -1707,7 +1700,7 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.
@@ -1769,7 +1762,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
         else:
             data = result.fetchall()
@@ -1780,7 +1773,7 @@ class SQLDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
             return frame
 
@@ -1789,7 +1782,7 @@ class SQLDatabase(PandasSQL):
     def prep_table(
         self,
         frame,
-        name,
+        name: str,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
@@ -1871,9 +1864,9 @@ class SQLDatabase(PandasSQL):
         index: bool = True,
         index_label=None,
         schema: str | None = None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2017,7 +2010,7 @@ _SQL_TYPES = {
 }
 
 
-def _get_unicode_name(name):
+def _get_unicode_name(name: object):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
     except UnicodeError as err:
@@ -2025,7 +2018,7 @@ def _get_unicode_name(name):
     return uname
 
 
-def _get_valid_sqlite_name(name):
+def _get_valid_sqlite_name(name: object):
     # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
@@ -2242,7 +2235,7 @@ class SQLiteDatabase(PandasSQL):
         coerce_float: bool = True,
         parse_dates=None,
         dtype: DtypeArg | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ):
         """Return generator through chunked result set"""
         has_read_data = False
@@ -2269,7 +2262,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
 
     def read_query(
@@ -2281,7 +2274,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         cursor = self.execute(sql, params)
         columns = [col_desc[0] for col_desc in cursor.description]
@@ -2295,7 +2288,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
         else:
             data = self._fetchall_as_list(cursor)
@@ -2308,7 +2301,7 @@ class SQLiteDatabase(PandasSQL):
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
                 dtype=dtype,
-                use_nullable_dtypes=use_nullable_dtypes,
+                dtype_backend=dtype_backend,
             )
             return frame
 
@@ -2321,14 +2314,14 @@ class SQLiteDatabase(PandasSQL):
     def to_sql(
         self,
         frame,
-        name,
+        name: str,
         if_exists: str = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
-        chunksize=None,
+        chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:

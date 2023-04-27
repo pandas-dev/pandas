@@ -131,13 +131,13 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    def test_use_nullable_dtypes(self, string_storage, dtype_backend):
+    def test_dtype_backend(self, string_storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -163,8 +163,7 @@ class TestReadHtml:
 
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = self.read_html(out, use_nullable_dtypes=True)[0]
+            result = self.read_html(out, dtype_backend=dtype_backend)[0]
 
         expected = DataFrame(
             {
@@ -191,17 +190,6 @@ class TestReadHtml:
                 }
             )
 
-        tm.assert_frame_equal(result, expected)
-
-    def test_use_nullable_dtypes_option(self):
-        # GH#50748
-        df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
-
-        out = df.to_html(index=False)
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = self.read_html(out)[0]
-
-        expected = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
@@ -694,8 +682,8 @@ class TestReadHtml:
             "Hamilton Bank, NA",
             "The Citizens Savings Bank",
         ]
-        dfnew = df.applymap(try_remove_ws).replace(old, new)
-        gtnew = ground_truth.applymap(try_remove_ws)
+        dfnew = df.map(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.map(try_remove_ws)
         converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
@@ -1250,6 +1238,28 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.parametrize("displayed_only", [True, False])
+    def test_displayed_only_with_many_elements(self, displayed_only):
+        html_table = """
+        <table>
+            <tr>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td><span style="display:none"></span>4</td>
+                <td>5</td>
+            </tr>
+        </table>
+        """
+        result = read_html(html_table, displayed_only=displayed_only)[0]
+        expected = DataFrame({"A": [1, 4], "B": [2, 5]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
         "from_encoding.*:UserWarning"
@@ -1476,4 +1486,37 @@ class TestReadHtml:
         """
         result = self.read_html(data, extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(data)[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)

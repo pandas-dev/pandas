@@ -11,11 +11,6 @@ from typing import (
 )
 
 from pandas._libs import json
-from pandas._typing import (
-    FilePath,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
@@ -24,6 +19,12 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
+
     from pandas.io.formats.excel import ExcelCell
 
 

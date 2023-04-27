@@ -30,21 +30,14 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    NpDtype,
-    RandomState,
-    T,
-)
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_integer,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -54,6 +47,14 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        NpDtype,
+        RandomState,
+        T,
+    )
+
     from pandas import Index
 
 
@@ -121,7 +122,7 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
-        is_array_like(key) and is_extension_array_dtype(key.dtype)
+        is_array_like(key) and isinstance(key.dtype, ExtensionDtype)
     ):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
@@ -437,11 +438,6 @@ def random_state(state: RandomState | None = None):
         If receives an np.random RandomState or Generator, just returns that unchanged.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
-
-        .. versionchanged:: 1.1.0
-
-            array-like and BitGenerator object now passed to np.random.RandomState()
-            as seed
 
         Default None.
 

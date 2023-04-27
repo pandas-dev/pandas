@@ -24,17 +24,16 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    ReadCsvBuffer,
-    Scalar,
-)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
 
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_integer,
+    is_numeric_dtype,
+)
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.common import (
@@ -47,6 +46,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        ReadCsvBuffer,
+        Scalar,
+    )
+
     from pandas import (
         Index,
         MultiIndex,
@@ -154,12 +159,7 @@ class PythonParser(ParserBase):
             self._col_indices = list(range(len(self.columns)))
 
         self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
-        no_thousands_columns: set[int] | None = None
-        if self.parse_dates:
-            no_thousands_columns = self._set_noconvert_dtype_columns(
-                self._col_indices, self.columns
-            )
-        self._no_thousands_columns = no_thousands_columns
+        self._no_thousands_columns = self._set_no_thousand_columns()
 
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
@@ -555,20 +555,19 @@ class PythonParser(ParserBase):
                 columns = self._handle_usecols(
                     columns, columns[0], num_original_columns
                 )
+            elif self.usecols is None or len(names) >= num_original_columns:
+                columns = self._handle_usecols([names], names, num_original_columns)
+                num_original_columns = len(names)
+            elif not callable(self.usecols) and len(names) != len(self.usecols):
+                raise ValueError(
+                    "Number of passed names did not match number of "
+                    "header fields in the file"
+                )
             else:
-                if self.usecols is None or len(names) >= num_original_columns:
-                    columns = self._handle_usecols([names], names, num_original_columns)
-                    num_original_columns = len(names)
-                else:
-                    if not callable(self.usecols) and len(names) != len(self.usecols):
-                        raise ValueError(
-                            "Number of passed names did not match number of "
-                            "header fields in the file"
-                        )
-                    # Ignore output but set used columns.
-                    self._handle_usecols([names], names, ncols)
-                    columns = [names]
-                    num_original_columns = ncols
+                # Ignore output but set used columns.
+                self._handle_usecols([names], names, ncols)
+                columns = [names]
+                num_original_columns = ncols
 
         return columns, num_original_columns, unnamed_cols
 
@@ -889,7 +888,7 @@ class PythonParser(ParserBase):
                 if (
                     not isinstance(x, str)
                     or search not in x
-                    or (self._no_thousands_columns and i in self._no_thousands_columns)
+                    or i in self._no_thousands_columns
                     or not self.num.search(x.strip())
                 ):
                     rl.append(x)
@@ -1162,6 +1161,31 @@ class PythonParser(ParserBase):
             ]
         return new_rows
 
+    def _set_no_thousand_columns(self) -> set[int]:
+        no_thousands_columns: set[int] = set()
+        if self.columns and self.parse_dates:
+            assert self._col_indices is not None
+            no_thousands_columns = self._set_noconvert_dtype_columns(
+                self._col_indices, self.columns
+            )
+        if self.columns and self.dtype:
+            assert self._col_indices is not None
+            for i in self._col_indices:
+                if not isinstance(self.dtype, dict) and not is_numeric_dtype(
+                    self.dtype
+                ):
+                    no_thousands_columns.add(i)
+                if (
+                    isinstance(self.dtype, dict)
+                    and self.columns[i] in self.dtype
+                    and (
+                        not is_numeric_dtype(self.dtype[self.columns[i]])
+                        or is_bool_dtype(self.dtype[self.columns[i]])
+                    )
+                ):
+                    no_thousands_columns.add(i)
+        return no_thousands_columns
+
 
 class FixedWidthReader(abc.Iterator):
     """
@@ -1348,4 +1372,5 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    return skipfooter
+    # Incompatible return value type (got "Union[int, integer[Any]]", expected "int")
+    return skipfooter  # type: ignore[return-value]

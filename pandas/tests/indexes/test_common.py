@@ -12,11 +12,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    pa_version_under7p0,
-)
-from pandas.errors import PerformanceWarning
+from pandas.compat import IS64
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -169,12 +165,7 @@ class TestCommon:
         s1 = pd.Series(2, index=first)
         s2 = pd.Series(3, index=second[:-1])
         # See GH#13365
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            s3 = s1 * s2
+        s3 = s1 * s2
         assert s3.index.name == "mario"
 
     def test_copy_name2(self, index_flat):
@@ -394,11 +385,7 @@ class TestCommon:
             # imaginary components discarded
             warn = np.ComplexWarning
 
-        is_pyarrow_str = (
-            str(index.dtype) == "string[pyarrow]"
-            and pa_version_under7p0
-            and dtype == "category"
-        )
+        is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(
@@ -448,15 +435,8 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    dtype = index_with_missing.dtype
-    warning = (
-        PerformanceWarning
-        if dtype.name == "string" and dtype.storage == "pyarrow"
-        else None
-    )
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        with tm.assert_produces_warning(warning):
-            index_with_missing.sort_values(na_position=na_position)
+        index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
@@ -482,13 +462,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0
-        and getattr(index_with_missing.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        result = index_with_missing.sort_values(na_position=na_position)
+    result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)
 
 

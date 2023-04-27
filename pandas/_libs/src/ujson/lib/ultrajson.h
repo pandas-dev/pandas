@@ -49,8 +49,7 @@ tree doesn't have cyclic references.
 
 */
 
-#ifndef PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_
-#define PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_
+#pragma once
 
 #include <stdio.h>
 #include <wchar.h>
@@ -187,7 +186,7 @@ typedef struct __JSONObjectEncoder {
                                 size_t *_outLen);
 
   /*
-  Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT)
+  Begin iteration of an iterable object (JS_ARRAY or JS_OBJECT)
   Implementor should setup iteration state in ti->prv
   */
   JSPFN_ITERBEGIN iterBegin;
@@ -199,7 +198,7 @@ typedef struct __JSONObjectEncoder {
   JSPFN_ITERNEXT iterNext;
 
   /*
-  Ends the iteration of an iteratable object.
+  Ends the iteration of an iterable object.
   Any iteration state stored in ti->prv can be freed here
   */
   JSPFN_ITEREND iterEnd;
@@ -313,5 +312,3 @@ typedef struct __JSONObjectDecoder {
 EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
                                        const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
-
-#endif  // PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_

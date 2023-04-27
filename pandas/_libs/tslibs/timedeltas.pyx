@@ -4,6 +4,10 @@ import warnings
 cimport cython
 from cpython.object cimport (
     Py_EQ,
+    Py_GE,
+    Py_GT,
+    Py_LE,
+    Py_LT,
     Py_NE,
     PyObject,
     PyObject_RichCompare,
@@ -54,11 +58,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_timedelta64_value,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
@@ -489,6 +496,7 @@ cdef int64_t _item_to_timedelta64(
             raise
 
 
+@cython.cpow(True)
 cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
@@ -767,7 +775,7 @@ def _binary_op_method_timedeltalike(op, name):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return f(self, item)
 
-            elif other.dtype.kind in ["m", "M"]:
+            elif other.dtype.kind in "mM":
                 return op(self.to_timedelta64(), other)
             elif other.dtype.kind == "O":
                 return np.array([op(self, x) for x in other])
@@ -1105,7 +1113,7 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self) -> float:
         """Total seconds in the duration."""
-        # We need to override bc we overrided days/seconds/microseconds
+        # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
 
@@ -1150,8 +1158,27 @@ cdef class _Timedelta(timedelta):
         if isinstance(other, _Timedelta):
             ots = other
         elif is_any_td_scalar(other):
-            ots = Timedelta(other)
-            # TODO: watch out for overflows
+            try:
+                ots = Timedelta(other)
+            except OutOfBoundsTimedelta as err:
+                # GH#49021 pytimedelta.max overflows
+                if not PyDelta_Check(other):
+                    # TODO: handle this case
+                    raise
+                ltup = (self.days, self.seconds, self.microseconds, self.nanoseconds)
+                rtup = (other.days, other.seconds, other.microseconds, 0)
+                if op == Py_EQ:
+                    return ltup == rtup
+                elif op == Py_NE:
+                    return ltup != rtup
+                elif op == Py_LT:
+                    return ltup < rtup
+                elif op == Py_LE:
+                    return ltup <= rtup
+                elif op == Py_GT:
+                    return ltup > rtup
+                elif op == Py_GE:
+                    return ltup >= rtup
 
         elif other is NaT:
             return op == Py_NE
@@ -1824,7 +1851,12 @@ class Timedelta(_Timedelta):
         unit = delta_to_nanoseconds(to_offset(freq), self._creso)
 
         arr = np.array([self._value], dtype="i8")
-        result = round_nsint64(arr, mode, unit)[0]
+        try:
+            result = round_nsint64(arr, mode, unit)[0]
+        except OverflowError as err:
+            raise OutOfBoundsTimedelta(
+                f"Cannot round {self} to freq={freq} without overflow"
+            ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
     def round(self, freq):
@@ -1996,7 +2028,7 @@ class Timedelta(_Timedelta):
                     result[mask] = np.nan
                 return result
 
-            elif other.dtype.kind in ["i", "u", "f"]:
+            elif other.dtype.kind in "iuf":
                 if other.ndim == 0:
                     return self // other.item()
                 else:

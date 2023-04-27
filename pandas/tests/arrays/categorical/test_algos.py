@@ -59,6 +59,15 @@ def test_isin_cats():
     tm.assert_numpy_array_equal(expected, result)
 
 
+@pytest.mark.parametrize("value", [[""], [None, ""], [pd.NaT, ""]])
+def test_isin_cats_corner_cases(value):
+    # GH36550
+    cat = pd.Categorical([""])
+    result = cat.isin(value)
+    expected = np.array([True], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
 @pytest.mark.parametrize("empty", [[], pd.Series(dtype=object), np.array([])])
 def test_isin_empty(empty):
     s = pd.Categorical(["a", "b"])

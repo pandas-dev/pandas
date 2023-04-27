@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas._libs import lib
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
@@ -149,7 +148,9 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res[col], agged[col])
 
     # group columns
-    grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
@@ -165,7 +166,10 @@ def test_transform_axis_1(request, transformation_func):
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     args = get_groupby_method_args(transformation_func, df)
-    result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+    result = gb.transform(transformation_func, *args)
     expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
@@ -187,7 +191,11 @@ def test_transform_axis_1_reducer(request, reduction_func):
         request.node.add_marker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
-    result = df.groupby([0, 0, 1], axis=1).transform(reduction_func)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby([0, 0, 1], axis=1)
+
+    result = gb.transform(reduction_func)
     expected = df.T.groupby([0, 0, 1]).transform(reduction_func).T
     tm.assert_equal(result, expected)
 
@@ -212,7 +220,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -225,7 +235,9 @@ def test_transform_axis_ts(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -324,10 +336,10 @@ def test_transform_casting():
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.dtype)
+    assert lib.is_np_dtype(result.dtype, "m")
 
     result = df[["ID3", "DATETIME"]].groupby("ID3").transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.DATETIME.dtype)
+    assert lib.is_np_dtype(result.DATETIME.dtype, "m")
 
 
 def test_transform_multiple(ts):
@@ -346,6 +358,20 @@ def test_dispatch_transform(tsframe):
     fillit = lambda x: x.fillna(method="pad")
     expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
+
+
+def test_transform_fillna_null():
+    df = DataFrame(
+        dict(
+            price=[10, 10, 20, 20, 30, 30],
+            color=[10, 10, 20, 20, 30, 30],
+            cost=(100, 200, 300, 400, 500, 600),
+        )
+    )
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).transform("fillna")
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).fillna()
 
 
 def test_transform_transformation_func(transformation_func):
@@ -560,7 +586,9 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    result = grouped.apply(f)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
@@ -715,7 +743,13 @@ def test_cython_transform_frame(op, args, targop):
                 f = gb[["float", "float_missing"]].apply(targop)
                 expected = concat([f, i], axis=1)
             else:
-                expected = gb.apply(targop)
+                if op != "shift" or not isinstance(gb_target.get("by"), str):
+                    warn = None
+                else:
+                    warn = FutureWarning
+                msg = "DataFrameGroupBy.apply operated on the grouping columns"
+                with tm.assert_produces_warning(warn, match=msg):
+                    expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
 
@@ -770,9 +804,12 @@ def test_transform_with_non_scalar_group():
         np.random.randint(1, 10, (4, 12)), columns=cols, index=["A", "C", "G", "T"]
     )
 
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(axis=1, level=1)
     msg = "transform must return a scalar value for each group.*"
     with pytest.raises(ValueError, match=msg):
-        df.groupby(axis=1, level=1).transform(lambda z: z.div(z.sum(axis=1), axis=0))
+        gb.transform(lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize(
@@ -1062,7 +1099,7 @@ def test_transform_absent_categories(func):
     x_cats = range(2)
     y = [1]
     df = DataFrame({"x": Categorical(x_vals, x_cats), "y": y})
-    result = getattr(df.y.groupby(df.x), func)()
+    result = getattr(df.y.groupby(df.x, observed=False), func)()
     expected = df.y
     tm.assert_series_equal(result, expected)
 
@@ -1109,9 +1146,9 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
     g = obj.groupby(np.repeat([0, 1], 3))
 
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
-        request.node.add_marker(
-            pytest.mark.xfail(reason="TODO: implement SeriesGroupBy.corrwith")
-        )
+        # TODO: implement SeriesGroupBy.corrwith
+        assert not hasattr(g, func)
+        return
 
     args = get_groupby_method_args(reduction_func, obj)
     result = g.transform(func, *args)
@@ -1374,14 +1411,14 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
 
 def test_null_group_str_reducer_series(request, dropna, reduction_func):
     # GH 17093
-    if reduction_func == "corrwith":
-        msg = "corrwith not implemented for SeriesGroupBy"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
-    # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     ser = Series([1, 2, 2, 3], index=index)
     gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
+
+    if reduction_func == "corrwith":
+        # corrwith not implemented for SeriesGroupBy
+        assert not hasattr(gb, reduction_func)
+        return
 
     args = get_groupby_method_args(reduction_func, ser)
 

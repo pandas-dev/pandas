@@ -233,7 +233,9 @@ def education_df():
 
 
 def test_axis(education_df):
-    gp = education_df.groupby("country", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gp = education_df.groupby("country", axis=1)
     with pytest.raises(NotImplementedError, match="axis"):
         gp.value_counts()
 
@@ -305,9 +307,12 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        expected = gp.apply(
-            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-        )
+        warn = FutureWarning if groupby == "column" else None
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = gp.apply(
+                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+            )
 
         if as_index:
             tm.assert_series_equal(result, expected)

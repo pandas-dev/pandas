@@ -141,10 +141,9 @@ class TestJoin:
 
         # overlap
         source_copy = source.copy()
-        source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If "
-            "you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns for key 'A'. "
+            "If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")

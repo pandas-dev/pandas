@@ -37,10 +37,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_scalar,
-)
+from pandas.api.types import is_scalar
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -62,6 +59,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
+    def test_none_values_on_string_columns(self):
+        # Issue #32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+
+        assert df.loc[2, "a"] is None
+
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
         # int label
@@ -1651,7 +1654,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and is_bool_dtype(obj.index):
+        if indexer is tm.loc and obj.index.inferred_type == "boolean":
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return
@@ -2566,8 +2569,10 @@ class TestLocBooleanMask:
         mask = float_frame["A"] > 0
 
         float_frame.loc[mask, "B"] = 0
-        expected.values[mask.values, 1] = 0
 
+        values = expected.values.copy()
+        values[mask.values, 1] = 0
+        expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
     def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
@@ -2598,6 +2603,20 @@ class TestLocBooleanMask:
             tm.assert_frame_equal(df, df_orig)
         else:
             tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_empty_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": [], "b": []}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_all_false_broadcast(self):
+        # GH#51450
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = df.copy()
+        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:
@@ -2952,6 +2971,28 @@ def test_loc_periodindex_3_levels():
     )
     mi_series = mi_series.set_index(["ONE", "TWO"], append=True)["VALUES"]
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
+
+
+def test_loc_setitem_pyarrow_strings():
+    # GH#52319
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "strings": Series(["A", "B", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+    new_value = Series(["X", "Y"])
+    df.loc[df.ids, "strings"] = new_value
+
+    expected_df = DataFrame(
+        {
+            "strings": Series(["X", "Y", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+
+    tm.assert_frame_equal(df, expected_df)
 
 
 class TestLocSeries:

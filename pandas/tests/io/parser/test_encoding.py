@@ -20,9 +20,9 @@ from pandas import (
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@skip_pyarrow
 def test_bytes_io_input(all_parsers):
     encoding = "cp1255"
     parser = all_parsers
@@ -44,7 +44,7 @@ def test_read_csv_unicode(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
@@ -73,7 +73,6 @@ A,B,C
         tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_utf16_example(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
@@ -81,7 +80,6 @@ def test_utf16_example(all_parsers, csv_dir_path):
     assert len(result) == 50
 
 
-@skip_pyarrow
 def test_unicode_encoding(all_parsers, csv_dir_path):
     path = os.path.join(csv_dir_path, "unicode_series.csv")
     parser = all_parsers
@@ -94,7 +92,6 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
     assert got == expected
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -114,7 +111,7 @@ def test_unicode_encoding(all_parsers, csv_dir_path):
         ),
     ],
 )
-def test_utf8_bom(all_parsers, data, kwargs, expected):
+def test_utf8_bom(all_parsers, data, kwargs, expected, request):
     # see gh-4793
     parser = all_parsers
     bom = "\ufeff"
@@ -124,11 +121,20 @@ def test_utf8_bom(all_parsers, data, kwargs, expected):
         bom_data = (bom + _data).encode(utf8)
         return BytesIO(bom_data)
 
+    if (
+        parser.engine == "pyarrow"
+        and data == "\n1"
+        and kwargs.get("skip_blank_lines", True)
+    ):
+        # Manually xfail, since we don't have mechanism to xfail specific version
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Pyarrow can't read blank lines")
+        )
+
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
     # see gh-13549
     expected = DataFrame({"mb_num": [4.8], "multibyte": ["test"]})
@@ -141,7 +147,6 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "file_path,encoding",
     [
@@ -226,7 +231,7 @@ def test_parse_encoded_special_characters(encoding):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986
@@ -244,7 +249,7 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow
 def test_chunk_splits_multibyte_char(all_parsers):
     """
     Chunk splits a multibyte character with memory_map=True
@@ -264,7 +269,7 @@ def test_chunk_splits_multibyte_char(all_parsers):
     tm.assert_frame_equal(dfr, df)
 
 
-@skip_pyarrow
+@xfail_pyarrow
 def test_readcsv_memmap_utf8(all_parsers):
     """
     GH 43787

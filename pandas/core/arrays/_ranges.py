@@ -4,6 +4,8 @@ Helper functions to generate range-like data for DatetimeArray
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs.lib import i8max
@@ -14,7 +16,9 @@ from pandas._libs.tslibs import (
     Timestamp,
     iNaT,
 )
-from pandas._typing import npt
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 def generate_regular_range(

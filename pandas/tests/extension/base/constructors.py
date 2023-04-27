@@ -22,7 +22,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
-        result = pd.Series(data)
+        result = pd.Series(data, copy=False)
         assert result.dtype == data.dtype
         assert len(result) == len(data)
         if hasattr(result._mgr, "blocks"):

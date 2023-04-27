@@ -538,3 +538,40 @@ def test_concat_multiindex_datetime_nat():
         {"a": [1.0, np.nan], "b": 2}, MultiIndex.from_tuples([(1, pd.NaT), (2, pd.NaT)])
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_float_datetime64(using_array_manager):
+    # GH#32934
+    df_time = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    df_float = DataFrame({"A": pd.array([1.0], dtype="float64")})
+
+    expected = DataFrame(
+        {
+            "A": [
+                pd.array(["2000"], dtype="datetime64[ns]")[0],
+                pd.array([1.0], dtype="float64")[0],
+            ]
+        },
+        index=[0, 0],
+    )
+    result = concat([df_time, df_float])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([1.0], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float])
+    tm.assert_frame_equal(result, expected)
+
+    if not using_array_manager:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+        result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+            {"A": "object"}
+        )
+        result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)

@@ -3,7 +3,6 @@ timedelta support tools
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -30,6 +29,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
         ArrayLike,
@@ -115,10 +116,7 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        .. versionchanged:: 1.1.0
-
-           Must not be specified when `arg` context strings and
-           ``errors="raise"``.
+        Must not be specified when `arg` context strings and ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

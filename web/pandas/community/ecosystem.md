@@ -401,7 +401,7 @@ Learn more by reading through these issues [14468](https://github.com/pandas-dev
 
 See installation and usage instructions on the [GitHub page](https://github.com/VirtusLab/pandas-stubs).
 
-### [Hamilton](https://github.com/stitchfix/hamilton)
+### [Hamilton](https://github.com/dagworks-inc/hamilton)
 
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was designed to help one manage a
 Pandas code base, specifically with respect to feature engineering for machine learning models.
@@ -416,4 +416,4 @@ It prescibes an opinionated paradigm, that ensures all code is:
 
 This helps one to scale your pandas code base, at the same time, keeping maintenance costs low.
 
-For more information, see [documentation](https://hamilton-docs.gitbook.io/).
+For more information, see [documentation](https://hamilton.readthedocs.io/).

@@ -14,17 +14,19 @@ from typing import (
     Sequence,
 )
 
-from pandas._config import get_option
+import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    WriteBuffer,
-)
+from pandas._config import get_option
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -660,14 +662,13 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
             )
         elif self.verbose is False:  # specifically set to False, not necessarily None
             return DataFrameTableBuilderNonVerbose(info=self.info)
+        elif self.exceeds_info_cols:
+            return DataFrameTableBuilderNonVerbose(info=self.info)
         else:
-            if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose(info=self.info)
-            else:
-                return DataFrameTableBuilderVerbose(
-                    info=self.info,
-                    with_counts=self.show_counts,
-                )
+            return DataFrameTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
 
 
 class SeriesInfoPrinter(InfoPrinterAbstract):
@@ -1098,4 +1099,4 @@ def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     Create mapping between datatypes and their number of occurrences.
     """
     # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()
+    return df.dtypes.value_counts().groupby(lambda x: x.name).sum().astype(np.intp)

@@ -2,7 +2,6 @@ from typing import (
     Any,
     List,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -47,7 +46,7 @@ b = df.drop_duplicates(subset=cols[:-1])
 def validate(mi, df, key):
     # check indexing into a multi-index before & past the lexsort depth
 
-    mask = np.ones(len(df)).astype("bool")
+    mask = np.ones(len(df), dtype=bool)
 
     # test for all partials of this key
     for i, k in enumerate(key):
@@ -58,7 +57,7 @@ def validate(mi, df, key):
             continue
 
         assert key[: i + 1] in mi.index
-        right = df[mask].copy()
+        right = df[mask].copy(deep=False)
 
         if i + 1 != len(key):  # partial key
             return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
@@ -86,12 +85,11 @@ def validate(mi, df, key):
 def test_multiindex_get_loc(lexsort_depth, key, frame):
     # GH7724, GH2646
 
-    with warnings.catch_warnings(record=True):
-        if lexsort_depth == 0:
-            df = frame.copy()
-        else:
-            df = frame.sort_values(by=cols[:lexsort_depth])
+    if lexsort_depth == 0:
+        df = frame.copy(deep=False)
+    else:
+        df = frame.sort_values(by=cols[:lexsort_depth])
 
-        mi = df.set_index(cols[:-1])
-        assert not mi.index._lexsort_depth < lexsort_depth
-        validate(mi, df, key)
+    mi = df.set_index(cols[:-1])
+    assert not mi.index._lexsort_depth < lexsort_depth
+    validate(mi, df, key)
