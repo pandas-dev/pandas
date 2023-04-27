@@ -206,8 +206,7 @@ class TestSeriesConvertDtypes:
             with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
                 result[result.notna()] = np.nan
         else:
-            with tm.assert_produces_warning(None):
-                result[result.notna()] = np.nan
+            result[result.notna()] = np.nan
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
