@@ -60,7 +60,7 @@ def using_copy_on_write() -> bool:
     True
     """
     _mode_options = _global_config["mode"]
-    return _mode_options["3_on_write"] and _mode_options["data_manager"] == "block"
+    return _mode_options["copy_on_write"] and _mode_options["data_manager"] == "block"
 
 
 def using_nullable_dtypes() -> bool:
