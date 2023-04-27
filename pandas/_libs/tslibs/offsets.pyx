@@ -2291,12 +2291,28 @@ cdef class BYearBegin(YearOffset):
 
 cdef class YearEnd(YearOffset):
     """
-    DateOffset increments between calendar year ends.
+    DateOffset increments between calendar year end dates.
+
+    YearEnd goes to the next date which is the end of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.YearEnd()
+    Timestamp('2022-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> ts + pd.offsets.YearEnd()
+    Timestamp('2023-12-31 00:00:00')
+
+    If you want to get the end of the current year:
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> pd.offsets.YearEnd().rollback(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2316,9 +2332,9 @@ cdef class YearEnd(YearOffset):
 
 cdef class YearBegin(YearOffset):
     """
-    DateOffset of one year at beginning.
+    DateOffset increments between calendar year begin dates.
 
-    YearBegin goes to the next date which is a start of the year.
+    YearBegin goes to the next date which is the start of the year.
 
     See Also
     --------
