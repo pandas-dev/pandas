@@ -2623,8 +2623,10 @@ class TestLocBooleanMask:
         df = DataFrame([])
         df["col0"] = np.array([1, 4])
         df["col1"] = np.array([6, 5], dtype=object)
-        assert df["col0"].dtype == "int"
-        assert df["col1"].dtype == "object"
+        expected = df.copy()
+        with pd.option_context("mode.chained_assignment", None):
+            df.col1.loc[df.col0 > 10] = "string"
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocListlike:
