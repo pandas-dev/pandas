@@ -25,7 +25,7 @@ def test_parsing_tzlocal_deprecated():
     msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
     dtstr = "Jan 15 2004 03:00 EST"
 
-    with tm.set_timezone("US/Eastern"):
+    with tm.set_timezone("EST5EDT"):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res, _ = parse_datetime_string_with_reso(dtstr)
 

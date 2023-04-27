@@ -263,7 +263,6 @@ jobs:
       - name: Configure System Packages
         run: |
           export MUSL_LOCPATH=/usr/share/i18n/locales/musl
-          export TZ=GMT
           apk update
           apk add musl-locales musl-locales-lang
       - name: Build environment and Run Tests
