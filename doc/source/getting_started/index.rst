@@ -14,7 +14,7 @@ Installation
 
     .. grid-item-card:: Working with conda?
         :class-card: install-card
-        :column: 12 12 6 6
+        :columns: 12 12 6 6
         :padding: 3
 
         pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__
@@ -28,7 +28,7 @@ Installation
 
     .. grid-item-card:: Prefer pip?
         :class-card: install-card
-        :column: 12 12 6 6
+        :columns: 12 12 6 6
         :padding: 3
 
         pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
@@ -41,12 +41,13 @@ Installation
 
     .. grid-item-card:: In-depth instructions?
         :class-card: install-card
-        :column: 12
+        :columns: 12
         :padding: 3
-
 
         Installing a specific version? Installing from source? Check the advanced
         installation page.
+
+        +++
 
         .. button-ref:: install
             :ref-type: ref
@@ -546,7 +547,7 @@ the pandas-equivalent operations compared to software you already know:
 
     .. grid-item-card::
         :img-top: ../_static/logo_r.svg
-        :column: 12 6 6 6
+        :columns: 12 6 6 6
         :class-card: comparison-card-r
         :shadow: md
 
@@ -565,10 +566,9 @@ the pandas-equivalent operations compared to software you already know:
 
             Learn more
 
-
     .. grid-item-card::
         :img-top: ../_static/logo_sql.svg
-        :column: 12 6 6 6
+        :columns: 12 6 6 6
         :class-card: comparison-card-sql
         :shadow: md
 
@@ -587,7 +587,7 @@ the pandas-equivalent operations compared to software you already know:
 
     .. grid-item-card::
         :img-top: ../_static/logo_stata.svg
-        :column: 12 6 6 6
+        :columns: 12 6 6 6
         :class-card: comparison-card-stata
         :shadow: md
 
@@ -607,7 +607,7 @@ the pandas-equivalent operations compared to software you already know:
 
     .. grid-item-card::
         :img-top: ../_static/spreadsheets/logo_excel.svg
-        :column: 12 6 6 6
+        :columns: 12 6 6 6
         :class-card: comparison-card-excel
         :shadow: md
 
@@ -627,7 +627,7 @@ the pandas-equivalent operations compared to software you already know:
 
     .. grid-item-card::
         :img-top: ../_static/logo_sas.svg
-        :column: 12 6 6 6
+        :columns: 12 6 6 6
         :class-card: comparison-card-sas
         :shadow: md
 
@@ -645,7 +645,6 @@ the pandas-equivalent operations compared to software you already know:
             :expand:
 
             Learn more
-
 
 Tutorials
 ---------
