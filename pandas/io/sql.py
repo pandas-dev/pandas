@@ -1982,6 +1982,8 @@ class SQLDatabase(PandasSQL):
 
     def trunc_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
+        if schema == None:
+            raise NotImplementedError("TRUNCATE not supported on database.")
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
             self.execute(f"TRUNCATE TABLE {schema}.{table_name}")
