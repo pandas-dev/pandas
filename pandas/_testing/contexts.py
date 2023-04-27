@@ -206,7 +206,7 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
 
 
 def raises_chained_assignment_error(extra_warnings=()):
-    if PYPY and extra_warnings is None:
+    if PYPY and not extra_warnings:
         from contextlib import nullcontext
 
         return nullcontext()
