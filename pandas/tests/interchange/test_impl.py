@@ -173,7 +173,7 @@ def test_missing_from_masked():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
         ]
-        if is_float_dtype(df[col]):
+        if not is_float_dtype(df[col]):
             with tm.assert_produces_warning(
                 FutureWarning, match="item of incompatible dtype"
             ):
