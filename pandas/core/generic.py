@@ -5586,7 +5586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
+                **{name: labels.intersection(items)}
             )
         elif like:
 
