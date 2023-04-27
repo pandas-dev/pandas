@@ -478,7 +478,14 @@ def dict_to_mgr(
         if typ == "block":
             # We only need to copy arrays that will not get consolidated, i.e.
             #  only EA arrays
-            arrays = [x.copy() if isinstance(x, ExtensionArray) else x for x in arrays]
+            arrays = [
+                x.copy()
+                if isinstance(x, ExtensionArray)
+                else x.copy(deep=True)
+                if isinstance(x, Index)
+                else x
+                for x in arrays
+            ]
         else:
             # dtype check to exclude e.g. range objects, scalars
             arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
