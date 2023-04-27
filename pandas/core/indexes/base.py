@@ -2545,7 +2545,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds categorical data.
 
         .. deprecated:: 2.0.0
-              Use :meth:`pandas.api.types.is_categorical_dtype` instead.
+              Use `isinstance(index.dtype, pd.CategoricalDtype)` instead.
 
         Returns
         -------
@@ -2598,7 +2598,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds Interval objects.
 
         .. deprecated:: 2.0.0
-            Use `pandas.api.types.is_interval_dtype` instead.
+            Use `isinstance(index.dtype, pd.IntervalDtype)` instead.
 
         Returns
         -------
