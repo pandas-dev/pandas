@@ -21,7 +21,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 from pandas.core.computation import expressions as expr
 from pandas.core.computation.expressions import (
     _MIN_ELEMENTS,
@@ -1246,12 +1245,12 @@ class TestFrameArithmeticUnsorted:
         filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = None
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df)
         expected = op(filled, filled).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = None
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df.fillna(7))

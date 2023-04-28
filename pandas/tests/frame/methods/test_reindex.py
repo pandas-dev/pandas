@@ -23,7 +23,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.common as com
 
 
 class TestReindexSetIndex:
@@ -355,7 +354,7 @@ class TestDataFrameSelectReindex:
         result = df.reindex(range(15))
         assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
 
-        mask = com.isna(result)["B"]
+        mask = isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
 

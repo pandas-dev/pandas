@@ -14,9 +14,9 @@ from typing import (
 import numpy as np
 
 from pandas.core.dtypes.common import (
+    is_bool,
     is_re,
     is_re_compilable,
-    is_scalar,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -72,7 +72,7 @@ def compare_or_regex_search(
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
         """
-        if is_scalar(result) and isinstance(a, np.ndarray):
+        if is_bool(result) and isinstance(a, np.ndarray):
             type_names = [type(a).__name__, type(b).__name__]
 
             type_names[0] = f"ndarray(dtype={a.dtype})"

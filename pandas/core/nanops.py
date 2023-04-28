@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
-    is_scalar,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -291,7 +290,6 @@ def _get_values(
     # In _get_values is only called from within nanops, and in all cases
     #  with scalar fill_value.  This guarantee is important for the
     #  np.where call below
-    assert is_scalar(fill_value)
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -876,12 +874,15 @@ def _get_counts_nanvar(
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
-    if is_scalar(count):
+    if is_float(count):
         if count <= ddof:
-            count = np.nan
+            # error: Incompatible types in assignment (expression has type
+            # "float", variable has type "Union[floating[Any], ndarray[Any,
+            # dtype[floating[Any]]]]")
+            count = np.nan  # type: ignore[assignment]
             d = np.nan
     else:
-        # count is not narrowed by is_scalar check
+        # count is not narrowed by is_float check
         count = cast(np.ndarray, count)
         mask = count <= ddof
         if mask.any():
@@ -1444,8 +1445,8 @@ def _get_counts(
     values_shape: Shape,
     mask: npt.NDArray[np.bool_] | None,
     axis: AxisInt | None,
-    dtype: np.dtype = np.dtype(np.float64),
-) -> float | np.ndarray:
+    dtype: np.dtype[np.floating] = np.dtype(np.float64),
+) -> np.floating | npt.NDArray[np.floating]:
     """
     Get the count of non-null values along an axis
 
@@ -1476,7 +1477,7 @@ def _get_counts(
     else:
         count = values_shape[axis]
 
-    if is_scalar(count):
+    if is_integer(count):
         return dtype.type(count)
     return count.astype(dtype, copy=False)
 
