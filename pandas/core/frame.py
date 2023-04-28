@@ -11029,7 +11029,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = super().mean(axis, skipna, numeric_only, **kwargs)
 
         if isinstance(result, (DataFrame, Series)):
-            return result.__finalize__(self, method="mean")
+            return result.__finalize__(self)
         else:
             return result
 
