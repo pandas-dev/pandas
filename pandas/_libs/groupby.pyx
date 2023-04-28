@@ -54,7 +54,7 @@ cdef int64_t NPY_NAT = util.get_nat()
 
 cdef float64_t NaN = <float64_t>np.NaN
 
-cdef float64_t Infinity = <float64_t>np.Inf
+cdef float64_t INF = <float64_t>np.Inf
 
 cdef enum InterpolationEnumType:
     INTERPOLATION_LINEAR,
@@ -1075,8 +1075,8 @@ def group_mean(
                 if not isna_entry:
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
-                    if sumx[lab, j] == Infinity:
-                        t = Infinity
+                    if sumx[lab, j] == INF:
+                        t = INF
                     else:
                         t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
