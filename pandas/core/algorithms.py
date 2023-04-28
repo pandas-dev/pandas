@@ -1535,7 +1535,10 @@ def safe_sort(
             # which would work, but which fails for special case of 1d arrays
             # with tuples.
             if values.size and isinstance(values[0], tuple):
-                ordered = _sort_tuples(values)
+                # error: Argument 1 to "_sort_tuples" has incompatible type
+                # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
+                # "ndarray[Any, Any]"
+                ordered = _sort_tuples(values)  # type: ignore[arg-type]
             else:
                 ordered = _sort_mixed(values)
 
@@ -1556,7 +1559,10 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_hashtable_algo(values)
+        # error: Argument 1 to "_get_hashtable_algo" has incompatible type
+        # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
+        # "ndarray[Any, Any]"
+        hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
