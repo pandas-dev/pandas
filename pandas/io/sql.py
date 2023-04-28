@@ -1982,7 +1982,7 @@ class SQLDatabase(PandasSQL):
 
     def trunc_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
-        if self.con.engine.name == 'sqlite':
+        if self.con.engine.name == "sqlite":
             raise NotImplementedError("TRUNCATE not supported on sqlite database.")
         if self.has_table(table_name, schema):
             self.meta.reflect(bind=self.con, only=[table_name], schema=schema)

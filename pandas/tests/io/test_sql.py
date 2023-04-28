@@ -1105,7 +1105,7 @@ class _TestSQLApi(PandasSQLTest):
         assert num_rows == num_entries
 
     def test_sqlite_truncate_raises(self, test_frame1):
-        msg = 'TRUNCATE not supported on sqlite database.'
+        msg = "TRUNCATE not supported on sqlite database."
         with pytest.raises(NotImplementedError, match=msg):
             # create table
             sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists="fail")
@@ -2222,7 +2222,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_to_sql_truncate(self, test_frame1):
         if self.flavor == "sqlite":
-            msg = 'TRUNCATE not supported on sqlite database.'
+            msg = "TRUNCATE not supported on sqlite database."
             with pytest.raises(NotImplementedError, match=msg):
                 # create table
                 sql.to_sql(test_frame1, "test_frame3", self.conn, if_exists="fail")
