@@ -258,6 +258,7 @@ Deprecations
 - Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
 - Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
+- Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series` before calling (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------

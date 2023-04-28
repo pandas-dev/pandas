@@ -440,6 +440,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = arr
 
         if dtype.categories is None:
+            if not isinstance(values, ABCIndex):
+                # in particular RangeIndex xref test_index_equal_range_categories
+                values = sanitize_array(values, None)
             try:
                 codes, categories = factorize(values, sort=True)
             except TypeError as err:
