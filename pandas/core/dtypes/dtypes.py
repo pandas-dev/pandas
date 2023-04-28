@@ -899,7 +899,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _cache_dtypes: dict[int, PandasExtensionDtype] = {}
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
