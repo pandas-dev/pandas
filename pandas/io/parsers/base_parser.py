@@ -155,15 +155,19 @@ class ParserBase:
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                if not (
+                # In this case we can pin down index_col as list[int]
+                if is_integer(self.index_col):
+                    self.index_col = [self.index_col]
+                elif not (
                     is_list_like(self.index_col, allow_sets=False)
                     and all(map(is_integer, self.index_col))
-                    or is_integer(self.index_col)
                 ):
                     raise ValueError(
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
+                else:
+                    self.index_col = list(self.index_col)
 
         self._name_processed = False
 
