@@ -280,6 +280,8 @@ ignore = [
   # "PYI041",  # not yet implemented
 
   # Additional checks that don't pass yet
+  # Useless statement
+  "B018",
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number

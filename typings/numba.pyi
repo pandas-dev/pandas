@@ -1,3 +1,4 @@
+# ruff: noqa: PYI033
 # pyright: reportIncompleteStub = false
 from typing import (
     TYPE_CHECKING,
