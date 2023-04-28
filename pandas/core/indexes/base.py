@@ -2536,7 +2536,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds categorical data.
 
         .. deprecated:: 2.0.0
-              Use :meth:`pandas.api.types.is_categorical_dtype` instead.
+              Use `isinstance(index.dtype, pd.CategoricalDtype)` instead.
 
         Returns
         -------
@@ -2589,7 +2589,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds Interval objects.
 
         .. deprecated:: 2.0.0
-            Use `pandas.api.types.is_interval_dtype` instead.
+            Use `isinstance(index.dtype, pd.IntervalDtype)` instead.
 
         Returns
         -------
@@ -5603,8 +5603,6 @@ class Index(IndexOpsMixin, PandasObject):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------

@@ -2070,10 +2070,16 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        # In this context it is clear "D" means "24H""
-        freq = to_offset(freq)._maybe_to_hours()
-        nanos = freq.nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        offset = to_offset(freq)
+
+        # In this context it is clear "D" means "24H"
+        offset = offset._maybe_to_hours()
+
+        offset.nanos  # raises on non-fixed frequencies
+        nanos = delta_to_nanoseconds(offset, self._creso)
+        if nanos == 0:
+            # GH 52761
+            return self
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
