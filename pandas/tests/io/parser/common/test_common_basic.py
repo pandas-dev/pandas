@@ -864,19 +864,17 @@ def test_read_seek(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@pytest.mark.xfail(
-    reason="the 'pyarrow' engine does not support separators with more than one "
-    r"character, except for '\\t'. Please use a supported separator "
-    "or a different engine."
-)
-def test_pyarrow_with_multi_character_separator(all_parsers):
+def test_pyarrow_with_multi_character_separator():
     # GH#52554
+    import re
+
+    import pandas as pd
+
     data = "a b c\n1 2 3\n4 5 6"
-    parser = all_parsers
-    msg = (
-        "the 'pyarrow' engine does not support separators with more than one "
-        r"character, except for '\\t'. Please use a supported separator "
-        "or a different engine."
+    msg = re.escape(
+        "the 'pyarrow' engine does not support separators "
+        "with more than one character, except for '\\t'. Please "
+        "use the C parser instead."
     )
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), engine="pyarrow", sep=r"\s+")
+        pd.read_csv(StringIO(data), engine="pyarrow", sep=r"\s+")
