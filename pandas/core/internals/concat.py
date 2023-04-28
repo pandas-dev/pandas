@@ -449,7 +449,7 @@ class JoinUnit:
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
         na_value = blk.fill_value
-        if na_value is NaT and self.dtype != dtype:
+        if na_value is NaT and blk.dtype != dtype:
             # e.g. we are dt64 and other is td64
             # fill_values match but we should not cast blk.values to dtype
             # TODO: this will need updating if we ever have non-nano dt64/td64
