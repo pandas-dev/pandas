@@ -251,6 +251,13 @@ html_theme_options = {
         "json_url": "/versions.json",
         "version_match": switcher_version,
     },
+    "icon_links": [
+        {
+            "name": "Mastodon",
+            "url": "https://fosstodon.org/@pandas_dev",
+            "icon": "fa-brands fa-mastodon",
+        },
+    ],
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
