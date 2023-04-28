@@ -11069,11 +11069,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
-        if isinstance(result, Series):
-            return result.__finalize__(self, method="std")
-        else:
-            return result
+        result = cast(Series, super().std(axis, skipna, ddof, numeric_only, **kwargs))
+        return result.__finalize__(self, method="std")
 
     @doc(make_doc("skew", ndim=2))
     def skew(
