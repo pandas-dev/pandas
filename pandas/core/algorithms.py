@@ -1247,6 +1247,7 @@ def take(
     array([ 10,  10, -10])
     """
     if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+        # GH#52981
         warnings.warn(
             "pd.api.extensions.take accepting non-standard inputs is deprecated "
             "and will raise in a future version. Pass either a numpy.ndarray, "
