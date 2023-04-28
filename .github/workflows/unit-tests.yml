@@ -262,9 +262,8 @@ jobs:
           fi
       - name: Configure System Packages
         run: |
-          export MUSL_LOCPATH=/usr/share/i18n/locales/musl
           apk update
-          apk add musl-locales musl-locales-lang
+          apk add musl-locales
       - name: Build environment
         run: |
           /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
