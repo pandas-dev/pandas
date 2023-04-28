@@ -548,7 +548,7 @@ the pandas-equivalent operations compared to software you already know:
     .. grid-item-card::
         :img-top: ../_static/logo_r.svg
         :columns: 12 6 6 6
-        :class-card: comparison-card-r
+        :class-card: comparison-card
         :shadow: md
 
         The `R programming language <https://www.r-project.org/>`__ provides the
@@ -569,7 +569,7 @@ the pandas-equivalent operations compared to software you already know:
     .. grid-item-card::
         :img-top: ../_static/logo_sql.svg
         :columns: 12 6 6 6
-        :class-card: comparison-card-sql
+        :class-card: comparison-card
         :shadow: md
 
         Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
@@ -588,7 +588,7 @@ the pandas-equivalent operations compared to software you already know:
     .. grid-item-card::
         :img-top: ../_static/logo_stata.svg
         :columns: 12 6 6 6
-        :class-card: comparison-card-stata
+        :class-card: comparison-card
         :shadow: md
 
         The ``data set`` included in the `STATA <https://en.wikipedia.org/wiki/Stata>`__
@@ -608,7 +608,7 @@ the pandas-equivalent operations compared to software you already know:
     .. grid-item-card::
         :img-top: ../_static/spreadsheets/logo_excel.svg
         :columns: 12 6 6 6
-        :class-card: comparison-card-excel
+        :class-card: comparison-card
         :shadow: md
 
         Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
@@ -628,7 +628,7 @@ the pandas-equivalent operations compared to software you already know:
     .. grid-item-card::
         :img-top: ../_static/logo_sas.svg
         :columns: 12 6 6 6
-        :class-card: comparison-card-sas
+        :class-card: comparison-card
         :shadow: md
 
         The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
