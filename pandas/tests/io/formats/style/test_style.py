@@ -63,8 +63,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.format_index(precision=2, axis=0)
     mi_styler.format_index(precision=4, axis=1)
     mi_styler.highlight_max(axis=None)
-    mi_styler.applymap_index(lambda x: "color: white;", axis=0)
-    mi_styler.applymap_index(lambda x: "color: black;", axis=1)
+    mi_styler.map_index(lambda x: "color: white;", axis=0)
+    mi_styler.map_index(lambda x: "color: black;", axis=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -313,6 +313,20 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
                 assert id(getattr(s2, attr)) != id(getattr(styler, attr))
 
 
+@pytest.mark.parametrize("deepcopy", [True, False])
+def test_inherited_copy(mi_styler, deepcopy):
+    # Ensure that the inherited class is preserved when a Styler object is copied.
+    # GH 52728
+    class CustomStyler(Styler):
+        pass
+
+    custom_styler = CustomStyler(mi_styler.data)
+    custom_styler_copy = (
+        copy.deepcopy(custom_styler) if deepcopy else copy.copy(custom_styler)
+    )
+    assert isinstance(custom_styler_copy, CustomStyler)
+
+
 def test_clear(mi_styler_comp):
     # NOTE: if this test fails for new features then 'mi_styler_comp' should be updated
     # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature
@@ -416,14 +430,14 @@ def test_hide_columns_level(mi_styler, level, names):
     assert len(ctx["head"]) == (2 if names else 1)
 
 
-@pytest.mark.parametrize("method", ["applymap", "apply"])
+@pytest.mark.parametrize("method", ["map", "apply"])
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_apply_map_header(method, axis):
     # GH 41893
     df = DataFrame({"A": [0, 0], "B": [1, 1]}, index=["C", "D"])
     func = {
         "apply": lambda s: ["attr: val" if ("A" in v or "C" in v) else "" for v in s],
-        "applymap": lambda v: "attr: val" if ("A" in v or "C" in v) else "",
+        "map": lambda v: "attr: val" if ("A" in v or "C" in v) else "",
     }
 
     # test execution added to todo
@@ -439,13 +453,13 @@ def test_apply_map_header(method, axis):
     assert getattr(result, f"ctx_{axis}") == expected
 
 
-@pytest.mark.parametrize("method", ["apply", "applymap"])
+@pytest.mark.parametrize("method", ["apply", "map"])
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_apply_map_header_mi(mi_styler, method, axis):
     # GH 41893
     func = {
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
-        "applymap": lambda v: "attr: val" if "b" in v else "",
+        "map": lambda v: "attr: val" if "b" in v else "",
     }
     result = getattr(mi_styler, f"{method}_index")(func[method], axis=axis)._compute()
     expected = {(1, 1): [("attr", "val")]}
@@ -455,7 +469,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
 def test_apply_map_header_raises(mi_styler):
     # GH 41893
     with pytest.raises(ValueError, match="No axis named bad for object type DataFrame"):
-        mi_styler.applymap_index(lambda v: "attr: val;", axis="bad")._compute()
+        mi_styler.map_index(lambda v: "attr: val;", axis="bad")._compute()
 
 
 class TestStyler:
@@ -501,7 +515,7 @@ class TestStyler:
 
     def test_multiple_render(self, df):
         # GH 39396
-        s = Styler(df, uuid_len=0).applymap(lambda x: "color: red;", subset=["A"])
+        s = Styler(df, uuid_len=0).map(lambda x: "color: red;", subset=["A"])
         s.to_html()  # do 2 renders to ensure css styles not duplicated
         assert (
             '<style type="text/css">\n#T__row0_col0, #T__row1_col0 {\n'
@@ -676,8 +690,8 @@ class TestStyler:
             IndexSlice[:2, ["A", "B"]],
         ],
     )
-    def test_applymap_subset(self, slice_, df):
-        result = df.style.applymap(lambda x: "color:baz;", subset=slice_)._compute().ctx
+    def test_map_subset(self, slice_, df):
+        result = df.style.map(lambda x: "color:baz;", subset=slice_)._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
@@ -699,7 +713,7 @@ class TestStyler:
             IndexSlice[("a", 1), :],
         ],
     )
-    def test_applymap_subset_multiindex(self, slice_):
+    def test_map_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
         if (
@@ -722,11 +736,11 @@ class TestStyler:
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
 
         with ctx:
-            df.style.applymap(lambda x: "color: red;", subset=slice_).to_html()
+            df.style.map(lambda x: "color: red;", subset=slice_).to_html()
 
-    def test_applymap_subset_multiindex_code(self):
+    def test_map_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
-        # Checks styler.applymap works with multindex when codes are provided
+        # Checks styler.map works with multindex when codes are provided
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
         columns = MultiIndex(
             levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
@@ -741,7 +755,7 @@ class TestStyler:
             return f"color: {color}"
 
         df.loc[pct_subset]
-        df.style.applymap(color_negative_red, subset=pct_subset)
+        df.style.map(color_negative_red, subset=pct_subset)
 
     @pytest.mark.parametrize(
         "stylefunc", ["background_gradient", "bar", "text_gradient"]
@@ -908,7 +922,7 @@ class TestStyler:
         f = lambda x: "color: red" if x > 0 else "color: blue"
         g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
         style1 = styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
+        style1.map(f).map(g, z="b").highlight_max()._compute()  # = render
         result = style1.export()
         style2 = df.style
         style2.use(result)

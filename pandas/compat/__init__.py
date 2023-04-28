@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from pandas.compat._constants import (
     IS64,
-    PY39,
+    ISMUSL,
     PY310,
     PY311,
     PYPY,
@@ -161,7 +161,7 @@ __all__ = [
     "pa_version_under9p0",
     "pa_version_under11p0",
     "IS64",
-    "PY39",
+    "ISMUSL",
     "PY310",
     "PY311",
     "PYPY",

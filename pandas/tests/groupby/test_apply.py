@@ -1485,3 +1485,23 @@ def test_empty_df(method, op):
     )
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "group_col",
+    [([0.0, np.nan, 0.0, 0.0]), ([np.nan, 0.0, 0.0, 0.0]), ([0, 0.0, 0.0, np.nan])],
+)
+def test_apply_inconsistent_output(group_col):
+    # GH 34478
+    df = DataFrame({"group_col": group_col, "value_col": [2, 2, 2, 2]})
+
+    result = df.groupby("group_col").value_col.apply(
+        lambda x: x.value_counts().reindex(index=[1, 2, 3])
+    )
+    expected = Series(
+        [np.nan, 3.0, np.nan],
+        name="value_col",
+        index=MultiIndex.from_product([[0.0], [1, 2, 3]], names=["group_col", 0.0]),
+    )
+
+    tm.assert_series_equal(result, expected)
