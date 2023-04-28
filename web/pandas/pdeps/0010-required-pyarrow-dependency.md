@@ -49,8 +49,69 @@ functionality that would be better suited by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
   - Currently, there are 17 `import_optional_dependency("pyarrow")` checks throughout the pandas code base
-- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as string,
-  decimal, binary, and nested types
+
+- Removing unnecessary functionality: 
+  - fastparquet engine in ``read_parquet``
+  - potentially simplifying the ``read_csv`` logic (needs more investigation)
+
+- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as:
+  - decimal
+  - binary
+  - nested types (like lists, dicts, ...)
+  - strings
+  
+Out of this group, strings offer the most advantages for users. They use significantly less memory and are faster:
+
+**Performance:**
+
+```python
+import string
+import random
+
+import pandas as pd
+
+
+def random_string() -> str:
+    return "".join(random.choices(string.printable, k=random.randint(10, 100)))
+
+
+ser_object = pd.Series([random_string() for _ in range(1_000_000)])
+ser_string = ser_object.astype("string[pyarrow]")
+
+```
+
+PyArrow backed strings are significantly faster than NumPy object strings:
+
+*str.len*
+
+```python
+In[1]: %timeit ser_object.str.len()
+118 ms ± 260 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+In[2]: %timeit ser_string.str.len()
+24.2 ms ± 187 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+*str.startswith*
+
+```python
+In[3]: %timeit ser_object.str.startswith("a")
+136 ms ± 300 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+In[4]: %timeit ser_string.str.startswith("a")
+11 ms ± 19.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+```
+
+Another advantage is I/O. PyArrow engines in pandas can provide a significant speedup. Currently, the data
+are cast to NumPy dtypes, which requires roundtripping when converting back to PyArrow strings explicitly, which
+hinders performance.
+
+**Memory**
+
+PyArrow backed strings use significantly less memory. Dask developers investigated this [here](https://www.coiled.io/blog/pyarrow-strings-in-dask-dataframes).
+
+Short summary: PyArrow strings required 1/3 of the original memory.
+
 
 ## Drawbacks
 
