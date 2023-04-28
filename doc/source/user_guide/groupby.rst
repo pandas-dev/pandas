@@ -196,7 +196,7 @@ only verifies that you've passed a valid mapping.
 GroupBy sorting
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups:
+By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
 
 .. ipython:: python
 
@@ -217,8 +217,6 @@ For example, the groups created by ``groupby()`` below are in the order they app
 
 
 .. _groupby.dropna:
-
-.. versionadded:: 1.1.0
 
 GroupBy dropna
 ^^^^^^^^^^^^^^

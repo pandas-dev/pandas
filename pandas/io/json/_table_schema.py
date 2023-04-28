@@ -316,7 +316,7 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float):
+def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 

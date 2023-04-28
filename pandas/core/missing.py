@@ -25,6 +25,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     F,
+    ReindexMethod,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -949,7 +950,7 @@ def get_fill_func(method, ndim: int = 1):
     return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
-def clean_reindex_fill_method(method) -> str | None:
+def clean_reindex_fill_method(method) -> ReindexMethod | None:
     return clean_fill_method(method, allow_nearest=True)
 
 

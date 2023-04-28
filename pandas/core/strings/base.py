@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
+    Sequence,
 )
 
 import numpy as np
@@ -79,7 +80,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_repeat(self, repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
         pass
 
     @abc.abstractmethod

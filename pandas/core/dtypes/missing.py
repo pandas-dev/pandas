@@ -26,7 +26,6 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
     from pandas.core.indexes.base import Index
 
 
@@ -283,6 +283,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
+    elif isinstance(values, np.recarray):
+        # GH 48526
+        result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
     elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif dtype.kind in "mM":
@@ -310,6 +313,34 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
             result = result.reshape(values.shape)
+
+    return result
+
+
+def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
+    is_inf_in_record = np.zeros(len(record_as_array), dtype=bool)
+    for i, value in enumerate(record_as_array):
+        is_element_inf = False
+        try:
+            is_element_inf = np.isinf(value)
+        except TypeError:
+            is_element_inf = False
+        is_inf_in_record[i] = is_element_inf
+
+    return np.any(is_inf_in_record)
+
+
+def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
+    result = np.zeros(values.shape, dtype=bool)
+    for i, record in enumerate(values):
+        record_as_array = np.array(record.tolist())
+        does_record_contain_nan = isna_all(record_as_array)
+        does_record_contain_inf = False
+        if inf_as_na:
+            does_record_contain_inf = bool(_has_record_inf_value(record_as_array))
+        result[i] = np.any(
+            np.logical_or(does_record_contain_nan, does_record_contain_inf)
+        )
 
     return result
 
@@ -642,11 +673,11 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     return np.nan
 
 
-def remove_na_arraylike(arr):
+def remove_na_arraylike(arr: Series | Index | np.ndarray):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    if is_extension_array_dtype(arr):
+    if isinstance(arr.dtype, ExtensionDtype):
         return arr[notna(arr)]
     else:
         return arr[notna(np.asarray(arr))]

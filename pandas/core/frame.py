@@ -132,6 +132,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -219,23 +220,34 @@ if TYPE_CHECKING:
         FloatFormatType,
         FormattersType,
         Frequency,
+        FromDictOrient,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
+        JoinValidate,
         Level,
         MergeHow,
+        MergeValidate,
+        NaAction,
         NaPosition,
+        NsmallestNlargestKeep,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
         SortKind,
         StorageOptions,
         Suffixes,
+        ToGbqIfexist,
+        ToStataByteorder,
+        ToTimestampHow,
+        UpdateJoin,
         ValueKeyFunc,
         WriteBuffer,
+        XMLParsers,
         npt,
     )
 
@@ -1637,7 +1649,7 @@ class DataFrame(NDFrame, OpsMixin):
     def from_dict(
         cls,
         data: dict,
-        orient: str = "columns",
+        orient: FromDictOrient = "columns",
         dtype: Dtype | None = None,
         columns: Axes | None = None,
     ) -> DataFrame:
@@ -1724,7 +1736,7 @@ class DataFrame(NDFrame, OpsMixin):
            c   2  4
         """
         index = None
-        orient = orient.lower()
+        orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
                 # TODO speed up Series case
@@ -1788,8 +1800,6 @@ class DataFrame(NDFrame, OpsMixin):
         na_value : Any, optional
             The value to use for missing values. The default value depends
             on `dtype` and the dtypes of the DataFrame columns.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1981,7 +1991,7 @@ class DataFrame(NDFrame, OpsMixin):
         project_id: str | None = None,
         chunksize: int | None = None,
         reauth: bool = False,
-        if_exists: str = "fail",
+        if_exists: ToGbqIfexist = "fail",
         auth_local_webserver: bool = True,
         table_schema: list[dict[str, str]] | None = None,
         location: str | None = None,
@@ -2535,7 +2545,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
-        byteorder: str | None = None,
+        byteorder: ToStataByteorder | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
@@ -2599,8 +2609,6 @@ class DataFrame(NDFrame, OpsMixin):
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
         {compression_options}
-
-            .. versionadded:: 1.1.0
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
@@ -2697,8 +2705,6 @@ class DataFrame(NDFrame, OpsMixin):
             This includes the `compression`, `compression_level`, `chunksize`
             and `version` keywords.
 
-            .. versionadded:: 1.1.0
-
         Notes
         -----
         This function writes the dataframe as a `feather file
@@ -2763,7 +2769,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: None = ...,
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2776,7 +2782,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes],
-        engine: str = ...,
+        engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
         compression: str | None = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
@@ -2789,7 +2795,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_parquet(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
-        engine: str = "auto",
+        engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
         compression: str | None = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2919,7 +2925,7 @@ class DataFrame(NDFrame, OpsMixin):
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
-        engine : str, default 'pyarrow'
+        engine : {'pyarrow'}, default 'pyarrow'
             ORC library to use. Pyarrow must be >= 7.0.0.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
@@ -3097,8 +3103,6 @@ class DataFrame(NDFrame, OpsMixin):
             Convert URLs to HTML links.
         encoding : str, default "utf-8"
             Set character encoding.
-
-            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -3155,7 +3159,7 @@ class DataFrame(NDFrame, OpsMixin):
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
-        parser: str | None = "lxml",
+        parser: XMLParsers | None = "lxml",
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
@@ -3819,18 +3823,8 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
             result_columns = maybe_droplevels(new_columns, key)
-            if self._is_mixed_type:
-                result = self.reindex(columns=new_columns)
-                result.columns = result_columns
-            else:
-                new_values = self._values[:, loc]
-                result = self._constructor(
-                    new_values, index=self.index, columns=result_columns, copy=False
-                )
-                if using_copy_on_write() and isinstance(loc, slice):
-                    result._mgr.add_references(self._mgr)  # type: ignore[arg-type]
-
-                result = result.__finalize__(self)
+            result = self.iloc[:, loc]
+            result.columns = result_columns
 
             # If there is only one column being returned, and its name is
             # either an empty string, or a tuple with an empty string as its
@@ -3920,7 +3914,7 @@ class DataFrame(NDFrame, OpsMixin):
         ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
-            if is_scalar(loc):
+            if is_integer(loc):
                 loc = [loc]
 
             if len(loc) != len(value.columns):
@@ -4707,6 +4701,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
+            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
             return issubclass(dtype.type, tuple(dtypes_set)) or (
                 np.number in dtypes_set
                 and getattr(dtype, "_is_numeric", False)
@@ -4988,7 +4983,7 @@ class DataFrame(NDFrame, OpsMixin):
         index=None,
         columns=None,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = np.nan,
@@ -6521,8 +6516,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         ascending=...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> DataFrame:
@@ -6592,8 +6587,6 @@ class DataFrame(NDFrame, OpsMixin):
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return a Series with the same shape as the input.
             It will be applied to each column in `by` independently.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -6882,8 +6875,6 @@ class DataFrame(NDFrame, OpsMixin):
             ``Index`` and return an ``Index`` of the same shape. For MultiIndex
             inputs, the key is applied *per level*.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame or None
@@ -6952,8 +6943,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a Series containing counts of unique rows in the DataFrame.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         subset : label or list of labels, optional
@@ -6961,7 +6950,7 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. Sort by DataFrame column values when False.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7077,7 +7066,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
-    def nlargest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nlargest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -7184,7 +7175,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return selectn.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
+    def nsmallest(
+        self, n: int, columns: IndexLabel, keep: NsmallestNlargestKeep = "first"
+    ) -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -8268,7 +8261,8 @@ class DataFrame(NDFrame, OpsMixin):
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
         """
@@ -8343,15 +8337,15 @@ class DataFrame(NDFrame, OpsMixin):
         if dtypes:
             combined = combined.astype(dtypes)
 
-        return combined
+        return combined.__finalize__(self, method="combine_first")
 
     def update(
         self,
         other,
-        join: str = "left",
+        join: UpdateJoin = "left",
         overwrite: bool = True,
         filter_func=None,
-        errors: str = "ignore",
+        errors: IgnoreRaise = "ignore",
     ) -> None:
         """
         Modify in place using non-NA values from another DataFrame.
@@ -8669,16 +8663,8 @@ class DataFrame(NDFrame, OpsMixin):
         ----------%s
         columns : str or object or a list of str
             Column to use to make new frame's columns.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of columns names.
-
         index : str or object or a list of str, optional
             Column to use to make new frame's index. If not given, uses existing index.
-
-            .. versionchanged:: 1.1.0
-               Also accept list of index names.
-
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
@@ -9179,8 +9165,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -9857,7 +9841,7 @@ class DataFrame(NDFrame, OpsMixin):
         return self.apply(infer).__finalize__(self, "map")
 
     def applymap(
-        self, func: PythonFuncType, na_action: str | None = None, **kwargs
+        self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
     ) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
@@ -9969,7 +9953,7 @@ class DataFrame(NDFrame, OpsMixin):
         lsuffix: str = "",
         rsuffix: str = "",
         sort: bool = False,
-        validate: str | None = None,
+        validate: JoinValidate | None = None,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -10211,7 +10195,7 @@ class DataFrame(NDFrame, OpsMixin):
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool | None = None,
         indicator: str | bool = False,
-        validate: str | None = None,
+        validate: MergeValidate | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
@@ -10505,8 +10489,6 @@ class DataFrame(NDFrame, OpsMixin):
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
             This argument is applicable only when no ``nan`` is in the dataframe.
-
-            .. versionadded:: 1.1.0
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
@@ -10997,7 +10979,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().sum(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="sum")
 
     @doc(make_doc("prod", ndim=2))
     def prod(
@@ -11506,7 +11489,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_timestamp(
         self,
         freq: Frequency | None = None,
-        how: str = "start",
+        how: ToTimestampHow = "start",
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> DataFrame:
@@ -11753,7 +11736,50 @@ class DataFrame(NDFrame, OpsMixin):
     _info_axis_name: Literal["columns"] = "columns"
 
     index = properties.AxisProperty(
-        axis=1, doc="The index (row labels) of the DataFrame."
+        axis=1,
+        doc="""
+        The index (row labels) of the DataFrame.
+
+        The index of a DataFrame is a series of labels that identify each row.
+        The labels can be integers, strings, or any other hashable type. The index
+        is used for label-based access and alignment, and can be accessed or
+        modified using this attribute.
+
+        Returns
+        -------
+        pandas.Index
+            The index labels of the DataFrame.
+
+        See Also
+        --------
+        DataFrame.columns : The column labels of the DataFrame.
+        DataFrame.to_numpy : Convert the DataFrame to a NumPy array.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Name': ['Alice', 'Bob', 'Aritra'],
+        ...                    'Age': [25, 30, 35],
+        ...                    'Location': ['Seattle', 'New York', 'Kona']},
+        ...                   index=([10, 20, 30]))
+        >>> df.index
+        Index([10, 20, 30], dtype='int64')
+
+        In this example, we create a DataFrame with 3 rows and 3 columns,
+        including Name, Age, and Location information. We set the index labels to
+        be the integers 10, 20, and 30. We then access the `index` attribute of the
+        DataFrame, which returns an `Index` object containing the index labels.
+
+        >>> df.index = [100, 200, 300]
+        >>> df
+            Name  Age Location
+        100  Alice   25  Seattle
+        200    Bob   30 New York
+        300  Aritra  35    Kona
+
+        In this example, we modify the index labels of the DataFrame by assigning
+        a new list of labels to the `index` attribute. The DataFrame is then
+        updated with the new labels, and the output shows the modified DataFrame.
+        """,
     )
     columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
 
