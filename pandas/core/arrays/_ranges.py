@@ -96,7 +96,7 @@ def generate_regular_range(
 
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
-) -> int:
+) -> np.int64:
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -157,13 +157,13 @@ def _generate_range_overflow_safe(
     remaining = periods - mid_periods
     assert 0 < remaining < periods, (remaining, periods, endpoint, stride)
 
-    midpoint = _generate_range_overflow_safe(endpoint, mid_periods, stride, side)
+    midpoint = int(_generate_range_overflow_safe(endpoint, mid_periods, stride, side))
     return _generate_range_overflow_safe(midpoint, remaining, stride, side)
 
 
 def _generate_range_overflow_safe_signed(
     endpoint: int, periods: int, stride: int, side: str
-) -> int:
+) -> np.int64:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
@@ -181,7 +181,7 @@ def _generate_range_overflow_safe_signed(
                 # Putting this into a DatetimeArray/TimedeltaArray
                 #  would incorrectly be interpreted as NaT
                 raise OverflowError
-            return int(result)
+            return result
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -196,13 +196,11 @@ def _generate_range_overflow_safe_signed(
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
 
-            # error: Incompatible types in assignment (expression has type
-            # "unsignedinteger[_64Bit]", variable has type "signedinteger[_64Bit]")
-            result = np.uint64(endpoint) + np.uint64(addend)  # type: ignore[assignment]
+            result = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(i8max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                return int(result)
+                result
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"
