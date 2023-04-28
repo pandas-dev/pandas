@@ -435,7 +435,7 @@ def json_normalize(
     elif isinstance(data, dict):
         # A bit of a hackjob
         data = [data]
-    elif isinstance(data, abc.abc.Iterable) and not isinstance(data, str):
+    elif isinstance(data, abc.Iterable) and not isinstance(data, str):
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)

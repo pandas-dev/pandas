@@ -498,7 +498,7 @@ def from_dummies(
         else:
             raise TypeError(
                 "Expected 'default_category' to be of type "
-                "'None', 'abc.Hashable', or 'dict'; "
+                "'None', 'Hashable', or 'dict'; "
                 "Received 'default_category' of type: "
                 f"{type(default_category).__name__}"
             )

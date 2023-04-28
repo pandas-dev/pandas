@@ -1829,14 +1829,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         into : class, default dict
-            The collections.abc.abc.Mapping subclass to use as the return
+            The collections.abc.Mapping subclass to use as the return
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
         Returns
         -------
-        collections.abc.abc.Mapping
+        collections.abc.Mapping
             Key-value representation of Series.
 
         Examples
@@ -4234,7 +4234,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        arg : function, collections.abc.abc.Mapping subclass or Series
+        arg : function, collections.abc.Mapping subclass or Series
             abc.Mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
