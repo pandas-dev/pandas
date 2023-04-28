@@ -150,13 +150,13 @@ ul.task-bullet > li > p:first-child {
   border-color: #6c757d !important;
 }
 
-.comparison-card .intro-card .sd-btn-secondary:hover {
+.comparison-card .sd-btn-secondary:hover {
   background-color: #5a6268 !important;
   border-color: #545b62 !important;
 }
 
 
-.comparison-card-excel .card-img-top, .comparison-card-stata .card-img-top, .comparison-card-sas .card-img-top {
+.comparison-card-excel .sd-card-img-top, .comparison-card-stata .sd-card-img-top, .comparison-card-sas .sd-card-img-top {
   height: 52px;
 }
 
@@ -194,7 +194,7 @@ ul.task-bullet > li > p:first-child {
   border-color: #6c757d !important;
 }
 
-.install-card .intro-card .sd-btn-secondary:hover {
+.install-card .sd-btn-secondary:hover {
   background-color: #5a6268 !important;
   border-color: #545b62 !important;
 }
