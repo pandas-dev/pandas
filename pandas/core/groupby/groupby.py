@@ -417,8 +417,6 @@ f : function, str
 
     If a string is chosen, then it needs to be the name
     of the groupby method you want to use.
-
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -426,7 +424,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -435,7 +432,6 @@ engine_kwargs : dict, default None
       ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     Keyword arguments to be passed into func.
 
@@ -508,17 +504,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
     .. deprecated:: 2.1.0
 
@@ -531,7 +525,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -540,7 +533,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -595,17 +587,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
 *args
     Positional arguments to pass to func.
@@ -614,7 +604,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -623,7 +612,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -4170,8 +4158,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         You can use `random_state` for reproducibility.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         n : int, optional
@@ -4349,7 +4335,7 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
 _apply_groupings_depr = (
     "{}.apply operated on the grouping columns. This behavior is deprecated, "
     "and in a future version of pandas the grouping columns will be excluded "
-    "from the operation. Select the columns to operate on after groupby to"
+    "from the operation. Select the columns to operate on after groupby to "
     "either explicitly include or exclude the groupings and silence "
     "this warning."
 )

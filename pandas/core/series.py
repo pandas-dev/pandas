@@ -1774,7 +1774,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index : bool, optional, default True
             Add index (row) labels.
 
-            .. versionadded:: 1.1.0
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -1840,6 +1839,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s.keys()
+        Index([0, 1, 2], dtype='int64')
         """
         return self.index
 
@@ -2738,8 +2743,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         float
@@ -3413,8 +3416,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return an array-like.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         Series or None
@@ -3673,8 +3674,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -4134,8 +4133,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
