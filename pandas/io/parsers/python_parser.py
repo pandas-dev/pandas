@@ -922,7 +922,7 @@ class PythonParser(ParserBase):
         1 lists index columns and row 0 lists normal columns.
         2) Get index from the columns if it was listed.
         """
-        columns: Sequence[Hashable] = self.columns
+        columns: Sequence[Hashable] = self.orig_names
         orig_names = list(columns)
         columns = list(columns)
 
