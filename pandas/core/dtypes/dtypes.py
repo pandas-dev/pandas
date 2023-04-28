@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        IntervalClosedType,
         Ordered,
         npt,
         type_t,
@@ -676,7 +677,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     num = 101
-    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
@@ -684,6 +684,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @property
     def na_value(self) -> NaTType:
         return NaT
+
+    @cache_readonly
+    def base(self) -> DtypeObj:  # type: ignore[override]
+        return np.dtype(f"M8[{self.unit}]")
 
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
@@ -1096,7 +1100,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: str_type | None = None):
+    def __new__(cls, subtype=None, closed: IntervalClosedType | None = None):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1134,7 +1138,7 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'closed' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed = gd["closed"]
+                        closed = gd["closed"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1172,7 +1176,7 @@ class IntervalDtype(PandasExtensionDtype):
         return True
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         return self._closed
 
     @property

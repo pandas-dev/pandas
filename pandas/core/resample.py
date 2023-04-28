@@ -483,7 +483,7 @@ class Resampler(BaseGroupBy, PandasObject):
         obj = self.obj
         if (
             isinstance(result, ABCDataFrame)
-            and result.empty
+            and len(result) == 0
             and not isinstance(result.index, PeriodIndex)
         ):
             result = result.set_index(
@@ -908,7 +908,6 @@ class Resampler(BaseGroupBy, PandasObject):
                 * If 'method' is 'backfill' or 'bfill', the default is 'backward'
                 * else the default is 'forward'
 
-            .. versionchanged:: 1.1.0
                 raises ValueError if `limit_direction` is 'forward' or 'both' and
                     method is 'backfill' or 'bfill'.
                 raises ValueError if `limit_direction` is 'backward' or 'both' and
