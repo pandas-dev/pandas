@@ -455,8 +455,6 @@ def maybe_cast_pointwise_result(
         result maybe casted to the dtype.
     """
 
-    assert not is_scalar(result)
-
     if isinstance(dtype, ExtensionDtype):
         if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
             # TODO: avoid this special-casing
