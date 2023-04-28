@@ -925,6 +925,9 @@ class Index(IndexOpsMixin, PandasObject):
         if ufunc.nout == 2:
             # i.e. np.divmod, np.modf, np.frexp
             return tuple(self.__array_wrap__(x) for x in result)
+        elif method == "reduce":
+            result = lib.item_from_zerodim(result)
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -937,11 +940,9 @@ class Index(IndexOpsMixin, PandasObject):
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if (
-            (not isinstance(result, Index) and is_bool_dtype(result.dtype))
-            or lib.is_scalar(result)
-            or np.ndim(result) > 1
-        ):
+        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
+            result
+        ) > 1:
             # exclude Index to avoid warning from is_bool_dtype deprecation;
             #  in the Index case it doesn't matter which path we go down.
             # reached in plotting tests with e.g. np.nonzero(index)

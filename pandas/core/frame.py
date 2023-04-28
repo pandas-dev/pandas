@@ -3914,7 +3914,7 @@ class DataFrame(NDFrame, OpsMixin):
         ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
-            if is_scalar(loc):
+            if is_integer(loc):
                 loc = [loc]
 
             if len(loc) != len(value.columns):
