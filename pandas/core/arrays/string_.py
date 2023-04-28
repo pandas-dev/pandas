@@ -14,10 +14,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas.compat import (
-    is_pyarrow_array,
-    pa_version_under7p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -359,7 +356,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             result[na_values] = libmissing.NA
 
         else:
-            if is_pyarrow_array(scalars):
+            if lib.is_pyarrow_array(scalars):
                 # pyarrow array; we cannot rely on the "to_numpy" check in
                 #  ensure_string_array because calling scalars.to_numpy would set
                 #  zero_copy_only to True which caused problems see GH#52076
