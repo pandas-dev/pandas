@@ -13,19 +13,22 @@ This PDEP proposes that:
 
 - PyArrow becomes a runtime dependency starting with pandas 2.1
 - The minimum version of PyArrow supported starting with pandas 2.1 is version 7 of PyArrow.
-- The minimum version of PyArrow will be bumped every major pandas release to the highest
-  PyArrow version that has been released for at least 2 years, and the minimum PyArrow version will be
-  maintained for every minor version in the major version series.
+- The minimum version of PyArrow will be bumped only during a major release of pandas.
+- When the minimum version of PyArrow is bumped, PyArrow will be bumped to the highest version that has
+  been released for at least 2 years.
 
 ## Background
 
 PyArrow is an optional dependency of pandas that provides a wide range of supplemental features to pandas:
 
 - Since pandas 0.21.0, PyArrow provided I/O reading functionality for Parquet
-- Since pandas 1.2.0, pandas integrated PyArrow into the `ExtensionArray` interface to provide an optional string data type backed by PyArrow
+- Since pandas 1.2.0, pandas integrated PyArrow into the `ExtensionArray` interface to provide an
+  optional string data type backed by PyArrow
 - Since pandas 1.4.0, PyArrow provided I/0 reading functionality for CSV
-- Since pandas 1.5.0, pandas provided an `ArrowExtensionArray` and `ArrowDtype` to support all PyArrow data types within the `ExtensionArray` interface
-- Since pandas 2.0.0, all I/O readers have the option to return PyArrow-backed data types, and many methods now utilize PyArrow compute functions to
+- Since pandas 1.5.0, pandas provided an `ArrowExtensionArray` and `ArrowDtype` to support all PyArrow
+  data types within the `ExtensionArray` interface
+- Since pandas 2.0.0, all I/O readers have the option to return PyArrow-backed data types, and many methods
+  now utilize PyArrow compute functions to
 accelerate PyArrow-backed data in pandas, notibly string and datetime types.
 
 As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data representation to NumPy with advantages such as:
@@ -35,30 +38,36 @@ As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data repres
 
 ## Motivation
 
-While all the functionality described in the previous paragraph is currently optional, PyArrow has significant integration into many areas
-of pandas. With our roadmap noting that pandas strives for better Apache Arrow interoperability [^1] and many projects [^2], within or beyond the Python ecosystem, adopting or interacting with the Arrow format, making PyArrow a required dependency provides an additional signal of confidence in the Arrow
+While all the functionality described in the previous paragraph is currently optional, PyArrow has significant
+integration into many areas of pandas. With our roadmap noting that pandas strives for better Apache Arrow
+interoperability [^1] and many projects [^2], within or beyond the Python ecosystem, adopting or interacting with
+the Arrow format, making PyArrow a required dependency provides an additional signal of confidence in the Arrow
 ecosystem to pandas users.
 
-Additionally, requiring PyArrow would simplify the related development within pandas and potentially improve NumPy functionality that would be better suited
-by PyArrow including:
+Additionally, requiring PyArrow would simplify the related development within pandas and potentially improve NumPy
+functionality that would be better suited by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
   - Currently, there are 17 `import_optional_dependency("pyarrow")` checks throughout the pandas code base
-- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as string, decimal, binary, and nested types
+- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as string,
+  decimal, binary, and nested types
 
 ## Drawbacks
 
-Including PyArrow would naturally increase the installation size of pandas. For example, installing pandas and PyArrow using pip from wheels, numpy and pandas
-are about `70MB`, and PyArrow is around `120MB`. An increase of installation size would have negative impliciation using pandas in space-constrained development
-or deployment environments such as AWS Lambda.
+Including PyArrow would naturally increase the installation size of pandas. For example, installing pandas and PyArrow
+using pip from wheels, numpy and pandas are about `70MB`, and PyArrow is around `120MB`. An increase of installation size would
+have negative impliciation using pandas in space-constrained development or deployment environments such as AWS Lambda.
 
-Additionally, if a user is installing pandas in an environment where wheels are not available and needs to build from source, the user will need to build Arrow C++ and related dependencies. These environments include
+Additionally, if a user is installing pandas in an environment where wheels are not available through a `pip install` or `conda install`,
+the user will need to also build Arrow C++ and related dependencies when installing from source. These environments include
 
 - Alpine linux (commonly used as a base for Docker containers)
 - WASM (pyodide and pyscript)
 - Python development versions
 
-Lastly, pandas development and releases will need to be mindful of PyArrow's development and release cadance. For example when supporting a newly released Python version, pandas will also need to be mindful of PyArrow's wheel support for that Python version before releasing a new pandas version.
+Lastly, pandas development and releases will need to be mindful of PyArrow's development and release cadance. For example when
+supporting a newly released Python version, pandas will also need to be mindful of PyArrow's wheel support for that Python version
+before releasing a new pandas version.
 
 ### PDEP-1 History
 
