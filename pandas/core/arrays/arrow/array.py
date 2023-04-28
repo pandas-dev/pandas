@@ -2346,7 +2346,8 @@ class ArrowExtensionArray(
     def _dt_to_pydatetime(self):
         if pa.types.is_date(self.dtype.pyarrow_dtype):
             raise ValueError(
-                f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type."
+                f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
+                "Convert to pyarrow timestamp type."
             )
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
