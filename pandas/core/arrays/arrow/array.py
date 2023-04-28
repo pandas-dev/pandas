@@ -20,7 +20,6 @@ from pandas._typing import (
     AxisInt,
     Dtype,
     FillnaOptions,
-    Iterator,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -417,7 +416,7 @@ class ArrowExtensionArray(
             else:
                 return scalar
 
-    def __iter__(self) -> Iterator[Any]:
+    def __iter__(self) -> abc.Iterator[Any]:
         """
         Iterate over elements of the array.
         """
