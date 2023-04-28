@@ -245,8 +245,6 @@ class CParserWrapper(ParserBase):
                 )
                 index, columns, col_dict = self._get_empty_meta(
                     names,
-                    self.index_col,
-                    self.index_names,
                     dtype=self.kwds.get("dtype"),
                 )
                 columns = self._maybe_make_multi_index_columns(columns, self.col_names)

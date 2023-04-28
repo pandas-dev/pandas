@@ -1044,10 +1044,12 @@ class ParserBase:
 
         return index_names, columns, index_col
 
-    def _get_empty_meta(
-        self, columns, index_col, index_names, dtype: DtypeArg | None = None
-    ):
+    @final
+    def _get_empty_meta(self, columns, dtype: DtypeArg | None = None):
         columns = list(columns)
+
+        index_col = self.index_col
+        index_names = self.index_names
 
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`

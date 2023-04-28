@@ -149,9 +149,7 @@ class PythonParser(ParserBase):
         # multiple date column thing turning into a real spaghetti factory
 
         if not self._has_complex_date_col:
-            (index_names, self.orig_names, self.columns) = self._get_index_name(
-                self.columns
-            )
+            (index_names, self.orig_names, self.columns) = self._get_index_name()
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
@@ -273,11 +271,8 @@ class PythonParser(ParserBase):
                     self.index_col,  # type: ignore[has-type]
                 ),
             )
-            # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
-                self.index_col,  # type: ignore[has-type]
-                self.index_names,
                 self.dtype,
             )
             conv_columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -914,7 +909,7 @@ class PythonParser(ParserBase):
     _implicit_index = False
 
     def _get_index_name(
-        self, columns: Sequence[Hashable]
+        self,
     ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
@@ -927,6 +922,7 @@ class PythonParser(ParserBase):
         1 lists index columns and row 0 lists normal columns.
         2) Get index from the columns if it was listed.
         """
+        columns: Sequence[Hashable] = self.columns
         orig_names = list(columns)
         columns = list(columns)
 
