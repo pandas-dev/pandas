@@ -328,25 +328,13 @@ More consistent behavior for some groupby methods:
 
 - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
-  .. code-block:: ipython
+  .. ipython:: python
 
-     In [1]: df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+     g = df.groupby('A')
+     g.head(1)  # filters DataFrame
 
-     In [2]: g = df.groupby('A')
-
-     In [3]: g.head(1)  # filters DataFrame
-     Out[3]:
-        A  B
-     0  1  2
-     2  5  6
-
-     In [4]: g.apply(lambda x: x.head(1))  # used to simply fall-through
-     Out[4]:
-          A  B
-     A
-     1 0  1  2
-     5 2  5  6
-
+     g.apply(lambda x: x.head(1))  # used to simply fall-through
 
 - groupby head and tail respect column selection:
 

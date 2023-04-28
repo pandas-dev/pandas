@@ -496,17 +496,13 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 
 def test_sum_uint64_overflow():

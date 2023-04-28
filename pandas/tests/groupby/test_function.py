@@ -73,20 +73,17 @@ def test_builtins_apply(keys, f):
     gb = df.groupby(keys)
 
     fname = f.__name__
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.apply(f)
+    result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
     npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = gb.apply(npfunc)
+    expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(None):
         expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 
