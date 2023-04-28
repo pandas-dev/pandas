@@ -2142,7 +2142,7 @@ def test_str_encode(errors, encoding, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("flags", [0, 1])
+@pytest.mark.parametrize("flags", [0, 2])
 def test_str_findall(flags):
     ser = pd.Series(["abc", "efg", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.findall("b", flags=flags)
