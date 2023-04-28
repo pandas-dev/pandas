@@ -32,10 +32,7 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
-    infer_dtype_from_array,
-)
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
@@ -1468,8 +1465,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
 #  low-dependency, is used in this module, and used private methods from
 #  this module.
 def safe_sort(
-    values,
-    codes=None,
+    values: Index | ArrayLike,
+    codes: npt.NDArray[np.intp] | None = None,
     use_na_sentinel: bool = True,
     assume_unique: bool = False,
     verify: bool = True,
@@ -1484,7 +1481,7 @@ def safe_sort(
     ----------
     values : list-like
         Sequence; must be unique if ``codes`` is not None.
-    codes : list_like, optional
+    codes : np.ndarray[intp] or None, default None
         Indices to ``values``. All out of bound indices are treated as
         "not found" and will be masked with ``-1``.
     use_na_sentinel : bool, default True
@@ -1515,19 +1512,11 @@ def safe_sort(
     ValueError
         * If ``codes`` is not None and ``values`` contain duplicates.
     """
-    if not is_list_like(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray, ABCIndex)):
         raise TypeError(
-            "Only list-like objects are allowed to be passed to safe_sort as values"
+            "Only np.ndarray, ExtensionArray, and Index objects are allowed to "
+            "be passed to safe_sort as values"
         )
-
-    if not is_array_like(values):
-        # don't convert to string types
-        dtype, _ = infer_dtype_from_array(values)
-        # error: Argument "dtype" to "asarray" has incompatible type "Union[dtype[Any],
-        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     sorter = None
     ordered: AnyArrayLike
