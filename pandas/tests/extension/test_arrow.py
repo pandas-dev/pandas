@@ -2512,6 +2512,19 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("date_type", [32, 64])
+def test_dt_to_pydatetime_date_error(date_type):
+    # GH 52812
+    ser = pd.Series(
+        [date(2022, 12, 31)],
+        dtype=ArrowDtype(getattr(pa, f"date{date_type}")()),
+    )
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="to_pydatetime cannot be called with"):
+            ser.dt.to_pydatetime()
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
