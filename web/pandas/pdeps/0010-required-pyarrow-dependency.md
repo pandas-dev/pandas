@@ -50,7 +50,7 @@ functionality that would be better suited by PyArrow including:
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
   - Currently, there are 17 `import_optional_dependency("pyarrow")` checks throughout the pandas code base
 
-- Removing unnecessary functionality: 
+- Removing unnecessary functionality:
   - fastparquet engine in ``read_parquet``
   - potentially simplifying the ``read_csv`` logic (needs more investigation)
 
@@ -59,7 +59,7 @@ functionality that would be better suited by PyArrow including:
   - binary
   - nested types (like lists, dicts, ...)
   - strings
-  
+
 Out of this group, strings offer the most advantages for users. They use significantly less memory and are faster:
 
 **Performance:**
