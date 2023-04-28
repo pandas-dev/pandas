@@ -915,7 +915,7 @@ def _validate_flavor(flavor):
         flavor = "lxml", "bs4"
     elif isinstance(flavor, str):
         flavor = (flavor,)
-    elif isinstance(flavor, abc.Iterator):
+    elif isinstance(flavor, abc.Iterable):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError(
                 f"Object of type {repr(type(flavor).__name__)} "
