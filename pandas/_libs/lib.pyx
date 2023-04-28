@@ -1184,6 +1184,13 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
 
 
 def is_pyarrow_array(obj):
+    """
+    Return True if given object is a pyarrow Array or ChunkedArray.
+
+    Returns
+    -------
+    bool
+    """
     if PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
     return False
