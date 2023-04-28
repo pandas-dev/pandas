@@ -6,10 +6,10 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections import abc
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,
@@ -69,7 +69,7 @@ if TYPE_CHECKING:
 
 
 def array(
-    data: Sequence[object] | AnyArrayLike,
+    data: abc.Sequence[object] | AnyArrayLike,
     dtype: Dtype | None = None,
     copy: bool = True,
 ) -> ExtensionArray:
@@ -328,7 +328,9 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            period_data = cast(Union[Sequence[Optional[Period]], AnyArrayLike], data)
+            period_data = cast(
+                Union[abc.Sequence[Optional[Period]], AnyArrayLike], data
+            )
             return PeriodArray._from_sequence(period_data, copy=copy)
 
         elif inferred_dtype == "interval":

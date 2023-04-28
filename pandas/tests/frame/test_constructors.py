@@ -14,7 +14,6 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
 import warnings
 
 import numpy as np
@@ -1383,7 +1382,7 @@ class TestDataFrameConstructors:
     def test_constructor_iterable(self):
         # GH 21987
         class Iter:
-            def __iter__(self) -> Iterator:
+            def __iter__(self) -> abc.Iterator:
                 for i in range(10):
                     yield [1, 2, 3]
 

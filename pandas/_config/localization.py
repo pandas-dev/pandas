@@ -10,15 +10,18 @@ import locale
 import platform
 import re
 import subprocess
-from typing import Generator
+from typing import TYPE_CHECKING
 
 from pandas._config.config import options
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
-) -> Generator[str | tuple[str, str], None, None]:
+) -> abc.Generator[str | tuple[str, str], None, None]:
     """
     Context manager for temporarily setting a locale.
 

@@ -8,7 +8,6 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -74,6 +73,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         DateTimeErrorChoices,
         IntervalClosedType,
@@ -606,7 +607,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         return super().__array__(dtype=dtype)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         """
         Return an iterator over the boxed values
 

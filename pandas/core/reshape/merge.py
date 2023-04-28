@@ -3,15 +3,14 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
+from collections import abc
 import copy as cp
 import datetime
 from functools import partial
 import string
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Literal,
-    Sequence,
     cast,
 )
 import uuid
@@ -640,8 +639,8 @@ class _MergeOperation:
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
-    left_on: Sequence[Hashable | AnyArrayLike]
-    right_on: Sequence[Hashable | AnyArrayLike]
+    left_on: abc.Sequence[abc.Hashable | AnyArrayLike]
+    right_on: abc.Sequence[abc.Hashable | AnyArrayLike]
     left_index: bool
     right_index: bool
     axis: AxisInt
@@ -651,7 +650,7 @@ class _MergeOperation:
     copy: bool
     indicator: str | bool
     validate: str | None
-    join_names: list[Hashable]
+    join_names: list[abc.Hashable]
     right_join_keys: list[AnyArrayLike]
     left_join_keys: list[AnyArrayLike]
 
@@ -903,12 +902,12 @@ class _MergeOperation:
         ):
             if (
                 # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
-                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
-                # "Hashable"
+                # type "Union[abc.Hashable, ExtensionArray, Index, Series]"; expected
+                # "abc.Hashable"
                 self.orig_left._is_level_reference(left_key)  # type: ignore[arg-type]
                 # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
-                # type "Union[Hashable, ExtensionArray, Index, Series]"; expected
-                # "Hashable"
+                # type "Union[abc.Hashable, ExtensionArray, Index, Series]"; expected
+                # "abc.Hashable"
                 and self.orig_right._is_level_reference(
                     right_key  # type: ignore[arg-type]
                 )
@@ -1122,7 +1121,7 @@ class _MergeOperation:
 
     def _get_merge_keys(
         self,
-    ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[Hashable]]:
+    ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[abc.Hashable]]:
         """
         Note: has side effects (copy/delete key columns)
 
@@ -1140,9 +1139,9 @@ class _MergeOperation:
         #  with a 'dtype' attr
         left_keys: list[AnyArrayLike] = []
         right_keys: list[AnyArrayLike] = []
-        join_names: list[Hashable] = []
-        right_drop: list[Hashable] = []
-        left_drop: list[Hashable] = []
+        join_names: list[abc.Hashable] = []
+        right_drop: list[abc.Hashable] = []
+        left_drop: list[abc.Hashable] = []
 
         left, right = self.left, self.right
 
@@ -1170,9 +1169,9 @@ class _MergeOperation:
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
-                        # Then we're either Hashable or a wrong-length arraylike,
+                        # Then we're either abc.Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast(abc.Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                             join_names.append(rk)
@@ -1182,9 +1181,9 @@ class _MergeOperation:
                             join_names.append(right.index.name)
                 else:
                     if not is_rkey(rk):
-                        # Then we're either Hashable or a wrong-length arraylike,
+                        # Then we're either abc.Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast(abc.Hashable, rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1192,7 +1191,7 @@ class _MergeOperation:
                             right_keys.append(right.index)
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
                             # avoid key upcast in corner case (length-0)
-                            lk = cast(Hashable, lk)
+                            lk = cast(abc.Hashable, lk)
                             if len(left) > 0:
                                 right_drop.append(rk)
                             else:
@@ -1201,9 +1200,9 @@ class _MergeOperation:
                         rk = cast(AnyArrayLike, rk)
                         right_keys.append(rk)
                     if lk is not None:
-                        # Then we're either Hashable or a wrong-length arraylike,
+                        # Then we're either abc.Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        lk = cast(Hashable, lk)
+                        lk = cast(abc.Hashable, lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1217,9 +1216,9 @@ class _MergeOperation:
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    # Then we're either Hashable or a wrong-length arraylike,
+                    # Then we're either abc.Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast(abc.Hashable, k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
@@ -1238,9 +1237,9 @@ class _MergeOperation:
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    # Then we're either Hashable or a wrong-length arraylike,
+                    # Then we're either abc.Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast(abc.Hashable, k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
@@ -1677,7 +1676,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
+) -> tuple[list[Index], npt.NDArray[np.intp], list[abc.Hashable]]:
     """
     *this is an internal non-public method*
 
@@ -1709,7 +1708,7 @@ def restore_dropped_levels_multijoin(
         levels of combined multiindexes
     labels : np.ndarray[np.intp]
         labels of combined multiindexes
-    names : List[Hashable]
+    names : List[abc.Hashable]
         names of combined multiindex levels
 
     """
@@ -1971,7 +1970,7 @@ class _AsOfMerge(_OrderedMerge):
 
     def _get_merge_keys(
         self,
-    ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[Hashable]]:
+    ) -> tuple[list[AnyArrayLike], list[AnyArrayLike], list[abc.Hashable]]:
         # note this function has side effects
         (left_join_keys, right_join_keys, join_names) = super()._get_merge_keys()
 

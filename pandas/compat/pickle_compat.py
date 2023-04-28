@@ -7,7 +7,7 @@ import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import Generator
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,6 +21,9 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import BlockManager
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 def load_reduce(self):
@@ -237,7 +240,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle() -> Generator[None, None, None]:
+def patch_pickle() -> abc.Generator[None, None, None]:
     """
     Temporarily patch pickle to use our unpickler.
     """

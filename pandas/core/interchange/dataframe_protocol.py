@@ -10,11 +10,13 @@ from abc import (
 )
 import enum
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Iterable,
-    Sequence,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 class DlpackDeviceType(enum.IntEnum):
@@ -318,7 +320,7 @@ class Column(ABC):
         """
 
     @abstractmethod
-    def get_chunks(self, n_chunks: int | None = None) -> Iterable[Column]:
+    def get_chunks(self, n_chunks: int | None = None) -> abc.Iterable[Column]:
         """
         Return an iterator yielding the chunks.
 
@@ -349,7 +351,7 @@ class Column(ABC):
         """
 
 
-#    def get_children(self) -> Iterable[Column]:
+#    def get_children(self) -> abc.Iterable[Column]:
 #        """
 #        Children columns underneath the column, each object in this iterator
 #        must adhere to the column specification.
@@ -413,7 +415,7 @@ class DataFrame(ABC):
         """
 
     @abstractmethod
-    def column_names(self) -> Iterable[str]:
+    def column_names(self) -> abc.Iterable[str]:
         """
         Return an iterator yielding the column names.
         """
@@ -431,25 +433,25 @@ class DataFrame(ABC):
         """
 
     @abstractmethod
-    def get_columns(self) -> Iterable[Column]:
+    def get_columns(self) -> abc.Iterable[Column]:
         """
         Return an iterator yielding the columns.
         """
 
     @abstractmethod
-    def select_columns(self, indices: Sequence[int]) -> DataFrame:
+    def select_columns(self, indices: abc.Sequence[int]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by index.
         """
 
     @abstractmethod
-    def select_columns_by_name(self, names: Sequence[str]) -> DataFrame:
+    def select_columns_by_name(self, names: abc.Sequence[str]) -> DataFrame:
         """
         Create a new DataFrame by selecting a subset of columns by name.
         """
 
     @abstractmethod
-    def get_chunks(self, n_chunks: int | None = None) -> Iterable[DataFrame]:
+    def get_chunks(self, n_chunks: int | None = None) -> abc.Iterable[DataFrame]:
         """
         Return an iterator yielding the chunks.
 

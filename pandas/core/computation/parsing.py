@@ -7,10 +7,11 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import (
-    Hashable,
-    Iterator,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
+
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
@@ -93,7 +94,7 @@ def clean_backtick_quoted_toks(tok: tuple[int, str]) -> tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: Hashable) -> Hashable:
+def clean_column_name(name: abc.Hashable) -> abc.Hashable:
     """
     Function to emulate the cleaning of a backtick quoted name.
 
@@ -131,7 +132,7 @@ def clean_column_name(name: Hashable) -> Hashable:
 
 
 def tokenize_backtick_quoted_string(
-    token_generator: Iterator[tokenize.TokenInfo], source: str, string_start: int
+    token_generator: abc.Iterator[tokenize.TokenInfo], source: str, string_start: int
 ) -> tuple[int, str]:
     """
     Creates a token from a backtick quoted string.
@@ -164,7 +165,7 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
-def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
+def tokenize_string(source: str) -> abc.Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.
 

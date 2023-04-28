@@ -4,10 +4,9 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
+from collections import abc
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
     cast,
     final,
 )
@@ -178,7 +177,7 @@ class SelectNFrame(SelectN):
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
 
-        columns = cast(Sequence[Hashable], columns)
+        columns = cast(abc.Sequence[abc.Hashable], columns)
         columns = list(columns)
         self.columns = columns
 

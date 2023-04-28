@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -68,6 +67,8 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,
@@ -375,7 +376,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         if self.ndim > 1:
             for i in range(len(self)):
                 yield self[i]

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     Literal,
     cast,
 )
@@ -42,6 +41,8 @@ from pandas.core.indexes.extension import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -208,7 +209,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ordered=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: abc.Hashable = None,
     ) -> CategoricalIndex:
         name = maybe_extract_name(name, data, cls)
 
@@ -471,7 +472,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+    def _concat(self, to_concat: list[Index], name: abc.Hashable) -> Index:
         # if calling index is category, don't check dtype of others
         try:
             cat = Categorical._concat_same_type(

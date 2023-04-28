@@ -4,8 +4,6 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
     cast,
     final,
 )
@@ -75,6 +73,8 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -2169,7 +2169,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Ensure that our column indexer is something that can be iterated over.
         """
-        ilocs: Sequence[int | np.integer] | np.ndarray
+        ilocs: abc.Sequence[int | np.integer] | np.ndarray
         if is_integer(column_indexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
@@ -2429,7 +2429,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
 
-def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
+def _tuplify(ndim: int, loc: abc.Hashable) -> tuple[abc.Hashable | slice, ...]:
     """
     Given an indexer for the first dimension, create an equivalent tuple
     for indexing over all dimensions.
@@ -2443,7 +2443,7 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     -------
     tuple
     """
-    _tup: list[Hashable | slice]
+    _tup: list[abc.Hashable | slice]
     _tup = [slice(None, None) for _ in range(ndim)]
     _tup[0] = loc
     return tuple(_tup)

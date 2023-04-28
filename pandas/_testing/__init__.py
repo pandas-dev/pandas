@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,12 +13,11 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
 import numpy as np
+import pytest
 
 from pandas._config.localization import (
     can_set_locale,
@@ -112,6 +112,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -467,7 +469,7 @@ def index_subclass_makers_generator():
     yield from make_index_funcs
 
 
-def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
+def all_timeseries_index_generator(k: int = 10) -> abc.Iterable[Index]:
     """
     Generator which can be iterated over to get instances of all the classes
     which represent time-series.
@@ -923,7 +925,6 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     Callable
         Regular `pytest.raises` function with `match` equal to `None`.
     """
-    import pytest
 
     return pytest.raises(expected_exception, match=None)
 

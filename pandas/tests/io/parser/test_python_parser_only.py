@@ -12,7 +12,7 @@ from io import (
     StringIO,
     TextIOWrapper,
 )
-from typing import Iterator
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -28,6 +28,9 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 def test_default_separator(python_parser_only):
@@ -323,7 +326,7 @@ def test_python_engine_file_no_next(python_parser_only):
         def __init__(self, csv_data) -> None:
             self.data = csv_data
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self) -> abc.Iterator:
             return self.data.__iter__()
 
         def read(self):

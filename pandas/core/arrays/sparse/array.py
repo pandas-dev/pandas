@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -1130,7 +1129,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: abc.Sequence[Self]) -> Self:
         fill_value = to_concat[0].fill_value
 
         values = []

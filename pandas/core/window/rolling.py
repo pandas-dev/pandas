@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    Sized,
     cast,
 )
 
@@ -92,6 +89,8 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -112,7 +111,7 @@ class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
-    exclusions: frozenset[Hashable] = frozenset()
+    exclusions: frozenset[abc.Hashable] = frozenset()
     _on: Index
 
     def __init__(
@@ -218,7 +217,9 @@ class BaseWindow(SelectionMixin):
                 f"if given and rounded up"
             )
 
-    def _slice_axis_for_step(self, index: Index, result: Sized | None = None) -> Index:
+    def _slice_axis_for_step(
+        self, index: Index, result: abc.Sized | None = None
+    ) -> Index:
         """
         Slices the index for a given result and the preset step.
         """
@@ -335,7 +336,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()

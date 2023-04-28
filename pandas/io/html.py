@@ -9,12 +9,10 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import re
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
-    Pattern,
-    Sequence,
     cast,
 )
 
@@ -79,7 +77,9 @@ def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
     return regex.sub(" ", s.strip())
 
 
-def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequence[int]:
+def _get_skiprows(
+    skiprows: int | abc.Sequence[int] | slice | None,
+) -> int | abc.Sequence[int]:
     """
     Get an iterator given an integer, slice or container.
 
@@ -102,7 +102,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
         start, step = skiprows.start or 0, skiprows.step or 1
         return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
-        return cast("int | Sequence[int]", skiprows)
+        return cast("int | abc.Sequence[int]", skiprows)
     elif skiprows is None:
         return 0
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
@@ -915,7 +915,7 @@ def _validate_flavor(flavor):
         flavor = "lxml", "bs4"
     elif isinstance(flavor, str):
         flavor = (flavor,)
-    elif isinstance(flavor, abc.Iterable):
+    elif isinstance(flavor, abc.abc.Iterator):
         if not all(isinstance(flav, str) for flav in flavor):
             raise TypeError(
                 f"Object of type {repr(type(flavor).__name__)} "
@@ -996,16 +996,16 @@ def read_html(
     *,
     match: str | Pattern = ".+",
     flavor: str | None = None,
-    header: int | Sequence[int] | None = None,
-    index_col: int | Sequence[int] | None = None,
-    skiprows: int | Sequence[int] | slice | None = None,
+    header: int | abc.Sequence[int] | None = None,
+    index_col: int | abc.Sequence[int] | None = None,
+    skiprows: int | abc.Sequence[int] | slice | None = None,
     attrs: dict[str, str] | None = None,
     parse_dates: bool = False,
     thousands: str | None = ",",
     encoding: str | None = None,
     decimal: str = ".",
     converters: dict | None = None,
-    na_values: Iterable[object] | None = None,
+    na_values: abc.Iterator[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,

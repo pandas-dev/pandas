@@ -28,7 +28,10 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 # Check line starts with `-` and ends with e.g. `(:issue:`12345`)`,
 # possibly with a trailing full stop.
@@ -57,7 +60,7 @@ def sort_whatsnew_note(content: str) -> int:
     return "".join(new_lines)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: abc.Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)

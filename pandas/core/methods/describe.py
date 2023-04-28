@@ -12,8 +12,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
@@ -44,6 +42,8 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas import (
         DataFrame,
         Series,
@@ -53,9 +53,9 @@ if TYPE_CHECKING:
 def describe_ndframe(
     *,
     obj: NDFrameT,
-    include: str | Sequence[str] | None,
-    exclude: str | Sequence[str] | None,
-    percentiles: Sequence[float] | np.ndarray | None,
+    include: str | abc.Sequence[str] | None,
+    exclude: str | abc.Sequence[str] | None,
+    percentiles: abc.Sequence[float] | np.ndarray | None,
 ) -> NDFrameT:
     """Describe series or dataframe.
 
@@ -109,7 +109,9 @@ class NDFrameDescriberAbstract(ABC):
         self.obj = obj
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame | Series:
+    def describe(
+        self, percentiles: abc.Sequence[float] | np.ndarray
+    ) -> DataFrame | Series:
         """Do describe either series or dataframe.
 
         Parameters
@@ -124,7 +126,7 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
     obj: Series
 
-    def describe(self, percentiles: Sequence[float] | np.ndarray) -> Series:
+    def describe(self, percentiles: abc.Sequence[float] | np.ndarray) -> Series:
         describe_func = select_describe_func(
             self.obj,
         )
@@ -148,8 +150,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         self,
         obj: DataFrame,
         *,
-        include: str | Sequence[str] | None,
-        exclude: str | Sequence[str] | None,
+        include: str | abc.Sequence[str] | None,
+        exclude: str | abc.Sequence[str] | None,
     ) -> None:
         self.include = include
         self.exclude = exclude
@@ -159,7 +161,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         super().__init__(obj)
 
-    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame:
+    def describe(self, percentiles: abc.Sequence[float] | np.ndarray) -> DataFrame:
         data = self._select_data()
 
         ldesc: list[Series] = []
@@ -197,9 +199,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data  # pyright: ignore
 
 
-def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
+def reorder_columns(ldesc: abc.Sequence[Series]) -> list[abc.Hashable]:
     """Set a convenient order for rows for display."""
-    names: list[Hashable] = []
+    names: list[abc.Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
@@ -208,7 +210,7 @@ def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     return names
 
 
-def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
+def describe_numeric_1d(series: Series, percentiles: abc.Sequence[float]) -> Series:
     """Describe series containing numerical data.
 
     Parameters
@@ -247,7 +249,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
 
 def describe_categorical_1d(
     data: Series,
-    percentiles_ignored: Sequence[float],
+    percentiles_ignored: abc.Sequence[float],
 ) -> Series:
     """Describe series containing categorical data.
 
@@ -279,7 +281,7 @@ def describe_categorical_1d(
 
 def describe_timestamp_as_categorical_1d(
     data: Series,
-    percentiles_ignored: Sequence[float],
+    percentiles_ignored: abc.Sequence[float],
 ) -> Series:
     """Describe series containing timestamp data treated as categorical.
 
@@ -325,7 +327,7 @@ def describe_timestamp_as_categorical_1d(
     return Series(result, index=names, name=data.name, dtype=dtype)
 
 
-def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
+def describe_timestamp_1d(data: Series, percentiles: abc.Sequence[float]) -> Series:
     """Describe series containing datetime64 dtype.
 
     Parameters
@@ -372,7 +374,7 @@ def select_describe_func(
 
 
 def _refine_percentiles(
-    percentiles: Sequence[float] | np.ndarray | None,
+    percentiles: abc.Sequence[float] | np.ndarray | None,
 ) -> npt.NDArray[np.float64]:
     """
     Ensure that percentiles are unique and sorted.

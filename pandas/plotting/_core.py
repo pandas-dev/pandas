@@ -4,9 +4,7 @@ import importlib
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
 )
 
 from pandas._config import get_option
@@ -28,6 +26,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from collections import abc
     import types
 
     from matplotlib.axes import Axes
@@ -48,7 +47,7 @@ def hist_series(
     ylabelsize: int | None = None,
     yrot: float | None = None,
     figsize: tuple[int, int] | None = None,
-    bins: int | Sequence[int] = 10,
+    bins: int | abc.Sequence[int] = 10,
     backend: str | None = None,
     legend: bool = False,
     **kwargs,
@@ -130,7 +129,7 @@ def hist_frame(
     sharey: bool = False,
     figsize: tuple[int, int] | None = None,
     layout: tuple[int, int] | None = None,
-    bins: int | Sequence[int] = 10,
+    bins: int | abc.Sequence[int] = 10,
     backend: str | None = None,
     legend: bool = False,
     **kwargs,
@@ -1029,7 +1028,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def line(
+        self, x: abc.Hashable = None, y: abc.Hashable = None, **kwargs
+    ) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1117,7 +1118,7 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable = None, y: Hashable = None, **kwargs
+        self, x: abc.Hashable = None, y: abc.Hashable = None, **kwargs
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1204,7 +1205,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def barh(
+        self, x: abc.Hashable = None, y: abc.Hashable = None, **kwargs
+    ) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1461,7 +1464,11 @@ class PlotAccessor(PandasObject):
     density = kde
 
     def area(
-        self, x: Hashable = None, y: Hashable = None, stacked: bool = True, **kwargs
+        self,
+        x: abc.Hashable = None,
+        y: abc.Hashable = None,
+        stacked: bool = True,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Draw a stacked area plot.
@@ -1592,10 +1599,10 @@ class PlotAccessor(PandasObject):
 
     def scatter(
         self,
-        x: Hashable,
-        y: Hashable,
-        s: Hashable | Sequence[Hashable] = None,
-        c: Hashable | Sequence[Hashable] = None,
+        x: abc.Hashable,
+        y: abc.Hashable,
+        s: abc.Hashable | abc.Sequence[abc.Hashable] = None,
+        c: abc.Hashable | abc.Sequence[abc.Hashable] = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1682,9 +1689,9 @@ class PlotAccessor(PandasObject):
 
     def hexbin(
         self,
-        x: Hashable,
-        y: Hashable,
-        C: Hashable = None,
+        x: abc.Hashable,
+        y: abc.Hashable,
+        C: abc.Hashable = None,
         reduce_C_function: Callable | None = None,
         gridsize: int | tuple[int, int] | None = None,
         **kwargs,

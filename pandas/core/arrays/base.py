@@ -14,9 +14,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -73,6 +71,8 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -90,6 +90,7 @@ if TYPE_CHECKING:
         TakeIndexer,
         npt,
     )
+
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -405,7 +406,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def __iter__(self) -> Iterator[Any]:
+    def __iter__(self) -> abc.Iterator[Any]:
         """
         Iterate over elements of the array.
         """
@@ -1107,7 +1108,9 @@ class ExtensionArray:
 
     @Substitution(klass="ExtensionArray")
     @Appender(_extension_array_shared_docs["repeat"])
-    def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+    def repeat(
+        self, repeats: int | abc.Sequence[int], axis: AxisInt | None = None
+    ) -> Self:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1343,7 +1346,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: abc.Sequence[Self]) -> Self:
         """
         Concatenate multiple array of this dtype.
 

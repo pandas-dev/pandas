@@ -6,7 +6,10 @@ from abc import (
     abstractmethod,
 )
 import codecs
-from collections import defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 import dataclasses
 import functools
 import gzip
@@ -29,10 +32,7 @@ from typing import (
     AnyStr,
     DefaultDict,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -198,7 +198,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast(Sequence, header)
+        header = cast(abc.Sequence, header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -519,7 +519,7 @@ def get_compression_method(
     ValueError on mapping missing 'method' key
     """
     compression_method: str | None
-    if isinstance(compression, Mapping):
+    if isinstance(compression, abc.Mapping):
         compression_args = dict(compression)
         try:
             compression_method = compression_args.pop("method")
@@ -1186,8 +1186,8 @@ def _get_binary_io_classes() -> tuple[type, ...]:
 
 
 def is_potential_multi_index(
-    columns: Sequence[Hashable] | MultiIndex,
-    index_col: bool | Sequence[int] | None = None,
+    columns: abc.Sequence[abc.Hashable] | MultiIndex,
+    index_col: bool | abc.Sequence[int] | None = None,
 ) -> bool:
     """
     Check whether or not the `columns` parameter
@@ -1215,8 +1215,8 @@ def is_potential_multi_index(
 
 
 def dedup_names(
-    names: Sequence[Hashable], is_potential_multiindex: bool
-) -> Sequence[Hashable]:
+    names: abc.Sequence[abc.Hashable], is_potential_multiindex: bool
+) -> abc.Sequence[abc.Hashable]:
     """
     Rename column names if duplicates exist.
 
@@ -1229,7 +1229,7 @@ def dedup_names(
     ['x', 'y', 'x.1', 'x.2']
     """
     names = list(names)  # so we can index
-    counts: DefaultDict[Hashable, int] = defaultdict(int)
+    counts: DefaultDict[abc.Hashable, int] = defaultdict(int)
 
     for i, col in enumerate(names):
         cur_count = counts[col]

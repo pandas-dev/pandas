@@ -4,16 +4,15 @@ Module for formatting output data in console (to string).
 from __future__ import annotations
 
 from shutil import get_terminal_size
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas.io.formats.format import DataFrameFormatter
 
 
@@ -117,7 +116,7 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, strcols_input: Iterable[list[str]]) -> str:
+    def _join_multiline(self, strcols_input: abc.Iterable[list[str]]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
         strcols = list(strcols_input)

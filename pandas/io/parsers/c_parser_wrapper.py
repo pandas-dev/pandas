@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Mapping,
-    Sequence,
+from collections import (
+    abc,
+    defaultdict,
 )
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -223,11 +221,11 @@ class CParserWrapper(ParserBase):
         nrows: int | None = None,
     ) -> tuple[
         Index | MultiIndex | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike],
+        abc.Sequence[abc.Hashable] | MultiIndex,
+        abc.Mapping[abc.Hashable, ArrayLike],
     ]:
         index: Index | MultiIndex | None
-        column_names: Sequence[Hashable] | MultiIndex
+        column_names: abc.Sequence[abc.Hashable] | MultiIndex
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -335,7 +333,9 @@ class CParserWrapper(ParserBase):
 
         return index, column_names, date_data
 
-    def _filter_usecols(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
+    def _filter_usecols(
+        self, names: abc.Sequence[abc.Hashable]
+    ) -> abc.Sequence[abc.Hashable]:
         # hackish
         usecols = self._evaluate_usecols(self.usecols, names)
         if usecols is not None and len(names) != len(usecols):
@@ -402,8 +402,8 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
 
 
 def ensure_dtype_objs(
-    dtype: DtypeArg | dict[Hashable, DtypeArg] | None
-) -> DtypeObj | dict[Hashable, DtypeObj] | None:
+    dtype: DtypeArg | dict[abc.Hashable, DtypeArg] | None
+) -> DtypeObj | dict[abc.Hashable, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.

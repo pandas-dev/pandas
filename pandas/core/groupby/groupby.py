@@ -8,6 +8,7 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
+from collections import abc
 import datetime
 from functools import (
     partial,
@@ -18,12 +19,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -674,11 +670,11 @@ class GroupByPlot(PandasObject):
 
 
 _KeysArgType = Union[
-    Hashable,
-    List[Hashable],
-    Callable[[Hashable], Hashable],
-    List[Callable[[Hashable], Hashable]],
-    Mapping[Hashable, Hashable],
+    abc.Hashable,
+    list[abc.Hashable],
+    Callable[[abc.Hashable], abc.Hashable],
+    list[Callable[[abc.Hashable], abc.Hashable]],
+    abc.Mapping[abc.Hashable, abc.Hashable],
 ]
 
 
@@ -714,7 +710,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def groups(self) -> dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[abc.Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
         """
@@ -727,7 +723,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
+    def indices(self) -> dict[abc.Hashable, npt.NDArray[np.intp]]:
         """
         Dict {group name -> group indices}.
         """
@@ -875,7 +871,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
-    def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
+    def __iter__(self) -> abc.Iterator[tuple[abc.Hashable, NDFrameT]]:
         """
         Groupby iterator.
 
@@ -987,7 +983,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis: Axis = 0,
         level: IndexLabel | None = None,
         grouper: ops.BaseGrouper | None = None,
-        exclusions: frozenset[Hashable] | None = None,
+        exclusions: frozenset[abc.Hashable] | None = None,
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -2131,7 +2127,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _value_counts(
         self,
-        subset: Sequence[Hashable] | None = None,
+        subset: abc.Sequence[abc.Hashable] | None = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -3509,7 +3505,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series
-            Sequence number of each element within each group.
+            abc.Sequence number of each element within each group.
 
         See Also
         --------
@@ -4150,7 +4146,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
-        weights: Sequence | Series | None = None,
+        weights: abc.Sequence | Series | None = None,
         random_state: RandomState | None = None,
     ):
         """

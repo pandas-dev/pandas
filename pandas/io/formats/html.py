@@ -5,11 +5,9 @@ from __future__ import annotations
 
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
-    Hashable,
-    Iterable,
-    Mapping,
     cast,
 )
 
@@ -28,6 +26,9 @@ from pandas.io.formats.format import (
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 class HTMLFormatter:
@@ -117,7 +118,7 @@ class HTMLFormatter:
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> Iterable:
+    def _get_columns_formatted_values(self) -> abc.Iterable:
         return self.columns
 
     @property
@@ -195,7 +196,7 @@ class HTMLFormatter:
 
     def write_tr(
         self,
-        line: Iterable,
+        line: abc.Iterable,
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
@@ -260,7 +261,7 @@ class HTMLFormatter:
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
-        row: list[Hashable]
+        row: list[abc.Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
@@ -414,7 +415,7 @@ class HTMLFormatter:
         self.write("</tbody>", indent)
 
     def _write_regular_rows(
-        self, fmt_values: Mapping[int, list[str]], indent: int
+        self, fmt_values: abc.Mapping[int, list[str]], indent: int
     ) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         is_truncated_vertically = self.fmt.is_truncated_vertically
@@ -459,7 +460,7 @@ class HTMLFormatter:
             )
 
     def _write_hierarchical_rows(
-        self, fmt_values: Mapping[int, list[str]], indent: int
+        self, fmt_values: abc.Mapping[int, list[str]], indent: int
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 

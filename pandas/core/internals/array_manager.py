@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
 )
 
@@ -87,6 +86,8 @@ from pandas.core.internals.blocks import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -877,7 +878,7 @@ class ArrayManager(BaseArrayManager):
             # update existing ArrayManager in-place
             self.arrays[loc] = new_mgr.arrays[0]
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: abc.Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 

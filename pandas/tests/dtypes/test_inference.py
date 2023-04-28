@@ -4,7 +4,10 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
-from collections import namedtuple
+from collections import (
+    abc,
+    namedtuple,
+)
 from datetime import (
     date,
     datetime,
@@ -20,7 +23,6 @@ import re
 import sys
 from typing import (
     Generic,
-    Iterator,
     TypeVar,
 )
 
@@ -100,7 +102,7 @@ class MockNumpyLikeArray:
     def __init__(self, values) -> None:
         self._values = values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         iter_values = iter(self._values)
 
         def it_outer():

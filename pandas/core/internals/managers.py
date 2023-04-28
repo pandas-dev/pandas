@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+from collections import abc
 import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
     cast,
 )
 import warnings
@@ -139,8 +138,8 @@ class BaseBlockManager(DataManager):
 
     Parameters
     ----------
-    blocks: Sequence of Block
-    axes: Sequence of Index
+    blocks: abc.Sequence of Block
+    axes: abc.Sequence of Index
     verify_integrity: bool, default True
 
     Notes
@@ -973,8 +972,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def __init__(
         self,
-        blocks: Sequence[Block],
-        axes: Sequence[Index],
+        blocks: abc.Sequence[Block],
+        axes: abc.Sequence[Index],
         verify_integrity: bool = True,
     ) -> None:
         if verify_integrity:
@@ -1378,7 +1377,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: abc.Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
 
@@ -2305,12 +2304,12 @@ def _merge_blocks(
         if isinstance(blocks[0].dtype, np.dtype):
             # error: List comprehension has incompatible type List[Union[ndarray,
             # ExtensionArray]]; expected List[Union[complex, generic,
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], SupportsArray]]
+            # abc.Sequence[Union[int, float, complex, str, bytes, generic]],
+            # abc.Sequence[abc.Sequence[Any]], SupportsArray]]
             new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
         else:
             bvals = [blk.values for blk in blocks]
-            bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
+            bvals2 = cast(abc.Sequence[NDArrayBackedExtensionArray], bvals)
             new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
         argsort = np.argsort(new_mgr_locs)

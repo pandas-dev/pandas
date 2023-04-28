@@ -14,7 +14,10 @@ from __future__ import annotations
 import argparse
 import ast
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
@@ -61,7 +64,7 @@ def use_pd_array(content: str, path: str) -> None:
     visitor.visit(tree)
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def main(argv: abc.Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)

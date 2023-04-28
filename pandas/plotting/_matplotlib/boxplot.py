@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Collection,
     Literal,
     NamedTuple,
 )
@@ -33,6 +32,8 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
 
@@ -128,7 +129,7 @@ class BoxPlot(LinePlot):
         num_colors=None,
         color_kwds: dict[str, MatplotlibColor]
         | MatplotlibColor
-        | Collection[MatplotlibColor]
+        | abc.Collection[MatplotlibColor]
         | None = "color",
     ) -> None:
         pass

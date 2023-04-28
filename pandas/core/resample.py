@@ -5,7 +5,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
     final,
@@ -84,6 +83,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         AnyArrayLike,
         Axis,
@@ -134,7 +135,7 @@ class Resampler(BaseGroupBy, PandasObject):
     grouper: BinGrouper
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
-    exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
+    exclusions: frozenset[abc.Hashable] = frozenset()  # for SelectionMixin compat
     _internal_names_set = set({"obj", "ax", "_indexer"})
 
     # to the groupby descriptor

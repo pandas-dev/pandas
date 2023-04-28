@@ -9,10 +9,13 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def main(argv: abc.Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)

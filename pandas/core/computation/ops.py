@@ -8,9 +8,8 @@ from datetime import datetime
 from functools import partial
 import operator
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Iterable,
-    Iterator,
     Literal,
 )
 
@@ -34,6 +33,10 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+if TYPE_CHECKING:
+    from collections import abc
+
 
 REDUCTIONS = ("sum", "prod", "min", "max")
 
@@ -210,12 +213,14 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands: Iterable[Term | Op], encoding=None) -> None:
+    def __init__(
+        self, op: str, operands: abc.Iterable[Term | Op], encoding=None
+    ) -> None:
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         return iter(self.operands)
 
     def __repr__(self) -> str:

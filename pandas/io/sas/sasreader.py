@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Protocol,
     overload,
 )
@@ -17,6 +16,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from collections import abc
     from types import TracebackType
 
     from pandas._typing import (
@@ -56,7 +56,7 @@ def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,
     format: str | None = ...,
-    index: Hashable | None = ...,
+    index: abc.Hashable | None = ...,
     encoding: str | None = ...,
     chunksize: int = ...,
     iterator: bool = ...,
@@ -70,7 +70,7 @@ def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,
     format: str | None = ...,
-    index: Hashable | None = ...,
+    index: abc.Hashable | None = ...,
     encoding: str | None = ...,
     chunksize: None = ...,
     iterator: bool = ...,
@@ -84,7 +84,7 @@ def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,
     format: str | None = None,
-    index: Hashable | None = None,
+    index: abc.Hashable | None = None,
     encoding: str | None = None,
     chunksize: int | None = None,
     iterator: bool = False,

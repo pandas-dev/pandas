@@ -56,11 +56,10 @@ from contextlib import (
 )
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
     Generic,
-    Iterable,
     NamedTuple,
     cast,
 )
@@ -69,6 +68,9 @@ import warnings
 from pandas._typing import F  # noqa: TCH001
 from pandas._typing import T  # noqa: TCH001
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 class DeprecatedOption(NamedTuple):
@@ -237,7 +239,7 @@ class DictWrapper:
         else:
             return _get_option(prefix)
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self) -> abc.Iterable[str]:
         return list(self.d.keys())
 
 
@@ -698,12 +700,12 @@ def _build_option_description(k: str) -> str:
     return s
 
 
-def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
+def pp_options_list(keys: abc.Iterable[str], width: int = 80, _print: bool = False):
     """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
 
-    def pp(name: str, ks: Iterable[str]) -> list[str]:
+    def pp(name: str, ks: abc.Iterable[str]) -> list[str]:
         pfx = "- " + name + ".[" if name else ""
         ls = wrap(
             ", ".join(ks),
@@ -737,7 +739,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix: str) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> abc.Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

@@ -22,12 +22,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Iterator,
     Literal,
-    Mapping,
-    Sequence,
     cast,
     overload,
 )
@@ -1142,7 +1137,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         buf: None = ...,
         columns: Axes | None = ...,
-        col_space: int | list[int] | dict[Hashable, int] | None = ...,
+        col_space: int | list[int] | dict[abc.Hashable, int] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -1167,7 +1162,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Axes | None = ...,
-        col_space: int | list[int] | dict[Hashable, int] | None = ...,
+        col_space: int | list[int] | dict[abc.Hashable, int] | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -1202,7 +1197,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Axes | None = None,
-        col_space: int | list[int] | dict[Hashable, int] | None = None,
+        col_space: int | list[int] | dict[abc.Hashable, int] | None = None,
         header: bool | list[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -1343,7 +1338,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[tuple[Hashable, Series]]:
+    def items(self) -> abc.Iterable[tuple[abc.Hashable, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -1351,7 +1346,7 @@ class DataFrame(NDFrame, OpsMixin):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    def iterrows(self) -> Iterable[tuple[Hashable, Series]]:
+    def iterrows(self) -> abc.Iterable[tuple[abc.Hashable, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -1404,7 +1399,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def itertuples(
         self, index: bool = True, name: str | None = "Pandas"
-    ) -> Iterable[tuple[Any, ...]]:
+    ) -> abc.Iterable[tuple[Any, ...]]:
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -2543,17 +2538,17 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes],
         *,
-        convert_dates: dict[Hashable, str] | None = None,
+        convert_dates: dict[abc.Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: ToStataByteorder | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
-        variable_labels: dict[Hashable, str] | None = None,
+        variable_labels: dict[abc.Hashable, str] | None = None,
         version: int | None = 114,
-        convert_strl: Sequence[Hashable] | None = None,
+        convert_strl: abc.Sequence[abc.Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
-        value_labels: dict[Hashable, dict[float, str]] | None = None,
+        value_labels: dict[abc.Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -3692,7 +3687,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return self._mgr.iget_values(i)
 
-    def _iter_column_arrays(self) -> Iterator[ArrayLike]:
+    def _iter_column_arrays(self) -> abc.Iterator[ArrayLike]:
         """
         Iterate over the arrays of all columns in order.
         This returns the values as stored in the Block (ndarray or ExtensionArray).
@@ -4255,7 +4250,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _clear_item_cache(self) -> None:
         self._item_cache.clear()
 
-    def _get_item_cache(self, item: Hashable) -> Series:
+    def _get_item_cache(self, item: abc.Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
         if using_copy_on_write():
             loc = self.columns.get_loc(item)
@@ -4726,7 +4721,7 @@ class DataFrame(NDFrame, OpsMixin):
     def insert(
         self,
         loc: int,
-        column: Hashable,
+        column: abc.Hashable,
         value: Scalar | AnyArrayLike,
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
@@ -5378,7 +5373,7 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
-    def pop(self, item: Hashable) -> Series:
+    def pop(self, item: abc.Hashable) -> Series:
         """
         Return item and drop from frame. Raise KeyError if not found.
 
@@ -5422,7 +5417,7 @@ class DataFrame(NDFrame, OpsMixin):
         return super().pop(item=item)
 
     def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
+        self, mapping: dict[abc.Hashable, tuple[Any, Any]], inplace: bool, regex
     ):
         """
         Dispatch to Series.replace column-wise.
@@ -5461,7 +5456,7 @@ class DataFrame(NDFrame, OpsMixin):
         periods: int = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
-        fill_value: Hashable = lib.no_default,
+        fill_value: abc.Hashable = lib.no_default,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
@@ -5669,7 +5664,7 @@ class DataFrame(NDFrame, OpsMixin):
             "one-dimensional arrays."
         )
 
-        missing: list[Hashable] = []
+        missing: list[abc.Hashable] = []
         for col in keys:
             if isinstance(col, (Index, Series, np.ndarray, list, abc.Iterator)):
                 # arrays are fine as long as they are one-dimensional
@@ -5698,7 +5693,7 @@ class DataFrame(NDFrame, OpsMixin):
             frame = self.copy(deep=None)
 
         arrays = []
-        names: list[Hashable] = []
+        names: list[abc.Hashable] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
@@ -5707,7 +5702,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 arrays.append(self.index)
 
-        to_remove: list[Hashable] = []
+        to_remove: list[abc.Hashable] = []
         for col in keys:
             if isinstance(col, MultiIndex):
                 for n in range(col.nlevels):
@@ -5771,10 +5766,10 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         inplace: Literal[False] = ...,
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
+        col_level: abc.Hashable = ...,
+        col_fill: abc.Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: abc.Hashable | abc.Sequence[abc.Hashable] = None,
     ) -> DataFrame:
         ...
 
@@ -5785,10 +5780,10 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         inplace: Literal[True],
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
+        col_level: abc.Hashable = ...,
+        col_fill: abc.Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: abc.Hashable | abc.Sequence[abc.Hashable] = None,
     ) -> None:
         ...
 
@@ -5799,10 +5794,10 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = ...,
         inplace: bool = ...,
-        col_level: Hashable = ...,
-        col_fill: Hashable = ...,
+        col_level: abc.Hashable = ...,
+        col_fill: abc.Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: abc.Hashable | abc.Sequence[abc.Hashable] = None,
     ) -> DataFrame | None:
         ...
 
@@ -5812,10 +5807,10 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         drop: bool = False,
         inplace: bool = False,
-        col_level: Hashable = 0,
-        col_fill: Hashable = "",
+        col_level: abc.Hashable = 0,
+        col_fill: abc.Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
-        names: Hashable | Sequence[Hashable] = None,
+        names: abc.Hashable | abc.Sequence[abc.Hashable] = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5997,7 +5992,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_index = self.index.droplevel(level)
 
         if not drop:
-            to_insert: Iterable[tuple[Any, Any | None]]
+            to_insert: abc.Iterable[tuple[Any, Any | None]]
 
             default = "index" if "index" not in self else "level_0"
             names = self.index._get_default_index_names(names, default)
@@ -6267,7 +6262,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop_duplicates(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: abc.Hashable | abc.Sequence[abc.Hashable] | None = None,
         *,
         keep: DropKeep = "first",
         inplace: bool = False,
@@ -6364,7 +6359,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def duplicated(
         self,
-        subset: Hashable | Sequence[Hashable] | None = None,
+        subset: abc.Hashable | abc.Sequence[abc.Hashable] | None = None,
         keep: DropKeep = "first",
     ) -> Series:
         """
@@ -6477,7 +6472,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Sequence, subset)
+        subset = cast(abc.Sequence, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -6781,7 +6776,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -6797,7 +6792,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -6813,7 +6808,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: bool = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -6828,7 +6823,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = 0,
         level: IndexLabel = None,
-        ascending: bool | Sequence[bool] = True,
+        ascending: bool | abc.Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -6934,7 +6929,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def value_counts(
         self,
-        subset: Sequence[Hashable] | None = None,
+        subset: abc.Sequence[abc.Hashable] | None = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -7353,7 +7348,9 @@ class DataFrame(NDFrame, OpsMixin):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
+    def reorder_levels(
+        self, order: abc.Sequence[int | str], axis: Axis = 0
+    ) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
 
@@ -8088,7 +8085,7 @@ class DataFrame(NDFrame, OpsMixin):
     def combine(
         self,
         other: DataFrame,
-        func: Callable[[Series, Series], Series | Hashable],
+        func: Callable[[Series, Series], Series | abc.Hashable],
         fill_value=None,
         overwrite: bool = True,
     ) -> DataFrame:
@@ -9239,7 +9236,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f"DataFrame columns must be unique. Duplicate columns: {duplicate_cols}"
             )
 
-        columns: list[Hashable]
+        columns: list[abc.Hashable]
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
@@ -9345,7 +9342,7 @@ class DataFrame(NDFrame, OpsMixin):
         id_vars=None,
         value_vars=None,
         var_name=None,
-        value_name: Hashable = "value",
+        value_name: abc.Hashable = "value",
         col_level: Level = None,
         ignore_index: bool = True,
     ) -> DataFrame:
@@ -9947,7 +9944,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def join(
         self,
-        other: DataFrame | Series | Iterable[DataFrame | Series],
+        other: DataFrame | Series | abc.Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
         lsuffix: str = "",
@@ -11291,7 +11288,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def quantile(
         self,
-        q: AnyArrayLike | Sequence[float],
+        q: AnyArrayLike | abc.Sequence[float],
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
@@ -11301,7 +11298,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def quantile(
         self,
-        q: float | AnyArrayLike | Sequence[float] = ...,
+        q: float | AnyArrayLike | abc.Sequence[float] = ...,
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
@@ -11310,7 +11307,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def quantile(
         self,
-        q: float | AnyArrayLike | Sequence[float] = 0.5,
+        q: float | AnyArrayLike | abc.Sequence[float] = 0.5,
         axis: Axis = 0,
         numeric_only: bool = False,
         interpolation: QuantileInterpolation = "linear",
@@ -11613,7 +11610,9 @@ class DataFrame(NDFrame, OpsMixin):
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
+    def isin(
+        self, values: Series | DataFrame | abc.Sequence | abc.Mapping
+    ) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 

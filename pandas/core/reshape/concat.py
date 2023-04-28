@@ -7,10 +7,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -68,7 +65,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[HashableT, DataFrame],
+    objs: abc.Iterable[DataFrame] | abc.Mapping[HashableT, DataFrame],
     *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
@@ -85,7 +82,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series] | Mapping[HashableT, Series],
+    objs: abc.Iterable[Series] | abc.Mapping[HashableT, Series],
     *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
@@ -102,7 +99,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+    objs: abc.Iterable[Series | DataFrame] | abc.Mapping[HashableT, Series | DataFrame],
     *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
@@ -119,7 +116,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+    objs: abc.Iterable[Series | DataFrame] | abc.Mapping[HashableT, Series | DataFrame],
     *,
     axis: Literal[1, "columns"],
     join: str = ...,
@@ -136,7 +133,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+    objs: abc.Iterable[Series | DataFrame] | abc.Mapping[HashableT, Series | DataFrame],
     *,
     axis: Axis = ...,
     join: str = ...,
@@ -152,7 +149,7 @@ def concat(
 
 
 def concat(
-    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+    objs: abc.Iterable[Series | DataFrame] | abc.Mapping[HashableT, Series | DataFrame],
     *,
     axis: Axis = 0,
     join: str = "outer",
@@ -399,7 +396,8 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+        objs: abc.Iterable[Series | DataFrame]
+        | abc.Mapping[HashableT, Series | DataFrame],
         axis: Axis = 0,
         join: str = "outer",
         keys=None,
@@ -488,10 +486,11 @@ class _Concatenator:
 
     def _clean_keys_and_objs(
         self,
-        objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+        objs: abc.Iterable[Series | DataFrame]
+        | abc.Mapping[HashableT, Series | DataFrame],
         keys,
     ) -> tuple[list[Series | DataFrame], Index | None]:
-        if isinstance(objs, abc.Mapping):
+        if isinstance(objs, abc.abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]
@@ -720,7 +719,7 @@ class _Concatenator:
                 idx = default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: list[Hashable] = [None] * len(self.objs)
+                names: list[abc.Hashable] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):

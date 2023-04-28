@@ -3,6 +3,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
+from collections import abc
 from functools import (
     lru_cache,
     reduce,
@@ -13,10 +14,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
     cast,
 )
 import warnings
@@ -227,7 +224,7 @@ class CSSToExcelConverter:
         properties = self.compute_css(declarations, self.inherited)
         return self.build_xlstyle(properties)
 
-    def build_xlstyle(self, props: Mapping[str, str]) -> dict[str, dict[str, str]]:
+    def build_xlstyle(self, props: abc.Mapping[str, str]) -> dict[str, dict[str, str]]:
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -251,7 +248,9 @@ class CSSToExcelConverter:
         remove_none(out)
         return out
 
-    def build_alignment(self, props: Mapping[str, str]) -> dict[str, bool | str | None]:
+    def build_alignment(
+        self, props: abc.Mapping[str, str]
+    ) -> dict[str, bool | str | None]:
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
@@ -259,19 +258,19 @@ class CSSToExcelConverter:
             "wrap_text": self._get_is_wrap_text(props),
         }
 
-    def _get_vertical_alignment(self, props: Mapping[str, str]) -> str | None:
+    def _get_vertical_alignment(self, props: abc.Mapping[str, str]) -> str | None:
         vertical_align = props.get("vertical-align")
         if vertical_align:
             return self.VERTICAL_MAP.get(vertical_align)
         return None
 
-    def _get_is_wrap_text(self, props: Mapping[str, str]) -> bool | None:
+    def _get_is_wrap_text(self, props: abc.Mapping[str, str]) -> bool | None:
         if props.get("white-space") is None:
             return None
         return bool(props["white-space"] not in ("nowrap", "pre", "pre-line"))
 
     def build_border(
-        self, props: Mapping[str, str]
+        self, props: abc.Mapping[str, str]
     ) -> dict[str, dict[str, str | None]]:
         return {
             side: {
@@ -359,20 +358,22 @@ class CSSToExcelConverter:
         assert pt_string.endswith("pt")
         return float(pt_string.rstrip("pt"))
 
-    def build_fill(self, props: Mapping[str, str]):
+    def build_fill(self, props: abc.Mapping[str, str]):
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
         fill_color = props.get("background-color")
         if fill_color not in (None, "transparent", "none"):
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
-    def build_number_format(self, props: Mapping[str, str]) -> dict[str, str | None]:
+    def build_number_format(
+        self, props: abc.Mapping[str, str]
+    ) -> dict[str, str | None]:
         fc = props.get("number-format")
         fc = fc.replace("§", ";") if isinstance(fc, str) else fc
         return {"format_code": fc}
 
     def build_font(
-        self, props: Mapping[str, str]
+        self, props: abc.Mapping[str, str]
     ) -> dict[str, bool | float | str | None]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
@@ -389,36 +390,36 @@ class CSSToExcelConverter:
             "shadow": self._get_shadow(props),
         }
 
-    def _get_is_bold(self, props: Mapping[str, str]) -> bool | None:
+    def _get_is_bold(self, props: abc.Mapping[str, str]) -> bool | None:
         weight = props.get("font-weight")
         if weight:
             return self.BOLD_MAP.get(weight)
         return None
 
-    def _get_is_italic(self, props: Mapping[str, str]) -> bool | None:
+    def _get_is_italic(self, props: abc.Mapping[str, str]) -> bool | None:
         font_style = props.get("font-style")
         if font_style:
             return self.ITALIC_MAP.get(font_style)
         return None
 
-    def _get_decoration(self, props: Mapping[str, str]) -> Sequence[str]:
+    def _get_decoration(self, props: abc.Mapping[str, str]) -> abc.Sequence[str]:
         decoration = props.get("text-decoration")
         if decoration is not None:
             return decoration.split()
         else:
             return ()
 
-    def _get_underline(self, decoration: Sequence[str]) -> str | None:
+    def _get_underline(self, decoration: abc.Sequence[str]) -> str | None:
         if "underline" in decoration:
             return "single"
         return None
 
-    def _get_shadow(self, props: Mapping[str, str]) -> bool | None:
+    def _get_shadow(self, props: abc.Mapping[str, str]) -> bool | None:
         if "text-shadow" in props:
             return bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
         return None
 
-    def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
+    def _get_font_names(self, props: abc.Mapping[str, str]) -> abc.Sequence[str]:
         font_names_tmp = re.findall(
             r"""(?x)
             (
@@ -444,13 +445,13 @@ class CSSToExcelConverter:
                 font_names.append(name)
         return font_names
 
-    def _get_font_size(self, props: Mapping[str, str]) -> float | None:
+    def _get_font_size(self, props: abc.Mapping[str, str]) -> float | None:
         size = props.get("font-size")
         if size is None:
             return size
         return self._pt_to_float(size)
 
-    def _select_font_family(self, font_names: Sequence[str]) -> int | None:
+    def _select_font_family(self, font_names: abc.Sequence[str]) -> int | None:
         family = None
         for name in font_names:
             family = self.FAMILY_MAP.get(name)
@@ -541,8 +542,8 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: str | None = None,
-        cols: Sequence[Hashable] | None = None,
-        header: Sequence[Hashable] | bool = True,
+        cols: abc.Sequence[abc.Hashable] | None = None,
+        header: abc.Sequence[abc.Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
         merge_cells: bool = False,
@@ -612,7 +613,7 @@ class ExcelFormatter:
             )
         return val
 
-    def _format_header_mi(self) -> Iterable[ExcelCell]:
+    def _format_header_mi(self) -> abc.Iterable[ExcelCell]:
         if self.columns.nlevels > 1:
             if not self.index:
                 raise NotImplementedError(
@@ -681,7 +682,7 @@ class ExcelFormatter:
 
         self.rowcounter = lnum
 
-    def _format_header_regular(self) -> Iterable[ExcelCell]:
+    def _format_header_regular(self) -> abc.Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             coloffset = 0
 
@@ -692,7 +693,7 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                self.header = cast(Sequence, self.header)
+                self.header = cast(abc.Sequence, self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "
@@ -712,15 +713,15 @@ class ExcelFormatter:
                     css_converter=self.style_converter,
                 )
 
-    def _format_header(self) -> Iterable[ExcelCell]:
-        gen: Iterable[ExcelCell]
+    def _format_header(self) -> abc.Iterable[ExcelCell]:
+        gen: abc.Iterable[ExcelCell]
 
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
 
-        gen2: Iterable[ExcelCell] = ()
+        gen2: abc.Iterable[ExcelCell] = ()
 
         if self.df.index.names:
             row = [x if x is not None else "" for x in self.df.index.names] + [
@@ -734,13 +735,13 @@ class ExcelFormatter:
                 self.rowcounter += 1
         return itertools.chain(gen, gen2)
 
-    def _format_body(self) -> Iterable[ExcelCell]:
+    def _format_body(self) -> abc.Iterable[ExcelCell]:
         if isinstance(self.df.index, MultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
 
-    def _format_regular_rows(self) -> Iterable[ExcelCell]:
+    def _format_regular_rows(self) -> abc.Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             self.rowcounter += 1
 
@@ -786,7 +787,7 @@ class ExcelFormatter:
 
         yield from self._generate_body(coloffset)
 
-    def _format_hierarchical_rows(self) -> Iterable[ExcelCell]:
+    def _format_hierarchical_rows(self) -> abc.Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             self.rowcounter += 1
 
@@ -870,7 +871,7 @@ class ExcelFormatter:
         """Whether the aliases for column names are present."""
         return is_list_like(self.header)
 
-    def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
+    def _generate_body(self, coloffset: int) -> abc.Iterable[ExcelCell]:
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
@@ -886,7 +887,7 @@ class ExcelFormatter:
                     css_converter=self.style_converter,
                 )
 
-    def get_formatted_cells(self) -> Iterable[ExcelCell]:
+    def get_formatted_cells(self) -> abc.Iterable[ExcelCell]:
         for cell in itertools.chain(self._format_header(), self._format_body()):
             cell.val = self._format_value(cell.val)
             yield cell

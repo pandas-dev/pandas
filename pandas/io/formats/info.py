@@ -6,13 +6,7 @@ from abc import (
 )
 import sys
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -22,6 +16,8 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Dtype,
         WriteBuffer,
@@ -376,7 +372,7 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def dtypes(self) -> Iterable[Dtype]:
+    def dtypes(self) -> abc.Iterable[Dtype]:
         """
         Dtypes.
 
@@ -388,13 +384,13 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def dtype_counts(self) -> Mapping[str, int]:
-        """Mapping dtype - number of counts."""
+    def dtype_counts(self) -> abc.Mapping[str, int]:
+        """abc.Mapping dtype - number of counts."""
 
     @property
     @abstractmethod
-    def non_null_counts(self) -> Sequence[int]:
-        """Sequence of non-null counts for all columns or column (if series)."""
+    def non_null_counts(self) -> abc.Sequence[int]:
+        """abc.Sequence of non-null counts for all columns or column (if series)."""
 
     @property
     @abstractmethod
@@ -454,11 +450,11 @@ class DataFrameInfo(BaseInfo):
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
     @property
-    def dtype_counts(self) -> Mapping[str, int]:
+    def dtype_counts(self) -> abc.Mapping[str, int]:
         return _get_dataframe_dtype_counts(self.data)
 
     @property
-    def dtypes(self) -> Iterable[Dtype]:
+    def dtypes(self) -> abc.Iterable[Dtype]:
         """
         Dtypes.
 
@@ -487,8 +483,8 @@ class DataFrameInfo(BaseInfo):
         return len(self.ids)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
-        """Sequence of non-null counts for all columns or column (if series)."""
+    def non_null_counts(self) -> abc.Sequence[int]:
+        """abc.Sequence of non-null counts for all columns or column (if series)."""
         return self.data.count()
 
     @property
@@ -547,15 +543,15 @@ class SeriesInfo(BaseInfo):
         printer.to_buffer(buf)
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> abc.Sequence[int]:
         return [self.data.count()]
 
     @property
-    def dtypes(self) -> Iterable[Dtype]:
+    def dtypes(self) -> abc.Iterable[Dtype]:
         return [self.data.dtypes]
 
     @property
-    def dtype_counts(self) -> Mapping[str, int]:
+    def dtype_counts(self) -> abc.Mapping[str, int]:
         from pandas.core.frame import DataFrame
 
         return _get_dataframe_dtype_counts(DataFrame(self.data))
@@ -731,13 +727,13 @@ class TableBuilderAbstract(ABC):
         return self.info.data
 
     @property
-    def dtypes(self) -> Iterable[Dtype]:
+    def dtypes(self) -> abc.Iterable[Dtype]:
         """Dtypes of each of the DataFrame's columns."""
         return self.info.dtypes
 
     @property
-    def dtype_counts(self) -> Mapping[str, int]:
-        """Mapping dtype - number of counts."""
+    def dtype_counts(self) -> abc.Mapping[str, int]:
+        """abc.Mapping dtype - number of counts."""
         return self.info.dtype_counts
 
     @property
@@ -751,7 +747,7 @@ class TableBuilderAbstract(ABC):
         return self.info.memory_usage_string
 
     @property
-    def non_null_counts(self) -> Sequence[int]:
+    def non_null_counts(self) -> abc.Sequence[int]:
         return self.info.non_null_counts
 
     def add_object_type_line(self) -> None:
@@ -845,21 +841,21 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
     """
 
     SPACING: str = " " * 2
-    strrows: Sequence[Sequence[str]]
-    gross_column_widths: Sequence[int]
+    strrows: abc.Sequence[abc.Sequence[str]]
+    gross_column_widths: abc.Sequence[int]
     with_counts: bool
 
     @property
     @abstractmethod
-    def headers(self) -> Sequence[str]:
+    def headers(self) -> abc.Sequence[str]:
         """Headers names of the columns in verbose table."""
 
     @property
-    def header_column_widths(self) -> Sequence[int]:
+    def header_column_widths(self) -> abc.Sequence[int]:
         """Widths of header columns (only titles)."""
         return [len(col) for col in self.headers]
 
-    def _get_gross_column_widths(self) -> Sequence[int]:
+    def _get_gross_column_widths(self) -> abc.Sequence[int]:
         """Get widths of columns containing both headers and actual content."""
         body_column_widths = self._get_body_column_widths()
         return [
@@ -867,12 +863,12 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
             for widths in zip(self.header_column_widths, body_column_widths)
         ]
 
-    def _get_body_column_widths(self) -> Sequence[int]:
+    def _get_body_column_widths(self) -> abc.Sequence[int]:
         """Get widths of table content columns."""
-        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
+        strcols: abc.Sequence[abc.Sequence[str]] = list(zip(*self.strrows))
         return [max(len(x) for x in col) for col in strcols]
 
-    def _gen_rows(self) -> Iterator[Sequence[str]]:
+    def _gen_rows(self) -> abc.Iterator[abc.Sequence[str]]:
         """
         Generator function yielding rows content.
 
@@ -884,12 +880,12 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
             return self._gen_rows_without_counts()
 
     @abstractmethod
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
+    def _gen_rows_with_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data with counts."""
 
     @abstractmethod
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
+    def _gen_rows_without_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data without counts."""
 
     def add_header_line(self) -> None:
         header_line = self.SPACING.join(
@@ -921,13 +917,13 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
             )
             self._lines.append(body_line)
 
-    def _gen_non_null_counts(self) -> Iterator[str]:
-        """Iterator with string representation of non-null counts."""
+    def _gen_non_null_counts(self) -> abc.Iterator[str]:
+        """abc.Iterator with string representation of non-null counts."""
         for count in self.non_null_counts:
             yield f"{count} non-null"
 
-    def _gen_dtypes(self) -> Iterator[str]:
-        """Iterator with string representation of column dtypes."""
+    def _gen_dtypes(self) -> abc.Iterator[str]:
+        """abc.Iterator with string representation of column dtypes."""
         for dtype in self.dtypes:
             yield pprint_thing(dtype)
 
@@ -945,8 +941,8 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
     ) -> None:
         self.info = info
         self.with_counts = with_counts
-        self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
-        self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
+        self.strrows: abc.Sequence[abc.Sequence[str]] = list(self._gen_rows())
+        self.gross_column_widths: abc.Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_info(self) -> None:
         """Add lines to the info table, pertaining to non-empty dataframe."""
@@ -961,7 +957,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
             self.add_memory_usage_line()
 
     @property
-    def headers(self) -> Sequence[str]:
+    def headers(self) -> abc.Sequence[str]:
         """Headers names of the columns in verbose table."""
         if self.with_counts:
             return [" # ", "Column", "Non-Null Count", "Dtype"]
@@ -970,16 +966,16 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
     def add_columns_summary_line(self) -> None:
         self._lines.append(f"Data columns (total {self.col_count} columns):")
 
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
+    def _gen_rows_without_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data without counts."""
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_dtypes(),
         )
 
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
+    def _gen_rows_with_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data with counts."""
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
@@ -987,13 +983,13 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
             self._gen_dtypes(),
         )
 
-    def _gen_line_numbers(self) -> Iterator[str]:
-        """Iterator with string representation of column numbers."""
+    def _gen_line_numbers(self) -> abc.Iterator[str]:
+        """abc.Iterator with string representation of column numbers."""
         for i, _ in enumerate(self.ids):
             yield f" {i}"
 
-    def _gen_columns(self) -> Iterator[str]:
-        """Iterator with string representation of column names."""
+    def _gen_columns(self) -> abc.Iterator[str]:
+        """abc.Iterator with string representation of column names."""
         for col in self.ids:
             yield pprint_thing(col)
 
@@ -1057,8 +1053,8 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
     ) -> None:
         self.info = info
         self.with_counts = with_counts
-        self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
-        self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
+        self.strrows: abc.Sequence[abc.Sequence[str]] = list(self._gen_rows())
+        self.gross_column_widths: abc.Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_info(self) -> None:
         """Add lines to the info table, pertaining to non-empty series."""
@@ -1076,25 +1072,25 @@ class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
         self._lines.append(f"Series name: {self.data.name}")
 
     @property
-    def headers(self) -> Sequence[str]:
+    def headers(self) -> abc.Sequence[str]:
         """Headers names of the columns in verbose table."""
         if self.with_counts:
             return ["Non-Null Count", "Dtype"]
         return ["Dtype"]
 
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
+    def _gen_rows_without_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data without counts."""
         yield from self._gen_dtypes()
 
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
+    def _gen_rows_with_counts(self) -> abc.Iterator[abc.Sequence[str]]:
+        """abc.Iterator with string representation of body data with counts."""
         yield from zip(
             self._gen_non_null_counts(),
             self._gen_dtypes(),
         )
 
 
-def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
+def _get_dataframe_dtype_counts(df: DataFrame) -> abc.Mapping[str, int]:
     """
     Create mapping between datatypes and their number of occurrences.
     """

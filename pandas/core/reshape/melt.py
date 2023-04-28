@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -27,6 +24,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame
@@ -38,7 +37,7 @@ def melt(
     id_vars=None,
     value_vars=None,
     var_name=None,
-    value_name: Hashable = "value",
+    value_name: abc.Hashable = "value",
     col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:
@@ -120,7 +119,7 @@ def melt(
     N, K = frame.shape
     K -= len(id_vars)
 
-    mdata: dict[Hashable, AnyArrayLike] = {}
+    mdata: dict[abc.Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
         if not isinstance(id_data.dtype, np.dtype):

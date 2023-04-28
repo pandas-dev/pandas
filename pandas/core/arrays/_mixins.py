@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -61,6 +60,8 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -221,7 +222,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     @doc(ExtensionArray._concat_same_type)
     def _concat_same_type(
         cls,
-        to_concat: Sequence[Self],
+        to_concat: abc.Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
         if not lib.dtypes_all_equal([x.dtype for x in to_concat]):

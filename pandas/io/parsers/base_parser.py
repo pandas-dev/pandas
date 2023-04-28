@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 from copy import copy
 import csv
 import datetime
@@ -10,12 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
-    Tuple,
     cast,
     final,
     overload,
@@ -107,15 +104,15 @@ class ParserBase:
 
     def __init__(self, kwds) -> None:
         self.names = kwds.get("names")
-        self.orig_names: Sequence[Hashable] | None = None
+        self.orig_names: abc.Sequence[abc.Hashable] | None = None
 
         self.index_col = kwds.get("index_col", None)
         self.unnamed_cols: set = set()
-        self.index_names: Sequence[Hashable] | None = None
-        self.col_names: Sequence[Hashable] | None = None
+        self.index_names: abc.Sequence[abc.Hashable] | None = None
+        self.col_names: abc.Sequence[abc.Hashable] | None = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
-        self._parse_date_cols: Iterable = []
+        self._parse_date_cols: abc.Iterable = []
         self.date_parser = kwds.pop("date_parser", lib.no_default)
         self.date_format = kwds.pop("date_format", None)
         self.dayfirst = kwds.pop("dayfirst", False)
@@ -175,7 +172,9 @@ class ParserBase:
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
+    def _validate_parse_dates_presence(
+        self, columns: abc.Sequence[abc.Hashable]
+    ) -> abc.Iterable:
         """
         Check if parse_dates are in columns.
 
@@ -198,7 +197,7 @@ class ParserBase:
             If column to parse_date is not in dataframe.
 
         """
-        cols_needed: Iterable
+        cols_needed: abc.Iterable
         if is_dict_like(self.parse_dates):
             cols_needed = itertools.chain(*self.parse_dates.values())
         elif is_list_like(self.parse_dates):
@@ -272,10 +271,13 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self,
         header,
-        index_names: Sequence[Hashable] | None,
+        index_names: abc.Sequence[abc.Hashable] | None,
         passed_names: bool = False,
     ) -> tuple[
-        Sequence[Hashable], Sequence[Hashable] | None, Sequence[Hashable] | None, bool
+        abc.Sequence[abc.Hashable],
+        abc.Sequence[abc.Hashable] | None,
+        abc.Sequence[abc.Hashable] | None,
+        bool,
     ]:
         """
         Extract and return the names, index_names, col_names if the column
@@ -342,19 +344,19 @@ class ParserBase:
     @final
     def _maybe_make_multi_index_columns(
         self,
-        columns: Sequence[Hashable],
-        col_names: Sequence[Hashable] | None = None,
-    ) -> Sequence[Hashable] | MultiIndex:
+        columns: abc.Sequence[abc.Hashable],
+        col_names: abc.Sequence[abc.Hashable] | None = None,
+    ) -> abc.Sequence[abc.Hashable] | MultiIndex:
         # possibly create a column mi here
         if is_potential_multi_index(columns):
-            list_columns = cast(List[Tuple], columns)
+            list_columns = cast(list[tuple], columns)
             return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
 
     @final
     def _make_index(
         self, data, alldata, columns, indexnamerow: list[Scalar] | None = None
-    ) -> tuple[Index | None, Sequence[Hashable] | MultiIndex]:
+    ) -> tuple[Index | None, abc.Sequence[abc.Hashable] | MultiIndex]:
         index: Index | None
         if not is_index_col(self.index_col) or not self.index_col:
             index = None
@@ -505,7 +507,7 @@ class ParserBase:
     @final
     def _convert_to_ndarrays(
         self,
-        dct: Mapping,
+        dct: abc.Mapping,
         na_values,
         na_fvalues,
         verbose: bool = False,
@@ -594,7 +596,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: Sequence[Hashable]
+        self, col_indices: list[int], names: abc.Sequence[abc.Hashable]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -841,22 +843,25 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
+    ) -> tuple[abc.Sequence[abc.Hashable] | Index, DataFrame]:
         ...
 
     @overload
     def _do_date_conversions(
         self,
-        names: Sequence[Hashable],
-        data: Mapping[Hashable, ArrayLike],
-    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
+        names: abc.Sequence[abc.Hashable],
+        data: abc.Mapping[abc.Hashable, ArrayLike],
+    ) -> tuple[abc.Sequence[abc.Hashable], abc.Mapping[abc.Hashable, ArrayLike]]:
         ...
 
     def _do_date_conversions(
         self,
-        names: Sequence[Hashable] | Index,
-        data: Mapping[Hashable, ArrayLike] | DataFrame,
-    ) -> tuple[Sequence[Hashable] | Index, Mapping[Hashable, ArrayLike] | DataFrame]:
+        names: abc.Sequence[abc.Hashable] | Index,
+        data: abc.Mapping[abc.Hashable, ArrayLike] | DataFrame,
+    ) -> tuple[
+        abc.Sequence[abc.Hashable] | Index,
+        abc.Mapping[abc.Hashable, ArrayLike] | DataFrame,
+    ]:
         # returns data, columns
 
         if self.parse_dates is not None:
@@ -875,8 +880,8 @@ class ParserBase:
 
     def _check_data_length(
         self,
-        columns: Sequence[Hashable],
-        data: Sequence[ArrayLike],
+        columns: abc.Sequence[abc.Hashable],
+        data: abc.Sequence[ArrayLike],
     ) -> None:
         """Checks if length of data is equal to length of column names.
 
@@ -905,21 +910,21 @@ class ParserBase:
     @overload
     def _evaluate_usecols(
         self,
-        usecols: set[int] | Callable[[Hashable], object],
-        names: Sequence[Hashable],
+        usecols: set[int] | Callable[[abc.Hashable], object],
+        names: abc.Sequence[abc.Hashable],
     ) -> set[int]:
         ...
 
     @overload
     def _evaluate_usecols(
-        self, usecols: set[str], names: Sequence[Hashable]
+        self, usecols: set[str], names: abc.Sequence[abc.Hashable]
     ) -> set[str]:
         ...
 
     def _evaluate_usecols(
         self,
-        usecols: Callable[[Hashable], object] | set[str] | set[int],
-        names: Sequence[Hashable],
+        usecols: Callable[[abc.Hashable], object] | set[str] | set[int],
+        names: abc.Sequence[abc.Hashable],
     ) -> set[str] | set[int]:
         """
         Check whether or not the 'usecols' parameter
@@ -932,7 +937,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
-    def _validate_usecols_names(self, usecols, names: Sequence):
+    def _validate_usecols_names(self, usecols, names: abc.Sequence):
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that
@@ -1057,7 +1062,7 @@ class ParserBase:
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`
         # without worrying about KeyError issues later on.
-        dtype_dict: defaultdict[Hashable, Any]
+        dtype_dict: defaultdict[abc.Hashable, Any]
         if not is_dict_like(dtype):
             # if dtype == None, default will be object.
             default_dtype = dtype or object
@@ -1100,7 +1105,7 @@ def _make_date_converter(
     date_parser=lib.no_default,
     dayfirst: bool = False,
     cache_dates: bool = True,
-    date_format: dict[Hashable, str] | str | None = None,
+    date_format: dict[abc.Hashable, str] | str | None = None,
 ):
     if date_parser is not lib.no_default:
         warnings.warn(
@@ -1120,7 +1125,7 @@ def _make_date_converter(
             return arg[0]
         return arg
 
-    def converter(*date_cols, col: Hashable):
+    def converter(*date_cols, col: abc.Hashable):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
             date_fmt = (

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
 )
 
@@ -31,6 +30,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -51,7 +52,7 @@ def _is_nonempty(x, axis) -> bool:
 
 
 def concat_compat(
-    to_concat: Sequence[ArrayLike], axis: AxisInt = 0, ea_compat_axis: bool = False
+    to_concat: abc.Sequence[ArrayLike], axis: AxisInt = 0, ea_compat_axis: bool = False
 ) -> ArrayLike:
     """
     provide concatenation of an array of arrays each of which is a single
@@ -75,10 +76,10 @@ def concat_compat(
         # fastpath!
         obj = to_concat[0]
         if isinstance(obj, np.ndarray):
-            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            to_concat_arrs = cast("abc.Sequence[np.ndarray]", to_concat)
             return np.concatenate(to_concat_arrs, axis=axis)
 
-        to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+        to_concat_eas = cast("abc.Sequence[ExtensionArray]", to_concat)
         if ea_compat_axis:
             # We have 1D objects, that don't support axis keyword
             return obj._concat_same_type(to_concat_eas)
@@ -132,11 +133,11 @@ def concat_compat(
 
         if isinstance(to_concat[0], ABCExtensionArray):
             # TODO: what about EA-backed Index?
-            to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+            to_concat_eas = cast("abc.Sequence[ExtensionArray]", to_concat)
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat_eas)
         else:
-            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+            to_concat_arrs = cast("abc.Sequence[np.ndarray]", to_concat)
             return np.concatenate(to_concat_arrs)
 
     elif all_empty:
@@ -326,14 +327,16 @@ def union_categoricals(
     return Categorical._simple_new(new_codes, dtype=dtype)
 
 
-def _concatenate_2d(to_concat: Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:
+def _concatenate_2d(to_concat: abc.Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:
     # coerce to 2d if needed & concatenate
     if axis == 1:
         to_concat = [np.atleast_2d(x) for x in to_concat]
     return np.concatenate(to_concat, axis=axis)
 
 
-def _concat_datetime(to_concat: Sequence[ArrayLike], axis: AxisInt = 0) -> ArrayLike:
+def _concat_datetime(
+    to_concat: abc.Sequence[ArrayLike], axis: AxisInt = 0
+) -> ArrayLike:
     """
     provide concatenation of an datetimelike array of arrays each of which is a
     single M8[ns], datetime64[ns, tz] or m8[ns] dtype

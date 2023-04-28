@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import ast
 import collections
-from typing import Sequence
+from collections import abc
 
 
 def visit(tree: ast.Module) -> dict[int, list[int]]:
@@ -74,7 +74,7 @@ def check_for_bool_in_generic(content: str) -> tuple[bool, str]:
     return mutated, replace_bool_with_bool_t(to_replace, content)
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def main(argv: abc.Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)

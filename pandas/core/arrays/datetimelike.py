@@ -10,9 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     cast,
     final,
@@ -143,6 +141,8 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -296,7 +296,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         """
         return lib.map_infer(values, self._box_func, convert=False)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         if self.ndim > 1:
             return (self[n] for n in range(len(self)))
         else:
@@ -403,8 +403,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     # ndarray]"
     def __setitem__(
         self,
-        key: int | Sequence[int] | Sequence[bool] | slice,
-        value: NaTType | Any | Sequence[Any],
+        key: int | abc.Sequence[int] | abc.Sequence[bool] | slice,
+        value: NaTType | Any | abc.Sequence[Any],
     ) -> None:
         # I'm fudging the types a bit here. "Any" above really depends
         # on type(self). For PeriodArray, it's Period (or stuff coercible
@@ -2157,7 +2157,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @classmethod
     def _concat_same_type(
         cls,
-        to_concat: Sequence[Self],
+        to_concat: abc.Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)

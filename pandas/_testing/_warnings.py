@@ -7,13 +7,14 @@ from contextlib import (
 import re
 import sys
 from typing import (
-    Generator,
+    TYPE_CHECKING,
     Literal,
-    Sequence,
-    Type,
     cast,
 )
 import warnings
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 @contextmanager
@@ -25,7 +26,7 @@ def assert_produces_warning(
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
     match: str | None = None,
-) -> Generator[list[warnings.WarningMessage], None, None]:
+) -> abc.Generator[list[warnings.WarningMessage], None, None]:
     """
     Context manager for running code expected to either raise a specific warning,
     multiple specific warnings, or not raise any warnings. Verifies that the code
@@ -91,7 +92,7 @@ def assert_produces_warning(
             yield w
         finally:
             if expected_warning:
-                expected_warning = cast(Type[Warning], expected_warning)
+                expected_warning = cast(type[Warning], expected_warning)
                 _assert_caught_expected_warning(
                     caught_warnings=w,
                     expected_warning=expected_warning,
@@ -117,7 +118,7 @@ def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
 
 def _assert_caught_expected_warning(
     *,
-    caught_warnings: Sequence[warnings.WarningMessage],
+    caught_warnings: abc.Sequence[warnings.WarningMessage],
     expected_warning: type[Warning],
     match: str | None,
     check_stacklevel: bool,
@@ -156,7 +157,7 @@ def _assert_caught_expected_warning(
 
 def _assert_caught_no_extra_warnings(
     *,
-    caught_warnings: Sequence[warnings.WarningMessage],
+    caught_warnings: abc.Sequence[warnings.WarningMessage],
     expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None,
 ) -> None:
     """Assert that no extra warnings apart from the expected ones are caught."""
@@ -195,7 +196,7 @@ def _is_unexpected_warning(
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
         return True
-    expected_warning = cast(Type[Warning], expected_warning)
+    expected_warning = cast(type[Warning], expected_warning)
     return bool(not issubclass(actual_warning.category, expected_warning))
 
 

@@ -30,11 +30,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from typing import (
-    Callable,
-    Hashable,
-    Iterator,
-)
+from typing import Callable
 
 from dateutil.tz import (
     tzlocal,
@@ -487,7 +483,7 @@ def non_dict_mapping_subclass():
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self) -> abc.Iterator:
             return self._data.__iter__()
 
         def __len__(self) -> int:
@@ -1889,7 +1885,7 @@ def fsspectest():
         (pd.NA, pd.NA, pd.NA),
     ]
 )
-def names(request) -> tuple[Hashable, Hashable, Hashable]:
+def names(request) -> tuple[abc.Hashable, abc.Hashable, abc.Hashable]:
     """
     A 3-tuple of names, the first two for operands, the last for a result.
     """

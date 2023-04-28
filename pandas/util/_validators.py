@@ -4,9 +4,8 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
+from collections import abc
 from typing import (
-    Iterable,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -305,7 +304,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
     return value, method
 
 
-def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
+def validate_percentile(q: float | abc.Iterable[float]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
 
@@ -345,16 +344,16 @@ def validate_ascending(ascending: BoolishT) -> BoolishT:
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
+def validate_ascending(ascending: abc.Sequence[BoolishT]) -> list[BoolishT]:
     ...
 
 
 def validate_ascending(
-    ascending: bool | int | Sequence[BoolishT],
+    ascending: bool | int | abc.Sequence[BoolishT],
 ) -> bool | int | list[BoolishT]:
     """Validate ``ascending`` kwargs for ``sort_index`` method."""
     kwargs = {"none_allowed": False, "int_allowed": True}
-    if not isinstance(ascending, Sequence):
+    if not isinstance(ascending, abc.Sequence):
         return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+from collections import abc
 import datetime as dt
 from functools import partial
 import gc
@@ -14,13 +15,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Hashable,
-    Iterator,
     Literal,
-    Mapping,
     NoReturn,
-    Sequence,
-    Type,
     cast,
     final,
     overload,
@@ -255,7 +251,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _metadata: list[str] = []
     _is_copy: weakref.ReferenceType[NDFrame] | str | None = None
     _mgr: Manager
-    _attrs: dict[Hashable, Any]
+    _attrs: dict[abc.Hashable, Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -326,7 +322,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # attrs and flags
 
     @property
-    def attrs(self) -> dict[Hashable, Any]:
+    def attrs(self) -> dict[abc.Hashable, Any]:
         """
         Dictionary of global attributes of this dataset.
 
@@ -343,7 +339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Hashable, Any]) -> None:
+    def attrs(self, value: abc.Mapping[abc.Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @final
@@ -493,10 +489,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _AXIS_LEN: int
 
     @final
-    def _construct_axes_dict(self, axes: Sequence[Axis] | None = None, **kwargs):
+    def _construct_axes_dict(self, axes: abc.Sequence[Axis] | None = None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
-        # error: Argument 1 to "update" of "MutableMapping" has incompatible type
+        # error: Argument 1 to "update" of "Mutableabc.Mapping" has incompatible type
         # "Dict[str, Any]"; expected "SupportsKeysAndGetItem[Union[int, str], Any]"
         d.update(kwargs)  # type: ignore[arg-type]
         return d
@@ -564,7 +560,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return d
 
     @final
-    def _get_index_resolvers(self) -> dict[Hashable, Series | MultiIndex]:
+    def _get_index_resolvers(self) -> dict[abc.Hashable, Series | MultiIndex]:
         from pandas.core.computation.parsing import clean_column_name
 
         d: dict[str, Series | MultiIndex] = {}
@@ -574,7 +570,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
+    def _get_cleaned_column_resolvers(self) -> dict[abc.Hashable, Series]:
         """
         Return the special character free column resolvers of a dataframe.
 
@@ -850,7 +846,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_labels = labels.droplevel(level)
         return self.set_axis(new_labels, axis=axis, copy=None)
 
-    def pop(self, item: Hashable) -> Series | Any:
+    def pop(self, item: abc.Hashable) -> Series | Any:
         result = self[item]
         del self[item]
 
@@ -1630,7 +1626,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : Hashable
+        key : abc.Hashable
             Potential level name for the given axis
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1659,7 +1655,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : Hashable
+        key : abc.Hashable
             Potential label name, i.e. Index entry.
         axis : int, default 0
             Axis perpendicular to the axis that labels are associated with
@@ -1690,7 +1686,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : Hashable
+        key : abc.Hashable
             Potential label or level name
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1713,7 +1709,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : Hashable
+        key : abc.Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns).
@@ -1763,7 +1759,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        key : Hashable
+        key : abc.Hashable
             Label or level name.
         axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
@@ -1892,7 +1888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # "object" defined the type as "Callable[[object], int]")
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         """
         Iterate over info axis.
 
@@ -2077,7 +2073,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif len(state) == 2:
             raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
-        self._item_cache: dict[Hashable, Series] = {}
+        self._item_cache: dict[abc.Hashable, Series] = {}
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -2127,8 +2123,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
-        header: Sequence[Hashable] | bool_t = True,
+        columns: abc.Sequence[abc.Hashable] | None = None,
+        header: abc.Sequence[abc.Hashable] | bool_t = True,
         index: bool_t = True,
         index_label: IndexLabel = None,
         startrow: int = 0,
@@ -3135,7 +3131,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_latex(
         self,
         buf: None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: abc.Sequence[abc.Hashable] | None = ...,
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3162,7 +3158,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str],
-        columns: Sequence[Hashable] | None = ...,
+        columns: abc.Sequence[abc.Hashable] | None = ...,
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
@@ -3189,7 +3185,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: abc.Sequence[abc.Hashable] | None = None,
         header: bool_t | list[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
@@ -3554,7 +3550,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: abc.Sequence[abc.Hashable] | None = ...,
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         index_label: IndexLabel | None = ...,
@@ -3581,7 +3577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: abc.Sequence[abc.Hashable] | None = ...,
         header: bool_t | list[str] = ...,
         index: bool_t = ...,
         index_label: IndexLabel | None = ...,
@@ -3612,7 +3608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: str | Callable | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: abc.Sequence[abc.Hashable] | None = None,
         header: bool_t | list[str] = True,
         index: bool_t = True,
         index_label: IndexLabel | None = None,
@@ -4855,7 +4851,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -4869,7 +4865,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -4883,7 +4879,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: bool_t = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -4896,7 +4892,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = 0,
-        ascending: bool_t | Sequence[bool_t] = True,
+        ascending: bool_t | abc.Sequence[bool_t] = True,
         inplace: bool_t = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -5050,7 +5046,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -5066,7 +5062,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -5082,7 +5078,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool_t | Sequence[bool_t] = ...,
+        ascending: bool_t | abc.Sequence[bool_t] = ...,
         inplace: bool_t = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -5097,7 +5093,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         axis: Axis = 0,
         level: IndexLabel = None,
-        ascending: bool_t | Sequence[bool_t] = True,
+        ascending: bool_t | abc.Sequence[bool_t] = True,
         inplace: bool_t = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -6258,7 +6254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        dtype : str, data type, Series or Mapping of column name -> data type
+        dtype : str, data type, Series or abc.Mapping of column name -> data type
             Use a str, numpy.dtype, pandas.ExtensionDtype or Python type to
             cast entire pandas object to the same type. Alternatively, use a
             mapping, e.g. {col: dtype, ...}, where col is a column label and dtype is
@@ -6774,7 +6770,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
             if len(results) > 0:
                 result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(Type["DataFrame"], self._constructor)
+                cons = cast(type["DataFrame"], self._constructor)
                 result = cons(result)
                 result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
@@ -6788,7 +6784,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: abc.Hashable | abc.Mapping | Series | DataFrame = ...,
         *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
@@ -6801,7 +6797,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: abc.Hashable | abc.Mapping | Series | DataFrame = ...,
         *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
@@ -6814,7 +6810,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = ...,
+        value: abc.Hashable | abc.Mapping | Series | DataFrame = ...,
         *,
         method: FillnaOptions | None = ...,
         axis: Axis | None = ...,
@@ -6831,7 +6827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: abc.Hashable | abc.Mapping | Series | DataFrame = None,
         *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
@@ -8353,7 +8349,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method: FillnaOptions | None = None,
         how: Literal["start", "end"] | None = None,
         normalize: bool_t = False,
-        fill_value: Hashable = None,
+        fill_value: abc.Hashable = None,
     ) -> Self:
         """
         Convert time series to specified frequency.
@@ -9419,7 +9415,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         level: Level = None,
         copy: bool_t | None = None,
-        fill_value: Hashable = None,
+        fill_value: abc.Hashable = None,
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
@@ -10224,7 +10220,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods: int = 1,
         freq=None,
         axis: Axis = 0,
-        fill_value: Hashable = None,
+        fill_value: abc.Hashable = None,
     ) -> Self:
         """
         Shift index by desired number of periods with an optional time `freq`.
@@ -11747,7 +11743,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Misc methods
 
     @final
-    def _find_valid_index(self, *, how: str) -> Hashable | None:
+    def _find_valid_index(self, *, how: str) -> abc.Hashable | None:
         """
         Retrieves the index of the first valid value.
 
@@ -11768,7 +11764,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
-    def first_valid_index(self) -> Hashable | None:
+    def first_valid_index(self) -> abc.Hashable | None:
         """
         Return index for {position} non-NA value or None, if no non-NA value is found.
 
@@ -11785,7 +11781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
-    def last_valid_index(self) -> Hashable | None:
+    def last_valid_index(self) -> abc.Hashable | None:
         return self._find_valid_index(how="last")
 
 

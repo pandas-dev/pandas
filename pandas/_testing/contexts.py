@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 @contextmanager
 def decompress_file(
     path: FilePath | BaseBuffer, compression: CompressionOptions
-) -> Generator[IO[bytes], None, None]:
+) -> abc.Generator[IO[bytes], None, None]:
     """
     Open a compressed file and return a file object.
 
@@ -51,7 +52,7 @@ def decompress_file(
 
 
 @contextmanager
-def set_timezone(tz: str) -> Generator[None, None, None]:
+def set_timezone(tz: str) -> abc.Generator[None, None, None]:
     """
     Context manager for temporarily setting a timezone.
 
@@ -95,7 +96,7 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
 @contextmanager
 def ensure_clean(
     filename=None, return_filelike: bool = False, **kwargs: Any
-) -> Generator[Any, None, None]:
+) -> abc.Generator[Any, None, None]:
     """
     Gets a temporary path and agrees to remove on close.
 
@@ -138,7 +139,7 @@ def ensure_clean(
 
 
 @contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
+def ensure_safe_environment_variables() -> abc.Generator[None, None, None]:
     """
     Get a context manager to safely set environment variables
 
@@ -154,7 +155,7 @@ def ensure_safe_environment_variables() -> Generator[None, None, None]:
 
 
 @contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> abc.Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -188,7 +189,7 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
 
 
 @contextmanager
-def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
+def use_numexpr(use, min_elements=None) -> abc.Generator[None, None, None]:
     from pandas.core.computation import expressions as expr
 
     if min_elements is None:

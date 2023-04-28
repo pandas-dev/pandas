@@ -1,14 +1,11 @@
 from __future__ import annotations
 
+from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    MutableMapping,
-    Sequence,
     TypeVar,
     overload,
 )
@@ -24,9 +21,9 @@ if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter
 
     ExcelWriter_t = type[ExcelWriter]
-    usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
+    usecols_func = TypeVar("usecols_func", bound=Callable[[abc.Hashable], object])
 
-_writers: MutableMapping[str, ExcelWriter_t] = {}
+_writers: abc.MutableMapping[str, ExcelWriter_t] = {}
 
 
 def register_writer(klass: ExcelWriter_t) -> None:
@@ -237,8 +234,8 @@ def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:
 
 
 def fill_mi_header(
-    row: list[Hashable], control_row: list[bool]
-) -> tuple[list[Hashable], list[bool]]:
+    row: list[abc.Hashable], control_row: list[bool]
+) -> tuple[list[abc.Hashable], list[bool]]:
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -272,8 +269,8 @@ def fill_mi_header(
 
 
 def pop_header_name(
-    row: list[Hashable], index_col: int | Sequence[int]
-) -> tuple[Hashable | None, list[Hashable]]:
+    row: list[abc.Hashable], index_col: int | abc.Sequence[int]
+) -> tuple[abc.Hashable | None, list[abc.Hashable]]:
     """
     Pop the header name for MultiIndex parsing.
 
@@ -293,10 +290,10 @@ def pop_header_name(
     """
     # Pop out header name and fill w/blank.
     if is_list_like(index_col):
-        assert isinstance(index_col, Iterable)
+        assert isinstance(index_col, abc.Iterable)
         i = max(index_col)
     else:
-        assert not isinstance(index_col, Iterable)
+        assert not isinstance(index_col, abc.Iterable)
         i = index_col
 
     header_name = row[i]

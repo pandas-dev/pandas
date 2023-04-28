@@ -7,11 +7,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
 
 import numpy as np
 import pytest
@@ -61,7 +56,7 @@ from pandas.tseries.offsets import (
     WeekOfMonth,
 )
 
-_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
+_ApplyCases = list[tuple[BaseOffset, dict[datetime, datetime]]]
 
 _ARITHMETIC_DATE_OFFSET = [
     "years",

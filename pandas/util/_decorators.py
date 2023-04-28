@@ -4,9 +4,9 @@ from functools import wraps
 import inspect
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
     cast,
 )
 import warnings
@@ -17,6 +17,9 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 def deprecate(
@@ -97,7 +100,7 @@ def deprecate(
 def deprecate_kwarg(
     old_arg_name: str,
     new_arg_name: str | None,
-    mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
+    mapping: abc.Mapping[Any, Any] | Callable[[Any], Any] | None = None,
     stacklevel: int = 2,
 ) -> Callable[[F], F]:
     """

@@ -1,5 +1,5 @@
+from collections import abc
 import contextlib
-from typing import Generator
 
 import pytest
 
@@ -24,7 +24,7 @@ def test_dirname_mixin() -> None:
 
 
 @contextlib.contextmanager
-def ensure_removed(obj, attr) -> Generator[None, None, None]:
+def ensure_removed(obj, attr) -> abc.Generator[None, None, None]:
     """Ensure that an attribute added to 'obj' during the test is
     removed when we're done
     """

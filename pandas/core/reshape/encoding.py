@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections import defaultdict
-import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
+from collections import (
+    abc,
+    defaultdict,
 )
+import itertools
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -35,7 +34,7 @@ if TYPE_CHECKING:
 def get_dummies(
     data,
     prefix=None,
-    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
+    prefix_sep: str | abc.Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns=None,
     sparse: bool = False,
@@ -230,7 +229,7 @@ def get_dummies(
 def _get_dummies_1d(
     data,
     prefix,
-    prefix_sep: str | Iterable[str] | dict[str, str] = "_",
+    prefix_sep: str | abc.Iterable[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     sparse: bool = False,
     drop_first: bool = False,
@@ -340,7 +339,7 @@ def _get_dummies_1d(
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,
-    default_category: None | Hashable | dict[str, Hashable] = None,
+    default_category: None | abc.Hashable | dict[str, abc.Hashable] = None,
 ) -> DataFrame:
     """
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.
@@ -359,7 +358,7 @@ def from_dummies(
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-    default_category : None, Hashable or dict of Hashables, default None
+    default_category : None, abc.Hashable or dict of abc.Hashables, default None
         The default category is the implied category when a value has none of the
         listed categories specified with a one, i.e. if all dummies in a row are
         zero. Can be a single value for all variables or a dict directly mapping
@@ -492,14 +491,14 @@ def from_dummies(
                     f"({len(variables_slice)})"
                 )
                 raise ValueError(len_msg)
-        elif isinstance(default_category, Hashable):
+        elif isinstance(default_category, abc.Hashable):
             default_category = dict(
                 zip(variables_slice, [default_category] * len(variables_slice))
             )
         else:
             raise TypeError(
                 "Expected 'default_category' to be of type "
-                "'None', 'Hashable', or 'dict'; "
+                "'None', 'abc.Hashable', or 'dict'; "
                 "Received 'default_category' of type: "
                 f"{type(default_category).__name__}"
             )

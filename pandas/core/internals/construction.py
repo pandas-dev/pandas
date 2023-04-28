@@ -8,8 +8,6 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Sequence,
 )
 
 import numpy as np
@@ -423,7 +421,7 @@ def dict_to_mgr(
 
     Used in DataFrame.__init__
     """
-    arrays: Sequence[Any] | Series
+    arrays: abc.Sequence[Any] | Series
 
     if columns is not None:
         from pandas.core.series import Series
@@ -482,7 +480,7 @@ def dict_to_mgr(
 
 
 def nested_data_to_arrays(
-    data: Sequence,
+    data: abc.Sequence,
     columns: Index | None,
     index: Index | None,
     dtype: DtypeObj | None,
@@ -622,7 +620,7 @@ def _extract_index(data) -> Index:
         return default_index(0)
 
     raw_lengths = []
-    indexes: list[list[Hashable] | Index] = []
+    indexes: list[list[abc.Hashable] | Index] = []
 
     have_raw_arrays = False
     have_series = False
@@ -708,7 +706,7 @@ def _get_names_from_index(data) -> Index:
     if not has_some_name:
         return default_index(len(data))
 
-    index: list[Hashable] = list(range(len(data)))
+    index: list[abc.Hashable] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)

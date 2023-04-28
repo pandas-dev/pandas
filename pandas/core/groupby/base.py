@@ -4,12 +4,15 @@ Provide basic components for groupby.
 from __future__ import annotations
 
 import dataclasses
-from typing import Hashable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 @dataclasses.dataclass(order=True, frozen=True)
 class OutputKey:
-    label: Hashable
+    label: abc.Hashable
     position: int
 
 

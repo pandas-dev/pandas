@@ -12,9 +12,7 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
     TypeVar,
     overload,
 )
@@ -255,7 +253,7 @@ class Writer(ABC):
 
     @property
     @abstractmethod
-    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
+    def obj_to_write(self) -> NDFrame | abc.Mapping[IndexLabel, Any]:
         """Object to write in JSON format."""
 
 
@@ -263,7 +261,7 @@ class SeriesWriter(Writer):
     _default_orient = "index"
 
     @property
-    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
+    def obj_to_write(self) -> NDFrame | abc.Mapping[IndexLabel, Any]:
         if not self.index and self.orient == "split":
             return {"name": self.obj.name, "data": self.obj.values}
         else:
@@ -278,7 +276,7 @@ class FrameWriter(Writer):
     _default_orient = "columns"
 
     @property
-    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
+    def obj_to_write(self) -> NDFrame | abc.Mapping[IndexLabel, Any]:
         if not self.index and self.orient == "split":
             obj_to_write = self.obj.to_dict(orient="split")
             del obj_to_write["index"]
@@ -380,7 +378,7 @@ class JSONTableWriter(FrameWriter):
         self.index = index
 
     @property
-    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
+    def obj_to_write(self) -> NDFrame | abc.Mapping[IndexLabel, Any]:
         return {"schema": self.schema, "data": self.obj}
 
 
@@ -753,7 +751,7 @@ def read_json(
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
-        # Type[int], Type[complex], Type[bool], Type[object], Dict[Hashable,
+        # Type[int], Type[complex], Type[bool], Type[object], Dict[abc.Hashable,
         # Union[ExtensionDtype, Union[str, dtype[Any]], Type[str], Type[float],
         # Type[int], Type[complex], Type[bool], Type[object]]], None]")
         dtype = True  # type: ignore[assignment]
@@ -1167,7 +1165,7 @@ class Parser:
 
     def _try_convert_data(
         self,
-        name: Hashable,
+        name: abc.Hashable,
         data,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,

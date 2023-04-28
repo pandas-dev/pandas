@@ -7,9 +7,6 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    List,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -94,13 +91,13 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike]
+ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
-DatetimeDictArg = Union[List[Scalar], Tuple[Scalar, ...], AnyArrayLike]
+DatetimeDictArg = Union[list[Scalar], tuple[Scalar, ...], AnyArrayLike]
 
 
 class YearMonthDayDict(TypedDict, total=True):
@@ -259,7 +256,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: bool = False, name: Hashable = None
+    dt_array: ArrayLike, utc: bool = False, name: abc.Hashable = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -290,7 +287,7 @@ def _box_as_indexlike(
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
-    name: Hashable | None = None,
+    name: abc.Hashable | None = None,
 ) -> Index:
     """
     Convert array of dates with a cache and wrap the result in an Index.
@@ -351,7 +348,7 @@ def _return_parsed_timezone_results(
 def _convert_listlike_datetimes(
     arg,
     format: str | None,
-    name: Hashable = None,
+    name: abc.Hashable = None,
     utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",

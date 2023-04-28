@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
 )
@@ -46,6 +45,8 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas import (
         DataFrame,
         Index,
@@ -3285,14 +3286,14 @@ def _result_dtype(arr):
         return object
 
 
-def _get_single_group_name(regex: re.Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern) -> abc.Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable]:
+def _get_group_names(regex: re.Pattern) -> list[abc.Hashable]:
     """
     Get named groups from compiled regex.
 

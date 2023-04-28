@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -121,7 +118,7 @@ class NamedAgg(NamedTuple):
 
     Parameters
     ----------
-    column : Hashable
+    column : abc.Hashable
         Column label in the DataFrame to apply aggfunc.
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
@@ -139,7 +136,7 @@ class NamedAgg(NamedTuple):
     2           1      12.0
     """
 
-    column: Hashable
+    column: abc.Hashable
     aggfunc: AggScalar
 
 
@@ -1190,7 +1187,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ylabelsize: int | None = None,
         yrot: float | None = None,
         figsize: tuple[int, int] | None = None,
-        bins: int | Sequence[int] = 10,
+        bins: int | abc.Sequence[int] = 10,
         backend: str | None = None,
         legend: bool = False,
         **kwargs,
@@ -1340,7 +1337,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # error: Incompatible types in assignment (expression has type
             # "Optional[List[str]]", variable has type
             # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]],
-            # Index, Series], Sequence[Any]]")
+            # Index, Series], abc.Sequence[Any]]")
             result.columns = columns  # type: ignore[assignment]
 
         if result is None:
@@ -1422,7 +1419,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         obj = self._obj_with_exclusions
 
-        result: dict[Hashable, NDFrame | np.ndarray] = {}
+        result: dict[abc.Hashable, NDFrame | np.ndarray] = {}
         for name, grp_df in self.grouper.get_iterator(obj, self.axis):
             fres = func(grp_df, *args, **kwargs)
             result[name] = fres
@@ -2158,7 +2155,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def value_counts(
         self,
-        subset: Sequence[Hashable] | None = None,
+        subset: abc.Sequence[abc.Hashable] | None = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -2271,7 +2268,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: abc.Hashable | abc.Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
@@ -2647,7 +2644,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         sharey: bool = False,
         figsize: tuple[int, int] | None = None,
         layout: tuple[int, int] | None = None,
-        bins: int | Sequence[int] = 10,
+        bins: int | abc.Sequence[int] = 10,
         backend: str | None = None,
         legend: bool = False,
         **kwargs,

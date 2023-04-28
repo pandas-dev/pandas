@@ -4,10 +4,7 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,6 +18,8 @@ from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.axes import Axes
 
 
@@ -135,7 +134,7 @@ class TestPlotBase:
             assert patch.get_visible() == visible
 
     def _check_patches_all_filled(
-        self, axes: Axes | Sequence[Axes], filled: bool = True
+        self, axes: Axes | abc.Sequence[Axes], filled: bool = True
     ) -> None:
         """
         Check for each artist whether it is filled or not

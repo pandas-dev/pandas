@@ -24,9 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -62,6 +60,8 @@ from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
@@ -248,7 +248,7 @@ def read_sql_table(
     columns: list[str] | None = ...,
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
+) -> abc.Iterator[DataFrame]:
     ...
 
 
@@ -262,7 +262,7 @@ def read_sql_table(
     columns: list[str] | None = None,
     chunksize: int | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | Iterator[DataFrame]:
+) -> DataFrame | abc.Iterator[DataFrame]:
     """
     Read SQL database table into a DataFrame.
 
@@ -310,7 +310,7 @@ def read_sql_table(
 
     Returns
     -------
-    DataFrame or Iterator[DataFrame]
+    DataFrame or abc.Iterator[DataFrame]
         A SQL table is returned as two-dimensional data structure with labeled
         axes.
 
@@ -359,7 +359,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[Any] | Mapping[str, Any] | None = ...,
+    params: list[Any] | abc.Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
@@ -374,12 +374,12 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[Any] | Mapping[str, Any] | None = ...,
+    params: list[Any] | abc.Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-) -> Iterator[DataFrame]:
+) -> abc.Iterator[DataFrame]:
     ...
 
 
@@ -388,12 +388,12 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    params: list[Any] | Mapping[str, Any] | None = None,
+    params: list[Any] | abc.Mapping[str, Any] | None = None,
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-) -> DataFrame | Iterator[DataFrame]:
+) -> DataFrame | abc.Iterator[DataFrame]:
     """
     Read SQL query into a DataFrame.
 
@@ -448,7 +448,7 @@ def read_sql_query(
 
     Returns
     -------
-    DataFrame or Iterator[DataFrame]
+    DataFrame or abc.Iterator[DataFrame]
 
     See Also
     --------
@@ -507,7 +507,7 @@ def read_sql(
     chunksize: int = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     dtype: DtypeArg | None = None,
-) -> Iterator[DataFrame]:
+) -> abc.Iterator[DataFrame]:
     ...
 
 
@@ -522,7 +522,7 @@ def read_sql(
     chunksize: int | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     dtype: DtypeArg | None = None,
-) -> DataFrame | Iterator[DataFrame]:
+) -> DataFrame | abc.Iterator[DataFrame]:
     """
     Read SQL query or database table into a DataFrame.
 
@@ -587,7 +587,7 @@ def read_sql(
 
     Returns
     -------
-    DataFrame or Iterator[DataFrame]
+    DataFrame or abc.Iterator[DataFrame]
 
     See Also
     --------
@@ -1086,7 +1086,7 @@ class SQLTable(PandasObject):
         columns=None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         from sqlalchemy import select
 
         if columns is not None and len(columns) > 0:
@@ -1377,7 +1377,7 @@ class PandasSQL(PandasObject, ABC):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         raise NotImplementedError
 
     @abstractmethod
@@ -1391,7 +1391,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         pass
 
     @abstractmethod
@@ -1585,7 +1585,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
 
@@ -1701,7 +1701,7 @@ class SQLDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.
 
@@ -2275,7 +2275,7 @@ class SQLiteDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-    ) -> DataFrame | Iterator[DataFrame]:
+    ) -> DataFrame | abc.Iterator[DataFrame]:
         cursor = self.execute(sql, params)
         columns = [col_desc[0] for col_desc in cursor.description]
 

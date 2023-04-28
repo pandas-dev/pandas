@@ -6,10 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -94,6 +91,8 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -1884,7 +1883,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         """
         Returns an Iterator over the values of this Categorical.
         """
@@ -2045,7 +2044,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         codes = self.categories.get_indexer(value)
         return codes.astype(self._ndarray.dtype, copy=False)
 
-    def _reverse_indexer(self) -> dict[Hashable, npt.NDArray[np.intp]]:
+    def _reverse_indexer(self) -> dict[abc.Hashable, npt.NDArray[np.intp]]:
         """
         Compute the inverse of a categorical, returning
         a dict of categories -> indexers.
@@ -2217,7 +2216,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
+    def _concat_same_type(
+        cls, to_concat: abc.Sequence[Self], axis: AxisInt = 0
+    ) -> Self:
         from pandas.core.dtypes.concat import union_categoricals
 
         first = to_concat[0]

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 from functools import partial
 import re
 from typing import (
@@ -8,11 +11,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     Union,
 )
@@ -52,9 +51,9 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, float]]
-CSSList = List[CSSPair]
+ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
+CSSPair = tuple[str, Union[str, float]]
+CSSList = list[CSSPair]
 CSSProperties = Union[str, CSSList]
 
 
@@ -63,8 +62,8 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = List[CSSDict]
-Subset = Union[slice, Sequence, Index]
+CSSStyles = list[CSSDict]
+Subset = Union[slice, abc.Sequence, Index]
 
 
 class StylerRenderer:
@@ -126,8 +125,10 @@ class StylerRenderer:
         self.hide_column_names: bool = False
         self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: list = [False] * self.columns.nlevels
-        self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
-        self.hidden_columns: Sequence[int] = []
+        self.hidden_rows: abc.Sequence[
+            int
+        ] = []  # sequence for specific hidden rows/cols
+        self.hidden_columns: abc.Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -1401,7 +1402,7 @@ class StylerRenderer:
 
     def relabel_index(
         self,
-        labels: Sequence | Index,
+        labels: abc.Sequence | Index,
         axis: Axis = 0,
         level: Level | list[Level] | None = None,
     ) -> StylerRenderer:
@@ -1628,7 +1629,7 @@ def _get_level_lengths(
     index: Index,
     sparsify: bool,
     max_index: int,
-    hidden_elements: Sequence[int] | None = None,
+    hidden_elements: abc.Sequence[int] | None = None,
 ):
     """
     Given an index, find the level length for each element.
@@ -1900,7 +1901,7 @@ def non_reducing_slice(slice_: Subset):
             # slice(a, b, c)
             slice_ = [slice_]  # to tuplize later
     else:
-        # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
+        # error: Item "slice" of "Union[slice, abc.Sequence[Any]]" has no attribute
         # "__iter__" (not iterable) -> is specifically list_like in conditional
         slice_ = [p if pred(p) else [p] for p in slice_]  # type: ignore[union-attr]
     return tuple(slice_)

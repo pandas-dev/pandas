@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
 )
 import warnings
@@ -56,6 +55,8 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -241,7 +242,7 @@ def concatenate_managers(
                 # error: Argument 1 to "concatenate" has incompatible type
                 # "List[Union[ndarray[Any, Any], ExtensionArray]]";
                 # expected "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]]]"
+                # _Nestedabc.Sequence[_SupportsArray[dtype[Any]]]]"
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
@@ -603,7 +604,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     raise NotImplementedError
 
 
-def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj]:
+def _get_empty_dtype(join_units: abc.Sequence[JoinUnit]) -> tuple[DtypeObj, DtypeObj]:
     """
     Return dtype and N/A values to use when concatenating specified units.
 

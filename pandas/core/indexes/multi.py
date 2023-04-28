@@ -1,19 +1,13 @@
 from __future__ import annotations
 
+from collections import abc
 from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Sequence,
-    Tuple,
     cast,
 )
 import warnings
@@ -302,7 +296,7 @@ class MultiIndex(Index):
 
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
-    _names: list[Hashable | None] = []
+    _names: list[abc.Hashable | None] = []
     _levels = FrozenList()
     _codes = FrozenList()
     _comparables = ["names"]
@@ -466,7 +460,9 @@ class MultiIndex(Index):
         cls,
         arrays,
         sortorder=None,
-        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
+        names: abc.Sequence[abc.Hashable]
+        | abc.Hashable
+        | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Convert arrays to MultiIndex.
@@ -536,9 +532,9 @@ class MultiIndex(Index):
     @names_compat
     def from_tuples(
         cls,
-        tuples: Iterable[tuple[Hashable, ...]],
+        tuples: abc.Iterable[tuple[abc.Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | Hashable = None,
+        names: abc.Sequence[abc.Hashable] | abc.Hashable = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -579,7 +575,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         if is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
+        tuples = cast(abc.Collection[tuple[abc.Hashable, ...]], tuples)
 
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
@@ -593,11 +589,11 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
 
-        arrays: list[Sequence[Hashable]]
+        arrays: list[abc.Sequence[abc.Hashable]]
         if len(tuples) == 0:
             if names is None:
                 raise TypeError("Cannot infer number of levels from empty list")
-            # error: Argument 1 to "len" has incompatible type "Hashable";
+            # error: Argument 1 to "len" has incompatible type "abc.Hashable";
             # expected "Sized"
             arrays = [[]] * len(names)  # type: ignore[arg-type]
         elif isinstance(tuples, (np.ndarray, Index)):
@@ -609,16 +605,18 @@ class MultiIndex(Index):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
             arrs = zip(*tuples)
-            arrays = cast(List[Sequence[Hashable]], arrs)
+            arrays = cast(list[abc.Sequence[abc.Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
     def from_product(
         cls,
-        iterables: Sequence[Iterable[Hashable]],
+        iterables: abc.Sequence[abc.Iterable[abc.Hashable]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
+        names: abc.Sequence[abc.Hashable]
+        | abc.Hashable
+        | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
@@ -1555,8 +1553,8 @@ class MultiIndex(Index):
             # error: Argument 1 to "lexsort" has incompatible type
             # "List[Union[ExtensionArray, ndarray[Any, Any]]]";
             # expected "Union[_SupportsArray[dtype[Any]],
-            # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
-            # int, float, complex, str, bytes, _NestedSequence[Union
+            # _Nestedabc.Sequence[_SupportsArray[dtype[Any]]], bool,
+            # int, float, complex, str, bytes, _Nestedabc.Sequence[Union
             # [bool, int, float, complex, str, bytes]]]"
             sort_order = np.lexsort(values)  # type: ignore[arg-type]
             return Index(sort_order).is_monotonic_increasing
@@ -2200,7 +2198,7 @@ class MultiIndex(Index):
     def drop(  # type: ignore[override]
         self,
         codes,
-        level: Index | np.ndarray | Iterable[Hashable] | None = None,
+        level: Index | np.ndarray | abc.Iterable[abc.Hashable] | None = None,
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
@@ -2593,7 +2591,7 @@ class MultiIndex(Index):
 
     def get_slice_bound(
         self,
-        label: Hashable | Sequence[Hashable],
+        label: abc.Hashable | abc.Sequence[abc.Hashable],
         side: Literal["left", "right"],
     ) -> int:
         """
@@ -2750,7 +2748,7 @@ class MultiIndex(Index):
             else:
                 return start + algos.searchsorted(section, idx, side=side)
 
-    def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
+    def _get_loc_single_level_index(self, level_index: Index, key: abc.Hashable) -> int:
         """
         If key is NA value, location of index unify as -1.
 
@@ -3349,7 +3347,7 @@ class MultiIndex(Index):
 
     def _reorder_indexer(
         self,
-        seq: tuple[Scalar | Iterable | AnyArrayLike, ...],
+        seq: tuple[Scalar | abc.Iterable | AnyArrayLike, ...],
         indexer: npt.NDArray[np.intp],
     ) -> npt.NDArray[np.intp]:
         """
@@ -3777,7 +3775,7 @@ class MultiIndex(Index):
 
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
-        if isinstance(values, Generator):
+        if isinstance(values, abc.Generator):
             values = list(values)
 
         if level is None:

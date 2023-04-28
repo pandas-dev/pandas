@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 from matplotlib import patches
 import matplotlib.lines as mlines
@@ -22,6 +19,8 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
@@ -160,7 +159,7 @@ def radviz(
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
 
-    to_plot: dict[Hashable, list[list]] = {}
+    to_plot: dict[abc.Hashable, list[list]] = {}
     colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )

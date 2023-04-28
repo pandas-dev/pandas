@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections import abc
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
     cast,
 )
@@ -125,8 +125,8 @@ class GroupByIndexingMixin:
         arg: PositionalIndexer | tuple,
     ) -> np.ndarray:
         if is_list_like(arg):
-            if all(is_integer(i) for i in cast(Iterable, arg)):
-                mask = self._make_mask_from_list(cast(Iterable[int], arg))
+            if all(is_integer(i) for i in cast(abc.Iterable, arg)):
+                mask = self._make_mask_from_list(cast(abc.Iterable[int], arg))
             else:
                 mask = self._make_mask_from_tuple(cast(tuple, arg))
 
@@ -155,7 +155,7 @@ class GroupByIndexingMixin:
         else:
             return self._descending_count == (-arg - 1)
 
-    def _make_mask_from_list(self, args: Iterable[int]) -> bool | np.ndarray:
+    def _make_mask_from_list(self, args: abc.Iterable[int]) -> bool | np.ndarray:
         positive = [arg for arg in args if arg >= 0]
         negative = [-arg - 1 for arg in args if arg < 0]
 

@@ -1,6 +1,6 @@
+from collections import abc
 from io import StringIO
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 
@@ -372,7 +372,7 @@ def test_chunksize_is_incremental():
             self.read_count += 1
             return self.stringio.read(*args)
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self) -> abc.Iterator:
             self.read_count += 1
             return iter(self.stringio)
 

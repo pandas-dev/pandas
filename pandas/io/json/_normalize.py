@@ -7,12 +7,10 @@ from collections import (
     defaultdict,
 )
 import copy
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Iterable,
 )
 
 import numpy as np
@@ -151,12 +149,7 @@ def _normalise_json(
             new_key = f"{key_string}{separator}{key}"
 
             if not key_string:
-                if sys.version_info < (3, 9):
-                    from pandas.util._str_methods import removeprefix
-
-                    new_key = removeprefix(new_key, separator)
-                else:
-                    new_key = new_key.removeprefix(separator)
+                new_key = new_key.removeprefix(separator)
 
             _normalise_json(
                 data=value,
@@ -390,7 +383,7 @@ def json_normalize(
 
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
-    ) -> Scalar | Iterable:
+    ) -> Scalar | abc.Iterable:
         """Internal function to pull field"""
         result = js
         try:
@@ -442,7 +435,7 @@ def json_normalize(
     elif isinstance(data, dict):
         # A bit of a hackjob
         data = [data]
-    elif isinstance(data, abc.Iterable) and not isinstance(data, str):
+    elif isinstance(data, abc.abc.Iterable) and not isinstance(data, str):
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)

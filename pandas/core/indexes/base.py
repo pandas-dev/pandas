@@ -9,11 +9,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Hashable,
-    Iterable,
     Literal,
     NoReturn,
-    Sequence,
     cast,
     final,
     overload,
@@ -185,6 +182,8 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -422,7 +421,7 @@ class Index(IndexOpsMixin, PandasObject):
         ExtensionArray,
     )
     _id: object | None = None
-    _name: Hashable = None
+    _name: abc.Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
@@ -640,7 +639,9 @@ class Index(IndexOpsMixin, PandasObject):
     # See each method's docstring.
 
     @classmethod
-    def _simple_new(cls, values: ArrayLike, name: Hashable = None, refs=None) -> Self:
+    def _simple_new(
+        cls, values: ArrayLike, name: abc.Hashable = None, refs=None
+    ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -744,7 +745,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Index Internals Methods
 
-    def _shallow_copy(self, values, name: Hashable = no_default) -> Self:
+    def _shallow_copy(self, values, name: abc.Hashable = no_default) -> Self:
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -771,7 +772,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _rename(self, name: Hashable) -> Self:
+    def _rename(self, name: abc.Hashable) -> Self:
         """
         fastpath for rename if new name is already validated.
         """
@@ -1184,7 +1185,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(
         self,
-        name: Hashable | None = None,
+        name: abc.Hashable | None = None,
         deep: bool = False,
     ) -> Self:
         """
@@ -1310,7 +1311,7 @@ class Index(IndexOpsMixin, PandasObject):
         return attrs
 
     @final
-    def _get_level_names(self) -> Hashable | Sequence[Hashable]:
+    def _get_level_names(self) -> abc.Hashable | abc.Sequence[abc.Hashable]:
         """
         Return a name or list of names with None replaced by the level number.
         """
@@ -1462,7 +1463,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
-    def to_series(self, index=None, name: Hashable = None) -> Series:
+    def to_series(self, index=None, name: abc.Hashable = None) -> Series:
         """
         Create a Series with both index and values equal to the index keys.
 
@@ -1526,7 +1527,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(
-        self, index: bool = True, name: Hashable = lib.no_default
+        self, index: bool = True, name: abc.Hashable = lib.no_default
     ) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
@@ -1590,14 +1591,14 @@ class Index(IndexOpsMixin, PandasObject):
     # Name-Centric Methods
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> abc.Hashable:
         """
         Return Index or MultiIndex name.
         """
         return self._name
 
     @name.setter
-    def name(self, value: Hashable) -> None:
+    def name(self, value: abc.Hashable) -> None:
         if self._no_setting_name:
             # Used in MultiIndex.levels to avoid silently ignoring name updates.
             raise RuntimeError(
@@ -1610,7 +1611,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _validate_names(
         self, name=None, names=None, deep: bool = False
-    ) -> list[Hashable]:
+    ) -> list[abc.Hashable]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1641,8 +1642,10 @@ class Index(IndexOpsMixin, PandasObject):
         return new_names
 
     def _get_default_index_names(
-        self, names: Hashable | Sequence[Hashable] | None = None, default=None
-    ) -> list[Hashable]:
+        self,
+        names: abc.Hashable | abc.Sequence[abc.Hashable] | None = None,
+        default=None,
+    ) -> list[abc.Hashable]:
         """
         Get names of index.
 
@@ -2908,7 +2911,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Uniqueness Methods
 
-    def unique(self, level: Hashable | None = None) -> Self:
+    def unique(self, level: abc.Hashable | None = None) -> Self:
         """
         Return unique values in the index.
 
@@ -3638,7 +3641,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError("Input must be Index or array-like")
         return True
 
-    def _convert_can_do_setop(self, other) -> tuple[Index, Hashable]:
+    def _convert_can_do_setop(self, other) -> tuple[Index, abc.Hashable]:
         if not isinstance(other, Index):
             other = Index(other, name=self.name)
             result_name = self.name
@@ -5259,7 +5262,7 @@ class Index(IndexOpsMixin, PandasObject):
             return name in self
         return False
 
-    def append(self, other: Index | Sequence[Index]) -> Index:
+    def append(self, other: Index | abc.Sequence[Index]) -> Index:
         """
         Append a collection of Index options together.
 
@@ -5277,7 +5280,7 @@ class Index(IndexOpsMixin, PandasObject):
             to_concat += list(other)
         else:
             # error: Argument 1 to "append" of "list" has incompatible type
-            # "Union[Index, Sequence[Index]]"; expected "Index"
+            # "Union[Index, abc.Sequence[Index]]"; expected "Index"
             to_concat.append(other)  # type: ignore[arg-type]
 
         for obj in to_concat:
@@ -5289,7 +5292,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+    def _concat(self, to_concat: list[Index], name: abc.Hashable) -> Index:
         """
         Concatenate multiple Index objects.
         """
@@ -6143,7 +6146,7 @@ class Index(IndexOpsMixin, PandasObject):
         return True
 
     @final
-    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[abc.Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -6331,8 +6334,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(
         self,
-        start: Hashable | None = None,
-        end: Hashable | None = None,
+        start: abc.Hashable | None = None,
+        end: abc.Hashable | None = None,
         step: int | None = None,
     ) -> slice:
         """
@@ -6700,7 +6703,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def drop(
         self,
-        labels: Index | np.ndarray | Iterable[Hashable],
+        labels: Index | np.ndarray | abc.Iterable[abc.Hashable],
         errors: IgnoreRaise = "raise",
     ) -> Index:
         """
@@ -6962,7 +6965,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._maybe_disable_logical_methods("any")
         # error: Argument 1 to "any" has incompatible type "ArrayLike"; expected
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # float, complex, str, bytes, generic]], abc.Sequence[Sequence[Any]],
         # _SupportsArray]"
         return np.any(self.values)  # type: ignore[arg-type]
 
@@ -7009,7 +7012,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._maybe_disable_logical_methods("all")
         # error: Argument 1 to "all" has incompatible type "ArrayLike"; expected
         # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
+        # float, complex, str, bytes, generic]], abc.Sequence[Sequence[Any]],
         # _SupportsArray]"
         return np.all(self.values)  # type: ignore[arg-type]
 
@@ -7325,7 +7328,7 @@ def _validate_join_method(method: str) -> None:
         raise ValueError(f"do not recognize join method {method}")
 
 
-def maybe_extract_name(name, obj, cls) -> Hashable:
+def maybe_extract_name(name, obj, cls) -> abc.Hashable:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
@@ -7341,7 +7344,7 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
+def get_unanimous_names(*indexes: Index) -> tuple[abc.Hashable, ...]:
     """
     Return common name if all indices agree, otherwise None (level-by-level).
 

@@ -3,6 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+from collections import abc
 import operator
 import sys
 from textwrap import dedent
@@ -11,11 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,
@@ -251,7 +248,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     Parameters
     ----------
-    data : array-like, Iterable, dict, or scalar value
+    data : array-like, abc.Iterable, dict, or scalar value
         Contains data stored in Series. If data is a dict, argument order is
         maintained.
     index : array-like or Index (1d)
@@ -264,7 +261,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    name : Hashable, default None
+    name : abc.Hashable, default None
         The name to give to the Series.
     copy : bool, default False
         Copy input data. Only affects Series or 1d ndarray input. See examples.
@@ -336,7 +333,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _typ = "series"
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    _name: Hashable
+    _name: abc.Hashable
     _metadata: list[str] = ["_name"]
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -615,7 +612,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self.dtype
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> abc.Hashable:
         """
         Return the name of the Series.
 
@@ -665,7 +662,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._name
 
     @name.setter
-    def name(self, value: Hashable) -> None:
+    def name(self, value: abc.Hashable) -> None:
         validate_all_hashable(value, error_name=f"{type(self).__name__}.name")
         object.__setattr__(self, "_name", value)
 
@@ -1340,7 +1337,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _is_mixed_type(self) -> bool:
         return False
 
-    def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
+    def repeat(self, repeats: int | abc.Sequence[int], axis: None = None) -> Series:
         """
         Repeat elements of a Series.
 
@@ -1547,7 +1544,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if drop:
             new_index = default_index(len(self))
             if level is not None:
-                level_list: Sequence[Hashable]
+                level_list: abc.Sequence[abc.Hashable]
                 if not isinstance(level, (tuple, list)):
                     level_list = [level]
                 else:
@@ -1782,7 +1779,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
 
-    def items(self) -> Iterable[tuple[Hashable, Any]]:
+    def items(self) -> abc.Iterable[tuple[abc.Hashable, Any]]:
         """
         Lazily iterate over (index, value) tuples.
 
@@ -1792,7 +1789,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         iterable
-            Iterable of tuples containing the (index, value) pairs from a
+            abc.Iterable of tuples containing the (index, value) pairs from a
             Series.
 
         See Also
@@ -1832,14 +1829,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         into : class, default dict
-            The collections.abc.Mapping subclass to use as the return
+            The collections.abc.abc.Mapping subclass to use as the return
             object. Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
         Returns
         -------
-        collections.abc.Mapping
+        collections.abc.abc.Mapping
             Key-value representation of Series.
 
         Examples
@@ -1864,7 +1861,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # indexer return native python type
             return into_c(self.items())
 
-    def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
+    def to_frame(self, name: abc.Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
 
@@ -2355,7 +2352,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = self._constructor(res, index=self.index, copy=False)
         return result.__finalize__(self, method="duplicated")
 
-    def idxmin(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
+    def idxmin(
+        self, axis: Axis = 0, skipna: bool = True, *args, **kwargs
+    ) -> abc.Hashable:
         """
         Return the row label of the minimum value.
 
@@ -2424,7 +2423,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
+    def idxmax(
+        self, axis: Axis = 0, skipna: bool = True, *args, **kwargs
+    ) -> abc.Hashable:
         """
         Return the row label of the maximum value.
 
@@ -2543,7 +2544,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def quantile(
         self,
-        q: Sequence[float] | AnyArrayLike,
+        q: abc.Sequence[float] | AnyArrayLike,
         interpolation: QuantileInterpolation = ...,
     ) -> Series:
         ...
@@ -2551,14 +2552,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def quantile(
         self,
-        q: float | Sequence[float] | AnyArrayLike = ...,
+        q: float | abc.Sequence[float] | AnyArrayLike = ...,
         interpolation: QuantileInterpolation = ...,
     ) -> float | Series:
         ...
 
     def quantile(
         self,
-        q: float | Sequence[float] | AnyArrayLike = 0.5,
+        q: float | abc.Sequence[float] | AnyArrayLike = 0.5,
         interpolation: QuantileInterpolation = "linear",
     ) -> float | Series:
         """
@@ -3085,9 +3086,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def combine(
         self,
-        other: Series | Hashable,
-        func: Callable[[Hashable, Hashable], Hashable],
-        fill_value: Hashable = None,
+        other: Series | abc.Hashable,
+        func: Callable[[abc.Hashable, abc.Hashable], abc.Hashable],
+        fill_value: abc.Hashable = None,
     ) -> Series:
         """
         Combine the Series with a Series or scalar according to `func`.
@@ -3245,7 +3246,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         combined = combined.reindex(new_index, copy=False)
         return combined.__finalize__(self, method="combine_first")
 
-    def update(self, other: Series | Sequence | Mapping) -> None:
+    def update(self, other: Series | abc.Sequence | abc.Mapping) -> None:
         """
         Modify Series in place using values from passed Series.
 
@@ -3330,7 +3331,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | int | abc.Sequence[bool] | abc.Sequence[int] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3344,7 +3345,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | int | abc.Sequence[bool] | abc.Sequence[int] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3357,7 +3358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = True,
+        ascending: bool | int | abc.Sequence[bool] | abc.Sequence[int] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -3518,7 +3519,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[Union[bool, int]], ascending)
+            ascending = cast(abc.Sequence[Union[bool, int]], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3560,7 +3561,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3576,7 +3577,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3592,7 +3593,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = ...,
         level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
+        ascending: bool | abc.Sequence[bool] = ...,
         inplace: bool = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3607,7 +3608,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = 0,
         level: IndexLabel = None,
-        ascending: bool | Sequence[bool] = True,
+        ascending: bool | abc.Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -4079,7 +4080,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result.index = self.index.swaplevel(i, j)
         return result
 
-    def reorder_levels(self, order: Sequence[Level]) -> Series:
+    def reorder_levels(self, order: abc.Sequence[Level]) -> Series:
         """
         Rearrange index levels using input order.
 
@@ -4168,7 +4169,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._constructor(values, index=index, name=self.name, copy=False)
 
-    def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
+    def unstack(
+        self, level: IndexLabel = -1, fill_value: abc.Hashable = None
+    ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4219,7 +4222,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def map(
         self,
-        arg: Callable | Mapping | Series,
+        arg: Callable | abc.Mapping | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Series:
         """
@@ -4231,8 +4234,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        arg : function, collections.abc.Mapping subclass or Series
-            Mapping correspondence.
+        arg : function, collections.abc.abc.Mapping subclass or Series
+            abc.Mapping correspondence.
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
@@ -4536,7 +4539,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def rename(
         self,
-        index: Renamer | Hashable | None = ...,
+        index: Renamer | abc.Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4549,7 +4552,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def rename(
         self,
-        index: Renamer | Hashable | None = ...,
+        index: Renamer | abc.Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4562,7 +4565,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def rename(
         self,
-        index: Renamer | Hashable | None = ...,
+        index: Renamer | abc.Hashable | None = ...,
         *,
         axis: Axis | None = ...,
         copy: bool = ...,
@@ -4574,7 +4577,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def rename(
         self,
-        index: Renamer | Hashable | None = None,
+        index: Renamer | abc.Hashable | None = None,
         *,
         axis: Axis | None = None,
         copy: bool = True,
@@ -4653,9 +4656,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if callable(index) or is_dict_like(index):
             # error: Argument 1 to "_rename" of "NDFrame" has incompatible
-            # type "Union[Union[Mapping[Any, Hashable], Callable[[Any],
-            # Hashable]], Hashable, None]"; expected "Union[Mapping[Any,
-            # Hashable], Callable[[Any], Hashable], None]"
+            # type "Union[Union[abc.Mapping[Any, abc.Hashable], Callable[[Any],
+            # abc.Hashable]], abc.Hashable, None]"; expected "Union[abc.Mapping[Any,
+            # abc.Hashable], Callable[[Any], abc.Hashable], None]"
             return super()._rename(
                 index,  # type: ignore[arg-type]
                 copy=copy,
@@ -4896,7 +4899,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             errors=errors,
         )
 
-    def pop(self, item: Hashable) -> Any:
+    def pop(self, item: abc.Hashable) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.
 
@@ -5612,7 +5615,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return cast(Series, out)
 
     def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: abc.Hashable
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.

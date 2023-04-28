@@ -8,14 +8,12 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 from __future__ import annotations
 
 import collections
+from collections import abc
 import functools
 from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
 
@@ -162,7 +160,7 @@ class WrappedCythonOp:
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
@@ -559,7 +557,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: Sequence[grouper.Grouping],
+        groupings: abc.Sequence[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
     ) -> None:
@@ -578,7 +576,7 @@ class BaseGrouper:
     def shape(self) -> Shape:
         return tuple(ping.ngroups for ping in self.groupings)
 
-    def __iter__(self) -> Iterator[Hashable]:
+    def __iter__(self) -> abc.Iterator[abc.Hashable]:
         return iter(self.indices)
 
     @property
@@ -587,7 +585,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: NDFrameT, axis: AxisInt = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    ) -> abc.Iterator[tuple[abc.Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -629,7 +627,7 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @cache_readonly
-    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
+    def indices(self) -> dict[abc.Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
@@ -675,7 +673,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self) -> list[Hashable]:
+    def names(self) -> list[abc.Hashable]:
         return [ping.name for ping in self.groupings]
 
     @final
@@ -692,7 +690,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self) -> dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[abc.Hashable, np.ndarray]:
         """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
             return self.groupings[0].groups
@@ -987,7 +985,7 @@ class BinGrouper(BaseGrouper):
         }
         return result
 
-    def __iter__(self) -> Iterator[Hashable]:
+    def __iter__(self) -> abc.Iterator[abc.Hashable]:
         return iter(self.groupings[0].grouping_vector)
 
     @property
@@ -1076,7 +1074,7 @@ class BinGrouper(BaseGrouper):
         return [self.binlabels]
 
     @property
-    def names(self) -> list[Hashable]:
+    def names(self) -> list[abc.Hashable]:
         return [self.binlabels.name]
 
     @property
@@ -1126,7 +1124,7 @@ class DataSplitter(Generic[NDFrameT]):
         self.axis = axis
         assert isinstance(axis, int), axis
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         sdata = self._sorted_data
 
         if self.ngroups == 0:

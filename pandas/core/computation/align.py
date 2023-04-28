@@ -10,7 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Sequence,
 )
 import warnings
 
@@ -29,6 +28,8 @@ import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import F
 
     from pandas.core.generic import NDFrame
@@ -52,7 +53,7 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: type[NDFrame], new_axes: Sequence[Index]
+    typ: type[NDFrame], new_axes: abc.Sequence[Index]
 ) -> dict[str, Index]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 

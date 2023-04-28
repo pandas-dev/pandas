@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     final,
 )
 import warnings
@@ -46,6 +44,8 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -628,7 +628,7 @@ class Grouping:
     def __repr__(self) -> str:
         return f"Grouping({self.name})"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         return iter(self.indices)
 
     @cache_readonly
@@ -637,7 +637,7 @@ class Grouping:
         return isinstance(dtype, CategoricalDtype)
 
     @cache_readonly
-    def name(self) -> Hashable:
+    def name(self) -> abc.Hashable:
         ilevel = self._ilevel
         if ilevel is not None:
             return self._index.names[ilevel]
@@ -674,7 +674,7 @@ class Grouping:
         return len(self.group_index)
 
     @cache_readonly
-    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
+    def indices(self) -> dict[abc.Hashable, npt.NDArray[np.intp]]:
         # we have a list of groupers
         if isinstance(self.grouping_vector, ops.BaseGrouper):
             return self.grouping_vector.indices
@@ -799,7 +799,7 @@ class Grouping:
         return codes, uniques
 
     @cache_readonly
-    def groups(self) -> dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[abc.Hashable, np.ndarray]:
         return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
@@ -812,7 +812,7 @@ def get_grouper(
     observed: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
+) -> tuple[ops.BaseGrouper, frozenset[abc.Hashable], NDFrameT]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -937,7 +937,7 @@ def get_grouper(
         levels = [level] * len(keys)
 
     groupings: list[Grouping] = []
-    exclusions: set[Hashable] = set()
+    exclusions: set[abc.Hashable] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:

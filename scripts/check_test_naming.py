@@ -15,15 +15,15 @@ import ast
 import os
 from pathlib import Path
 import sys
-from typing import (
-    Iterator,
-    Sequence,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 PRAGMA = "# not a test"
 
 
-def _find_names(node: ast.Module) -> Iterator[str]:
+def _find_names(node: ast.Module) -> abc.Iterator[str]:
     for _node in ast.walk(node):
         if isinstance(_node, ast.Name):
             yield _node.id
@@ -47,7 +47,7 @@ def _is_register_dtype(node):
 
 
 def is_misnamed_test_func(
-    node: ast.expr | ast.stmt, names: Sequence[str], line: str
+    node: ast.expr | ast.stmt, names: abc.Sequence[str], line: str
 ) -> bool:
     return (
         isinstance(node, ast.FunctionDef)
@@ -61,7 +61,7 @@ def is_misnamed_test_func(
 
 
 def is_misnamed_test_class(
-    node: ast.expr | ast.stmt, names: Sequence[str], line: str
+    node: ast.expr | ast.stmt, names: abc.Sequence[str], line: str
 ) -> bool:
     return (
         isinstance(node, ast.ClassDef)

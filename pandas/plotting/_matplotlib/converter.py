@@ -12,7 +12,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Generator,
     cast,
 )
 
@@ -58,6 +57,8 @@ from pandas.core.indexes.period import (
 import pandas.core.tools.datetimes as tools
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._libs.tslibs.offsets import BaseOffset
 
 # constants
@@ -99,7 +100,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Generator[None, None, None]:
+def pandas_converters() -> abc.Generator[None, None, None]:
     """
     Context manager registering pandas' converters for a plot.
 

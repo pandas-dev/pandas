@@ -16,7 +16,10 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections import abc
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -204,7 +207,7 @@ def correct_title_capitalization(title: str) -> str:
     return correct_title
 
 
-def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
+def find_titles(rst_file: str) -> abc.Iterable[tuple[str, int]]:
     """
     Algorithm to identify particular text that should be considered headings in an
     RST file.

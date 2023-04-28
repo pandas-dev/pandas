@@ -3,9 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterator,
     Literal,
-    Sequence,
     overload,
 )
 import warnings
@@ -87,6 +85,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+    from collections import abc
 
 from pandas.compat.numpy import function as nv
 
@@ -236,7 +235,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         if self.ndim == 1:
             if not self._hasna:
                 for val in self._data:
@@ -825,7 +824,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @classmethod
     def _concat_same_type(
         cls,
-        to_concat: Sequence[Self],
+        to_concat: abc.Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
         data = np.concatenate([x._data for x in to_concat], axis=axis)

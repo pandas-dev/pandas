@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -75,6 +74,8 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
@@ -856,7 +857,7 @@ def raise_on_incompatible(left, right):
 
 
 def period_array(
-    data: Sequence[Period | str | None] | AnyArrayLike,
+    data: abc.Sequence[Period | str | None] | AnyArrayLike,
     freq: str | Tick | None = None,
     copy: bool = False,
 ) -> PeriodArray:

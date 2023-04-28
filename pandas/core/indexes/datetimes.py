@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -50,6 +47,8 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -321,7 +320,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: abc.Hashable = None,
     ) -> Self:
         if closed is not lib.no_default:
             # GH#52628
@@ -785,7 +784,7 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: Hashable = None,
+    name: abc.Hashable = None,
     inclusive: IntervalClosedType = "both",
     *,
     unit: str | None = None,
@@ -986,7 +985,7 @@ def bdate_range(
     freq: Frequency = "B",
     tz=None,
     normalize: bool = True,
-    name: Hashable = None,
+    name: abc.Hashable = None,
     weekmask=None,
     holidays=None,
     inclusive: IntervalClosedType = "both",

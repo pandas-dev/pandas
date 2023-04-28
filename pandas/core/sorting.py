@@ -1,14 +1,14 @@
 """ miscellaneous sorting / groupby utilities """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
 )
 
@@ -106,7 +106,7 @@ def get_indexer_indexer(
         ):
             return None
 
-        # ascending can only be a Sequence for MultiIndex
+        # ascending can only be a abc.Sequence for MultiIndex
         indexer = nargsort(
             target,
             kind=kind,
@@ -266,7 +266,7 @@ def decons_obs_group_ids(
     comp_ids: npt.NDArray[np.intp],
     obs_ids: npt.NDArray[np.intp],
     shape: Shape,
-    labels: Sequence[npt.NDArray[np.signedinteger]],
+    labels: abc.Sequence[npt.NDArray[np.signedinteger]],
     xnull: bool,
 ) -> list[npt.NDArray[np.intp]]:
     """
@@ -277,7 +277,7 @@ def decons_obs_group_ids(
     comp_ids : np.ndarray[np.intp]
     obs_ids: np.ndarray[np.intp]
     shape : tuple[int]
-    labels : Sequence[np.ndarray[np.signedinteger]]
+    labels : abc.Sequence[np.ndarray[np.signedinteger]]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -322,7 +322,7 @@ def lexsort_indexer(
     Parameters
     ----------
     keys : list[ArrayLike] | list[Series]
-        Sequence of ndarrays to be sorted by the indexer
+        abc.Sequence of ndarrays to be sorted by the indexer
         list[Series] is only if key is not None.
     orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
@@ -384,8 +384,8 @@ def lexsort_indexer(
                 # error: Argument 1 to "where" has incompatible type "Union[Any,
                 # ExtensionArray, ndarray[Any, Any]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
-                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # _Nestedabc.Sequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _Nestedabc.Sequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
                 codes = np.where(mask, n, codes)  # type: ignore[arg-type]
             elif na_position == "first":
@@ -400,8 +400,8 @@ def lexsort_indexer(
                 # error: Argument 1 to "where" has incompatible type "Union[Any,
                 # ExtensionArray, ndarray[Any, Any]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
-                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # _Nestedabc.Sequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _Nestedabc.Sequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
                 codes = np.where(
                     mask, n, n - codes - 1  # type: ignore[operator,arg-type]
@@ -411,8 +411,8 @@ def lexsort_indexer(
                 # error: Argument 1 to "where" has incompatible type "Union[Any,
                 # ExtensionArray, ndarray[Any, Any]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
-                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # _Nestedabc.Sequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _Nestedabc.Sequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
                 codes = np.where(mask, 0, n - codes)  # type: ignore[operator,arg-type]
 
@@ -653,8 +653,8 @@ def ensure_key_mapped(
 def get_flattened_list(
     comp_ids: npt.NDArray[np.intp],
     ngroups: int,
-    levels: Iterable[Index],
-    labels: Iterable[np.ndarray],
+    levels: abc.Iterable[Index],
+    labels: abc.Iterable[np.ndarray],
 ) -> list[tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
@@ -669,7 +669,7 @@ def get_flattened_list(
 
 def get_indexer_dict(
     label_list: list[np.ndarray], keys: list[Index]
-) -> dict[Hashable, npt.NDArray[np.intp]]:
+) -> dict[abc.Hashable, npt.NDArray[np.intp]]:
     """
     Returns
     -------

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from datetime import (
     datetime,
     timedelta,
@@ -11,16 +12,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
     Type as type_t,
     TypeVar,
     Union,
@@ -98,7 +92,7 @@ else:
     Self: Any = None
     TypeGuard: Any = None
 
-HashableT = TypeVar("HashableT", bound=Hashable)
+HashableT = TypeVar("HashableT", bound=abc.Hashable)
 
 # array-like
 
@@ -111,7 +105,7 @@ TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 # Cannot use `Sequence` because a string is a sequence, and we don't want to
 # accept that.  Could refine if https://github.com/python/typing/issues/256 is
 # resolved to differentiate between Sequence[str] and str
-ListLike = Union[AnyArrayLike, List, range]
+ListLike = Union[AnyArrayLike, list, range]
 
 # scalars
 
@@ -144,12 +138,12 @@ NumpyIndexT = TypeVar("NumpyIndexT", np.ndarray, "Index")
 
 AxisInt = int
 Axis = Union[AxisInt, Literal["index", "columns", "rows"]]
-IndexLabel = Union[Hashable, Sequence[Hashable]]
-Level = Hashable
-Shape = Tuple[int, ...]
-Suffixes = Tuple[Optional[str], Optional[str]]
+IndexLabel = Union[abc.Hashable, abc.Sequence[abc.Hashable]]
+Level = abc.Hashable
+Shape = tuple[int, ...]
+Suffixes = tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
-JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
+JSONSerializable = Optional[Union[PythonScalar, list, dict]]
 Frequency = Union[str, "BaseOffset"]
 Axes = ListLike
 
@@ -166,19 +160,22 @@ NpDtype = Union[str, np.dtype, type_t[Union[str, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
 AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
-DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
+DtypeArg = Union[Dtype, dict[abc.Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 
 # converters
-ConvertersArg = Dict[Hashable, Callable[[Dtype], Dtype]]
+ConvertersArg = dict[abc.Hashable, Callable[[Dtype], Dtype]]
 
 # parse_dates
 ParseDatesArg = Union[
-    bool, List[Hashable], List[List[Hashable]], Dict[Hashable, List[Hashable]]
+    bool,
+    list[abc.Hashable],
+    list[list[abc.Hashable]],
+    dict[abc.Hashable, list[abc.Hashable]],
 ]
 
 # For functions like rename that convert one label to another
-Renamer = Union[Mapping[Any, Hashable], Callable[[Any], Hashable]]
+Renamer = Union[abc.Mapping[Any, abc.Hashable], Callable[[Any], abc.Hashable]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
@@ -195,10 +192,10 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = Dict[Hashable, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
+AggFuncTypeDict = dict[abc.Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
-    List[AggFuncTypeBase],
+    list[AggFuncTypeBase],
     AggFuncTypeDict,
 ]
 AggObjType = Union[
@@ -265,7 +262,7 @@ class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
-    def __iter__(self) -> Iterator[AnyStr_co]:
+    def __iter__(self) -> abc.Iterator[AnyStr_co]:
         # for engine=python
         ...
 
@@ -286,23 +283,23 @@ class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
 FilePath = Union[str, "PathLike[str]"]
 
 # for arbitrary kwargs passed during reading/writing files
-StorageOptions = Optional[Dict[str, Any]]
+StorageOptions = Optional[dict[str, Any]]
 
 
 # compression keywords and compression
-CompressionDict = Dict[str, Any]
+CompressionDict = dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict]
 ]
 
 # types in DataFrameFormatter
 FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+    list[Callable], tuple[Callable, ...], abc.Mapping[Union[str, int], Callable]
 ]
-ColspaceType = Mapping[Hashable, Union[str, int]]
+ColspaceType = abc.Mapping[abc.Hashable, Union[str, int]]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
+    str, int, abc.Sequence[Union[str, int]], abc.Mapping[abc.Hashable, Union[str, int]]
 ]
 
 # Arguments for fillna()
@@ -327,12 +324,14 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
 ScalarIndexer = Union[int, np.integer]
-SequenceIndexer = Union[slice, List[int], np.ndarray]
+SequenceIndexer = Union[slice, list[int], np.ndarray]
 PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
-PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
+PositionalIndexerTuple = tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
 if TYPE_CHECKING:
-    TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
+    TakeIndexer = Union[
+        abc.Sequence[int], abc.Sequence[np.integer], npt.NDArray[np.integer]
+    ]
 else:
     TakeIndexer = Any
 
@@ -404,7 +403,7 @@ JoinValidate = Literal[
 # reindex
 ReindexMethod = Union[FillnaOptions, Literal["nearest"]]
 
-MatplotlibColor = Union[str, Sequence[float]]
+MatplotlibColor = Union[str, abc.Sequence[float]]
 TimeGrouperOrigin = Union[
     "Timestamp", Literal["epoch", "start", "start_day", "end", "end_day"]
 ]

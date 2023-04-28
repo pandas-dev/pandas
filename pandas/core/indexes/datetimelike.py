@@ -11,7 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
     cast,
     final,
 )
@@ -64,6 +63,7 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from collections import abc
     from datetime import datetime
 
     from pandas._typing import (
@@ -702,7 +702,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     # --------------------------------------------------------------------
     # List-like Methods
 
-    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
+    def _get_delete_freq(self, loc: int | slice | abc.Sequence[int]):
         """
         Find the `freq` for self.delete(loc).
         """
@@ -715,7 +715,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 if is_list_like(loc):
                     # error: Incompatible types in assignment (expression has
                     # type "Union[slice, ndarray]", variable has type
-                    # "Union[int, slice, Sequence[int]]")
+                    # "Union[int, slice, abc.Sequence[int]]")
                     loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
                         np.asarray(loc, dtype=np.intp), len(self)
                     )

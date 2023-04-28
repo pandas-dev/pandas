@@ -4,6 +4,7 @@ and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
 
+from collections import abc
 from contextlib import contextmanager
 from csv import (
     QUOTE_NONE,
@@ -21,12 +22,6 @@ from typing import (
     Any,
     Callable,
     Final,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
     cast,
 )
 from unicodedata import east_asian_width
@@ -461,7 +456,7 @@ class EastAsianTextAdjustment(TextAdjustment):
         )
 
     def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
+        self, texts: abc.Iterable[str], max_len: int, mode: str = "right"
     ) -> list[str]:
         # re-calculate padding space per str considering East Asian Width
         def _get_pad(t):
@@ -701,7 +696,7 @@ class DataFrameFormatter:
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
             result.update({column: col_space for column in self.frame.columns})
-        elif isinstance(col_space, Mapping):
+        elif isinstance(col_space, abc.Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
                     raise ValueError(
@@ -856,7 +851,7 @@ class DataFrameFormatter:
 
         if is_list_like(self.header):
             # cast here since can't be bool if is_list_like
-            self.header = cast(List[str], self.header)
+            self.header = cast(list[str], self.header)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
@@ -992,8 +987,8 @@ class DataFrameFormatter:
         else:
             return adjoined
 
-    def _get_column_name_list(self) -> list[Hashable]:
-        names: list[Hashable] = []
+    def _get_column_name_list(self) -> list[abc.Hashable]:
+        names: list[abc.Hashable] = []
         columns = self.frame.columns
         if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)
@@ -1104,7 +1099,7 @@ class DataFrameRenderer:
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         sep: str = ",",
-        columns: Sequence[Hashable] | None = None,
+        columns: abc.Sequence[abc.Hashable] | None = None,
         index_label: IndexLabel | None = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1178,7 +1173,7 @@ def save_to_buffer(
 @contextmanager
 def get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> abc.Generator[WriteBuffer[str], None, None] | abc.Generator[StringIO, None, None]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1647,7 +1642,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | Sequence[float]),
+    percentiles: (np.ndarray | abc.Sequence[float]),
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.
@@ -1847,8 +1842,8 @@ def get_format_timedelta64(
     # error: Argument 1 to "__call__" of "ufunc" has incompatible type
     # "Union[Any, ExtensionArray, ndarray]"; expected
     # "Union[Union[int, float, complex, str, bytes, generic],
-    # Sequence[Union[int, float, complex, str, bytes, generic]],
-    # Sequence[Sequence[Any]], _SupportsArray]"
+    # abc.Sequence[Union[int, float, complex, str, bytes, generic]],
+    # abc.Sequence[abc.Sequence[Any]], _SupportsArray]"
     both = np.logical_and(consider_values, not_midnight)  # type: ignore[arg-type]
     even_days = both.sum() == 0
 

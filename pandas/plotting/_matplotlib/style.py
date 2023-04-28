@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from collections import abc
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Collection,
-    Iterator,
     cast,
 )
 import warnings
@@ -28,7 +27,7 @@ def get_standard_colors(
     num_colors: int,
     colormap: Colormap | None = None,
     color_type: str = "default",
-    color: dict[str, Color] | Color | Collection[Color] | None = None,
+    color: dict[str, Color] | Color | abc.Collection[Color] | None = None,
 ):
     """
     Get standard colors based on `colormap`, `color_type` or `color` inputs.
@@ -77,7 +76,7 @@ def get_standard_colors(
 
 def _derive_colors(
     *,
-    color: Color | Collection[Color] | None,
+    color: Color | abc.Collection[Color] | None,
     colormap: str | Colormap | None,
     color_type: str,
     num_colors: int,
@@ -127,7 +126,7 @@ def _derive_colors(
         return _get_colors_from_color_type(color_type, num_colors=num_colors)
 
 
-def _cycle_colors(colors: list[Color], num_colors: int) -> Iterator[Color]:
+def _cycle_colors(colors: list[Color], num_colors: int) -> abc.Iterator[Color]:
     """Cycle colors until achieving max of `num_colors` or length of `colors`.
 
     Extra colors will be ignored by matplotlib if there are more colors
@@ -157,7 +156,7 @@ def _get_cmap_instance(colormap: str | Colormap) -> Colormap:
 
 
 def _get_colors_from_color(
-    color: Color | Collection[Color],
+    color: Color | abc.Collection[Color],
 ) -> list[Color]:
     """Get colors from user input color."""
     if len(color) == 0:
@@ -167,11 +166,11 @@ def _get_colors_from_color(
         color = cast(Color, color)
         return [color]
 
-    color = cast(Collection[Color], color)
+    color = cast(abc.Collection[Color], color)
     return list(_gen_list_of_colors_from_iterable(color))
 
 
-def _is_single_color(color: Color | Collection[Color]) -> bool:
+def _is_single_color(color: Color | abc.Collection[Color]) -> bool:
     """Check if `color` is a single color, not a sequence of colors.
 
     Single color is of these kinds:
@@ -193,7 +192,9 @@ def _is_single_color(color: Color | Collection[Color]) -> bool:
     return False
 
 
-def _gen_list_of_colors_from_iterable(color: Collection[Color]) -> Iterator[Color]:
+def _gen_list_of_colors_from_iterable(
+    color: abc.Collection[Color],
+) -> abc.Iterator[Color]:
     """
     Yield colors from string of several letters or from collection of colors.
     """
@@ -204,7 +205,7 @@ def _gen_list_of_colors_from_iterable(color: Collection[Color]) -> Iterator[Colo
             raise ValueError(f"Invalid color {x}")
 
 
-def _is_floats_color(color: Color | Collection[Color]) -> bool:
+def _is_floats_color(color: Color | abc.Collection[Color]) -> bool:
     """Check if color comprises a sequence of floats representing color."""
     return bool(
         is_list_like(color)

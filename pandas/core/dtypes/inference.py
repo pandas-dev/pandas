@@ -5,11 +5,8 @@ from __future__ import annotations
 from collections import abc
 from numbers import Number
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Pattern,
-)
+from re import Pattern
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -332,7 +329,7 @@ def is_named_tuple(obj) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> TypeGuard[Hashable]:
+def is_hashable(obj) -> TypeGuard[abc.Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 

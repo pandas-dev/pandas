@@ -4,7 +4,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     cast,
 )
 
@@ -19,6 +18,8 @@ from pandas.api.extensions import (
 from pandas.api.types import pandas_dtype
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         Dtype,
         PositionalIndexer,
@@ -64,7 +65,7 @@ class DateArray(ExtensionArray):
         self,
         dates: (
             dt.date
-            | Sequence[dt.date]
+            | abc.Sequence[dt.date]
             | tuple[np.ndarray, np.ndarray, np.ndarray]
             | np.ndarray
         ),

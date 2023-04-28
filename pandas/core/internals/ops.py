@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     NamedTuple,
 )
 
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._libs.internals import BlockPlacement
     from pandas._typing import ArrayLike
 
@@ -27,7 +28,7 @@ class BlockPairInfo(NamedTuple):
 
 def _iter_block_pairs(
     left: BlockManager, right: BlockManager
-) -> Iterator[BlockPairInfo]:
+) -> abc.Iterator[BlockPairInfo]:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 

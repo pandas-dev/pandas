@@ -9,13 +9,12 @@
 from __future__ import annotations
 
 import collections
+from collections import abc
 import itertools
 import re
 from typing import (
     Callable,
-    Iterator,
     SupportsInt,
-    Tuple,
     Union,
 )
 import warnings
@@ -88,23 +87,23 @@ NegativeInfinity = NegativeInfinityType()
 
 
 InfiniteTypes = Union[InfinityType, NegativeInfinityType]
-PrePostDevType = Union[InfiniteTypes, Tuple[str, int]]
+PrePostDevType = Union[InfiniteTypes, tuple[str, int]]
 SubLocalType = Union[InfiniteTypes, int, str]
 LocalType = Union[
     NegativeInfinityType,
-    Tuple[
+    tuple[
         Union[
             SubLocalType,
-            Tuple[SubLocalType, str],
-            Tuple[NegativeInfinityType, SubLocalType],
+            tuple[SubLocalType, str],
+            tuple[NegativeInfinityType, SubLocalType],
         ],
         ...,
     ],
 ]
-CmpKey = Tuple[
-    int, Tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
+CmpKey = tuple[
+    int, tuple[int, ...], PrePostDevType, PrePostDevType, PrePostDevType, LocalType
 ]
-LegacyCmpKey = Tuple[int, Tuple[str, ...]]
+LegacyCmpKey = tuple[int, tuple[str, ...]]
 VersionComparisonMethod = Callable[
     [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
 ]
@@ -251,7 +250,7 @@ _legacy_version_replacement_map = {
 }
 
 
-def _parse_version_parts(s: str) -> Iterator[str]:
+def _parse_version_parts(s: str) -> abc.Iterator[str]:
     for part in _legacy_version_component_re.split(s):
         mapped_part = _legacy_version_replacement_map.get(part, part)
 

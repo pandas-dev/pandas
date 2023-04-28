@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import abc
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,9 +8,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     cast,
 )
 
@@ -116,7 +114,7 @@ class RangeIndex(Index):
         step=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: abc.Hashable = None,
     ) -> RangeIndex:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
@@ -167,7 +165,7 @@ class RangeIndex(Index):
     #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: range, name: Hashable = None
+        cls, values: range, name: abc.Hashable = None
     ) -> Self:
         result = object.__new__(cls)
 
@@ -347,7 +345,7 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
-        if isinstance(key, Hashable):
+        if isinstance(key, abc.Hashable):
             raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
@@ -395,11 +393,11 @@ class RangeIndex(Index):
         return list(self._range)
 
     @doc(Index.__iter__)
-    def __iter__(self) -> Iterator[int]:
+    def __iter__(self) -> abc.Iterator[int]:
         yield from self._range
 
     @doc(Index._shallow_copy)
-    def _shallow_copy(self, values, name: Hashable = no_default):
+    def _shallow_copy(self, values, name: abc.Hashable = no_default):
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
@@ -420,7 +418,7 @@ class RangeIndex(Index):
         return result
 
     @doc(Index.copy)
-    def copy(self, name: Hashable = None, deep: bool = False) -> Self:
+    def copy(self, name: abc.Hashable = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
@@ -771,7 +769,7 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+    def symmetric_difference(self, other, result_name: abc.Hashable = None, sort=None):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -830,7 +828,7 @@ class RangeIndex(Index):
 
         return super().insert(loc, item)
 
-    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
+    def _concat(self, indexes: list[Index], name: abc.Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -845,7 +843,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 

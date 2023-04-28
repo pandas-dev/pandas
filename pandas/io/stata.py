@@ -24,8 +24,6 @@ from typing import (
     AnyStr,
     Callable,
     Final,
-    Hashable,
-    Sequence,
     cast,
 )
 import warnings
@@ -1126,7 +1124,7 @@ class StataReader(StataParser, abc.Iterator):
         index_col: str | None = None,
         convert_missing: bool = False,
         preserve_dtypes: bool = True,
-        columns: Sequence[str] | None = None,
+        columns: abc.Sequence[str] | None = None,
         order_categoricals: bool = True,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
@@ -1697,7 +1695,7 @@ the string values returned are correct."""
         index_col: str | None = None,
         convert_missing: bool | None = None,
         preserve_dtypes: bool | None = None,
-        columns: Sequence[str] | None = None,
+        columns: abc.Sequence[str] | None = None,
         order_categoricals: bool | None = None,
     ) -> DataFrame:
         self._ensure_open()
@@ -1904,7 +1902,9 @@ the string values returned are correct."""
             data.iloc[:, i] = [self.GSO[str(k)] for k in data.iloc[:, i]]
         return data
 
-    def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
+    def _do_select_columns(
+        self, data: DataFrame, columns: abc.Sequence[str]
+    ) -> DataFrame:
         if not self._column_selector_set:
             column_set = set(columns)
             if len(column_set) != len(columns):
@@ -1940,7 +1940,7 @@ the string values returned are correct."""
         self,
         data: DataFrame,
         value_label_dict: dict[str, dict[float, str]],
-        lbllist: Sequence[str],
+        lbllist: abc.Sequence[str],
         order_categoricals: bool,
     ) -> DataFrame:
         """
@@ -2063,7 +2063,7 @@ def read_stata(
     index_col: str | None = None,
     convert_missing: bool = False,
     preserve_dtypes: bool = True,
-    columns: Sequence[str] | None = None,
+    columns: abc.Sequence[str] | None = None,
     order_categoricals: bool = True,
     chunksize: int | None = None,
     iterator: bool = False,
@@ -2134,7 +2134,9 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
+def _maybe_convert_to_int_keys(
+    convert_dates: dict, varlist: list[abc.Hashable]
+) -> dict:
     new_dict = {}
     for key in convert_dates:
         if not convert_dates[key].startswith("%"):  # make sure proper fmts
@@ -2321,16 +2323,16 @@ class StataWriter(StataParser):
         self,
         fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
-        convert_dates: dict[Hashable, str] | None = None,
+        convert_dates: dict[abc.Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
-        variable_labels: dict[Hashable, str] | None = None,
+        variable_labels: dict[abc.Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float, str]] | None = None,
+        value_labels: dict[abc.Hashable, dict[float, str]] | None = None,
     ) -> None:
         super().__init__()
         self.data = data
@@ -2344,7 +2346,7 @@ class StataWriter(StataParser):
         self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
         self._output_file: IO[bytes] | None = None
-        self._converted_names: dict[Hashable, str] = {}
+        self._converted_names: dict[abc.Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
         self.storage_options = storage_options
@@ -2505,7 +2507,7 @@ class StataWriter(StataParser):
         dates are exported, the variable name is propagated to the date
         conversion dictionary
         """
-        converted_names: dict[Hashable, str] = {}
+        converted_names: dict[abc.Hashable, str] = {}
         columns = list(data.columns)
         original_columns = columns[:]
 
@@ -2984,7 +2986,7 @@ class StataStrLWriter:
     ----------
     df : DataFrame
         DataFrame to convert
-    columns : Sequence[str]
+    columns : abc.Sequence[str]
         List of columns names to convert to StrL
     version : int, optional
         dta version.  Currently supports 117, 118 and 119
@@ -3005,7 +3007,7 @@ class StataStrLWriter:
     def __init__(
         self,
         df: DataFrame,
-        columns: Sequence[str],
+        columns: abc.Sequence[str],
         version: int = 117,
         byteorder: str | None = None,
     ) -> None:
@@ -3247,20 +3249,20 @@ class StataWriter117(StataWriter):
         self,
         fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
-        convert_dates: dict[Hashable, str] | None = None,
+        convert_dates: dict[abc.Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
-        variable_labels: dict[Hashable, str] | None = None,
-        convert_strl: Sequence[Hashable] | None = None,
+        variable_labels: dict[abc.Hashable, str] | None = None,
+        convert_strl: abc.Sequence[abc.Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float, str]] | None = None,
+        value_labels: dict[abc.Hashable, dict[float, str]] | None = None,
     ) -> None:
         # Copy to new list since convert_strl might be modified later
-        self._convert_strl: list[Hashable] = []
+        self._convert_strl: list[abc.Hashable] = []
         if convert_strl is not None:
             self._convert_strl.extend(convert_strl)
 
@@ -3638,18 +3640,18 @@ class StataWriterUTF8(StataWriter117):
         self,
         fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
-        convert_dates: dict[Hashable, str] | None = None,
+        convert_dates: dict[abc.Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
         time_stamp: datetime.datetime | None = None,
         data_label: str | None = None,
-        variable_labels: dict[Hashable, str] | None = None,
-        convert_strl: Sequence[Hashable] | None = None,
+        variable_labels: dict[abc.Hashable, str] | None = None,
+        convert_strl: abc.Sequence[abc.Hashable] | None = None,
         version: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
         *,
-        value_labels: dict[Hashable, dict[float, str]] | None = None,
+        value_labels: dict[abc.Hashable, dict[float, str]] | None = None,
     ) -> None:
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119

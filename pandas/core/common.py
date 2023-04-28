@@ -17,11 +17,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
     overload,
 )
@@ -223,11 +218,11 @@ def asarray_tuplesafe(
 
 
 @overload
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+def asarray_tuplesafe(values: abc.Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
     ...
 
 
-def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
+def asarray_tuplesafe(values: abc.Iterable, dtype: NpDtype | None = None) -> ArrayLike:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndex):
@@ -260,7 +255,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
 
 
 def index_labels_to_array(
-    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+    labels: np.ndarray | abc.Iterable, dtype: NpDtype | None = None
 ) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
@@ -294,13 +289,13 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
+def maybe_iterable_to_list(obj: abc.Iterable[T] | T) -> abc.Collection[T] | T:
     """
     If obj is Iterable but not list-like, consume into list.
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    obj = cast(Collection, obj)
+    obj = cast(abc.Collection, obj)
     return obj
 
 
@@ -530,7 +525,7 @@ def get_rename_function(mapper):
 
 
 def convert_to_list_like(
-    values: Hashable | Iterable | AnyArrayLike,
+    values: abc.Hashable | abc.Iterable | AnyArrayLike,
 ) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
@@ -545,7 +540,7 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
+def temp_setattr(obj, attr: str, value) -> abc.Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:
@@ -630,7 +625,7 @@ def is_builtin_func(arg):
     return _builtin_table.get(arg, arg)
 
 
-def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
+def fill_missing_names(names: abc.Sequence[abc.Hashable | None]) -> list[abc.Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 

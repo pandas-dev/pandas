@@ -25,7 +25,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Mapping,
 )
 
 import numpy as np
@@ -51,7 +50,7 @@ if TYPE_CHECKING:
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value: Mapping[str, Any] = UserDict()
+    na_value: abc.Mapping[str, Any] = UserDict()
 
     @classmethod
     def construct_array_type(cls) -> type_t[JSONArray]:

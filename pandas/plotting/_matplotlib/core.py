@@ -4,12 +4,10 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from collections import abc
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterable,
     Literal,
-    Sequence,
 )
 import warnings
 
@@ -125,7 +123,7 @@ class MPLPlot(ABC):
         data,
         kind=None,
         by: IndexLabel | None = None,
-        subplots: bool | Sequence[Sequence[str]] = False,
+        subplots: bool | abc.Sequence[abc.Sequence[str]] = False,
         sharex=None,
         sharey: bool = False,
         use_index: bool = True,
@@ -140,8 +138,8 @@ class MPLPlot(ABC):
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Hashable | None = None,
-        ylabel: Hashable | None = None,
+        xlabel: abc.Hashable | None = None,
+        ylabel: abc.Hashable | None = None,
         fontsize: int | None = None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
@@ -228,7 +226,7 @@ class MPLPlot(ABC):
         self.grid = grid
         self.legend = legend
         self.legend_handles: list[Artist] = []
-        self.legend_labels: list[Hashable] = []
+        self.legend_labels: list[abc.Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
@@ -271,7 +269,7 @@ class MPLPlot(ABC):
         self._validate_color_args()
 
     def _validate_subplots_kwarg(
-        self, subplots: bool | Sequence[Sequence[str]]
+        self, subplots: bool | abc.Sequence[abc.Sequence[str]]
     ) -> bool | list[tuple[int, ...]]:
         """
         Validate the subplots parameter
@@ -295,7 +293,7 @@ class MPLPlot(ABC):
 
         if isinstance(subplots, bool):
             return subplots
-        elif not isinstance(subplots, Iterable):
+        elif not isinstance(subplots, abc.Iterable):
             raise ValueError("subplots should be a bool or an iterable")
 
         supported_kinds = (
@@ -346,7 +344,7 @@ class MPLPlot(ABC):
         # TODO: also accept indices instead of just names?
 
         out = []
-        seen_columns: set[Hashable] = set()
+        seen_columns: set[abc.Hashable] = set()
         for group in subplots:
             if not is_list_like(group):
                 raise ValueError(

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
@@ -65,7 +64,7 @@ def pivot_table(
     fill_value=None,
     margins: bool = False,
     dropna: bool = True,
-    margins_name: Hashable = "All",
+    margins_name: abc.Hashable = "All",
     observed: bool = False,
     sort: bool = True,
 ) -> DataFrame:
@@ -120,7 +119,7 @@ def __internal_pivot_table(
     fill_value,
     margins: bool,
     dropna: bool,
-    margins_name: Hashable,
+    margins_name: abc.Hashable,
     observed: bool,
     sort: bool,
 ) -> DataFrame:
@@ -264,7 +263,7 @@ def _add_margins(
     cols,
     aggfunc,
     observed: bool,
-    margins_name: Hashable = "All",
+    margins_name: abc.Hashable = "All",
     fill_value=None,
 ):
     if not isinstance(margins_name, str):
@@ -341,7 +340,7 @@ def _add_margins(
 
 
 def _compute_grand_margin(
-    data: DataFrame, values, aggfunc, margins_name: Hashable = "All"
+    data: DataFrame, values, aggfunc, margins_name: abc.Hashable = "All"
 ):
     if values:
         grand_margin = {}
@@ -371,7 +370,7 @@ def _generate_marginal_results(
     cols,
     aggfunc,
     observed: bool,
-    margins_name: Hashable = "All",
+    margins_name: abc.Hashable = "All",
 ):
     margin_keys: list | Index
     if len(cols) > 0:
@@ -453,7 +452,7 @@ def _generate_marginal_results_without_values(
     cols,
     aggfunc,
     observed: bool,
-    margins_name: Hashable = "All",
+    margins_name: abc.Hashable = "All",
 ):
     margin_keys: list | Index
     if len(cols) > 0:
@@ -558,7 +557,7 @@ def pivot(
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
-            values = cast(Sequence[Hashable], values)
+            values = cast(abc.Sequence[abc.Hashable], values)
             indexed = data._constructor(
                 data[values]._values, index=multiindex, columns=values
             )
@@ -566,7 +565,7 @@ def pivot(
             indexed = data._constructor_sliced(data[values]._values, index=multiindex)
     # error: Argument 1 to "unstack" of "DataFrame" has incompatible type "Union
     # [List[Any], ExtensionArray, ndarray[Any, Any], Index, Series]"; expected
-    # "Hashable"
+    # "abc.Hashable"
     result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
     result.index.names = [
         name if name is not lib.NoDefault else None for name in result.index.names
@@ -583,7 +582,7 @@ def crosstab(
     colnames=None,
     aggfunc=None,
     margins: bool = False,
-    margins_name: Hashable = "All",
+    margins_name: abc.Hashable = "All",
     dropna: bool = True,
     normalize: bool = False,
 ) -> DataFrame:
@@ -748,7 +747,7 @@ def crosstab(
 
 
 def _normalize(
-    table: DataFrame, normalize, margins: bool, margins_name: Hashable = "All"
+    table: DataFrame, normalize, margins: bool, margins_name: abc.Hashable = "All"
 ) -> DataFrame:
     if not isinstance(normalize, (bool, str)):
         axis_subs = {0: "index", 1: "columns"}

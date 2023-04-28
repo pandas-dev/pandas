@@ -19,10 +19,7 @@ from typing import (
     Any,
     Callable,
     Final,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -105,6 +102,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
     from types import TracebackType
 
     from tables import (
@@ -675,10 +673,10 @@ class HDFStore:
             f"`include` should be either 'pandas' or 'native' but is '{include}'"
         )
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> abc.Iterator[str]:
         return iter(self.keys())
 
-    def items(self) -> Iterator[tuple[str, list]]:
+    def items(self) -> abc.Iterator[tuple[str, list]]:
         """
         iterate on key->group
         """
@@ -1438,7 +1436,7 @@ class HDFStore:
             )
         ]
 
-    def walk(self, where: str = "/") -> Iterator[tuple[str, list[str], list[str]]]:
+    def walk(self, where: str = "/") -> abc.Iterator[tuple[str, list[str], list[str]]]:
         """
         Walk the pytables group hierarchy for pandas objects.
 
@@ -1891,7 +1889,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         # iterate
         current = self.start
         if self.coordinates is None:
@@ -2113,7 +2111,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -2950,7 +2948,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: list[Hashable] = []
+        names: list[abc.Hashable] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -3108,7 +3106,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Hashable
+    name: abc.Hashable
 
     @property
     def shape(self):
@@ -3263,7 +3261,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels: int | list[Hashable] = 1
+    levels: int | list[abc.Hashable] = 1
     is_table = True
 
     metadata: list
@@ -3358,7 +3356,7 @@ class Table(Fixed):
 
     def validate_multiindex(
         self, obj: DataFrame | Series
-    ) -> tuple[DataFrame, list[Hashable]]:
+    ) -> tuple[DataFrame, list[abc.Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3496,7 +3494,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels: list[Hashable] = getattr(self.attrs, "levels", None) or []
+        self.levels: list[abc.Hashable] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4663,7 +4661,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
-    levels: list[Hashable]
+    levels: list[abc.Hashable]
 
     @property
     def pandas_type(self) -> str:
@@ -5102,7 +5100,7 @@ def _need_convert(kind: str) -> bool:
     return False
 
 
-def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
+def _maybe_adjust_name(name: str, version: abc.Sequence[int]) -> str:
     """
     Prior to 0.10.1, we named values blocks like: values_block_0 an the
     name values_0, adjust the given name if necessary.

@@ -22,13 +22,11 @@ https://github.com/asottile/pyupgrade .
 
 import argparse
 import ast
+from collections import abc
 import sys
 from typing import (
-    MutableMapping,
     NamedTuple,
     Optional,
-    Sequence,
-    Set,
 )
 
 ERROR_MESSAGE = (
@@ -45,8 +43,8 @@ class OffsetWithNamespace(NamedTuple):
 
 class Visitor(ast.NodeVisitor):
     def __init__(self) -> None:
-        self.pandas_namespace: MutableMapping[OffsetWithNamespace, str] = {}
-        self.imported_from_pandas: Set[str] = set()
+        self.pandas_namespace: abc.MutableMapping[OffsetWithNamespace, str] = {}
+        self.imported_from_pandas: set[str] = set()
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if isinstance(node.value, ast.Name) and node.value.id in {"pandas", "pd"}:
@@ -120,7 +118,7 @@ def check_for_inconsistent_pandas_namespace(
     return replace_inconsistent_pandas_namespace(visitor, content)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Optional[abc.Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--replace", action="store_true")

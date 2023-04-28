@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from collections import abc as abc_col
 import datetime
 from functools import partial
 from io import BytesIO
@@ -11,12 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,
@@ -373,21 +369,21 @@ def read_excel(
     # sheet name is str or int -> DataFrame
     sheet_name: str | int = ...,
     *,
-    header: int | Sequence[int] | None = ...,
+    header: int | abc_col.Sequence[int] | None = ...,
     names: list[str] | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    index_col: int | abc_col.Sequence[int] | None = ...,
     usecols: int
     | str
-    | Sequence[int]
-    | Sequence[str]
+    | abc_col.Sequence[int]
+    | abc_col.Sequence[str]
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
-    true_values: Iterable[Hashable] | None = ...,
-    false_values: Iterable[Hashable] | None = ...,
-    skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
+    true_values: abc_col.Iterable[abc_col.Hashable] | None = ...,
+    false_values: abc_col.Iterable[abc_col.Hashable] | None = ...,
+    skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None = ...,
     nrows: int | None = ...,
     na_values=...,
     keep_default_na: bool = ...,
@@ -395,7 +391,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: dict[Hashable, str] | str | None = ...,
+    date_format: dict[abc_col.Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -412,21 +408,21 @@ def read_excel(
     # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     *,
-    header: int | Sequence[int] | None = ...,
+    header: int | abc_col.Sequence[int] | None = ...,
     names: list[str] | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    index_col: int | abc_col.Sequence[int] | None = ...,
     usecols: int
     | str
-    | Sequence[int]
-    | Sequence[str]
+    | abc_col.Sequence[int]
+    | abc_col.Sequence[str]
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
-    true_values: Iterable[Hashable] | None = ...,
-    false_values: Iterable[Hashable] | None = ...,
-    skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
+    true_values: abc_col.Iterable[abc_col.Hashable] | None = ...,
+    false_values: abc_col.Iterable[abc_col.Hashable] | None = ...,
+    skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None = ...,
     nrows: int | None = ...,
     na_values=...,
     keep_default_na: bool = ...,
@@ -434,7 +430,7 @@ def read_excel(
     verbose: bool = ...,
     parse_dates: list | dict | bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: dict[Hashable, str] | str | None = ...,
+    date_format: dict[abc_col.Hashable, str] | str | None = ...,
     thousands: str | None = ...,
     decimal: str = ...,
     comment: str | None = ...,
@@ -451,21 +447,21 @@ def read_excel(
     io,
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
-    header: int | Sequence[int] | None = 0,
+    header: int | abc_col.Sequence[int] | None = 0,
     names: list[str] | None = None,
-    index_col: int | Sequence[int] | None = None,
+    index_col: int | abc_col.Sequence[int] | None = None,
     usecols: int
     | str
-    | Sequence[int]
-    | Sequence[str]
+    | abc_col.Sequence[int]
+    | abc_col.Sequence[str]
     | Callable[[str], bool]
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
-    true_values: Iterable[Hashable] | None = None,
-    false_values: Iterable[Hashable] | None = None,
-    skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
+    true_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+    false_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+    skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None = None,
     nrows: int | None = None,
     na_values=None,
     keep_default_na: bool = True,
@@ -473,7 +469,7 @@ def read_excel(
     verbose: bool = False,
     parse_dates: list | dict | bool = False,
     date_parser: Callable | lib.NoDefault = lib.no_default,
-    date_format: dict[Hashable, str] | str | None = None,
+    date_format: dict[abc_col.Hashable, str] | str | None = None,
     thousands: str | None = None,
     decimal: str = ".",
     comment: str | None = None,
@@ -652,9 +648,9 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
     def _calc_rows(
         self,
-        header: int | Sequence[int] | None,
-        index_col: int | Sequence[int] | None,
-        skiprows: Sequence[int] | int | Callable[[int], object] | None,
+        header: int | abc_col.Sequence[int] | None,
+        index_col: int | abc_col.Sequence[int] | None,
+        skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None,
         nrows: int | None,
     ) -> int | None:
         """
@@ -685,12 +681,12 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             header = cast(int, header)
             header_rows = 1 + header
         else:
-            header = cast(Sequence, header)
+            header = cast(abc_col.Sequence, header)
             header_rows = 1 + header[-1]
         # If there is a MultiIndex header and an index then there is also
         # a row containing just the index name(s)
         if is_list_like(header) and index_col is not None:
-            header = cast(Sequence, header)
+            header = cast(abc_col.Sequence, header)
             if len(header) > 1:
                 header_rows += 1
         if skiprows is None:
@@ -700,10 +696,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             return header_rows + nrows + skiprows
         if is_list_like(skiprows):
 
-            def f(skiprows: Sequence, x: int) -> bool:
+            def f(skiprows: abc_col.Sequence, x: int) -> bool:
                 return x in skiprows
 
-            skiprows = cast(Sequence, skiprows)
+            skiprows = cast(abc_col.Sequence, skiprows)
             return self._check_skiprows_func(partial(f, skiprows), header_rows + nrows)
         if callable(skiprows):
             return self._check_skiprows_func(
@@ -717,20 +713,20 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        header: int | Sequence[int] | None = 0,
+        header: int | abc_col.Sequence[int] | None = 0,
         names=None,
-        index_col: int | Sequence[int] | None = None,
+        index_col: int | abc_col.Sequence[int] | None = None,
         usecols=None,
         dtype: DtypeArg | None = None,
-        true_values: Iterable[Hashable] | None = None,
-        false_values: Iterable[Hashable] | None = None,
-        skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
+        true_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+        false_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+        skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
         verbose: bool = False,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: dict[Hashable, str] | str | None = None,
+        date_format: dict[abc_col.Hashable, str] | str | None = None,
         thousands: str | None = None,
         decimal: str = ".",
         comment: str | None = None,
@@ -757,7 +753,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[List[int], List[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -786,18 +782,18 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             is_list_header = False
             is_len_one_list_header = False
             if is_list_like(header):
-                assert isinstance(header, Sequence)
+                assert isinstance(header, abc_col.Sequence)
                 is_list_header = True
                 if len(header) == 1:
                     is_len_one_list_header = True
 
             if is_len_one_list_header:
-                header = cast(Sequence[int], header)[0]
+                header = cast(abc_col.Sequence[int], header)[0]
 
             # forward fill and pull out names for MultiIndex column
             header_names = None
             if header is not None and is_list_like(header):
-                assert isinstance(header, Sequence)
+                assert isinstance(header, abc_col.Sequence)
 
                 header_names = []
                 control_row = [True] * len(data[0])
@@ -823,16 +819,16 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # a row containing just the index name(s)
             has_index_names = False
             if is_list_header and not is_len_one_list_header and index_col is not None:
-                index_col_list: Sequence[int]
+                index_col_list: abc_col.Sequence[int]
                 if isinstance(index_col, int):
                     index_col_list = [index_col]
                 else:
-                    assert isinstance(index_col, Sequence)
+                    assert isinstance(index_col, abc_col.Sequence)
                     index_col_list = index_col
 
                 # We have to handle mi without names. If any of the entries in the data
                 # columns are not empty, this is a regular row
-                assert isinstance(header, Sequence)
+                assert isinstance(header, abc_col.Sequence)
                 if len(header) < len(data):
                     potential_index_names = data[len(header)]
                     potential_data = [
@@ -860,7 +856,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                 # Check if we have an empty dataset
                 # before trying to collect data.
                 if offset < len(data):
-                    assert isinstance(index_col, Sequence)
+                    assert isinstance(index_col, abc_col.Sequence)
 
                     for col in index_col:
                         last = data[offset][col]
@@ -1161,7 +1157,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
-        """Mapping of sheet names to sheet objects."""
+        """abc_col.Mapping of sheet names to sheet objects."""
 
     @property
     @abc.abstractmethod
@@ -1481,7 +1477,7 @@ class ExcelFile:
     from pandas.io.excel._pyxlsb import PyxlsbReader
     from pandas.io.excel._xlrd import XlrdReader
 
-    _engines: Mapping[str, Any] = {
+    _engines: abc_col.Mapping[str, Any] = {
         "xlrd": XlrdReader,
         "openpyxl": OpenpyxlReader,
         "odf": ODFReader,
@@ -1553,19 +1549,19 @@ class ExcelFile:
     def parse(
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
-        header: int | Sequence[int] | None = 0,
+        header: int | abc_col.Sequence[int] | None = 0,
         names=None,
-        index_col: int | Sequence[int] | None = None,
+        index_col: int | abc_col.Sequence[int] | None = None,
         usecols=None,
         converters=None,
-        true_values: Iterable[Hashable] | None = None,
-        false_values: Iterable[Hashable] | None = None,
-        skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
+        true_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+        false_values: abc_col.Iterable[abc_col.Hashable] | None = None,
+        skiprows: abc_col.Sequence[int] | int | Callable[[int], object] | None = None,
         nrows: int | None = None,
         na_values=None,
         parse_dates: list | dict | bool = False,
         date_parser: Callable | lib.NoDefault = lib.no_default,
-        date_format: str | dict[Hashable, str] | None = None,
+        date_format: str | dict[abc_col.Hashable, str] | None = None,
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,

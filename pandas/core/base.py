@@ -9,8 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Hashable,
-    Iterator,
     Literal,
     cast,
     final,
@@ -69,6 +67,8 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -180,7 +180,7 @@ class SelectionMixin(Generic[NDFrameT]):
 
     obj: NDFrameT
     _selection: IndexLabel | None = None
-    exclusions: frozenset[Hashable]
+    exclusions: frozenset[abc.Hashable]
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
@@ -725,7 +725,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         """
         Return an iterator of the values.
 

@@ -5,15 +5,16 @@ from __future__ import annotations
 
 import re
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Generator,
-    Iterable,
-    Iterator,
 )
 import warnings
 
 from pandas.errors import CSSWarning
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections import abc
 
 
 def _side_expander(prop_fmt: str) -> Callable:
@@ -30,7 +31,7 @@ def _side_expander(prop_fmt: str) -> Callable:
         function: Return to call when a 'border(-{side}): {value}' string is encountered
     """
 
-    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+    def expand(self, prop, value: str) -> abc.Generator[tuple[str, str], None, None]:
         """
         Expand shorthand property into side-specific property (top, right, bottom, left)
 
@@ -75,7 +76,7 @@ def _border_expander(side: str = "") -> Callable:
     if side != "":
         side = f"-{side}"
 
-    def expand(self, prop, value: str) -> Generator[tuple[str, str], None, None]:
+    def expand(self, prop, value: str) -> abc.Generator[tuple[str, str], None, None]:
         """
         Expand border into color, style, and width tuples
 
@@ -214,7 +215,7 @@ class CSSResolver:
 
     def __call__(
         self,
-        declarations: str | Iterable[tuple[str, str]],
+        declarations: str | abc.Iterable[tuple[str, str]],
         inherited: dict[str, str] | None = None,
     ) -> dict[str, str]:
         """
@@ -222,7 +223,7 @@ class CSSResolver:
 
         Parameters
         ----------
-        declarations_str : str | Iterable[tuple[str, str]]
+        declarations_str : str | abc.Iterable[tuple[str, str]]
             A CSS string or set of CSS declaration tuples
             e.g. "font-weight: bold; background: blue" or
             {("font-weight", "bold"), ("background", "blue")}
@@ -379,7 +380,9 @@ class CSSResolver:
             size_fmt = f"{val:f}pt"
         return size_fmt
 
-    def atomize(self, declarations: Iterable) -> Generator[tuple[str, str], None, None]:
+    def atomize(
+        self, declarations: abc.Iterable
+    ) -> abc.Generator[tuple[str, str], None, None]:
         for prop, value in declarations:
             prop = prop.lower()
             value = value.lower()
@@ -389,7 +392,7 @@ class CSSResolver:
             else:
                 yield prop, value
 
-    def parse(self, declarations_str: str) -> Iterator[tuple[str, str]]:
+    def parse(self, declarations_str: str) -> abc.Iterator[tuple[str, str]]:
         """
         Generates (prop, value) pairs from declarations.
 

@@ -6,8 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
-    Sequence,
     cast,
     final,
 )
@@ -115,6 +113,8 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
@@ -705,8 +705,8 @@ class Block(PandasObject):
     @final
     def replace_list(
         self,
-        src_list: Iterable[Any],
-        dest_list: Sequence[Any],
+        src_list: abc.Iterable[Any],
+        dest_list: abc.Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
         using_cow: bool = False,
@@ -743,7 +743,7 @@ class Block(PandasObject):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             na_mask = ~isna(values)
-            masks: Iterable[npt.NDArray[np.bool_]] = (
+            masks: abc.Iterable[npt.NDArray[np.bool_]] = (
                 extract_bool_array(
                     cast(
                         ArrayLike,

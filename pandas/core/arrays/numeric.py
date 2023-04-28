@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
 )
 
 import numpy as np
@@ -29,6 +28,8 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     import pyarrow
 
     from pandas._typing import (
@@ -100,7 +101,7 @@ class NumericDtype(BaseMaskedDtype):
         return array_class(data.copy(), ~mask, copy=False)
 
     @classmethod
-    def _str_to_dtype_mapping(cls) -> Mapping[str, NumericDtype]:
+    def _str_to_dtype_mapping(cls) -> abc.Mapping[str, NumericDtype]:
         raise AbstractMethodError(cls)
 
     @classmethod

@@ -7,7 +7,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    MutableMapping,
     cast,
 )
 
@@ -46,6 +45,7 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
     from datetime import tzinfo
 
     import pyarrow
@@ -348,7 +348,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         self._categories = categories
         self._ordered = ordered
 
-    def __setstate__(self, state: MutableMapping[str_type, Any]) -> None:
+    def __setstate__(self, state: abc.MutableMapping[str_type, Any]) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)

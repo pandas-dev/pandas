@@ -1,3 +1,4 @@
+from collections import abc
 from functools import partial
 from io import (
     BytesIO,
@@ -7,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import threading
-from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -1335,7 +1335,7 @@ class TestReadHtml:
             def __next__(self):
                 ...
 
-            def __iter__(self) -> Iterator:
+            def __iter__(self) -> abc.Iterator:
                 # `is_file_like` depends on the presence of
                 # the __iter__ attribute.
                 return self

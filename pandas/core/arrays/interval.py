@@ -8,9 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     overload,
 )
@@ -101,6 +99,8 @@ from pandas.core.ops import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas import (
         Index,
         Series,
@@ -688,7 +688,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # EA Interface
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> abc.Iterator:
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
@@ -995,7 +995,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(cls, to_concat: abc.Sequence[IntervalArray]) -> Self:
         """
         Concatenate multiple IntervalArray
 
@@ -1613,7 +1613,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
     def repeat(
         self,
-        repeats: int | Sequence[int],
+        repeats: int | abc.Sequence[int],
         axis: AxisInt | None = None,
     ) -> Self:
         nv.validate_repeat((), {"axis": axis})

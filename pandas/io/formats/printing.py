@@ -3,14 +3,11 @@ Printing tools.
 """
 from __future__ import annotations
 
+from collections import abc
 import sys
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
 )
@@ -19,7 +16,7 @@ from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
 
-EscapeChars = Union[Mapping[str, str], Iterable[str]]
+EscapeChars = Union[abc.Mapping[str, str], abc.Iterable[str]]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
@@ -59,7 +56,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     return "\n".join(out_lines)
 
 
-def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
+def justify(texts: abc.Iterable[str], max_len: int, mode: str = "right") -> list[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -96,7 +93,7 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str
 
 
 def _pprint_seq(
-    seq: Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: abc.Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -131,7 +128,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: abc.Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -456,7 +453,7 @@ def format_object_summary(
 
 
 def _justify(
-    head: list[Sequence[str]], tail: list[Sequence[str]]
+    head: list[abc.Sequence[str]], tail: list[abc.Sequence[str]]
 ) -> tuple[list[tuple[str, ...]], list[tuple[str, ...]]]:
     """
     Justify items in head and tail, so they are right-aligned when stacked.
@@ -496,7 +493,7 @@ def _justify(
     return head_tuples, tail_tuples
 
 
-class PrettyDict(Dict[_KT, _VT]):
+class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:

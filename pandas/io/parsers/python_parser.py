@@ -12,12 +12,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     DefaultDict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     cast,
 )
 
@@ -71,7 +66,7 @@ class PythonParser(ParserBase):
         """
         super().__init__(kwds)
 
-        self.data: Iterator[str] | None = None
+        self.data: abc.Iterator[str] | None = None
         self.buf: list = []
         self.pos = 0
         self.line_pos = 0
@@ -113,7 +108,7 @@ class PythonParser(ParserBase):
         # Set self.data to something that can read lines.
         if isinstance(f, list):
             # read_excel: f is a list
-            self.data = cast(Iterator[str], f)
+            self.data = cast(abc.Iterator[str], f)
         else:
             assert hasattr(f, "readline")
             self._make_reader(f)
@@ -142,7 +137,7 @@ class PythonParser(ParserBase):
         )
 
         # get popped off for index
-        self.orig_names: list[Hashable] = list(self.columns)
+        self.orig_names: list[abc.Hashable] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -206,7 +201,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(List[str], lines)
+                lines_str = cast(list[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -245,7 +240,9 @@ class PythonParser(ParserBase):
     def read(
         self, rows: int | None = None
     ) -> tuple[
-        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+        Index | None,
+        abc.Sequence[abc.Hashable] | MultiIndex,
+        abc.Mapping[abc.Hashable, ArrayLike],
     ]:
         try:
             content = self._get_lines(rows)
@@ -259,7 +256,7 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns: Sequence[Hashable] = list(self.orig_names)
+        columns: abc.Sequence[abc.Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             # error: Cannot determine type of 'index_col'
@@ -302,7 +299,7 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(
         self,
         alldata: list[np.ndarray],
-    ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
+    ) -> tuple[abc.Mapping[abc.Hashable, np.ndarray], abc.Sequence[abc.Hashable]]:
         # error: Cannot determine type of 'index_col'
         names = dedup_names(
             self.orig_names,
@@ -328,7 +325,9 @@ class PythonParser(ParserBase):
     def get_chunk(
         self, size: int | None = None
     ) -> tuple[
-        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+        Index | None,
+        abc.Sequence[abc.Hashable] | MultiIndex,
+        abc.Mapping[abc.Hashable, ArrayLike],
     ]:
         if size is None:
             # error: "PythonParser" has no attribute "chunksize"
@@ -337,8 +336,8 @@ class PythonParser(ParserBase):
 
     def _convert_data(
         self,
-        data: Mapping[Hashable, np.ndarray],
-    ) -> Mapping[Hashable, ArrayLike]:
+        data: abc.Mapping[abc.Hashable, np.ndarray],
+    ) -> abc.Mapping[abc.Hashable, ArrayLike]:
         # apply converters
         clean_conv = self._clean_mapping(self.converters)
         clean_dtypes = self._clean_mapping(self.dtype)
@@ -789,7 +788,7 @@ class PythonParser(ParserBase):
             The row number of the line being parsed.
         """
         try:
-            # assert for mypy, data is Iterator[str] or None, would error in next
+            # assert for mypy, data is abc.Iterator[str] or None, would error in next
             assert self.data is not None
             line = next(self.data)
             # for mypy
@@ -911,8 +910,10 @@ class PythonParser(ParserBase):
     _implicit_index = False
 
     def _get_index_name(
-        self, columns: Sequence[Hashable]
-    ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
+        self, columns: abc.Sequence[abc.Hashable]
+    ) -> tuple[
+        abc.Sequence[abc.Hashable] | None, list[abc.Hashable], list[abc.Hashable]
+    ]:
         """
         Try several cases to get lines:
 
@@ -1114,7 +1115,7 @@ class PythonParser(ParserBase):
                             )
 
                         for _ in range(rows + rows_to_skip):
-                            # assert for mypy, data is Iterator[str] or None, would
+                            # assert for mypy, data is abc.Iterator[str] or None, would
                             # error in next
                             assert self.data is not None
                             new_rows.append(next(self.data))
@@ -1187,7 +1188,7 @@ class PythonParser(ParserBase):
         return no_thousands_columns
 
 
-class FixedWidthReader(abc.Iterator):
+class FixedWidthReader(abc.abc.Iterator):
     """
     A reader of fixed-width lines.
     """
@@ -1202,7 +1203,7 @@ class FixedWidthReader(abc.Iterator):
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
-        self.buffer: Iterator | None = None
+        self.buffer: abc.Iterator | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import abc
-from collections import defaultdict
+from collections import (
+    abc,
+    defaultdict,
+)
 from contextlib import nullcontext
 from functools import partial
 import inspect
@@ -11,12 +13,6 @@ from typing import (
     Callable,
     ContextManager,
     DefaultDict,
-    Dict,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
-    Sequence,
     cast,
 )
 import warnings
@@ -72,7 +68,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
 
-ResType = Dict[int, Any]
+ResType = dict[int, Any]
 
 
 def frame_apply(
@@ -207,7 +203,7 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(List[AggFuncTypeBase], func)
+            func = cast(list[AggFuncTypeBase], func)
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -264,7 +260,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         func = self.normalize_dictlike_arg("transform", obj, func)
 
-        results: dict[Hashable, DataFrame | Series] = {}
+        results: dict[abc.Hashable, DataFrame | Series] = {}
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             results[name] = colg.transform(how, 0, *args, **kwargs)
@@ -307,7 +303,7 @@ class Apply(metaclass=abc.ABCMeta):
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
-        arg = cast(List[AggFuncTypeBase], self.f)
+        arg = cast(list[AggFuncTypeBase], self.f)
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -461,7 +457,7 @@ class Apply(metaclass=abc.ABCMeta):
         # combine results
         if all(is_ndframe):
             results = dict(zip(result_index, result_data))
-            keys_to_use: Iterable[Hashable]
+            keys_to_use: abc.Iterable[abc.Hashable]
             keys_to_use = [k for k in result_index if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else result_index
@@ -666,7 +662,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Iterator[Series]:
+    def series_generator(self) -> abc.Iterator[Series]:
         pass
 
     @abc.abstractmethod
@@ -1353,8 +1349,8 @@ def normalize_keyword_aggregation(
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[tuple[Any, Any]]
-) -> Sequence[tuple[Any, Any]]:
+    seq: abc.Sequence[tuple[Any, Any]]
+) -> abc.Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
@@ -1373,9 +1369,9 @@ def _make_unique_kwarg_list(
 def relabel_result(
     result: DataFrame | Series,
     func: dict[str, list[Callable | str]],
-    columns: Iterable[Hashable],
-    order: Iterable[int],
-) -> dict[Hashable, Series]:
+    columns: abc.Iterable[abc.Hashable],
+    order: abc.Iterable[int],
+) -> dict[abc.Hashable, Series]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -1410,7 +1406,7 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: dict[Hashable, Series] = {}
+    reordered_result_in_dict: dict[abc.Hashable, Series] = {}
     idx = 0
 
     reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
@@ -1459,7 +1455,7 @@ def relabel_result(
 #     -> typing.Sequence[Callable[..., ScalarResult]]:
 
 
-def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
+def _managle_lambda_list(aggfuncs: abc.Sequence[Any]) -> abc.Sequence[Any]:
     """
     Possibly mangle a list of aggfuncs.
 

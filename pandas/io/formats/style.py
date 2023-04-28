@@ -11,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
-    Hashable,
-    Sequence,
     overload,
 )
 
@@ -58,6 +55,8 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
@@ -86,7 +85,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func: Callable) -> Generator[tuple[Any, Any], None, None]:
+def _mpl(func: Callable) -> abc.Generator[tuple[Any, Any], None, None]:
     if has_mpl:
         yield plt, mpl
     else:
@@ -506,8 +505,8 @@ class Styler(StylerRenderer):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
-        header: Sequence[Hashable] | bool = True,
+        columns: abc.Sequence[abc.Hashable] | None = None,
+        header: abc.Sequence[abc.Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
         startrow: int = 0,
@@ -2710,7 +2709,7 @@ class Styler(StylerRenderer):
         text_color_threshold: float = 0.408,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: abc.Sequence | None = None,
     ) -> Styler:
         """
         Color the {name} in a gradient style.
@@ -2858,7 +2857,7 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
-        gmap: Sequence | None = None,
+        gmap: abc.Sequence | None = None,
     ) -> Styler:
         if subset is None and gmap is None:
             subset = self._get_numeric_subset_default()
@@ -3182,8 +3181,8 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         color: str = "yellow",
         axis: Axis | None = 0,
-        left: Scalar | Sequence | None = None,
-        right: Scalar | Sequence | None = None,
+        left: Scalar | abc.Sequence | None = None,
+        right: Scalar | abc.Sequence | None = None,
         inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
@@ -3392,7 +3391,7 @@ class Styler(StylerRenderer):
     @classmethod
     def from_custom_template(
         cls,
-        searchpath: Sequence[str],
+        searchpath: abc.Sequence[str],
         html_table: str | None = None,
         html_style: str | None = None,
     ) -> type[Styler]:
@@ -3555,7 +3554,7 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: NDFrame | Sequence | np.ndarray,
+    arg: NDFrame | abc.Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
     data: NDFrame,
@@ -3615,7 +3614,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
+    gmap: abc.Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ):
     """
@@ -3686,8 +3685,8 @@ def _background_gradient(
 def _highlight_between(
     data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
-    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    left: Scalar | abc.Sequence | np.ndarray | NDFrame | None = None,
+    right: Scalar | abc.Sequence | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
@@ -3717,7 +3716,7 @@ def _highlight_between(
     g_left = (
         # error: Argument 2 to "ge" has incompatible type "Union[str, float,
         # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
-        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # abc.Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
         # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
         ops[0](data, left)  # type: ignore[arg-type]
         if left is not None
@@ -3728,7 +3727,7 @@ def _highlight_between(
     l_right = (
         # error: Argument 2 to "le" has incompatible type "Union[str, float,
         # Period, Timedelta, Interval[Any], datetime64, timedelta64, datetime,
-        # Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
+        # abc.Sequence[Any], ndarray[Any, Any], NDFrame]"; expected "Union
         # [SupportsDunderLE, SupportsDunderGE, SupportsDunderGT, SupportsDunderLT]"
         ops[1](data, right)  # type: ignore[arg-type]
         if right is not None

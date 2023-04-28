@@ -2,11 +2,7 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib import ticker
@@ -23,6 +19,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
@@ -381,7 +379,7 @@ def _has_externally_shared_axis(ax1: Axes, compare_axis: str) -> bool:
 
 
 def handle_shared_axes(
-    axarr: Iterable[Axes],
+    axarr: abc.Iterable[Axes],
     nplots: int,
     naxes: int,
     nrows: int,
@@ -433,7 +431,7 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
+def flatten_axes(axes: Axes | abc.Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -442,7 +440,7 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Axes | Sequence[Axes],
+    axes: Axes | abc.Sequence[Axes],
     xlabelsize: int | None = None,
     xrot=None,
     ylabelsize: int | None = None,
@@ -474,7 +472,7 @@ def get_all_lines(ax: Axes) -> list[Line2D]:
     return lines
 
 
-def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
+def get_xlim(lines: abc.Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
         x = line.get_xdata(orig=False)

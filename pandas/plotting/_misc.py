@@ -4,13 +4,13 @@ from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generator,
-    Mapping,
 )
 
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap
     from matplotlib.figure import Figure
@@ -97,8 +97,8 @@ def scatter_matrix(
     grid: bool = False,
     diagonal: str = "hist",
     marker: str = ".",
-    density_kwds: Mapping[str, Any] | None = None,
-    hist_kwds: Mapping[str, Any] | None = None,
+    density_kwds: abc.Mapping[str, Any] | None = None,
+    hist_kwds: abc.Mapping[str, Any] | None = None,
     range_padding: float = 0.05,
     **kwargs,
 ) -> np.ndarray:
@@ -395,7 +395,7 @@ def parallel_coordinates(
     xticks: list | tuple | None = None,
     colormap: Colormap | str | None = None,
     axvlines: bool = True,
-    axvlines_kwds: Mapping[str, Any] | None = None,
+    axvlines_kwds: abc.Mapping[str, Any] | None = None,
     sort_labels: bool = False,
     **kwargs,
 ) -> Axes:
@@ -594,7 +594,7 @@ class _Options(dict):
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Generator[_Options, None, None]:
+    def use(self, key, value) -> abc.Generator[_Options, None, None]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.

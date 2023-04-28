@@ -4,12 +4,7 @@ data hash pandas / numpy objects
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Iterator,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -26,6 +21,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         npt,
@@ -44,12 +41,12 @@ _default_hash_key = "0123456789123456"
 
 
 def combine_hash_arrays(
-    arrays: Iterator[np.ndarray], num_items: int
+    arrays: abc.Iterator[np.ndarray], num_items: int
 ) -> npt.NDArray[np.uint64]:
     """
     Parameters
     ----------
-    arrays : Iterator[np.ndarray]
+    arrays : abc.Iterator[np.ndarray]
     num_items : int
 
     Returns
@@ -172,7 +169,7 @@ def hash_pandas_object(
 
 
 def hash_tuples(
-    vals: MultiIndex | Iterable[tuple[Hashable, ...]],
+    vals: MultiIndex | abc.Iterable[tuple[abc.Hashable, ...]],
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
 ) -> npt.NDArray[np.uint64]:

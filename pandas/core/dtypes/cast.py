@@ -10,8 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
-    Sized,
     TypeVar,
     cast,
     overload,
@@ -80,6 +78,8 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from collections import abc
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -1316,7 +1316,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
 
 
 def common_dtype_categorical_compat(
-    objs: Sequence[Index | ArrayLike], dtype: DtypeObj
+    objs: abc.Sequence[Index | ArrayLike], dtype: DtypeObj
 ) -> DtypeObj:
     """
     Update the result of find_common_type to account for NAs in a Categorical.
@@ -1511,7 +1511,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: abc.Sized) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
