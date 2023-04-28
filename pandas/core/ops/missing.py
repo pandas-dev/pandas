@@ -53,6 +53,7 @@ def _fill_zeros(result, x, y):
     is_scalar_type = is_scalar(y)
 
     if not is_variable_type and not is_scalar_type:
+        # e.g. test_series_ops_name_retention with mod we get here with list/tuple
         return result
 
     if is_scalar_type:
