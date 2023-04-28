@@ -287,8 +287,6 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 
 You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
 
-.. versionadded:: 1.1
-
 One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
 
