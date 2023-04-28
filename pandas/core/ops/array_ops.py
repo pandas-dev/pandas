@@ -188,7 +188,9 @@ def _masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False, inplace=False):
+def _na_arithmetic_op(
+    left: np.ndarray, right, op, is_cmp: bool = False, inplace: bool = False
+):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -217,14 +219,14 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False, inplace
     ------
     TypeError : invalid operation
     """
-    if isinstance(right, str):
-        # can never use numexpr
-
-        # TODO: Probably also need to detect mismatched dtypes here
-        # since numpy will error on them if you use an inplace operator
-        func = op
-    else:
-        func = partial(expressions.evaluate, op, inplace=inplace)
+    # Can never be inplace/use numexpr if right side is str
+    right_is_str = isinstance(right, str)
+    func = partial(
+        expressions.evaluate,
+        op,
+        use_numexpr=not right_is_str,
+        inplace=inplace and not right_is_str,
+    )
 
     try:
         result = func(left, right)
@@ -249,7 +251,7 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False, inplace
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op, inplace=False):
+def arithmetic_op(left: ArrayLike, right: Any, op, inplace: bool = False):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -481,7 +483,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     return res_values
 
 
-def get_array_op(op, inplace=False):
+def get_array_op(op, inplace: bool = False):
     """
     Return a binary array operation corresponding to the given operator op.
 

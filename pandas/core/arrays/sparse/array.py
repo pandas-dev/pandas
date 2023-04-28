@@ -1702,11 +1702,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Ops
     # ------------------------------------------------------------------------
 
-    def _arith_method(self, other, op, inplace=False):
+    def _arith_method(self, other, op, inplace: bool = False):
         if op in _inplace_ops:
             # TODO: Do ops actually inplace on SparseArray
             # Replace the inplace op with the normal op
-            op = _inplace_ops[op]
+            op = _inplace_ops[op]  #
 
         op_name = op.__name__
 

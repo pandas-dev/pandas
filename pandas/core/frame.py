@@ -7421,7 +7421,7 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
-    def _arith_method(self, other, op, inplace=False):
+    def _arith_method(self, other, op, inplace: bool = False):
         if self._should_reindex_frame_op(other, op, 1, None, None):
             return self._arith_method_with_reindex(other, op)
 
@@ -7440,7 +7440,6 @@ class DataFrame(NDFrame, OpsMixin):
             # Need to reindex if not aligned correctly, if inplace requested
             # even if we were not able to operate on the underlying arrays inplace
             if not new_data._indexed_same(self):
-                # Print triggered
                 new_data = new_data.reindex_like(self, copy=False)
             self._update_inplace(new_data, verify_is_copy=False)
             return self
@@ -7450,7 +7449,7 @@ class DataFrame(NDFrame, OpsMixin):
     _logical_method = _arith_method
 
     def _dispatch_frame_op(
-        self, right, func: Callable, axis: AxisInt | None = None, inplace=False
+        self, right, func: Callable, axis: AxisInt | None = None, inplace: bool = False
     ) -> DataFrame:
         """
         Evaluate the frame operation func(left, right) by evaluating

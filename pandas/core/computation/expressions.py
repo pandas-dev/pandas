@@ -92,7 +92,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check) -> bool:
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, inplace=False):
+def _evaluate_numexpr(op, op_str, a, b, inplace: bool = False):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
@@ -232,7 +232,7 @@ def _bool_arith_fallback(op_str, a, b) -> bool:
     return False
 
 
-def evaluate(op, a, b, use_numexpr: bool = True, inplace=False):
+def evaluate(op, a, b, use_numexpr: bool = True, inplace: bool = False):
     """
     Evaluate and return the expression of the op on a and b.
 

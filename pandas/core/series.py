@@ -5558,7 +5558,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name)
 
-    def _arith_method(self, other, op, inplace=False):
+    def _arith_method(self, other, op, inplace: bool = False):
         # We need do_inplace to keep track of whether
         # op can be done inplace (according to CoW)
         # Still need to track inplace if it can't, since

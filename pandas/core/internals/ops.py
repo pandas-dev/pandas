@@ -28,7 +28,7 @@ class BlockPairInfo(NamedTuple):
 
 
 def _iter_block_pairs(
-    left: BlockManager, right: BlockManager, inplace=False
+    left: BlockManager, right: BlockManager, inplace: bool = False
 ) -> Iterator[BlockPairInfo]:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
@@ -60,7 +60,7 @@ def _iter_block_pairs(
 
 
 def operate_blockwise(
-    left: BlockManager, right: BlockManager, array_op, inplace=False
+    left: BlockManager, right: BlockManager, array_op, inplace: bool = False
 ) -> BlockManager:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)

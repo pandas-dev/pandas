@@ -51,6 +51,8 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",
+    # TODO: Remove once SparseArray supports inplace operations (e.g. __iadd__)
+    "_inplace_ops",
 }
 
 

@@ -312,7 +312,7 @@ class BaseBlockManager(DataManager):
         self,
         f,
         align_keys: list[str] | None = None,
-        block_inplace=False,
+        block_inplace: bool = False,
         **kwargs,
     ) -> Self:
         """
@@ -1542,7 +1542,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return new_mgr
 
     def operate_blockwise(
-        self, other: BlockManager, array_op, inplace=False
+        self, other: BlockManager, array_op, inplace: bool = False
     ) -> BlockManager:
         """
         Apply array_op blockwise with another (aligned) BlockManager.
