@@ -200,7 +200,7 @@ def _generate_range_overflow_safe_signed(
             i64max = np.uint64(i8max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                result
+                return result
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"
