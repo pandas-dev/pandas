@@ -670,13 +670,11 @@ def get_handle(
         Encoding to use.
     {compression_options}
 
-        .. versionchanged:: 1.0.0
-           May now be a dict with key 'method' as compression mode
+           May be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
 
-        .. versionchanged:: 1.1.0
-           Passing compression options as keys in dict is now
+           Passing compression options as keys in dict is
            supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
 
         .. versionchanged:: 1.4.0 Zstandard support.
