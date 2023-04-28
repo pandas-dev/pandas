@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
 from collections import (
     abc,
     defaultdict,
@@ -98,7 +102,7 @@ def frame_apply(
     )
 
 
-class Apply(metaclass=abc.ABCMeta):
+class Apply(metaclass=ABCMeta):
     axis: AxisInt
 
     def __init__(
@@ -140,7 +144,7 @@ class Apply(metaclass=abc.ABCMeta):
         self.orig_f: AggFuncType = func
         self.f: AggFuncType = f
 
-    @abc.abstractmethod
+    @abstractmethod
     def apply(self) -> DataFrame | Series:
         pass
 
@@ -651,21 +655,21 @@ class FrameApply(NDFrameApply):
     # Abstract Methods
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def result_index(self) -> Index:
         pass
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def result_columns(self) -> Index:
         pass
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def series_generator(self) -> abc.Iterator[Series]:
         pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> DataFrame | Series:

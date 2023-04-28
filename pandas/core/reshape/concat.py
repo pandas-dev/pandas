@@ -490,7 +490,7 @@ class _Concatenator:
         | abc.Mapping[HashableT, Series | DataFrame],
         keys,
     ) -> tuple[list[Series | DataFrame], Index | None]:
-        if isinstance(objs, abc.abc.Mapping):
+        if isinstance(objs, abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]

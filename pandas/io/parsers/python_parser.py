@@ -1188,7 +1188,7 @@ class PythonParser(ParserBase):
         return no_thousands_columns
 
 
-class FixedWidthReader(abc.abc.Iterator):
+class FixedWidthReader(abc.Iterator):
     """
     A reader of fixed-width lines.
     """
