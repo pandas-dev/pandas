@@ -768,7 +768,7 @@ def test_groupby_nth_with_column_axis():
 
 
 def test_groupby_nth_interval():
-    # 24205
+    # GH#24205
     idx_result = MultiIndex(
         [
             pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
