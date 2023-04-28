@@ -916,12 +916,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             freq = cls._parse_dtype_strict(freq)
 
         try:
-            return cls._cache_dtypes[freq.freqstr]
+            return cls._cache_dtypes[hash(freq)]
         except KeyError:
             dtype_code = freq._period_dtype_code
             u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
             u._freq = freq
-            cls._cache_dtypes[freq.freqstr] = u
+            cls._cache_dtypes[hash(freq)] = u
             return u
 
     def __reduce__(self):
