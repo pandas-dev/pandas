@@ -241,6 +241,49 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
       cancel-in-progress: true
 
+  Linux-Musl:
+    runs-on: ubuntu-22.04
+    container:
+      image: quay.io/pypa/musllinux_1_1_x86_64
+    steps:
+      - name: Checkout pandas Repo
+        # actions/checkout does not work since it requires node
+        run: |
+          git config --global --add safe.directory $PWD
+
+          if [ $GITHUB_EVENT_NAME != pull_request ]; then
+              git clone --recursive --branch=$GITHUB_REF_NAME https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git reset --hard $GITHUB_SHA
+          else
+              git clone --recursive https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git fetch origin $GITHUB_REF:my_ref_name
+              git checkout $GITHUB_BASE_REF
+              git -c user.email="you@example.com" merge --no-commit my_ref_name
+          fi
+      - name: Configure System Packages
+        run: |
+          apk update
+          apk add musl-locales
+      - name: Build environment
+        run: |
+          /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
+          . ~/virtualenvs/pandas-dev/bin/activate
+          python -m pip install --no-cache-dir --no-deps -U pip wheel setuptools
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
+          python setup.py build_ext -q -j$(nproc)
+          python -m pip install --no-cache-dir --no-build-isolation --no-use-pep517 -e .
+          python -m pip list --no-cache-dir
+
+      - name: Run Tests
+        run: |
+          . ~/virtualenvs/pandas-dev/bin/activate
+          export PANDAS_CI=1
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
+      cancel-in-progress: true
+
   python-dev:
     # This job may or may not run depending on the state of the next
     # unreleased Python version. DO NOT DELETE IT.
