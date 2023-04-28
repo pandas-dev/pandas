@@ -28,6 +28,7 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -164,6 +165,8 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
 
+    @cache_readonly
+    def num(self) -> re.Pattern:
         decimal = re.escape(self.decimal)
         if self.thousands is None:
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
@@ -173,7 +176,7 @@ class PythonParser(ParserBase):
                 rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
                 rf"([0-9]?(E|e)\-?[0-9]+)?$"
             )
-        self.num = re.compile(regex)
+        return re.compile(regex)
 
     def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
         sep = self.delimiter

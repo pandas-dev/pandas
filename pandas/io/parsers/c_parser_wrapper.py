@@ -344,17 +344,6 @@ class CParserWrapper(ParserBase):
             ]
         return names
 
-    def _get_index_names(self):
-        names = list(self._reader.header[0])
-        idx_names = None
-
-        if self._reader.leading_cols == 0 and self.index_col is not None:
-            (idx_names, names, self.index_col) = self._clean_index_names(
-                names, self.index_col
-            )
-
-        return names, idx_names
-
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(
