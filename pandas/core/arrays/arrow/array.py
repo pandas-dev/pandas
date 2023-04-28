@@ -69,6 +69,7 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.base import BaseStringArrayMethods
 
+from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
 if not pa_version_under7p0:
@@ -1729,42 +1730,18 @@ class ArrowExtensionArray(
 
     def _to_masked(self):
         pa_dtype = self._pa_array.type
-        na_value = 1
-        from pandas.core.arrays import (
-            BooleanArray,
-            FloatingArray,
-            IntegerArray,
-        )
 
-        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
-        if pa.types.is_floating(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Float{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = FloatingArray
-        elif pa.types.is_unsigned_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"UInt{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
-        elif pa.types.is_signed_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Int{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
+        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
+            na_value = 1
         elif pa.types.is_boolean(pa_dtype):
-            dtype = "boolean"
-            np_dtype = "bool"
             na_value = True
-            arr_cls = BooleanArray
         else:
             raise NotImplementedError
 
+        dtype = _arrow_dtype_mapping()[pa_dtype]
         mask = self.isna()
-        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
-        return arr_cls(arr, mask)
+        arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
+        return dtype.construct_array_type()(arr, mask)
 
     def _groupby_op(
         self,
