@@ -176,7 +176,8 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     result = df.groupby("A").apply(f_2)[["B"]]
-    e = expected.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    e = expected.copy().astype({"B": "float"})
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 

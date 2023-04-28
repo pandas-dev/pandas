@@ -1302,8 +1302,6 @@ class Timestamp(_Timestamp):
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
 
-        .. versionadded:: 1.1.0
-
     Notes
     -----
     There are essentially three calling conventions for the constructor. The

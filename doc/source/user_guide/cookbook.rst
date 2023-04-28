@@ -125,7 +125,7 @@ Building criteria
 
 .. ipython:: python
 
-   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 0.1
+   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 999
    df
 
 `Select rows with data closest to certain value using argsort
