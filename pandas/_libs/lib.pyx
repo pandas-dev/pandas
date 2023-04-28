@@ -1396,12 +1396,12 @@ cdef class Seen:
         )
 
     # These functions get the currently seen value
-    cdef uint8_t get_bool_val(self) except *:
+    cdef uint8_t as_bool(self) except *:
         if self.curr_seen is CurrSeen.bool_:
             return self.curr_seen_val.bool_
         else:
             raise ValueError("Cannot convert non-booolean's to boolean")
-    cdef uint64_t get_uint_val(self) except *:
+    cdef uint64_t as_uint(self) except *:
         if self.curr_seen is CurrSeen.uint_:
             return self.curr_seen_val.uint_
         elif self.curr_seen is CurrSeen.int_:
@@ -1412,7 +1412,7 @@ cdef class Seen:
             # float, complex, NaN can't be cast to uint
             raise ValueError("Cannot convert float/complex/NaN to uint64")
 
-    cdef int64_t get_int_val(self) except *:
+    cdef int64_t as_int(self) except *:
         if self.curr_seen is CurrSeen.uint_:
             return self.curr_seen_val.uint_
         elif self.curr_seen is CurrSeen.int_:
@@ -1423,7 +1423,7 @@ cdef class Seen:
             # float, complex, NaN can't be cast to uint
             raise ValueError("Cannot convert float/complex/NaN to int64")
 
-    cdef float64_t get_float_val(self) except *:
+    cdef float64_t as_float(self) except *:
         if self.curr_seen is CurrSeen.null_:
             return NaN
         if self.curr_seen is CurrSeen.uint_:
@@ -1438,7 +1438,7 @@ cdef class Seen:
             # complex cannot be cast to float
             raise ValueError("Cannot convert complex to float64")
 
-    cdef complex128_t get_complex_val(self):
+    cdef complex128_t as_complex(self):
         if self.curr_seen is CurrSeen.null_:
             return NaN
         elif self.curr_seen is CurrSeen.uint_:
@@ -1451,7 +1451,7 @@ cdef class Seen:
             return self.curr_seen_val.float_
         elif self.curr_seen is CurrSeen.complex_:
             return self.curr_seen_val.complex_
-        # No failure cases
+        # No failure cases, since can convert everything to complex
 
     cdef void set_curr_val(self, curr_seen_t val):
         """
@@ -2472,7 +2472,7 @@ def maybe_convert_numeric(
                 ints = None
                 uints = None
                 floats = None
-            complexes[i] = seen.get_complex_val()
+            complexes[i] = seen.as_complex()
         elif seen.float_:
             if floats is None:
                 floats = np.empty(n, dtype=np.float64)
@@ -2482,7 +2482,7 @@ def maybe_convert_numeric(
                 ints = None
                 uints = None
                 arr_to_upcast = floats
-            floats[i] = seen.get_float_val()
+            floats[i] = seen.as_float()
         elif seen.int_:
             if seen.curr_seen == CurrSeen.null_:
                 # No need to set, since we're covered by the mask
@@ -2493,13 +2493,13 @@ def maybe_convert_numeric(
                 if uints is None:
                     uints = np.empty(n, dtype=np.uint64)
                     uints = astype_arr(i, arr_to_upcast, uints)
-                uints[i] = seen.get_uint_val()
+                uints[i] = seen.as_uint()
                 arr_to_upcast = uints
             else:
                 if ints is None:
                     ints = np.empty(n, dtype=np.int64)
                     ints = astype_arr(i, arr_to_upcast, ints)
-                ints[i] = seen.get_int_val()
+                ints[i] = seen.as_int()
                 arr_to_upcast = ints
             # Reset all other arrs so memory can get freed
             bools = None
@@ -2510,7 +2510,7 @@ def maybe_convert_numeric(
                 # so we just do nothing
                 continue
             # bools cannot be None, we started off with it initialized
-            bools[i] = seen.get_bool_val()
+            bools[i] = seen.as_bool()
 
     if seen.check_uint64_conflict():
         return (values, None)
