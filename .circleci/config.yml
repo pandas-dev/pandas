@@ -6,7 +6,7 @@ jobs:
       image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-38-arm64.yaml
+      ENV_FILE: ci/deps/circle-39-arm64.yaml
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
       PYTEST_TARGET: "pandas"
@@ -92,4 +92,4 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
+              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]

@@ -64,7 +64,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -81,18 +80,12 @@ else:
     del pa
     has_pyarrow = True
 
-zoneinfo = None
-if compat.PY39:
-    # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+import zoneinfo
 
-    # Although zoneinfo can be imported in Py39, it is effectively
-    # "not available" without tzdata/IANA tz data.
-    # We will set zoneinfo to not found in this case
-    try:
-        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
-    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
-        zoneinfo = None
+try:
+    zoneinfo.ZoneInfo("UTC")
+except zoneinfo.ZoneInfoNotFoundError:
+    zoneinfo = None  # type: ignore[assignment]
 
 
 # ----------------------------------------------------------------
@@ -1221,7 +1214,12 @@ TIMEZONES = [
     timezone(timedelta(hours=-1), name="foo"),
 ]
 if zoneinfo is not None:
-    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
+    TIMEZONES.extend(
+        [
+            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
+            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
+        ]
+    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1964,7 +1962,7 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
 
 
 @pytest.fixture(params=warsaws)

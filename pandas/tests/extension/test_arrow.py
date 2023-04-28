@@ -130,7 +130,7 @@ def data(dtype):
 @pytest.fixture
 def data_missing(data):
     """Length-2 array with [NA, Valid]"""
-    return type(data)._from_sequence([None, data[0]])
+    return type(data)._from_sequence([None, data[0]], dtype=data.dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])
@@ -213,7 +213,8 @@ def data_for_sorting(data_for_grouping):
     A < B < C
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 
@@ -226,7 +227,8 @@ def data_missing_for_sorting(data_for_grouping):
     A < B and NA missing.
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 
@@ -2800,6 +2802,20 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+@pytest.mark.parametrize(
+    "data, arrow_dtype",
+    [
+        ([b"a", b"b"], pa.large_binary()),
+        (["a", "b"], pa.large_string()),
+    ],
+)
+def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
+    dtype = ArrowDtype(arrow_dtype)
+    result = pd.array(np.array(data), dtype=dtype)
+    expected = pd.array(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
 def test_describe_numeric_data(pa_type):
     # GH 52470
@@ -2830,3 +2846,19 @@ def test_date32_repr():
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
     assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+
+
+@pytest.mark.xfail(
+    pa_version_under8p0,
+    reason="Function 'add_checked' has no kernel matching input types",
+    raises=pa.ArrowNotImplementedError,
+)
+def test_duration_overflow_from_ndarray_containing_nat():
+    # GH52843
+    data_ts = pd.to_datetime([1, None])
+    data_td = pd.to_timedelta([1, None])
+    ser_ts = pd.Series(data_ts, dtype=ArrowDtype(pa.timestamp("ns")))
+    ser_td = pd.Series(data_td, dtype=ArrowDtype(pa.duration("ns")))
+    result = ser_ts + ser_td
+    expected = pd.Series([2, None], dtype=ArrowDtype(pa.timestamp("ns")))
+    tm.assert_series_equal(result, expected)
