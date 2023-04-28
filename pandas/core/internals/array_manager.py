@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_datetime64_ns_dtype,
-    is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
@@ -1124,7 +1123,7 @@ class ArrayManager(BaseArrayManager):
             dtype = dtype.subtype
         elif isinstance(dtype, PandasDtype):
             dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
         elif dtype == np.dtype(str):
             dtype = np.dtype("object")
