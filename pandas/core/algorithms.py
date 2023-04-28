@@ -214,6 +214,7 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
     ensure that we are arraylike if not already
     """
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+        # GH#52986
         if func_name != "isin-targets":
             # Make an exception for the comps argument in isin.
             warnings.warn(
