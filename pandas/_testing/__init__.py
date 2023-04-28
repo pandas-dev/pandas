@@ -17,7 +17,6 @@ from typing import (
 )
 
 import numpy as np
-import pytest
 
 from pandas._config.localization import (
     can_set_locale,
@@ -925,6 +924,7 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     Callable
         Regular `pytest.raises` function with `match` equal to `None`.
     """
+    import pytest
 
     return pytest.raises(expected_exception, match=None)
 
