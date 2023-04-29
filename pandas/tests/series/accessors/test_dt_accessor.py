@@ -392,6 +392,8 @@ class TestSeriesDatetimeValues:
         result = ser.dt.round(freq)
         tm.assert_series_equal(result, expected)
 
+        assert not np.shares_memory(ser.array._ndarray, result.array._ndarray)
+
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)
