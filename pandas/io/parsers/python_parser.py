@@ -66,6 +66,8 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
+    _no_thousands_columns: set[int]
+
     def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
@@ -98,8 +100,6 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.names_passed = kwds["names"] or None
-
         self.has_index_names = False
         if "has_index_names" in kwds:
             self.has_index_names = kwds["has_index_names"]
@@ -117,7 +117,7 @@ class PythonParser(ParserBase):
             self.data = cast(Iterator[str], f)
         else:
             assert hasattr(f, "readline")
-            self._make_reader(f)
+            self.data = self._make_reader(f)
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -176,7 +176,7 @@ class PythonParser(ParserBase):
             )
         return re.compile(regex)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]):
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -238,10 +238,7 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        # error: Incompatible types in assignment (expression has type "_reader",
-        # variable has type "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-        # TextIOWrapper, mmap, None]")
-        self.data = reader  # type: ignore[assignment]
+        return reader
 
     def read(
         self, rows: int | None = None
@@ -906,8 +903,6 @@ class PythonParser(ParserBase):
     def _clear_buffer(self) -> None:
         self.buf = []
 
-    _implicit_index = False
-
     def _get_index_name(
         self,
     ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
@@ -1316,8 +1311,8 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
-        self.data = FixedWidthReader(
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
+        return FixedWidthReader(
             f,
             self.colspecs,
             self.delimiter,

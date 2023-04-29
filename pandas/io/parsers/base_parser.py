@@ -102,10 +102,17 @@ class ParserBase:
         WARN = 1
         SKIP = 2
 
-    _implicit_index: bool = False
+    _implicit_index: bool
     _first_chunk: bool
+    keep_default_na: bool
+    dayfirst: bool
+    cache_dates: bool
+    keep_date_col: bool
+    usecols_dtype: str | None
 
     def __init__(self, kwds) -> None:
+        self._implicit_index = False
+
         self.names = kwds.get("names")
         self.orig_names: Sequence[Hashable] | None = None
 
@@ -962,6 +969,7 @@ class ParserBase:
 
         return usecols
 
+    @final
     def _validate_usecols_arg(self, usecols):
         """
         Validate the 'usecols' parameter.
@@ -1325,7 +1333,7 @@ def _try_convert_dates(
     return new_name, new_col, colnames
 
 
-def _get_na_values(col, na_values, na_fvalues, keep_default_na):
+def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
     """
     Get the NaN values for a given column.
 

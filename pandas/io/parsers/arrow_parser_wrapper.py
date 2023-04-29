@@ -36,9 +36,6 @@ class ArrowParserWrapper(ParserBase):
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(
-            self.kwds["usecols"]
-        )
         na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
