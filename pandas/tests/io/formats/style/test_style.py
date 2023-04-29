@@ -1,6 +1,8 @@
 import contextlib
 import copy
 import re
+import subprocess
+import sys
 from textwrap import dedent
 
 import numpy as np
@@ -97,6 +99,23 @@ def styler(df):
     np.random.seed(24)
     df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
     return Styler(df)
+
+
+def test_import_styler_no_side_effects():
+    # Check that Matplotlib converters are properly reset (see issue #27481)
+    code = (
+        "import matplotlib.units as units; "
+        "import matplotlib.dates as mdates; "
+        "n_conv = len(units.registry); "
+        "import pandas as pd; "
+        "from pandas.io.formats.style import Styler; "
+        "assert len(units.registry) == n_conv; "
+        # Ensure jinja2 was not imported
+        "import sys; "
+        "assert 'jinja2' not in sys.modules; "
+    )
+    call = [sys.executable, "-c", code]
+    subprocess.check_output(call)
 
 
 @pytest.mark.parametrize(

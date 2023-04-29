@@ -48,8 +48,6 @@ if TYPE_CHECKING:
         Axis,
         Level,
     )
-jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
-from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
 ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
@@ -72,13 +70,14 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template_html = env.get_template("html.tpl")
-    template_html_table = env.get_template("html_table.tpl")
-    template_html_style = env.get_template("html_style.tpl")
-    template_latex = env.get_template("latex.tpl")
-    template_string = env.get_template("string.tpl")
+    # For cached class properties defined below
+    _loader = None
+    _env = None
+    _template_html = None
+    _template_html_table = None
+    _template_html_style = None
+    _template_latex = None
+    _template_string = None
 
     def __init__(
         self,
@@ -146,6 +145,61 @@ class StylerRenderer:
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+
+    @classmethod
+    @property
+    def loader(cls):
+        if cls._loader is None:
+            jinja2 = import_optional_dependency(
+                "jinja2", extra="DataFrame.style requires jinja2."
+            )
+            cls._loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+        return cls._loader
+
+    @classmethod
+    @property
+    def env(cls):
+        if cls._env is None:
+            jinja2 = import_optional_dependency(
+                "jinja2", extra="DataFrame.style requires jinja2."
+            )
+            cls._env = jinja2.Environment(loader=cls.loader, trim_blocks=True)
+        return cls._env
+
+    @classmethod
+    @property
+    def template_html(cls):
+        if cls._template_html is None:
+            cls._template_html = cls.env.get_template("html.tpl")
+        return cls._template_html
+
+    @classmethod
+    @property
+    def template_html_table(cls):
+        if cls._template_html_table is None:
+            cls._template_html_table = cls.env.get_template("html_table.tpl")
+        return cls._template_html_table
+
+    @classmethod
+    @property
+    def template_html_style(cls):
+        if cls._template_html_style is None:
+            cls._template_html_style = cls.env.get_template("html_style.tpl")
+        return cls._template_html_style
+
+    @classmethod
+    @property
+    def template_latex(cls):
+        if cls._template_latex is None:
+            cls._template_latex = cls.env.get_template("latex.tpl")
+        return cls._template_latex
+
+    @classmethod
+    @property
+    def template_string(cls):
+        if cls._template_string is None:
+            cls._template_string = cls.env.get_template("string.tpl")
+        return cls._template_string
 
     def _render(
         self,
@@ -1778,11 +1832,11 @@ def _wrap_decimal_thousands(
     return wrapper
 
 
-def _str_escape(x, escape):
+def _str_escape(x, escape, markupsafe):
     """if escaping: only use on str, else return input"""
     if isinstance(x, str):
         if escape == "html":
-            return escape_html(x)
+            return markupsafe.escape(x)
         elif escape == "latex":
             return _escape_latex(x)
         elif escape == "latex-math":
@@ -1840,7 +1894,10 @@ def _maybe_wrap_formatter(
 
     # Replace chars if escaping
     if escape is not None:
-        func_1 = lambda x: func_0(_str_escape(x, escape=escape))
+        markupsafe = import_optional_dependency(
+            "markupsafe", extra="DataFrame.style requires markupsafe."
+        )
+        func_1 = lambda x: func_0(_str_escape(x, escape=escape, markupsafe=markupsafe))
     else:
         func_1 = func_0
 

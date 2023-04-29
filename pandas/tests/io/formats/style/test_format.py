@@ -12,6 +12,8 @@ from pandas import (
 )
 
 pytest.importorskip("jinja2")
+import markupsafe
+
 from pandas.io.formats.style import Styler
 from pandas.io.formats.style_render import _str_escape
 
@@ -408,12 +410,12 @@ def test_format_decimal(formatter, thousands, precision, func, col):
 def test_str_escape_error():
     msg = "`escape` only permitted in {'html', 'latex', 'latex-math'}, got "
     with pytest.raises(ValueError, match=msg):
-        _str_escape("text", "bad_escape")
+        _str_escape("text", "bad_escape", markupsafe)
 
     with pytest.raises(ValueError, match=msg):
-        _str_escape("text", [])
+        _str_escape("text", [], markupsafe)
 
-    _str_escape(2.00, "bad_escape")  # OK since dtype is float
+    _str_escape(2.00, "bad_escape", markupsafe)  # OK since dtype is float
 
 
 def test_format_options():
