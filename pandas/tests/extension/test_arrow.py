@@ -2844,7 +2844,7 @@ def test_describe_numeric_data(pa_type):
 
 @pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
 def test_describe_timedelta_data(pa_type):
-    # GH#####
+    # GH53001
     data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(
@@ -2857,7 +2857,7 @@ def test_describe_timedelta_data(pa_type):
 
 @pytest.mark.parametrize("pa_type", tm.DATETIME_PYARROW_DTYPES)
 def test_describe_datetime_data(pa_type):
-    # GH#####
+    # GH53001
     data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
     result = data.describe()
     expected = pd.Series(

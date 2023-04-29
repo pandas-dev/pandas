@@ -232,7 +232,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     if isinstance(series.dtype, ExtensionDtype):
         if isinstance(series.dtype, ArrowDtype):
             if series.dtype.kind == "m":
-                # GH#####: describe timedeltas with object dtype
+                # GH53001: describe timedeltas with object dtype
                 dtype = None
             else:
                 import pyarrow as pa
