@@ -696,7 +696,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O")
+    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
