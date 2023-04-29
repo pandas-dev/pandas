@@ -417,6 +417,10 @@ Styler
 -
 -
 
+Metadata
+^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.std` (:issue:`28283`)
+
 Other
 ^^^^^
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
