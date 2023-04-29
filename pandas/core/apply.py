@@ -56,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -580,10 +579,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         if obj.ndim != 1:
             # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
+            from pandas import Index
+
+            cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise KeyError(f"Column(s) {cols_sorted} do not exist")
+                raise KeyError(f"Column(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
