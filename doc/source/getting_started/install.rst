@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, 3.9, 3.10 and 3.11.
+Officially Python 3.9, 3.10 and 3.11.
 
 Installing pandas
 -----------------
@@ -260,7 +260,7 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.20.3
+`NumPy <https://numpy.org>`__                                    1.21.6
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================

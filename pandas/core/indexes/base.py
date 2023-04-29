@@ -55,6 +55,7 @@ from pandas._typing import (
     IndexLabel,
     JoinHow,
     Level,
+    NaPosition,
     Self,
     Shape,
     npt,
@@ -915,24 +916,27 @@ class Index(IndexOpsMixin, PandasObject):
         if ufunc.nout == 2:
             # i.e. np.divmod, np.modf, np.frexp
             return tuple(self.__array_wrap__(x) for x in result)
+        elif method == "reduce":
+            result = lib.item_from_zerodim(result)
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
 
         return self.__array_wrap__(result)
 
+    @final
     def __array_wrap__(self, result, context=None):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if (
-            (not isinstance(result, Index) and is_bool_dtype(result))
-            or lib.is_scalar(result)
-            or np.ndim(result) > 1
-        ):
+        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
+            result
+        ) > 1:
             # exclude Index to avoid warning from is_bool_dtype deprecation;
             #  in the Index case it doesn't matter which path we go down.
+            # reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -1921,7 +1925,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str_t = "first",
+        na_position: NaPosition = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -2533,7 +2537,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds categorical data.
 
         .. deprecated:: 2.0.0
-              Use :meth:`pandas.api.types.is_categorical_dtype` instead.
+              Use `isinstance(index.dtype, pd.CategoricalDtype)` instead.
 
         Returns
         -------
@@ -2586,7 +2590,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds Interval objects.
 
         .. deprecated:: 2.0.0
-            Use `pandas.api.types.is_interval_dtype` instead.
+            Use `isinstance(index.dtype, pd.IntervalDtype)` instead.
 
         Returns
         -------
@@ -5573,7 +5577,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str_t = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         """
@@ -5600,8 +5604,6 @@ class Index(IndexOpsMixin, PandasObject):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -5632,7 +5634,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        idx = ensure_key_mapped(self, key)
+        idx = cast(Index, ensure_key_mapped(self, key))
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -6138,7 +6140,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -6168,7 +6170,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
@@ -7380,10 +7382,15 @@ def _unpack_nested_dtype(other: Index) -> Index:
     return other
 
 
-def _maybe_try_sort(result, sort):
+def _maybe_try_sort(result: Index | ArrayLike, sort: bool | None):
     if sort is not False:
         try:
-            result = algos.safe_sort(result)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray[Any, Any], Index, Series,
+            # Tuple[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series],
+            # ndarray[Any, Any]]]", variable has type "Union[Index,
+            # Union[ExtensionArray, ndarray[Any, Any]]]")
+            result = algos.safe_sort(result)  # type: ignore[assignment]
         except TypeError as err:
             if sort is True:
                 raise

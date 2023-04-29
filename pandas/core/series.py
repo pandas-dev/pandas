@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
@@ -1017,10 +1018,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
-        if isinstance(key, Index):
-            key_type = key.inferred_type
-        else:
-            key_type = lib.infer_dtype(key, skipna=False)
+        key_type = lib.infer_dtype(key, skipna=False)
 
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
@@ -1755,7 +1753,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index : bool, optional, default True
             Add index (row) labels.
 
-            .. versionadded:: 1.1.0
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -1821,6 +1818,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s.keys()
+        Index([0, 1, 2], dtype='int64')
         """
         return self.index
 
@@ -2719,8 +2722,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         float
@@ -3333,8 +3334,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Series:
@@ -3347,8 +3348,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -3360,8 +3361,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> Series | None:
@@ -3393,8 +3394,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return an array-like.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3534,7 +3533,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
+        if key:
+            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+        else:
+            values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
@@ -3651,8 +3653,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3896,7 +3896,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    def nsmallest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         """
         Return the smallest `n` elements.
 
@@ -4101,8 +4103,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -4355,7 +4355,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if func is None:
             func = dict(kwargs.items())
 
-        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4371,9 +4371,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(
-            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
-        ).transform()
+        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4495,17 +4493,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(
+            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+        ).apply()
 
     def _reindex_indexer(
         self,
@@ -4715,7 +4705,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=None,
         *,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = None,
@@ -5502,6 +5492,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
 
         To change the index labels of an existing Series:
+
         >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
         >>> city_series.index
         Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
@@ -5589,9 +5580,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
         """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
         this = self
 
         if not self.index.equals(other.index):
@@ -5657,7 +5645,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
-            result.name = res_name
+            result._name = res_name
             return result
         else:
             if fill_value is not None:

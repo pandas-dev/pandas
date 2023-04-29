@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     Generic,
-    Literal,
     Sequence,
 )
 
@@ -30,6 +29,7 @@ if TYPE_CHECKING:
         Level,
         TimeAmbiguous,
         TimeNonexistent,
+        ToTimestampHow,
     )
 
 
@@ -519,7 +519,7 @@ class AxisOps(Generic[NDFrameT]):
         self,
         freq=None,
         *,
-        how: Literal["s", "e", "start", "end"] = "start",
+        how: ToTimestampHow = "start",
         axis: Axis = 0,
         copy: bool | None = None,
     ) -> NDFrameT:

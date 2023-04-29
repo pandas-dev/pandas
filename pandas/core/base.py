@@ -736,6 +736,15 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         iterator
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> for x in s:
+        ...     print(x)
+        1
+        2
+        3
         """
         # We are explicitly making element iterators.
         if not isinstance(self._values, np.ndarray):
@@ -825,7 +834,7 @@ class IndexOpsMixin(OpsMixin):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : bool, default True
-            Sort by frequencies.
+            Sort by frequencies when True. Preserve the order of the data when False.
         ascending : bool, default False
             Sort in ascending order.
         bins : int, optional

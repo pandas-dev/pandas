@@ -18,12 +18,12 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -326,7 +326,7 @@ def _add_margins(
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
             continue
 
@@ -466,7 +466,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
+            margin = data[rows].groupby(rows, observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -484,7 +484,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
+        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
