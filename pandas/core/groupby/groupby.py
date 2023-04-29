@@ -260,7 +260,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1[['B', 'C']].apply(lambda x: x.C.max() - x.B.min())
+    >>> g1.apply(lambda x: x.C.max() - x.B.min())
     A
     a    5
     b    2
@@ -417,8 +417,6 @@ f : function, str
 
     If a string is chosen, then it needs to be the name
     of the groupby method you want to use.
-
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -426,7 +424,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -435,7 +432,6 @@ engine_kwargs : dict, default None
       ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     Keyword arguments to be passed into func.
 
@@ -508,17 +504,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
     .. deprecated:: 2.1.0
 
@@ -531,7 +525,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -540,7 +533,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -595,17 +587,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
 *args
     Positional arguments to pass to func.
@@ -614,7 +604,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -623,7 +612,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -1500,16 +1488,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
-                if (
-                    not isinstance(self.obj, Series)
-                    and self._selection is None
-                    and self._selected_obj.shape != self._obj_with_exclusions.shape
-                ):
-                    warnings.warn(
-                        message=_apply_groupings_depr.format(type(self).__name__),
-                        category=FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -2671,55 +2649,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a')[['b']].resample('3T').sum()
-                                 b
+        >>> df.groupby('a').resample('3T').sum()
+                                 a  b
         a
-        0   2000-01-01 00:00:00  2
-            2000-01-01 00:03:00  1
-        5   2000-01-01 00:00:00  1
+        0   2000-01-01 00:00:00  0  2
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:00:00  5  1
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a')[['b']].resample('30S').sum()
-                            b
+        >>> df.groupby('a').resample('30S').sum()
+                            a  b
         a
-        0   2000-01-01 00:00:00  1
-            2000-01-01 00:00:30  0
-            2000-01-01 00:01:00  1
-            2000-01-01 00:01:30  0
-            2000-01-01 00:02:00  0
-            2000-01-01 00:02:30  0
-            2000-01-01 00:03:00  1
-        5   2000-01-01 00:02:00  1
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:00:30  0  0
+            2000-01-01 00:01:00  0  1
+            2000-01-01 00:01:30  0  0
+            2000-01-01 00:02:00  0  0
+            2000-01-01 00:02:30  0  0
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:02:00  5  1
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a')[['b']].resample('M').sum()
-                    b
+        >>> df.groupby('a').resample('M').sum()
+                    a  b
         a
-        0   2000-01-31  3
-        5   2000-01-31  1
+        0   2000-01-31  0  3
+        5   2000-01-31  5  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a')[['b']].resample('3T', closed='right').sum()
-                                 b
+        >>> df.groupby('a').resample('3T', closed='right').sum()
+                                 a  b
         a
-        0   1999-12-31 23:57:00  1
-            2000-01-01 00:00:00  2
-        5   2000-01-01 00:00:00  1
+        0   1999-12-31 23:57:00  0  1
+            2000-01-01 00:00:00  0  2
+        5   2000-01-01 00:00:00  5  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a')[['b']].resample('3T', closed='right', label='right').sum()
-                                 b
+        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
+                                 a  b
         a
-        0   2000-01-01 00:00:00  1
-            2000-01-01 00:03:00  2
-        5   2000-01-01 00:03:00  1
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:03:00  0  2
+        5   2000-01-01 00:03:00  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
@@ -4170,8 +4148,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         You can use `random_state` for reproducibility.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         n : int, optional
@@ -4343,13 +4319,3 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
-
-
-# GH#7155
-_apply_groupings_depr = (
-    "{}.apply operated on the grouping columns. This behavior is deprecated, "
-    "and in a future version of pandas the grouping columns will be excluded "
-    "from the operation. Select the columns to operate on after groupby to"
-    "either explicitly include or exclude the groupings and silence "
-    "this warning."
-)
