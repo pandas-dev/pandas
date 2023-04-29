@@ -224,21 +224,21 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        # Sort the releases in descending order
-        sorted_releases = sorted(
-            releases,
-            key=lambda release: version.parse(release["tag_name"]),
-            reverse=True,
-        )
+        # Map to create a list of (version, realse) pairs from releases
+        parsed_releases = map(lambda r: (version.parse(r["tag_name"]), r), releases)
 
-        # Gathers minor versions
+        # Sort the releases in descending order
+        sorted_releases = sorted(parsed_releases, reverse=True)
+
+        # Gathers minor versions that are NOT obsolete
         latest_releases = []
-        minor_versions = set()
-        for release in sorted_releases:
-            minor_version = ".".join(release["tag_name"].split(".")[:2])
-            if minor_version not in minor_versions:
-                latest_releases.append(release)
-                minor_versions.add(minor_version)
+        prev_version = version.Version("0.0.0")
+        for v, release in sorted_releases:
+            if (v.major, v.minor) == (prev_version.major, prev_version.minor):
+                # This release is of obsolete version, so skip
+                continue
+            latest_releases.append(release)
+            prev_version = v
 
         for release in latest_releases:
             if release["prerelease"]:
