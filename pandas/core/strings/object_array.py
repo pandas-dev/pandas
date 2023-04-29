@@ -8,6 +8,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
+    Sequence,
+    cast,
 )
 import unicodedata
 
@@ -17,7 +19,6 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 
-from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
@@ -177,14 +178,15 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f, dtype=str)
 
-    def _str_repeat(self, repeats):
-        if is_scalar(repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if lib.is_integer(repeats):
+            rint = cast(int, repeats)
 
             def scalar_rep(x):
                 try:
-                    return bytes.__mul__(x, repeats)
+                    return bytes.__mul__(x, rint)
                 except TypeError:
-                    return str.__mul__(x, repeats)
+                    return str.__mul__(x, rint)
 
             return self._str_map(scalar_rep, dtype=str)
         else:
@@ -198,8 +200,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 except TypeError:
                     return str.__mul__(x, r)
 
-            repeats = np.asarray(repeats, dtype=object)
-            result = libops.vec_binop(np.asarray(self), repeats, rep)
+            result = libops.vec_binop(
+                np.asarray(self),
+                np.asarray(repeats, dtype=object),
+                rep,
+            )
             if isinstance(self, BaseStringArray):
                 # Not going through map, so we have to do this here.
                 result = type(self)._from_sequence(result)
