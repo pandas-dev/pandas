@@ -309,8 +309,18 @@ class Preprocessors:
 
         regex = r"^PDEP-(\d+)"
         compiled_pattern = re.compile(regex)
-        get_num = lambda pdep: int(compiled_pattern.match(pdep["title"])[1])
-        for pdep in sorted(pdeps["items"], key=get_num):
+
+        def sort_pdep(pdep: str) -> int:
+            title = pdep["title"]
+            match = compiled_pattern.match(title)
+            if not match:
+                msg = f"""Could not find PDEP number in '{title}'. Please make sure to
+                write the title as: 'PDEP-num: {title}'."""
+                raise ValueError(msg)
+
+            return int(match[1])
+
+        for pdep in sorted(pdeps["items"], key=sort_pdep):
             context["pdeps"]["Under discussion"].append(
                 {"title": pdep["title"], "url": pdep["html_url"]}
             )
