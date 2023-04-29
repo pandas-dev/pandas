@@ -96,11 +96,11 @@ repos:
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
-    -       id: pylint
-            alias: unspecified-encoding
-            name: Using open without explicitly specifying an encoding
-            args: [--disable=all, --enable=unspecified-encoding]
-            stages: [manual]
+    -   id: pylint
+        alias: unspecified-encoding
+        name: Using open without explicitly specifying an encoding
+        args: [--disable=all, --enable=unspecified-encoding]
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
