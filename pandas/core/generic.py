@@ -8359,9 +8359,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
-        if (lower is None or (is_scalar(lower) and is_number(lower))) and (
-            upper is None or (is_scalar(upper) and is_number(upper))
-        ):
+        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
             return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self
