@@ -439,6 +439,7 @@ class ParserBase:
 
         return index
 
+    @final
     def _clean_mapping(self, mapping):
         """converts col numbers to names"""
         if not isinstance(mapping, dict):
@@ -667,6 +668,7 @@ class ParserBase:
 
         return noconvert_columns
 
+    @final
     def _infer_types(
         self, values, na_values, no_dtype_specified, try_num_bool: bool = True
     ) -> tuple[ArrayLike, int]:
@@ -771,6 +773,7 @@ class ParserBase:
 
         return result, na_count
 
+    @final
     def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
         """
         Cast values to specified type
@@ -858,6 +861,7 @@ class ParserBase:
     ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
         ...
 
+    @final
     def _do_date_conversions(
         self,
         names: Sequence[Hashable] | Index,
@@ -879,6 +883,7 @@ class ParserBase:
 
         return names, data
 
+    @final
     def _check_data_length(
         self,
         columns: Sequence[Hashable],
@@ -922,6 +927,7 @@ class ParserBase:
     ) -> set[str]:
         ...
 
+    @final
     def _evaluate_usecols(
         self,
         usecols: Callable[[Hashable], object] | set[str] | set[int],
@@ -938,6 +944,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
+    @final
     def _validate_usecols_names(self, usecols, names: Sequence):
         """
         Validates that all usecols are present in a given
@@ -1019,6 +1026,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
+    @final
     def _clean_index_names(self, columns, index_col) -> tuple[list | None, list, list]:
         if not is_index_col(index_col):
             return None, columns, index_col
