@@ -129,7 +129,9 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
     arr = [3.3, None, 2.1]
     table = pa.table({"arr": arr}).slice(offset, length)
     exchange_df = table.__dataframe__()
-    result = from_dataframe(exchange_df)
+    msg = "DataFrame.attrs is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = from_dataframe(exchange_df)
     expected = pd.DataFrame({"arr": expected_values})
     tm.assert_frame_equal(result, expected)
 
