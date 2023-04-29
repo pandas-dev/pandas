@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 
 class TestAsArray:
-    def test_asarray_homogenous(self):
+    def test_asarray_homogeneous(self):
         df = DataFrame({"A": Categorical([1, 2]), "B": Categorical([1, 2])})
         result = np.asarray(df)
         # may change from object in the future
@@ -43,3 +43,47 @@ class TestAsArray:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = df.sum(axis=None)
         tm.assert_series_equal(res, expected)
+
+    def test_np_ravel(self):
+        # GH26247
+        arr = np.array(
+            [
+                [0.11197053, 0.44361564, -0.92589452],
+                [0.05883648, -0.00948922, -0.26469934],
+            ]
+        )
+
+        result = np.ravel([DataFrame(batch.reshape(1, 3)) for batch in arr])
+        expected = np.array(
+            [
+                0.11197053,
+                0.44361564,
+                -0.92589452,
+                0.05883648,
+                -0.00948922,
+                -0.26469934,
+            ]
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.ravel(DataFrame(arr[0].reshape(1, 3), columns=["x1", "x2", "x3"]))
+        expected = np.array([0.11197053, 0.44361564, -0.92589452])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.ravel(
+            [
+                DataFrame(batch.reshape(1, 3), columns=["x1", "x2", "x3"])
+                for batch in arr
+            ]
+        )
+        expected = np.array(
+            [
+                0.11197053,
+                0.44361564,
+                -0.92589452,
+                0.05883648,
+                -0.00948922,
+                -0.26469934,
+            ]
+        )
+        tm.assert_numpy_array_equal(result, expected)

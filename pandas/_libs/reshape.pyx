@@ -9,6 +9,7 @@ from numpy cimport (
 import numpy as np
 
 cimport numpy as cnp
+from libc.math cimport NAN
 
 cnp.import_array()
 
@@ -129,7 +130,7 @@ def explode(ndarray[object] values):
                     count += 1
             else:
                 # empty list-like, use a nan marker
-                result[count] = np.nan
+                result[count] = NAN
                 count += 1
         else:
             # replace with the existing scalar

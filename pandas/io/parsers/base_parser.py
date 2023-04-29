@@ -60,7 +60,11 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas import StringDtype
+from pandas import (
+    ArrowDtype,
+    DatetimeIndex,
+    StringDtype,
+)
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
@@ -246,8 +250,8 @@ class ParserBase:
 
     @final
     def _should_parse_dates(self, i: int) -> bool:
-        if isinstance(self.parse_dates, bool):
-            return self.parse_dates
+        if lib.is_bool(self.parse_dates):
+            return bool(self.parse_dates)
         else:
             if self.index_names is not None:
                 name = self.index_names[i]
@@ -255,14 +259,9 @@ class ParserBase:
                 name = None
             j = i if self.index_col is None else self.index_col[i]
 
-            if is_scalar(self.parse_dates):
-                return (j == self.parse_dates) or (
-                    name is not None and name == self.parse_dates
-                )
-            else:
-                return (j in self.parse_dates) or (
-                    name is not None and name in self.parse_dates
-                )
+            return (j in self.parse_dates) or (
+                name is not None and name in self.parse_dates
+            )
 
     @final
     def _extract_multi_indexer_columns(
@@ -864,6 +863,7 @@ class ParserBase:
                 self.index_names,
                 names,
                 keep_date_col=self.keep_date_col,
+                dtype_backend=self.dtype_backend,
             )
 
         return names, data
@@ -927,7 +927,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
-    def _validate_usecols_names(self, usecols, names):
+    def _validate_usecols_names(self, usecols, names: Sequence):
         """
         Validates that all usecols are present in a given
         list of names. If not, raise a ValueError that
@@ -1109,6 +1109,12 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
+    def unpack_if_single_element(arg):
+        # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+        if isinstance(arg, np.ndarray) and arg.ndim == 1 and len(arg) == 1:
+            return arg[0]
+        return arg
+
     def converter(*date_cols, col: Hashable):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
@@ -1116,18 +1122,25 @@ def _make_date_converter(
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
-            return tools.to_datetime(
+            result = tools.to_datetime(
                 ensure_object(strs),
                 format=date_fmt,
                 utc=False,
                 dayfirst=dayfirst,
                 errors="ignore",
                 cache=cache_dates,
-            )._values
+            )
+            if isinstance(result, DatetimeIndex):
+                arr = result.to_numpy()
+                arr.flags.writeable = True
+                return arr
+            return result._values
         else:
             try:
                 result = tools.to_datetime(
-                    date_parser(*date_cols), errors="ignore", cache=cache_dates
+                    date_parser(*(unpack_if_single_element(arg) for arg in date_cols)),
+                    errors="ignore",
+                    cache=cache_dates,
                 )
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
@@ -1195,6 +1208,7 @@ def _process_date_conversion(
     index_names,
     columns,
     keep_date_col: bool = False,
+    dtype_backend=lib.no_default,
 ):
     def _isindex(colspec):
         return (isinstance(index_col, list) and colspec in index_col) or (
@@ -1220,6 +1234,16 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
+                elif dtype_backend == "pyarrow":
+                    import pyarrow as pa
+
+                    dtype = data_dict[colspec].dtype
+                    if isinstance(dtype, ArrowDtype) and (
+                        pa.types.is_timestamp(dtype.pyarrow_dtype)
+                        or pa.types.is_date(dtype.pyarrow_dtype)
+                    ):
+                        continue
+
                 # Pyarrow engine returns Series which we need to convert to
                 # numpy array before converter, its a no-op for other parsers
                 data_dict[colspec] = converter(
@@ -1341,13 +1365,12 @@ def _validate_parse_dates_arg(parse_dates):
         "for the 'parse_dates' parameter"
     )
 
-    if parse_dates is not None:
-        if is_scalar(parse_dates):
-            if not lib.is_bool(parse_dates):
-                raise TypeError(msg)
-
-        elif not isinstance(parse_dates, (list, dict)):
-            raise TypeError(msg)
+    if not (
+        parse_dates is None
+        or lib.is_bool(parse_dates)
+        or isinstance(parse_dates, (list, dict))
+    ):
+        raise TypeError(msg)
 
     return parse_dates
 

@@ -87,8 +87,6 @@ def hist_series(
     legend : bool, default False
         Whether to show the legend.
 
-        .. versionadded:: 1.1.0
-
     **kwargs
         To be passed to the actual plotting function.
 
@@ -196,8 +194,6 @@ def hist_frame(
 
     legend : bool, default False
         Whether to show the legend.
-
-        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -393,7 +389,7 @@ the matplotlib axes on which the boxplot is drawn are returned:
 
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], return_type='axes')
     >>> type(boxplot)
-    <class 'matplotlib.axes._subplots.AxesSubplot'>
+    <class 'matplotlib.axes._axes.Axes'>
 
 When grouping with ``by``, a Series mapping columns to ``return_type``
 is returned:
@@ -448,8 +444,6 @@ _bar_or_line_doc = """
                 `b`, then passing {'a': 'green', 'b': 'red'} will color %(kind)ss for
                 column `a` in green and %(kind)ss for column `b` in red.
 
-            .. versionadded:: 1.1.0
-
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -500,10 +494,10 @@ def boxplot_frame(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     backend=None,
@@ -529,11 +523,11 @@ def boxplot_frame_groupby(
     grouped,
     subplots: bool = True,
     column=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
     ax=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = True,
@@ -705,8 +699,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
@@ -718,8 +710,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.2.0
 
@@ -797,7 +787,7 @@ class PlotAccessor(PandasObject):
         self._parent = data
 
     @staticmethod
-    def _get_call_args(backend_name, data, args, kwargs):
+    def _get_call_args(backend_name: str, data, args, kwargs):
         """
         This function makes calls to this accessor `__call__` method compatible
         with the previous `SeriesPlotMethods.__call__` and
@@ -1637,8 +1627,6 @@ class PlotAccessor(PandasObject):
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
 
-              .. versionchanged:: 1.1.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1831,7 +1819,9 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
-        entry = eps.get(key, ())
+        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
+        # expected "EntryPoints"  [arg-type]
+        entry = eps.get(key, ())  # type: ignore[arg-type]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

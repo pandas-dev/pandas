@@ -2,6 +2,7 @@ import numpy as np
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     Series,
     date_range,
@@ -24,7 +25,9 @@ class TestCategoricalReprWithFactor:
 
 class TestCategoricalRepr:
     def test_big_print(self):
-        factor = Categorical([0, 1, 2, 0, 1, 2] * 100, ["a", "b", "c"], fastpath=True)
+        codes = np.array([0, 1, 2, 0, 1, 2] * 100)
+        dtype = CategoricalDtype(categories=["a", "b", "c"])
+        factor = Categorical.from_codes(codes, dtype=dtype)
         expected = [
             "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
             "Length: 600",

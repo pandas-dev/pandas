@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Sequence,
     Union,
-    cast,
     overload,
 )
 
@@ -51,11 +50,9 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
-    is_interval_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -63,7 +60,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -123,8 +123,6 @@ _interval_shared_docs[
     "class"
 ] = """
 %(summary)s
-
-.. versionadded:: %(versionadded)s
 
 Parameters
 ----------
@@ -187,7 +185,6 @@ for more.
     % {
         "klass": "IntervalArray",
         "summary": "Pandas array for interval data that are closed on the same side.",
-        "versionadded": "0.24.0",
         "name": "",
         "extra_attributes": "",
         "extra_methods": "",
@@ -229,7 +226,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(
         cls,
         data,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
@@ -317,8 +314,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
-            if is_interval_dtype(dtype):
-                dtype = cast(IntervalDtype, dtype)
+            if isinstance(dtype, IntervalDtype):
                 if dtype.subtype is not None:
                     left = left.astype(dtype.subtype)
                     right = right.astype(dtype.subtype)
@@ -333,9 +329,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 raise ValueError("closed keyword does not match dtype.closed")
 
         # coerce dtypes to match if needed
-        if is_float_dtype(left) and is_integer_dtype(right):
+        if is_float_dtype(left.dtype) and is_integer_dtype(right.dtype):
             right = right.astype(left.dtype)
-        elif is_float_dtype(right) and is_integer_dtype(left):
+        elif is_float_dtype(right.dtype) and is_integer_dtype(left.dtype):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
@@ -344,7 +340,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"right [{type(right).__name__}] types"
             )
             raise ValueError(msg)
-        if is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
+        if isinstance(left.dtype, CategoricalDtype) or is_string_dtype(left.dtype):
             # GH 19016
             msg = (
                 "category, object, and string subtypes are not supported "
@@ -752,14 +748,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # determine the dtype of the elements we want to compare
         if isinstance(other, Interval):
             other_dtype = pandas_dtype("interval")
-        elif not is_categorical_dtype(other.dtype):
+        elif not isinstance(other.dtype, CategoricalDtype):
             other_dtype = other.dtype
         else:
             # for categorical defer to categories for dtype
             other_dtype = other.categories.dtype
 
             # extract intervals if we have interval categories with matching closed
-            if is_interval_dtype(other_dtype):
+            if isinstance(other_dtype, IntervalDtype):
                 if self.closed != other.categories.closed:
                     return invalid_comparison(self, other, op)
 
@@ -768,7 +764,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 )
 
         # interval-like -> need same closed and matching endpoints
-        if is_interval_dtype(other_dtype):
+        if isinstance(other_dtype, IntervalDtype):
             if self.closed != other.closed:
                 return invalid_comparison(self, other, op)
             elif not isinstance(other, Interval):
@@ -889,7 +885,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, method=None, limit=None) -> Self:
+    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -951,7 +947,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        if is_interval_dtype(dtype):
+        if isinstance(dtype, IntervalDtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
@@ -1683,7 +1679,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             values = np.array(values)
         values = extract_array(values, extract_numpy=True)
 
-        if is_interval_dtype(values.dtype):
+        if isinstance(values.dtype, IntervalDtype):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
@@ -1772,7 +1768,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later, but we avoid passing to maybe_convert_platform
         return values
-    elif is_categorical_dtype(values):
+    elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
         values = np.asarray(values)
     elif not hasattr(values, "dtype") and not isinstance(values, (list, tuple, range)):
         # TODO: should we just cast these to list?
@@ -1782,6 +1778,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
 
     if not hasattr(values, "dtype"):
         values = np.asarray(values)
-        if is_integer_dtype(values) and values.dtype != np.int64:
+        if values.dtype.kind in "iu" and values.dtype != np.int64:
             values = values.astype(np.int64)
     return values
