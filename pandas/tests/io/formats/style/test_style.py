@@ -102,7 +102,7 @@ def styler(df):
 
 
 def test_import_styler_no_side_effects():
-    # Check that Matplotlib converters are properly reset (see issue #27481)
+    # GH#52995
     code = (
         "import matplotlib.units as units; "
         "import matplotlib.dates as mdates; "
