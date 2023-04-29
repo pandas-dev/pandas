@@ -1646,7 +1646,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 return result
 
-            # Not implement in Cython
             result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
             return result
 
