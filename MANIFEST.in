@@ -53,7 +53,11 @@ global-exclude *.pxi
 # GH 39321
 # csv_dir_path fixture checks the existence of the directory
 # exclude the whole directory to avoid running related tests in sdist
-prune pandas/tests/io/parser/data
+#prune pandas/tests/io/parser/data
+
+# Remove tests
+# Those will be distributed in a separate package
+prune pandas/tests
 
 # Selectively re-add *.cxx files that were excluded above
 graft pandas/_libs/src

@@ -8,8 +8,6 @@ import sys
 
 from pandas.compat._optional import import_optional_dependency
 
-PKG = os.path.dirname(os.path.dirname(__file__))
-
 
 def test(extra_args: list[str] | None = None) -> None:
     """
@@ -23,6 +21,8 @@ def test(extra_args: list[str] | None = None) -> None:
         Extra marks to run the tests.
     """
     pytest = import_optional_dependency("pytest")
+    pandas_tests = import_optional_dependency("pandas_tests")
+    PKG = os.path.dirname(pandas_tests.__file__)
     import_optional_dependency("hypothesis")
     cmd = ['-m "not slow and not network and not db"']
     if extra_args:

@@ -1167,7 +1167,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     ValueError
         If the path doesn't exist and the --strict-data-files option is set.
     """
-    BASE_PATH = os.path.join(os.path.dirname(__file__), "tests")
+    BASE_PATH = os.path.join(os.path.dirname(__file__), "")
 
     def deco(*args):
         path = os.path.join(BASE_PATH, *args)
