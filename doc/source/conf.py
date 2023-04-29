@@ -117,9 +117,9 @@ if pattern:
                 elif single_doc and rel_fname != pattern:
                     exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template"),encoding="utf-8") as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w",encoding="utf-8") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,

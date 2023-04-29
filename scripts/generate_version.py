@@ -8,7 +8,7 @@ def write_version_info(path):
     if os.environ.get("MESON_DIST_ROOT"):
         # raise ValueError("dist root is", os.environ.get("MESON_DIST_ROOT"))
         path = os.path.join(os.environ.get("MESON_DIST_ROOT"), path)
-    with open(path, "w",encoding="utf-8") as file:
+    with open(path, "w", encoding="utf-8") as file:
         file.write(f'__version__="{versioneer.get_version()}"\n')
         file.write(
             f'__git_version__="{versioneer.get_versions()["full-revisionid"]}"\n'

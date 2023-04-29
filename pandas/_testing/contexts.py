@@ -126,7 +126,7 @@ def ensure_clean(
     handle_or_str: str | IO = str(path)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
-        handle_or_str = open(path, **kwargs,encoding="utf-8")
+        handle_or_str = open(path, **kwargs, encoding="utf-8")
 
     try:
         yield handle_or_str
