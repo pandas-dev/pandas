@@ -10965,7 +10965,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(result, (np.bool_, bool)):
             return result  # type: ignore[return-value]
 
-        return result.__finalize__(self, method="any")
+        return result.__finalize__(self)
 
     @doc(make_doc("all", ndim=2))
     def all(
