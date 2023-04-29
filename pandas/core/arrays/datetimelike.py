@@ -2010,7 +2010,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         nanos = delta_to_nanoseconds(offset, self._creso)
         if nanos == 0:
             # GH 52761
-            return self
+            return self.copy()
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
