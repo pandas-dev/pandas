@@ -242,7 +242,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if self._data.dtype.kind == "f" and lib.is_float(key):
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
-        return super().__contains__(key)
+        return bool(super().__contains__(key))
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
