@@ -1161,6 +1161,13 @@ def test_compare_complex_dtypes():
         df.lt(df.astype(object))
 
 
+def test_cast_string_to_complex():
+    # GH 4895
+    expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
+    result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multi_column_dtype_assignment():
     # GH #27583
     df = pd.DataFrame({"a": [0.0], "b": 0.0})

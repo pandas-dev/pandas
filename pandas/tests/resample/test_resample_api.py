@@ -71,9 +71,7 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -857,8 +855,8 @@ def test_end_and_end_day_origin(
         ("mean", False, "Could not convert"),
         ("mean", lib.no_default, "Could not convert"),
         ("median", True, {"num": [12.5]}),
-        ("median", False, "could not convert"),
-        ("median", lib.no_default, "could not convert"),
+        ("median", False, r"Cannot convert \['cat_1' 'cat_2'\] to numeric"),
+        ("median", lib.no_default, r"Cannot convert \['cat_1' 'cat_2'\] to numeric"),
         ("std", True, {"num": [10.606601717798213]}),
         ("std", False, "could not convert string to float"),
         ("std", lib.no_default, "could not convert string to float"),

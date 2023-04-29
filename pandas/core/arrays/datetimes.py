@@ -1350,8 +1350,6 @@ default 'raise'
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
-        .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame
@@ -2581,7 +2579,14 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit(unit)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Discarding nonzero nanoseconds in conversion",
+                    category=UserWarning,
+                )
+                next_date = offset._apply(cur)
+            next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2595,7 +2600,14 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur).as_unit(unit)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Discarding nonzero nanoseconds in conversion",
+                    category=UserWarning,
+                )
+                next_date = offset._apply(cur)
+            next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
