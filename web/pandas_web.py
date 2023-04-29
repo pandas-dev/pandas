@@ -310,7 +310,7 @@ class Preprocessors:
         regex = r"^PDEP-(\d+)"
         compiled_pattern = re.compile(regex)
 
-        def sort_pdep(pdep: str) -> int:
+        def sort_pdep(pdep: dict) -> int:
             title = pdep["title"]
             match = compiled_pattern.match(title)
             if not match:
