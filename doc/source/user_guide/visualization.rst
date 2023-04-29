@@ -1209,8 +1209,6 @@ shown by default.
 Controlling the labels
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.1.0
-
 You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
 for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
 it empty for ylabel.
@@ -1709,7 +1707,7 @@ Colormaps can also be used other plot types, like bar charts:
 
 .. ipython:: python
 
-   dd = pd.DataFrame(np.random.randn(10, 10)).applymap(abs)
+   dd = pd.DataFrame(np.random.randn(10, 10)).map(abs)
    dd = dd.cumsum()
 
    plt.figure();
@@ -1794,7 +1792,7 @@ when plotting a large number of points.
 Plotting backends
 -----------------
 
-Starting in version 0.25, pandas can be extended with third-party plotting backends. The
+pandas can be extended with third-party plotting backends. The
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib.
 

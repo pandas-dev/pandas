@@ -51,15 +51,13 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_float,
     is_integer,
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -139,13 +137,16 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
             )
             if guessed_format is not None:
                 return guessed_format
-            warnings.warn(
-                "Could not infer format, so each element will be parsed "
-                "individually, falling back to `dateutil`. To ensure parsing is "
-                "consistent and as-expected, please specify a format.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
+            # If there are multiple non-null elements, warn about
+            # how parsing might not be consistent
+            if tslib.first_non_null(arr[first_non_null + 1 :]) != -1:
+                warnings.warn(
+                    "Could not infer format, so each element will be parsed "
+                    "individually, falling back to `dateutil`. To ensure parsing is "
+                    "consistent and as-expected, please specify a format.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
     return None
 
 
@@ -247,7 +248,7 @@ def _maybe_cache(
             cache_dates = convert_listlike(unique_dates, format)
             # GH#45319
             try:
-                cache_array = Series(cache_dates, index=unique_dates)
+                cache_array = Series(cache_dates, index=unique_dates, copy=False)
             except OutOfBoundsDatetime:
                 return cache_array
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
@@ -279,7 +280,7 @@ def _box_as_indexlike(
         - general Index otherwise
     """
 
-    if is_datetime64_dtype(dt_array):
+    if lib.is_np_dtype(dt_array.dtype, "M"):
         tz = "utc" if utc else None
         return DatetimeIndex(dt_array, tz=tz, name=name)
     return Index(dt_array, name=name, dtype=dt_array.dtype)
@@ -312,7 +313,7 @@ def _convert_and_box_cache(
 
 
 def _return_parsed_timezone_results(
-    result: np.ndarray, timezones, utc: bool, name
+    result: np.ndarray, timezones, utc: bool, name: str
 ) -> Index:
     """
     Return results from array_strptime if a %z or %Z directive was passed.
@@ -392,14 +393,14 @@ def _convert_listlike_datetimes(
     arg_dtype = getattr(arg, "dtype", None)
     # these are shortcutable
     tz = "utc" if utc else None
-    if is_datetime64tz_dtype(arg_dtype):
+    if isinstance(arg_dtype, DatetimeTZDtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if utc:
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
-    elif is_datetime64_dtype(arg_dtype):
+    elif lib.is_np_dtype(arg_dtype, "M"):
         arg_dtype = cast(np.dtype, arg_dtype)
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
@@ -499,7 +500,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     else:
         arg = np.asarray(arg)
 
-        if arg.dtype.kind in ["i", "u"]:
+        if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
@@ -597,8 +598,7 @@ def _adjust_to_origin(arg, origin, unit):
     else:
         # arg must be numeric
         if not (
-            (is_scalar(arg) and (is_integer(arg) or is_float(arg)))
-            or is_numeric_dtype(np.asarray(arg))
+            (is_integer(arg) or is_float(arg)) or is_numeric_dtype(np.asarray(arg))
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "
