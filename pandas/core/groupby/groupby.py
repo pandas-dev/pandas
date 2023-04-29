@@ -1643,8 +1643,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: shouldn't min_count matter?
                 if how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+            else:
+                return result
 
+            # Not implement in Cython
+            result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
