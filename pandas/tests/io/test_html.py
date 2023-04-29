@@ -131,7 +131,7 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
@@ -682,8 +682,8 @@ class TestReadHtml:
             "Hamilton Bank, NA",
             "The Citizens Savings Bank",
         ]
-        dfnew = df.applymap(try_remove_ws).replace(old, new)
-        gtnew = ground_truth.applymap(try_remove_ws)
+        dfnew = df.map(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.map(try_remove_ws)
         converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)

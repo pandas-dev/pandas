@@ -154,8 +154,6 @@ class ExponentialMovingWindow(BaseWindow):
         observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
 
-        .. versionadded:: 1.1.0
-
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly
 
@@ -209,8 +207,6 @@ class ExponentialMovingWindow(BaseWindow):
 
     times : np.ndarray, Series, default None
 
-        .. versionadded:: 1.1.0
-
         Only applicable to ``mean()``.
 
         Times corresponding to the observations. Must be monotonically increasing and
@@ -231,7 +227,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     Returns
     -------
-    ``ExponentialMovingWindow`` subclass
+    pandas.api.typing.ExponentialMovingWindow
 
     See Also
     --------

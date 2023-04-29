@@ -177,6 +177,7 @@ def test_get_dtype_error_catch(func):
         or func is com.is_interval_dtype
         or func is com.is_datetime64tz_dtype
         or func is com.is_categorical_dtype
+        or func is com.is_period_dtype
     ):
         warn = FutureWarning
 
@@ -197,14 +198,16 @@ def test_is_object():
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(SparseArray([1, 2, 3]))
+    msg = "is_sparse is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert com.is_sparse(SparseArray([1, 2, 3]))
 
-    assert not com.is_sparse(np.array([1, 2, 3]))
+        assert not com.is_sparse(np.array([1, 2, 3]))
 
-    if check_scipy:
-        import scipy.sparse
+        if check_scipy:
+            import scipy.sparse
 
-        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
+            assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 @td.skip_if_no_scipy
@@ -264,12 +267,14 @@ def test_is_timedelta64_dtype():
 
 
 def test_is_period_dtype():
-    assert not com.is_period_dtype(object)
-    assert not com.is_period_dtype([1, 2, 3])
-    assert not com.is_period_dtype(pd.Period("2017-01-01"))
+    msg = "is_period_dtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert not com.is_period_dtype(object)
+        assert not com.is_period_dtype([1, 2, 3])
+        assert not com.is_period_dtype(pd.Period("2017-01-01"))
 
-    assert com.is_period_dtype(PeriodDtype(freq="D"))
-    assert com.is_period_dtype(pd.PeriodIndex([], freq="A"))
+        assert com.is_period_dtype(PeriodDtype(freq="D"))
+        assert com.is_period_dtype(pd.PeriodIndex([], freq="A"))
 
 
 def test_is_interval_dtype():
@@ -512,20 +517,6 @@ def test_is_timedelta64_ns_dtype():
     assert com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
 
 
-def test_is_datetime_or_timedelta_dtype():
-    assert not com.is_datetime_or_timedelta_dtype(int)
-    assert not com.is_datetime_or_timedelta_dtype(str)
-    assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
-    assert not com.is_datetime_or_timedelta_dtype(np.array(["a", "b"]))
-
-    assert not com.is_datetime_or_timedelta_dtype(DatetimeTZDtype("ns", "US/Eastern"))
-
-    assert com.is_datetime_or_timedelta_dtype(np.datetime64)
-    assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.timedelta64))
-    assert com.is_datetime_or_timedelta_dtype(np.array([], dtype=np.datetime64))
-
-
 def test_is_numeric_v_string_like():
     assert not com.is_numeric_v_string_like(np.array([1]), 1)
     assert not com.is_numeric_v_string_like(np.array([1]), np.array([2]))
@@ -695,7 +686,7 @@ def test_is_complex_dtype():
     ],
 )
 def test_get_dtype(input_param, result):
-    assert com.get_dtype(input_param) == result
+    assert com._get_dtype(input_param) == result
 
 
 @pytest.mark.parametrize(
@@ -714,7 +705,7 @@ def test_get_dtype_fails(input_param, expected_error_message):
     # 2020-02-02 npdev changed error message
     expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
-        com.get_dtype(input_param)
+        com._get_dtype(input_param)
 
 
 @pytest.mark.parametrize(
