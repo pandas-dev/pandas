@@ -1446,7 +1446,7 @@ def test_file_io_iterparse(datapath, parser, mode):
     funcIO = StringIO if mode == "r" else BytesIO
     with open(
         filename,
-        mode="utf-8" if mode == "r" else None,
+        mode,
         encoding="utf-8" if mode == "r" else None,
     ) as f:
         with funcIO(f.read()) as b:
