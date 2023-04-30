@@ -933,7 +933,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         This is only called after a failed call to _getitem_lowerdim.
         """
         retval = self.obj
-        for i, key in enumerate(tup):
+        for i, key in enumerate(reversed(tup)):
+            i = self.ndim - i - 1
             if com.is_null_slice(key):
                 continue
 
