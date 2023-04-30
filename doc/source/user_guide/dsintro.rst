@@ -413,8 +413,6 @@ first ``namedtuple``, a ``ValueError`` is raised.
 From a list of dataclasses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.1.0
-
 Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivalent to passing a list of dictionaries.

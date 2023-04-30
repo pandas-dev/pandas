@@ -738,7 +738,7 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
 
 .. ipython:: python
 
-   s = pd.Series(range(3))
+   s = pd.Series(range(3), dtype="float")
    s.iloc[1] = None
    s
 

@@ -250,8 +250,8 @@ class ParserBase:
 
     @final
     def _should_parse_dates(self, i: int) -> bool:
-        if isinstance(self.parse_dates, bool):
-            return self.parse_dates
+        if lib.is_bool(self.parse_dates):
+            return bool(self.parse_dates)
         else:
             if self.index_names is not None:
                 name = self.index_names[i]
@@ -259,14 +259,9 @@ class ParserBase:
                 name = None
             j = i if self.index_col is None else self.index_col[i]
 
-            if is_scalar(self.parse_dates):
-                return (j == self.parse_dates) or (
-                    name is not None and name == self.parse_dates
-                )
-            else:
-                return (j in self.parse_dates) or (
-                    name is not None and name in self.parse_dates
-                )
+            return (j in self.parse_dates) or (
+                name is not None and name in self.parse_dates
+            )
 
     @final
     def _extract_multi_indexer_columns(
@@ -1114,6 +1109,12 @@ def _make_date_converter(
     if date_parser is not lib.no_default and date_format is not None:
         raise TypeError("Cannot use both 'date_parser' and 'date_format'")
 
+    def unpack_if_single_element(arg):
+        # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+        if isinstance(arg, np.ndarray) and arg.ndim == 1 and len(arg) == 1:
+            return arg[0]
+        return arg
+
     def converter(*date_cols, col: Hashable):
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
@@ -1137,7 +1138,9 @@ def _make_date_converter(
         else:
             try:
                 result = tools.to_datetime(
-                    date_parser(*date_cols), errors="ignore", cache=cache_dates
+                    date_parser(*(unpack_if_single_element(arg) for arg in date_cols)),
+                    errors="ignore",
+                    cache=cache_dates,
                 )
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
@@ -1362,13 +1365,12 @@ def _validate_parse_dates_arg(parse_dates):
         "for the 'parse_dates' parameter"
     )
 
-    if parse_dates is not None:
-        if is_scalar(parse_dates):
-            if not lib.is_bool(parse_dates):
-                raise TypeError(msg)
-
-        elif not isinstance(parse_dates, (list, dict)):
-            raise TypeError(msg)
+    if not (
+        parse_dates is None
+        or lib.is_bool(parse_dates)
+        or isinstance(parse_dates, (list, dict))
+    ):
+        raise TypeError(msg)
 
     return parse_dates
 
