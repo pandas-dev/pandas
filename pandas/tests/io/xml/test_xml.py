@@ -1444,7 +1444,11 @@ def test_file_io_iterparse(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
 
     funcIO = StringIO if mode == "r" else BytesIO
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+    with open(
+        filename,
+        mode="utf-8" if mode == "r" else None,
+        encoding="utf-8" if mode == "r" else None,
+    ) as f:
         with funcIO(f.read()) as b:
             if mode == "r" and parser == "lxml":
                 with pytest.raises(
