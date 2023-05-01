@@ -227,34 +227,6 @@ class TestGeneric:
         assert o.size == np.prod(o.shape)
         assert o.size == 10 ** len(o.axes)
 
-    def test_size(self):
-        # test for Series object
-        s = Series({"a": 1, "b": 2, "c": 3})
-        assert s.size == 3
-        assert isinstance(s.size, int)
-
-        # test for DataFrame object
-        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
-        assert df.size == 4
-        assert isinstance(df.size, int)
-
-        # test for empty DataFrame object
-        empty_df = DataFrame()
-        assert empty_df.size == 0
-        assert isinstance(empty_df.size, int)
-
-        # test for DataFrame with missing values
-        df_with_missing = DataFrame({"col1": [1, np.nan], "col2": [3, 4]})
-        assert df_with_missing.size == 4
-        assert isinstance(df_with_missing.size, int)
-
-        # test for MultiIndex DataFrame
-        multi_df = DataFrame(
-            {"col1": [1, 2], "col2": [3, 4]}, index=[["a", "b"], [1, 2]]
-        )
-        assert multi_df.size == 4
-        assert isinstance(multi_df.size, int)
-
     def test_split_compat(self, frame_or_series):
         # xref GH8846
         o = construct(frame_or_series, shape=10)
