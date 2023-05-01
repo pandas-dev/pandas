@@ -899,7 +899,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache_dtypes: dict[BaseOffset, PandasExtensionDtype] = {}  # type: ignore[assignment] # noqa:E501
+    # error: Incompatible types in assignment (expression has type
+    # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
+    # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
+    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa:E501
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
