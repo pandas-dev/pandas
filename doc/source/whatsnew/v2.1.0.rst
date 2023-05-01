@@ -96,6 +96,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
+- Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -241,6 +242,8 @@ Deprecations
 - Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)
 - Deprecated :func:`is_period_dtype`, check ``isinstance(dtype, pd.PeriodDtype)`` instead (:issue:`52642`)
 - Deprecated :func:`is_sparse`, check ``isinstance(dtype, pd.SparseDtype)`` instead (:issue:`52642`)
+- Deprecated :meth:`.Styler.applymap_index`. Use the new :meth:`.Styler.map_index` method instead (:issue:`52708`)
+- Deprecated :meth:`.Styler.applymap`. Use the new :meth:`.Styler.map` method instead (:issue:`52708`)
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
@@ -277,6 +280,7 @@ Performance improvements
 - Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)
 - Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)
 - Performance improvement in :func:`concat` (:issue:`52291`, :issue:`52290`)
+- Performance improvement accessing :attr:`arrays.IntegerArrays.dtype` & :attr:`arrays.FloatingArray.dtype` (:issue:`52998`)
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
@@ -419,7 +423,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Bug in :meth:`Styler._copy` calling overridden methods in subclasses of :class:`Styler` (:issue:`52728`)
 -
 
 Other

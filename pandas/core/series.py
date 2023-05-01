@@ -1019,10 +1019,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
-        if isinstance(key, Index):
-            key_type = key.inferred_type
-        else:
-            key_type = lib.infer_dtype(key, skipna=False)
+        key_type = lib.infer_dtype(key, skipna=False)
 
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
@@ -1822,6 +1819,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s.keys()
+        Index([0, 1, 2], dtype='int64')
         """
         return self.index
 
