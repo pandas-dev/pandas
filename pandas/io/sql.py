@@ -158,10 +158,14 @@ def _convert_arrays_to_dataframe(
         arrays = [
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
+    # sqlalchemy uses sqlalchemy.sql.quoted_name instead of str
+    # when using sqlalchemy.sql.select
+    # GH52816
+    str_columns = list(map(str, columns))
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        return DataFrame(dict(zip(str_columns, arrays)))
     else:
-        return DataFrame(columns=columns)
+        return DataFrame(columns=str_columns)
 
 
 def _wrap_result(
