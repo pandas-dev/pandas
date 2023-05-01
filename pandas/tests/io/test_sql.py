@@ -2313,9 +2313,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_datetime_time(self, sqlite_buildin):
         # test support for datetime.time
-        df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
+
+        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
         assert df.to_sql("test_time", self.conn, index=False) == 2
-        res = read_sql_table("test_time", self.conn)
+
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = read_sql_table("test_time", self.conn)
         tm.assert_frame_equal(res, df)
 
         # GH8341
@@ -2331,7 +2336,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
             ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(ref, res)
-        res = sql.read_sql_table("test_time3", self.conn)
+
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = sql.read_sql_table("test_time3", self.conn)
         tm.assert_frame_equal(df, res)
 
     def test_mixed_dtype_insert(self):
@@ -3168,13 +3175,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     @pytest.mark.parametrize("tz_aware", [False, True])
     def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
+
+        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
         if not tz_aware:
             tz_times = [time(9, 0, 0), time(9, 1, 30)]
         else:
             tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
-            tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
 
-        df = DataFrame(tz_times, columns=["a"])
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df = DataFrame(tz_times, columns=["a"])
 
         assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)

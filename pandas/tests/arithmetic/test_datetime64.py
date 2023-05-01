@@ -1166,7 +1166,10 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    def test_dt64arr_addsub_time_objects_raises(self, box_with_array, tz_naive_fixture):
+    @pytest.mark.parametrize("future", [True, False, None])
+    def test_dt64arr_addsub_time_objects_raises(
+        self, box_with_array, tz_naive_fixture, future
+    ):
         # https://github.com/pandas-dev/pandas/issues/10329
 
         tz = tz_naive_fixture
@@ -1175,15 +1178,23 @@ class TestDatetime64Arithmetic:
         obj2 = [time(i, i, i) for i in range(3)]
 
         obj1 = tm.box_expected(obj1, box_with_array)
-        obj2 = tm.box_expected(obj2, box_with_array)
 
-        msg = "|".join(
-            [
-                "unsupported operand",
-                "cannot subtract DatetimeArray from ndarray",
-            ]
-        )
+        msgs = [
+            "unsupported operand",
+            "cannot subtract DatetimeArray from ndarray",
+        ]
+        warn_msg = "Pandas type inference with a sequence of `datetime.time` objects"
+        warn = None
+        if future is True:
+            msgs.append("cannot subtract DatetimeArray from ArrowExtensionArray")
+        elif future is None:
+            warn = FutureWarning
 
+        with pd.option_context("future.infer_time", future):
+            with tm.assert_produces_warning(warn, match=warn_msg):
+                obj2 = tm.box_expected(obj2, box_with_array)
+
+        msg = "|".join(msgs)
         with warnings.catch_warnings(record=True):
             # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
             # applied to Series or DatetimeIndex

@@ -1,6 +1,7 @@
 from datetime import (
     date,
     datetime,
+    time,
 )
 from io import StringIO
 
@@ -836,7 +837,16 @@ def test_apply_datetime_issue(group_column_dtlike):
     #   is a datetime object and the column labels are different from
     #   standard int values in range(len(num_columns))
 
-    df = DataFrame({"a": ["foo"], "b": [group_column_dtlike]})
+    warn = None
+    warn_msg = (
+        "Pandas type inference with a sequence of `datetime.time` "
+        "objects is deprecated"
+    )
+    if isinstance(group_column_dtlike, time):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        df = DataFrame({"a": ["foo"], "b": [group_column_dtlike]})
     result = df.groupby("a").apply(lambda x: Series(["spam"], index=[42]))
 
     expected = DataFrame(

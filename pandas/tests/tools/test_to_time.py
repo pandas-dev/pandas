@@ -61,9 +61,15 @@ class TestToTime:
         with pytest.raises(ValueError, match=msg):
             to_time(arg, format="%I:%M%p", errors="raise")
 
-        tm.assert_series_equal(
-            to_time(Series(arg, name="test")), Series(expected_arr, name="test")
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.time` objects "
+            "is deprecated"
         )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res_ser = to_time(Series(arg, name="test"))
+        exp_ser = Series(expected_arr, name="test", dtype=object)
+
+        tm.assert_series_equal(res_ser, exp_ser)
 
         res = to_time(np.array(arg))
         assert isinstance(res, list)

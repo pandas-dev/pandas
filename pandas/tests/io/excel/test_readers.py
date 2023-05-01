@@ -986,13 +986,17 @@ class TestReaders:
                     time(16, 37, 0, 900000),
                     time(18, 20, 54),
                 ]
-            }
+            },
+            dtype=object,
         )
 
-        actual = pd.read_excel("times_1900" + read_ext, sheet_name="Sheet1")
+        warn_msg = "Pandas type inference with a sequence of `datetime.time` objects"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            actual = pd.read_excel("times_1900" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_multiindex(self, request, read_ext):

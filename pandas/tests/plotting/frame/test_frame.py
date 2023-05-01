@@ -753,11 +753,25 @@ class TestDataFramePlots:
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])
-        df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.time` "
+            "objects is deprecated"
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
+
         msg = "must be a string or a (real )?number, not 'datetime.time'"
 
         with pytest.raises(TypeError, match=msg):
-            df.plot(kind="scatter", x="dtime", y="a")
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                # warns bc it calls infer_objects inside df.plot
+                df.plot(kind="scatter", x="dtime", y="a")
+
+        with pd.option_context("future.infer_time", True):
+            with pytest.raises(TypeError, match=msg):
+                with tm.assert_produces_warning(None):
+                    df.plot(kind="scatter", x="dtime", y="a")
 
     @pytest.mark.parametrize("x, y", [("dates", "vals"), (0, 1)])
     def test_scatterplot_datetime_data(self, x, y):

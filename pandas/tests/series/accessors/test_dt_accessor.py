@@ -87,7 +87,7 @@ class TestSeriesDatetimeValues:
                     result = result.astype("int64")
             elif not is_list_like(result) or isinstance(result, DataFrame):
                 return result
-            return Series(result, index=ser.index, name=ser.name)
+            return Series(result, index=ser.index, name=ser.name, dtype=result.dtype)
 
         left = getattr(ser.dt, name)
         right = get_expected(ser, name)
@@ -725,7 +725,8 @@ class TestSeriesDatetimeValues:
         )
         ser = Series(dtindex)
         expected = Series(
-            [time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz), time(22, 14, tzinfo=tz)]
+            [time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz), time(22, 14, tzinfo=tz)],
+            dtype=object,
         )
         result = ser.dt.timetz
         tm.assert_series_equal(result, expected)

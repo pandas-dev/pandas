@@ -744,6 +744,28 @@ class TestBaseReshaping(base.BaseReshapingTests):
     def test_transpose(self, data):
         super().test_transpose(data)
 
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["A", "B"],
+            pd.MultiIndex.from_tuples(
+                [("A", "a"), ("A", "b")], names=["outer", "inner"]
+            ),
+        ],
+    )
+    def test_stack(self, data, columns):
+        warn = None
+        warn_msg = "Pandas type inference with a sequence of `datetime.time` objects"
+
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_time(pa_dtype):
+            # FIXME: need to avoid doing inference when calling frame._constructor
+            #  in _stack_multi_columns
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
+            super().test_stack(data, columns)
+
 
 class TestBaseSetitem(base.BaseSetitemTests):
     @pytest.mark.xfail(
@@ -806,6 +828,18 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestBaseMethods(base.BaseMethodsTests):
+    def test_hash_pandas_object_works(self, data, as_frame):
+        pa_dtype = data.dtype.pyarrow_dtype
+        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
+        warn = None
+        if pa.types.is_time(pa_dtype):
+            # TODO(#48964) This warning will be avoided by implementing
+            #  ArrowExtensionArray.hash_pandas_object
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
+            super().test_hash_pandas_object_works(data, as_frame)
+
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype

@@ -1038,6 +1038,56 @@ class TestInference:
         )
         tm.assert_extension_array_equal(result, idx._data)
 
+    @pytest.mark.parametrize("future", [True, False, None])
+    def test_maybe_convert_objects_time(self, future):
+        ts = Timestamp.now()
+        objs = np.array([ts.time()], dtype=object)
+
+        msg = "Pandas type inference with a sequence of `datetime.time` objects"
+        warn = None
+        if future is True:
+            pa = pytest.importorskip("pyarrow")
+            dtype = pd.ArrowDtype(pa.time64("us"))
+            exp = dtype.construct_array_type()._from_sequence(objs, dtype=dtype)
+        else:
+            if future is None:
+                warn = FutureWarning
+            exp = objs
+
+        with pd.option_context("future.infer_time", future):
+            with tm.assert_produces_warning(warn, match=msg):
+                out = lib.maybe_convert_objects(objs, convert_time=True)
+            with tm.assert_produces_warning(warn, match=msg):
+                ser = Series(objs)
+            with tm.assert_produces_warning(warn, match=msg):
+                ser2 = Series(list(objs))
+            with tm.assert_produces_warning(warn, match=msg):
+                df = DataFrame(objs)
+            with tm.assert_produces_warning(warn, match=msg):
+                df2 = DataFrame(list(objs))
+            with tm.assert_produces_warning(warn, match=msg):
+                idx = Index(objs)
+            with tm.assert_produces_warning(warn, match=msg):
+                idx2 = Index(list(objs))
+            with tm.assert_produces_warning(warn, match=msg):
+                arr = pd.array(objs)
+            with tm.assert_produces_warning(warn, match=msg):
+                arr2 = pd.array(list(objs))
+
+        tm.assert_equal(out, exp)
+        if future:
+            tm.assert_equal(arr, exp)
+            tm.assert_equal(arr2, exp)
+        else:
+            tm.assert_equal(arr, pd.core.arrays.PandasArray(exp))
+            tm.assert_equal(arr2, pd.core.arrays.PandasArray(exp))
+        tm.assert_series_equal(ser, Series(exp, dtype=exp.dtype))
+        tm.assert_series_equal(ser2, Series(exp, dtype=exp.dtype))
+        tm.assert_frame_equal(df, DataFrame(exp, dtype=exp.dtype))
+        tm.assert_frame_equal(df2, DataFrame(exp, dtype=exp.dtype))
+        tm.assert_index_equal(idx, Index(exp, dtype=exp.dtype))
+        tm.assert_index_equal(idx2, Index(exp, dtype=exp.dtype))
+
 
 class TestTypeInference:
     # Dummy class used for testing with Python objects

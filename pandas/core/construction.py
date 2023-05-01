@@ -19,6 +19,8 @@ import warnings
 import numpy as np
 from numpy import ma
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
@@ -295,6 +297,7 @@ def array(
         PeriodArray,
         TimedeltaArray,
     )
+    from pandas.core.arrays.arrow import ArrowDtype
     from pandas.core.arrays.string_ import StringDtype
 
     if lib.is_scalar(data):
@@ -361,6 +364,30 @@ def array(
 
         elif inferred_dtype == "boolean":
             return BooleanArray._from_sequence(data, copy=copy)
+
+        elif inferred_dtype == "time":
+            opt = get_option("future.infer_time")
+
+            if opt is True:
+                import pyarrow as pa
+
+                obj = pa.array(data)
+                dtype = ArrowDtype(obj.type)
+                return dtype.construct_array_type()(obj)
+            elif opt is False:
+                # explicitly set to keep the old behavior and avoid the warning
+                pass
+            else:
+                warnings.warn(
+                    "Pandas type inference with a sequence of `datetime.time` "
+                    "objects is deprecated. In a future version, this will give "
+                    "time32[pyarrow] dtype, which will require pyarrow to be "
+                    "installed. To opt in to the new behavior immediately set "
+                    "`pd.set_option('future.infer_time', True)`. To keep the "
+                    "old behavior pass `dtype=object`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
