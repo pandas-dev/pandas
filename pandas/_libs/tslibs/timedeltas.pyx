@@ -1808,7 +1808,7 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
-        elif checknull_with_nat(value):
+        elif checknull_with_nat_and_na(value):
             return NaT
         else:
             raise ValueError(
