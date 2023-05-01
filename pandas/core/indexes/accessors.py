@@ -108,7 +108,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
+        result = Series(
+            result, index=index, name=self.name, dtype=result.dtype
+        ).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (

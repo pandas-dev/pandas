@@ -889,3 +889,14 @@ with cf.config_prefix("styler"):
         styler_environment,
         validator=is_instance_factory([type(None), str]),
     )
+
+
+with cf.config_prefix("future"):
+    cf.register_option(
+        "future.infer_time",
+        None,
+        "Whether to infer sequence of datetime.time objects as pyarrow time "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False, None]),
+    )

@@ -1008,6 +1008,7 @@ class TestTSPlot:
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
+        ts = Index(ts, dtype=object)
         df = DataFrame(
             {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
         )
@@ -1031,7 +1032,10 @@ class TestTSPlot:
     def test_time_change_xlim(self):
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
-        ts = np.array([(t + timedelta(minutes=int(x))).time() for x in deltas])
+        ts = Index(
+            np.array([(t + timedelta(minutes=int(x))).time() for x in deltas]),
+            dtype=object,
+        )
         df = DataFrame(
             {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
         )
@@ -1073,6 +1077,7 @@ class TestTSPlot:
         t = datetime(1, 1, 1, 3, 30, 0)
         deltas = np.random.randint(1, 20, 3).cumsum()
         ts = np.array([(t + timedelta(microseconds=int(x))).time() for x in deltas])
+        ts = Index(ts, dtype=object)
         df = DataFrame(
             {"a": np.random.randn(len(ts)), "b": np.random.randn(len(ts))}, index=ts
         )
