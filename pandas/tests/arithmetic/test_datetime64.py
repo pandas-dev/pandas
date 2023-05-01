@@ -20,6 +20,7 @@ import pytz
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1166,7 +1167,9 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    @pytest.mark.parametrize("future", [True, False, None])
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
     def test_dt64arr_addsub_time_objects_raises(
         self, box_with_array, tz_naive_fixture, future
     ):
