@@ -17,7 +17,7 @@ Highlights include:
 - Will intelligently limit display precision for datetime/timedelta formats.
 - Enhanced Panel :meth:`~pandas.Panel.apply` method.
 - Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
-- Our pandas ecosystem is growing, We now feature related projects in a new :ref:`Pandas Ecosystem<ecosystem>` section.
+- Our pandas ecosystem is growing, We now feature related projects in a new `ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ section.
 - Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
 - Even though it may only be of interest to devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
 

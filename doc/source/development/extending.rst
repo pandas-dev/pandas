@@ -60,7 +60,7 @@ Now users can access your methods using the ``geo`` namespace:
 
 This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
-:ref:`ecosystem` page.
+`ecosystem <https://pandas.pydata.org/community/ecosystem.html>`_ page.
 
 We highly recommend validating the data in your accessor's ``__init__``.
 In our ``GeoAccessor``, we validate that the data contains the expected columns,
@@ -91,7 +91,7 @@ objects). Many methods like :func:`pandas.isna` will dispatch to the extension
 type's implementation.
 
 If you're building a library that implements the interface, please publicize it
-on :ref:`ecosystem.extensions`.
+on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 The interface consists of two classes.
 

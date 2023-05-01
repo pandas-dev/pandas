@@ -321,7 +321,7 @@ def main():
         help=(
             "filename (relative to the 'source' folder) of section or method name to "
             "compile, e.g. 'development/contributing.rst', "
-            "'ecosystem.rst', 'pandas.DataFrame.join'"
+            "'pandas.DataFrame.join'"
         ),
     )
     argparser.add_argument(

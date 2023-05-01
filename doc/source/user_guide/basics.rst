@@ -2022,7 +2022,7 @@ does not support timezone-aware datetimes).
 pandas and third-party libraries *extend* NumPy's type system in a few places.
 This section describes the extensions pandas has made internally.
 See :ref:`extending.extension-types` for how to write your own extension that
-works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+works with pandas. See `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ for a list of third-party
 libraries that have implemented an extension.
 
 The following table lists all of pandas extension types. For methods requiring ``dtype``
