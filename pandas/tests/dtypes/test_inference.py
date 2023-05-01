@@ -1038,7 +1038,9 @@ class TestInference:
         )
         tm.assert_extension_array_equal(result, idx._data)
 
-    @pytest.mark.parametrize("future", [True, False, None])
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
     def test_maybe_convert_objects_time(self, future):
         ts = Timestamp.now()
         objs = np.array([ts.time()], dtype=object)
