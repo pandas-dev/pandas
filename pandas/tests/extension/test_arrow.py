@@ -2142,7 +2142,7 @@ def test_str_encode(errors, encoding, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("flags", [0, 1])
+@pytest.mark.parametrize("flags", [0, 2])
 def test_str_findall(flags):
     ser = pd.Series(["abc", "efg", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.findall("b", flags=flags)
@@ -2838,6 +2838,36 @@ def test_describe_numeric_data(pa_type):
         [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
         dtype=ArrowDtype(pa.float64()),
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
+def test_describe_timedelta_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9] + pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist(),
+        dtype=object,
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.DATETIME_PYARROW_DTYPES)
+def test_describe_datetime_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9]
+        + [
+            pd.Timestamp(v, tz=pa_type.tz, unit=pa_type.unit)
+            for v in [5, 1, 3, 5, 7, 9]
+        ],
+        dtype=object,
+        index=["count", "mean", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
 
