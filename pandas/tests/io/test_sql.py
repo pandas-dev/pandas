@@ -2607,26 +2607,25 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         from sqlalchemy import (
             Column,
             MetaData,
+            Table,
             select,
-            Table
         )
-
         from sqlalchemy.types import BigInteger
 
         test_table = Table(
             "test",
             MetaData(),
-            Column('id', BigInteger, primary_key=True),
-            Column('a', BigInteger),
+            Column("id", BigInteger, primary_key=True),
+            Column("a", BigInteger),
         )
 
         df = DataFrame(
             {
-                'id': [1],
-                'a': [2],
-                'b': [3],
+                "id": [1],
+                "a": [2],
+                "b": [3],
             },
-            dtype='int64',
+            dtype="int64",
         )
         df.to_sql("test", self.conn, index=False, if_exists="replace")
         result = read_sql_query(select(test_table), self.conn)
