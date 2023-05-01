@@ -217,8 +217,6 @@ class TestSeriesLogicalOps:
     def test_logical_operators_int_dtype_with_bool_dtype_and_reindex(self):
         # GH#9016: support bitwise op for integer types
 
-        # with non-matching indexes, logical operators will cast to object
-        #  before operating
         index = list("bca")
 
         s_tft = Series([True, False, True], index=index)
@@ -229,20 +227,26 @@ class TestSeriesLogicalOps:
 
         # s_0123 will be all false now because of reindexing like s_tft
         expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        result = s_tft & s_0123
+        with tm.assert_produces_warning(FutureWarning):
+            result = s_tft & s_0123
         tm.assert_series_equal(result, expected)
 
+        # GH 52538: Deprecate casting to object type when reindex is needed;
+        # matches DataFrame behavior
         expected = Series([False] * 7, index=[0, 1, 2, 3, "a", "b", "c"])
-        result = s_0123 & s_tft
+        with tm.assert_produces_warning(FutureWarning):
+            result = s_0123 & s_tft
         tm.assert_series_equal(result, expected)
 
         s_a0b1c0 = Series([1], list("b"))
 
-        res = s_tft & s_a0b1c0
+        with tm.assert_produces_warning(FutureWarning):
+            res = s_tft & s_a0b1c0
         expected = s_tff.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
-        res = s_tft | s_a0b1c0
+        with tm.assert_produces_warning(FutureWarning):
+            res = s_tft | s_a0b1c0
         expected = s_tft.reindex(list("abc"))
         tm.assert_series_equal(res, expected)
 
@@ -396,24 +400,27 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
-        result = a & Series([1], ["z"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = a & Series([1], ["z"])
         expected = Series([False, False, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
-        result = a | Series([1], ["z"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = a | Series([1], ["z"])
         expected = Series([True, True, False, False], list("abcz"))
         tm.assert_series_equal(result, expected)
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        for e in [
-            empty.copy(),
-            Series([1], ["z"]),
-            Series(np.nan, b.index),
-            Series(np.nan, a.index),
-        ]:
-            result = a[a | e]
-            tm.assert_series_equal(result, a[a])
+        with tm.assert_produces_warning(FutureWarning):
+            for e in [
+                empty.copy(),
+                Series([1], ["z"]),
+                Series(np.nan, b.index),
+                Series(np.nan, a.index),
+            ]:
+                result = a[a | e]
+                tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
             result = a[a | e]
@@ -496,3 +503,15 @@ class TestSeriesLogicalOps:
 
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
+
+    @pytest.mark.xfail(reason="Will pass once #52839 deprecation is enforced")
+    def test_int_dtype_different_index_not_bool(self):
+        # GH 52500
+        ser1 = Series([1, 2, 3], index=[10, 11, 23], name="a")
+        ser2 = Series([10, 20, 30], index=[11, 10, 23], name="a")
+        result = np.bitwise_xor(ser1, ser2)
+        expected = Series([21, 8, 29], index=[10, 11, 23], name="a")
+        tm.assert_series_equal(result, expected)
+
+        result = ser1 ^ ser2
+        tm.assert_series_equal(result, expected)
