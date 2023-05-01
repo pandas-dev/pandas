@@ -3112,16 +3112,15 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
 
+        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
         if not tz_aware:
             tz_times = [time(9, 0, 0), time(9, 1, 30)]
+            warn = FutureWarning
         else:
             tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
             tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+            warn = None
 
-        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
-        warn = None
-        if not tz_aware:
-            warn = FutureWarning
         with tm.assert_produces_warning(warn, match=warn_msg):
             df = DataFrame(tz_times, columns=["a"])
 
