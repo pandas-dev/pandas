@@ -55,5 +55,5 @@ dependencies:
   - zstandard>=0.15.2
 
   - pip:
-    - python-calamine>=0.1.0
+    - python-calamine>=0.1.1
     - tzdata>=2022.1

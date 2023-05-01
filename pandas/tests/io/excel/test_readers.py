@@ -174,10 +174,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -204,10 +204,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -268,10 +268,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -296,10 +296,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -314,10 +314,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -400,11 +400,9 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".ods"}:
+        if engine == "calamine" and read_ext == ".ods":
             request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
-                )
+                pytest.mark.xfail(reason="Calamine returns 0 instead of NaN in ods")
             )
 
         parsed = pd.read_excel("test3" + read_ext, sheet_name="Sheet1")
@@ -418,10 +416,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -445,15 +443,15 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
-        if engine == "calamine":
+        if engine == "calamine" and read_ext != ".ods":
             request.node.add_marker(
-                pytest.mark.xfail(reason="Calamine can't parse this datetime format")
+                pytest.mark.xfail(reason="Maybe not supported by calamine")
             )
 
         expected = DataFrame.from_dict(
@@ -715,13 +713,6 @@ class TestReaders:
 
     def test_reader_spaces(self, request, engine, read_ext):
         # see gh-32207
-
-        # https://github.com/tafia/calamine/pull/289
-        if engine == "calamine" and read_ext == ".ods":
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Calamine doesn't respect spaces in ods")
-            )
-
         basename = "test_spaces"
 
         actual = pd.read_excel(basename + read_ext)
@@ -826,7 +817,7 @@ class TestReaders:
             columns=["DateColWithBigInt", "StringCol"],
         )
 
-        if engine == "calamine":
+        if engine == "calamine" and read_ext != ".ods":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Maybe not supported by calamine")
             )
@@ -852,10 +843,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1027,10 +1018,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
         if engine == "calamine":
@@ -1073,11 +1064,15 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
+            )
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Last test fails in calamine")
             )
 
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
@@ -1175,10 +1170,10 @@ class TestReaders:
                     f"not supported by {engine} (GH4679)"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1310,10 +1305,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1371,10 +1366,10 @@ class TestReaders:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1651,10 +1646,10 @@ class TestExcelFileRead:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1686,10 +1681,10 @@ class TestExcelFileRead:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
@@ -1784,10 +1779,10 @@ class TestExcelFileRead:
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
             )
-        if engine == "calamine" and read_ext in {".xls", ".xlsb", ".ods"}:
+        if engine == "calamine" and read_ext in {".xls", ".xlsb"}:
             request.node.add_marker(
                 pytest.mark.xfail(
-                    reason="Calamine support parsing datetime only in xlsx"
+                    reason="Calamine support parsing datetime only in xlsx/ods"
                 )
             )
 
