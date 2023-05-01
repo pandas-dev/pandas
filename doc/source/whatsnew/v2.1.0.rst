@@ -22,7 +22,7 @@ Reductions maintain extension dtypes
 In previous versions of pandas, the results of DataFrame reductions
 (:meth:`DataFrameG.sum` :meth:`DataFrame.mean` etc.) has numpy dtypes even when the DataFrames
 were of extension dtypes. Pandas can now keep the dtypes when doing reductions over Dataframe
-columns with a common dtype (:issue:``52788`).
+columns with a common dtype (:issue:`52788`).
 
 *New Behavior*
 

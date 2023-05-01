@@ -67,8 +67,8 @@ class NumericReduce(base.BaseNumericReduceTests):
     def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")
-        elif is_platform_windows() or not IS64:
-            pytest.skip("tests for platform not written yet")
+        elif not (IS64 and not is_platform_windows()):
+            pytest.skip("tests for platform not written for 32bit Linux")
 
         arr = ser.array
 
