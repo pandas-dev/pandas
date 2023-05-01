@@ -455,8 +455,6 @@ def maybe_cast_pointwise_result(
         result maybe casted to the dtype.
     """
 
-    assert not is_scalar(result)
-
     if isinstance(dtype, ExtensionDtype):
         if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
             # TODO: avoid this special-casing
@@ -1040,10 +1038,10 @@ def convert_dtypes(
             target_int_dtype = pandas_dtype_func("Int64")
 
             if input_array.dtype.kind in "iu":
-                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+                from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 
-                inferred_dtype = INT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, target_int_dtype
+                inferred_dtype = NUMPY_INT_TO_DTYPE.get(
+                    input_array.dtype, target_int_dtype
                 )
             elif input_array.dtype.kind in "fcb":
                 # TODO: de-dup with maybe_cast_to_integer_array?
@@ -1062,10 +1060,10 @@ def convert_dtypes(
         if convert_floating:
             if input_array.dtype.kind in "fcb":
                 # i.e. numeric but not integer
-                from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+                from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
 
-                inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, pandas_dtype_func("Float64")
+                inferred_float_dtype: DtypeObj = NUMPY_FLOAT_TO_DTYPE.get(
+                    input_array.dtype, pandas_dtype_func("Float64")
                 )
                 # if we could also convert to integer, check if all floats
                 # are actually integers

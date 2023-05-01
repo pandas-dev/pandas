@@ -44,7 +44,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -129,7 +128,7 @@ def is_bool_indexer(key: Any) -> bool:
 
             if not lib.is_bool_array(key_array):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if lib.infer_dtype(key_array) == "boolean" and isna(key_array).any():
+                if lib.is_bool_array(key_array, skipna=True):
                     # Don't raise on e.g. ["A", "B", np.nan], see
                     #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)

@@ -1019,10 +1019,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
-        if isinstance(key, Index):
-            key_type = key.inferred_type
-        else:
-            key_type = lib.infer_dtype(key, skipna=False)
+        key_type = lib.infer_dtype(key, skipna=False)
 
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
@@ -5576,6 +5573,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # avoid repeated alignment
             if not left.index.equals(right.index):
                 if align_asobject:
+                    if left.dtype not in (object, np.bool_) or right.dtype not in (
+                        object,
+                        np.bool_,
+                    ):
+                        warnings.warn(
+                            "Operation between non boolean Series with different "
+                            "indexes will no longer return a boolean result in "
+                            "a future version. Cast both Series to object type "
+                            "to maintain the prior behavior.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     # to keep original value's dtype for bool ops
                     left = left.astype(object)
                     right = right.astype(object)

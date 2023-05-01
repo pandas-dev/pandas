@@ -3914,7 +3914,7 @@ class DataFrame(NDFrame, OpsMixin):
         ``frame[frame.columns[i]] = value``.
         """
         if isinstance(value, DataFrame):
-            if is_scalar(loc):
+            if is_integer(loc):
                 loc = [loc]
 
             if len(loc) != len(value.columns):
@@ -8583,20 +8583,20 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
         ...                               'Parrot', 'Parrot'],
         ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
-                  Max Speed
+        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
+                  Animal  Max Speed
         Animal
-        Falcon 0      380.0
-               1      370.0
-        Parrot 2       24.0
-               3       26.0
+        Falcon 0  Falcon      380.0
+               1  Falcon      370.0
+        Parrot 2  Parrot       24.0
+               3  Parrot       26.0
 
-        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
-           Max Speed
-        0      380.0
-        1      370.0
-        2       24.0
-        3       26.0
+        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
         """
         )
     )
@@ -11044,7 +11044,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().std(axis, skipna, ddof, numeric_only, **kwargs)
+        result = cast(Series, super().std(axis, skipna, ddof, numeric_only, **kwargs))
+        return result.__finalize__(self, method="std")
 
     @doc(make_doc("skew", ndim=2))
     def skew(
