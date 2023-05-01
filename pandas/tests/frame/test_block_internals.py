@@ -20,7 +20,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import NumpyBlock
+from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure

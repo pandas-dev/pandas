@@ -29,7 +29,6 @@ def test_namespace():
         "Block",
         "DatetimeTZBlock",
         "ExtensionBlock",
-        "NumpyBlock",
         "make_block",
         "DataManager",
         "ArrayManager",

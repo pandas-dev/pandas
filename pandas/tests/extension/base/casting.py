@@ -4,7 +4,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.internals import NumpyBlock
+from pandas.core.internals.blocks import NumpyBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 

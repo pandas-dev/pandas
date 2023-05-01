@@ -11,7 +11,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
     DatetimeTZBlock,
     ExtensionBlock,
-    NumpyBlock,
 )
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
@@ -24,7 +23,6 @@ __all__ = [
     "Block",
     "DatetimeTZBlock",
     "ExtensionBlock",
-    "NumpyBlock",
     "make_block",
     "DataManager",
     "ArrayManager",
@@ -46,7 +44,7 @@ def __getattr__(name: str):
     if name in ["NumericBlock", "ObjectBlock"]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
-            "Use NumpyBlock instead.",
+            "Use public APIs instead.",
             DeprecationWarning,
             stacklevel=find_stack_level(),
         )
