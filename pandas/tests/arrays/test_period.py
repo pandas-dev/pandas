@@ -22,15 +22,6 @@ def test_registered():
     assert result == expected
 
 
-def test_perioddtype_caching_dateoffset_normalize():
-    # GH 24121
-    per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
-    assert per_d.freq.normalize
-
-    per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
-    assert not per_d2.freq.normalize
-
-
 # ----------------------------------------------------------------------------
 # period_array
 
