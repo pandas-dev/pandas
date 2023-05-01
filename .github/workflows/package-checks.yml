@@ -2,13 +2,13 @@ name: Package Checks
 
 on:
   push:
-    branches:
-      - main
-      - 2.0.x
+    # branches:
+    #   - main
+    #   - 2.0.x
   pull_request:
-    branches:
-      - main
-      - 2.0.x
+    # branches:
+    #   - main
+    #   - 2.0.x
     types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
@@ -79,7 +79,7 @@ jobs:
           cache-env: true
 
       - name: Verify Recipe
-        run: conda-verify ci/meta.yaml
+        run: conda-verify ci/conda-recipe.yaml
 
       - name: Build conda package:
-        run: conda mambabuild ci/meta.yaml --no-anaconda-upload --verify --test
+        run: conda mambabuild ci/conda-recipe.yaml --no-anaconda-upload --verify --test

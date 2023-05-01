@@ -5,8 +5,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/pandas-dev/pandas/releases/download/v{{ version }}/pandas-{{ version }}.tar.gz
-  sha256: 19b8e5270da32b41ebf12f0e7165efa7024492e9513fb46fb631c5022ae5709d
+  git_url: ../..
 
 build:
   number: 0
