@@ -81,5 +81,5 @@ jobs:
       - name: Verify Recipe
         run: conda-verify ci/conda-recipe.yaml
 
-      - name: Build conda package:
+      - name: Build conda package
         run: conda mambabuild ci/conda-recipe.yaml --no-anaconda-upload --verify --test
