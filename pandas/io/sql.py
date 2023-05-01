@@ -161,7 +161,7 @@ def _convert_arrays_to_dataframe(
     # sqlalchemy uses sqlalchemy.sql.quoted_name instead of str
     # when using sqlalchemy.sql.select
     # GH52816
-    str_columns = map(str, columns)
+    str_columns = list(map(str, columns))
     if arrays:
         return DataFrame(dict(zip(str_columns, arrays)))
     else:
