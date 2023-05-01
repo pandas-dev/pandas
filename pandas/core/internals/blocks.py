@@ -2150,11 +2150,13 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
 
 class NumericBlock(NumpyBlock):
     # this Block type is kept for backwards-compatibility
+    # TODO(3.0): delete and remove deprecation in __init__.py.
     __slots__ = ()
 
 
 class ObjectBlock(NumpyBlock):
     # this Block type is kept for backwards-compatibility
+    # TODO(3.0): delete and remove deprecation in __init__.py.
     __slots__ = ()
 
 
