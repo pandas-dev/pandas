@@ -2602,6 +2602,36 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         ):
             tm.assert_frame_equal(result, expected)
 
+    def test_column_name_str(self):
+        # GH#52816
+        from sqlalchemy import (
+            Column,
+            MetaData,
+            select,
+            Table
+        )
+
+        from sqlalchemy.types import BigInteger
+
+        test_table = Table(
+            "test",
+            MetaData(),
+            Column('id', BigInteger, primary_key=True),
+            Column('a', BigInteger),
+        )
+
+        df = DataFrame(
+            {
+                'id': [1],
+                'a': [2],
+                'b': [3],
+            },
+            dtype='int64',
+        )
+        df.to_sql("test", self.conn, index=False, if_exists="replace")
+        result = read_sql_query(select(test_table), self.conn)
+        assert all(type(c) is str for c in result.columns)
+
     @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable"])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
     def test_read_sql_dtype(self, func, dtype_backend):
