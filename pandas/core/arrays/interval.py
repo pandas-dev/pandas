@@ -50,7 +50,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -1684,7 +1683,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
 
-            if is_dtype_equal(self.dtype, values.dtype):
+            if self.dtype == values.dtype:
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")

@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -947,9 +946,7 @@ class _MergeOperation:
                         if left_has_missing:
                             take_right = self.right_join_keys[i]
 
-                            if not is_dtype_equal(
-                                result[name].dtype, self.left[name].dtype
-                            ):
+                            if result[name].dtype != self.left[name].dtype:
                                 take_left = self.left[name]._values
 
                     elif name in self.right:
@@ -959,9 +956,7 @@ class _MergeOperation:
                         if right_has_missing:
                             take_left = self.left_join_keys[i]
 
-                            if not is_dtype_equal(
-                                result[name].dtype, self.right[name].dtype
-                            ):
+                            if result[name].dtype != self.right[name].dtype:
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None:
@@ -1293,7 +1288,7 @@ class _MergeOperation:
             elif lk_is_cat or rk_is_cat:
                 pass
 
-            elif is_dtype_equal(lk.dtype, rk.dtype):
+            elif lk.dtype == rk.dtype:
                 continue
 
             msg = (
@@ -1977,7 +1972,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            if not is_dtype_equal(lk.dtype, rk.dtype):
+            if lk.dtype != rk.dtype:
                 if isinstance(lk.dtype, CategoricalDtype) and isinstance(
                     rk.dtype, CategoricalDtype
                 ):
@@ -2363,7 +2358,7 @@ def _factorize_keys(
     elif (
         isinstance(lk.dtype, CategoricalDtype)
         and isinstance(rk.dtype, CategoricalDtype)
-        and is_dtype_equal(lk.dtype, rk.dtype)
+        and lk.dtype == rk.dtype
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
@@ -2374,7 +2369,7 @@ def _factorize_keys(
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
+    elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if not isinstance(lk, BaseMaskedArray) and not (
             # exclude arrow dtypes that would get cast to object
             isinstance(lk.dtype, ArrowDtype)
@@ -2442,7 +2437,7 @@ def _convert_arrays_and_get_rizer_klass(
 ) -> tuple[type[libhashtable.Factorizer], ArrayLike, ArrayLike]:
     klass: type[libhashtable.Factorizer]
     if is_numeric_dtype(lk.dtype):
-        if not is_dtype_equal(lk, rk):
+        if lk.dtype != rk.dtype:
             dtype = find_common_type([lk.dtype, rk.dtype])
             if isinstance(dtype, ExtensionDtype):
                 cls = dtype.construct_array_type()

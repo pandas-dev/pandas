@@ -18,7 +18,6 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
 )
-from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -276,10 +275,7 @@ def union_categoricals(
     to_union = [_maybe_unwrap(x) for x in to_union]
     first = to_union[0]
 
-    if not all(
-        is_dtype_equal(other.categories.dtype, first.categories.dtype)
-        for other in to_union[1:]
-    ):
+    if not lib.dtypes_all_equal([obj.categories.dtype for obj in to_union]):
         raise TypeError("dtype of categories must be the same")
 
     ordered = False

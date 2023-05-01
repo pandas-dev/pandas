@@ -93,7 +93,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dataclass,
     is_dict_like,
-    is_dtype_equal,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -8331,7 +8330,7 @@ class DataFrame(NDFrame, OpsMixin):
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
             for col in self.columns.intersection(other.columns)
-            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+            if combined.dtypes[col] != self.dtypes[col]
         }
 
         if dtypes:

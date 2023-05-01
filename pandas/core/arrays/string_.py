@@ -26,7 +26,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -444,7 +443,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self

@@ -19,7 +19,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
@@ -210,7 +209,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self

@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -587,11 +586,12 @@ class ParserBase:
                 )
 
                 # type specified in dtype param or cast_type is an EA
-                if cast_type and (not is_dtype_equal(cvals, cast_type) or is_ea):
+                if cast_type is not None:
+                    cast_type = pandas_dtype(cast_type)
+                if cast_type and (cvals.dtype != cast_type or is_ea):
                     if not is_ea and na_count > 0:
                         if is_bool_dtype(cast_type):
                             raise ValueError(f"Bool column has NA values in column {c}")
-                    cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals

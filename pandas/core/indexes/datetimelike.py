@@ -39,7 +39,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_integer,
     is_list_like,
 )
@@ -153,7 +152,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                     #  OverflowError -> Index([very_large_timedeltas])
                     return False
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             # have different timezone
             return False
 

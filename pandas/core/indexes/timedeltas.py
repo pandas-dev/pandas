@@ -16,8 +16,8 @@ from pandas._libs.tslibs import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -160,11 +160,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
 
         if (
             isinstance(data, TimedeltaArray)
             and freq is lib.no_default
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+            and (dtype is None or dtype == data.dtype)
         ):
             if copy:
                 data = data.copy()
@@ -174,7 +176,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             isinstance(data, TimedeltaIndex)
             and freq is lib.no_default
             and name is None
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+            and (dtype is None or dtype == data.dtype)
         ):
             if copy:
                 return data.copy()

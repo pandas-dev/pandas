@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_dtype_equal,
     is_float,
     is_float_dtype,
     is_integer,
@@ -579,7 +578,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         subtype = self.dtype.subtype  # type: ignore[union-attr]
 
-        if not is_dtype_equal(subtype, key_dtype):
+        if subtype != key_dtype:
             raise ValueError(
                 f"Cannot index an IntervalIndex of subtype {subtype} with "
                 f"values of dtype {key_dtype}"

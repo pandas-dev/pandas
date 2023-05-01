@@ -83,7 +83,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_all_strings,
-    is_dtype_equal,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -664,7 +663,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if isinstance(value.dtype, CategoricalDtype):
             # e.g. we have a Categorical holding self.dtype
-            if is_dtype_equal(value.categories.dtype, self.dtype):
+            if value.categories.dtype == self.dtype:
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
                 value = extract_array(value, extract_numpy=True)
@@ -1859,7 +1858,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
             if dtype is not None:
                 dtype = pandas_dtype(dtype)
-                if not is_dtype_equal(dtype, values.dtype):
+                if dtype != values.dtype:
                     # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
                     raise TypeError(
                         f"dtype={dtype} does not match data dtype {values.dtype}"

@@ -1248,9 +1248,7 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.closed != other.closed:
             return False
         else:
-            from pandas.core.dtypes.common import is_dtype_equal
-
-            return is_dtype_equal(self.subtype, other.subtype)
+            return self.subtype == other.subtype
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the

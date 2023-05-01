@@ -18,7 +18,6 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
@@ -171,7 +170,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
     -------
     ndarray or ExtensionArray
     """
-    if is_dtype_equal(values.dtype, dtype):
+    if values.dtype == dtype:
         if copy:
             return values.copy()
         return values
