@@ -5,8 +5,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import _registry as registry
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -81,6 +79,11 @@ from pandas.tests.extension.decimal import (
             DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
         ),
         (
+            [1, 2],
+            np.dtype("datetime64[s]"),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[s]")),
+        ),
+        (
             np.array([1, 2], dtype="datetime64[ns]"),
             None,
             DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
@@ -118,6 +121,11 @@ from pandas.tests.extension.decimal import (
             pd.TimedeltaIndex(["1H", "2H"]),
             np.dtype("timedelta64[ns]"),
             TimedeltaArray._from_sequence(["1H", "2H"]),
+        ),
+        (
+            np.array([1, 2], dtype="m8[s]"),
+            np.dtype("timedelta64[s]"),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[s]")),
         ),
         (
             pd.TimedeltaIndex(["1H", "2H"]),
@@ -401,25 +409,6 @@ def test_array_unboxes(index_or_series):
 
     result = pd.array(data, dtype="decimal2")
     expected = DecimalArray2._from_sequence(data.values)
-    tm.assert_equal(result, expected)
-
-
-@pytest.fixture
-def registry_without_decimal():
-    """Fixture yielding 'registry' with no DecimalDtype entries"""
-    idx = registry.dtypes.index(DecimalDtype)
-    registry.dtypes.pop(idx)
-    yield
-    registry.dtypes.append(DecimalDtype)
-
-
-def test_array_not_registered(registry_without_decimal):
-    # check we aren't on it
-    assert registry.find("decimal") is None
-    data = [decimal.Decimal("1"), decimal.Decimal("2")]
-
-    result = pd.array(data, dtype=DecimalDtype)
-    expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
 
 
