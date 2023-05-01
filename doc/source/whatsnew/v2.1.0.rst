@@ -14,10 +14,43 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_210.enhancements.enhancement1:
+.. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
-enhancement1
-^^^^^^^^^^^^
+Reductions maintain extension dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, the results of DataFrame reductions
+(:meth:`DataFrameG.sum` :meth:`DataFrame.mean` etc.) has numpy dtypes even when the DataFrames
+were of extension dtypes. Pandas can now keep the dtypes when doing reductions over Dataframe
+columns with a common dtype (:issue:``52788`).
+
+*New Behavior*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
+    In [2]: df.sum()
+    Out[2]:
+    a    5
+    b    9
+    dtype: int64
+    In [3]: df = df.astype("int64[pyarrow]")
+    In [4]: df.sum()
+    Out[4]:
+    a    5
+    b    9
+    dtype: int64
+
+*New Behavior*
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
+    df.sum()
+    df = df.astype("int64[pyarrow]")
+    df.sum()
+
+Notice that the dtype is now a masked dtype and pyarrow dtype, respectively, while previously it was a numpy integer dtype.
 
 .. _whatsnew_210.enhancements.enhancement2:
 
