@@ -23,7 +23,7 @@ We use the standard convention for referencing the matplotlib API:
    plt.close("all")
 
 We provide the basics in pandas to easily create decent looking plots.
-See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
+See `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ for visualization
 libraries that go beyond the basics documented here.
 
 .. note::
@@ -1209,8 +1209,6 @@ shown by default.
 Controlling the labels
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.1.0
-
 You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
 for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
 it empty for ylabel.
@@ -1709,7 +1707,7 @@ Colormaps can also be used other plot types, like bar charts:
 
 .. ipython:: python
 
-   dd = pd.DataFrame(np.random.randn(10, 10)).applymap(abs)
+   dd = pd.DataFrame(np.random.randn(10, 10)).map(abs)
    dd = dd.cumsum()
 
    plt.figure();
@@ -1829,7 +1827,7 @@ This would be more or less equivalent to:
 
 The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
 to generate the plots. Some libraries implementing a backend for pandas are listed
-on the ecosystem :ref:`ecosystem.visualization` page.
+on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 Developers guide can be found at
 https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends

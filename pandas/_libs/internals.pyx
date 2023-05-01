@@ -440,6 +440,64 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_concat_blkno_indexers(list blknos_list not None):
+    """
+    Given the mgr.blknos for a list of mgrs, break range(len(mgrs[0])) into
+    slices such that within each slice blknos_list[i] is constant for each i.
+
+    This is a multi-Manager analogue to get_blkno_indexers with group=False.
+    """
+    # we have the blknos for each of several BlockManagers
+    # list[np.ndarray[int64_t]]
+    cdef:
+        Py_ssize_t i, j, k, start, ncols
+        cnp.npy_intp n_mgrs
+        ndarray[intp_t] blknos, cur_blknos, run_blknos
+        BlockPlacement bp
+        list result = []
+
+    n_mgrs = len(blknos_list)
+    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
+
+    blknos = blknos_list[0]
+    ncols = len(blknos)
+    if ncols == 0:
+        return []
+
+    start = 0
+    for i in range(n_mgrs):
+        blknos = blknos_list[i]
+        cur_blknos[i] = blknos[0]
+        assert len(blknos) == ncols
+
+    for i in range(1, ncols):
+        # For each column, we check if the Block it is part of (i.e. blknos[i])
+        #  is the same the previous column (i.e. blknos[i-1]) *and* if this is
+        #  the case for each blknos in blknos_list.  If not, we start a new "run".
+        for k in range(n_mgrs):
+            blknos = blknos_list[k]
+            # assert cur_blknos[k] == blknos[i - 1]
+
+            if blknos[i] != blknos[i - 1]:
+                bp = BlockPlacement(slice(start, i))
+                run_blknos = cnp.PyArray_Copy(cur_blknos)
+                result.append((run_blknos, bp))
+
+                start = i
+                for j in range(n_mgrs):
+                    blknos = blknos_list[j]
+                    cur_blknos[j] = blknos[i]
+                break  # break out of `for k in range(n_mgrs)` loop
+
+    if start != ncols:
+        bp = BlockPlacement(slice(start, ncols))
+        run_blknos = cnp.PyArray_Copy(cur_blknos)
+        result.append((run_blknos, bp))
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_blkno_indexers(
     int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:

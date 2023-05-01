@@ -472,12 +472,8 @@ class TestGroupBy:
         def sumfunc_series(x):
             return Series([x["value"].sum()], ("sum",))
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_series)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
+        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -493,11 +489,8 @@ class TestGroupBy:
         def sumfunc_value(x):
             return x.value.sum()
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
+        result = df_dt.groupby(Grouper(freq="M", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -903,9 +896,7 @@ class TestGroupBy:
         assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
 
         # function that returns a Series
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = gb.apply(lambda x: x["Quantity"] * 2)
+        res = gb.apply(lambda x: x["Quantity"] * 2)
 
         expected = DataFrame(
             [[36, 6, 6, 10, 2]],
