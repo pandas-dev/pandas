@@ -22,7 +22,6 @@ defaults:
 
 jobs:
   ubuntu:
-    if: false
     runs-on: ubuntu-22.04
     timeout-minutes: 180
     strategy:
@@ -170,7 +169,6 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
-    if: false
     timeout-minutes: 180
     strategy:
       matrix:
@@ -208,7 +206,6 @@ jobs:
         uses: ./.github/actions/run-tests
 
   Linux-32-bit:
-    if: false
     runs-on: ubuntu-22.04
     container:
       image: quay.io/pypa/manylinux2014_i686
