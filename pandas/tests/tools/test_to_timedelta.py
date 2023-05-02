@@ -219,8 +219,9 @@ class TestTimedeltas:
         actual = to_timedelta(val)
         assert actual._value == np.timedelta64("NaT").astype("int64")
 
-    def test_to_timedelta_on_missing_values_list(self):
-        actual = to_timedelta([pd.NA])
+    @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
+    def test_to_timedelta_on_missing_values_list(self, val):
+        actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
     def test_to_timedelta_float(self):
