@@ -67,8 +67,6 @@ class NumericReduce(base.BaseNumericReduceTests):
     def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")
-        elif not (IS64 or is_platform_windows()):
-            pytest.skip("tests for platform not written for 32bit Linux")
 
         arr = ser.array
 
@@ -78,10 +76,8 @@ class NumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "Float64"
         elif op_name in ["max", "min"]:
             cmp_dtype = arr.dtype.name
-        elif arr.dtype == "Int64":
-            cmp_dtype = "Int64"
-        elif arr.dtype == "UInt64":
-            cmp_dtype = "UInt64"
+        elif arr.dtype == "Int64" or arr.dtype == "UInt64":
+            cmp_dtype = arr.dtype.name
         elif tm.is_signed_integer_dtype(arr.dtype):
             cmp_dtype = "Int32" if skipna and is_platform_windows() else "Int64"
         elif tm.is_unsigned_integer_dtype(arr.dtype):
