@@ -138,7 +138,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values = np.empty(shape, dtype=dtype.type)
         values[:] = cls._internal_fill_value
         mask = np.ones(shape, dtype=bool)
-        return cls(values, mask)
+        result = cls(values, mask)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
     @property
     def dtype(self) -> BaseMaskedDtype:
