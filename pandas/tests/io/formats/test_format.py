@@ -2244,29 +2244,46 @@ class TestSeriesFormatting:
 
         # unicode index
         s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
-        expected = (
-            "あ         a\nいい       bb\nうう" "う     CCC\nええええ      D\ndtype: object"
+        expected = "".join(
+            [
+                "あ         a\n",
+                "いい       bb\n",
+                "ううう     CCC\n",
+                "ええええ      D\ndtype: object",
+            ]
         )
         assert repr(s) == expected
 
         # unicode values
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
-        expected = (
-            "a         あ\nbb       いい\nc       う" "うう\nddd    ええええ\ndtype: object"
+        expected = "".join(
+            [
+                "a         あ\n",
+                "bb       いい\n",
+                "c       ううう\n",
+                "ddd    ええええ\n",
+                "dtype: object",
+            ]
         )
+
         assert repr(s) == expected
 
         # both
-        s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
+        indices = ["ああ", "いいいい", "う", "えええ"]
+        s = Series(["あ", "いい", "ううう", "ええええ"], index=indices)
         expected = (
-            "ああ         あ\nいいいい      いい\nう        うう" "う\nえええ     ええええ\ndtype: object"
+            "ああ         あ\n"
+            "いいいい      いい\n"
+            "う        ううう\n"
+            "えええ     ええええ\n"
+            "dtype: object"
         )
-        assert repr(s) == expected
 
+        assert repr(s) == expected
+        indices = ["ああ", "いいいい", "う", "えええ"]
+        name = "おおおおおおお"
         # unicode footer
-        s = Series(
-            ["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"], name="おおおおおおお"
-        )
+        s = Series(["あ", "いい", "ううう", "ええええ"], index=indices, name=name)
         expected = (
             "ああ         あ\nいいいい      いい\nう        ううう\n"
             "えええ     ええええ\nName: おおおおおおお, dtype: object"
@@ -2327,23 +2344,24 @@ class TestSeriesFormatting:
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
             # unicode index
-            s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
+            indices = ["あ", "いい", "ううう", "ええええ"]
+            s = Series(["a", "bb", "CCC", "D"], index=indices)
             expected = (
                 "あ            a\nいい         bb\nううう      CCC\n"
                 "ええええ      D\ndtype: object"
             )
             assert repr(s) == expected
-
+            indices = ["a", "bb", "c", "ddd"]
             # unicode values
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
+            s = Series(["あ", "いい", "ううう", "ええええ"], index=indices)
             expected = (
                 "a            あ\nbb         いい\nc        ううう\n"
                 "ddd    ええええ\ndtype: object"
             )
             assert repr(s) == expected
-
+            indices = ["ああ", "いいいい", "う", "えええ"]
             # both
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
+            s = Series(["あ", "いい", "ううう", "ええええ"], index=indices)
             expected = (
                 "ああ              あ\n"
                 "いいいい        いい\n"
@@ -2420,11 +2438,9 @@ class TestSeriesFormatting:
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
                 assert repr(s) == expected
-
+            indices = ["ああ", "¡¡¡¡いい", "¡¡", "えええ"]
             # ambiguous unicode
-            s = Series(
-                ["¡¡", "い¡¡", "ううう", "ええええ"], index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"]
-            )
+            s = Series(["¡¡", "い¡¡", "ううう", "ええええ"], index=indices)
             expected = (
                 "ああ              ¡¡\n"
                 "¡¡¡¡いい        い¡¡\n"
