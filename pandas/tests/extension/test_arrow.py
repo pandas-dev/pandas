@@ -508,7 +508,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
-    def check_reduce_with_wrap(self, ser, op_name, skipna):
+    def check_reduce_and_wrap(self, ser, op_name, skipna):
         if op_name in ["count", "kurt", "sem", "skew"]:
             pytest.skip(f"{op_name} not an array method")
 
@@ -530,7 +530,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                 "u": "uint64[pyarrow]",
                 "f": "float64[pyarrow]",
             }[arr.dtype.kind]
-        result = arr._reduce_with_wrap(op_name, skipna=skipna, kwargs=kwargs)
+        result = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs=kwargs)
 
         if not skipna and ser.isna().any():
             expected = pd.array([pd.NA], dtype=cmp_dtype)

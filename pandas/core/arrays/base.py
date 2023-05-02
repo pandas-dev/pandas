@@ -136,7 +136,7 @@ class ExtensionArray:
     _from_sequence_of_strings
     _hash_pandas_object
     _reduce
-    _reduce_with_wrap
+    _reduce_and_wrap
     _values_for_argsort
     _values_for_factorize
 
@@ -185,6 +185,7 @@ class ExtensionArray:
 
     * _accumulate
     * _reduce
+    * _reduce_and_wrap
 
     One can implement methods to handle parsing from strings that will be used
     in methods such as ``pandas.io.parsers.read_csv``.
@@ -1429,7 +1430,7 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray._reduce_with_wrap
+        ExtensionArray._reduce_and_wrap
             Calls ``_reduce`` and wraps the result in a ndarray/ExtensionArray.
         """
         meth = getattr(self, name, None)
@@ -1440,7 +1441,7 @@ class ExtensionArray:
             )
         return meth(skipna=skipna, **kwargs)
 
-    def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
+    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
         """
         Call ``_reduce`` and wrap the result in a ndarray/ExtensionArray.
 
@@ -1454,7 +1455,7 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([1, 2, pd.NA])
-        >>> arr._reduce_with_wrap("sum", kwargs={})
+        >>> arr._reduce_and_wrap("sum", kwargs={})
         <IntegerArray>
         [3]
         Length: 1, dtype: Int64

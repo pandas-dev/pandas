@@ -1097,7 +1097,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             name, result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def _reduce_with_wrap(self, name: str, *, skipna: bool = True, kwargs):
+    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
         df = self.reshape(-1, 1)
         res = df._reduce(name=name, skipna=skipna, axis=0, **kwargs)
         return res

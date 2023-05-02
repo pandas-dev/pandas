@@ -64,7 +64,7 @@ class NumericReduce(base.BaseNumericReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_with_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
+    def check_reduce_and_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")
 
@@ -87,7 +87,7 @@ class NumericReduce(base.BaseNumericReduceTests):
         else:
             raise TypeError("not supposed to reach this")
 
-        result = arr._reduce_with_wrap(op_name, skipna=skipna, kwargs={})
+        result = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs={})
         if not skipna and ser.isna().any():
             expected = pd.array([pd.NA], dtype=cmp_dtype)
         else:
