@@ -82,11 +82,13 @@ jobs:
           cache-downloads: true
           cache-env: true
 
-      # - name: Verify Recipe
-      #   run: conda-verify ci/
+      - name: Verify Recipe
+        run: conda mambabuild ci --check
 
       - name: Build conda package
-        run: conda mambabuild ci --no-anaconda-upload --verify --output --output-folder .
+        run: |
+          mkdir package
+          conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder package
 
       - name: Test conda package
-        run: conda mambabuild --test --keep-going .
+        run: conda mambabuild --keep-going --test package
