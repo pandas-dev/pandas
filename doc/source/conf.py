@@ -244,7 +244,7 @@ html_theme_options = {
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "/versions.json",
+        "json_url": "https://pandas.pydata.org/docs/_static/version_switcher.json",
         "version_match": switcher_version,
     },
     "icon_links": [
