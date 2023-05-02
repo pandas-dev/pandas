@@ -298,13 +298,21 @@ class TestMultiLevel:
                 ["A", "D", 9.87, 10.54],
             ],
             columns=["pivot_0", "pivot_1", "col_1", "col_2"],
-        )
-        df.set_index(["pivot_0", "pivot_1"], inplace=True)
+        ).set_index(["pivot_0", "pivot_1"])
 
         df.at[("A", "F"), "col_2"] = 0.0
 
-        assert df.loc[("A", "F")]["col_2"] == 0.0
-        assert pd.isna(df.loc[("A", "F")]["col_1"])
+        expected = DataFrame(
+            [
+                ["A", np.nan, 1.23, 4.56],
+                ["A", "G", 1.23, 4.56],
+                ["A", "D", 9.87, 10.54],
+                ["A", "F", np.nan, 0.0],
+            ],
+            columns=["pivot_0", "pivot_1", "col_1", "col_2"],
+        ).set_index(["pivot_0", "pivot_1"])
+
+        tm.assert_frame_equal(df, expected)
 
 
 class TestSorted:
