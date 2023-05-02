@@ -2100,11 +2100,7 @@ c  10  11  12  13  14\
         assert result == expected
 
     def test_no_extra_space(self):
-        """Check that no extra space is given
-
-        GH #52690
-
-        """
+        # GH 52690: Check that no extra space is given
         # Expected Output
         col1 = "TEST"
         col2 = "PANDAS"
