@@ -82,8 +82,8 @@ jobs:
           cache-downloads: true
           cache-env: true
 
-      - name: Verify Recipe
-        run: conda-verify ci/
+      # - name: Verify Recipe
+      #   run: conda-verify ci/
 
       - name: Build conda package
         run: conda mambabuild ci/meta.yaml --no-anaconda-upload --verify --test
