@@ -79,12 +79,12 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v3.0.0a6
+    rev: v2.16.2
     hooks:
     -   id: pylint
         stages: [manual]
 -   repo: https://github.com/pycqa/pylint
-    rev: v3.0.0a6
+    rev: v2.16.2
     hooks:
     -   id: pylint
         alias: redefined-outer-name
