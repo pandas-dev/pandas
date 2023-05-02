@@ -132,6 +132,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
 
+    @classmethod
+    @doc(ExtensionArray._empty)
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        values = np.empty(shape, dtype=dtype.type)
+        values[:] = cls._internal_fill_value
+        mask = np.ones(shape, dtype=bool)
+        return cls(values, mask)
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
