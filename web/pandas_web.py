@@ -230,7 +230,9 @@ class Preprocessors:
         # Sort the releases in descending order
         sorted_releases = sorted(parsed_releases, reverse=True)
 
-        # Gathers minor versions that are NOT obsolete
+        # A version is obsolete if it's not the latest minor version within a major
+        # version. In the list ["1.4.0", "1.4.1", "1.4.2", "1.5.0", "1.5.1"], versions
+        # "1.4.0", "1.4.1", and "1.5.0" are obsolete,
         latest_releases = []
         prev_version = version.Version("0.0.0")
         for v, release in sorted_releases:
