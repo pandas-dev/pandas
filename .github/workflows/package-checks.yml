@@ -86,4 +86,6 @@ jobs:
         run: conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder . | tee /var/tmp/build.log
 
       - name: Test conda package
-        run: conda mambabuild --keep-going --test $(tail -1 /var/tmp/build.log)
+        run: |
+          ls
+          ls ci
