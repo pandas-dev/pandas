@@ -227,15 +227,13 @@ class Preprocessors:
         # Map to create a list of (version, realse) pairs from releases
         parsed_releases = map(lambda r: (version.parse(r["tag_name"]), r), releases)
 
-        # Sort the releases in descending order
-        sorted_releases = sorted(parsed_releases, reverse=True)
-
         # A version is obsolete if it's not the latest minor version within a major
         # version. In the list ["1.4.0", "1.4.1", "1.4.2", "1.5.0", "1.5.1"], versions
         # "1.4.0", "1.4.1", and "1.5.0" are obsolete,
+        # The following code filters out versions that are NOT obsolete
         latest_releases = []
         prev_version = version.Version("0.0.0")
-        for v, release in sorted_releases:
+        for v, release in sorted(parsed_releases, reverse=True):
             if (v.major, v.minor) == (prev_version.major, prev_version.minor):
                 # This release is of obsolete version, so skip
                 continue
