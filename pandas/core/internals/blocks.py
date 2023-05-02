@@ -56,7 +56,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_list_like,
     is_string_dtype,
 )
@@ -959,7 +958,7 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             new_mgr_locs = self._mgr_locs
 
-        if not is_dtype_equal(new_values.dtype, self.dtype):
+        if new_values.dtype != self.dtype:
             return self.make_block(new_values, new_mgr_locs)
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
