@@ -2225,11 +2225,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama', 'hippo'],
         ...               name='animal')
         >>> s
-        0      llama
+        0     llama
         1       cow
-        2      llama
+        2     llama
         3    beetle
-        4      llama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -2238,7 +2238,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> s.drop_duplicates()
-        0      llama
+        0     llama
         1       cow
         3    beetle
         5     hippo
@@ -2250,7 +2250,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.drop_duplicates(keep='last')
         1       cow
         3    beetle
-        4      llama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -4866,7 +4866,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
         ...               index=midx)
         >>> s
-        llama    speed      45.0
+        llama   speed      45.0
                 weight    200.0
                 length      1.2
         cow     speed      30.0
