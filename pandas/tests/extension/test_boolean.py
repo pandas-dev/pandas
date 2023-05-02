@@ -26,11 +26,6 @@ import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 
 def make_data():
     return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
