@@ -509,10 +509,12 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
     def check_reduce_and_wrap(self, ser, op_name, skipna):
+        arr = ser.array
+
         if op_name in ["count", "kurt", "sem", "skew"]:
+            assert not hasattr(arr, op_name)
             pytest.skip(f"{op_name} not an array method")
 
-        arr = ser.array
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
         if op_name in ["max", "min"]:

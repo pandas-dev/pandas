@@ -371,10 +371,11 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
     def check_reduce_and_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
-        if op_name in ["count", "kurt", "sem"]:
-            pytest.skip(f"{op_name} not an array method")
-
         arr = ser.array
+
+        if op_name in ["count", "kurt", "sem"]:
+            assert not hasattr(arr, op_name)
+            pytest.skip(f"{op_name} not an array method")
 
         if op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
