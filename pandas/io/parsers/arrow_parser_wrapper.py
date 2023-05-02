@@ -36,9 +36,6 @@ class ArrowParserWrapper(ParserBase):
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(
-            self.kwds["usecols"]
-        )
         na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
@@ -121,13 +118,15 @@ class ArrowParserWrapper(ParserBase):
         # we only need the frame not the names
         frame.columns, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
+            index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
-                    self.index_col[i] = frame.columns[item]
+                    index_to_set[i] = frame.columns[item]
                 # String case
                 elif item not in frame.columns:
                     raise ValueError(f"Index {item} invalid")
-            frame.set_index(self.index_col, drop=True, inplace=True)
+
+            frame.set_index(index_to_set, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
