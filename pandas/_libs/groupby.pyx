@@ -1075,7 +1075,7 @@ def group_mean(
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
-                    if compensation[lab, j] != compensation[lab, j] :
+                    if compensation[lab, j] != compensation[lab, j]:
                         compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
