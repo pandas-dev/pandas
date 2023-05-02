@@ -58,7 +58,7 @@ jobs:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
       fail-fast: false
-    name: Test Conda Forge Recipe
+    name: Test Conda Forge Recipe - Python ${{ matrix.python-version }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-conda-forge-recipe

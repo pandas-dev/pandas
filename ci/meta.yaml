@@ -49,7 +49,7 @@ test:
     #
     # Also skip `test_rolling_var_numerical_issues` on `ppc64le` as it is a known test failure.
     # xref: https://github.com/conda-forge/pandas-feedstock/issues/149
-    {% set markers = ["not clipboard", "not single_cpu", "not db", "not network", not slow] %}
+    {% set markers = ["not clipboard", "not single_cpu", "not db", "not network", "not slow"] %}
     {% set markers = markers + ["not arm_slow"] %}   # [aarch64 or ppc64le]
     {% set extra_args = ["-n=2 -m " + " and ".join(markers)] %}
     {% set extra_args = extra_args + ["-k not test_rolling_var_numerical_issues"] %}   # [ppc64le]
