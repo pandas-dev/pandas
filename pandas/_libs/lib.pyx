@@ -13,7 +13,11 @@ from cpython.datetime cimport (
     PyDateTime_Check,
     PyDelta_Check,
     PyTime_Check,
+    date,
+    datetime,
     import_datetime,
+    time,
+    timedelta,
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
@@ -1204,6 +1208,12 @@ _TYPE_MAP = {
     "m": "timedelta64",
     "interval": "interval",
     Period: "period",
+    datetime: "datetime64",
+    date: "date",
+    time: "time",
+    timedelta: "timedelta64",
+    Decimal: "decimal",
+    bytes: "bytes",
 }
 
 # types only exist on certain platform
@@ -1373,7 +1383,8 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["kind", "name", "base", "type"]:
+    for attr in ["type", "kind", "name", "base"]:
+        # Checking type before kind matters for ArrowDtype cases
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
