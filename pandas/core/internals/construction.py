@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_bool_dtype,
-    is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -319,7 +318,7 @@ def ndarray_to_mgr(
         # the dtypes will be coerced to a single dtype
         values = _prep_ndarraylike(values, copy=copy_on_sanitize)
 
-    if dtype is not None and not is_dtype_equal(values.dtype, dtype):
+    if dtype is not None and values.dtype != dtype:
         # GH#40110 see similar check inside sanitize_array
         values = sanitize_array(
             values,
@@ -1018,8 +1017,8 @@ def convert_object_array(
             # 1) we DO get here when arr is all Timestamps and dtype=None
             # 2) disabling this doesn't break the world, so this must be
             #    getting caught at a higher level
-            # 3) passing convert_datetime to maybe_convert_objects get this right
-            # 4) convert_timedelta?
+            # 3) passing convert_non_numeric to maybe_convert_objects get this right
+            # 4) convert_non_numeric?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):

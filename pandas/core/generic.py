@@ -50,7 +50,6 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
-    Dtype,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -114,7 +113,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -274,7 +272,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cls,
         mgr: Manager,
         axes,
-        dtype: Dtype | None = None,
+        dtype: DtypeObj | None = None,
         copy: bool_t = False,
     ) -> Manager:
         """passed a manager and a axes dict"""
@@ -292,7 +290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 isinstance(mgr, BlockManager)
                 and len(mgr.blocks) == 1
-                and is_dtype_equal(mgr.blocks[0].values.dtype, dtype)
+                and mgr.blocks[0].values.dtype == dtype
             ):
                 pass
             else:
@@ -1900,6 +1898,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         iterator
             Info axis as iterator.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        >>> for x in df:
+        ...     print(x)
+        A
+        B
         """
         return iter(self._info_axis)
 
@@ -1914,6 +1920,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         Index
             Info axis.
+
+        Examples
+        --------
+        >>> d = pd.DataFrame(data={'A': [1, 2, 3], 'B': [0, 4, 8]},
+        ...                  index=['a', 'b', 'c'])
+        >>> d
+           A  B
+        a  1  0
+        b  2  4
+        c  3  8
+        >>> d.keys()
+        Index(['A', 'B'], dtype='object')
         """
         return self._info_axis
 
@@ -3530,7 +3548,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # bold_rows is not a direct kwarg of Styler.to_latex
         render_kwargs = {} if render_kwargs is None else render_kwargs
         if render_kwargs.pop("bold_rows"):
-            styler.applymap_index(lambda v: "textbf:--rwrap;")
+            styler.map_index(lambda v: "textbf:--rwrap;")
 
         return styler.to_latex(buf=buf, **render_kwargs)
 
@@ -5558,7 +5576,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
+                **{name: labels.intersection(items)}
             )
         elif like:
 
@@ -7860,7 +7878,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Take all columns into consideration
 
-        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        >>> df = pd.DataFrame({'a': [10., 20., 30., 40., 50.],
         ...                    'b': [None, None, None, None, 500]},
         ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
         ...                                           '2018-02-27 09:02:00',
@@ -7878,9 +7896,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                              a   b
-        2018-02-27 09:03:30  30 NaN
-        2018-02-27 09:04:30  40 NaN
+                                a   b
+        2018-02-27 09:03:30  30.0 NaN
+        2018-02-27 09:04:30  40.0 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
@@ -8292,9 +8310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
-        if (lower is None or (is_scalar(lower) and is_number(lower))) and (
-            upper is None or (is_scalar(upper) and is_number(upper))
-        ):
+        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
             return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self
@@ -11633,11 +11649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if (
-            self.ndim == 1
-            and result._indexed_same(self)
-            and is_dtype_equal(result.dtype, self.dtype)
-        ):
+        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"

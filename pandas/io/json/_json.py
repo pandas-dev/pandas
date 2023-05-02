@@ -637,8 +637,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
 
-        .. versionadded:: 1.1
-
     {storage_options}
 
     dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
