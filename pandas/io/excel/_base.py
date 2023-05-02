@@ -157,12 +157,12 @@ engine : str, default None
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
 
-    * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-    * Otherwise if ``path_or_buffer`` is an xls format,
-     ``xlrd`` will be used.
-    * Otherwise if ``path_or_buffer`` is in xlsb format,
-      ``pyxlsb`` will be used.
+        * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        * Otherwise if ``path_or_buffer`` is an xls format,
+         ``xlrd`` will be used.
+        * Otherwise if ``path_or_buffer`` is in xlsb format,
+          ``pyxlsb`` will be used.
 
       .. versionadded:: 1.3.0
 
@@ -1439,18 +1439,19 @@ class ExcelFile:
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
 
-        * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-        * Otherwise if ``path_or_buffer`` is an xls format,
-          ``xlrd`` will be used.
-        * Otherwise if ``path_or_buffer`` is in xlsb format,
-          `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+            * If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+              then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+            * Otherwise if ``path_or_buffer`` is an xls format,
+              ``xlrd`` will be used.
+            * Otherwise if ``path_or_buffer`` is in xlsb format,
+              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-        .. versionadded:: 1.3.0
+            .. versionadded:: 1.3.0
 
-        * Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
-          then ``openpyxl`` will be used.
-        * Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
+            * Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is
+              installed, then ``openpyxl`` will be used.
+            * Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be
+              raised.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
     """
