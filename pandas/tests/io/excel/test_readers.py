@@ -845,9 +845,9 @@ class TestReaders:
         # CI tests with other languages, translates to "No such file or directory"
         match = "|".join(
             [
-                "No such file or directory",
+                "(No such file or directory",
                 "没有那个文件或目录",
-                "File o directory non esistente",
+                "File o directory non esistente)",
             ]
         )
         with pytest.raises(FileNotFoundError, match=match):
