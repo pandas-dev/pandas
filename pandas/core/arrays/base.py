@@ -40,7 +40,6 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -570,7 +569,7 @@ class ExtensionArray:
         """
 
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if not copy:
                 return self
             else:
@@ -958,7 +957,7 @@ class ExtensionArray:
         if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
             return False
