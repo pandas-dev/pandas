@@ -140,8 +140,13 @@ class TestAstype:
 def test_dtype_sparse_with_fill_value_not_present_in_data():
     # GH 49987
     df = DataFrame([["a", 0], ["b", 1], ["b", 2]], columns=["A", "B"])
-    result = df["A"].astype(SparseDtype("category", fill_value="c"))
-    expected = Series(
-        ["a", "b", "b"], name="A", dtype=SparseDtype("object", fill_value="c")
-    )
+
+    msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        dtype1 = SparseDtype("category", fill_value="c")
+
+    result = df["A"].astype(dtype1)
+
+    dtype2 = SparseDtype("object", fill_value="c")
+    expected = Series(["a", "b", "b"], name="A", dtype=dtype2)
     tm.assert_series_equal(result, expected)
