@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_hashable,
     is_integer_dtype,
     is_list_like,
@@ -1393,7 +1392,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             categorical.categories.dtype.
         """
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and not is_dtype_equal(dtype, self.categories.dtype):
+        if dtype and np.dtype(dtype) != self.categories.dtype:
             return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
@@ -2017,7 +2016,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # require identical categories set
         if isinstance(value, Categorical):
-            if not is_dtype_equal(self.dtype, value.dtype):
+            if self.dtype != value.dtype:
                 raise TypeError(
                     "Cannot set a Categorical with another, "
                     "without identical categories"

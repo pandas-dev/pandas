@@ -23,6 +23,7 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -60,6 +61,8 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
+    _no_thousands_columns: set[int]
+
     def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
@@ -92,8 +95,6 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.names_passed = kwds["names"] or None
-
         self.has_index_names = False
         if "has_index_names" in kwds:
             self.has_index_names = kwds["has_index_names"]
@@ -111,7 +112,7 @@ class PythonParser(ParserBase):
             self.data = cast(abc.Iterator[str], f)
         else:
             assert hasattr(f, "readline")
-            self._make_reader(f)
+            self.data = self._make_reader(f)
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -143,9 +144,7 @@ class PythonParser(ParserBase):
         # multiple date column thing turning into a real spaghetti factory
 
         if not self._has_complex_date_col:
-            (index_names, self.orig_names, self.columns) = self._get_index_name(
-                self.columns
-            )
+            (index_names, self.orig_names, self.columns) = self._get_index_name()
             self._name_processed = True
             if self.index_names is None:
                 self.index_names = index_names
@@ -159,6 +158,8 @@ class PythonParser(ParserBase):
         if len(self.decimal) != 1:
             raise ValueError("Only length-1 decimal markers supported")
 
+    @cache_readonly
+    def num(self) -> re.Pattern:
         decimal = re.escape(self.decimal)
         if self.thousands is None:
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
@@ -168,9 +169,9 @@ class PythonParser(ParserBase):
                 rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
                 rf"([0-9]?(E|e)\-?[0-9]+)?$"
             )
-        self.num = re.compile(regex)
+        return re.compile(regex)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]):
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -232,10 +233,7 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        # error: Incompatible types in assignment (expression has type "_reader",
-        # variable has type "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
-        # TextIOWrapper, mmap, None]")
-        self.data = reader  # type: ignore[assignment]
+        return reader
 
     def read(
         self, rows: int | None = None
@@ -267,11 +265,8 @@ class PythonParser(ParserBase):
                     self.index_col,  # type: ignore[has-type]
                 ),
             )
-            # error: Cannot determine type of 'index_col'
             index, columns, col_dict = self._get_empty_meta(
                 names,
-                self.index_col,  # type: ignore[has-type]
-                self.index_names,
                 self.dtype,
             )
             conv_columns = self._maybe_make_multi_index_columns(columns, self.col_names)
@@ -907,10 +902,8 @@ class PythonParser(ParserBase):
     def _clear_buffer(self) -> None:
         self.buf = []
 
-    _implicit_index = False
-
     def _get_index_name(
-        self, columns: abc.Sequence[abc.Hashable]
+        self,
     ) -> tuple[
         abc.Sequence[abc.Hashable] | None, list[abc.Hashable], list[abc.Hashable]
     ]:
@@ -925,6 +918,7 @@ class PythonParser(ParserBase):
         1 lists index columns and row 0 lists normal columns.
         2) Get index from the columns if it was listed.
         """
+        columns: abc.Sequence[abc.Hashable] = self.orig_names
         orig_names = list(columns)
         columns = list(columns)
 
@@ -1318,8 +1312,8 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> None:
-        self.data = FixedWidthReader(
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
+        return FixedWidthReader(
             f,
             self.colspecs,
             self.delimiter,

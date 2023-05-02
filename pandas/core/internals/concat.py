@@ -26,7 +26,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_scalar,
     needs_i8_conversion,
 )
@@ -451,7 +450,7 @@ class JoinUnit:
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
         na_value = blk.fill_value
-        if na_value is NaT and not is_dtype_equal(blk.dtype, dtype):
+        if na_value is NaT and blk.dtype != dtype:
             # e.g. we are dt64 and other is td64
             # fill_values match but we should not cast blk.values to dtype
             # TODO: this will need updating if we ever have non-nano dt64/td64
@@ -664,7 +663,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
         and
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
-            is_dtype_equal(ju.block.dtype, first.dtype)
+            ju.block.dtype == first.dtype
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
             or ju.block.dtype.kind in "iub"

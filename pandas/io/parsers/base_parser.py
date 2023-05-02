@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -99,10 +98,17 @@ class ParserBase:
         WARN = 1
         SKIP = 2
 
-    _implicit_index: bool = False
+    _implicit_index: bool
     _first_chunk: bool
+    keep_default_na: bool
+    dayfirst: bool
+    cache_dates: bool
+    keep_date_col: bool
+    usecols_dtype: str | None
 
     def __init__(self, kwds) -> None:
+        self._implicit_index = False
+
         self.names = kwds.get("names")
         self.orig_names: abc.Sequence[abc.Hashable] | None = None
 
@@ -152,15 +158,19 @@ class ParserBase:
 
             # validate index_col that only contains integers
             if self.index_col is not None:
-                if not (
+                # In this case we can pin down index_col as list[int]
+                if is_integer(self.index_col):
+                    self.index_col = [self.index_col]
+                elif not (
                     is_list_like(self.index_col, allow_sets=False)
                     and all(map(is_integer, self.index_col))
-                    or is_integer(self.index_col)
                 ):
                     raise ValueError(
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
+                else:
+                    self.index_col = list(self.index_col)
 
         self._name_processed = False
 
@@ -249,8 +259,8 @@ class ParserBase:
 
     @final
     def _should_parse_dates(self, i: int) -> bool:
-        if isinstance(self.parse_dates, bool):
-            return self.parse_dates
+        if lib.is_bool(self.parse_dates):
+            return bool(self.parse_dates)
         else:
             if self.index_names is not None:
                 name = self.index_names[i]
@@ -258,14 +268,9 @@ class ParserBase:
                 name = None
             j = i if self.index_col is None else self.index_col[i]
 
-            if is_scalar(self.parse_dates):
-                return (j == self.parse_dates) or (
-                    name is not None and name == self.parse_dates
-                )
-            else:
-                return (j in self.parse_dates) or (
-                    name is not None and name in self.parse_dates
-                )
+            return (j in self.parse_dates) or (
+                name is not None and name in self.parse_dates
+            )
 
     @final
     def _extract_multi_indexer_columns(
@@ -435,6 +440,7 @@ class ParserBase:
 
         return index
 
+    @final
     def _clean_mapping(self, mapping):
         """converts col numbers to names"""
         if not isinstance(mapping, dict):
@@ -582,11 +588,12 @@ class ParserBase:
                 )
 
                 # type specified in dtype param or cast_type is an EA
-                if cast_type and (not is_dtype_equal(cvals, cast_type) or is_ea):
+                if cast_type is not None:
+                    cast_type = pandas_dtype(cast_type)
+                if cast_type and (cvals.dtype != cast_type or is_ea):
                     if not is_ea and na_count > 0:
                         if is_bool_dtype(cast_type):
                             raise ValueError(f"Bool column has NA values in column {c}")
-                    cast_type = pandas_dtype(cast_type)
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
@@ -663,6 +670,7 @@ class ParserBase:
 
         return noconvert_columns
 
+    @final
     def _infer_types(
         self, values, na_values, no_dtype_specified, try_num_bool: bool = True
     ) -> tuple[ArrayLike, int]:
@@ -767,6 +775,7 @@ class ParserBase:
 
         return result, na_count
 
+    @final
     def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
         """
         Cast values to specified type
@@ -854,6 +863,7 @@ class ParserBase:
     ) -> tuple[abc.Sequence[abc.Hashable], abc.Mapping[abc.Hashable, ArrayLike]]:
         ...
 
+    @final
     def _do_date_conversions(
         self,
         names: abc.Sequence[abc.Hashable] | Index,
@@ -878,6 +888,7 @@ class ParserBase:
 
         return names, data
 
+    @final
     def _check_data_length(
         self,
         columns: abc.Sequence[abc.Hashable],
@@ -921,6 +932,7 @@ class ParserBase:
     ) -> set[str]:
         ...
 
+    @final
     def _evaluate_usecols(
         self,
         usecols: Callable[[abc.Hashable], object] | set[str] | set[int],
@@ -937,6 +949,7 @@ class ParserBase:
             return {i for i, name in enumerate(names) if usecols(name)}
         return usecols
 
+    @final
     def _validate_usecols_names(self, usecols, names: abc.Sequence):
         """
         Validates that all usecols are present in a given
@@ -968,6 +981,7 @@ class ParserBase:
 
         return usecols
 
+    @final
     def _validate_usecols_arg(self, usecols):
         """
         Validate the 'usecols' parameter.
@@ -1017,6 +1031,7 @@ class ParserBase:
             return usecols, usecols_dtype
         return usecols, None
 
+    @final
     def _clean_index_names(self, columns, index_col) -> tuple[list | None, list, list]:
         if not is_index_col(index_col):
             return None, columns, index_col
@@ -1054,10 +1069,12 @@ class ParserBase:
 
         return index_names, columns, index_col
 
-    def _get_empty_meta(
-        self, columns, index_col, index_names, dtype: DtypeArg | None = None
-    ):
+    @final
+    def _get_empty_meta(self, columns, dtype: DtypeArg | None = None):
         columns = list(columns)
+
+        index_col = self.index_col
+        index_names = self.index_names
 
         # Convert `dtype` to a defaultdict of some kind.
         # This will enable us to write `dtype[col_name]`
@@ -1329,7 +1346,7 @@ def _try_convert_dates(
     return new_name, new_col, colnames
 
 
-def _get_na_values(col, na_values, na_fvalues, keep_default_na):
+def _get_na_values(col, na_values, na_fvalues, keep_default_na: bool):
     """
     Get the NaN values for a given column.
 
@@ -1375,13 +1392,12 @@ def _validate_parse_dates_arg(parse_dates):
         "for the 'parse_dates' parameter"
     )
 
-    if parse_dates is not None:
-        if is_scalar(parse_dates):
-            if not lib.is_bool(parse_dates):
-                raise TypeError(msg)
-
-        elif not isinstance(parse_dates, (list, dict)):
-            raise TypeError(msg)
+    if not (
+        parse_dates is None
+        or lib.is_bool(parse_dates)
+        or isinstance(parse_dates, (list, dict))
+    ):
+        raise TypeError(msg)
 
     return parse_dates
 

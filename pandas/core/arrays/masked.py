@@ -39,7 +39,6 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
-    is_dtype_equal,
     is_integer_dtype,
     is_list_like,
     is_scalar,
@@ -130,6 +129,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
+
+    @classmethod
+    @doc(ExtensionArray._empty)
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        values = np.empty(shape, dtype=dtype.type)
+        values.fill(cls._internal_fill_value)
+        mask = np.ones(shape, dtype=bool)
+        result = cls(values, mask)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
     @property
     def dtype(self) -> BaseMaskedDtype:
@@ -234,6 +246,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         self._data[key] = value
         self._mask[key] = mask
+
+    def __contains__(self, key) -> bool:
+        if isna(key) and key is not self.dtype.na_value:
+            # GH#52840
+            if self._data.dtype.kind == "f" and lib.is_float(key):
+                return bool((np.isnan(self._data) & ~self._mask).any())
+
+        return bool(super().__contains__(key))
 
     def __iter__(self) -> abc.Iterator:
         if self.ndim == 1:
@@ -450,7 +470,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
