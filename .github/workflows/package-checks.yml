@@ -87,4 +87,4 @@ jobs:
 
       - name: Test conda package
         run: |
-          ls noarch
+          ls linux-64
