@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import (
     internals as libinternals,
     lib,
@@ -54,16 +56,13 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_1d_only_ea_obj,
-    is_dtype_equal,
-    is_interval_dtype,
     is_list_like,
-    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     PandasDtype,
     PeriodDtype,
 )
@@ -104,7 +103,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -172,7 +171,7 @@ class Block(PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype):
-            return dtype.kind not in ["b", "i", "u"]
+            return dtype.kind not in "iub"
         return dtype._can_hold_na
 
     @final
@@ -210,7 +209,10 @@ class Block(PandasObject):
 
     @final
     def make_block(
-        self, values, placement=None, refs: BlockValuesRefs | None = None
+        self,
+        values,
+        placement: BlockPlacement | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> Block:
         """
         Create a new block, with type inference propagate any values that are
@@ -221,8 +223,6 @@ class Block(PandasObject):
         if self.is_extension:
             values = ensure_block_shape(values, ndim=self.ndim)
 
-        # TODO: perf by not going through new_block
-        # We assume maybe_coerce_values has already been called
         return new_block(values, placement=placement, ndim=self.ndim, refs=refs)
 
     @final
@@ -326,6 +326,7 @@ class Block(PandasObject):
         """
         result = func(self.values, **kwargs)
 
+        result = maybe_coerce_values(result)
         return self._split_op_result(result)
 
     @final
@@ -353,12 +354,13 @@ class Block(PandasObject):
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
             for i, loc in enumerate(self._mgr_locs):
-                if not is_1d_only_ea_obj(result):
+                if not is_1d_only_ea_dtype(result.dtype):
                     vals = result[i : i + 1]
                 else:
                     vals = result[i]
 
-                block = self.make_block(values=vals, placement=loc)
+                bp = BlockPlacement(loc)
+                block = self.make_block(values=vals, placement=bp)
                 nbs.append(block)
             return nbs
 
@@ -453,6 +455,7 @@ class Block(PandasObject):
         Refactored to allow use of maybe_split.
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
+        new_values = maybe_coerce_values(new_values)
         refs = self.refs if using_cow and new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
@@ -955,7 +958,7 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             new_mgr_locs = self._mgr_locs
 
-        if not is_dtype_equal(new_values.dtype, self.dtype):
+        if new_values.dtype != self.dtype:
             return self.make_block(new_values, new_mgr_locs)
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
@@ -1059,7 +1062,9 @@ class Block(PandasObject):
                 self = self.make_block_same_class(
                     values.T if values.ndim == 2 else values
                 )
-
+            if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
+                # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                casted = casted[0, ...]
             values[indexer] = casted
         return self
 
@@ -1619,7 +1624,7 @@ class EABackedBlock(Block):
         except (ValueError, TypeError) as err:
             _catch_deprecated_value_error(err)
 
-            if is_interval_dtype(self.dtype):
+            if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value)
                 return nb.setitem(orig_indexer, orig_value)
@@ -1664,7 +1669,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
@@ -1739,7 +1744,7 @@ class EABackedBlock(Block):
             _catch_deprecated_value_error(err)
 
             if self.ndim == 1 or self.shape[0] == 1:
-                if is_interval_dtype(self.dtype):
+                if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
                     blk = self.coerce_to_target_dtype(orig_new)
@@ -1847,7 +1852,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         downcast=None,
         using_cow: bool = False,
     ) -> list[Block]:
-        if is_interval_dtype(self.dtype):
+        if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
             return super().fillna(
                 value=value,
@@ -2172,7 +2177,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 def _catch_deprecated_value_error(err: Exception) -> None:
     """
     We catch ValueError for now, but only a specific one raised by DatetimeArray
-    which will no longer be raised in version.2.0.
+    which will no longer be raised in version 2.0.
     """
     if isinstance(err, ValueError):
         if isinstance(err, IncompatibleFrequency):
@@ -2291,6 +2296,7 @@ class ObjectBlock(NumpyBlock):
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = maybe_coerce_values(res_values)
         return [self.make_block(res_values, refs=refs)]
 
 
@@ -2327,7 +2333,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
-def get_block_type(dtype: DtypeObj):
+def get_block_type(dtype: DtypeObj) -> type[Block]:
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -2339,30 +2345,23 @@ def get_block_type(dtype: DtypeObj):
     -------
     cls : class, subclass of Block
     """
+    if isinstance(dtype, DatetimeTZDtype):
+        return DatetimeTZBlock
+    elif isinstance(dtype, PeriodDtype):
+        return NDArrayBackedExtensionBlock
+    elif isinstance(dtype, ExtensionDtype):
+        # Note: need to be sure PandasArray is unwrapped before we get here
+        return ExtensionBlock
+
     # We use kind checks because it is much more performant
     #  than is_foo_dtype
     kind = dtype.kind
+    if kind in "Mm":
+        return DatetimeLikeBlock
+    elif kind in "fciub":
+        return NumericBlock
 
-    cls: type[Block]
-
-    if isinstance(dtype, SparseDtype):
-        # Need this first(ish) so that Sparse[datetime] is sparse
-        cls = ExtensionBlock
-    elif isinstance(dtype, DatetimeTZDtype):
-        cls = DatetimeTZBlock
-    elif isinstance(dtype, PeriodDtype):
-        cls = NDArrayBackedExtensionBlock
-    elif isinstance(dtype, ExtensionDtype):
-        # Note: need to be sure PandasArray is unwrapped before we get here
-        cls = ExtensionBlock
-
-    elif kind in ["M", "m"]:
-        cls = DatetimeLikeBlock
-    elif kind in ["f", "c", "i", "u", "b"]:
-        cls = NumericBlock
-    else:
-        cls = ObjectBlock
-    return cls
+    return ObjectBlock
 
 
 def new_block_2d(
@@ -2379,18 +2378,17 @@ def new_block_2d(
 
 
 def new_block(
-    values, placement, *, ndim: int, refs: BlockValuesRefs | None = None
+    values,
+    placement: BlockPlacement,
+    *,
+    ndim: int,
+    refs: BlockValuesRefs | None = None,
 ) -> Block:
-    # caller is responsible for ensuring values is NOT a PandasArray
-
-    if not isinstance(placement, BlockPlacement):
-        placement = BlockPlacement(placement)
-
-    check_ndim(values, placement, ndim)
-
+    # caller is responsible for ensuring:
+    # - values is NOT a PandasArray
+    # - check_ndim/ensure_block_shape already checked
+    # - maybe_coerce_values already called/unnecessary
     klass = get_block_type(values.dtype)
-
-    values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement, refs=refs)
 
 
@@ -2437,8 +2435,8 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
 
 
 def extract_pandas_array(
-    values: np.ndarray | ExtensionArray, dtype: DtypeObj | None, ndim: int
-) -> tuple[np.ndarray | ExtensionArray, DtypeObj | None]:
+    values: ArrayLike, dtype: DtypeObj | None, ndim: int
+) -> tuple[ArrayLike, DtypeObj | None]:
     """
     Ensure that we don't allow PandasArray / PandasDtype in internals.
     """
@@ -2498,7 +2496,7 @@ def to_native_types(
     float_format=None,
     decimal: str = ".",
     **kwargs,
-) -> np.ndarray:
+) -> npt.NDArray[np.object_]:
     """convert to our native types format"""
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array
@@ -2523,7 +2521,7 @@ def to_native_types(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif values.dtype.kind == "f" and not is_sparse(values):
+    elif values.dtype.kind == "f" and not isinstance(values.dtype, SparseDtype):
         # see GH#13418: no special formatting is desired at the
         # output (important for appropriate 'quoting' behaviour),
         # so do not pass it through the FloatArrayFormatter
@@ -2592,6 +2590,12 @@ def external_values(values: ArrayLike) -> ArrayLike:
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        return values._ndarray
-    else:
-        return values
+        values = values._ndarray
+
+    if isinstance(values, np.ndarray) and using_copy_on_write():
+        values = values.view()
+        values.flags.writeable = False
+
+    # TODO(CoW) we should also mark our ExtensionArrays as read-only
+
+    return values

@@ -300,94 +300,6 @@ PyObject *extract_utc_offset(PyObject *obj) {
 }
 
 /*
- *
- * Converts a Python datetime.datetime or datetime.date
- * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
- * to convert to UTC time.
- *
- * The following implementation just asks for attributes, and thus
- * supports datetime duck typing. The tzinfo time zone conversion
- * requires this style of access as well.
- *
- * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the needed date or datetime attributes.
- */
-int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
-                                         npy_datetimestruct *out) {
-    // Assumes that obj is a valid datetime object
-    PyObject *tmp;
-    PyObject *obj = (PyObject*)dtobj;
-
-    /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(npy_datetimestruct));
-    out->month = 1;
-    out->day = 1;
-
-    out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
-    out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
-    out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
-
-    // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
-    // PyDateTime_Check here, and less verbose attribute lookups.
-
-    /* Check for time attributes (if not there, return success as a date) */
-    if (!PyObject_HasAttrString(obj, "hour") ||
-        !PyObject_HasAttrString(obj, "minute") ||
-        !PyObject_HasAttrString(obj, "second") ||
-        !PyObject_HasAttrString(obj, "microsecond")) {
-        return 0;
-    }
-
-    out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
-    out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
-    out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
-    out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
-
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
-        PyObject *offset = extract_utc_offset(obj);
-        /* Apply the time zone offset if datetime obj is tz-aware */
-        if (offset != NULL) {
-            if (offset == Py_None) {
-                Py_DECREF(offset);
-                return 0;
-            }
-            PyObject *tmp_int;
-            int seconds_offset, minutes_offset;
-            /*
-             * The timedelta should have a function "total_seconds"
-             * which contains the value we want.
-             */
-            tmp = PyObject_CallMethod(offset, "total_seconds", "");
-            Py_DECREF(offset);
-            if (tmp == NULL) {
-                return -1;
-            }
-            tmp_int = PyNumber_Long(tmp);
-            if (tmp_int == NULL) {
-                Py_DECREF(tmp);
-                return -1;
-            }
-            seconds_offset = PyLong_AsLong(tmp_int);
-            if (seconds_offset == -1 && PyErr_Occurred()) {
-                Py_DECREF(tmp_int);
-                Py_DECREF(tmp);
-                return -1;
-            }
-            Py_DECREF(tmp_int);
-            Py_DECREF(tmp);
-
-            /* Convert to a minutes offset and apply it */
-            minutes_offset = seconds_offset / 60;
-
-            add_minutes_to_datetimestruct(out, -minutes_offset);
-        }
-    }
-
-    return 0;
-}
-
-
-/*
  * Converts a datetime from a datetimestruct to a datetime based
  * on a metadata unit. The date is assumed to be valid.
  */
@@ -678,338 +590,338 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     switch (base) {
         case NPY_FR_ns:
 
-        per_day = 86400000000000LL;
-        per_sec = 1000LL * 1000LL * 1000LL;
+            per_day = 86400000000000LL;
+            per_sec = 1000LL * 1000LL * 1000LL;
 
-        // put frac in seconds
-        if (td < 0 && td % per_sec != 0)
-            frac = td / per_sec - 1;
-        else
-            frac = td / per_sec;
+            // put frac in seconds
+            if (td < 0 && td % per_sec != 0)
+                frac = td / per_sec - 1;
+            else
+                frac = td / per_sec;
 
-        if (frac < 0) {
-            sign = -1;
+            if (frac < 0) {
+                sign = -1;
 
-            // even fraction
-            if ((-frac % 86400LL) != 0) {
-              out->days = -frac / 86400LL + 1;
-              frac += 86400LL * out->days;
+                // even fraction
+                if ((-frac % 86400LL) != 0) {
+                  out->days = -frac / 86400LL + 1;
+                  frac += 86400LL * out->days;
+                } else {
+                  frac = -frac;
+                }
             } else {
-              frac = -frac;
+                sign = 1;
+                out->days = 0;
             }
-        } else {
-            sign = 1;
-            out->days = 0;
-        }
 
-        if (frac >= 86400) {
-            out->days += frac / 86400LL;
-            frac -= out->days * 86400LL;
-        }
+            if (frac >= 86400) {
+                out->days += frac / 86400LL;
+                frac -= out->days * 86400LL;
+            }
 
-        if (frac >= 3600) {
-            out->hrs = frac / 3600LL;
-            frac -= out->hrs * 3600LL;
-        } else {
-            out->hrs = 0;
-        }
+            if (frac >= 3600) {
+                out->hrs = frac / 3600LL;
+                frac -= out->hrs * 3600LL;
+            } else {
+                out->hrs = 0;
+            }
 
-        if (frac >= 60) {
-            out->min = frac / 60LL;
-            frac -= out->min * 60LL;
-        } else {
-            out->min = 0;
-        }
+            if (frac >= 60) {
+                out->min = frac / 60LL;
+                frac -= out->min * 60LL;
+            } else {
+                out->min = 0;
+            }
 
-        if (frac >= 0) {
-            out->sec = frac;
-            frac -= out->sec;
-        } else {
-            out->sec = 0;
-        }
+            if (frac >= 0) {
+                out->sec = frac;
+                frac -= out->sec;
+            } else {
+                out->sec = 0;
+            }
 
-        sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * per_sec;
+            sfrac = (out->hrs * 3600LL + out->min * 60LL
+                     + out->sec) * per_sec;
 
-        if (sign < 0)
-            out->days = -out->days;
+            if (sign < 0)
+                out->days = -out->days;
 
-        ifrac = td - (out->days * per_day + sfrac);
+            ifrac = td - (out->days * per_day + sfrac);
 
-        if (ifrac != 0) {
-            out->ms = ifrac / (1000LL * 1000LL);
-            ifrac -= out->ms * 1000LL * 1000LL;
-            out->us = ifrac / 1000LL;
-            ifrac -= out->us * 1000LL;
-            out->ns = ifrac;
-        } else {
-            out->ms = 0;
-            out->us = 0;
-            out->ns = 0;
-        }
-        break;
+            if (ifrac != 0) {
+                out->ms = ifrac / (1000LL * 1000LL);
+                ifrac -= out->ms * 1000LL * 1000LL;
+                out->us = ifrac / 1000LL;
+                ifrac -= out->us * 1000LL;
+                out->ns = ifrac;
+            } else {
+                out->ms = 0;
+                out->us = 0;
+                out->ns = 0;
+            }
+            break;
 
         case NPY_FR_us:
 
-        per_day = 86400000000LL;
-        per_sec = 1000LL * 1000LL;
+            per_day = 86400000000LL;
+            per_sec = 1000LL * 1000LL;
 
-        // put frac in seconds
-        if (td < 0 && td % per_sec != 0)
-            frac = td / per_sec - 1;
-        else
-            frac = td / per_sec;
+            // put frac in seconds
+            if (td < 0 && td % per_sec != 0)
+                frac = td / per_sec - 1;
+            else
+                frac = td / per_sec;
 
-        if (frac < 0) {
-            sign = -1;
+            if (frac < 0) {
+                sign = -1;
 
-            // even fraction
-            if ((-frac % 86400LL) != 0) {
-              out->days = -frac / 86400LL + 1;
-              frac += 86400LL * out->days;
+                // even fraction
+                if ((-frac % 86400LL) != 0) {
+                  out->days = -frac / 86400LL + 1;
+                  frac += 86400LL * out->days;
+                } else {
+                  frac = -frac;
+                }
             } else {
-              frac = -frac;
+                sign = 1;
+                out->days = 0;
             }
-        } else {
-            sign = 1;
-            out->days = 0;
-        }
 
-        if (frac >= 86400) {
-            out->days += frac / 86400LL;
-            frac -= out->days * 86400LL;
-        }
+            if (frac >= 86400) {
+                out->days += frac / 86400LL;
+                frac -= out->days * 86400LL;
+            }
 
-        if (frac >= 3600) {
-            out->hrs = frac / 3600LL;
-            frac -= out->hrs * 3600LL;
-        } else {
-            out->hrs = 0;
-        }
+            if (frac >= 3600) {
+                out->hrs = frac / 3600LL;
+                frac -= out->hrs * 3600LL;
+            } else {
+                out->hrs = 0;
+            }
 
-        if (frac >= 60) {
-            out->min = frac / 60LL;
-            frac -= out->min * 60LL;
-        } else {
-            out->min = 0;
-        }
+            if (frac >= 60) {
+                out->min = frac / 60LL;
+                frac -= out->min * 60LL;
+            } else {
+                out->min = 0;
+            }
 
-        if (frac >= 0) {
-            out->sec = frac;
-            frac -= out->sec;
-        } else {
-            out->sec = 0;
-        }
+            if (frac >= 0) {
+                out->sec = frac;
+                frac -= out->sec;
+            } else {
+                out->sec = 0;
+            }
 
-        sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * per_sec;
+            sfrac = (out->hrs * 3600LL + out->min * 60LL
+                     + out->sec) * per_sec;
 
-        if (sign < 0)
-            out->days = -out->days;
+            if (sign < 0)
+                out->days = -out->days;
 
-        ifrac = td - (out->days * per_day + sfrac);
+            ifrac = td - (out->days * per_day + sfrac);
 
-        if (ifrac != 0) {
-            out->ms = ifrac / 1000LL;
-            ifrac -= out->ms * 1000LL;
-            out->us = ifrac / 1L;
-            ifrac -= out->us * 1L;
-            out->ns = ifrac;
-        } else {
-            out->ms = 0;
-            out->us = 0;
-            out->ns = 0;
-        }
-        break;
+            if (ifrac != 0) {
+                out->ms = ifrac / 1000LL;
+                ifrac -= out->ms * 1000LL;
+                out->us = ifrac / 1L;
+                ifrac -= out->us * 1L;
+                out->ns = ifrac;
+            } else {
+                out->ms = 0;
+                out->us = 0;
+                out->ns = 0;
+            }
+            break;
 
         case NPY_FR_ms:
 
-        per_day = 86400000LL;
-        per_sec = 1000LL;
+            per_day = 86400000LL;
+            per_sec = 1000LL;
 
-        // put frac in seconds
-        if (td < 0 && td % per_sec != 0)
-            frac = td / per_sec - 1;
-        else
-            frac = td / per_sec;
+            // put frac in seconds
+            if (td < 0 && td % per_sec != 0)
+                frac = td / per_sec - 1;
+            else
+                frac = td / per_sec;
 
-        if (frac < 0) {
-            sign = -1;
+            if (frac < 0) {
+                sign = -1;
 
-            // even fraction
-            if ((-frac % 86400LL) != 0) {
-              out->days = -frac / 86400LL + 1;
-              frac += 86400LL * out->days;
+                // even fraction
+                if ((-frac % 86400LL) != 0) {
+                  out->days = -frac / 86400LL + 1;
+                  frac += 86400LL * out->days;
+                } else {
+                  frac = -frac;
+                }
             } else {
-              frac = -frac;
+                sign = 1;
+                out->days = 0;
             }
-        } else {
-            sign = 1;
-            out->days = 0;
-        }
 
-        if (frac >= 86400) {
-            out->days += frac / 86400LL;
-            frac -= out->days * 86400LL;
-        }
+            if (frac >= 86400) {
+                out->days += frac / 86400LL;
+                frac -= out->days * 86400LL;
+            }
 
-        if (frac >= 3600) {
-            out->hrs = frac / 3600LL;
-            frac -= out->hrs * 3600LL;
-        } else {
-            out->hrs = 0;
-        }
+            if (frac >= 3600) {
+                out->hrs = frac / 3600LL;
+                frac -= out->hrs * 3600LL;
+            } else {
+                out->hrs = 0;
+            }
 
-        if (frac >= 60) {
-            out->min = frac / 60LL;
-            frac -= out->min * 60LL;
-        } else {
-            out->min = 0;
-        }
+            if (frac >= 60) {
+                out->min = frac / 60LL;
+                frac -= out->min * 60LL;
+            } else {
+                out->min = 0;
+            }
 
-        if (frac >= 0) {
-            out->sec = frac;
-            frac -= out->sec;
-        } else {
-            out->sec = 0;
-        }
+            if (frac >= 0) {
+                out->sec = frac;
+                frac -= out->sec;
+            } else {
+                out->sec = 0;
+            }
 
-        sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * per_sec;
+            sfrac = (out->hrs * 3600LL + out->min * 60LL
+                     + out->sec) * per_sec;
 
-        if (sign < 0)
-            out->days = -out->days;
+            if (sign < 0)
+                out->days = -out->days;
 
-        ifrac = td - (out->days * per_day + sfrac);
+            ifrac = td - (out->days * per_day + sfrac);
 
-        if (ifrac != 0) {
-            out->ms = ifrac;
-            out->us = 0;
-            out->ns = 0;
-        } else {
-            out->ms = 0;
-            out->us = 0;
-            out->ns = 0;
-        }
-        break;
+            if (ifrac != 0) {
+                out->ms = ifrac;
+                out->us = 0;
+                out->ns = 0;
+            } else {
+                out->ms = 0;
+                out->us = 0;
+                out->ns = 0;
+            }
+            break;
 
         case NPY_FR_s:
-        // special case where we can simplify many expressions bc per_sec=1
+            // special case where we can simplify many expressions bc per_sec=1
 
-        per_day = 86400LL;
-        per_sec = 1L;
+            per_day = 86400LL;
+            per_sec = 1L;
 
-        // put frac in seconds
-        if (td < 0 && td % per_sec != 0)
-            frac = td / per_sec - 1;
-        else
-            frac = td / per_sec;
+            // put frac in seconds
+            if (td < 0 && td % per_sec != 0)
+                frac = td / per_sec - 1;
+            else
+                frac = td / per_sec;
 
-        if (frac < 0) {
-            sign = -1;
+            if (frac < 0) {
+                sign = -1;
 
-            // even fraction
-            if ((-frac % 86400LL) != 0) {
-              out->days = -frac / 86400LL + 1;
-              frac += 86400LL * out->days;
+                // even fraction
+                if ((-frac % 86400LL) != 0) {
+                  out->days = -frac / 86400LL + 1;
+                  frac += 86400LL * out->days;
+                } else {
+                  frac = -frac;
+                }
             } else {
-              frac = -frac;
+                sign = 1;
+                out->days = 0;
             }
-        } else {
-            sign = 1;
-            out->days = 0;
-        }
 
-        if (frac >= 86400) {
-            out->days += frac / 86400LL;
-            frac -= out->days * 86400LL;
-        }
+            if (frac >= 86400) {
+                out->days += frac / 86400LL;
+                frac -= out->days * 86400LL;
+            }
 
-        if (frac >= 3600) {
-            out->hrs = frac / 3600LL;
-            frac -= out->hrs * 3600LL;
-        } else {
-            out->hrs = 0;
-        }
+            if (frac >= 3600) {
+                out->hrs = frac / 3600LL;
+                frac -= out->hrs * 3600LL;
+            } else {
+                out->hrs = 0;
+            }
 
-        if (frac >= 60) {
-            out->min = frac / 60LL;
-            frac -= out->min * 60LL;
-        } else {
-            out->min = 0;
-        }
+            if (frac >= 60) {
+                out->min = frac / 60LL;
+                frac -= out->min * 60LL;
+            } else {
+                out->min = 0;
+            }
 
-        if (frac >= 0) {
-            out->sec = frac;
-            frac -= out->sec;
-        } else {
-            out->sec = 0;
-        }
+            if (frac >= 0) {
+                out->sec = frac;
+                frac -= out->sec;
+            } else {
+                out->sec = 0;
+            }
 
-        sfrac = (out->hrs * 3600LL + out->min * 60LL
-                 + out->sec) * per_sec;
+            sfrac = (out->hrs * 3600LL + out->min * 60LL
+                     + out->sec) * per_sec;
 
-        if (sign < 0)
-            out->days = -out->days;
+            if (sign < 0)
+                out->days = -out->days;
 
-        ifrac = td - (out->days * per_day + sfrac);
+            ifrac = td - (out->days * per_day + sfrac);
 
-        if (ifrac != 0) {
-            out->ms = 0;
-            out->us = 0;
-            out->ns = 0;
-        } else {
-            out->ms = 0;
-            out->us = 0;
-            out->ns = 0;
-        }
-        break;
+            if (ifrac != 0) {
+                out->ms = 0;
+                out->us = 0;
+                out->ns = 0;
+            } else {
+                out->ms = 0;
+                out->us = 0;
+                out->ns = 0;
+            }
+            break;
 
         case NPY_FR_m:
 
-        out->days = td / 1440LL;
-        td -= out->days * 1440LL;
-        out->hrs = td / 60LL;
-        td -= out->hrs * 60LL;
-        out->min = td;
+            out->days = td / 1440LL;
+            td -= out->days * 1440LL;
+            out->hrs = td / 60LL;
+            td -= out->hrs * 60LL;
+            out->min = td;
 
-        out->sec = 0;
-        out->ms = 0;
-        out->us = 0;
-        out->ns = 0;
-        break;
+            out->sec = 0;
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+            break;
 
         case NPY_FR_h:
-        out->days = td / 24LL;
-        td -= out->days * 24LL;
-        out->hrs = td;
+            out->days = td / 24LL;
+            td -= out->days * 24LL;
+            out->hrs = td;
 
-        out->min = 0;
-        out->sec = 0;
-        out->ms = 0;
-        out->us = 0;
-        out->ns = 0;
-        break;
+            out->min = 0;
+            out->sec = 0;
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+            break;
 
         case NPY_FR_D:
-        out->days = td;
-        out->hrs = 0;
-        out->min = 0;
-        out->sec = 0;
-        out->ms = 0;
-        out->us = 0;
-        out->ns = 0;
-        break;
+            out->days = td;
+            out->hrs = 0;
+            out->min = 0;
+            out->sec = 0;
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+            break;
 
         case NPY_FR_W:
-        out->days = 7 * td;
-        out->hrs = 0;
-        out->min = 0;
-        out->sec = 0;
-        out->ms = 0;
-        out->us = 0;
-        out->ns = 0;
-        break;
+            out->days = 7 * td;
+            out->hrs = 0;
+            out->min = 0;
+            out->sec = 0;
+            out->ms = 0;
+            out->us = 0;
+            out->ns = 0;
+            break;
 
         default:
             PyErr_SetString(PyExc_RuntimeError,

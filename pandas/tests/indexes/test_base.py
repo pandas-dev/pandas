@@ -535,8 +535,9 @@ class TestIndex(Base):
 
     def test_map_tseries_indices_accsr_return_index(self):
         date_index = tm.makeDateIndex(24, freq="h", name="hourly")
-        expected = Index(range(24), dtype="int32", name="hourly")
-        tm.assert_index_equal(expected, date_index.map(lambda x: x.hour), exact=True)
+        result = date_index.map(lambda x: x.hour)
+        expected = Index(np.arange(24, dtype="int64"), name="hourly")
+        tm.assert_index_equal(result, expected, exact=True)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -1267,6 +1268,38 @@ class TestIndex(Base):
         idx = Index([1, np.nan])
         result = idx.sortlevel(na_position="first")[0]
         expected = Index([np.nan, 1])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "periods, expected_results",
+        [
+            (1, [np.nan, 10, 10, 10, 10]),
+            (2, [np.nan, np.nan, 20, 20, 20]),
+            (3, [np.nan, np.nan, np.nan, 30, 30]),
+        ],
+    )
+    def test_index_diff(self, periods, expected_results):
+        # GH#19708
+        idx = Index([10, 20, 30, 40, 50])
+        result = idx.diff(periods)
+        expected = Index(expected_results)
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "decimals, expected_results",
+        [
+            (0, [1.0, 2.0, 3.0]),
+            (1, [1.2, 2.3, 3.5]),
+            (2, [1.23, 2.35, 3.46]),
+        ],
+    )
+    def test_index_round(self, decimals, expected_results):
+        # GH#19708
+        idx = Index([1.234, 2.345, 3.456])
+        result = idx.round(decimals)
+        expected = Index(expected_results)
+
         tm.assert_index_equal(result, expected)
 
 

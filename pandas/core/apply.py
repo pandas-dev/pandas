@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -37,13 +38,17 @@ from pandas._typing import (
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_dict_like,
-    is_extension_array_dtype,
     is_list_like,
     is_sequence,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -51,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -106,6 +110,7 @@ class Apply(metaclass=abc.ABCMeta):
         func,
         raw: bool,
         result_type: str | None,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -234,7 +239,7 @@ class Apply(metaclass=abc.ABCMeta):
         # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
         # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type:ignore[arg-type]
+            obj.index  # type: ignore[arg-type]
         ):
             raise ValueError("Function did not transform")
 
@@ -410,29 +415,55 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = com.temp_setattr(obj, "as_index", True)
         else:
             context_manager = nullcontext()
+
+        is_non_unique_col = (
+            selected_obj.ndim == 2
+            and selected_obj.columns.nunique() < len(selected_obj.columns)
+        )
+
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
-                results = {key: colg.agg(how) for key, how in arg.items()}
+                result_data = [colg.agg(how) for _, how in arg.items()]
+                result_index = list(arg.keys())
+            elif is_non_unique_col:
+                # key used for column selection and output
+                # GH#51099
+                result_data = []
+                result_index = []
+                for key, how in arg.items():
+                    indices = selected_obj.columns.get_indexer_for([key])
+                    labels = selected_obj.columns.take(indices)
+                    label_to_indices = defaultdict(list)
+                    for index, label in zip(indices, labels):
+                        label_to_indices[label].append(index)
+
+                    key_data = [
+                        selected_obj._ixs(indice, axis=1).agg(how)
+                        for label, indices in label_to_indices.items()
+                        for indice in indices
+                    ]
+
+                    result_index += [key] * len(key_data)
+                    result_data += key_data
             else:
                 # key used for column selection and output
-                results = {
-                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-                }
-
-        # set the final keys
-        keys = list(arg.keys())
+                result_data = [
+                    obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                ]
+                result_index = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
-        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+        is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
         # combine results
         if all(is_ndframe):
+            results = dict(zip(result_index, result_data))
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k in keys if not results[k].empty]
+            keys_to_use = [k for k in result_index if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else keys
+            keys_to_use = keys_to_use if keys_to_use != [] else result_index
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
@@ -455,7 +486,7 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             from pandas import Series
 
-            # we have a dict of scalars
+            # we have a list of scalars
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)
@@ -463,7 +494,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            result = Series(results, name=name)
+            result = Series(result_data, index=result_index, name=name)
 
         return result
 
@@ -480,6 +511,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         # Support for `frame.transform('method')`
         # Some methods (shift, etc.) require the axis argument, others
         # don't, so inspect and insert if necessary.
@@ -492,7 +528,21 @@ class Apply(metaclass=abc.ABCMeta):
             ):
                 raise ValueError(f"Operation {f} does not support axis=1")
             if "axis" in arg_names:
-                self.kwargs["axis"] = self.axis
+                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
+                    # Try to avoid FutureWarning for deprecated axis keyword;
+                    # If self.axis matches the axis we would get by not passing
+                    #  axis, we safely exclude the keyword.
+
+                    default_axis = 0
+                    if f in ["idxmax", "idxmin"]:
+                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
+                        # whereas other axis keywords default to 0
+                        default_axis = self.obj.axis
+
+                    if default_axis != self.axis:
+                        self.kwargs["axis"] = self.axis
+                else:
+                    self.kwargs["axis"] = self.axis
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
@@ -529,10 +579,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         if obj.ndim != 1:
             # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
+            from pandas import Index
+
+            cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise KeyError(f"Column(s) {cols_sorted} do not exist")
+                raise KeyError(f"Column(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
@@ -637,10 +688,6 @@ class FrameApply(NDFrameApply):
     @cache_readonly
     def values(self):
         return self.obj.values
-
-    @cache_readonly
-    def dtypes(self) -> Series:
-        return self.obj.dtypes
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
@@ -926,7 +973,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        if is_extension_array_dtype(ser.dtype):
+        if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
             obj = self.obj
@@ -992,10 +1039,21 @@ class SeriesApply(NDFrameApply):
         self,
         obj: Series,
         func: AggFuncType,
-        convert_dtype: bool,
+        *,
+        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args,
         kwargs,
     ) -> None:
+        if convert_dtype is lib.no_default:
+            convert_dtype = True
+        else:
+            warnings.warn(
+                "the convert_dtype parameter is deprecated and will be removed in a "
+                "future version.  Do ``ser.astype(object).apply()`` "
+                "instead if you want ``convert_dtype=False``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         self.convert_dtype = convert_dtype
 
         super().__init__(
@@ -1063,23 +1121,27 @@ class SeriesApply(NDFrameApply):
         f = cast(Callable, self.f)
         obj = self.obj
 
-        with np.errstate(all="ignore"):
-            if isinstance(f, np.ufunc):
+        if isinstance(f, np.ufunc):
+            with np.errstate(all="ignore"):
                 return f(obj)
 
-            # row-wise access
-            if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
-                # GH#23179 some EAs do not have `map`
-                mapped = obj._values.map(f)
-            else:
-                values = obj.astype(object)._values
-                mapped = lib.map_infer(
-                    values,
-                    f,
-                    convert=self.convert_dtype,
-                )
+        # row-wise access
+        # apply doesn't have a `na_action` keyword and for backward compat reasons
+        # we need to give `na_action="ignore"` for categorical data.
+        # TODO: remove the `na_action="ignore"` when that default has been changed in
+        #  Categorical (GH51645).
+        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
+        mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
+            warnings.warn(
+                "Returning a DataFrame from Series.apply when the supplied function"
+                "returns a Series is deprecated and will be removed in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )  # GH52116
+
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)
@@ -1094,6 +1156,7 @@ class GroupByApply(Apply):
         self,
         obj: GroupBy[NDFrameT],
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -1123,6 +1186,7 @@ class ResamplerWindowApply(Apply):
         self,
         obj: Resampler | BaseWindow,
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -1486,7 +1550,7 @@ def validate_func_kwargs(
     Returns
     -------
     columns : List[str]
-        List of user-provied keys.
+        List of user-provided keys.
     func : List[Union[str, callable[...,Any]]]
         List of user-provided aggfuncs
 

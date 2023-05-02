@@ -438,7 +438,7 @@ class TestAstype:
 
         tm.assert_series_equal(result, expected)
 
-    def test_astype_retain_Attrs(self, any_numpy_dtype):
+    def test_astype_retain_attrs(self, any_numpy_dtype):
         # GH#44414
         ser = Series([0, 1, 2, 3])
         ser.attrs["Location"] = "Michigan"

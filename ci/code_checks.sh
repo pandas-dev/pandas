@@ -85,11 +85,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.index \
-        pandas.Series.hasnans \
-        pandas.Series.to_list \
-        pandas.Series.__iter__ \
-        pandas.Series.keys \
         pandas.Series.item \
         pandas.Series.pipe \
         pandas.Series.mode \
@@ -97,6 +92,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.is_monotonic_increasing \
         pandas.Series.is_monotonic_decreasing \
         pandas.Series.backfill \
+        pandas.Series.bfill \
+        pandas.Series.ffill \
         pandas.Series.pad \
         pandas.Series.argsort \
         pandas.Series.reorder_levels \
@@ -307,7 +304,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas_object \
         pandas.api.interchange.from_dataframe \
         pandas.Index.values \
-        pandas.Index.hasnans \
         pandas.Index.dtype \
         pandas.Index.inferred_type \
         pandas.Index.shape \
@@ -534,21 +530,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.index \
         pandas.DataFrame.columns \
-        pandas.DataFrame.__iter__ \
-        pandas.DataFrame.keys \
         pandas.DataFrame.iterrows \
         pandas.DataFrame.pipe \
         pandas.DataFrame.backfill \
+        pandas.DataFrame.bfill \
+        pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.first_valid_index \
         pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
-        pandas.DataFrame.sparse.density \
-        pandas.DataFrame.sparse.to_coo \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__

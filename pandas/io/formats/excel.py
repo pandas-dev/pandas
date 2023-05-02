@@ -450,7 +450,7 @@ class CSSToExcelConverter:
             return size
         return self._pt_to_float(size)
 
-    def _select_font_family(self, font_names) -> int | None:
+    def _select_font_family(self, font_names: Sequence[str]) -> int | None:
         family = None
         for name in font_names:
             family = self.FAMILY_MAP.get(name)

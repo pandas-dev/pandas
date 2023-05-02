@@ -1,7 +1,7 @@
 .. _whatsnew_200:
 
-What's new in 2.0.0 (March XX, 2023)
-------------------------------------
+What's new in 2.0.0 (April 3, 2023)
+-----------------------------------
 
 These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -25,7 +25,7 @@ When installing pandas using pip, sets of optional dependencies can also be inst
   pip install "pandas[performance, aws]>=2.0.0"
 
 The available extras, found in the :ref:`installation guide<install.dependencies>`, are
-``[all, performance, computation, timezone, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
+``[all, performance, computation, fss, aws, gcp, excel, parquet, feather, hdf5, spss, postgresql, mysql,
 sql-other, html, xml, plot, output_formatting, clipboard, compression, test]`` (:issue:`39164`).
 
 .. _whatsnew_200.enhancements.index_can_hold_numpy_numeric_dtypes:
@@ -66,7 +66,7 @@ Below is a possibly non-exhaustive list of changes:
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
    for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
-   it previously would have been ``int64``` even on 32-bit systems.
+   it previously would have been ``int64`` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
@@ -95,7 +95,7 @@ Below is a possibly non-exhaustive list of changes:
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
-   ``float64`` dtype. It row raises a ``NotImplementedError``:
+   ``float64`` dtype. It now raises a ``NotImplementedError``:
 
    .. ipython:: python
        :okexcept:
@@ -103,40 +103,12 @@ Below is a possibly non-exhaustive list of changes:
        pd.Index([1, 2, 3], dtype=np.float16)
 
 
-.. _whatsnew_200.enhancements.io_use_nullable_dtypes_and_dtype_backend:
+.. _whatsnew_200.enhancements.io_dtype_backend:
 
-Configuration option, ``mode.dtype_backend``, to return pyarrow-backed dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Argument ``dtype_backend``, to return pyarrow-backed or numpy-backed nullable dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``use_nullable_dtypes`` keyword argument has been expanded to the following functions to enable automatic conversion to nullable dtypes (:issue:`36712`)
-
-* :func:`read_csv`
-* :func:`read_clipboard`
-* :func:`read_fwf`
-* :func:`read_excel`
-* :func:`read_html`
-* :func:`read_xml`
-* :func:`read_json`
-* :func:`read_sql`
-* :func:`read_sql_query`
-* :func:`read_sql_table`
-* :func:`read_orc`
-* :func:`read_feather`
-* :func:`read_spss`
-* :func:`to_numeric`
-
-To simplify opting-in to nullable dtypes for these functions, a new option ``nullable_dtypes`` was added that allows setting
-the keyword argument globally to ``True`` if not specified directly. The option can be enabled
-through:
-
-.. ipython:: python
-
-    pd.options.mode.nullable_dtypes = True
-
-The option will only work for functions with the keyword ``use_nullable_dtypes``.
-
-Additionally a new global configuration, ``mode.dtype_backend`` can now be used in conjunction with the parameter ``use_nullable_dtypes=True`` in the following functions
-to select the nullable dtypes implementation.
+The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 
 * :func:`read_csv`
 * :func:`read_clipboard`
@@ -153,15 +125,31 @@ to select the nullable dtypes implementation.
 * :func:`read_feather`
 * :func:`read_spss`
 * :func:`to_numeric`
-
-
-And the following methods will also utilize the ``mode.dtype_backend`` option.
-
 * :meth:`DataFrame.convert_dtypes`
 * :meth:`Series.convert_dtypes`
 
-By default, ``mode.dtype_backend`` is set to ``"pandas"`` to return existing, numpy-backed nullable dtypes, but it can also
-be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (:issue:`48957`, :issue:`49997`).
+When this option is set to ``"numpy_nullable"`` it will return a :class:`DataFrame` that is
+backed by nullable dtypes.
+
+When this keyword is set to ``"pyarrow"``, then these functions will return pyarrow-backed nullable :class:`ArrowDtype` DataFrames (:issue:`48957`, :issue:`49997`):
+
+* :func:`read_csv`
+* :func:`read_clipboard`
+* :func:`read_fwf`
+* :func:`read_excel`
+* :func:`read_html`
+* :func:`read_xml`
+* :func:`read_json`
+* :func:`read_sql`
+* :func:`read_sql_query`
+* :func:`read_sql_table`
+* :func:`read_parquet`
+* :func:`read_orc`
+* :func:`read_feather`
+* :func:`read_spss`
+* :func:`to_numeric`
+* :meth:`DataFrame.convert_dtypes`
+* :meth:`Series.convert_dtypes`
 
 .. ipython:: python
 
@@ -170,13 +158,11 @@ be set to ``"pyarrow"`` to return pyarrow-backed, nullable :class:`ArrowDtype` (
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("mode.dtype_backend", "pandas"):
-        df = pd.read_csv(data, use_nullable_dtypes=True)
+    df = pd.read_csv(data, dtype_backend="pyarrow")
     df.dtypes
 
     data.seek(0)
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True, engine="pyarrow")
+    df_pyarrow = pd.read_csv(data, dtype_backend="pyarrow", engine="pyarrow")
     df_pyarrow.dtypes
 
 Copy-on-Write improvements
@@ -205,13 +191,28 @@ Copy-on-Write improvements
   of Series objects and specifying ``copy=False``, will now use a lazy copy
   of those Series objects for the columns of the DataFrame (:issue:`50777`)
 
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a
+  :class:`Series` or :class:`Index` and specifying ``copy=False``, will
+  now respect Copy-on-Write.
+
+- The :class:`DataFrame` and :class:`Series` constructors, when constructing from
+  a NumPy array, will now copy the array by default to avoid mutating
+  the :class:`DataFrame` / :class:`Series`
+  when mutating the array. Specify ``copy=False`` to get the old behavior.
+  When setting ``copy=False`` pandas does not guarantee correct Copy-on-Write
+  behavior when the NumPy array is modified after creation of the
+  :class:`DataFrame` / :class:`Series`.
+
+- The :meth:`DataFrame.from_records` will now respect Copy-on-Write when called
+  with a :class:`DataFrame`.
+
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
-  will now always raise an exception when Copy-on-Write is enabled. In this mode,
+  will now always raise a warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
   object that is the result of an indexing operation (getitem), which under
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
   can never update the original Series or DataFrame. Therefore, an informative
-  error is raised to the user instead of silently doing nothing (:issue:`49467`)
+  warning is raised to the user to avoid silently doing nothing (:issue:`49467`)
 
 - :meth:`DataFrame.replace` will now respect the Copy-on-Write mechanism
   when ``inplace=True``.
@@ -220,6 +221,14 @@ Copy-on-Write improvements
 
 - Arithmetic operations that can be inplace, e.g. ``ser *= 2`` will now respect the
   Copy-on-Write mechanism.
+
+- :meth:`DataFrame.__getitem__` will now respect the Copy-on-Write mechanism when the
+  :class:`DataFrame` has :class:`MultiIndex` columns.
+
+- :meth:`Series.__getitem__` will now respect the Copy-on-Write mechanism when the
+   :class:`Series` has a :class:`MultiIndex`.
+
+- :meth:`Series.view` will now respect the Copy-on-Write mechanism.
 
 Copy-on-Write can be enabled through one of
 
@@ -280,6 +289,7 @@ Other enhancements
 - :func:`to_datetime` now accepts ``"mixed"`` as an argument to ``format``, which will infer the format for each element individually (:issue:`50972`)
 - Added new argument ``engine`` to :func:`read_json` to support parsing JSON with pyarrow by specifying ``engine="pyarrow"`` (:issue:`48893`)
 - Added support for SQLAlchemy 2.0 (:issue:`40686`)
+- Added support for ``decimal`` parameter when ``engine="pyarrow"`` in :func:`read_csv` (:issue:`51302`)
 - :class:`Index` set operations :meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.difference`, and :meth:`Index.symmetric_difference` now support ``sort=True``, which will always return a sorted result, unlike the default ``sort=None`` which does not sort in some cases (:issue:`25151`)
 - Added new escape mode "latex-math" to avoid escaping "$" in formatter (:issue:`50040`)
 
@@ -660,6 +670,8 @@ If installed, we now require:
 +-------------------+-----------------+----------+---------+
 | python-dateutil   | 2.8.2           |    X     |    X    |
 +-------------------+-----------------+----------+---------+
+| tzdata            | 2022.1          |    X     |    X    |
++-------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -706,7 +718,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 Note that this affects :func:`read_csv` as well.
 
 If you still need to parse dates with inconsistent formats, you can use
-``format='mixed`` (possibly alongside ``dayfirst``) ::
+``format='mixed'`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      pd.to_datetime(ser, format='mixed', dayfirst=True)
@@ -775,6 +787,7 @@ Other API changes
 - Division by zero with :class:`ArrowDtype` dtypes returns ``-inf``, ``nan``, or ``inf`` depending on the numerator, instead of raising (:issue:`51541`)
 - Added :func:`pandas.api.types.is_any_real_numeric_dtype` to check for real numeric dtypes (:issue:`51152`)
 - :meth:`~arrays.ArrowExtensionArray.value_counts` now returns data with :class:`ArrowDtype` with ``pyarrow.int64`` type instead of ``"Int64"`` type (:issue:`51462`)
+- :func:`factorize` and :func:`unique` preserve the original dtype when passed numpy timedelta64 or datetime64 with non-nanosecond resolution (:issue:`48670`)
 
 .. note::
 
@@ -810,11 +823,13 @@ Deprecations
 - Deprecated :meth:`Grouper.obj`, use :meth:`Groupby.obj` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.indexer`, use :meth:`Resampler.indexer` instead (:issue:`51206`)
 - Deprecated :meth:`Grouper.ax`, use :meth:`Resampler.ax` instead (:issue:`51206`)
+- Deprecated keyword ``use_nullable_dtypes`` in :func:`read_parquet`, use ``dtype_backend`` instead (:issue:`51853`)
 - Deprecated :meth:`Series.pad` in favor of :meth:`Series.ffill` (:issue:`33396`)
 - Deprecated :meth:`Series.backfill` in favor of :meth:`Series.bfill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.pad` in favor of :meth:`DataFrame.ffill` (:issue:`33396`)
 - Deprecated :meth:`DataFrame.backfill` in favor of :meth:`DataFrame.bfill` (:issue:`33396`)
 - Deprecated :meth:`~pandas.io.stata.StataReader.close`. Use :class:`~pandas.io.stata.StataReader` as a context manager instead (:issue:`49228`)
+- Deprecated producing a scalar when iterating over a :class:`.DataFrameGroupBy` or a :class:`.SeriesGroupBy` that has been grouped by a ``level`` parameter that is a list of length 1; a tuple of length one will be returned instead (:issue:`51583`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_200.prior_deprecations:
@@ -1181,6 +1196,7 @@ Timedelta
 - Bug in :func:`to_timedelta` raising error when input has nullable dtype ``Float64`` (:issue:`48796`)
 - Bug in :class:`Timedelta` constructor incorrectly raising instead of returning ``NaT`` when given a ``np.timedelta64("nat")`` (:issue:`48898`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed both a :class:`Timedelta` object and keywords (e.g. days, seconds) (:issue:`48898`)
+- Bug in :class:`Timedelta` comparisons with very large ``datetime.timedelta`` objects incorrect raising ``OutOfBoundsTimedelta`` (:issue:`49021`)
 
 Timezones
 ^^^^^^^^^
@@ -1188,6 +1204,7 @@ Timezones
 - Bug in :func:`to_datetime` was failing to parse date strings with timezone name when ``format`` was specified with ``%Z`` (:issue:`49748`)
 - Better error message when passing invalid values to ``ambiguous`` parameter in :meth:`Timestamp.tz_localize` (:issue:`49565`)
 - Bug in string parsing incorrectly allowing a :class:`Timestamp` to be constructed with an invalid timezone, which would raise when trying to print (:issue:`50668`)
+- Corrected TypeError message in :func:`objects_to_datetime64ns` to inform that DatetimeIndex has mixed timezones (:issue:`50974`)
 
 Numeric
 ^^^^^^^
@@ -1214,6 +1231,7 @@ Conversion
 - Bug in :func:`to_datetime` was not respecting ``exact`` argument when ``format`` was an ISO8601 format (:issue:`12649`)
 - Bug in :meth:`TimedeltaArray.astype` raising ``TypeError`` when converting to a pyarrow duration type (:issue:`49795`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising for extension array dtypes (:issue:`29618`, :issue:`50261`, :issue:`31913`)
+- Bug in :meth:`Series` not copying data when created from :class:`Index` and ``dtype`` is equal to ``dtype`` from :class:`Index` (:issue:`52008`)
 
 Strings
 ^^^^^^^
@@ -1294,8 +1312,10 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where it would segfault when failing to encode a string (:issue:`50307`)
 - Bug in :meth:`DataFrame.to_html` with ``na_rep`` set when the :class:`DataFrame` contains non-scalar data (:issue:`47103`)
 - Bug in :func:`read_xml` where file-like objects failed when iterparse is used (:issue:`50641`)
+- Bug in :func:`read_csv` when ``engine="pyarrow"`` where ``encoding`` parameter was not handled correctly (:issue:`51302`)
 - Bug in :func:`read_xml` ignored repeated elements when iterparse is used (:issue:`51183`)
 - Bug in :class:`ExcelWriter` leaving file handles open if an exception occurred during instantiation (:issue:`51443`)
+- Bug in :meth:`DataFrame.to_parquet` where non-string index or columns were raising a ``ValueError`` when ``engine="pyarrow"`` (:issue:`52036`)
 
 Period
 ^^^^^^

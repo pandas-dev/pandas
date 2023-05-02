@@ -33,6 +33,7 @@ import warnings
 from dateutil.relativedelta import relativedelta
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
 from pandas.errors import (
@@ -49,10 +50,9 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_categorical_dtype,
-    is_datetime64_dtype,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import (
     Categorical,
@@ -156,7 +156,7 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or StataReader
+DataFrame or pandas.api.typing.StataReader
 
 See Also
 --------
@@ -418,7 +418,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         dates, delta: bool = False, year: bool = False, days: bool = False
     ):
         d = {}
-        if is_datetime64_dtype(dates.dtype):
+        if lib.is_np_dtype(dates.dtype, "M"):
             if delta:
                 time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
@@ -464,7 +464,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
-        if is_datetime64_dtype(dates):
+        if lib.is_np_dtype(dates.dtype, "M"):
             dates[bad_loc] = to_datetime(stata_epoch)
         else:
             dates[bad_loc] = stata_epoch
@@ -1780,7 +1780,7 @@ the string values returned are correct."""
         # Decode strings
         for col, typ in zip(data, self._typlist):
             if type(typ) is int:
-                data[col] = data[col].apply(self._decode, convert_dtype=True)
+                data[col] = data[col].apply(self._decode)
 
         data = self._insert_strls(data)
 
@@ -1989,7 +1989,7 @@ the string values returned are correct."""
                     # TODO: if we get a non-copying rename_categories, use that
                     cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
-                    vc = Series(categories).value_counts()
+                    vc = Series(categories, copy=False).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
                     # GH 25772
@@ -2006,7 +2006,7 @@ The repeated labels are:
 """
                     raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
-                cat_series = Series(cat_data, index=data.index)
+                cat_series = Series(cat_data, index=data.index, copy=False)
                 cat_converted_data.append((col, cat_series))
             else:
                 cat_converted_data.append((col, data[col]))
@@ -2266,8 +2266,6 @@ class StataWriter(StataParser):
         Each label must be 80 characters or smaller.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
@@ -2407,7 +2405,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
+        is_cat = [isinstance(data[col].dtype, CategoricalDtype) for col in data]
         if not any(is_cat):
             return data
 
@@ -2619,7 +2617,7 @@ class StataWriter(StataParser):
         for col in data:
             if col in self._convert_dates:
                 continue
-            if is_datetime64_dtype(data[col]):
+            if lib.is_np_dtype(data[col].dtype, "M"):
                 self._convert_dates[col] = "tc"
 
         self._convert_dates = _maybe_convert_to_int_keys(
@@ -3195,8 +3193,6 @@ class StataWriter117(StataWriter):
         characters, and either frequently repeated or sparse.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
@@ -3586,8 +3582,6 @@ class StataWriterUTF8(StataWriter117):
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
     {compression_options}
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.4.0 Zstandard support.
 

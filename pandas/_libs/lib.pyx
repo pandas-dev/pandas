@@ -1,6 +1,7 @@
 from collections import abc
 from decimal import Decimal
 from enum import Enum
+from sys import getsizeof
 from typing import (
     Literal,
     _GenericAlias,
@@ -159,7 +160,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     n = len(arr)
     for i in range(n):
-        size += arr[i].__sizeof__()
+        size += getsizeof(arr[i])
     return size
 
 
@@ -746,13 +747,12 @@ cpdef ndarray[object] ensure_string_array(
 
     if hasattr(arr, "to_numpy"):
 
-        if hasattr(arr, "dtype") and arr.dtype.kind in ["m", "M"]:
+        if hasattr(arr, "dtype") and arr.dtype.kind in "mM":
             # dtype check to exclude DataFrame
             # GH#41409 TODO: not a great place for this
             out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
-
         arr = arr.to_numpy()
     elif not util.is_array(arr):
         arr = np.array(arr, dtype="object")
@@ -1055,6 +1055,17 @@ def is_integer(obj: object) -> bool:
     bool
     """
     return util.is_integer_object(obj)
+
+
+def is_int_or_none(obj) -> bool:
+    """
+    Return True if given object is integer or None.
+
+    Returns
+    -------
+    bool
+    """
+    return obj is None or util.is_integer_object(obj)
 
 
 def is_bool(obj: object) -> bool:
@@ -2326,9 +2337,13 @@ def maybe_convert_numeric(
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
 
-                seen.saw_null()
-                floats[i] = NaN
                 mask[i] = 1
+
+                if allow_null_in_int:
+                    seen.null_ = True
+                else:
+                    seen.saw_null()
+                    floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return (values, None)
@@ -2424,7 +2439,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         _TSObject tsobj
-        float64_t fnan = np.nan
+        float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -2626,7 +2641,7 @@ def maybe_convert_objects(ndarray[object] objects,
             dtype = dtype_if_all_nat
             if cnp.PyArray_DescrCheck(dtype):
                 # i.e. isinstance(dtype, np.dtype)
-                if dtype.kind not in ["m", "M"]:
+                if dtype.kind not in "mM":
                     raise ValueError(dtype)
                 else:
                     res = np.empty((<object>objects).shape, dtype=dtype)
@@ -2793,12 +2808,9 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result,
-                                     try_float=False,
-                                     convert_datetime=False,
-                                     convert_timedelta=False)
-
-    return result
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 @cython.boundscheck(False)
@@ -2841,12 +2853,9 @@ def map_infer(
         result[i] = val
 
     if convert:
-        return maybe_convert_objects(result,
-                                     try_float=False,
-                                     convert_datetime=False,
-                                     convert_timedelta=False)
-
-    return result
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 def to_object_array(rows: object, min_width: int = 0) -> ndarray:
@@ -3051,6 +3060,9 @@ def dtypes_all_equal(list types not None) -> bool:
     """
     first = types[0]
     for t in types[1:]:
+        if t is first:
+            # Fastpath can provide a nice boost for EADtypes
+            continue
         try:
             if not t == first:
                 return False
@@ -3058,3 +3070,30 @@ def dtypes_all_equal(list types not None) -> bool:
             return False
     else:
         return True
+
+
+def is_np_dtype(object dtype, str kinds=None) -> bool:
+    """
+    Optimized check for `isinstance(dtype, np.dtype)` with
+    optional `and dtype.kind in kinds`.
+
+    dtype = np.dtype("m8[ns]")
+
+    In [7]: %timeit isinstance(dtype, np.dtype)
+    117 ns ± 1.91 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+
+    In [8]: %timeit is_np_dtype(dtype)
+    64 ns ± 1.51 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+
+    In [9]: %timeit is_timedelta64_dtype(dtype)
+    209 ns ± 6.96 ns per loop (mean ± std. dev. of 7 runs, 1,000,000 loops each)
+
+    In [10]: %timeit is_np_dtype(dtype, "m")
+    93.4 ns ± 1.11 ns per loop (mean ± std. dev. of 7 runs, 10,000,000 loops each)
+    """
+    if not cnp.PyArray_DescrCheck(dtype):
+        # i.e. not isinstance(dtype, np.dtype)
+        return False
+    if kinds is None:
+        return True
+    return dtype.kind in kinds

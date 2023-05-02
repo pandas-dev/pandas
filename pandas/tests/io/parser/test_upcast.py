@@ -25,7 +25,7 @@ def test_maybe_upcast(any_real_numpy_dtype):
     dtype = np.dtype(any_real_numpy_dtype)
     na_value = na_values[dtype]
     arr = np.array([1, 2, na_value], dtype=dtype)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([False, False, True])
     if issubclass(dtype.type, np.integer):
@@ -42,7 +42,7 @@ def test_maybe_upcast_no_na(any_real_numpy_dtype):
         pytest.skip()
 
     arr = np.array([1, 2, 3], dtype=any_real_numpy_dtype)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([False, False, False])
     if issubclass(np.dtype(any_real_numpy_dtype).type, np.integer):
@@ -58,7 +58,7 @@ def test_maybe_upcaste_bool():
     dtype = np.bool_
     na_value = na_values[dtype]
     arr = np.array([True, False, na_value], dtype="uint8").view(dtype)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([False, False, True])
     expected = BooleanArray(arr, mask=expected_mask)
@@ -69,7 +69,7 @@ def test_maybe_upcaste_bool_no_nan():
     # GH#36712
     dtype = np.bool_
     arr = np.array([True, False, False], dtype="uint8").view(dtype)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([False, False, False])
     expected = BooleanArray(arr, mask=expected_mask)
@@ -81,7 +81,7 @@ def test_maybe_upcaste_all_nan():
     dtype = np.int64
     na_value = na_values[dtype]
     arr = np.array([na_value, na_value], dtype=dtype)
-    result = _maybe_upcast(arr, use_nullable_dtypes=True)
+    result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([True, True])
     expected = IntegerArray(arr, mask=expected_mask)
@@ -96,7 +96,7 @@ def test_maybe_upcast_object(val, string_storage):
 
     with pd.option_context("mode.string_storage", string_storage):
         arr = np.array(["a", "b", val], dtype=np.object_)
-        result = _maybe_upcast(arr, use_nullable_dtypes=True)
+        result = _maybe_upcast(arr, use_dtype_backend=True)
 
         if string_storage == "python":
             exp_val = "c" if val == "c" else NA

@@ -12,9 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
+from pandas import CategoricalDtype
 import pandas._testing as tm
 from pandas.core.frame import (
     DataFrame,
@@ -1084,7 +1083,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if is_categorical_dtype(expected[col].dtype):
+            if isinstance(expected[col].dtype, CategoricalDtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1114,7 +1113,7 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not is_categorical_dtype(parsed[col].dtype):
+            if not isinstance(parsed[col].dtype, CategoricalDtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
@@ -1178,7 +1177,7 @@ class TestStata:
         """
         for col in from_frame:
             ser = from_frame[col]
-            if is_categorical_dtype(ser.dtype):
+            if isinstance(ser.dtype, CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
                     categories = pd.Index._with_infer(cat.categories._values)

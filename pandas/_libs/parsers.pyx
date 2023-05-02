@@ -10,7 +10,6 @@ import sys
 import time
 import warnings
 
-from pandas.errors import ParserError
 from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
@@ -106,15 +105,10 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_dict_like
 
 cdef:
@@ -372,7 +366,6 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
-        bint use_nullable_dtypes
         object usecols
         set unnamed_cols  # set[str]
         str dtype_backend
@@ -412,8 +405,7 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  use_nullable_dtypes=False,
-                  dtype_backend="pandas"):
+                  dtype_backend="numpy"):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -534,7 +526,6 @@ cdef class TextReader:
         # - DtypeObj
         # - dict[Any, DtypeObj]
         self.dtype = dtype
-        self.use_nullable_dtypes = use_nullable_dtypes
         self.dtype_backend = dtype_backend
 
         self.noconvert = set()
@@ -961,7 +952,6 @@ cdef class TextReader:
             bint na_filter = 0
             int64_t num_cols
             dict results
-            bint use_nullable_dtypes
 
         start = self.parser_start
 
@@ -1081,13 +1071,13 @@ cdef class TextReader:
 
             # don't try to upcast EAs
             if (
-                na_count > 0 and not is_extension_array_dtype(col_dtype)
-                or self.use_nullable_dtypes
+                na_count > 0 and not isinstance(col_dtype, ExtensionDtype)
+                or self.dtype_backend != "numpy"
             ):
-                use_nullable_dtypes = self.use_nullable_dtypes and col_dtype is None
+                use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
                 col_res = _maybe_upcast(
                     col_res,
-                    use_nullable_dtypes=use_nullable_dtypes,
+                    use_dtype_backend=use_dtype_backend,
                     dtype_backend=self.dtype_backend,
                 )
 
@@ -1146,14 +1136,14 @@ cdef class TextReader:
             # (see _try_bool_flex()). Usually this would be taken care of using
             # _maybe_upcast(), but if col_dtype is a floating type we should just
             # take care of that cast here.
-            if col_res.dtype == np.bool_ and is_float_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind == "f":
                 mask = col_res.view(np.uint8) == na_values[np.uint8]
                 col_res = col_res.astype(col_dtype)
                 np.putmask(col_res, mask, np.nan)
                 return col_res, na_count
 
             # NaNs are already cast to True here, so can not use astype
-            if col_res.dtype == np.bool_ and is_integer_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind in "iu":
                 if na_count > 0:
                     raise ValueError(
                         f"cannot safely convert passed user dtype of "
@@ -1197,14 +1187,14 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                if is_bool_dtype(dtype):
+                if dtype.kind == "b":
                     true_values = [x.decode() for x in self.true_values]
                     false_values = [x.decode() for x in self.false_values]
                     result = array_type._from_sequence_of_strings(
@@ -1220,7 +1210,7 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_integer_dtype(dtype):
+        elif dtype.kind in "iu":
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1237,14 +1227,14 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_float_dtype(dtype):
+        elif dtype.kind == "f":
             result, na_count = _try_double(self.parser, i, start, end,
                                            na_filter, na_hashset, na_flist)
 
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
             return result, na_count
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
@@ -1271,10 +1261,10 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_object_dtype(dtype):
+        elif dtype == object:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_datetime64_dtype(dtype):
+        elif dtype.kind == "M":
             raise TypeError(f"the dtype {dtype} is not supported "
                             f"for parsing, pass this column "
                             f"using parse_dates instead")
@@ -1422,11 +1412,11 @@ _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 
 def _maybe_upcast(
-    arr, use_nullable_dtypes: bool = False, dtype_backend: str = "pandas"
+    arr, use_dtype_backend: bool = False, dtype_backend: str = "numpy"
 ):
     """Sets nullable dtypes or upcasts if nans are present.
 
-    Upcast, if use_nullable_dtypes is false and nans are present so that the
+    Upcast, if use_dtype_backend is false and nans are present so that the
     current dtype can not hold the na value. We use nullable dtypes if the
     flag is true for every array.
 
@@ -1435,14 +1425,14 @@ def _maybe_upcast(
     arr: ndarray
         Numpy array that is potentially being upcast.
 
-    use_nullable_dtypes: bool, default False
+    use_dtype_backend: bool, default False
         If true, we cast to the associated nullable dtypes.
 
     Returns
     -------
     The casted array.
     """
-    if is_extension_array_dtype(arr.dtype):
+    if isinstance(arr.dtype, ExtensionDtype):
         # TODO: the docstring says arr is an ndarray, in which case this cannot
         #  be reached. Is that incorrect?
         return arr
@@ -1452,7 +1442,7 @@ def _maybe_upcast(
     if issubclass(arr.dtype.type, np.integer):
         mask = arr == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = IntegerArray(arr, mask)
         else:
             arr = arr.astype(float)
@@ -1461,22 +1451,22 @@ def _maybe_upcast(
     elif arr.dtype == np.bool_:
         mask = arr.view(np.uint8) == na_value
 
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = BooleanArray(arr, mask)
         else:
             arr = arr.astype(object)
             np.putmask(arr, mask, np.nan)
 
     elif issubclass(arr.dtype.type, float) or arr.dtype.type == np.float32:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             mask = np.isnan(arr)
             arr = FloatingArray(arr, mask)
 
     elif arr.dtype == np.object_:
-        if use_nullable_dtypes:
+        if use_dtype_backend:
             arr = StringDtype().construct_array_type()._from_sequence(arr)
 
-    if use_nullable_dtypes and dtype_backend == "pyarrow":
+    if use_dtype_backend and dtype_backend == "pyarrow":
         import pyarrow as pa
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
