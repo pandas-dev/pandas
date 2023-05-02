@@ -9,48 +9,53 @@ Getting started
 Installation
 ------------
 
-.. panels::
-    :card: + install-card
-    :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-3
+.. grid:: 1 2 2 2
+    :gutter: 4
 
-    Working with conda?
-    ^^^^^^^^^^^^^^^^^^^
+    .. grid-item-card:: Working with conda?
+        :class-card: install-card
+        :columns: 12 12 6 6
+        :padding: 3
 
-    pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__
-    distribution and can be installed with Anaconda or Miniconda:
+        pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__
+        distribution and can be installed with Anaconda or Miniconda:
 
-    ++++++++++++++++++++++
+        ++++++++++++++++++++++
 
-    .. code-block:: bash
+        .. code-block:: bash
 
-        conda install pandas
+            conda install pandas
 
-    ---
+    .. grid-item-card:: Prefer pip?
+        :class-card: install-card
+        :columns: 12 12 6 6
+        :padding: 3
 
-    Prefer pip?
-    ^^^^^^^^^^^
+        pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 
-    pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
+        ++++
 
-    ++++
+        .. code-block:: bash
 
-    .. code-block:: bash
+            pip install pandas
 
-        pip install pandas
+    .. grid-item-card:: In-depth instructions?
+        :class-card: install-card
+        :columns: 12
+        :padding: 3
 
-    ---
-    :column: col-12 p-3
+        Installing a specific version? Installing from source? Check the advanced
+        installation page.
 
-    In-depth instructions?
-    ^^^^^^^^^^^^^^^^^^^^^^
+        +++
 
-    Installing a specific version? Installing from source? Check the advanced
-    installation page.
+        .. button-ref:: install
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
-    .. link-button:: ./install.html
-        :type: url
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+            Learn more
 
 
 .. _gentle_intro:
@@ -536,91 +541,110 @@ Coming from...
 Are you familiar with other software for manipulating tabular data? Learn
 the pandas-equivalent operations compared to software you already know:
 
-.. panels::
-    :img-top-cls: dark-light
-    :card: + comparison-card text-center shadow
-    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
+.. grid:: 1 2 2 2
+    :gutter: 4
+    :class-container: sd-text-center sd-d-inline-flex
 
-    ---
-    :card: + comparison-card-r
-    :img-top: ../_static/logo_r.svg
+    .. grid-item-card::
+        :img-top: ../_static/logo_r.svg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
 
-    The `R programming language <https://www.r-project.org/>`__ provides the
-    ``data.frame`` data structure and multiple packages, such as
-    `tidyverse <https://www.tidyverse.org>`__ use and extend ``data.frame``
-    for convenient data handling functionalities similar to pandas.
+        The `R programming language <https://www.r-project.org/>`__ provides the
+        ``data.frame`` data structure and multiple packages, such as
+        `tidyverse <https://www.tidyverse.org>`__ use and extend ``data.frame``
+        for convenient data handling functionalities similar to pandas.
 
-    +++
+        +++
 
-    .. link-button:: compare_with_r
-        :type: ref
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+        .. button-ref:: compare_with_r
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
+            Learn more
 
-    ---
-    :card: + comparison-card-sql
-    :img-top: ../_static/logo_sql.svg
+    .. grid-item-card::
+        :img-top: ../_static/logo_sql.svg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
 
-    Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
-    Most of these SQL manipulations do have equivalents in pandas.
+        Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
+        Most of these SQL manipulations do have equivalents in pandas.
 
-    +++
+        +++
 
-    .. link-button:: compare_with_sql
-        :type: ref
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+        .. button-ref:: compare_with_sql
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
+            Learn more
 
-    ---
-    :card: + comparison-card-stata
-    :img-top: ../_static/logo_stata.svg
+    .. grid-item-card::
+        :img-top: ../_static/logo_stata.svg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
 
-    The ``data set`` included in the `STATA <https://en.wikipedia.org/wiki/Stata>`__
-    statistical software suite corresponds to the pandas ``DataFrame``.
-    Many of the operations known from STATA have an equivalent in pandas.
+        The ``data set`` included in the `STATA <https://en.wikipedia.org/wiki/Stata>`__
+        statistical software suite corresponds to the pandas ``DataFrame``.
+        Many of the operations known from STATA have an equivalent in pandas.
 
-    +++
+        +++
 
-    .. link-button:: compare_with_stata
-        :type: ref
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+        .. button-ref:: compare_with_stata
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
+            Learn more
 
-    ---
-    :card: + comparison-card-excel
-    :img-top: ../_static/spreadsheets/logo_excel.svg
+    .. grid-item-card::
+        :img-top: ../_static/spreadsheets/logo_excel.svg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
 
-    Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
-    or other spreadsheet programs will find that many of the concepts are
-    transferrable to pandas.
+        Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
+        or other spreadsheet programs will find that many of the concepts are
+        transferrable to pandas.
 
-    +++
+        +++
 
-    .. link-button:: compare_with_spreadsheets
-        :type: ref
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+        .. button-ref:: compare_with_spreadsheets
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
+            Learn more
 
-    ---
-    :card: + comparison-card-sas
-    :img-top: ../_static/logo_sas.svg
+    .. grid-item-card::
+        :img-top: ../_static/logo_sas.svg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
 
-    The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
-    also provides the ``data set`` corresponding to the pandas ``DataFrame``.
-    Also SAS vectorized operations, filtering, string processing operations,
-    and more have similar functions in pandas.
+        The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
+        also provides the ``data set`` corresponding to the pandas ``DataFrame``.
+        Also SAS vectorized operations, filtering, string processing operations,
+        and more have similar functions in pandas.
 
-    +++
+        +++
 
-    .. link-button:: compare_with_sas
-        :type: ref
-        :text: Learn more
-        :classes: btn-secondary stretched-link
+        .. button-ref:: compare_with_sas
+            :ref-type: ref
+            :click-parent:
+            :color: secondary
+            :expand:
 
+            Learn more
 
 Tutorials
 ---------
