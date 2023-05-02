@@ -398,6 +398,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             dtype = dtype.subtype
 
         if is_scalar(data):
+            warnings.warn(
+                f"Constructing {type(self).__name__} with scalar data is deprecated "
+                "and will raise in a future version. Pass a sequence instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             if sparse_index is None:
                 npoints = 1
             else:
