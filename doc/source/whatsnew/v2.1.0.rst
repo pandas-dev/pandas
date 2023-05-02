@@ -259,6 +259,8 @@ Deprecations
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
 - Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
 - Deprecated logical operation between two non boolean :class:`Series` with different indexes always coercing the result to bool dtype. In a future version, this will maintain the return type of the inputs. (:issue:`52500`, :issue:`52538`)
+- Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -376,12 +378,12 @@ Period
 ^^^^^^
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)
+- Bug in :class:`PeriodDtype` constructor incorrectly returning the same ``normalize`` for different :class:`DateOffset` ``freq`` inputs (:issue:`24121`)
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
--
 
 Plotting
 ^^^^^^^^
