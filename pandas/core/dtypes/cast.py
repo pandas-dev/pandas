@@ -1171,10 +1171,7 @@ def maybe_infer_to_datetimelike(
         # Here we do not convert numeric dtypes, as if we wanted that,
         #  numpy would have done it for us.
         convert_numeric=False,
-        convert_period=True,
-        convert_interval=True,
-        convert_timedelta=True,
-        convert_datetime=True,
+        convert_non_numeric=True,
         dtype_if_all_nat=np.dtype("M8[ns]"),
     )
 

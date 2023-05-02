@@ -1017,8 +1017,8 @@ def convert_object_array(
             # 1) we DO get here when arr is all Timestamps and dtype=None
             # 2) disabling this doesn't break the world, so this must be
             #    getting caught at a higher level
-            # 3) passing convert_datetime to maybe_convert_objects get this right
-            # 4) convert_timedelta?
+            # 3) passing convert_non_numeric to maybe_convert_objects get this right
+            # 4) convert_non_numeric?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):

@@ -390,10 +390,7 @@ class BaseArrayManager(DataManager):
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
-                    convert_datetime=True,
-                    convert_timedelta=True,
-                    convert_period=True,
-                    convert_interval=True,
+                    convert_non_numeric=True,
                 )
                 if result is arr and copy:
                     return arr.copy()

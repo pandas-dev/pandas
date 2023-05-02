@@ -727,8 +727,7 @@ class TestInference:
         vals = np.array([pd.NaT, val], dtype=object)
         result = lib.maybe_convert_objects(
             vals,
-            convert_datetime=True,
-            convert_timedelta=True,
+            convert_non_numeric=True,
             dtype_if_all_nat=dtype,
         )
         assert result.dtype == dtype
@@ -736,8 +735,7 @@ class TestInference:
 
         result = lib.maybe_convert_objects(
             vals[::-1],
-            convert_datetime=True,
-            convert_timedelta=True,
+            convert_non_numeric=True,
             dtype_if_all_nat=dtype,
         )
         assert result.dtype == dtype
@@ -777,38 +775,29 @@ class TestInference:
             [np.datetime64("2000-01-01"), np.timedelta64(1, "s")], dtype=object
         )
         exp = arr.copy()
-        out = lib.maybe_convert_objects(
-            arr, convert_datetime=True, convert_timedelta=True
-        )
+        out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
         exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[ns]")
-        out = lib.maybe_convert_objects(
-            arr, convert_datetime=True, convert_timedelta=True
-        )
+        out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
-        # with convert_timedelta=True, the nan is a valid NA value for td64
+        # with convert_non_numeric=True, the nan is a valid NA value for td64
         arr = np.array([np.timedelta64(1, "s"), np.nan], dtype=object)
         exp = exp[::-1]
-        out = lib.maybe_convert_objects(
-            arr, convert_datetime=True, convert_timedelta=True
-        )
+        out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
     def test_maybe_convert_objects_dtype_if_all_nat(self):
         arr = np.array([pd.NaT, pd.NaT], dtype=object)
-        out = lib.maybe_convert_objects(
-            arr, convert_datetime=True, convert_timedelta=True
-        )
+        out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no dtype_if_all_nat passed -> we dont guess
         tm.assert_numpy_array_equal(out, arr)
 
         out = lib.maybe_convert_objects(
             arr,
-            convert_datetime=True,
-            convert_timedelta=True,
+            convert_non_numeric=True,
             dtype_if_all_nat=np.dtype("timedelta64[ns]"),
         )
         exp = np.array(["NaT", "NaT"], dtype="timedelta64[ns]")
@@ -816,8 +805,7 @@ class TestInference:
 
         out = lib.maybe_convert_objects(
             arr,
-            convert_datetime=True,
-            convert_timedelta=True,
+            convert_non_numeric=True,
             dtype_if_all_nat=np.dtype("datetime64[ns]"),
         )
         exp = np.array(["NaT", "NaT"], dtype="datetime64[ns]")
@@ -830,8 +818,7 @@ class TestInference:
         with pytest.raises(ValueError, match="int64"):
             lib.maybe_convert_objects(
                 arr,
-                convert_datetime=True,
-                convert_timedelta=True,
+                convert_non_numeric=True,
                 dtype_if_all_nat=np.dtype("int64"),
             )
 
@@ -842,9 +829,7 @@ class TestInference:
             stamp = stamp - datetime(1970, 1, 1)
         arr = np.array([stamp], dtype=object)
 
-        out = lib.maybe_convert_objects(
-            arr, convert_datetime=True, convert_timedelta=True
-        )
+        out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
         tm.assert_numpy_array_equal(out, arr)
 
@@ -855,7 +840,7 @@ class TestInference:
         for data in itertools.permutations(vals):
             data = np.array(list(data), dtype=object)
             expected = DatetimeIndex(data)._data._ndarray
-            result = lib.maybe_convert_objects(data, convert_datetime=True)
+            result = lib.maybe_convert_objects(data, convert_non_numeric=True)
             tm.assert_numpy_array_equal(result, expected)
 
     def test_maybe_convert_objects_timedelta64_nat(self):
@@ -863,7 +848,7 @@ class TestInference:
         arr = np.array([obj], dtype=object)
         assert arr[0] is obj
 
-        result = lib.maybe_convert_objects(arr, convert_timedelta=True)
+        result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
 
         expected = np.array([obj], dtype="m8[ns]")
         tm.assert_numpy_array_equal(result, expected)
@@ -1037,7 +1022,7 @@ class TestInference:
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
-        result = lib.maybe_convert_objects(arr, convert_datetime=True)
+        result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 
     @pytest.mark.parametrize(
@@ -1050,8 +1035,7 @@ class TestInference:
     def test_maybe_convert_objects_ea(self, idx):
         result = lib.maybe_convert_objects(
             np.array(idx, dtype=object),
-            convert_period=True,
-            convert_interval=True,
+            convert_non_numeric=True,
         )
         tm.assert_extension_array_equal(result, idx._data)
 
