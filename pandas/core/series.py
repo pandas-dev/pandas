@@ -4881,7 +4881,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
 
         >>> s.drop(labels='weight', level=1)
-        llama    speed      45.0
+        llama   speed      45.0
                 length      1.2
         cow     speed      30.0
                 length      1.5
