@@ -412,9 +412,11 @@ def format_object_summary(
             # max_space
             max_space = display_width - len(space2)
             value = tail[0]
-            for max_items in reversed(range(1, len(value) + 1)):
-                pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
+            max_items = 1
+            for num_items in reversed(range(1, len(value) + 1)):
+                pprinted_seq = _pprint_seq(value, max_seq_items=num_items)
                 if len(pprinted_seq) < max_space:
+                    max_items = num_items
                     break
             head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
             tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
