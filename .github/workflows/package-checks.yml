@@ -83,11 +83,7 @@ jobs:
           cache-env: true
 
       - name: Build conda package
-        run: |
-          mkdir package
-          conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder package
+        run: conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder .
 
       - name: Test conda package
-        run: |
-        ls package
-        conda mambabuild --keep-going --test package
+        run: conda mambabuild --keep-going --test linux-64
