@@ -82,9 +82,6 @@ jobs:
           cache-downloads: true
           cache-env: true
 
-      - name: Verify Recipe
-        run: conda mambabuild ci --check
-
       - name: Build conda package
         run: |
           mkdir package
