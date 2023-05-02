@@ -88,4 +88,6 @@ jobs:
           conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder package
 
       - name: Test conda package
-        run: conda mambabuild --keep-going --test package
+        run: |
+        ls package
+        conda mambabuild --keep-going --test package
