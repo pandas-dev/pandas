@@ -1151,6 +1151,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         nv.validate_sum((), kwargs)
 
+        if self._data.dtype.kind == "b":
+            self = self.astype("Int8")
+
         result = masked_reductions.sum(
             self._data,
             self._mask,
@@ -1171,6 +1174,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+
+        if self._data.dtype.kind == "b":
+            self = self.astype("Int8")
+
         result = masked_reductions.prod(
             self._data,
             self._mask,

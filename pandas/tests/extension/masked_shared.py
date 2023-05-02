@@ -70,18 +70,20 @@ class NumericReduce(base.BaseNumericReduceTests):
 
         arr = ser.array
 
+        is_windows_or_32bit = is_platform_windows() or not IS64
+
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
         elif op_name in ["max", "min"]:
             cmp_dtype = arr.dtype.name
-        elif arr.dtype == "Int64" or arr.dtype == "UInt64":
+        elif arr.dtype in ["Int64", "UInt64"]:
             cmp_dtype = arr.dtype.name
         elif tm.is_signed_integer_dtype(arr.dtype):
-            cmp_dtype = "Int32" if skipna and is_platform_windows() else "Int64"
+            cmp_dtype = "Int32" if skipna and is_windows_or_32bit else "Int64"
         elif tm.is_unsigned_integer_dtype(arr.dtype):
-            cmp_dtype = "UInt32" if skipna and is_platform_windows() else "UInt64"
+            cmp_dtype = "UInt32" if skipna and is_windows_or_32bit else "UInt64"
         else:
             raise TypeError("not supposed to reach this")
 
