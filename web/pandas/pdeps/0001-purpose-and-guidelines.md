@@ -56,6 +56,12 @@ advisor on the PDEP when it is submitted to the PDEP repository.
 
 ### Workflow
 
+Our workflow was created to support and enable a consensus seeking process, and to provide clarify,
+for current and future authors, as well as voting members. It is not a strict policy, and we
+discourage any interpretation which seeks to take advantage of it in a way that could "force" or
+"sneak" decisions in one way or another. We expect and encourage transparency, active discussion,
+feedback, and compromise from all our community members.
+
 The possible states of a PDEP are:
 
 - Under discussion
