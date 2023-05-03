@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_complex,
-    is_extension_array_dtype,
     is_float,
     is_integer,
     is_object_dtype,
@@ -455,8 +454,6 @@ def maybe_cast_pointwise_result(
     result : array-like
         result maybe casted to the dtype.
     """
-
-    assert not is_scalar(result)
 
     if isinstance(dtype, ExtensionDtype):
         if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
@@ -903,7 +900,8 @@ def infer_dtype_from_array(
     if not is_list_like(arr):
         raise TypeError("'arr' must be list-like")
 
-    if pandas_dtype and is_extension_array_dtype(arr):
+    arr_dtype = getattr(arr, "dtype", None)
+    if pandas_dtype and isinstance(arr_dtype, ExtensionDtype):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
@@ -1040,10 +1038,10 @@ def convert_dtypes(
             target_int_dtype = pandas_dtype_func("Int64")
 
             if input_array.dtype.kind in "iu":
-                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+                from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 
-                inferred_dtype = INT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, target_int_dtype
+                inferred_dtype = NUMPY_INT_TO_DTYPE.get(
+                    input_array.dtype, target_int_dtype
                 )
             elif input_array.dtype.kind in "fcb":
                 # TODO: de-dup with maybe_cast_to_integer_array?
@@ -1062,10 +1060,10 @@ def convert_dtypes(
         if convert_floating:
             if input_array.dtype.kind in "fcb":
                 # i.e. numeric but not integer
-                from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+                from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
 
-                inferred_float_dtype: DtypeObj = FLOAT_STR_TO_DTYPE.get(
-                    input_array.dtype.name, pandas_dtype_func("Float64")
+                inferred_float_dtype: DtypeObj = NUMPY_FLOAT_TO_DTYPE.get(
+                    input_array.dtype, pandas_dtype_func("Float64")
                 )
                 # if we could also convert to integer, check if all floats
                 # are actually integers
@@ -1106,20 +1104,29 @@ def convert_dtypes(
         from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
-        if isinstance(inferred_dtype, PandasExtensionDtype):
-            base_dtype = inferred_dtype.base
-        elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
-            base_dtype = inferred_dtype.numpy_dtype
-        elif isinstance(inferred_dtype, StringDtype):
-            base_dtype = np.dtype(str)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[str, Any, dtype[Any], ExtensionDtype]",
-            # variable has type "Union[dtype[Any], ExtensionDtype, None]")
-            base_dtype = inferred_dtype  # type: ignore[assignment]
-        pa_type = to_pyarrow_type(base_dtype)
-        if pa_type is not None:
-            inferred_dtype = ArrowDtype(pa_type)
+        assert not isinstance(inferred_dtype, str)
+
+        if (
+            (convert_integer and inferred_dtype.kind in "iu")
+            or (convert_floating and inferred_dtype.kind in "fc")
+            or (convert_boolean and inferred_dtype.kind == "b")
+            or (convert_string and isinstance(inferred_dtype, StringDtype))
+            or (
+                inferred_dtype.kind not in "iufcb"
+                and not isinstance(inferred_dtype, StringDtype)
+            )
+        ):
+            if isinstance(inferred_dtype, PandasExtensionDtype):
+                base_dtype = inferred_dtype.base
+            elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
+                base_dtype = inferred_dtype.numpy_dtype
+            elif isinstance(inferred_dtype, StringDtype):
+                base_dtype = np.dtype(str)
+            else:
+                base_dtype = inferred_dtype
+            pa_type = to_pyarrow_type(base_dtype)
+            if pa_type is not None:
+                inferred_dtype = ArrowDtype(pa_type)
 
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
@@ -1164,10 +1171,7 @@ def maybe_infer_to_datetimelike(
         # Here we do not convert numeric dtypes, as if we wanted that,
         #  numpy would have done it for us.
         convert_numeric=False,
-        convert_period=True,
-        convert_interval=True,
-        convert_timedelta=True,
-        convert_datetime=True,
+        convert_non_numeric=True,
         dtype_if_all_nat=np.dtype("M8[ns]"),
     )
 

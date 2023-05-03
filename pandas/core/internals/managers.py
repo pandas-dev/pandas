@@ -35,7 +35,6 @@ from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1773,7 +1772,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = cast(np.dtype, dtype)
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
-        elif is_dtype_equal(dtype, str):
+        elif dtype == np.dtype(str):
             dtype = np.dtype("object")
 
         result = np.empty(self.shape, dtype=dtype)
@@ -2189,10 +2188,7 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
-    # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
-    # raises instead of returning False. Once earlier numpy versions are dropped,
-    # this can be simplified to `return tup[1].dtype`
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
     dtype = tup[1].dtype
 
     if is_1d_only_ea_dtype(dtype):
@@ -2202,15 +2198,14 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
     else:
         sep = 0
 
-    return sep, isinstance(dtype, np.dtype), dtype
+    return sep, dtype
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = list(enumerate(arrays))
 
     if not consolidate:
-        nbs = _tuples_to_blocks_no_consolidate(tuples, refs)
-        return nbs
+        return _tuples_to_blocks_no_consolidate(tuples, refs)
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
@@ -2219,8 +2214,8 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
 
-    nbs = []
-    for (_, _, dtype), tup_block in grouper:
+    nbs: list[Block] = []
+    for (_, dtype), tup_block in grouper:
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):

@@ -335,7 +335,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
@@ -998,7 +997,7 @@ pass  ``format='mixed'``
 
 .. ipython:: python
 
-   data = io.StringIO("date\n12 Jan 2000\n2000-01-13\n")
+   data = StringIO("date\n12 Jan 2000\n2000-01-13\n")
    df = pd.read_csv(data)
    df['date'] = pd.to_datetime(df['date'], format='mixed')
    df
@@ -1007,7 +1006,7 @@ or, if your datetime formats are all ISO8601 (possibly not identically-formatted
 
 .. ipython:: python
 
-   data = io.StringIO("date\n2020-01-01\n2020-01-01 03:00\n")
+   data = StringIO("date\n2020-01-01\n2020-01-01 03:00\n")
    df = pd.read_csv(data)
    df['date'] = pd.to_datetime(df['date'], format='ISO8601')
    df
@@ -2166,6 +2165,19 @@ Dates written in nanoseconds need to be read back in nanoseconds:
    # Or specify that all timestamps are in nanoseconds
    dfju = pd.read_json(json, date_unit="ns")
    dfju
+
+By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
+
+.. ipython:: python
+
+    data = (
+     '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
+     '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
+     '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
+    )
+    df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
+    df
+    df.dtypes
 
 .. _io.json_normalize:
 
@@ -3878,8 +3890,6 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-.. versionadded:: 1.1.0
-
 Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
 
 .. code-block:: python
@@ -5227,6 +5237,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_feather("example.feather")
 
@@ -5324,6 +5335,20 @@ Read from a parquet file.
 
    result.dtypes
 
+By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
+
+.. ipython:: python
+   :okwarning:
+
+   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
+
+   result.dtypes
+
+.. note::
+
+   Note that this is not supported for ``fastparquet``.
+
+
 Read only certain columns of a parquet file.
 
 .. ipython:: python
@@ -5356,6 +5381,7 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df.to_parquet("test.parquet", engine="pyarrow")
@@ -5372,6 +5398,7 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
     df.to_parquet("test.parquet", index=False)
 
@@ -5394,6 +5421,7 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
     df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)

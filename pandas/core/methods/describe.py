@@ -19,7 +19,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
     DtypeObj,
@@ -30,10 +29,12 @@ from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_any_dtype,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 
 from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
@@ -230,9 +231,13 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     dtype: DtypeObj | None
     if isinstance(series.dtype, ExtensionDtype):
         if isinstance(series.dtype, ArrowDtype):
-            import pyarrow as pa
+            if series.dtype.kind == "m":
+                # GH53001: describe timedeltas with object dtype
+                dtype = None
+            else:
+                import pyarrow as pa
 
-            dtype = ArrowDtype(pa.float64())
+                dtype = ArrowDtype(pa.float64())
         else:
             dtype = Float64Dtype()
     elif series.dtype.kind in "iufb":
@@ -361,9 +366,9 @@ def select_describe_func(
         return describe_categorical_1d
     elif is_numeric_dtype(data):
         return describe_numeric_1d
-    elif is_datetime64_any_dtype(data.dtype):
+    elif data.dtype.kind == "M" or isinstance(data.dtype, DatetimeTZDtype):
         return describe_timestamp_1d
-    elif lib.is_np_dtype(data.dtype, "m"):
+    elif data.dtype.kind == "m":
         return describe_numeric_1d
     else:
         return describe_categorical_1d

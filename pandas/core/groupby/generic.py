@@ -245,8 +245,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 assert columns is not None  # for mypy
                 ret.columns = columns
             if not self.as_index:
-                ret = self._insert_inaxis_grouper(ret)
-                ret.index = default_index(len(ret))
+                ret = ret.reset_index()
             return ret
 
         else:
@@ -352,7 +351,6 @@ class SeriesGroupBy(GroupBy[Series]):
         output = self.obj._constructor_expanddim(indexed_output, index=None)
         output.columns = Index(key.label for key in results)
 
-        output = self._reindex_output(output)
         return output
 
     def _wrap_applied_output(
@@ -1329,7 +1327,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        op = GroupByApply(self, func, args, kwargs)
+        op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result

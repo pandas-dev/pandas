@@ -455,7 +455,7 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, LookupError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
             with suppress(AttributeError):
@@ -653,8 +653,6 @@ class HDFStore:
         include : str, default 'pandas'
                 When kind equals 'pandas' return pandas objects.
                 When kind equals 'native' return native HDF5 Table objects.
-
-                .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1109,8 +1107,6 @@ class HDFStore:
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
-
-            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"

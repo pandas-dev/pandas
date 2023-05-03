@@ -1454,8 +1454,6 @@ Comparing objects
 The :meth:`~Series.compare` and :meth:`~DataFrame.compare` methods allow you to
 compare two DataFrame or Series, respectively, and summarize their differences.
 
-This feature was added in :ref:`V1.1.0 <whatsnew_110.dataframe_or_series_comparing>`.
-
 For example, you might want to compare two ``DataFrame`` and stack their differences
 side by side.
 

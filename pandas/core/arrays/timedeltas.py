@@ -46,7 +46,6 @@ from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
-    is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -1048,7 +1047,7 @@ def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
 
 def _validate_td64_dtype(dtype) -> DtypeObj:
     dtype = pandas_dtype(dtype)
-    if is_dtype_equal(dtype, np.dtype("timedelta64")):
+    if dtype == np.dtype("m8"):
         # no precision disallowed GH#24806
         msg = (
             "Passing in 'timedelta' dtype with no precision is not allowed. "
