@@ -54,14 +54,8 @@ jobs:
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
         - [ubuntu-20.04, manylinux_x86_64]
-        # TODO: Consider re-enabling macos wheels, once meson-python makes it easy to
-        # cross compile
         - [macos-11, macosx_*]
-        #- [macos-11, macosx_x86_64]
         - [windows-2019, win_amd64]
-        # Turn off for now
-        # TODO: Re-enable after mesonbuild/meson-python#167 goes in
-        #- [windows-2019, win32]
         # TODO: support PyPy?
         python: [["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]#  "pp39"]
     env:

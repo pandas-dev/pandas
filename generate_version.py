@@ -18,17 +18,32 @@ def write_version_info(path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-o", "--outfile", type=str, help="Path to write version info to"
+        "-o",
+        "--outfile",
+        type=str,
+        help="Path to write version info to",
+        required=False,
+    )
+    parser.add_argument(
+        "--print",
+        default=False,
+        action="store_true",
+        help="Whether to print out the version",
+        required=False,
     )
     args = parser.parse_args()
 
-    if not args.outfile.endswith(".py"):
-        raise ValueError(
-            f"Output file must be a Python file. "
-            f"Got: {args.outfile} as filename instead"
-        )
+    if args.outfile:
+        if not args.outfile.endswith(".py"):
+            raise ValueError(
+                f"Output file must be a Python file. "
+                f"Got: {args.outfile} as filename instead"
+            )
 
-    write_version_info(args.outfile)
+        write_version_info(args.outfile)
+
+    if args.print:
+        print(versioneer.get_version())
 
 
 main()

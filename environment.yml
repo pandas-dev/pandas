@@ -10,6 +10,7 @@ dependencies:
   - versioneer[toml]
   - cython=0.29.33
   - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -118,6 +119,5 @@ dependencies:
 
   - pip:
       - sphinx-toggleprompt
-      - "git+https://github.com/mesonbuild/meson-python.git@b1cbffa9b7032aec4fe019e9fb749012153e5aa5"
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1

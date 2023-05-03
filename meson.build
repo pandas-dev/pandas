@@ -2,9 +2,7 @@
 project(
     'pandas',
     'c', 'cpp', 'cython',
-    # TODO: Delete this in a future meson-python version
-    # since we
-    version: '2.1.0.dev0',
+    version: run_command(['python3', 'generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.0.1',
     default_options: [
@@ -18,15 +16,16 @@ project(
     ]
 )
 
-add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
-add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
-
 py_mod = import('python')
 fs = import('fs')
 py = py_mod.find_installation('python')
 py_dep = py.dependency()
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
+
+
+add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
+add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', pure: false, subdir: 'pandas')
