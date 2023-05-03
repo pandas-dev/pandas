@@ -101,8 +101,6 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif not is_list_like(result):
             return result
 
-        result = np.asarray(result)
-
         if self.orig is not None:
             index = self.orig.index
         else:

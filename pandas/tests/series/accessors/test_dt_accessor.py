@@ -12,6 +12,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.compat import pa_version_under7p0
 from pandas.errors import SettingWithCopyError
 
 from pandas.core.dtypes.common import (
@@ -89,8 +90,15 @@ class TestSeriesDatetimeValues:
                 return result
             return Series(result, index=ser.index, name=ser.name, dtype=result.dtype)
 
-        left = getattr(ser.dt, name)
-        right = get_expected(ser, name)
+        if name == "time":
+            msg = "In a future version, this will an array with pyarrow time dtype"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                left = getattr(ser.dt, name)
+                right = get_expected(ser, name)
+        else:
+            left = getattr(ser.dt, name)
+            right = get_expected(ser, name)
+
         if not (is_list_like(left) and is_list_like(right)):
             assert left == right
         elif isinstance(left, DataFrame):
@@ -672,9 +680,30 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        result = ser.dt.time
+        msg = "In a future version, this will an array with pyarrow time"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.time
         expected = Series([time(0), time(0), pd.NaT, time(0), time(0)], dtype="object")
         tm.assert_series_equal(result, expected)
+
+        with pd.option_context("future.infer_time", False):
+            with tm.assert_produces_warning(None):
+                result = ser.dt.time
+        tm.assert_series_equal(result, expected)
+
+        if pa_version_under7p0:
+            return
+
+        with pd.option_context("future.infer_time", True):
+            with tm.assert_produces_warning(None):
+                result_pa = ser.dt.time
+
+        import pyarrow as pa
+
+        pa_dtype = pa.time64("ns")
+        dtype = pd.ArrowDtype(pa_dtype)
+        expected_pa = expected.astype(dtype)
+        tm.assert_series_equal(result_pa, expected_pa)
 
     def test_dt_accessor_api(self):
         # GH 9322
