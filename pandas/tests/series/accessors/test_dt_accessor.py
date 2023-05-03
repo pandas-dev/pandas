@@ -91,9 +91,7 @@ class TestSeriesDatetimeValues:
             return Series(result, index=ser.index, name=ser.name, dtype=result.dtype)
 
         if name == "time":
-            msg = (
-                "In a future version, this will return an array with pyarrow time dtype"
-            )
+            msg = "In a future version, this will an array with pyarrow time dtype"
             with tm.assert_produces_warning(FutureWarning, match=msg):
                 left = getattr(ser.dt, name)
                 right = get_expected(ser, name)
