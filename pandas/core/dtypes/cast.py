@@ -489,11 +489,14 @@ def _maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import BaseStringArray
 
-    # Everything can be converted to StringArrays, but we may not want to convert
-    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
-        return obj
+    if hasattr(cls, "_from_scalars"):
+        # TODO: get this everywhere!
+        try:
+            result = cls._from_scalars(obj, dtype=dtype)
+        except (TypeError, ValueError):
+            return obj
+        return result
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)

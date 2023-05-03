@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
+        Self,
         npt,
         type_t,
     )
@@ -227,6 +228,13 @@ class BaseStringArray(ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype=None) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) != "string":
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
