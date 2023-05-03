@@ -15,7 +15,9 @@ from pandas import Series
         ([1, 2, 3, 4], ["x", "y", "z", "w"], 4),
     ],
 )
+
+# GH#52897
 def test_series(data, index, expected):
-    s = Series(data, index=index)
-    assert s.size == expected
-    assert isinstance(s.size, int)
+    ser = Series(data, index=index)
+    assert ser.size == expected
+    assert isinstance(ser.size, int)
