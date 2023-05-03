@@ -83,6 +83,7 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
+        args: [--load-plugins=pylint.extensions.redefined_loop_name]
 -   repo: https://github.com/pycqa/pylint
     rev: v2.16.2
     hooks:
