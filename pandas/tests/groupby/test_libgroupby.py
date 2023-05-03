@@ -296,6 +296,9 @@ def test_cython_group_mean_Inf_at_begining_and_end():
 
     group_mean(actual, counts, data, labels, is_datetimelike=False)
 
+    expected = np.array([[np.inf, 3], [3, np.inf]], dtype="float64")
+
     tm.assert_numpy_array_equal(
-        actual, np.array([[np.inf, 3], [3, np.inf]], dtype="float64")
+        actual,
+        expected,
     )
