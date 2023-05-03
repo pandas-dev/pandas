@@ -93,7 +93,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dataclass,
     is_dict_like,
-    is_dtype_equal,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -5140,7 +5139,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Drop columns and/or rows of MultiIndex DataFrame
 
-        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        >>> midx = pd.MultiIndex(levels=[['llama', 'cow', 'falcon'],
         ...                              ['speed', 'weight', 'length']],
         ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
@@ -5150,7 +5149,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...                         [1, 0.8], [0.3, 0.2]])
         >>> df
                         big     small
-        lama    speed   45.0    30.0
+        llama   speed   45.0    30.0
                 weight  200.0   100.0
                 length  1.5     1.0
         cow     speed   30.0    20.0
@@ -5166,7 +5165,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
-        lama    speed   45.0    30.0
+        llama   speed   45.0    30.0
                 weight  200.0   100.0
                 length  1.5     1.0
         cow     speed   30.0    20.0
@@ -5177,7 +5176,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.drop(index='cow', columns='small')
                         big
-        lama    speed   45.0
+        llama   speed   45.0
                 weight  200.0
                 length  1.5
         falcon  speed   320.0
@@ -5186,7 +5185,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.drop(index='length', level=1)
                         big     small
-        lama    speed   45.0    30.0
+        llama   speed   45.0    30.0
                 weight  200.0   100.0
         cow     speed   30.0    20.0
                 weight  250.0   150.0
@@ -8331,7 +8330,7 @@ class DataFrame(NDFrame, OpsMixin):
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
             for col in self.columns.intersection(other.columns)
-            if not is_dtype_equal(combined.dtypes[col], self.dtypes[col])
+            if combined.dtypes[col] != self.dtypes[col]
         }
 
         if dtypes:
