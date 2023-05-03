@@ -735,21 +735,17 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     return dtype.type(value)
 
 
-def infer_dtype_from(val, pandas_dtype: bool = False) -> tuple[DtypeObj, Any]:
+def infer_dtype_from(val) -> tuple[DtypeObj, Any]:
     """
     Interpret the dtype from a scalar or array.
 
     Parameters
     ----------
     val : object
-    pandas_dtype : bool, default False
-        whether to infer dtype including pandas extension types.
-        If False, scalar/array belongs to pandas extension types is inferred as
-        object
     """
     if not is_list_like(val):
-        return infer_dtype_from_scalar(val, pandas_dtype=pandas_dtype)
-    return infer_dtype_from_array(val, pandas_dtype=pandas_dtype)
+        return infer_dtype_from_scalar(val, pandas_dtype=True)
+    return infer_dtype_from_array(val)
 
 
 def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, Any]:
@@ -859,32 +855,18 @@ def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
     return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
-def infer_dtype_from_array(
-    arr, pandas_dtype: bool = False
-) -> tuple[DtypeObj, ArrayLike]:
+def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
     """
     Infer the dtype from an array.
 
     Parameters
     ----------
     arr : array
-    pandas_dtype : bool, default False
-        whether to infer dtype including pandas extension types.
-        If False, array belongs to pandas extension types
-        is inferred as object
 
     Returns
     -------
-    tuple (numpy-compat/pandas-compat dtype, array)
+    tuple (pandas-compat dtype, array)
 
-    Notes
-    -----
-    if pandas_dtype=False. these infer to numpy dtypes
-    exactly with the exception that mixed / object dtypes
-    are not coerced by stringifying or conversion
-
-    if pandas_dtype=True. datetime64tz-aware/categorical
-    types will retain there character.
 
     Examples
     --------
@@ -901,7 +883,7 @@ def infer_dtype_from_array(
         raise TypeError("'arr' must be list-like")
 
     arr_dtype = getattr(arr, "dtype", None)
-    if pandas_dtype and isinstance(arr_dtype, ExtensionDtype):
+    if isinstance(arr_dtype, ExtensionDtype):
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
@@ -1303,7 +1285,7 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
         new_dtype = ensure_dtype_can_hold_na(left.dtype)
 
     else:
-        dtype, _ = infer_dtype_from(right, pandas_dtype=True)
+        dtype, _ = infer_dtype_from(right)
 
         new_dtype = find_common_type([left.dtype, dtype])
 

@@ -160,37 +160,33 @@ def test_infer_dtype_from_scalar(value, expected, pandas_dtype):
     assert is_dtype_equal(dtype, expected)
 
     with pytest.raises(TypeError, match="must be list-like"):
-        infer_dtype_from_array(value, pandas_dtype=pandas_dtype)
+        infer_dtype_from_array(value)
 
 
 @pytest.mark.parametrize(
-    "arr, expected, pandas_dtype",
+    "arr, expected",
     [
-        ([1], np.int_, False),
-        (np.array([1], dtype=np.int64), np.int64, False),
-        ([np.nan, 1, ""], np.object_, False),
-        (np.array([[1.0, 2.0]]), np.float_, False),
-        (Categorical(list("aabc")), np.object_, False),
-        (Categorical([1, 2, 3]), np.int64, False),
-        (Categorical(list("aabc")), "category", True),
-        (Categorical([1, 2, 3]), "category", True),
-        (date_range("20160101", periods=3), np.dtype("=M8[ns]"), False),
+        ([1], np.int_),
+        (np.array([1], dtype=np.int64), np.int64),
+        ([np.nan, 1, ""], np.object_),
+        (np.array([[1.0, 2.0]]), np.float_),
+        (Categorical(list("aabc")), "category"),
+        (Categorical([1, 2, 3]), "category"),
+        (date_range("20160101", periods=3), np.dtype("=M8[ns]")),
         (
             date_range("20160101", periods=3, tz="US/Eastern"),
             "datetime64[ns, US/Eastern]",
-            True,
         ),
-        (Series([1.0, 2, 3]), np.float64, False),
-        (Series(list("abc")), np.object_, False),
+        (Series([1.0, 2, 3]), np.float64),
+        (Series(list("abc")), np.object_),
         (
             Series(date_range("20160101", periods=3, tz="US/Eastern")),
             "datetime64[ns, US/Eastern]",
-            True,
         ),
     ],
 )
-def test_infer_dtype_from_array(arr, expected, pandas_dtype):
-    dtype, _ = infer_dtype_from_array(arr, pandas_dtype=pandas_dtype)
+def test_infer_dtype_from_array(arr, expected):
+    dtype, _ = infer_dtype_from_array(arr)
     assert is_dtype_equal(dtype, expected)
 
 
