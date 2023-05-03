@@ -2905,3 +2905,17 @@ def test_duration_overflow_from_ndarray_containing_nat():
     result = ser_ts + ser_td
     expected = pd.Series([2, None], dtype=ArrowDtype(pa.timestamp("ns")))
     tm.assert_series_equal(result, expected)
+
+
+def test_infer_dtype_pyarrow_dtype(data, request):
+    res = lib.infer_dtype(data)
+    assert res != "unknown-array"
+
+    if data._hasna and res in ["floating", "datetime64", "timedelta64"]:
+        mark = pytest.mark.xfail(
+            reason="in infer_dtype pd.NA is not ignored in these cases "
+            "even with skipna=True in the list(data) check below"
+        )
+        request.node.add_marker(mark)
+
+    assert res == lib.infer_dtype(list(data), skipna=True)
