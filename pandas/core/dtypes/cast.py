@@ -67,7 +67,6 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
@@ -463,9 +462,9 @@ def maybe_cast_pointwise_result(
 
             cls = dtype.construct_array_type()
             if same_dtype:
-                result = maybe_cast_to_extension_array(cls, result, dtype=dtype)
+                result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
             else:
-                result = maybe_cast_to_extension_array(cls, result)
+                result = _maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -473,7 +472,7 @@ def maybe_cast_pointwise_result(
     return result
 
 
-def maybe_cast_to_extension_array(
+def _maybe_cast_to_extension_array(
     cls: type[ExtensionArray], obj: ArrayLike, dtype: ExtensionDtype | None = None
 ) -> ArrayLike:
     """
@@ -491,10 +490,6 @@ def maybe_cast_to_extension_array(
     ExtensionArray or obj
     """
     from pandas.core.arrays.string_ import BaseStringArray
-
-    assert isinstance(cls, type), f"must pass a type: {cls}"
-    assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
-    assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be converted to StringArrays, but we may not want to convert
     if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
