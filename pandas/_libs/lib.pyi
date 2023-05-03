@@ -30,7 +30,7 @@ from enum import Enum
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = _NoDefault.no_default  # noqa
+no_default: Final = ...
 NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int

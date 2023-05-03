@@ -265,7 +265,7 @@ class TestFromRecords:
         arr[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
         # TODO(wesm): unused
-        frame = DataFrame.from_records(arr)  # noqa
+        DataFrame.from_records(arr)
 
         index = Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
@@ -366,7 +366,7 @@ class TestFromRecords:
         columns = ["a", "b", "c"]
         original_columns = list(columns)
 
-        df = DataFrame.from_records(tuples, columns=columns, index="a")  # noqa
+        DataFrame.from_records(tuples, columns=columns, index="a")
 
         assert columns == original_columns
 

@@ -222,6 +222,8 @@ select = [
   "TCH",
   # comprehensions
   "C4",
+  # pygrep-hooks
+  "PGH"
 ]
 
 ignore = [
@@ -273,6 +275,8 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # No builtin `eval()` allowed
+  "PGH001",
   # Use typing_extensions.TypeAlias for type aliases
   # "PYI026",  # not yet implemented
   # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
