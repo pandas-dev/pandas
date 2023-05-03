@@ -34,6 +34,7 @@ import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
@@ -341,8 +342,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     Return an ns based int64
     """
     # Caller is responsible for checking unit not in ["Y", "y", "M"]
-
-    if checknull_with_nat(ts):
+    if checknull_with_nat_and_na(ts):
         return np.timedelta64(NPY_NAT, "ns")
     elif isinstance(ts, _Timedelta):
         # already in the proper format
@@ -1808,7 +1808,7 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
-        elif checknull_with_nat(value):
+        elif checknull_with_nat_and_na(value):
             return NaT
         else:
             raise ValueError(
