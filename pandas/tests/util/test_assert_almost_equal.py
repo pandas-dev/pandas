@@ -512,7 +512,7 @@ NESTED_CASES = [
     # same-length lists
     (
         np.array([subarr, None], dtype=object),
-        np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object),
+        np.array([[[None, "b"], ["c", "d"]], None], dtype=object),
     ),
     # dicts
     (

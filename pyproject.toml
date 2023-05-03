@@ -195,14 +195,13 @@ line-length = 88
 update-check = false
 target-version = "py310"
 fix = true
-unfixable = ["E711"]
+unfixable = []
 
 select = [
   # pyflakes
   "F",
   # pycodestyle
-  "E",
-  "W",
+  "E", "W",
   # flake8-2020
   "YTT",
   # flake8-bugbear
@@ -221,6 +220,8 @@ select = [
   "ISC",
   # type-checking imports
   "TCH",
+  # comprehensions
+  "C4",
 ]
 
 ignore = [

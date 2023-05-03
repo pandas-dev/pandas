@@ -978,7 +978,7 @@ def test_concat_combined():
 
 def test_to_html_na_rep_non_scalar_data(datapath):
     # GH47103
-    df = DataFrame([dict(a=1, b=[1, 2, 3], c=np.nan)])
+    df = DataFrame([{"a": 1, "b": [1, 2, 3], "c": np.nan}])
     result = df.style.format(na_rep="-").to_html(table_uuid="test")
     expected = """\
 <style type="text/css">

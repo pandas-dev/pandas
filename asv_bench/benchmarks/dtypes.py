@@ -24,7 +24,7 @@ _dtypes = _numpy_dtypes + extension_dtypes
 
 
 class Dtypes:
-    params = _dtypes + list(map(lambda dt: dt.name, _dtypes))
+    params = _dtypes + [dt.name for dt in _dtypes]
     param_names = ["dtype"]
 
     def time_pandas_dtype(self, dtype):

@@ -992,7 +992,7 @@ class TestIteration:
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
         # pylint: disable-next=unnecessary-comprehension
-        groups = {key: gp for key, gp in grouped}
+        groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
         # axis = 1

@@ -192,7 +192,7 @@ def _filter_nodes(superclass, all_nodes=_all_nodes):
     return frozenset(node_names)
 
 
-_all_node_names = frozenset(map(lambda x: x.__name__, _all_nodes))
+_all_node_names = frozenset(x.__name__ for x in _all_nodes)
 _mod_nodes = _filter_nodes(ast.mod)
 _stmt_nodes = _filter_nodes(ast.stmt)
 _expr_nodes = _filter_nodes(ast.expr)

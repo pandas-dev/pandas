@@ -643,7 +643,7 @@ def test_array_equivalent_nested_mixed_list(strict_nan):
         np.array(["c", "d"], dtype=object),
     ]
     left = np.array([subarr, None], dtype=object)
-    right = np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object)
+    right = np.array([[[None, "b"], ["c", "d"]], None], dtype=object)
     assert array_equivalent(left, right, strict_nan=strict_nan)
     assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
 

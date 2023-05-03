@@ -152,9 +152,9 @@ class TestAstype:
 
         expected = DataFrame(
             {
-                "a": list(map(str, map(lambda x: Timestamp(x)._date_repr, a._values))),
+                "a": list(map(str, (Timestamp(x)._date_repr for x in a._values))),
                 "b": list(map(str, map(Timestamp, b._values))),
-                "c": list(map(lambda x: Timedelta(x)._repr_base(), c._values)),
+                "c": [Timedelta(x)._repr_base() for x in c._values],
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             }

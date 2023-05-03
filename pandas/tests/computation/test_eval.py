@@ -218,7 +218,7 @@ class TestEval:
         else:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
-                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
+                lhs, rhs = (np.array([x]) for x in (lhs, rhs))
             expected = _eval_single_bin(lhs, op, rhs, engine)
             if is_scalar(expected):
                 expected = not expected
@@ -746,7 +746,7 @@ class TestTypeCasting:
 def should_warn(*args):
     not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
     only_one_dt = reduce(
-        operator.xor, map(lambda x: issubclass(x.dtype.type, np.datetime64), args)
+        operator.xor, (issubclass(x.dtype.type, np.datetime64) for x in args)
     )
     return not_mono and only_one_dt
 

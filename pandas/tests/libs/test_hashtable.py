@@ -28,7 +28,7 @@ def get_allocated_khash_memory():
     snapshot = snapshot.filter_traces(
         (tracemalloc.DomainFilter(True, ht.get_hashtable_trace_domain()),)
     )
-    return sum(map(lambda x: x.size, snapshot.traces))
+    return sum(x.size for x in snapshot.traces)
 
 
 @pytest.mark.parametrize(

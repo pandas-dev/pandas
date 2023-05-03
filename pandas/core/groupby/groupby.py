@@ -4115,9 +4115,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = list(
+        in_axis_grps = [
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
-        )
+        ]
         if len(in_axis_grps) > 0:
             g_nums, g_names = zip(*in_axis_grps)
             output = output.drop(labels=list(g_names), axis=1)
