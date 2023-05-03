@@ -25,8 +25,29 @@ dtypes = [('Complex128', 'complex128', 'complex128',
 
 }}
 
+cdef extern from "khash.h":
+    ctypedef uint32_t khuint_t
+
 {{for name, dtype, ttype, c_type, to_c_type in dtypes}}
 
+{{if dtype in ("int32", "int64")}}
+cdef extern from "khash.h":
+    ctypedef struct kh_{{dtype}}_t_set:
+        khuint_t n_buckets, size, n_occupied, upper_bound
+        uint32_t *flags
+        {{c_type}} *keys
+        char *vals
+
+    kh_{{dtype}}_t_set* kh_init_{{dtype}}_set() nogil
+    void kh_destroy_{{dtype}}_set(kh_{{dtype}}_t_set*) nogil
+    void kh_clear_{{dtype}}_set(kh_{{dtype}}_t_set*) nogil
+    khuint_t kh_get_{{dtype}}_set(kh_{{dtype}}_t_set*, {{c_type}}) nogil
+    void kh_resize_{{dtype}}_set(kh_{{dtype}}_t_set*, khuint_t) nogil
+    khuint_t kh_put_{{dtype}}_set(kh_{{dtype}}_t_set*, {{c_type}}, int*) nogil
+    void kh_del_{{dtype}}_set(kh_{{dtype}}_t_set*, khuint_t) nogil
+
+    bint kh_exist_{{dtype}}(kh_{{dtype}}_t*, khiter_t) nogil
+{{endif}}
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -236,11 +257,19 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
         {{c_type}} val
         {{endif}}
 
+        {{if dtype in ("int32", "int64")}}
+        kh_{{ttype}}_t_set *table = kh_init_{{ttype}}_set()
+        {{else}}
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
+        {{endif}}
 
     # construct the table
     n = len(values)
+    {{if dtype in ("int32", "int64")}}
+    kh_resize_{{ttype}}_set(table, n)
+    {{else}}
     kh_resize_{{ttype}}(table, n)
+    {{endif}}
 
     {{if dtype == 'object'}}
     if True:
@@ -249,7 +278,11 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(values[i])
+            {{if dtype in ("int32", "int64")}}
+            kh_put_{{ttype}}_set(table, val, &ret)
+            {{else}}
             kh_put_{{ttype}}(table, val, &ret)
+            {{endif}}
 
     # test membership
     n = len(arr)
@@ -262,10 +295,18 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(arr[i])
+            {{if dtype in ("int32", "int64")}}
+            k = kh_get_{{ttype}}_set(table, val)
+            {{else}}
             k = kh_get_{{ttype}}(table, val)
+            {{endif}}
             result[i] = (k != table.n_buckets)
 
+    {{if dtype in ("int32", "int64")}}
+    kh_destroy_{{ttype}}_set(table)
+    {{else}}
     kh_destroy_{{ttype}}(table)
+    {{endif}}
     return result.view(np.bool_)
 
 # ----------------------------------------------------------------------
