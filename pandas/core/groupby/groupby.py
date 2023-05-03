@@ -4317,5 +4317,8 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
         mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
-        mi = MultiIndex.from_product([idx, qs])
+        lev_codes, lev = Index(qs).factorize()
+        levels = [idx, lev]
+        codes = [np.repeat(range(len(idx)), nqs), np.tile(lev_codes, len(idx))]
+        mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
     return mi

@@ -471,3 +471,27 @@ def test_groupby_quantile_dt64tz_period():
     expected.index = expected.index.astype(np.int_)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_nonmulti_levels_order():
+    # Non-regression test for GH #53009
+    ind = pd.MultiIndex.from_tuples(
+        [
+            (0, "a", "B"),
+            (0, "a", "A"),
+            (0, "b", "B"),
+            (0, "b", "A"),
+            (1, "a", "B"),
+            (1, "a", "A"),
+            (1, "b", "B"),
+            (1, "b", "A"),
+        ],
+        names=["sample", "cat0", "cat1"],
+    )
+    ds = pd.Series(range(8), index=ind)
+
+    s1 = ds.groupby(level="cat1", sort=False).quantile([0.2, 0.8])
+
+    # Check that levels are not sorted
+    expected = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
+    tm.assert_equal(s1.index.levels, expected)
