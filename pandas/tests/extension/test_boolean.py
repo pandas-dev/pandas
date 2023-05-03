@@ -383,7 +383,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "boolean"
         elif op_name in ["sum", "prod"]:
             is_windows_or_32bit = is_platform_windows() or not IS64
-            cmp_dtype = "Int32" if skipna and is_windows_or_32bit else "Int64"
+            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
         else:
             raise TypeError("not supposed to reach this")
 

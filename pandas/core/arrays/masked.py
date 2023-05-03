@@ -34,6 +34,10 @@ from pandas._typing import (
     Shape,
     npt,
 )
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -1124,12 +1128,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         float_dtype = "float32" if self.dtype == "Float32" else "float64"
         if name in ["mean", "median", "var", "std", "skew"]:
             np_dtype = float_dtype
-        elif name in ["min", "max"]:
-            # Incompatible types in assignment (expression has type "str", variable has
-            # type "Union[dtype[Any], ExtensionDtype]")
-            np_dtype = self.dtype.type  # type: ignore[assignment]
+        elif name in ["min", "max"] or self.dtype.itemsize == 8:
+            np_dtype = self.dtype.numpy_dtype.name
         else:
-            np_dtype = {"i": "int64", "u": "uint64", "f": float_dtype}[self.dtype.kind]
+            is_windows_or_32bit = is_platform_windows() or not IS64
+            int_dtype = "int32" if is_windows_or_32bit else "int64"
+            uint_dtype = "uint32" if is_windows_or_32bit else "uint64"
+            np_dtype = {"i": int_dtype, "u": uint_dtype, "f": float_dtype}[
+                self.dtype.kind
+            ]
 
         value = np.array([1], dtype=np_dtype)
         return self._maybe_mask_result(value, mask=mask)

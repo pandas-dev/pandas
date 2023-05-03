@@ -81,9 +81,9 @@ class NumericReduce(base.BaseNumericReduceTests):
         elif arr.dtype in ["Int64", "UInt64"]:
             cmp_dtype = arr.dtype.name
         elif tm.is_signed_integer_dtype(arr.dtype):
-            cmp_dtype = "Int32" if skipna and is_windows_or_32bit else "Int64"
+            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
         elif tm.is_unsigned_integer_dtype(arr.dtype):
-            cmp_dtype = "UInt32" if skipna and is_windows_or_32bit else "UInt64"
+            cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
         else:
             raise TypeError("not supposed to reach this")
 
