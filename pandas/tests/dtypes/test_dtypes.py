@@ -559,6 +559,14 @@ class TestPeriodDtype(Base):
         # though PeriodDtype has object kind, it cannot be string
         assert not is_string_dtype(PeriodDtype("D"))
 
+    def test_perioddtype_caching_dateoffset_normalize(self):
+        # GH 24121
+        per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
+        assert per_d.freq.normalize
+
+        per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
+        assert not per_d2.freq.normalize
+
 
 class TestIntervalDtype(Base):
     @pytest.fixture
@@ -1159,6 +1167,13 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
+
+
+def test_cast_string_to_complex():
+    # GH 4895
+    expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
+    result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multi_column_dtype_assignment():

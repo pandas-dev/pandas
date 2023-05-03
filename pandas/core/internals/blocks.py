@@ -56,7 +56,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_list_like,
     is_string_dtype,
 )
@@ -959,7 +958,7 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             new_mgr_locs = self._mgr_locs
 
-        if not is_dtype_equal(new_values.dtype, self.dtype):
+        if new_values.dtype != self.dtype:
             return self.make_block(new_values, new_mgr_locs)
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
@@ -1063,7 +1062,9 @@ class Block(PandasObject):
                 self = self.make_block_same_class(
                     values.T if values.ndim == 2 else values
                 )
-
+            if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
+                # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                casted = casted[0, ...]
             values[indexer] = casted
         return self
 
@@ -2283,10 +2284,7 @@ class ObjectBlock(NumpyBlock):
 
         res_values = lib.maybe_convert_objects(
             values,
-            convert_datetime=True,
-            convert_timedelta=True,
-            convert_period=True,
-            convert_interval=True,
+            convert_non_numeric=True,
         )
         refs = None
         if copy and res_values is values:

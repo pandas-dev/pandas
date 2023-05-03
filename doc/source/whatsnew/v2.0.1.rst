@@ -1,7 +1,7 @@
 .. _whatsnew_201:
 
-What's new in 2.0.1 (May XX, 2023)
-----------------------------------
+What's new in 2.0.1 (April 24, 2023)
+------------------------------------
 
 These are the changes in pandas 2.0.1. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -14,12 +14,13 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
+- Fixed regression in :meth:`.SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
 - Fixed regression in :meth:`DataFrame.pivot` changing :class:`Index` name of input object (:issue:`52629`)
 - Fixed regression in :meth:`DataFrame.resample` raising on a DataFrame with no columns (:issue:`52484`)
 - Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)
 - Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
 - Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
-- Fixed regression in :meth:`SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
+- Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.bug_fixes:
@@ -56,6 +57,7 @@ Other
 - :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
 - Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
 - Implemented most ``str`` accessor methods for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- Supplying a non-integer hashable key that tests ``False`` in :func:`api.types.is_scalar` now raises a ``KeyError`` for :meth:`RangeIndex.get_loc`, like it does for :meth:`Index.get_loc`. Previously it raised an ``InvalidIndexError`` (:issue:`52652`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_201.contributors:
