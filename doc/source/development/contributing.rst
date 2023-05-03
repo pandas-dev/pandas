@@ -47,7 +47,7 @@ that is assigned, feel free to kindly ask the current assignee if you can take i
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
-new contributors, dev meetings, a dev mailing list, and a slack for the contributor community.
+new contributors, dev meetings, a dev mailing list, and a Slack for the contributor community.
 All pandas contributors are welcome to these spaces, where they can connect with each other. Even
 maintainers who have been with us for a long time felt just like you when they started out, and
 are happy to welcome you and support you as you get to know how we work, and where things are.
@@ -308,8 +308,9 @@ default commit message will open, and you can simply save and quit this file.
 If there are merge conflicts, you need to solve those conflicts. See for
 example at https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 for an explanation on how to do this.
-Once the conflicts are merged and the files where the conflicts were solved are
-added, you can run ``git commit`` to save those fixes.
+Once the conflicts are resolved, you should do:
+1. ``git add -u`` to stage any files you've updated;
+2. ``git commit`` to finish the merge.
 
 If you have uncommitted changes at the moment you want to update the branch with
 main, you will need to ``stash`` them prior to updating (see the
@@ -324,7 +325,7 @@ request by pushing to the branch on GitHub::
 Autofixing formatting errors
 ----------------------------
 
-We use several styling checks (e.g. ``black``, ``flake8``, ``isort``) which are run after
+We use several styling checks (e.g. ``black``, ``ruff``, ``isort``) which are run after
 you make a pull request.
 
 To automatically fix formatting errors on each commit you make, you can

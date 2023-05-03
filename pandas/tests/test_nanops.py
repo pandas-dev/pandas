@@ -1,5 +1,4 @@
 from functools import partial
-import operator
 import warnings
 
 import numpy as np
@@ -745,53 +744,6 @@ class TestnanopsDataFrame:
 
 
 @pytest.mark.parametrize(
-    "op,nanop",
-    [
-        (operator.eq, nanops.naneq),
-        (operator.ne, nanops.nanne),
-        (operator.gt, nanops.nangt),
-        (operator.ge, nanops.nange),
-        (operator.lt, nanops.nanlt),
-        (operator.le, nanops.nanle),
-    ],
-)
-def test_nan_comparison(request, op, nanop, disable_bottleneck):
-    arr_float = request.getfixturevalue("arr_float")
-    arr_float1 = request.getfixturevalue("arr_float")
-    targ0 = op(arr_float, arr_float1)
-    arr_nan = request.getfixturevalue("arr_nan")
-    arr_nan_nan = request.getfixturevalue("arr_nan_nan")
-    arr_float_nan = request.getfixturevalue("arr_float_nan")
-    arr_float1_nan = request.getfixturevalue("arr_float_nan")
-    arr_nan_float1 = request.getfixturevalue("arr_nan_float1")
-
-    while targ0.ndim:
-        res0 = nanop(arr_float, arr_float1)
-        tm.assert_almost_equal(targ0, res0)
-
-        if targ0.ndim > 1:
-            targ1 = np.vstack([targ0, arr_nan])
-        else:
-            targ1 = np.hstack([targ0, arr_nan])
-        res1 = nanop(arr_float_nan, arr_float1_nan)
-        tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
-
-        targ2 = arr_nan_nan
-        res2 = nanop(arr_float_nan, arr_nan_float1)
-        tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
-
-        # Lower dimension for next step in the loop
-        arr_float = np.take(arr_float, 0, axis=-1)
-        arr_float1 = np.take(arr_float1, 0, axis=-1)
-        arr_nan = np.take(arr_nan, 0, axis=-1)
-        arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
-        arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
-        arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
-        arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
-        targ0 = np.take(targ0, 0, axis=-1)
-
-
-@pytest.mark.parametrize(
     "arr, correct",
     [
         ("arr_complex", False),
@@ -898,7 +850,9 @@ class TestEnsureNumeric:
 
         # Test convertible string ndarray
         s_values = np.array(["1", "2", "3"], dtype=object)
-        assert np.allclose(nanops._ensure_numeric(s_values), values)
+        msg = r"Could not convert \['1' '2' '3'\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric(s_values)
 
         # Test non-convertible string ndarray
         s_values = np.array(["foo", "bar", "baz"], dtype=object)
@@ -907,12 +861,19 @@ class TestEnsureNumeric:
             nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
-        assert np.allclose(nanops._ensure_numeric("1"), 1.0)
-        assert np.allclose(nanops._ensure_numeric("1.1"), 1.1)
-        assert np.allclose(nanops._ensure_numeric("1+1j"), 1 + 1j)
+        with pytest.raises(TypeError, match="Could not convert string '1' to numeric"):
+            nanops._ensure_numeric("1")
+        with pytest.raises(
+            TypeError, match="Could not convert string '1.1' to numeric"
+        ):
+            nanops._ensure_numeric("1.1")
+        with pytest.raises(
+            TypeError, match=r"Could not convert string '1\+1j' to numeric"
+        ):
+            nanops._ensure_numeric("1+1j")
 
     def test_non_convertable_values(self):
-        msg = "Could not convert foo to numeric"
+        msg = "Could not convert string 'foo' to numeric"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric("foo")
 

@@ -12,6 +12,7 @@ from typing import (
 )
 import warnings
 
+from pandas._libs import lib
 from pandas._libs.json import loads
 from pandas._libs.tslibs import timezones
 from pandas.util._exceptions import find_stack_level
@@ -19,11 +20,9 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_datetime64_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -84,9 +83,9 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "boolean"
     elif is_numeric_dtype(x):
         return "number"
-    elif is_datetime64_dtype(x) or isinstance(x, (DatetimeTZDtype, PeriodDtype)):
+    elif lib.is_np_dtype(x, "M") or isinstance(x, (DatetimeTZDtype, PeriodDtype)):
         return "datetime"
-    elif is_timedelta64_dtype(x):
+    elif lib.is_np_dtype(x, "m"):
         return "duration"
     elif isinstance(x, ExtensionDtype):
         return "any"
@@ -317,7 +316,7 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float):
+def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 

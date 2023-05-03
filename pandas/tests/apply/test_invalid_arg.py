@@ -43,12 +43,6 @@ def test_apply_invalid_axis_value():
         df.apply(lambda x: x, 2)
 
 
-def test_applymap_invalid_na_action(float_frame):
-    # GH 23803
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame.applymap(lambda x: len(str(x)), na_action="abc")
-
-
 def test_agg_raises():
     # GH 26513
     df = DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -250,6 +244,9 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
 def test_agg_cython_table_raises_series(series, func, expected):
     # GH21224
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+    if func == "median" or func is np.nanmedian or func is np.median:
+        msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
         series.agg(func)

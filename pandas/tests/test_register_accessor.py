@@ -8,7 +8,7 @@ import pandas._testing as tm
 from pandas.core import accessor
 
 
-def test_dirname_mixin():
+def test_dirname_mixin() -> None:
     # GH37173
 
     class X(accessor.DirNamesMixin):

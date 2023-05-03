@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        IntervalClosedType,
         Ordered,
         npt,
         type_t,
@@ -260,7 +261,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         >>> dtype1 = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> dtype2 = pd.CategoricalDtype(['x', 'y'], ordered=False)
-        >>> c = pd.Categorical([0, 1], dtype=dtype1, fastpath=True)
+        >>> c = pd.Categorical([0, 1], dtype=dtype1)
         >>> pd.CategoricalDtype._from_values_or_dtype(
         ...     c, ['x', 'y'], ordered=True, dtype=dtype2
         ... )
@@ -676,7 +677,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
     type: type[Timestamp] = Timestamp
     kind: str_type = "M"
     num = 101
-    base = np.dtype("M8[ns]")  # TODO: depend on reso?
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
@@ -684,6 +684,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     @property
     def na_value(self) -> NaTType:
         return NaT
+
+    @cache_readonly
+    def base(self) -> DtypeObj:  # type: ignore[override]
+        return np.dtype(f"M8[{self.unit}]")
 
     # error: Signature of "str" incompatible with supertype "PandasExtensionDtype"
     @cache_readonly
@@ -817,6 +821,40 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and tz_compare(self.tz, other.tz)
         )
 
+    def __from_arrow__(
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ) -> DatetimeArray:
+        """
+        Construct DatetimeArray from pyarrow Array/ChunkedArray.
+
+        Note: If the units in the pyarrow Array are the same as this
+        DatetimeDtype, then values corresponding to the integer representation
+        of ``NaT`` (e.g. one nanosecond before :attr:`pandas.Timestamp.min`)
+        are converted to ``NaT``, regardless of the null indicator in the
+        pyarrow array.
+
+        Parameters
+        ----------
+        array : pyarrow.Array or pyarrow.ChunkedArray
+            The Arrow array to convert to DatetimeArray.
+
+        Returns
+        -------
+        extension array : DatetimeArray
+        """
+        import pyarrow
+
+        from pandas.core.arrays import DatetimeArray
+
+        array = array.cast(pyarrow.timestamp(unit=self._unit), safe=True)
+
+        if isinstance(array, pyarrow.Array):
+            np_arr = array.to_numpy(zero_copy_only=False)
+        else:
+            np_arr = array.to_numpy()
+
+        return DatetimeArray(np_arr, dtype=self, copy=False)
+
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
@@ -861,8 +899,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    # error: Incompatible types in assignment (expression has type
+    # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
+    # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
+    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa:E501
     __hash__ = PeriodDtypeBase.__hash__
+    _freq: BaseOffset
 
     def __new__(cls, freq):
         """
@@ -877,16 +919,16 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             freq = cls._parse_dtype_strict(freq)
 
         try:
-            return cls._cache_dtypes[freq.freqstr]
+            return cls._cache_dtypes[freq]
         except KeyError:
             dtype_code = freq._period_dtype_code
             u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
             u._freq = freq
-            cls._cache_dtypes[freq.freqstr] = u
+            cls._cache_dtypes[freq] = u
             return u
 
     def __reduce__(self):
-        return type(self), (self.freq,)
+        return type(self), (self.name,)
 
     @property
     def freq(self):
@@ -940,7 +982,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        return f"period[{self.freq.freqstr}]"
+        return f"period[{self._freqstr}]"
 
     @property
     def na_value(self) -> NaTType:
@@ -954,12 +996,6 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
-
-    def __setstate__(self, state) -> None:
-        # for pickle compat. __getstate__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._freq = state["freq"]
 
     @classmethod
     def is_dtype(cls, dtype: object) -> bool:
@@ -1013,14 +1049,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         results = []
         for arr in chunks:
             data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype=np.dtype(np.int64))
-            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr = PeriodArray(data.copy(), dtype=self, copy=False)
             # error: Invalid index type "ndarray[Any, dtype[bool_]]" for "PeriodArray";
             # expected type "Union[int, Sequence[int], Sequence[bool], slice]"
             parr[~mask] = NaT  # type: ignore[index]
             results.append(parr)
 
         if not results:
-            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
+            return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
@@ -1067,7 +1103,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __new__(cls, subtype=None, closed: str_type | None = None):
+    def __new__(cls, subtype=None, closed: IntervalClosedType | None = None):
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1105,7 +1141,7 @@ class IntervalDtype(PandasExtensionDtype):
                                     "'closed' keyword does not match value "
                                     "specified in dtype string"
                                 )
-                        closed = gd["closed"]
+                        closed = gd["closed"]  # type: ignore[assignment]
 
             try:
                 subtype = pandas_dtype(subtype)
@@ -1138,12 +1174,12 @@ class IntervalDtype(PandasExtensionDtype):
             raise NotImplementedError(
                 "_can_hold_na is not defined for partially-initialized IntervalDtype"
             )
-        if subtype.kind in ["i", "u"]:
+        if subtype.kind in "iu":
             return False
         return True
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalClosedType:
         return self._closed
 
     @property
@@ -1215,9 +1251,7 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.closed != other.closed:
             return False
         else:
-            from pandas.core.dtypes.common import is_dtype_equal
-
-            return is_dtype_equal(self.subtype, other.subtype)
+            return self.subtype == other.subtype
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -1437,14 +1471,14 @@ class BaseMaskedDtype(ExtensionDtype):
             from pandas.core.arrays.boolean import BooleanDtype
 
             return BooleanDtype()
-        elif dtype.kind in ["i", "u"]:
-            from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+        elif dtype.kind in "iu":
+            from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 
-            return INT_STR_TO_DTYPE[dtype.name]
+            return NUMPY_INT_TO_DTYPE[dtype]
         elif dtype.kind == "f":
-            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+            from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
 
-            return FLOAT_STR_TO_DTYPE[dtype.name]
+            return NUMPY_FLOAT_TO_DTYPE[dtype]
         else:
             raise NotImplementedError(dtype)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -11,10 +12,10 @@ import numpy as np
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
+from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -22,6 +23,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
     PandasDtype,
 )
@@ -83,12 +85,8 @@ def assert_almost_equal(
         equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -215,12 +213,8 @@ def assert_index_equal(
         .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -313,7 +307,7 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
-            if is_extension_array_dtype(mismatch):
+            if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
@@ -530,7 +524,7 @@ def assert_interval_array_equal(
     _check_isinstance(left, right, IntervalArray)
 
     kwargs = {}
-    if left._left.dtype.kind in ["m", "M"]:
+    if left._left.dtype.kind in "mM":
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
 
@@ -544,7 +538,7 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    assert_attr_equal("freq", left, right, obj=obj)
+    assert_attr_equal("dtype", left, right, obj=obj)
 
 
 def assert_datetime_array_equal(
@@ -709,12 +703,8 @@ def assert_extension_array_equal(
         Whether to compare number exactly.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'ExtensionArray'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -744,6 +734,23 @@ def assert_extension_array_equal(
         and isinstance(right, DatetimeLikeArrayMixin)
         and type(right) == type(left)
     ):
+        # GH 52449
+        if not check_dtype and left.dtype.kind in "mM":
+            if not isinstance(left.dtype, np.dtype):
+                l_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                l_unit = np.datetime_data(left.dtype)[0]
+            if not isinstance(right.dtype, np.dtype):
+                r_unit = cast(DatetimeTZDtype, left.dtype).unit
+            else:
+                r_unit = np.datetime_data(right.dtype)[0]
+            if (
+                l_unit != r_unit
+                and compare_mismatched_resolutions(
+                    left._ndarray, right._ndarray, operator.eq
+                ).all()
+            ):
+                return
         # Avoid slow object-dtype comparisons
         # np.asarray for case where we have a np.MaskedArray
         assert_numpy_array_equal(
@@ -823,12 +830,8 @@ def assert_series_equal(
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
         Whether to compare category order of internal Categoricals.
-
-        .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
 
@@ -836,12 +839,8 @@ def assert_series_equal(
 
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1092,18 +1091,12 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
