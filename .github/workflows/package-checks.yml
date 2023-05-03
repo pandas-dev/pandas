@@ -2,13 +2,13 @@ name: Package Checks
 
 on:
   push:
-    # branches:
-    #   - main
-    #   - 2.0.x
+    branches:
+      - main
+      - 2.0.x
   pull_request:
-    # branches:
-    #   - main
-    #   - 2.0.x
+    branches:
+      - main
+      - 2.0.x
     types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
