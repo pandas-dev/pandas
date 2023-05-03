@@ -6,7 +6,7 @@
   [#51417](https://github.com/pandas-dev/pandas/pull/51417)
 - Author: [Marc Garcia](https://github.com/datapythonista),
   [Noa Tamir](https://github.com/noatamir)
-- Revision: 2
+- Revision: 3
 
 ## PDEP definition, purpose and scope
 
@@ -71,16 +71,59 @@ Proposing a PDEP is done by creating a PR adding a new file to `web/pdeps/`.
 The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
-The initial status of a PDEP will be `Status: Under discussion`. This will be changed to
-`Status: Accepted` when the PDEP is ready and has the approval of the core team.
+The initial status of a PDEP will be `Status: Draft`. This will be changed to
+`Status: Under discussion` by the author(s), when they are ready to proceed with the descision
+making process. 
+
+#### Schedule
+A PDEP discussion will remain open for up to 60 days. This period aims to enable participation
+from volunteers, who might not always be available to respond quickly, as well as provide ample
+time to make changes based on suggestions and considerations offered by the participants.
+Similarly, the following voting period will remain open for 15 days.
+
+To enable and encourage discussions on PDEPs, we follow a notification schedule. At each of the
+following steps, the pandas team, and the pandas dev mailing list are notified via GitHub and
+E-mail:
+- Once a PDEP is ready for discussion.
+- After 30 discussion days, with 30 days remaining for discussion.
+- After 45 discussion days, with 15 days remaining for discussion.
+- In case 15 days passed without any new comments, the authors may close the discussion period
+  and open the voting period.
+- Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
+  remaining for voting.
+- After 10 voting days, with 5 days remaining for voting.
+
+#### Casting Votes
+As the voting period starts, a VOTE issue is created which links to the PDEP discussion issue.
+Each voting member may cast a vote by adding one of the following comments:
+
+- +1: approve.
+- 0: abstain. 
+  - Reason: A one sentence reason is required.
+- -1: disapprove
+  - Reason: A one sentence reason is required.
+A disapprove vote requires prior participation in the PDEP discussion issue.
+
+Once the voting period ends, any voter may tally the votes in a comment, using the format: x-y-z,
+where x stands for the total of approving, y of abstaining, and z of disapproving votes cast.
+
+#### Quorum and Majority
+For a PDEP vote to result in accepting the proposal, a quorum is required. All votes (including
+abstentions) are counted towards the quorum. The quorum is computed as the lower of these two
+values:
+
+- 11 voting members.
+- 50% of voting members.
+
+Given a quorum, a majority of 75% of the non-abstaining votes is required as well, i.e. 75% of
+the approving and disapproving votes must be in favor. 
+
+Thus, abstaining votes count towards a quorum, but not towards a majority. A voting member might
+choose to abstain when they have participated in the discussion, have some objections to the
+proposal, but do not wish to stop the proposal from moving forward, nor indicate their full
+support.
 
 #### Accepted PDEP
-
-A PDEP can only be accepted by the core development team, if the proposal is considered
-worth implementing. Decisions will be made based on the process detailed in the
-[pandas governance document](https://github.com/pandas-dev/pandas-governance/blob/master/governance.md).
-In general, more than one approval will be needed before the PR is merged. And
-there should not be any `Request changes` review at the time of merging.
 
 Once a PDEP is accepted, any contributions can be made toward the implementation of the PDEP,
 with an open-ended completion timeline. Development of pandas is difficult to understand and
@@ -184,6 +227,7 @@ hope can help clarify our meaning here:
 
 - 3 August 2022: Initial version ([GH-47938][47938])
 - 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
+- DD MM YY: Version 3(link) defines a structured decision making process for PDEPs
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
