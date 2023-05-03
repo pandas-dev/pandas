@@ -51,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -297,7 +300,6 @@ def array(
         PeriodArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.arrow import ArrowDtype
     from pandas.core.arrays.string_ import StringDtype
 
     if lib.is_scalar(data):

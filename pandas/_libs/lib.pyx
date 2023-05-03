@@ -2621,7 +2621,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif PyTime_Check(val):
-            if convert_time:
+            if convert_non_numeric:
                 seen.time_ = True
             else:
                 seen.object_ = True
@@ -2696,7 +2696,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if opt is True:
                 import pyarrow as pa
 
-                from pandas.core.arrays.arrow import ArrowDtype
+                from pandas.core.dtypes.dtypes import ArrowDtype
 
                 obj = pa.array(objects)
                 dtype = ArrowDtype(obj.type)

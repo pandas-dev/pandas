@@ -13,6 +13,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     lib,
     tslib,
@@ -56,6 +58,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
+    ArrowDtype,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -1374,7 +1377,30 @@ default 'raise'
         # keeping their timezone and not using UTC
         timestamps = self._local_timestamps()
 
-        return ints_to_pydatetime(timestamps, box="time", reso=self._creso)
+        result = ints_to_pydatetime(timestamps, box="time", reso=self._creso)
+
+        opt = get_option("future.infer_time")
+        if opt is None:
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.time is deprecated. "
+                "In a future version, this will an array with pyarrow time "
+                "dtype instead of object dtype. To opt in to the future behavior, "
+                "set `pd.set_option('future.infer_time', True)`.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif opt is True:
+            # TODO: optimize this to avoid going through ints_to_pydatetime
+            import pyarrow as pa
+
+            pa_type = pa.time64(self.unit)
+            result[self.isna()] = None
+            obj = pa.array(result, type=pa_type)
+            dtype = ArrowDtype(obj.type)
+            out = dtype.construct_array_type()(obj)
+            return out
+
+        return result
 
     @property
     def timetz(self) -> npt.NDArray[np.object_]:

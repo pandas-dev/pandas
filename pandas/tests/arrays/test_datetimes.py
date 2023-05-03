@@ -155,8 +155,14 @@ class TestNonNano:
     def test_time_date(self, dta_dti, meth):
         dta, dti = dta_dti
 
-        result = getattr(dta, meth)
-        expected = getattr(dti, meth)
+        warn = None
+        msg = "In a future version, this will an array with pyarrow time dtype"
+        if meth == "time":
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(dta, meth)
+            expected = getattr(dti, meth)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_format_native_types(self, unit, dtype, dta_dti):

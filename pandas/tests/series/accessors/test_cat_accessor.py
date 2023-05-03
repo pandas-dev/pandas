@@ -211,8 +211,12 @@ class TestCatAccessor:
             tm.assert_equal(res, exp)
 
         for attr in attr_names:
-            res = getattr(cat.dt, attr)
-            exp = getattr(ser.dt, attr)
+            with warnings.catch_warnings():
+                if attr == "time":
+                    # deprecated to return pyarrow time dtype
+                    warnings.simplefilter("ignore", FutureWarning)
+                res = getattr(cat.dt, attr)
+                exp = getattr(ser.dt, attr)
 
             tm.assert_equal(res, exp)
 
