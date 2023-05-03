@@ -69,7 +69,8 @@ def test_nans_equal():
 
 
 with warnings.catch_warnings():
-    warnings.filterwarnings("ignore")
+    msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+    warnings.filterwarnings("ignore", msg, category=FutureWarning)
 
     tups = [
         (SparseDtype("float64"), SparseDtype("float32")),
