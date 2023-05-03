@@ -5,12 +5,12 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
-    Sequence,
 )
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections import abc as abc_
     import re
 
     from pandas._typing import Scalar
@@ -80,7 +80,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_repeat(self, repeats: int | Sequence[int]):
+    def _str_repeat(self, repeats: int | abc_.Sequence[int]):
         pass
 
     @abc.abstractmethod
