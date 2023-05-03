@@ -513,7 +513,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
 
         if op_name in ["count", "kurt", "sem", "skew"]:
             assert not hasattr(arr, op_name)
-            pytest.skip(f"{op_name} not an array method")
+            return
 
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
