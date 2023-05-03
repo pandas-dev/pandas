@@ -85,7 +85,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
-    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+        PeriodArray,
+    )
 
 
 def tz_to_dtype(
@@ -1344,7 +1347,7 @@ default 'raise'
         return result
 
     @property
-    def time(self) -> npt.NDArray[np.object_]:
+    def time(self) -> npt.NDArray[np.object_] | ArrowExtensionArray:
         """
         Returns numpy array of :class:`datetime.time` objects.
 
