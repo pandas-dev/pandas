@@ -2621,7 +2621,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif PyTime_Check(val):
-            if convert_non_numeric:
+            if convert_non_numeric and val.tzinfo is None:
                 seen.time_ = True
             else:
                 seen.object_ = True
@@ -2692,6 +2692,7 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.time_:
         if is_time_array(objects):
+            # FIXME: need to ensure this is not timetz
             opt = get_option("future.infer_time")
             if opt is True:
                 import pyarrow as pa

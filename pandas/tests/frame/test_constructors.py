@@ -3168,6 +3168,40 @@ class TestFromScalar:
         with pytest.raises(err, match=msg):
             constructor(ts, dtype="M8[ns]")
 
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
+    def test_from_pytime(self, constructor, box, frame_or_series, future):
+        item = Timestamp("2023-05-04 08:53").time()
+
+        warn = None
+        if box is list or (box is dict and frame_or_series is Series):
+            msg = (
+                "Pandas type inference with a sequence of `datetime.time` "
+                "objects is deprecated"
+            )
+        else:
+            msg = "Pandas type inference with a `datetime.time` object is deprecated"
+        exp_dtype = np.dtype(object)
+        if future is None:
+            warn = FutureWarning
+        elif future is True:
+            import pyarrow as pa
+
+            pa_type = pa.time64("us")
+            exp_dtype = pd.ArrowDtype(pa_type)
+
+        with pd.option_context("future.infer_time", future):
+            with tm.assert_produces_warning(warn, match=msg):
+                result = constructor(item)
+        dtype = tm.get_dtype(result)
+        assert dtype == exp_dtype
+
+        aware = Timestamp("2023-05-04 08:53", tz="US/Pacific").timetz()
+        result2 = constructor(aware)
+        dtype = tm.get_dtype(result2)
+        assert dtype == np.dtype(object)
+
 
 # TODO: better location for this test?
 class TestAllowNonNano:

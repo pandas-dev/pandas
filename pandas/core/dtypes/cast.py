@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.missing import (
     NA,
@@ -38,6 +40,7 @@ from pandas.errors import (
     IntCastingNaNError,
     LossySetitemError,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int8,
@@ -821,6 +824,29 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             else:
                 val = val.asm8
             dtype = val.dtype
+
+    elif isinstance(val, dt.time):
+        if val.tzinfo is None:
+            # pyarrow doesn't have a dtype for timetz.
+            opt = get_option("future.infer_time")
+            if opt is None:
+                warnings.warn(
+                    "Pandas type inference with a `datetime.time` "
+                    "object is deprecated. In a future version, this will give "
+                    "time32[pyarrow] dtype, which will require pyarrow to be "
+                    "installed. To opt in to the new behavior immediately set "
+                    "`pd.set_option('future.infer_time', True)`. To keep the "
+                    "old behavior pass `dtype=object`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            elif opt is True:
+                import pyarrow as pa
+
+                pa_dtype = pa.time64("us")
+                from pandas.core.arrays.arrow import ArrowDtype
+
+                dtype = ArrowDtype(pa_dtype)
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
