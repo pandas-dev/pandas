@@ -66,11 +66,18 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests' ; echo $MSG
-    python -m pytest --doctest-modules --ignore-glob="**/test_*.py" pandas
+    # TODO:
+    # When pytest-cython supports out-of place extension modules
+    # Uncomment the lines below
+
+    # Ignore test_*.py or else unit tests will run
+    #python -m pytest --doctest-modules --ignore-glob="**/test_*.py" pandas
+    python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Cython Doctests' ; echo $MSG
-    python -m pytest --doctest-cython pandas/_libs
+    #python -m pytest --doctest-cython pandas/_libs
+    python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
