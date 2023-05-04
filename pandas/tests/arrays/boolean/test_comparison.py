@@ -24,24 +24,15 @@ def dtype():
 
 class TestComparisonOps(ComparisonOps):
     def test_compare_scalar(self, data, comparison_op):
-        with tm.assert_produces_warning(
-            FutureWarning, match="incompatible dtype", check_stacklevel=False
-        ):
-            self._compare_other(data, comparison_op, True)
+        self._compare_other(data, comparison_op, True)
 
     def test_compare_array(self, data, comparison_op):
         other = pd.array([True] * len(data), dtype="boolean")
         self._compare_other(data, comparison_op, other)
         other = np.array([True] * len(data))
-        with tm.assert_produces_warning(
-            FutureWarning, match="incompatible dtype", check_stacklevel=False
-        ):
-            self._compare_other(data, comparison_op, other)
+        self._compare_other(data, comparison_op, other)
         other = pd.Series([True] * len(data))
-        with tm.assert_produces_warning(
-            FutureWarning, match="incompatible dtype", check_stacklevel=False
-        ):
-            self._compare_other(data, comparison_op, other)
+        self._compare_other(data, comparison_op, other)
 
     @pytest.mark.parametrize("other", [True, False, pd.NA])
     def test_scalar(self, other, comparison_op, dtype):

@@ -89,8 +89,7 @@ class TestFrameAsof:
         )
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            result = df.asof(to_datetime(["1989-12-31"]))
+        result = df.asof(to_datetime(["1989-12-31"]))
         expected = DataFrame(
             index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
         )
