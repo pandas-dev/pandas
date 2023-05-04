@@ -1583,7 +1583,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
         else:
             # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew"]:
+            if how in ["prod", "cumprod", "skew", "var"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
