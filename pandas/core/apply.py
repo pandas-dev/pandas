@@ -610,25 +610,25 @@ class Apply(metaclass=abc.ABCMeta):
         """
         assert isinstance(arg, str)
 
-        f = getattr(obj, arg, None)
-        if f is not None:
+        if hasattr(obj, arg):
+            f = getattr(obj, arg)
             if callable(f):
                 return f(*args, **kwargs)
 
-            # people may try to aggregate on a non-callable attribute
+            # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
-            assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
+            len_kwargs = len([kwarg for kwarg in kwargs if kwarg not in ["axis"]])
+            if len(args) != 0 or len_kwargs != 0:
+                raise ValueError(f"cannot give arguments to {type(obj).__name__}.{f}")
             return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(obj, "__array__"):
+        elif hasattr(np, arg) and hasattr(obj, "__array__"):
             # in particular exclude Window
+            f = getattr(np, arg)
             return f(obj, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
-        )
+        else:
+            raise AttributeError(
+                f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+            )
 
 
 class NDFrameApply(Apply):
