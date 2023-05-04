@@ -44,6 +44,8 @@ jobs:
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    outputs:
+      sdist_file: ${{ steps.save-path.outputs.sdist-name }}
     steps:
       - name: Checkout pandas
         uses: actions/checkout@v3
@@ -70,8 +72,10 @@ jobs:
           name: sdist
           path: ./dist/*
 
-      - run: ls ./dist
+      - run: Output sdist name
+        id: save-path
         shell: bash -el {0}
+        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_OUTPUT"
 
   build_wheels:
     needs: build_sdist
@@ -110,7 +114,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
         with:
-          package-dir: ./dist
+          package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
