@@ -33,11 +33,9 @@ from pandas._libs import lib
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
     is_integer,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -120,9 +118,7 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
-        is_array_like(key) and isinstance(key.dtype, ExtensionDtype)
-    ):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
 
@@ -420,7 +416,7 @@ def random_state(state: np.random.Generator) -> np.random.Generator:
 
 @overload
 def random_state(
-    state: int | ArrayLike | np.random.BitGenerator | np.random.RandomState | None,
+    state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
 ) -> np.random.RandomState:
     ...
 
@@ -445,24 +441,8 @@ def random_state(state: RandomState | None = None):
     np.random.RandomState or np.random.Generator. If state is None, returns np.random
 
     """
-    if (
-        is_integer(state)
-        or is_array_like(state)
-        or isinstance(state, np.random.BitGenerator)
-    ):
-        # error: Argument 1 to "RandomState" has incompatible type "Optional[Union[int,
-        # Union[ExtensionArray, ndarray[Any, Any]], Generator, RandomState]]"; expected
-        # "Union[None, Union[Union[_SupportsArray[dtype[Union[bool_, integer[Any]]]],
-        # Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]],
-        # Sequence[Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]]],
-        # Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
-        # integer[Any]]]]]]],
-        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
-        # integer[Any]]]]]]]]], Union[bool, int, Sequence[Union[bool, int]],
-        # Sequence[Sequence[Union[bool, int]]], Sequence[Sequence[Sequence[Union[bool,
-        # int]]]], Sequence[Sequence[Sequence[Sequence[Union[bool, int]]]]]]],
-        # BitGenerator]"
-        return np.random.RandomState(state)  # type: ignore[arg-type]
+    if is_integer(state) or isinstance(state, (np.ndarray, np.random.BitGenerator)):
+        return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
     elif isinstance(state, np.random.Generator):

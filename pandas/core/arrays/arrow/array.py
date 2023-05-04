@@ -18,22 +18,6 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    Self,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -140,8 +124,22 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        Iterator,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        Scalar,
+        Self,
+        SortKind,
+        TakeIndexer,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
     )
 
     from pandas import Series
@@ -805,8 +803,9 @@ class ArrowExtensionArray(
             fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
-        if is_array_like(value):
-            value = cast(ArrayLike, value)
+        if isinstance(value, (np.ndarray, ExtensionArray)):
+            # Similar to check_value_size, but we do not mask here since we may
+            #  end up passing it to the super() method.
             if len(value) != len(self):
                 raise ValueError(
                     f"Length of 'value' does not match. Got ({len(value)}) "
