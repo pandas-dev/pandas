@@ -75,7 +75,11 @@ from pandas.core.array_algos import (
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 
@@ -645,20 +649,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             and len(other) == len(self)
         ):
             # Try inferring masked dtype instead of casting to object
-            inferred_dtype = lib.infer_dtype(other, skipna=True)
-            if inferred_dtype == "integer":
-                from pandas.core.arrays import IntegerArray
-
-                other = IntegerArray._from_sequence(other)
-            elif inferred_dtype in ["floating", "mixed-integer-float"]:
-                from pandas.core.arrays import FloatingArray
-
-                other = FloatingArray._from_sequence(other)
-
-            elif inferred_dtype in ["boolean"]:
-                from pandas.core.arrays import BooleanArray
-
-                other = BooleanArray._from_sequence(other)
+            other = pd_array(other)
+            other = extract_array(other, extract_numpy=True)
 
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
