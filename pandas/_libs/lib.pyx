@@ -2660,6 +2660,7 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.time_:
         if is_time_array(objects):
+            # FIXME: need to ensure this is not timetz
             opt = get_option("future.infer_time")
             if opt is True:
                 import pyarrow as pa
