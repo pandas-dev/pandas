@@ -226,16 +226,10 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
         elif "- pip:" in line:
             continue
         elif seen_required and line.strip():
-            try:
-                if "==" in line:
-                    package, version = line.strip().split("==")
-
-                else:
-                    package, version = line.strip().split("=")
-            except ValueError:
-                # pip dependencies, just skip
-                # TODO: Remove the try-except once meson-python pinned
-                continue
+            if "==" in line:
+                package, version = line.strip().split("==", maxsplit=1)
+            else:
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue
