@@ -162,6 +162,7 @@ jobs:
 
       - name: Build sdist
         run: |
+          pip install build
           python -m build --sdist
       - name: Test the sdist
         shell: bash -el {0}
