@@ -1,4 +1,4 @@
-FROM python:3.12-rc-slim-buster
+FROM python:3.10.10
 WORKDIR /home/pandas
 
 RUN apt-get update && apt-get -y upgrade
