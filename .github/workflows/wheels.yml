@@ -72,7 +72,7 @@ jobs:
           name: sdist
           path: ./dist/*
 
-      - run: Output sdist name
+      - name: Output sdist name
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_OUTPUT"
