@@ -164,11 +164,11 @@ engine : str, default None
         * Otherwise if ``path_or_buffer`` is in xlsb format,
           ``pyxlsb`` will be used.
 
-      .. versionadded:: 1.3.0
+          .. versionadded:: 1.3.0
 
-    * Otherwise ``openpyxl`` will be used.
+        * Otherwise ``openpyxl`` will be used.
 
-      .. versionchanged:: 1.3.0
+          .. versionchanged:: 1.3.0
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
