@@ -489,6 +489,61 @@ cdef class Interval(IntervalMixin):
             )
         ):
             return Interval(y.left + self, y.right + self, closed=y.closed)
+        if (
+            isinstance(self, Interval)
+            and isinstance(y, Interval)
+        ):
+            # Check if both intervals intersect at a point taking into account of closed and open intersection points
+            is_intersecting = (
+                self.overlaps(y)
+                or ((self.left == y.right) and ((self.closed in ['left', 'both']) or (y.closed in ['right', 'both'])))
+                or ((y.left == self.right) and ((y.closed in ['left', 'both']) or (self.closed in ['right', 'both']))) 
+            )
+            # If the intervals intersect, return one new interval that contains all elements
+            if(is_intersecting):
+                # Obtain the new interval's left hand side by taking the min of both intervals left hand side
+                left_closed = None
+                left = None
+                if(y.left < self.left):
+                    left = y.left
+                    left_closed = y.closed in ['left', 'both']
+                elif (y.left > self.left):
+                    left = self.left
+                    left_closed = self.closed in ['left', 'both']
+                else:
+                    left = self.left
+                    left_closed = y.closed in ['left', 'both'] or self.closed in ['left', 'both']
+
+                #Obtain the new interval's right hand side by taking the max of both intervals right hand side
+                right_closed = None
+                right = None
+                if(y.right > self.right):
+                    right = y.right
+                    right_closed = y.closed in ['right', 'both']
+                elif (y.right < self.right):
+                    right = self.right
+                    right_closed = self.closed in ['right', 'both']
+                else:
+                    right = self.right
+                    right_closed = y.closed in ['right', 'both'] or self.closed in ['right', 'both']
+                
+                closed = None
+                if left_closed and right_closed:
+                    closed = 'both'
+                elif left_closed:
+                    closed = 'left'
+                elif right_closed:
+                    closed = 'right'
+                else:
+                    closed = 'neither'
+                
+                return Interval(left, right, closed=closed)
+            
+            # Return a list of the intervals in sorted order if they don't intersect
+            first_interval = y if y.left < self.left else self
+            second_interval = y if first_interval == self else self
+            return [first_interval, second_interval]
+
         return NotImplemented
 
     def __radd__(self, other):
@@ -507,6 +562,144 @@ cdef class Interval(IntervalMixin):
             or is_timedelta64_object(y)
         ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
+        
+        if isinstance(y, list) and isinstance(self, Interval):
+            # If the list is empty, return the interval
+            if not y:
+                return self
+            # If the list is not empty, return the difference between self and each interval in the y list
+            else:
+                new_interval = []
+                for interval in y:
+                    new_interval.append(self - interval)
+                return new_interval
+        if isinstance(self, list) and isinstance(y, Interval):
+            # If the list is empty, return the interval
+            if not self:
+                return y
+            # If the list is not empty, return the difference between each interval in the list and the y interval
+            else:
+                new_interval = []
+                for interval in self:
+                    new_interval.append(interval - y)
+                return new_interval
+        if isinstance(self, list) and isinstance(y, list):
+            # If the list is empty, return the interval
+            if not self:
+                return y
+            # If the list is not empty, return the difference between each interval in the list and each interval in the y list
+            else:
+                new_interval = []
+                for interval in self:
+                    for interval2 in y:
+                        new_interval.append(interval - interval2)
+                return new_interval
+        # Performs set difference on the two intervals
+        if (
+            isinstance(self, Interval)
+            and isinstance(y, Interval)
+        ):
+            if not self.overlaps(y):
+                return self
+            else:
+                # If the right side of the interval is the same, an empty interval is returned
+                if (y.left == self.left and y.right == self.right or y.left < self.left and y.right > self.right):
+                    return Interval(0, 0, closed='neither')
+                # If the left side of the interval is the same, return the right side of the interval
+                if (y.left == self.left and y.right < self.right):
+                    if y.closed in ['left', 'neither'] and self.closed in ['right', 'both']:
+                        return Interval(y.right, self.right, closed='both')
+                    if y.closed in ['right', 'both'] and self.closed in ['right', 'both']:
+                        return Interval(y.right, self.right, closed='right')
+                    if y.closed in ['left', 'neither'] and self.closed in ['left', 'neither']:
+                        return Interval(y.right, self.right, closed='left')
+                    if y.closed in ['right', 'both'] and self.closed in ['left', 'neither']:
+                        return Interval(y.right, self.right, closed='neither')
+                # If the right side of the interval is the same, return the left side of the interval
+                if (y.left > self.left and y.right == self.right):
+                    if y.closed in ['right', 'neither'] and self.closed in ['left', 'both']:
+                        return Interval(self.left, y.left, closed='both')
+                    if y.closed in ['left', 'both'] and self.closed in ['left', 'both']:
+                        return Interval(self.left, y.left, closed='left')
+                    if y.closed in ['right', 'neither'] and self.closed in ['right', 'neither']:
+                        return Interval(self.left, y.left, closed='right')
+                    if y.closed in ['left', 'both'] and self.closed in ['right', 'neither']:
+                        return Interval(self.left, y.left, closed='neither')
+                
+                
+                interval_split = False
+                left_closed = None
+                left = None
+                if(y.left < self.left and y.right < self.right):
+                    # lefy of y is left of self and right of y is in self
+                    left = y.right
+                    left_closed = y.closed not in ['right', 'both']
+                elif (y.left > self.left and y.right > self.right):
+                    # left of y is in self and right of y is right of self
+                    left = self.left
+                    left_closed = self.closed in ['left', 'both']
+                else:
+                    # left of y is in self and right of y is in self
+                    # This will split the interval into two
+                    interval_split = True
+                
+                right_closed = None
+                right = None
+                if(y.left > self.left and y.right > self.right):
+                    # left of y is right of self and right of y is right of self
+                    right = y.left
+                    right_closed = y.closed not in ['left', 'both']
+                elif (y.left < self.left and y.right < self.right):
+                    # left of y is left of self and right of y is in self
+                    right = self.right
+                    right_closed = self.closed in ['right', 'both']
+                else:
+                    # left of y is in self and right of y is in self
+                    # This will split the interval into two
+                    interval_split = True
+                
+                # If the interval needs to be split, return two intervals with the correct closed values
+                def create_new_intervals(y_closed, self_closed):
+                    closed_cases = {
+                        ('left', 'left'): ('left', 'left'),
+                        ('left', 'right'): ('neither', 'both'),
+                        ('left', 'both'): ('left', 'both'),
+                        ('left', 'neither'): ('neither', 'left'),
+                        ('right', 'left'): ('both', 'neither'),
+                        ('right', 'right'): ('right', 'right'),
+                        ('right', 'both'): ('both', 'right'),
+                        ('right', 'neither'): ('right', 'neither'),
+                        ('both', 'left'): ('left', 'neither'),
+                        ('both', 'right'): ('neither', 'right'),
+                        ('both', 'both'): ('left', 'right'),
+                        ('both', 'neither'): ('neither', 'neither'),
+                        ('neither', 'left'): ('both', 'left'),
+                        ('neither', 'right'): ('right', 'both'),
+                        ('neither', 'both'): ('both', 'both'),
+                        ('neither', 'neither'): ('right', 'left')
+                    }
+                    return closed_cases[(y_closed, self_closed)]
+
+                if interval_split:
+                    new_interval = []
+                    left_interval_closed, right_interval_closed = create_new_intervals(y.closed, self.closed)
+                    new_interval.append(Interval(self.left, y.left, closed=left_interval_closed))
+                    new_interval.append(Interval(y.right, self.right, closed=right_interval_closed))
+                    return new_interval
+
+
+                # If the interval is not split, return a single interval
+                if left_closed:
+                    if right_closed:
+                        closed = 'both'
+                    else:
+                        closed = 'left'
+                else:
+                    if right_closed:
+                        closed = 'right'
+                    else:
+                        closed = 'neither'
+                return Interval(left, right, closed=closed)
         return NotImplemented
 
     def __mul__(self, y):
@@ -516,7 +709,69 @@ cdef class Interval(IntervalMixin):
             # __radd__ semantics
             # TODO(cython3): remove this
             return Interval(y.left * self, y.right * self, closed=y.closed)
+        if (
+            isinstance(self, Interval)
+            and isinstance(y, Interval)
+        ):
+        # If the intervals overlap, return the overlapping interval
+            if(self.overlaps(y)):
+                closed = None
+                left=0
+                left_closed=None
+                right=0
+                right_closed=None
+                # If the left side of the interval is the same, return the right side of the interval
+                if (self.left<y.left):
+                        
+                    left= y.left
+                    left_closed=y.closed
+                    # If the right side of the interval is the same, return the left side of the interval
+                    if (self.right<y.right):
+                        right= self.right
+                        right_closed=self.closed
+                    # If the right side of the interval is not the same, return the right side of the interval
+                    else:
+                        right=y.right
+                        right_closed=y.closed
+                        if(left_closed=='right' and right_closed=='right'):
+                            closed='right'
+                        if(left_closed=='left' and right_closed=='left'):
+                            closed='left'
+                # If the left side of the interval is not the same, return the left side of the interval
+                else :
+                    left=self.left
+                    left_closed=self.closed
+                    # If the right side of the interval is the same, return the left side of the interval
+                    if (self.right<y.right):
+                        right= self.right
+                        right_closed=self.closed
+                        if(left_closed=='right' and right_closed=='right'):
+                            closed='right'
+                        if(left_closed=='left' and right_closed=='left'):
+                            closed='left'
+                    # If the right side of the interval is not the same, return the right side of the interval
+                    else:
+                        right=y.right
+                        right_closed=y.closed
+                # If the closed value is not set, set it
+                if(closed==None):
+                    if (left_closed=='neither' and right_closed=='neither'):
+                        closed = 'neither'
+                    elif (right_closed=='right' and left_closed=='neither' ) or (right_closed=='both' and left_closed=='neither'):
+                        closed = 'right'
+                    elif (left_closed=='left' and right_closed=='neither') or (left_closed=='both' and right_closed=='neither'):
+                        closed = 'left'
+                    elif (left_closed=='both' or right_closed=='both'):
+                        closed = 'both'
+                    else:
+                        closed = 'neither'
+                # Return the interval
+                return Interval(left,right,closed=closed)
+            # If the intervals do not overlap, return an empty interval
+            return Interval(0,0,closed="neither")
+
         return NotImplemented
+
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
