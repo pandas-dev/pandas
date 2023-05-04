@@ -41,12 +41,8 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
-    is_bool_dtype,
-    is_dtype_equal,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
-    is_object_dtype,
     is_scalar,
     is_string_dtype,
     pandas_dtype,
@@ -134,6 +130,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
+
+    @classmethod
+    @doc(ExtensionArray._empty)
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        values = np.empty(shape, dtype=dtype.type)
+        values.fill(cls._internal_fill_value)
+        mask = np.ones(shape, dtype=bool)
+        result = cls(values, mask)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
 
     @property
     def dtype(self) -> BaseMaskedDtype:
@@ -238,6 +247,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         self._data[key] = value
         self._mask[key] = mask
+
+    def __contains__(self, key) -> bool:
+        if isna(key) and key is not self.dtype.na_value:
+            # GH#52840
+            if self._data.dtype.kind == "f" and lib.is_float(key):
+                return bool((np.isnan(self._data) & ~self._mask).any())
+
+        return bool(super().__contains__(key))
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
@@ -408,9 +425,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_value = libmissing.NA
         if dtype is None:
             dtype = object
+        else:
+            dtype = np.dtype(dtype)
         if self._hasna:
             if (
-                not is_object_dtype(dtype)
+                dtype != object
                 and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
@@ -452,7 +471,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -545,7 +564,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 inputs2.append(x)
 
-        def reconstruct(x):
+        def reconstruct(x: np.ndarray):
             # we don't worry about scalar `x` here, since we
             # raise for reduce up above.
             from pandas.core.arrays import (
@@ -554,13 +573,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 IntegerArray,
             )
 
-            if is_bool_dtype(x.dtype):
+            if x.dtype.kind == "b":
                 m = mask.copy()
                 return BooleanArray(x, m)
-            elif is_integer_dtype(x.dtype):
+            elif x.dtype.kind in "iu":
                 m = mask.copy()
                 return IntegerArray(x, m)
-            elif is_float_dtype(x.dtype):
+            elif x.dtype.kind == "f":
                 m = mask.copy()
                 if x.dtype == np.float16:
                     # reached in e.g. np.sqrt on BooleanArray
@@ -763,7 +782,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._propagate_mask(mask, other)
         return BooleanArray(result, mask, copy=False)
 
-    def _maybe_mask_result(self, result, mask):
+    def _maybe_mask_result(
+        self, result: np.ndarray | tuple[np.ndarray, np.ndarray], mask: np.ndarray
+    ):
         """
         Parameters
         ----------
@@ -778,12 +799,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 self._maybe_mask_result(mod, mask),
             )
 
-        if is_float_dtype(result.dtype):
+        if result.dtype.kind == "f":
             from pandas.core.arrays import FloatingArray
 
             return FloatingArray(result, mask, copy=False)
 
-        elif is_bool_dtype(result.dtype):
+        elif result.dtype.kind == "b":
             from pandas.core.arrays import BooleanArray
 
             return BooleanArray(result, mask, copy=False)
@@ -794,13 +815,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            if not isinstance(result, TimedeltaArray):
-                result = TimedeltaArray._simple_new(result, dtype=result.dtype)
-
             result[mask] = result.dtype.type("NaT")
+
+            if not isinstance(result, TimedeltaArray):
+                return TimedeltaArray._simple_new(result, dtype=result.dtype)
+
             return result
 
-        elif is_integer_dtype(result.dtype):
+        elif result.dtype.kind in "iu":
             from pandas.core.arrays import IntegerArray
 
             return IntegerArray(result, mask, copy=False)
@@ -875,7 +897,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = isin(self._data, values_arr)
 
         if self._hasna:
-            values_have_NA = is_object_dtype(values_arr.dtype) and any(
+            values_have_NA = values_arr.dtype == object and any(
                 val is self.dtype.na_value for val in values_arr
             )
 

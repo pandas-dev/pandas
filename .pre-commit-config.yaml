@@ -26,9 +26,9 @@ repos:
         language: python
         require_serial: true
         types_or: [python, pyi]
-        additional_dependencies: [black==23.1.0]
+        additional_dependencies: [black==23.3.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.259
+    rev: v0.0.264
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -40,13 +40,13 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.2.4
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.12.5
+    rev: v0.15.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -104,7 +104,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.3.2
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
