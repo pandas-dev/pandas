@@ -45,7 +45,7 @@ jobs:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     outputs:
-      sdist_file: ${{ steps.save-path.outputs.sdist-name }}
+      sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
         uses: actions/checkout@v3
