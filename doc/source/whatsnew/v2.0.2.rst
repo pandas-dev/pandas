@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.loc` losing :class:`MultiIndex` name when enlarging object (:issue:`53053`)
 -
 
 .. ---------------------------------------------------------------------------
