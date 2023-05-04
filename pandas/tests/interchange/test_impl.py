@@ -157,7 +157,7 @@ def test_dataframe(data):
 def test_missing_from_masked():
     df = pd.DataFrame(
         {
-            "x": np.array([1, 2, 3, 4, 0]),
+            "x": np.array([1.0, 2.0, 3.0, 4.0, 0.0]),
             "y": np.array([1.5, 2.5, 3.5, 4.5, 0]),
             "z": np.array([True, False, True, True, True]),
         }
