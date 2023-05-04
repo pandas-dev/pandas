@@ -803,7 +803,11 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                     warnings.filterwarnings(
                         "ignore", "All-NaN slice encountered", RuntimeWarning
                     )
-                    res = np.nanmedian(values, axis)
+                    if 1 in values.shape:
+                        # GH52788: nanmedian for 2D arrays can slow, this is a fastpath
+                        res = np.nanmedian(np.squeeze(values), axis=axis, keepdims=True)
+                    else:
+                        res = np.nanmedian(values, axis=axis)
 
         else:
             # must return the correct shape, but median is not defined for the
