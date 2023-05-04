@@ -64,7 +64,7 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        editable: false
+        editable: true
 
     # The following checks are independent of each other and should still be run if one fails
 
@@ -72,14 +72,14 @@ jobs:
     # with pandas installed in non-editable mode
     # This can be removed once pytest-cython doesn't require C extensions to be installed inplace
     - name: Run doctests
-      run: cd ci && ./code_checks.sh doctests
+      run: ci/code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Install pandas in editable mode
-      id: build-editable
-      uses: ./.github/actions/build_pandas
-      with:
-        editable: true
+#    - name: Install pandas in editable mode
+#      id: build-editable
+#      uses: ./.github/actions/build_pandas
+#      with:
+#        editable: true
 
     - name: Check for no warnings when building single-page docs
       run: ci/code_checks.sh single-docs
