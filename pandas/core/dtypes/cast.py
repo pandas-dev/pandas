@@ -455,16 +455,11 @@ def maybe_cast_pointwise_result(
     """
 
     if isinstance(dtype, ExtensionDtype):
-        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
-            # TODO: avoid this special-casing
-            # We have to special case categorical so as not to upcast
-            # things like counts back to categorical
-
-            cls = dtype.construct_array_type()
-            if same_dtype:
-                result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
-            else:
-                result = _maybe_cast_to_extension_array(cls, result)
+        cls = dtype.construct_array_type()
+        if same_dtype:
+            result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
+        else:
+            result = _maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -494,7 +489,10 @@ def _maybe_cast_to_extension_array(
         # TODO: get this everywhere!
         try:
             result = cls._from_scalars(obj, dtype=dtype)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, NotImplementedError):
+            # TODO: document that _from_scalars should only raise ValueError
+            #  or TypeError; NotImplementedError is here until we decide what
+            #  to do for Categorical.
             return obj
         return result
 

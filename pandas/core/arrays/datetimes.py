@@ -259,6 +259,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
+    def _from_scalars(cls, scalars, dtype=None):
+        if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
+            # TODO: require any NAs be valid-for-DTA
+            # TODO: if dtype is passed, check for tzawareness compat?
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
+
+    @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
         _validate_dt64_dtype(values.dtype)
