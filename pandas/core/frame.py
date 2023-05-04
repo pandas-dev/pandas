@@ -836,7 +836,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns = ensure_index(columns)
 
             if not dtype:
-                dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
+                dtype, _ = infer_dtype_from_scalar(data)
 
             # For data is a scalar extension dtype
             if isinstance(dtype, ExtensionDtype):
@@ -9932,7 +9932,12 @@ class DataFrame(NDFrame, OpsMixin):
                     "or if the Series has a name"
                 )
 
-            index = Index([other.name], name=self.index.name)
+            index = Index(
+                [other.name],
+                name=self.index.names
+                if isinstance(self.index, MultiIndex)
+                else self.index.name,
+            )
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
