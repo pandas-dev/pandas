@@ -25,7 +25,6 @@ dependencies:
 
   - pip:
     - "tzdata>=2022.1"
-    - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
     - "--extra-index-url https://pypi.fury.io/arrow-nightlies/"
     - "--prefer-binary"
     - "--pre"

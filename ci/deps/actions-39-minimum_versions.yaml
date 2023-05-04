@@ -60,6 +60,5 @@ dependencies:
   - zstandard=0.17.0
 
   - pip:
-    - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
     - pyqt5==5.15.6
     - tzdata==2022.1

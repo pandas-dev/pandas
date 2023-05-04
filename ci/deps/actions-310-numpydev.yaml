@@ -26,7 +26,6 @@ dependencies:
 
   - pip:
     - "cython"
-    - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"

@@ -56,5 +56,3 @@ dependencies:
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.3
   - zstandard>=0.17.0
-  - pip:
-      - "git+https://github.com/mesonbuild/meson-python.git@e74218846ab386faa761558987064508cbf6a28e"
