@@ -109,7 +109,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: sdist
-          path: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
+          path: ./dist
+
+      - name: Check dist
+        run: ls ./dist
+        shell: bash -el {0}
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
