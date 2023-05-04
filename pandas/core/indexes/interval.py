@@ -558,7 +558,7 @@ class IntervalIndex(ExtensionIndex):
 
         if scalar:
             # Timestamp/Timedelta
-            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            key_dtype, key_i8 = infer_dtype_from_scalar(key)
             if lib.is_period(key):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):

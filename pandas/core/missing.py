@@ -80,11 +80,14 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
-    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-    # _DTypeDict, Tuple[Any, Any]]]"
-    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
+
+    if isinstance(dtype, np.dtype):
+        values_to_mask = np.array(values_to_mask, dtype=dtype)
+    else:
+        cls = dtype.construct_array_type()
+        if not lib.is_list_like(values_to_mask):
+            values_to_mask = [values_to_mask]
+        values_to_mask = cls._from_sequence(values_to_mask, dtype=dtype, copy=False)
 
     potential_na = False
     if is_object_dtype(arr.dtype):

@@ -824,7 +824,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns = ensure_index(columns)
 
             if not dtype:
-                dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
+                dtype, _ = infer_dtype_from_scalar(data)
 
             # For data is a scalar extension dtype
             if isinstance(dtype, ExtensionDtype):
