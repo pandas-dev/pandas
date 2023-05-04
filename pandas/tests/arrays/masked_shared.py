@@ -24,11 +24,12 @@ class ComparisonOps(BaseOpsUtil):
         ser = pd.Series(data)
         result = op(ser, other)
 
-        expected = op(pd.Series(data._data), other)
+        # Set nullable dtype here to avoid upcasting when setting to pd.NA below
+        expected = op(pd.Series(data._data), other).astype("boolean")
 
         # fill the nan locations
         expected[data._mask] = pd.NA
-        expected = expected.astype("boolean")
+        expected = expected
 
         tm.assert_series_equal(result, expected)
 
