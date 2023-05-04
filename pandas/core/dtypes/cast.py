@@ -631,7 +631,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
 
     # returns tuple of (dtype, fill_value)
     if issubclass(dtype.type, np.datetime64):
-        inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        inferred, fv = infer_dtype_from_scalar(fill_value)
         if inferred == dtype:
             return dtype, fv
 
@@ -645,7 +645,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             return _dtype_obj, fill_value
 
     elif issubclass(dtype.type, np.timedelta64):
-        inferred, fv = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        inferred, fv = infer_dtype_from_scalar(fill_value)
         if inferred == dtype:
             return dtype, fv
 
@@ -744,20 +744,17 @@ def infer_dtype_from(val) -> tuple[DtypeObj, Any]:
     val : object
     """
     if not is_list_like(val):
-        return infer_dtype_from_scalar(val, pandas_dtype=True)
+        return infer_dtype_from_scalar(val)
     return infer_dtype_from_array(val)
 
 
-def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, Any]:
+def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
     """
     Interpret the dtype from a scalar.
 
     Parameters
     ----------
-    pandas_dtype : bool, default False
-        whether to infer dtype including pandas extension types.
-        If False, scalar belongs to pandas extension types is inferred as
-        object
+    val : object
     """
     dtype: DtypeObj = _dtype_obj
 
@@ -792,11 +789,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
-            if pandas_dtype:
-                dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
-            else:
-                # return datetimetz as object
-                return _dtype_obj, val
+            dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
 
     elif isinstance(val, (np.timedelta64, dt.timedelta)):
         try:
@@ -830,12 +823,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     elif is_complex(val):
         dtype = np.dtype(np.complex_)
 
-    elif pandas_dtype:
-        if lib.is_period(val):
-            dtype = PeriodDtype(freq=val.freq)
-        elif lib.is_interval(val):
-            subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
-            dtype = IntervalDtype(subtype=subtype, closed=val.closed)
+    if lib.is_period(val):
+        dtype = PeriodDtype(freq=val.freq)
+    elif lib.is_interval(val):
+        subtype = infer_dtype_from_scalar(val.left)[0]
+        dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
 
@@ -1448,7 +1440,7 @@ def construct_1d_arraylike_from_scalar(
 
     if dtype is None:
         try:
-            dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
+            dtype, value = infer_dtype_from_scalar(value)
         except OutOfBoundsDatetime:
             dtype = _dtype_obj
 
