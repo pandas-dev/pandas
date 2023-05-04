@@ -79,7 +79,8 @@ class TestFrameAsof:
         # GH 15118
         # no match found - `where` value before earliest date in index
         N = 10
-        df = date_range_frame.iloc[:N].copy()
+        # Cast to 'float64' to avoid upcast when introducing nan in df.asof
+        df = date_range_frame.iloc[:N].copy().astype("float64")
 
         result = df.asof("1989-12-31")
 

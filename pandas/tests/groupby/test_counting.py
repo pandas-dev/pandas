@@ -327,9 +327,10 @@ def test_count_object():
 
 def test_count_cross_type():
     # GH8169
+    # Set float64 dtype to avoid upcast when setting nan below
     vals = np.hstack(
         (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
-    )
+    ).astype("float64")
 
     df = DataFrame(vals, columns=["a", "b", "c", "d"])
     df[df == 2] = np.nan
