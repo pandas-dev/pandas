@@ -202,7 +202,10 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
 
     # Doing module in order to not get ``IndexError`` for
     # out-of-bounds sentinel values in `codes`
-    values = categories[codes % len(categories)]
+    if len(categories) > 0:
+        values = categories[codes % len(categories)]
+    else:
+        values = codes
 
     cat = pd.Categorical(
         values, categories=categories, ordered=categorical["is_ordered"]
