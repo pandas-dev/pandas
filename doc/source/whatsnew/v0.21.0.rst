@@ -754,11 +754,16 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
 
 New behavior
 
-.. ipython:: python
-   :okwarning:
+.. codeblock:: ipython
 
-   s[1] = True
-   s
+   In [7]: s[1] = True
+
+   In [8]: s
+   Out[8]:
+   0       1
+   1    True
+   2       3
+   Length: 3, dtype: object
 
 Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
 non-datetime-like item being assigned (:issue:`14145`).
