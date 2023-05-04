@@ -29,7 +29,6 @@ class ComparisonOps(BaseOpsUtil):
 
         # fill the nan locations
         expected[data._mask] = pd.NA
-        expected = expected
 
         tm.assert_series_equal(result, expected)
 

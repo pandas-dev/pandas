@@ -166,9 +166,9 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     result = df.groupby("A").apply(f_1)[["B"]]
-    e = expected.copy()
-    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
-        e.loc["Tiger"] = np.nan
+    # Cast to avoid upcast when setting nan below
+    e = expected.copy().astype("float64")
+    e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
     def f_2(grp):
