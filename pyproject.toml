@@ -208,6 +208,10 @@ select = [
   "B",
   # flake8-quotes
   "Q",
+  # flake8-debugger
+  "T10",
+  # flake8-gettext
+  "INT",
   # pylint
   "PLC", "PLE", "PLR", "PLW",
   # misc lints
