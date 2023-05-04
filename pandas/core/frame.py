@@ -9538,7 +9538,12 @@ Parrot 2  Parrot       24.0
                     "or if the Series has a name"
                 )
 
-            index = Index([other.name], name=self.index.name)
+            index = Index(
+                [other.name],
+                name=self.index.names
+                if isinstance(self.index, MultiIndex)
+                else self.index.name,
+            )
             row_df = other.to_frame().T
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
