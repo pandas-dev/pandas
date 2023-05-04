@@ -111,6 +111,10 @@ jobs:
           name: sdist
           path: ./dist/*
 
+      - name: Check dist
+        run: ls ./dist
+        shell: bash -el {0}
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
         with:
