@@ -1851,7 +1851,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         offset = 0
         blocks: list[Block] = []
-        for i, mgr in enumerate(mgrs):
+        for mgr in mgrs:
             for blk in mgr.blocks:
                 # We need to do getitem_block here otherwise we would be altering
                 #  blk.mgr_locs in place, which would render it invalid. This is only
