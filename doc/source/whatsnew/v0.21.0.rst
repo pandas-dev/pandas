@@ -425,13 +425,12 @@ Note that this also changes the sum of an empty ``Series``. Previously this alwa
    In [1]: pd.Series([]).sum()
    Out[1]: 0
 
-but for consistency with the all-NaN case, this was changed to return NaN as well:
+but for consistency with the all-NaN case, this was changed to return 0 as well:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   pd.Series([]).sum()
-
+   In [2]: pd.Series([]).sum()
+   Out[2]: 0
 
 .. _whatsnew_0210.api_breaking.loc:
 
