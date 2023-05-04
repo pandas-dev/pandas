@@ -1077,10 +1077,10 @@ def group_mean(
                     compensation[lab, j] = t - sumx[lab, j] - y
                     if compensation[lab, j] != compensation[lab, j]:
                         # GH#50367
-                        # if val is +/- infinity, this (t-sumx[lab, j]-y) expression
-                        # will evaluate to Nan. So we are checking whether
-                        # compensation[lab, j] is Nan and setting it to 0.
-                        # we cannot use util.is_nan because of no gil
+                        # If val is +/- infinity, compensation is NaN
+                        # which would lead to results being NaN instead
+                        # of +/-infinity. We cannot use util.is_nan
+                        # because of no gil
                         compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
