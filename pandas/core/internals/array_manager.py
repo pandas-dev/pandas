@@ -28,7 +28,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_datetime64_ns_dtype,
-    is_dtype_equal,
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
@@ -85,6 +84,7 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
+from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -391,10 +391,7 @@ class BaseArrayManager(DataManager):
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
-                    convert_datetime=True,
-                    convert_timedelta=True,
-                    convert_period=True,
-                    convert_interval=True,
+                    convert_non_numeric=True,
                 )
                 if result is arr and copy:
                     return arr.copy()
@@ -669,13 +666,8 @@ class BaseArrayManager(DataManager):
             fill_value = np.nan
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype[Any],
-        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        values = np.empty(self.shape_proper[0], dtype=dtype)  # type: ignore[arg-type]
-        values.fill(fill_value)
-        return values
+        array_values = make_na_array(dtype, self.shape_proper[:1], fill_value)
+        return array_values
 
     def _equal_values(self, other) -> bool:
         """
@@ -1125,9 +1117,9 @@ class ArrayManager(BaseArrayManager):
         elif isinstance(dtype, PandasDtype):
             dtype = dtype.numpy_dtype
         elif isinstance(dtype, ExtensionDtype):
-            dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            dtype = "object"
+            dtype = np.dtype("object")
+        elif dtype == np.dtype(str):
+            dtype = np.dtype("object")
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
