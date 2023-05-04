@@ -501,14 +501,17 @@ Consistent casting with setting into Boolean Series
 Setting non-boolean values into a :class:`Series` with ``dtype=bool`` now consistently
 casts to ``dtype=object`` (:issue:`38709`)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   orig = pd.Series([True, False])
-   ser = orig.copy()
-   ser.iloc[1] = np.nan
-   ser2 = orig.copy()
-   ser2.iloc[1] = 2.0
+   In [1]: orig = pd.Series([True, False])
+
+   In [2]: ser = orig.copy()
+
+   In [3]: ser.iloc[1] = np.nan
+
+   In [4]: ser2 = orig.copy()
+
+   In [5]: ser2.iloc[1] = 2.0
 
 *Previous behavior*:
 
