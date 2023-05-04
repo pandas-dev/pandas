@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -701,7 +700,7 @@ class BaseGrouper:
             to_groupby = []
             for ping in self.groupings:
                 gv = ping.grouping_vector
-                if is_array_like(gv):
+                if not isinstance(gv, BaseGrouper):
                     to_groupby.append(gv)
                 else:
                     to_groupby.append(gv.groupings[0].grouping_vector)
