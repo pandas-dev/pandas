@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
     ensure_uint64,
     is_1d_only_ea_dtype,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -697,8 +698,14 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
-            index = Index(to_groupby)
+            to_groupby = []
+            for ping in self.groupings:
+                gv = ping.grouping_vector
+                if is_array_like(gv):
+                    to_groupby.append(gv)
+                else:
+                    to_groupby.append(gv.groupings[0].grouping_vector)
+            index = MultiIndex.from_arrays(to_groupby)
             return self.axis.groupby(index)
 
     @final
