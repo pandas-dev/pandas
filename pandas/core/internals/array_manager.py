@@ -666,7 +666,7 @@ class BaseArrayManager(DataManager):
             fill_value = np.nan
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        array_values = make_na_array(dtype, self.shape_proper[0], fill_value)
+        array_values = make_na_array(dtype, self.shape_proper[:1], fill_value)
         return array_values
 
     def _equal_values(self, other) -> bool:
