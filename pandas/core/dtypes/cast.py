@@ -841,7 +841,6 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
                 import pyarrow as pa
 
                 pa_dtype = pa.time64("us")
-
                 dtype = ArrowDtype(pa_dtype)
 
     elif is_bool(val):
