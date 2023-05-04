@@ -282,24 +282,17 @@ static const double __ac_HASH_UPPER = 0.77;
 	extern khuint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret); \
 	extern void kh_del_##name(kh_##name##_t *h, khuint_t x);
 
-// From https://stackoverflow.com/a/1489985/621736
-#define PASTER(x,y) x ## y
-#define EVALUATOR(x, y) PASTER(x, y)
-#define KHASH_FUNCTION_POSTFIX_0 _set
-#define KHASH_FUNCTION_POSTFIX_1
-#define KHASH_FUNCTION_POSTFIX(kh_is_map) KHASH_FUNCTION_POSTFIX_##kh_is_map
-
 #define KHASH_INIT2(name, SCOPE, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
 	typedef struct {													\
 		khuint_t n_buckets, size, n_occupied, upper_bound;				\
 		khuint32_t *flags;												\
 		khkey_t *keys;													\
 		khval_t *vals;													\
-	} EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map));  \
-	SCOPE EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) EVALUATOR(*kh_init_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(void) { \
-		return (EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map))*)KHASH_CALLOC(1, sizeof(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map))));		\
+	} kh_##name##_t;													\
+	SCOPE kh_##name##_t *kh_init_##name(void) {								\
+		return (kh_##name##_t*)KHASH_CALLOC(1, sizeof(kh_##name##_t));		\
 	}																	\
-	SCOPE void EVALUATOR(kh_destroy_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h) \
+	SCOPE void kh_destroy_##name(kh_##name##_t *h)						\
 	{																	\
 		if (h) {														\
 			KHASH_FREE(h->keys); KHASH_FREE(h->flags);								\
@@ -307,14 +300,14 @@ static const double __ac_HASH_UPPER = 0.77;
 			KHASH_FREE(h);													\
 		}																\
 	}																	\
-	SCOPE void EVALUATOR(kh_clear_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h) \
+	SCOPE void kh_clear_##name(kh_##name##_t *h)						\
 	{																	\
 		if (h && h->flags) {											\
 			memset(h->flags, 0xaa, __ac_fsize(h->n_buckets) * sizeof(khuint32_t)); \
 			h->size = h->n_occupied = 0;								\
 		}																\
 	}																	\
-	SCOPE khuint_t EVALUATOR(kh_get_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(const EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h, khkey_t key) \
+	SCOPE khuint_t kh_get_##name(const kh_##name##_t *h, khkey_t key) 	\
 	{																	\
 		if (h->n_buckets) {												\
 			khuint_t inc, k, i, last, mask;								\
@@ -328,7 +321,7 @@ static const double __ac_HASH_UPPER = 0.77;
 			return __ac_iseither(h->flags, i)? h->n_buckets : i;		\
 		} else return 0;												\
 	}																	\
-	SCOPE void EVALUATOR(kh_resize_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h, khuint_t new_n_buckets) \
+	SCOPE void kh_resize_##name(kh_##name##_t *h, khuint_t new_n_buckets) \
 	{ /* This function uses 0.25*n_bucktes bytes of working space instead of [sizeof(key_t+val_t)+.25]*n_buckets. */ \
 		khuint32_t *new_flags = 0;										\
 		khuint_t j = 1;													\
@@ -384,12 +377,12 @@ static const double __ac_HASH_UPPER = 0.77;
 			h->upper_bound = (khuint_t)(h->n_buckets * __ac_HASH_UPPER + 0.5); \
 		}																\
 	}																	\
-	SCOPE khuint_t EVALUATOR(kh_put_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h, khkey_t key, int *ret) \
+	SCOPE khuint_t kh_put_##name(kh_##name##_t *h, khkey_t key, int *ret) \
 	{																	\
 		khuint_t x;														\
 		if (h->n_occupied >= h->upper_bound) { /* update the hash table */ \
-                  if (h->n_buckets > (h->size<<1)) EVALUATOR(kh_resize_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(h, h->n_buckets - 1); /* clear "deleted" elements */ \
-                  else EVALUATOR(kh_resize_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(h, h->n_buckets + 1); /* expand the hash table */ \
+			if (h->n_buckets > (h->size<<1)) kh_resize_##name(h, h->n_buckets - 1); /* clear "deleted" elements */ \
+			else kh_resize_##name(h, h->n_buckets + 1); /* expand the hash table */ \
 		} /* TODO: to implement automatically shrinking; resize() already support shrinking */ \
 		{																\
 			khuint_t inc, k, i, site, last, mask = h->n_buckets - 1;		\
@@ -421,7 +414,7 @@ static const double __ac_HASH_UPPER = 0.77;
 		} else *ret = 0; /* Don't touch h->keys[x] if present and not deleted */ \
 		return x;														\
 	}																	\
-	SCOPE void EVALUATOR(kh_del_##name, KHASH_FUNCTION_POSTFIX(kh_is_map))(EVALUATOR(kh_##name##_t, KHASH_FUNCTION_POSTFIX(kh_is_map)) *h, khuint_t x) \
+	SCOPE void kh_del_##name(kh_##name##_t *h, khuint_t x)				\
 	{																	\
 		if (x != h->n_buckets && !__ac_iseither(h->flags, x)) {			\
 			__ac_set_isdel_true(h->flags, x);							\
@@ -713,12 +706,11 @@ typedef const char *kh_cstr_t;
 #define kh_exist_uint8(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
-//KHASH_SET_INIT_STR(str)
 KHASH_MAP_INIT_INT(int32, size_t)
-KHASH_SET_INIT_INT(int32)
+KHASH_SET_INIT_INT(int32_set)
 KHASH_MAP_INIT_UINT(uint32, size_t)
 KHASH_MAP_INIT_INT64(int64, size_t)
-KHASH_SET_INIT_INT64(int64)
+KHASH_SET_INIT_INT64(int64_set)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
 KHASH_MAP_INIT_INT16(int16, size_t)
 KHASH_MAP_INIT_UINT16(uint16, size_t)

@@ -17,7 +17,6 @@ from numpy cimport (
 
 cdef extern from "khash_python.h":
     const int KHASH_TRACE_DOMAIN
-    void KHASH_SET_INIT_INT64(int64)
 
     ctypedef uint32_t khuint_t
     ctypedef khuint_t khiter_t
