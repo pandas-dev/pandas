@@ -987,8 +987,7 @@ class TestDataFrameSetItemCallable:
         def inc(x):
             return x + 1
 
-        # Set dtype object straight away to avoid upcast when setting
-        # inc below
+        # Set dtype object straight away to avoid upcast when setting inc below
         df = DataFrame([[-1, 1], [1, -1]], dtype=object)
         df[df > 0] = inc
 
