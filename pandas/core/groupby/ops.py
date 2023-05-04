@@ -799,7 +799,14 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
+        # checking self.has_dropped_na is expensive, and it is only needed in
+        #  "transform" cases, so avoid the lookup
+        if kind == "transform":
+            has_dropped_na = self.has_dropped_na
+        else:
+            has_dropped_na = False
+
+        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=has_dropped_na)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups
