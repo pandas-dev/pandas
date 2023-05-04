@@ -223,7 +223,7 @@ select = [
   # comprehensions
   "C4",
   # pygrep-hooks
-  #"PGH"
+  "PGH"
 ]
 
 ignore = [
