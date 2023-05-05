@@ -3913,6 +3913,7 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
         """
+        using_cow = using_copy_on_write()
         if isinstance(value, DataFrame):
             if is_integer(loc):
                 loc = [loc]
@@ -3924,12 +3925,14 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             for i, idx in enumerate(loc):
-                arraylike, _ = self._sanitize_column(value.iloc[:, i])
-                self._iset_item_mgr(idx, arraylike, inplace=False)
+                arraylike, refs = self._sanitize_column(
+                    value.iloc[:, i], using_cow=using_cow
+                )
+                self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        arraylike, _ = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=False)
+        arraylike, refs = self._sanitize_column(value, using_cow=using_cow)
+        self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value):
         if not PYPY and using_copy_on_write():
@@ -4803,8 +4806,8 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
 
-        value, _ = self._sanitize_column(value)
-        self._mgr.insert(loc, column, value)
+        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        self._mgr.insert(loc, column, value, refs=refs)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
@@ -6543,7 +6546,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         ascending=...,
         inplace: Literal[True],
-        kind: str = ...,
+        kind: SortKind = ...,
         na_position: str = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
@@ -6557,7 +6560,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
+        kind: SortKind = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
