@@ -9455,7 +9455,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             left: use only keys from left frame, preserve key order.
             right: use only keys from right frame, preserve key order.
             outer: use union of keys from both frames, sort keys lexicographically.
-            inner: use intersection of keys from both frames, preserve the order of the left keys.
+            inner: use intersection of keys from both frames,
+            preserve the order of the left keys.
 
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None).
