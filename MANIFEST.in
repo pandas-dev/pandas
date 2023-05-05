@@ -7,6 +7,7 @@ graft pandas
 
 global-exclude *.bz2
 global-exclude *.csv
+global-exclude *.data
 global-exclude *.dta
 global-exclude *.feather
 global-exclude *.tar
