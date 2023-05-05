@@ -2,7 +2,7 @@
 
 - Created: 4 May 2023
 - Status: Under discussion
-- Discussion: [PR ??](https://github.com/pandas-dev/pandas/pull/??)
+- Discussion: [PR #53094](https://github.com/pandas-dev/pandas/pull/53094)
 - Authors: [Richard Shadrach](https://github.com/rhshadrach)
 - Revision: 1
 
@@ -53,14 +53,14 @@ argument, those marked with a `*` already default to `False`.
 Series.groupby
 Series.mode
 Series.nunique
-*Series.to_hdf
+Series.to_hdf*
 Series.value_counts
 DataFrame.groupby
 DataFrame.mode
 DataFrame.nunique
 DataFrame.pivot_table
 DataFrame.stack
-*DataFrame.to_hdf
+DataFrame.to_hdf*
 DataFrame.value_counts
 SeriesGroupBy.nunique
 SeriesGroupBy.value_counts
