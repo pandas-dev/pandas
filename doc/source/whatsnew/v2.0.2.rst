@@ -14,7 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.loc` losing :class:`MultiIndex` name when enlarging object (:issue:`53053`)
--
+- Fixed regression in :meth:`DataFrame.to_string` printing a backslash at the end of the first row of data, instead of headers, when the DataFrame doesn't fit the line width (:issue:`53054`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.bug_fixes:
