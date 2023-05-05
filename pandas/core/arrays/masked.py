@@ -41,7 +41,6 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_bool,
-    is_dtype_equal,
     is_integer_dtype,
     is_list_like,
     is_scalar,
@@ -49,7 +48,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -76,7 +74,11 @@ from pandas.core.array_algos import (
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    array as pd_array,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 
@@ -132,6 +134,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
 
+    @classmethod
+    @doc(ExtensionArray._empty)
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+        values = np.empty(shape, dtype=dtype.type)
+        values.fill(cls._internal_fill_value)
+        mask = np.ones(shape, dtype=bool)
+        result = cls(values, mask)
+        if not isinstance(result, cls) or dtype != result.dtype:
+            raise NotImplementedError(
+                f"Default 'empty' implementation is invalid for dtype='{dtype}'"
+            )
+        return result
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -157,19 +172,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(self._data[item], newmask)
 
     @doc(ExtensionArray.fillna)
-    @doc(ExtensionArray.fillna)
     def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
 
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
+        value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
             if method is not None:
@@ -235,6 +243,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         self._data[key] = value
         self._mask[key] = mask
+
+    def __contains__(self, key) -> bool:
+        if isna(key) and key is not self.dtype.na_value:
+            # GH#52840
+            if self._data.dtype.kind == "f" and lib.is_float(key):
+                return bool((np.isnan(self._data) & ~self._mask).any())
+
+        return bool(super().__contains__(key))
 
     def __iter__(self) -> Iterator:
         if self.ndim == 1:
@@ -451,7 +467,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -625,20 +641,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             and len(other) == len(self)
         ):
             # Try inferring masked dtype instead of casting to object
-            inferred_dtype = lib.infer_dtype(other, skipna=True)
-            if inferred_dtype == "integer":
-                from pandas.core.arrays import IntegerArray
-
-                other = IntegerArray._from_sequence(other)
-            elif inferred_dtype in ["floating", "mixed-integer-float"]:
-                from pandas.core.arrays import FloatingArray
-
-                other = FloatingArray._from_sequence(other)
-
-            elif inferred_dtype in ["boolean"]:
-                from pandas.core.arrays import BooleanArray
-
-                other = BooleanArray._from_sequence(other)
+            other = pd_array(other)
+            other = extract_array(other, extract_numpy=True)
 
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
