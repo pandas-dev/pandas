@@ -429,6 +429,7 @@ class TestFancy:
 
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
+        # set float64 to avoid upcast when setting nan
         df = DataFrame(
             {
                 "FC": ["a", "b", "a", "b", "a", "b"],
@@ -436,7 +437,7 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype({"col2": "float64"})
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
