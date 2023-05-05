@@ -155,7 +155,7 @@ Axes = ListLike
 
 RandomState = Union[
     int,
-    ArrayLike,
+    np.ndarray,
     np.random.Generator,
     np.random.BitGenerator,
     np.random.RandomState,
