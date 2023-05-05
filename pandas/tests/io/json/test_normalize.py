@@ -137,6 +137,11 @@ def max_level_test_input_data():
     ]
 
 
+@pytest.fixture
+def parse_metadata_fields_list_type():
+    return [{"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}]
+
+
 class TestJSONNormalize:
     def test_simple_records(self):
         recs = [
@@ -168,6 +173,17 @@ class TestJSONNormalize:
         result = json_normalize(state_data, "counties", meta="state")
         expected["state"] = np.array(["Florida", "Ohio"]).repeat([3, 2])
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_fields_list_type_normalize(self, parse_metadata_fields_list_type):
+        result = json_normalize(
+            parse_metadata_fields_list_type,
+            record_path=["values"],
+            meta=[["metadata", "listdata"]],
+        )
+        expected = DataFrame(
+            {0: [1, 2, 3], "metadata.listdata": [[1, 2], [1, 2], [1, 2]]}
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_empty_array(self):
