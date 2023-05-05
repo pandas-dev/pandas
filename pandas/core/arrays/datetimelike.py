@@ -84,7 +84,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_all_strings,
-    is_dtype_equal,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -665,7 +664,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if isinstance(value.dtype, CategoricalDtype):
             # e.g. we have a Categorical holding self.dtype
-            if is_dtype_equal(value.categories.dtype, self.dtype):
+            if value.categories.dtype == self.dtype:
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
                 value = extract_array(value, extract_numpy=True)
@@ -1600,7 +1599,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
         else:
             # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew"]:
+            if how in ["prod", "cumprod", "skew", "var"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
@@ -1875,7 +1874,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
             if dtype is not None:
                 dtype = pandas_dtype(dtype)
-                if not is_dtype_equal(dtype, values.dtype):
+                if dtype != values.dtype:
                     # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
                     raise TypeError(
                         f"dtype={dtype} does not match data dtype {values.dtype}"
@@ -2079,7 +2078,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         nanos = delta_to_nanoseconds(offset, self._creso)
         if nanos == 0:
             # GH 52761
-            return self
+            return self.copy()
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)

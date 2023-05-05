@@ -51,7 +51,6 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
-    Dtype,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -115,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -275,7 +273,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cls,
         mgr: Manager,
         axes,
-        dtype: Dtype | None = None,
+        dtype: DtypeObj | None = None,
         copy: bool_t = False,
     ) -> Manager:
         """passed a manager and a axes dict"""
@@ -293,7 +291,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 isinstance(mgr, BlockManager)
                 and len(mgr.blocks) == 1
-                and is_dtype_equal(mgr.blocks[0].values.dtype, dtype)
+                and mgr.blocks[0].values.dtype == dtype
             ):
                 pass
             else:
@@ -6209,7 +6207,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
             # allow an actual np.nan through
-            if is_float(value) and np.isnan(value) or value is lib.no_default:
+            if (is_float(value) and np.isnan(value)) or value is lib.no_default:
                 return True
 
             raise TypeError(
@@ -6975,6 +6973,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
 
+        if isinstance(downcast, dict):
+            # GH#40988
+            for dc in downcast.values():
+                if dc is not None and dc is not False and dc != "infer":
+                    warnings.warn(
+                        "downcast entries other than None, False, and 'infer' "
+                        "are deprecated and will raise in a future version",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+        elif downcast is not None and downcast is not False and downcast != "infer":
+            # GH#40988
+            warnings.warn(
+                "downcast other than None, False, and 'infer' are deprecated "
+                "and will raise in a future version",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
         if axis is None:
@@ -7551,7 +7568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
-        downcast: str | None = None,
+        downcast: Literal["infer"] | None = None,
         **kwargs,
     ) -> Self | None:
         """
@@ -7749,6 +7766,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    16.0
         Name: d, dtype: float64
         """
+        if downcast is not None and downcast != "infer":
+            raise ValueError("downcast must be either None or 'infer'")
+
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
@@ -8347,9 +8367,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
-        if (lower is None or (is_scalar(lower) and is_number(lower))) and (
-            upper is None or (is_scalar(upper) and is_number(upper))
-        ):
+        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
             return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self
@@ -11688,11 +11706,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if (
-            self.ndim == 1
-            and result._indexed_same(self)
-            and is_dtype_equal(result.dtype, self.dtype)
-        ):
+        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
