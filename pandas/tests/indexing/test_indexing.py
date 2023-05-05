@@ -436,7 +436,9 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype(
+            {"col2": "float64"}
+        )  # set float64 to avoid upcast when setting nan
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
