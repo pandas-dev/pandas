@@ -629,7 +629,10 @@ class TestDataFrameFormatting:
 
         # all col
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -641,7 +644,10 @@ class TestDataFrameFormatting:
 
         # column name
         df = DataFrame(
-            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+            {
+                "b": ["あ", "いいい", "う", "ええええええ"],
+                "あああああ": [1, 222, 33333, 4],
+            },
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -653,7 +659,10 @@ class TestDataFrameFormatting:
 
         # index
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=["あああ", "いいいいいい", "うう", "え"],
         )
         expected = (
@@ -665,7 +674,10 @@ class TestDataFrameFormatting:
 
         # index name
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=Index(["あ", "い", "うう", "え"], name="おおおお"),
         )
         expected = (
@@ -680,7 +692,10 @@ class TestDataFrameFormatting:
 
         # all
         df = DataFrame(
-            {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
+            {
+                "あああ": ["あああ", "い", "う", "えええええ"],
+                "いいいいい": ["あ", "いいい", "う", "ええ"],
+            },
             index=Index(["あ", "いいい", "うう", "え"], name="お"),
         )
         expected = (
@@ -698,7 +713,10 @@ class TestDataFrameFormatting:
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=idx,
         )
         expected = (
@@ -766,7 +784,10 @@ class TestDataFrameFormatting:
 
             # all col
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -780,7 +801,10 @@ class TestDataFrameFormatting:
 
             # column name
             df = DataFrame(
-                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                    "あああああ": [1, 222, 33333, 4],
+                },
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -794,7 +818,10 @@ class TestDataFrameFormatting:
 
             # index
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=["あああ", "いいいいいい", "うう", "え"],
             )
             expected = (
@@ -808,7 +835,10 @@ class TestDataFrameFormatting:
 
             # index name
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=Index(["あ", "い", "うう", "え"], name="おおおお"),
             )
             expected = (
@@ -823,7 +853,10 @@ class TestDataFrameFormatting:
 
             # all
             df = DataFrame(
-                {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
+                {
+                    "あああ": ["あああ", "い", "う", "えええええ"],
+                    "いいいいい": ["あ", "いいい", "う", "ええ"],
+                },
                 index=Index(["あ", "いいい", "うう", "え"], name="お"),
             )
             expected = (
@@ -841,7 +874,10 @@ class TestDataFrameFormatting:
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=idx,
             )
             expected = (
@@ -886,7 +922,10 @@ class TestDataFrameFormatting:
 
             # ambiguous unicode
             df = DataFrame(
-                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {
+                    "b": ["あ", "いいい", "¡¡", "ええええええ"],
+                    "あああああ": [1, 222, 33333, 4],
+                },
                 index=["a", "bb", "c", "¡¡¡"],
             )
             expected = (
@@ -2205,24 +2244,52 @@ class TestSeriesFormatting:
 
         # unicode index
         s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
-        expected = "あ         a\nいい       bb\nううう     CCC\nええええ      D\ndtype: object"
+        expected = "".join(
+            [
+                "あ         a\n",
+                "いい       bb\n",
+                "ううう     CCC\n",
+                "ええええ      D\ndtype: object",
+            ]
+        )
         assert repr(s) == expected
 
         # unicode values
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
-        expected = "a         あ\nbb       いい\nc       ううう\nddd    ええええ\ndtype: object"
+        expected = "".join(
+            [
+                "a         あ\n",
+                "bb       いい\n",
+                "c       ううう\n",
+                "ddd    ええええ\n",
+                "dtype: object",
+            ]
+        )
+
         assert repr(s) == expected
 
         # both
-        s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
-        expected = (
-            "ああ         あ\nいいいい      いい\nう        ううう\nえええ     ええええ\ndtype: object"
+        s = Series(
+            ["あ", "いい", "ううう", "ええええ"],
+            index=["ああ", "いいいい", "う", "えええ"],
         )
+        expected = "".join(
+            [
+                "ああ         あ\n",
+                "いいいい      いい\n",
+                "う        ううう\n",
+                "えええ     ええええ\n",
+                "dtype: object",
+            ]
+        )
+
         assert repr(s) == expected
 
         # unicode footer
         s = Series(
-            ["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"], name="おおおおおおお"
+            ["あ", "いい", "ううう", "ええええ"],
+            index=["ああ", "いいいい", "う", "えええ"],
+            name="おおおおおおお",
         )
         expected = (
             "ああ         あ\nいいいい      いい\nう        ううう\n"
@@ -2284,7 +2351,10 @@ class TestSeriesFormatting:
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
             # unicode index
-            s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
+            s = Series(
+                ["a", "bb", "CCC", "D"],
+                index=["あ", "いい", "ううう", "ええええ"],
+            )
             expected = (
                 "あ            a\nいい         bb\nううう      CCC\n"
                 "ええええ      D\ndtype: object"
@@ -2292,15 +2362,20 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # unicode values
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
+            s = Series(
+                ["あ", "いい", "ううう", "ええええ"],
+                index=["a", "bb", "c", "ddd"],
+            )
             expected = (
                 "a            あ\nbb         いい\nc        ううう\n"
                 "ddd    ええええ\ndtype: object"
             )
             assert repr(s) == expected
-
             # both
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
+            s = Series(
+                ["あ", "いい", "ううう", "ええええ"],
+                index=["ああ", "いいいい", "う", "えええ"],
+            )
             expected = (
                 "ああ              あ\n"
                 "いいいい        いい\n"
@@ -2380,7 +2455,8 @@ class TestSeriesFormatting:
 
             # ambiguous unicode
             s = Series(
-                ["¡¡", "い¡¡", "ううう", "ええええ"], index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"]
+                ["¡¡", "い¡¡", "ううう", "ええええ"],
+                index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"],
             )
             expected = (
                 "ああ              ¡¡\n"
@@ -2821,7 +2897,7 @@ class TestGenericArrayFormatter:
             def dtype(self):
                 return DtypeStub()
 
-        series = Series(ExtTypeStub())
+        series = Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "\n".join(
             ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]

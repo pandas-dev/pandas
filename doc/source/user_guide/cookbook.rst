@@ -125,7 +125,7 @@ Building criteria
 
 .. ipython:: python
 
-   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 0.1
+   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 999
    df
 
 `Select rows with data closest to certain value using argsort
@@ -242,7 +242,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 New columns
 ***********
 
-`Efficiently and dynamically creating new columns using applymap
+`Efficiently and dynamically creating new columns using DataFrame.map (previously named applymap)
 <https://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__
 
 .. ipython:: python
@@ -254,7 +254,7 @@ New columns
    new_cols = [str(x) + "_cat" for x in source_cols]
    categories = {1: "Alpha", 2: "Beta", 3: "Charlie"}
 
-   df[new_cols] = df[source_cols].applymap(categories.get)
+   df[new_cols] = df[source_cols].map(categories.get)
    df
 
 `Keep other columns when using min() with groupby
@@ -794,12 +794,12 @@ Apply
        index=["I", "II", "III"],
    )
 
-   def SeriesFromSubList(aList):
-       return pd.Series(aList)
+   def make_df(ser):
+       new_vals = [pd.Series(value, name=name) for name, value in ser.items()]
+       return pd.DataFrame(new_vals)
 
-   df_orgz = pd.concat(
-       {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
-   )
+   df_orgz = pd.concat({ind: row.pipe(make_df) for ind, row in df.iterrows()})
+
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series

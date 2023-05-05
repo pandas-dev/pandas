@@ -41,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
+    import_pandas_datetime,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -50,6 +51,8 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 
+import_pandas_datetime()
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
@@ -58,7 +61,6 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.parsing cimport parse_datetime_string
-from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
@@ -758,7 +760,7 @@ cdef int64_t parse_pydatetime(
             _ts.ensure_reso(NPY_FR_ns)
             result = _ts.value
     else:
-        if isinstance(val, _Timestamp):
+        if isinstance(val, ABCTimestamp):
             result = val.as_unit("ns")._value
         else:
             result = pydatetime_to_dt64(val, dts)

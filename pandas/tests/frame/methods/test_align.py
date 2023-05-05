@@ -126,7 +126,9 @@ class TestDataFrameAlign:
         tm.assert_index_equal(right.index, float_frame.index)
         assert isinstance(right, Series)
 
-        left, right = float_frame.align(s, broadcast_axis=1)
+        msg = "The 'broadcast_axis' keyword in DataFrame.align is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            left, right = float_frame.align(s, broadcast_axis=1)
         tm.assert_index_equal(left.index, float_frame.index)
         expected = {c: s for c in float_frame.columns}
         expected = DataFrame(

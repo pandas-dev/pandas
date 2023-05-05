@@ -872,8 +872,7 @@ Removal of prior version deprecations/changes
 
 ``SparseSeries``, ``SparseDataFrame`` and the ``DataFrame.to_sparse`` method
 have been removed (:issue:`28425`). We recommend using a ``Series`` or
-``DataFrame`` with sparse values instead. See :ref:`sparse.migration` for help
-with migrating existing code.
+``DataFrame`` with sparse values instead.
 
 .. _whatsnew_100.matplotlib_units:
 

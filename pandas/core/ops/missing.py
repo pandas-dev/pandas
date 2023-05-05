@@ -53,6 +53,7 @@ def _fill_zeros(result, x, y):
     is_scalar_type = is_scalar(y)
 
     if not is_variable_type and not is_scalar_type:
+        # e.g. test_series_ops_name_retention with mod we get here with list/tuple
         return result
 
     if is_scalar_type:
@@ -119,9 +120,8 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
         x_lt0 = x < 0
         x_gt0 = x > 0
         nan_mask = zmask & (x == 0)
-        with np.errstate(invalid="ignore"):
-            neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
-            posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
+        neginf_mask = (zpos_mask & x_lt0) | (zneg_mask & x_gt0)
+        posinf_mask = (zpos_mask & x_gt0) | (zneg_mask & x_lt0)
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
             # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
