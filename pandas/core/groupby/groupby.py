@@ -3653,7 +3653,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def cumprod(
-        self, axis: Axis | lib.NoDefault = lib.no_default, numeric_only: bool = False, *args, **kwargs
+        self,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative product for each group.
@@ -3662,7 +3667,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumprod", args, kwargs, ["skipna"])
+        nv.validate_groupby_func("cumprod", args, kwargs, [])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumprod")
@@ -3670,16 +3675,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumprod(axis=axis, **kwargs)
+            f = lambda x: x.cumprod(axis=axis, skipna=skipna, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform("cumprod", numeric_only=numeric_only, **kwargs)
+        return self._cython_transform(
+            "cumprod", numeric_only=numeric_only, skipna=skipna, **kwargs
+        )
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def cumsum(
-        self, axis: Axis | lib.NoDefault = lib.no_default, numeric_only: bool = False, *args, **kwargs
+        self,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative sum for each group.
@@ -3688,7 +3700,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumsum", args, kwargs, ["skipna"])
+        nv.validate_groupby_func("cumsum", args, kwargs, [])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumsum")
@@ -3696,10 +3708,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumsum(axis=axis, **kwargs)
+            f = lambda x: x.cumsum(axis=axis, skipna=skipna, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform("cumsum", numeric_only=numeric_only, **kwargs)
+        return self._cython_transform(
+            "cumsum", numeric_only=numeric_only, skipna=skipna, **kwargs
+        )
 
     @final
     @Substitution(name="groupby")
