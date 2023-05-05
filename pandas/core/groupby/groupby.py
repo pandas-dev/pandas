@@ -57,7 +57,6 @@ from pandas._typing import (
     T,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
@@ -3657,17 +3656,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis: Axis | lib.NoDefault = lib.no_default,
         numeric_only: bool = False,
         skipna: bool = True,
-        *args,
-        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative product for each group.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            The axis to apply the cumulative product along.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
 
         Returns
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumprod", args, kwargs, [])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumprod")
@@ -3675,11 +3680,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumprod(axis=axis, skipna=skipna, **kwargs)
+            f = lambda x: x.cumprod(axis=axis, skipna=skipna, numeric_only=numeric_only)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform(
-            "cumprod", numeric_only=numeric_only, skipna=skipna, **kwargs
+            "cumprod", numeric_only=numeric_only, skipna=skipna
         )
 
     @final
@@ -3690,17 +3695,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis: Axis | lib.NoDefault = lib.no_default,
         numeric_only: bool = False,
         skipna: bool = True,
-        *args,
-        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative sum for each group.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            The axis to apply the cumulative sum along.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
 
         Returns
         -------
         Series or DataFrame
         """
-        nv.validate_groupby_func("cumsum", args, kwargs, [])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumsum")
@@ -3708,11 +3719,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumsum(axis=axis, skipna=skipna, **kwargs)
+            f = lambda x: x.cumsum(axis=axis, skipna=skipna, numeric_only=numeric_only)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
         return self._cython_transform(
-            "cumsum", numeric_only=numeric_only, skipna=skipna, **kwargs
+            "cumsum", numeric_only=numeric_only, skipna=skipna
         )
 
     @final
