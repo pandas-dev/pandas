@@ -966,7 +966,7 @@ cdef class BlockValuesRefs:
 
         Parameters
         ----------
-        index: object
+        index : Index
             The index that the new reference should point to.
         """
         self.referenced_blocks.append(weakref.ref(index))
