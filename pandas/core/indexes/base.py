@@ -2877,8 +2877,9 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+        if not is_scalar(value):
+            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
-        value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -3220,7 +3221,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not len(other) or self.equals(other):
             # NB: whether this (and the `if not len(self)` check below) come before
-            #  or after the is_dtype_equal check above affects the returned dtype
+            #  or after the dtype equality check above affects the returned dtype
             result = self._get_reconciled_name_object(other)
             if sort is True:
                 return result.sort_values()
@@ -5126,16 +5127,6 @@ class Index(IndexOpsMixin, PandasObject):
                 raise TypeError from err
         elif not can_hold_element(self._values, value):
             raise TypeError
-        return value
-
-    @final
-    def _require_scalar(self, value):
-        """
-        Check that this is a scalar value that we can use for setitem-like
-        operations without changing dtype.
-        """
-        if not is_scalar(value):
-            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
         return value
 
     def _is_memory_usage_qualified(self) -> bool:
