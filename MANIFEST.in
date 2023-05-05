@@ -1,6 +1,3 @@
-include RELEASE.md
-include versioneer.py
-
 graft doc
 prune doc/build
 

@@ -50,11 +50,6 @@ jobs:
       - name: Checkout pandas
         uses: actions/checkout@v3
         with:
-          submodules: true
-          # versioneer.py requires the latest tag to be reachable. Here we
-          # fetch the complete history to get access to the tags.
-          # A shallow clone can work when the following issue is resolved:
-          # https://github.com/actions/checkout/issues/338
           fetch-depth: 0
 
       - name: Set up Python
@@ -105,6 +100,11 @@ jobs:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
+      - name: Checkout pandas
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Download sdist
         uses: actions/download-artifact@v3
         with:
