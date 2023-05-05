@@ -491,12 +491,13 @@ def test_groupby_quantile_nonmulti_levels_order():
     ser = pd.Series(range(8), index=ind)
     result = ser.groupby(level="cat1", sort=False).quantile([0.2, 0.8])
 
-    # We need to check that index levels are not sorted
-    qind = pd.MultiIndex(
-        [["B", "A"], [0.2, 0.8]],
-        [[0, 0, 1, 1], [0, 1, 0, 1]],
-        names=["cat1", None],
+    qind = pd.MultiIndex.from_tuples(
+        [("B", 0.2), ("B", 0.8), ("A", 0.2), ("A", 0.8)], names=["cat1", None]
     )
     expected = pd.Series([1.2, 4.8, 2.2, 5.8], index=qind)
 
     tm.assert_series_equal(result, expected)
+
+    # We need to check that index levels are not sorted
+    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
+    tm.assert_equal(result.index.levels, expected_levels)
