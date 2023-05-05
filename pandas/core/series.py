@@ -2225,14 +2225,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Generate a Series with duplicated entries.
 
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
+        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama', 'hippo'],
         ...               name='animal')
         >>> s
-        0      lama
+        0     llama
         1       cow
-        2      lama
+        2     llama
         3    beetle
-        4      lama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -2241,7 +2241,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> s.drop_duplicates()
-        0      lama
+        0     llama
         1       cow
         3    beetle
         5     hippo
@@ -2253,7 +2253,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.drop_duplicates(keep='last')
         1       cow
         3    beetle
-        4      lama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -2314,7 +2314,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> animals = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama'])
         >>> animals.duplicated()
         0    False
         1    False
@@ -4862,14 +4862,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Drop 2nd level label in MultiIndex Series
 
-        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        >>> midx = pd.MultiIndex(levels=[['llama', 'cow', 'falcon'],
         ...                              ['speed', 'weight', 'length']],
         ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
         ...               index=midx)
         >>> s
-        lama    speed      45.0
+        llama   speed      45.0
                 weight    200.0
                 length      1.2
         cow     speed      30.0
@@ -4881,7 +4881,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
 
         >>> s.drop(labels='weight', level=1)
-        lama    speed      45.0
+        llama   speed      45.0
                 length      1.2
         cow     speed      30.0
                 length      1.5
@@ -5048,9 +5048,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
+        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama',
         ...                'hippo'], name='animal')
-        >>> s.isin(['cow', 'lama'])
+        >>> s.isin(['cow', 'llama'])
         0     True
         1     True
         2     True
@@ -5061,7 +5061,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         To invert the boolean values, use the ``~`` operator:
 
-        >>> ~s.isin(['cow', 'lama'])
+        >>> ~s.isin(['cow', 'llama'])
         0    False
         1    False
         2    False
@@ -5070,10 +5070,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5     True
         Name: animal, dtype: bool
 
-        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        Passing a single string as ``s.isin('llama')`` will raise an error. Use
         a list of one element instead:
 
-        >>> s.isin(['lama'])
+        >>> s.isin(['llama'])
         0     True
         1    False
         2     True
@@ -5573,6 +5573,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # avoid repeated alignment
             if not left.index.equals(right.index):
                 if align_asobject:
+                    if left.dtype not in (object, np.bool_) or right.dtype not in (
+                        object,
+                        np.bool_,
+                    ):
+                        warnings.warn(
+                            "Operation between non boolean Series with different "
+                            "indexes will no longer return a boolean result in "
+                            "a future version. Cast both Series to object type "
+                            "to maintain the prior behavior.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     # to keep original value's dtype for bool ops
                     left = left.astype(object)
                     right = right.astype(object)
