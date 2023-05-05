@@ -318,7 +318,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         periods = dtl.validate_periods(periods)
 
         if freq is not None:
-            freq = Period._maybe_convert_freq(freq)
+            freq = Period._maybe_convert_freq(freq, is_period=True)
 
         field_count = len(fields)
         if start is not None or end is not None:
@@ -528,7 +528,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
-            freq = Period._maybe_convert_freq(freq)
+            freq = Period._maybe_convert_freq(freq, is_period=True)
             base = freq._period_dtype_code
 
         new_parr = self.asfreq(freq, how=how)
@@ -604,7 +604,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         how = libperiod.validate_end_alias(how)
 
-        freq = Period._maybe_convert_freq(freq)
+        freq = Period._maybe_convert_freq(freq, is_period=True)
 
         base1 = self._dtype._dtype_code
         base2 = freq._period_dtype_code
@@ -986,7 +986,7 @@ def validate_dtype_freq(
         # error: Incompatible types in assignment (expression has type
         # "BaseOffset", variable has type "Union[BaseOffsetT, timedelta,
         # str, None]")
-        freq = to_offset(freq)  # type: ignore[assignment]
+        freq = to_offset(freq, is_period=True)  # type: ignore[assignment]
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
@@ -1036,12 +1036,12 @@ def dt64arr_to_periodarr(
         data = data._values
 
     reso = get_unit_from_dtype(data.dtype)
-    freq = Period._maybe_convert_freq(freq)
+    freq = Period._maybe_convert_freq(freq, is_period=True)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
-def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
+def _get_ordinal_range(start, end, periods, freq, is_period, mult: int = 1):
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(
             "Of the three parameters: start, end, and periods, "
@@ -1049,7 +1049,7 @@ def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
         )
 
     if freq is not None:
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period)
         mult = freq.n
 
     if start is not None:
@@ -1098,6 +1098,7 @@ def _range_from_fields(
     minute=None,
     second=None,
     freq=None,
+    is_period=None,
 ) -> tuple[np.ndarray, BaseOffset]:
     if hour is None:
         hour = 0
@@ -1112,10 +1113,10 @@ def _range_from_fields(
 
     if quarter is not None:
         if freq is None:
-            freq = to_offset("Q")
+            freq = to_offset("Q", is_period)
             base = FreqGroup.FR_QTR.value
         else:
-            freq = to_offset(freq)
+            freq = to_offset(freq, is_period)
             base = libperiod.freq_to_dtype_code(freq)
             if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
@@ -1129,7 +1130,7 @@ def _range_from_fields(
             )
             ordinals.append(val)
     else:
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):

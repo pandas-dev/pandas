@@ -978,7 +978,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        return f"period[{self._freqstr}]"
+        if self._freqstr == "ME":
+            return "period[M]"
+        else:
+            return f"period[{self._freqstr}]"
 
     @property
     def na_value(self) -> NaTType:

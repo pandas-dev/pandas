@@ -1674,11 +1674,11 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, ts.fold, ts.creso)
 
-    def _round(self, freq, mode, ambiguous="raise", nonexistent="raise"):
+    def _round(self, freq, is_period, mode, ambiguous="raise", nonexistent="raise"):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period)
         freq.nanos  # raises on non-fixed freq
         nanos = delta_to_nanoseconds(freq, self._creso)
         if nanos == 0:

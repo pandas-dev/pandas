@@ -1464,13 +1464,13 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_ordinals(const int64_t[:] values, freq):
+def from_ordinals(const int64_t[:] values, freq, is_period):
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq)
+    freq = to_offset(freq, is_period)
     if not isinstance(freq, BaseOffset):
         raise ValueError("freq not specified and cannot be inferred")
 
@@ -1486,7 +1486,7 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray values, freq) -> np.ndarray:
+def extract_ordinals(ndarray values, freq, is_period) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
@@ -1658,6 +1658,7 @@ cdef class _Period(PeriodMixin):
         int64_t ordinal
         PeriodDtypeBase _dtype
         BaseOffset freq
+        bint is_period
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -1691,7 +1692,7 @@ cdef class _Period(PeriodMixin):
         elif isinstance(freq, PeriodDtypeBase):
             freq = freq._freqstr
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
 
         if freq.n <= 0:
             raise ValueError("Frequency must be positive, because it "
@@ -1700,7 +1701,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq, is_period) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
@@ -1845,7 +1846,7 @@ cdef class _Period(PeriodMixin):
 
         return NotImplemented
 
-    def asfreq(self, freq, how="E") -> "Period":
+    def asfreq(self, freq, is_period, how="E") -> "Period":
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
@@ -1875,7 +1876,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, how="start") -> Timestamp:
+    def to_timestamp(self, freq=None, is_period=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -2379,7 +2380,10 @@ cdef class _Period(PeriodMixin):
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
-        return f"Period('{formatted}', '{self.freqstr}')"
+        if self.freqstr == "ME":
+            return f"Period('{formatted}', 'M')"
+        else:
+            return f"Period('{formatted}', '{self.freqstr}')"
 
     def __str__(self) -> str:
         """
@@ -2589,7 +2593,7 @@ class Period(_Period):
     Period('2012-01-01', 'D')
     """
 
-    def __new__(cls, value=None, freq=None, ordinal=None,
+    def __new__(cls, value=None, freq=None, is_period=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
         # freq points to a tuple (base, mult);  base is one of the defined
@@ -2661,7 +2665,7 @@ class Period(_Period):
                 if match:
                     # Case that cannot be parsed (correctly) by our datetime
                     #  parsing logic
-                    dt, freq = _parse_weekly_str(value, freq)
+                    dt, freq = _parse_weekly_str(value, freq, is_period)
                 else:
                     raise err
 
@@ -2674,7 +2678,7 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                    freq = to_offset(freq)
+                    freq = to_offset(freq, is_period)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2736,7 +2740,7 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     return how
 
 
-cdef _parse_weekly_str(value, BaseOffset freq):
+cdef _parse_weekly_str(value, BaseOffset freq, bint is_period):
     """
     Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
     datetime-parsing logic.  This ensures that we can round-trip with
@@ -2755,7 +2759,7 @@ cdef _parse_weekly_str(value, BaseOffset freq):
     if freq is None:
         day_name = end.day_name()[:3].upper()
         freqstr = f"W-{day_name}"
-        freq = to_offset(freqstr)
+        freq = to_offset(freqstr, is_period)
         # We _should_ have freq.is_on_offset(end)
 
     return end, freq
