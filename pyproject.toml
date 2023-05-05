@@ -157,6 +157,10 @@ test-skip = "*_arm64"
 repair-wheel-command = "python /home/runner/work/pandas/pandas/ci/fix_wheels.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-test = "apk update && apk add musl-locales"
+
+[[tool.cibuildwheel.overrides]]
 select = "*-win*"
 # We test separately for Windows, since we use
 # the base windows docker image to check if any dlls are
@@ -172,7 +176,7 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win32"
-environment = { IS_32_BIT="true" }
+environment = {IS_32_BIT="true"}
 
 [tool.black]
 target-version = ['py39', 'py310']
