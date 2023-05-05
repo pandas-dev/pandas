@@ -6,6 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     Series,
@@ -509,6 +510,8 @@ def test_ignore_downcast_neg_to_unsigned():
     tm.assert_numpy_array_equal(res, expected)
 
 
+# Warning in 32 bit platforms
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.parametrize("downcast", ["integer", "signed", "unsigned"])
 @pytest.mark.parametrize(
     "data,expected",
@@ -723,18 +726,36 @@ def test_precision_float_conversion(strrep):
 @pytest.mark.parametrize(
     "values, expected",
     [
-        (["1", "2", None], Series([1, 2, np.nan])),
-        (["1", "2", "3"], Series([1, 2, 3])),
-        (["1", "2", 3], Series([1, 2, 3])),
-        (["1", "2", 3.5], Series([1, 2, 3.5])),
-        (["1", None, 3.5], Series([1, np.nan, 3.5])),
-        (["1", "2", "3.5"], Series([1, 2, 3.5])),
+        (["1", "2", None], Series([1, 2, np.nan], dtype="Int64")),
+        (["1", "2", "3"], Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3], Series([1, 2, 3], dtype="Int64")),
+        (["1", "2", 3.5], Series([1, 2, 3.5], dtype="Float64")),
+        (["1", None, 3.5], Series([1, np.nan, 3.5], dtype="Float64")),
+        (["1", "2", "3.5"], Series([1, 2, 3.5], dtype="Float64")),
     ],
 )
 def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected):
     # https://github.com/pandas-dev/pandas/issues/37262
     s = Series(values, dtype=nullable_string_dtype)
     result = to_numeric(s)
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
+    # GH#52146
+    values = ["a", "1"]
+    ser = Series(values, dtype=nullable_string_dtype)
+    result = to_numeric(ser, errors="coerce")
+    expected = Series([pd.NA, 1], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_from_nullable_string_ignore(nullable_string_dtype):
+    # GH#52146
+    values = ["a", "1"]
+    ser = Series(values, dtype=nullable_string_dtype)
+    expected = ser.copy()
+    result = to_numeric(ser, errors="ignore")
     tm.assert_series_equal(result, expected)
 
 
@@ -924,3 +945,12 @@ def test_invalid_dtype_backend():
     )
     with pytest.raises(ValueError, match=msg):
         to_numeric(ser, dtype_backend="numpy")
+
+
+def test_coerce_pyarrow_backend():
+    # GH 52588
+    pa = pytest.importorskip("pyarrow")
+    ser = Series(list("12x"), dtype=ArrowDtype(pa.string()))
+    result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
+    expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)

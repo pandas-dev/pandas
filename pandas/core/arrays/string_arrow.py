@@ -19,7 +19,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
@@ -151,6 +150,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             return cls(pa.array(result, mask=na_values, type=pa.string()))
+        elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
+            return cls(pc.cast(scalars, pa.string()))
 
         # convert non-na-likes to str
         result = lib.ensure_string_array(scalars, copy=copy)
@@ -208,7 +209,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
