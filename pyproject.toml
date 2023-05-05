@@ -164,7 +164,7 @@ before-build = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
-before-test = "wheel unpack {dest_dir} -d C:\Users\runneradmin\AppData\Local\Temp"
+before-test = 'wheel unpack {dest_dir} -d C:\Users\runneradmin\AppData\Local\Temp'
 # We test separately for Windows, since we use
 # the base windows docker image to check if any dlls are
 # missing from the wheel

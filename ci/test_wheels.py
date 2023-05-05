@@ -2,7 +2,6 @@ import glob
 import os
 import shutil
 import subprocess
-from subprocess import CalledProcessError
 import sys
 
 if os.name == "nt":
@@ -17,15 +16,15 @@ if os.name == "nt":
     print(f"IS_32_BIT is {is_32_bit}")
     print(f"Path to built wheel is {wheel_path}")
 
-    print("Verifying file hashes in wheel RECORD file")
-    try:
-        tmp_dir = "tmp"
-        subprocess.run(["wheel", "unpack", wheel_path, "-d", tmp_dir], check=True)
-    except CalledProcessError:
-        print("wheel RECORD file hash verification failed.")
-        sys.exit(1)
-    finally:
-        shutil.rmtree(tmp_dir)
+    # print("Verifying file hashes in wheel RECORD file")
+    # try:
+    #     tmp_dir = "tmp"
+    #     subprocess.run(["wheel", "unpack", wheel_path, "-d", tmp_dir], check=True)
+    # except CalledProcessError:
+    #     print("wheel RECORD file hash verification failed.")
+    #     sys.exit(1)
+    # finally:
+    #     shutil.rmtree(tmp_dir)
 
     if is_32_bit:
         sys.exit(0)  # No way to test Windows 32-bit(no docker image)
