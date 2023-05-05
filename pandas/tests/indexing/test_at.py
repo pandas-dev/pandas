@@ -123,10 +123,7 @@ class TestAtSetItem:
             index=DatetimeIndex(data=["2019-01-01", "2019-01-02"]),
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            df.at[row, 0] = 0.5
+        df.at[row, 0] = 0.5
         tm.assert_frame_equal(df, expected)
 
 

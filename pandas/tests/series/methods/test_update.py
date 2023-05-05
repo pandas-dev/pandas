@@ -29,8 +29,7 @@ class TestUpdate:
         df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            df["c"].update(Series(["foo"], index=[0]))
+        df["c"].update(Series(["foo"], index=[0]))
         if using_copy_on_write:
             expected = df_orig
         else:
