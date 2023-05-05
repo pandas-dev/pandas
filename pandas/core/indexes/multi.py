@@ -1116,11 +1116,7 @@ class MultiIndex(Index):
         # calculating the indexer are shifted to 0
         sizes = np.ceil(
             np.log2(
-                [
-                    len(level)
-                    + libindex.multiindex_nulls_shift  # type: ignore[attr-defined]
-                    for level in self.levels
-                ]
+                [len(level) + libindex.multiindex_nulls_shift for level in self.levels]
             )
         )
 

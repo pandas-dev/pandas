@@ -747,12 +747,10 @@ def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
-        dict(
-            {
-                "A": np.arange(10, dtype="float64"),
-                "B": Timestamp("20010101").as_unit("ns"),
-            }
-        )
+        {
+            "A": np.arange(10, dtype="float64"),
+            "B": Timestamp("20010101").as_unit("ns"),
+        }
     )
     df.iloc[3:6, :] = np.nan
 
