@@ -2142,7 +2142,7 @@ def test_str_encode(errors, encoding, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("flags", [0, 1])
+@pytest.mark.parametrize("flags", [0, 2])
 def test_str_findall(flags):
     ser = pd.Series(["abc", "efg", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.findall("b", flags=flags)
@@ -2615,6 +2615,19 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("date_type", [32, 64])
+def test_dt_to_pydatetime_date_error(date_type):
+    # GH 52812
+    ser = pd.Series(
+        [date(2022, 12, 31)],
+        dtype=ArrowDtype(getattr(pa, f"date{date_type}")()),
+    )
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="to_pydatetime cannot be called with"):
+            ser.dt.to_pydatetime()
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2802,6 +2815,20 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+@pytest.mark.parametrize(
+    "data, arrow_dtype",
+    [
+        ([b"a", b"b"], pa.large_binary()),
+        (["a", "b"], pa.large_string()),
+    ],
+)
+def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
+    dtype = ArrowDtype(arrow_dtype)
+    result = pd.array(np.array(data), dtype=dtype)
+    expected = pd.array(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
 def test_describe_numeric_data(pa_type):
     # GH 52470
@@ -2811,6 +2838,36 @@ def test_describe_numeric_data(pa_type):
         [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
         dtype=ArrowDtype(pa.float64()),
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
+def test_describe_timedelta_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9] + pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist(),
+        dtype=object,
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.DATETIME_PYARROW_DTYPES)
+def test_describe_datetime_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9]
+        + [
+            pd.Timestamp(v, tz=pa_type.tz, unit=pa_type.unit)
+            for v in [5, 1, 3, 5, 7, 9]
+        ],
+        dtype=object,
+        index=["count", "mean", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
 
@@ -2848,3 +2905,17 @@ def test_duration_overflow_from_ndarray_containing_nat():
     result = ser_ts + ser_td
     expected = pd.Series([2, None], dtype=ArrowDtype(pa.timestamp("ns")))
     tm.assert_series_equal(result, expected)
+
+
+def test_infer_dtype_pyarrow_dtype(data, request):
+    res = lib.infer_dtype(data)
+    assert res != "unknown-array"
+
+    if data._hasna and res in ["floating", "datetime64", "timedelta64"]:
+        mark = pytest.mark.xfail(
+            reason="in infer_dtype pd.NA is not ignored in these cases "
+            "even with skipna=True in the list(data) check below"
+        )
+        request.node.add_marker(mark)
+
+    assert res == lib.infer_dtype(list(data), skipna=True)
