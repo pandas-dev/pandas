@@ -8,10 +8,14 @@ from datetime import (
 )
 from decimal import Decimal
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -23,6 +27,7 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.dtypes import CategoricalDtypeType
 
 if not pa_version_under7p0:
@@ -321,3 +326,27 @@ class ArrowDtype(StorageExtensionDtype):
         array_class = self.construct_array_type()
         arr = array.cast(self.pyarrow_dtype, safe=True)
         return array_class(arr)
+
+    def _maybe_promote(self, item: Any) -> tuple[DtypeObj, Any]:
+        if isinstance(item, pa.Scalar):
+            if not item.is_valid:
+                # TODO: ask joris for help making these checks more robust
+                if item.type == self.pyarrow_dtype:
+                    return self, item.as_py()
+                if item.type.to_pandas_dtype() == np.int64 and self.kind == "i":
+                    # FIXME: kludge
+                    return self, item.as_py()
+
+            item = item.as_py()
+
+        elif item is None or item is libmissing.NA:
+            # TODO: np.nan? use is_valid_na_for_dtype
+            return self, item
+
+        dtype, item = maybe_promote(self.numpy_dtype, item)
+
+        if dtype == self.numpy_dtype:
+            return self, item
+
+        # TODO: implement from_numpy_dtype analogous to MaskedDtype.from_numpy_dtype
+        return np.dtype(object), item

@@ -2091,7 +2091,7 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value and of the object
-            if not is_scalar(value):
+            if is_list_like(value):
                 new_dtype = None
 
             elif is_valid_na_for_dtype(value, self.obj.dtype):
@@ -2107,8 +2107,7 @@ class _iLocIndexer(_LocationIndexer):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
                 curr_dtype = self.obj.dtype
-                curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
-                new_dtype = maybe_promote(curr_dtype, value)[0]
+                new_dtype, value = maybe_promote(curr_dtype, value)
             else:
                 new_dtype = None
 

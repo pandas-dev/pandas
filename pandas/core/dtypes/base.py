@@ -391,6 +391,9 @@ class ExtensionDtype:
         """
         return True
 
+    def _maybe_promote(self, item: Any) -> tuple[DtypeObj, Any]:
+        return np.dtype(object), item
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""

@@ -635,6 +635,15 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
+    def _maybe_promote(self, item) -> tuple[DtypeObj, Any]:
+        from pandas.core.dtypes.missing import is_valid_na_for_dtype
+
+        if item in self.categories or is_valid_na_for_dtype(
+            item, self.categories.dtype
+        ):
+            return self, item
+        return np.dtype(object), item
+
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -1500,3 +1509,15 @@ class BaseMaskedDtype(ExtensionDtype):
             return type(self).from_numpy_dtype(new_dtype)
         except (KeyError, NotImplementedError):
             return None
+
+    def _maybe_promote(self, item) -> tuple[DtypeObj, Any]:
+        from pandas.core.dtypes.cast import maybe_promote
+        from pandas.core.dtypes.missing import is_valid_na_for_dtype
+
+        if is_valid_na_for_dtype(item, self):
+            return self, item
+
+        dtype, item = maybe_promote(self.numpy_dtype, item)
+        if dtype.kind in "iufb":
+            return type(self).from_numpy_dtype(dtype), item
+        return dtype, item

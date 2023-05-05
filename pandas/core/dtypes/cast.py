@@ -46,7 +46,6 @@ from pandas.core.dtypes.common import (
     ensure_int16,
     ensure_int32,
     ensure_int64,
-    ensure_object,
     ensure_str,
     is_bool,
     is_complex,
@@ -539,13 +538,13 @@ _canonical_nans = {
 }
 
 
-def maybe_promote(dtype: np.dtype, fill_value=np.nan):
+def maybe_promote(dtype: DtypeObj, fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
 
     Parameters
     ----------
-    dtype : np.dtype
+    dtype : np.dtype or ExtensionDtype
     fill_value : scalar, default np.nan
 
     Returns
@@ -593,9 +592,13 @@ def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     return _maybe_promote(dtype, fill_value)
 
 
-def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
+def _maybe_promote(dtype: DtypeObj, fill_value=np.nan):
     # The actual implementation of the function, use `maybe_promote` above for
     # a cached version.
+
+    if not isinstance(dtype, np.dtype):
+        return dtype._maybe_promote(fill_value)
+
     if not is_scalar(fill_value):
         # with object dtype there is nothing to promote, and the user can
         #  pass pretty much any weird fill_value they like
@@ -610,12 +613,6 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype = ensure_dtype_can_hold_na(dtype)
         fv = na_value_for_dtype(dtype)
         return dtype, fv
-
-    elif isinstance(dtype, CategoricalDtype):
-        if fill_value in dtype.categories or isna(fill_value):
-            return dtype, fill_value
-        else:
-            return object, ensure_object(fill_value)
 
     elif isna(fill_value):
         dtype = _dtype_obj
