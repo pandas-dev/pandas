@@ -61,11 +61,8 @@ class TestSetitemDT64Values:
 
     def test_setitem_with_string_index(self):
         # GH#23451
-        ser = Series([1, 2, 3], index=["Date", "b", "other"])
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            ser["Date"] = date.today()
+        ser = Series([1, 2, 3], index=["Date", "b", "other"], dtype=object)
+        ser["Date"] = date.today()
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
 
@@ -480,9 +477,8 @@ class TestSetitemCallable:
         # GH#13299
         inc = lambda x: x + 1
 
-        ser = Series([1, 2, -1, 4])
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            ser[ser < 0] = inc
+        ser = Series([1, 2, -1, 4], dtype=object)
+        ser[ser < 0] = inc
 
         expected = Series([1, 2, inc, 4])
         tm.assert_series_equal(ser, expected)

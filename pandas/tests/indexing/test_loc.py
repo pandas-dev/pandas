@@ -866,11 +866,8 @@ class TestLocBaseIndependent:
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            df.loc[0, indexer] = value
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
+        df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
         assert is_scalar(result) and result == "Z"
@@ -1533,7 +1530,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_2d_to_1d_raises(self):
         data = np.random.randn(2, 2)
-        ser = Series(range(2))
+        ser = Series(range(2), dtype="float64")
 
         msg = "|".join(
             [
@@ -1542,17 +1539,11 @@ class TestLocBaseIndependent:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="item of incompatible dtype"
-            ):
-                ser.loc[range(2)] = data
+            ser.loc[range(2)] = data
 
         msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,?\)"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(
-                FutureWarning, match="item of incompatible dtype"
-            ):
-                ser.loc[:] = data
+            ser.loc[:] = data
 
     def test_loc_getitem_interval_index(self):
         # GH#19977

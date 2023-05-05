@@ -7,8 +7,6 @@ import pytest
 from pandas._libs.tslibs import iNaT
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_float_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.interchange.column import PandasColumn
@@ -173,7 +171,7 @@ def test_missing_from_masked():
         {
             "x": np.array([1.0, 2.0, 3.0, 4.0, 0.0]),
             "y": np.array([1.5, 2.5, 3.5, 4.5, 0]),
-            "z": np.array([True, False, True, True, True]),
+            "z": np.array([True, False, True, True, True]).astype("float64"),
         }
     )
 
@@ -185,13 +183,7 @@ def test_missing_from_masked():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
         ]
-        if not is_float_dtype(df[col]):
-            with tm.assert_produces_warning(
-                FutureWarning, match="item of incompatible dtype"
-            ):
-                df.loc[null_idx, col] = None
-        else:
-            df.loc[null_idx, col] = None
+        df.loc[null_idx, col] = None
 
     df2 = df.__dataframe__()
 

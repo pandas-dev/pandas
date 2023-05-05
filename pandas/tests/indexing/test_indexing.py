@@ -445,7 +445,7 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype({"col2": "float64"})
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
@@ -453,10 +453,7 @@ class TestFancy:
         cols = ["col1", "col2"]
 
         dft = df2 * 2
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            dft.iloc[3, 3] = np.nan
+        dft.iloc[3, 3] = np.nan
 
         expected = DataFrame(
             {
@@ -468,10 +465,7 @@ class TestFancy:
         )
 
         # frame on rhs
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            df2.loc[mask, cols] = dft.loc[mask, cols]
+        df2.loc[mask, cols] = dft.loc[mask, cols]
         tm.assert_frame_equal(df2, expected)
 
         # with an ndarray on rhs
@@ -486,10 +480,7 @@ class TestFancy:
             }
         )
         df2 = df.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            df2.loc[mask, cols] = dft.loc[mask, cols].values
+        df2.loc[mask, cols] = dft.loc[mask, cols].values
         tm.assert_frame_equal(df2, expected)
 
     def test_multi_assign_broadcasting_rhs(self):
