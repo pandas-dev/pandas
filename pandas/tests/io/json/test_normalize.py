@@ -137,11 +137,6 @@ def max_level_test_input_data():
     ]
 
 
-@pytest.fixture
-def parse_metadata_fields_list_type():
-    return [{"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}]
-
-
 class TestJSONNormalize:
     def test_simple_records(self):
         recs = [
@@ -175,7 +170,10 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_fields_list_type_normalize(self, parse_metadata_fields_list_type):
+    def test_fields_list_type_normalize(self):
+        parse_metadata_fields_list_type = [
+            {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
+        ]
         result = json_normalize(
             parse_metadata_fields_list_type,
             record_path=["values"],
