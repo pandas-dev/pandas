@@ -5,6 +5,8 @@ from pandas._typing import npt
 from pandas import MultiIndex
 from pandas.core.arrays import ExtensionArray
 
+multiindex_nulls_shift: int
+
 class IndexEngine:
     over_size_threshold: bool
     def __init__(self, values: np.ndarray) -> None: ...

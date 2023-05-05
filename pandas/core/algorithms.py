@@ -1240,7 +1240,7 @@ def take(
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
-    indices = np.asarray(indices, dtype=np.intp)
+    indices = ensure_platform_int(indices)
 
     if allow_fill:
         # Pandas style, -1 means NA
