@@ -578,7 +578,7 @@ def test_setitem_scalar_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     for n in series.index:
         msg = "assignment destination is read-only"
@@ -593,7 +593,7 @@ def test_setitem_slice_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     msg = "assignment destination is read-only"
     with pytest.raises(ValueError, match=msg):

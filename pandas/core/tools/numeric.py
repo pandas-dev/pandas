@@ -14,13 +14,12 @@ from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
     is_decimal,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
-    is_object_dtype,
     is_scalar,
+    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -30,6 +29,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.arrow import ArrowDtype
+from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -196,6 +196,8 @@ def to_numeric(
     else:
         values = arg
 
+    orig_values = values
+
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
@@ -210,7 +212,7 @@ def to_numeric(
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
-    elif is_datetime_or_timedelta_dtype(values_dtype):
+    elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
@@ -220,17 +222,23 @@ def to_numeric(
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=dtype_backend is not lib.no_default,
+                convert_to_masked_nullable=dtype_backend is not lib.no_default
+                or isinstance(values_dtype, StringDtype),
             )
         except (ValueError, TypeError):
             if errors == "raise":
                 raise
+            values = orig_values
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif dtype_backend is not lib.no_default and new_mask is None:
+    elif (
+        dtype_backend is not lib.no_default
+        and new_mask is None
+        or isinstance(values_dtype, StringDtype)
+    ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
     # attempt downcast only if the data has been successfully converted
@@ -265,8 +273,9 @@ def to_numeric(
 
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array
-    if (mask is not None or new_mask is not None) and not is_object_dtype(values.dtype):
-        if mask is None:
+    if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
+        if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
+            # GH 52588
             mask = new_mask
         else:
             mask = mask.copy()

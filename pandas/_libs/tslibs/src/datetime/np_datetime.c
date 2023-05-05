@@ -28,41 +28,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include "np_datetime.h"
 
 
-const npy_datetimestruct _AS_MIN_DTS = {
-    1969, 12, 31, 23, 59, 50, 776627, 963145, 224193};
-const npy_datetimestruct _FS_MIN_DTS = {
-    1969, 12, 31, 21, 26, 16, 627963, 145224, 193000};
-const npy_datetimestruct _PS_MIN_DTS = {
-    1969, 9, 16, 5, 57, 7, 963145, 224193, 0};
-const npy_datetimestruct _NS_MIN_DTS = {
-    1677, 9, 21, 0, 12, 43, 145224, 193000, 0};
-const npy_datetimestruct _US_MIN_DTS = {
-    -290308, 12, 21, 19, 59, 05, 224193, 0, 0};
-const npy_datetimestruct _MS_MIN_DTS = {
-    -292275055, 5, 16, 16, 47, 4, 193000, 0, 0};
-const npy_datetimestruct _S_MIN_DTS = {
-    -292277022657, 1, 27, 8, 29, 53, 0, 0, 0};
-const npy_datetimestruct _M_MIN_DTS = {
-    -17536621475646, 5, 4, 5, 53, 0, 0, 0, 0};
-
-const npy_datetimestruct _AS_MAX_DTS = {
-    1970, 1, 1, 0, 0, 9, 223372, 36854, 775807};
-const npy_datetimestruct _FS_MAX_DTS = {
-    1970, 1, 1, 2, 33, 43, 372036, 854775, 807000};
-const npy_datetimestruct _PS_MAX_DTS = {
-    1970, 4, 17, 18, 2, 52, 36854, 775807, 0};
-const npy_datetimestruct _NS_MAX_DTS = {
-    2262, 4, 11, 23, 47, 16, 854775, 807000, 0};
-const npy_datetimestruct _US_MAX_DTS = {
-    294247, 1, 10, 4, 0, 54, 775807, 0, 0};
-const npy_datetimestruct _MS_MAX_DTS = {
-    292278994, 8, 17, 7, 12, 55, 807000, 0, 0};
-const npy_datetimestruct _S_MAX_DTS = {
-    292277026596, 12, 4, 15, 30, 7, 0, 0, 0};
-const npy_datetimestruct _M_MAX_DTS = {
-    17536621479585, 8, 30, 18, 7, 0, 0, 0, 0};
-
-
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
     {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
@@ -333,94 +298,6 @@ PyObject *extract_utc_offset(PyObject *obj) {
     }
     return tmp;
 }
-
-/*
- *
- * Converts a Python datetime.datetime or datetime.date
- * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
- * to convert to UTC time.
- *
- * The following implementation just asks for attributes, and thus
- * supports datetime duck typing. The tzinfo time zone conversion
- * requires this style of access as well.
- *
- * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the needed date or datetime attributes.
- */
-int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
-                                         npy_datetimestruct *out) {
-    // Assumes that obj is a valid datetime object
-    PyObject *tmp;
-    PyObject *obj = (PyObject*)dtobj;
-
-    /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(npy_datetimestruct));
-    out->month = 1;
-    out->day = 1;
-
-    out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
-    out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
-    out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
-
-    // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
-    // PyDateTime_Check here, and less verbose attribute lookups.
-
-    /* Check for time attributes (if not there, return success as a date) */
-    if (!PyObject_HasAttrString(obj, "hour") ||
-        !PyObject_HasAttrString(obj, "minute") ||
-        !PyObject_HasAttrString(obj, "second") ||
-        !PyObject_HasAttrString(obj, "microsecond")) {
-        return 0;
-    }
-
-    out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
-    out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
-    out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
-    out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
-
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
-        PyObject *offset = extract_utc_offset(obj);
-        /* Apply the time zone offset if datetime obj is tz-aware */
-        if (offset != NULL) {
-            if (offset == Py_None) {
-                Py_DECREF(offset);
-                return 0;
-            }
-            PyObject *tmp_int;
-            int seconds_offset, minutes_offset;
-            /*
-             * The timedelta should have a function "total_seconds"
-             * which contains the value we want.
-             */
-            tmp = PyObject_CallMethod(offset, "total_seconds", "");
-            Py_DECREF(offset);
-            if (tmp == NULL) {
-                return -1;
-            }
-            tmp_int = PyNumber_Long(tmp);
-            if (tmp_int == NULL) {
-                Py_DECREF(tmp);
-                return -1;
-            }
-            seconds_offset = PyLong_AsLong(tmp_int);
-            if (seconds_offset == -1 && PyErr_Occurred()) {
-                Py_DECREF(tmp_int);
-                Py_DECREF(tmp);
-                return -1;
-            }
-            Py_DECREF(tmp_int);
-            Py_DECREF(tmp);
-
-            /* Convert to a minutes offset and apply it */
-            minutes_offset = seconds_offset / 60;
-
-            add_minutes_to_datetimestruct(out, -minutes_offset);
-        }
-    }
-
-    return 0;
-}
-
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based

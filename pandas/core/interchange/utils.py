@@ -9,12 +9,49 @@ import typing
 
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas.api.types import is_datetime64_dtype
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 
 if typing.TYPE_CHECKING:
     from pandas._typing import DtypeObj
+
+
+# Maps str(pyarrow.DataType) = C type format string
+# Currently, no pyarrow API for this
+PYARROW_CTYPES = {
+    "null": "n",
+    "bool": "b",
+    "uint8": "C",
+    "uint16": "S",
+    "uint32": "I",
+    "uint64": "L",
+    "int8": "c",
+    "int16": "S",
+    "int32": "i",
+    "int64": "l",
+    "halffloat": "e",  # float16
+    "float": "f",  # float32
+    "double": "g",  # float64
+    "string": "u",
+    "binary": "z",
+    "time32[s]": "tts",
+    "time32[ms]": "ttm",
+    "time64[us]": "ttu",
+    "time64[ns]": "ttn",
+    "date32[day]": "tdD",
+    "date64[ms]": "tdm",
+    "timestamp[s]": "tss:",
+    "timestamp[ms]": "tsm:",
+    "timestamp[us]": "tsu:",
+    "timestamp[ns]": "tsn:",
+    "duration[s]": "tDs",
+    "duration[ms]": "tDm",
+    "duration[us]": "tDu",
+    "duration[ns]": "tDn",
+}
 
 
 class ArrowCTypes:
@@ -39,6 +76,7 @@ class ArrowCTypes:
     FLOAT32 = "f"
     FLOAT64 = "g"
     STRING = "u"  # utf-8
+    LARGE_STRING = "U"  # utf-8
     DATE32 = "tdD"
     DATE64 = "tdm"
     # Resoulution:
@@ -77,12 +115,23 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
         return ArrowCTypes.INT64
     elif dtype == np.dtype("O"):
         return ArrowCTypes.STRING
+    elif isinstance(dtype, ArrowDtype):
+        import pyarrow as pa
+
+        pa_type = dtype.pyarrow_dtype
+        if pa.types.is_decimal(pa_type):
+            return f"d:{pa_type.precision},{pa_type.scale}"
+        elif pa.types.is_timestamp(pa_type) and pa_type.tz is not None:
+            return f"ts{pa_type.unit[0]}:{pa_type.tz}"
+        format_str = PYARROW_CTYPES.get(str(pa_type), None)
+        if format_str is not None:
+            return format_str
 
     format_str = getattr(ArrowCTypes, dtype.name.upper(), None)
     if format_str is not None:
         return format_str
 
-    if is_datetime64_dtype(dtype):
+    if lib.is_np_dtype(dtype, "M"):
         # Selecting the first char of resolution string:
         # dtype.str -> '<M8[ns]'
         resolution = re.findall(r"\[(.*)\]", typing.cast(np.dtype, dtype).str)[0][:1]

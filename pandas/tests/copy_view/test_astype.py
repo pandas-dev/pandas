@@ -200,7 +200,11 @@ def test_astype_arrow_timestamp(using_copy_on_write):
     result = df.astype("timestamp[ns][pyarrow]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
+        # TODO(CoW): arrow is not setting copy=False in the Series constructor
+        # under the hood
+        assert not np.shares_memory(
+            get_array(df, "a"), get_array(result, "a")._pa_array
+        )
 
 
 def test_convert_dtypes_infer_objects(using_copy_on_write):

@@ -322,7 +322,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 .. warning::
 
    You should specify all axes in the ``.loc`` specifier, meaning the indexer for the **index** and
-   for the **columns**. There are some ambiguous cases where the passed indexer could be mis-interpreted
+   for the **columns**. There are some ambiguous cases where the passed indexer could be misinterpreted
    as indexing *both* axes, rather than into say the ``MultiIndex`` for the rows.
 
    You should do this:
@@ -918,7 +918,7 @@ If you select a label *contained* within an interval, this will also select the 
    df.loc[2.5]
    df.loc[[2.5, 3.5]]
 
-Selecting using an ``Interval`` will only return exact matches (starting from pandas 0.25.0).
+Selecting using an ``Interval`` will only return exact matches.
 
 .. ipython:: python
 

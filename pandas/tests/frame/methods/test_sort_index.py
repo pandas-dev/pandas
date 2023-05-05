@@ -473,7 +473,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_ignore_index_multi_index(
         self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
-        # GH 30114, this is to test ignore_index on MulitIndex of index
+        # GH 30114, this is to test ignore_index on MultiIndex of index
         mi = MultiIndex.from_tuples([(2, 1), (3, 4)], names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
