@@ -135,12 +135,6 @@ class StringFormatter:
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.fmt.is_truncated_vertically:
-            assert self.fmt.max_rows_fitted is not None
-            nrows = self.fmt.max_rows_fitted + 1
-        else:
-            nrows = len(self.frame)
-
         str_lst = []
         start = 0
         for i, end in enumerate(col_bins):
@@ -148,6 +142,7 @@ class StringFormatter:
             if self.fmt.index:
                 row.insert(0, idx)
             if nbins > 1:
+                nrows = len(row[-1])
                 if end <= len(strcols) and i < nbins - 1:
                     row.append([" \\"] + ["  "] * (nrows - 1))
                 else:
