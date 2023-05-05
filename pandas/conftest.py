@@ -145,6 +145,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        (
+            "pandas.core.generic.NDFrame.clip",
+            "where downcasting from floating dtype to integer dtype is deprecated",
+        ),
     ]
 
     for item in items:
