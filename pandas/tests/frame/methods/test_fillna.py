@@ -597,7 +597,7 @@ class TestFillNA:
         assert (filled.loc[filled.index[5:20], "foo"] == 0).all()
         del float_string_frame["foo"]
 
-        float_frame.reindex(columns=[])
+        float_frame.reindex(columns=[]).fillna(value=0)
 
     def test_fillna_downcast_dict(self):
         # GH#40809
