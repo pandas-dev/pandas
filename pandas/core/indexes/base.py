@@ -6088,7 +6088,7 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+        target_dtype, _ = infer_dtype_from(target)
 
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
