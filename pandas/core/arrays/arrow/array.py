@@ -60,8 +60,9 @@ if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,

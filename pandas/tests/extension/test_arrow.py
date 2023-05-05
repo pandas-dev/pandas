@@ -40,7 +40,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.dtypes import CategoricalDtypeType
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtypeType,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -58,8 +61,6 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
-from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
