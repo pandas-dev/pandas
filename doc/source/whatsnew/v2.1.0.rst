@@ -259,7 +259,9 @@ Deprecations
 - Deprecated unused "closed" and "normalize" keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)
 - Deprecated unused "closed" keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)
 - Deprecated logical operation between two non boolean :class:`Series` with different indexes always coercing the result to bool dtype. In a future version, this will maintain the return type of the inputs. (:issue:`52500`, :issue:`52538`)
+- Deprecaed downcasting behavior in :meth:`Series.where` and :meth:`DataFrame.where` with floating dtypes; in a future version these will not cast all-round floats to integer dtype, explicitly cast the result instead (:issue:`40988`)
 - Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
+- Deprecated downcasting behavior in :meth:`Series.interpolate`, :meth:`Series.fillna`, :meth:`DataFrame.interpolate`, :meth:`DataFrame.fillna`, with downcast="infer" and floating dtypes; in a future version these will not cast all-round floats to integer dtype, explicitly cast the result instead (:issue:`40988`)
 -
 
 .. ---------------------------------------------------------------------------

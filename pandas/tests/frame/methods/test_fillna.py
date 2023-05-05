@@ -274,13 +274,17 @@ class TestFillNA:
         # GH#15277
         # infer int64 from float64
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna(0, downcast="infer")
+        msg = "fillna downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(0, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna({"a": 0}, downcast="infer")
+        msg = "fillna downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna({"a": 0}, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
@@ -302,7 +306,9 @@ class TestFillNA:
         tm.assert_equal(res, expected)
 
         obj2 = obj.astype(np.float64)
-        res2 = obj2.fillna("foo", downcast="infer")
+        msg = "fillna downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res2 = obj2.fillna("foo", downcast="infer")
         expected2 = obj  # get back int64
         tm.assert_equal(res2, expected2)
 

@@ -349,7 +349,9 @@ class TestDataFrameIndexingWhere:
         expected = a.copy()
         expected[~do_not_replace] = b
 
-        result = a.where(do_not_replace, b)
+        msg = "where downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
         a = DataFrame({0: [4, 6], 1: [1, 0]})
@@ -359,7 +361,9 @@ class TestDataFrameIndexingWhere:
         expected = a.copy()
         expected[~do_not_replace] = b
 
-        result = a.where(do_not_replace, b)
+        msg = "where downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
     def test_where_datetime(self):

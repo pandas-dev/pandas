@@ -11,6 +11,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -40,6 +41,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -425,7 +427,11 @@ class Block(PandasObject):
 
     @final
     def _maybe_downcast(
-        self, blocks: list[Block], downcast=None, using_cow: bool = False
+        self,
+        blocks: list[Block],
+        downcast=None,
+        using_cow: bool = False,
+        caller: str = "fillna",
     ) -> list[Block]:
         if downcast is False:
             return blocks
@@ -444,17 +450,35 @@ class Block(PandasObject):
         if downcast is None:
             return blocks
 
-        return extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
+        return extend_blocks(
+            [b._downcast_2d(downcast, using_cow, caller=caller) for b in blocks]
+        )
 
     @final
     @maybe_split
-    def _downcast_2d(self, dtype, using_cow: bool = False) -> list[Block]:
+    def _downcast_2d(
+        self, dtype, using_cow: bool = False, *, caller: str = "fillna"
+    ) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
         Refactored to allow use of maybe_split.
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
+        if (
+            dtype == "infer"
+            and self.values.dtype.kind == "f"
+            and new_values.dtype.kind in "iu"
+        ):
+            # GH#40988
+            warnings.warn(
+                f"{caller} downcasting from floating dtype to integer dtype is "
+                "deprecated. In a future version this will retain floating "
+                "dtype. To retain the old behavior, explicitly cast the result "
+                "to integer dtype",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         new_values = maybe_coerce_values(new_values)
         refs = self.refs if using_cow and new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
@@ -1197,7 +1221,7 @@ class Block(PandasObject):
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(orig_other, cond, using_cow=using_cow)
                 return self._maybe_downcast(
-                    blocks, downcast=_downcast, using_cow=using_cow
+                    blocks, downcast=_downcast, using_cow=using_cow, caller="where"
                 )
 
             else:
@@ -1391,7 +1415,7 @@ class Block(PandasObject):
         )
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="interpolate")
 
     def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
         """return block for the diff of the values"""
@@ -1674,7 +1698,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
@@ -1683,7 +1707,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 else:

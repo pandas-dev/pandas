@@ -147,7 +147,11 @@ class TestDataFrameInterpolate:
         expected = Series([1.0, 2.0, 3.0, 4.0], name="A")
         tm.assert_series_equal(result, expected)
 
-        result = df["A"].interpolate(downcast="infer")
+        msg = (
+            "interpolate downcasting from floating dtype to integer dtype is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df["A"].interpolate(downcast="infer")
         expected = Series([1, 2, 3, 4], name="A")
         tm.assert_series_equal(result, expected)
 
@@ -211,7 +215,11 @@ class TestDataFrameInterpolate:
         expected.loc[5, "A"] = 6
         tm.assert_frame_equal(result, expected)
 
-        result = df.interpolate(method="barycentric", downcast="infer")
+        msg = (
+            "interpolate downcasting from floating dtype to integer dtype is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.interpolate(method="barycentric", downcast="infer")
         tm.assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method="krogh")
@@ -335,7 +343,11 @@ class TestDataFrameInterpolate:
             tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result["a"].interpolate(inplace=True, downcast="infer")
+        msg = (
+            "interpolate downcasting from floating dtype to integer dtype is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
         if using_copy_on_write:
             tm.assert_frame_equal(result, expected_cow)
