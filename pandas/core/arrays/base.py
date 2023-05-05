@@ -38,13 +38,10 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_to_extension_array
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_dtype_equal,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -572,7 +569,7 @@ class ExtensionArray:
         """
 
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if not copy:
                 return self
             else:
@@ -582,12 +579,12 @@ class ExtensionArray:
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_datetime64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
 
             return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
@@ -960,7 +957,7 @@ class ExtensionArray:
         if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
             return False
@@ -1603,7 +1600,7 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self,
+            self._values_for_argsort(),
             axis=axis,
             method=method,
             na_option=na_option,
@@ -1721,6 +1718,82 @@ class ExtensionArray:
             a MultiIndex will be returned.
         """
         return map_array(self, mapper, na_action=na_action)
+
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy reduction or transformation operation.
+
+        This is an *experimental* API to allow ExtensionArray authors to implement
+        reductions and transformations. The API is subject to change.
+
+        Parameters
+        ----------
+        how : {'any', 'all', 'sum', 'prod', 'min', 'max', 'mean', 'median',
+               'median', 'var', 'std', 'sem', 'nth', 'last', 'ohlc',
+               'cumprod', 'cumsum', 'cummin', 'cummax', 'rank'}
+        has_dropped_na : bool
+        min_count : int
+        ngroups : int
+        ids : np.ndarray[np.intp]
+            ids[i] gives the integer label for the group that self[i] belongs to.
+        **kwargs : operation-specific
+            'any', 'all' -> ['skipna']
+            'var', 'std', 'sem' -> ['ddof']
+            'cumprod', 'cumsum', 'cummin', 'cummax' -> ['skipna']
+            'rank' -> ['ties_method', 'ascending', 'na_option', 'pct']
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
+        # GH#43682
+        if isinstance(self.dtype, StringDtype):
+            # StringArray
+            npvalues = self.to_numpy(object, na_value=np.nan)
+        else:
+            raise NotImplementedError(
+                f"function is not implemented for this dtype: {self.dtype}"
+            )
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=None,
+            **kwargs,
+        )
+
+        if op.how in op.cast_blocklist:
+            # i.e. how in ["rank"], since other cast_blocklist methods don't go
+            #  through cython_operation
+            return res_values
+
+        if isinstance(self.dtype, StringDtype):
+            dtype = self.dtype
+            string_array_cls = dtype.construct_array_type()
+            return string_array_cls._from_sequence(res_values, dtype=dtype)
+
+        else:
+            raise NotImplementedError
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
@@ -1884,7 +1957,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_to_extension_array(type(self), arr)
+                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

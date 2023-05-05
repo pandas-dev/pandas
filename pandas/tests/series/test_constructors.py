@@ -17,10 +17,7 @@ from pandas._libs import (
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype,
-)
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -28,6 +25,7 @@ from pandas import (
     Categorical,
     DataFrame,
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     Interval,
     IntervalIndex,
@@ -93,35 +91,34 @@ class TestSeriesConstructors:
             Series(np.array(vals, dtype=object), dtype="datetime64[ns]")
 
     @pytest.mark.parametrize(
-        "constructor,check_index_type",
+        "constructor",
         [
             # NOTE: some overlap with test_constructor_empty but that test does not
             # test for None or an empty generator.
             # test_constructor_pass_none tests None but only with the index also
             # passed.
-            (lambda idx: Series(index=idx), True),
-            (lambda idx: Series(None, index=idx), True),
-            (lambda idx: Series({}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series((), index=idx), True),
-            (lambda idx: Series([], index=idx), True),
-            (lambda idx: Series((_ for _ in []), index=idx), True),
-            (lambda idx: Series(data=None, index=idx), True),
-            (lambda idx: Series(data={}, index=idx), False),  # creates an Index[object]
-            (lambda idx: Series(data=(), index=idx), True),
-            (lambda idx: Series(data=[], index=idx), True),
-            (lambda idx: Series(data=(_ for _ in []), index=idx), True),
+            (lambda idx: Series(index=idx)),
+            (lambda idx: Series(None, index=idx)),
+            (lambda idx: Series({}, index=idx)),
+            (lambda idx: Series((), index=idx)),
+            (lambda idx: Series([], index=idx)),
+            (lambda idx: Series((_ for _ in []), index=idx)),
+            (lambda idx: Series(data=None, index=idx)),
+            (lambda idx: Series(data={}, index=idx)),
+            (lambda idx: Series(data=(), index=idx)),
+            (lambda idx: Series(data=[], index=idx)),
+            (lambda idx: Series(data=(_ for _ in []), index=idx)),
         ],
     )
     @pytest.mark.parametrize("empty_index", [None, []])
-    def test_empty_constructor(self, constructor, check_index_type, empty_index):
-        # TODO: share with frame test of the same name
+    def test_empty_constructor(self, constructor, empty_index):
         # GH 49573 (addition of empty_index parameter)
         expected = Series(index=empty_index)
         result = constructor(empty_index)
 
         assert result.dtype == object
         assert len(result.index) == 0
-        tm.assert_series_equal(result, expected, check_index_type=check_index_type)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
     def test_invalid_dtype(self):
         # GH15520
@@ -372,20 +369,20 @@ class TestSeriesConstructors:
 
     def test_constructor_map(self):
         # GH8909
-        m = map(lambda x: x, range(10))
+        m = (x for x in range(10))
 
         result = Series(m)
         exp = Series(range(10))
         tm.assert_series_equal(result, exp)
 
         # same but with non-default index
-        m = map(lambda x: x, range(10))
+        m = (x for x in range(10))
         result = Series(m, index=range(10, 20))
         exp.index = range(10, 20)
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -397,13 +394,17 @@ class TestSeriesConstructors:
     def test_construct_from_categorical_with_dtype(self):
         # GH12574
         cat = Series(Categorical([1, 2, 3]), dtype="category")
-        assert is_categorical_dtype(cat)
-        assert is_categorical_dtype(cat.dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(cat)
+            assert is_categorical_dtype(cat.dtype)
 
     def test_construct_intlist_values_category_dtype(self):
         ser = Series([1, 2, 3], dtype="category")
-        assert is_categorical_dtype(ser)
-        assert is_categorical_dtype(ser.dtype)
+        msg = "is_categorical_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_categorical_dtype(ser)
+            assert is_categorical_dtype(ser.dtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -473,12 +474,12 @@ class TestSeriesConstructors:
         result = Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
-        assert is_categorical_dtype(result.dtype) is True
+        assert isinstance(result.dtype, CategoricalDtype)
         tm.assert_index_equal(result.cat.categories, Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
-        assert is_categorical_dtype(result.dtype)
+        assert isinstance(result.dtype, CategoricalDtype)
         tm.assert_index_equal(result.cat.categories, Index(["b", "a"]))
         assert result.cat.ordered is False
 
@@ -646,7 +647,7 @@ class TestSeriesConstructors:
             list(range(3)),
             Categorical(["a", "b", "a"]),
             (i for i in range(3)),
-            map(lambda x: x, range(3)),
+            (x for x in range(3)),
         ],
     )
     def test_constructor_index_mismatch(self, input):
@@ -1101,7 +1102,7 @@ class TestSeriesConstructors:
         s = Series(dr)
         assert s.dtype.name == "datetime64[ns, US/Eastern]"
         assert s.dtype == "datetime64[ns, US/Eastern]"
-        assert is_datetime64tz_dtype(s.dtype)
+        assert isinstance(s.dtype, DatetimeTZDtype)
         assert "datetime64[ns, US/Eastern]" in str(s)
 
         # export
@@ -1345,8 +1346,7 @@ class TestSeriesConstructors:
 
     def test_constructor_dict_order(self):
         # GH19018
-        # initialization ordering: by insertion order if python>= 3.6, else
-        # order by value
+        # initialization ordering: by insertion order
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
         expected = Series([1, 0, 2], index=list("bac"))
@@ -2128,3 +2128,22 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_index_ordered_dict_keys():
+    # GH 22077
+
+    param_index = OrderedDict(
+        [
+            ((("a", "b"), ("c", "d")), 1),
+            ((("a", None), ("c", "d")), 2),
+        ]
+    )
+    series = Series([1, 2], index=param_index.keys())
+    expected = Series(
+        [1, 2],
+        index=MultiIndex.from_tuples(
+            [(("a", "b"), ("c", "d")), (("a", None), ("c", "d"))]
+        ),
+    )
+    tm.assert_series_equal(series, expected)

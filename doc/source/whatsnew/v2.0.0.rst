@@ -1,7 +1,7 @@
 .. _whatsnew_200:
 
-What's new in 2.0.0 (March XX, 2023)
-------------------------------------
+What's new in 2.0.0 (April 3, 2023)
+-----------------------------------
 
 These are the changes in pandas 2.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -66,7 +66,7 @@ Below is a possibly non-exhaustive list of changes:
 1. Instantiating using a numpy numeric array now follows the dtype of the numpy array.
    Previously, all indexes created from numpy numeric arrays were forced to 64-bit. Now,
    for example, ``Index(np.array([1, 2, 3]))`` will be ``int32`` on 32-bit systems, where
-   it previously would have been ``int64``` even on 32-bit systems.
+   it previously would have been ``int64`` even on 32-bit systems.
    Instantiating :class:`Index` using a list of numbers will still return 64bit dtypes,
    e.g. ``Index([1, 2, 3])`` will have a ``int64`` dtype, which is the same as previously.
 2. The various numeric datetime attributes of :class:`DatetimeIndex` (:attr:`~DatetimeIndex.day`,
@@ -95,7 +95,7 @@ Below is a possibly non-exhaustive list of changes:
 
 4. :class:`Index` cannot be instantiated using a float16 dtype. Previously instantiating
    an :class:`Index` using dtype ``float16`` resulted in a :class:`Float64Index` with a
-   ``float64`` dtype. It row raises a ``NotImplementedError``:
+   ``float64`` dtype. It now raises a ``NotImplementedError``:
 
    .. ipython:: python
        :okexcept:
@@ -120,6 +120,7 @@ The following functions gained a new keyword ``dtype_backend`` (:issue:`36712`)
 * :func:`read_sql`
 * :func:`read_sql_query`
 * :func:`read_sql_table`
+* :func:`read_parquet`
 * :func:`read_orc`
 * :func:`read_feather`
 * :func:`read_spss`
@@ -206,7 +207,7 @@ Copy-on-Write improvements
   with a :class:`DataFrame`.
 
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
-  will now always raise an warning when Copy-on-Write is enabled. In this mode,
+  will now always raise a warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
   object that is the result of an indexing operation (getitem), which under
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
@@ -717,7 +718,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 Note that this affects :func:`read_csv` as well.
 
 If you still need to parse dates with inconsistent formats, you can use
-``format='mixed`` (possibly alongside ``dayfirst``) ::
+``format='mixed'`` (possibly alongside ``dayfirst``) ::
 
      ser = pd.Series(['13-01-2000', '12 January 2000'])
      pd.to_datetime(ser, format='mixed', dayfirst=True)

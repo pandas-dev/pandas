@@ -7,14 +7,16 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
     is_integer_dtype,
     is_list_like,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -67,13 +69,13 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _get_values(self):
         data = self._parent
-        if is_datetime64_dtype(data.dtype):
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeIndex(data, copy=False, name=self.name)
 
         elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeIndex(data, copy=False, name=self.name)
 
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
         elif isinstance(data.dtype, PeriodDtype):
@@ -105,7 +107,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             index = self.orig.index
         else:
             index = self._parent.index
-        # return the result as a Series, which is by definition a copy
+        # return the result as a Series
         result = Series(result, index=index, name=self.name).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
@@ -214,6 +216,15 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         return result
 
     def to_pydatetime(self):
+        # GH#20306
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
     def isocalendar(self):
@@ -293,6 +304,12 @@ class DatetimeProperties(Properties):
         """
         Return the data as an array of :class:`datetime.datetime` objects.
 
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
+
         Timezone information is retained if present.
 
         .. warning::
@@ -333,6 +350,15 @@ class DatetimeProperties(Properties):
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
         """
+        # GH#20306
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._get_values().to_pydatetime()
 
     @property
@@ -342,8 +368,6 @@ class DatetimeProperties(Properties):
     def isocalendar(self) -> DataFrame:
         """
         Calculate year, week, and day according to the ISO 8601 standard.
-
-        .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -572,11 +596,11 @@ class CombinedDatetimelikeProperties(
 
         if isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "M":
             return ArrowTemporalProperties(data, orig)
-        if is_datetime64_dtype(data.dtype):
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeProperties(data, orig)
         elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeProperties(data, orig)
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaProperties(data, orig)
         elif isinstance(data.dtype, PeriodDtype):
             return PeriodProperties(data, orig)

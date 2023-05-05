@@ -39,7 +39,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_integer,
     is_list_like,
 )
@@ -132,7 +131,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if not isinstance(other, Index):
             return False
-        elif other.dtype.kind in ["f", "i", "u", "c"]:
+        elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
             should_try = False
@@ -153,7 +152,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                     #  OverflowError -> Index([very_large_timedeltas])
                     return False
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             # have different timezone
             return False
 
@@ -506,7 +505,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # be fixed by GH#41493
         res_values = res_i8.values.view(self._data._ndarray.dtype)
         result = type(self._data)._simple_new(
-            res_values, dtype=self.dtype, freq=new_freq
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+            # "Union[dtype[datetime64], DatetimeTZDtype]"
+            res_values,
+            dtype=self.dtype,  # type: ignore[arg-type]
+            freq=new_freq,  # type: ignore[arg-type]
         )
         return cast("Self", self._wrap_setop_result(other, result))
 

@@ -123,7 +123,7 @@ the missing value type chosen:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3])
+   s = pd.Series([1., 2., 3.])
    s.loc[0] = None
    s
 
@@ -181,11 +181,6 @@ account for missing data. For example:
 
 Sum/prod of empties/nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. warning::
-
-   This behavior is now standard as of v0.22.0 and is consistent with the default in ``numpy``; previously sum/prod of all-NA or empty Series/DataFrames would return NaN.
-   See :ref:`v0.22.0 whatsnew <whatsnew_0220>` for more.
 
 The sum of an empty or all-NA Series or column of a DataFrame is 0.
 

@@ -52,10 +52,8 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_object,
-    is_array_like,
     is_bool,
     is_bool_dtype,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
@@ -80,6 +78,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas import (
+    ArrowDtype,
     Categorical,
     Index,
     MultiIndex,
@@ -87,6 +86,7 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     ExtensionArray,
 )
@@ -122,6 +122,8 @@ _factorizers = {
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
 }
+
+_known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
 @Substitution("\nleft : DataFrame or named Series")
@@ -386,10 +388,6 @@ def merge_asof(
 
       - A "nearest" search selects the row in the right DataFrame whose 'on'
         key is closest in absolute distance to the left's key.
-
-    The default is "backward" and is compatible in versions below 0.20.0.
-    The direction parameter was added in version 0.20.0 and introduces
-    "forward" and "nearest".
 
     Optionally match on equivalent keys with 'by' before searching with 'on'.
 
@@ -931,7 +929,7 @@ class _MergeOperation:
         left_has_missing = None
         right_has_missing = None
 
-        assert all(is_array_like(x) for x in self.left_join_keys)
+        assert all(isinstance(x, _known) for x in self.left_join_keys)
 
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
@@ -949,9 +947,7 @@ class _MergeOperation:
                         if left_has_missing:
                             take_right = self.right_join_keys[i]
 
-                            if not is_dtype_equal(
-                                result[name].dtype, self.left[name].dtype
-                            ):
+                            if result[name].dtype != self.left[name].dtype:
                                 take_left = self.left[name]._values
 
                     elif name in self.right:
@@ -961,9 +957,7 @@ class _MergeOperation:
                         if right_has_missing:
                             take_left = self.left_join_keys[i]
 
-                            if not is_dtype_equal(
-                                result[name].dtype, self.right[name].dtype
-                            ):
+                            if result[name].dtype != self.right[name].dtype:
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None:
@@ -1002,7 +996,7 @@ class _MergeOperation:
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
                 if result._is_label_reference(name):
-                    result[name] = Series(
+                    result[name] = result._constructor_sliced(
                         key_col, dtype=result_dtype, index=result.index
                     )
                 elif result._is_level_reference(name):
@@ -1148,8 +1142,8 @@ class _MergeOperation:
 
         left, right = self.left, self.right
 
-        is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
-        is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, _known) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, _known) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
@@ -1295,7 +1289,7 @@ class _MergeOperation:
             elif lk_is_cat or rk_is_cat:
                 pass
 
-            elif is_dtype_equal(lk.dtype, rk.dtype):
+            elif lk.dtype == rk.dtype:
                 continue
 
             msg = (
@@ -1320,16 +1314,16 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = lk.astype(rk.dtype)  # type: ignore[arg-type]
 
-                        mask = ~np.isnan(lk)
-                        match = lk == casted
-                        if not match[mask].all():
-                            warnings.warn(
-                                "You are merging on int and float "
-                                "columns where the float values "
-                                "are not equal to their int representation.",
-                                UserWarning,
-                                stacklevel=find_stack_level(),
-                            )
+                    mask = ~np.isnan(lk)
+                    match = lk == casted
+                    if not match[mask].all():
+                        warnings.warn(
+                            "You are merging on int and float "
+                            "columns where the float values "
+                            "are not equal to their int representation.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     continue
 
                 if is_float_dtype(rk.dtype) and is_integer_dtype(lk.dtype):
@@ -1340,16 +1334,16 @@ class _MergeOperation:
                         # "Union[dtype[Any], Type[Any], _SupportsDType[dtype[Any]]]"
                         casted = rk.astype(lk.dtype)  # type: ignore[arg-type]
 
-                        mask = ~np.isnan(rk)
-                        match = rk == casted
-                        if not match[mask].all():
-                            warnings.warn(
-                                "You are merging on int and float "
-                                "columns where the float values "
-                                "are not equal to their int representation.",
-                                UserWarning,
-                                stacklevel=find_stack_level(),
-                            )
+                    mask = ~np.isnan(rk)
+                    match = rk == casted
+                    if not match[mask].all():
+                        warnings.warn(
+                            "You are merging on int and float "
+                            "columns where the float values "
+                            "are not equal to their int representation.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     continue
 
                 # let's infer and see if we are ok
@@ -1921,7 +1915,7 @@ class _AsOfMerge(_OrderedMerge):
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
             left_on_0 = left_on[0]
-            if is_array_like(left_on_0):
+            if isinstance(left_on_0, _known):
                 lo_dtype = left_on_0.dtype
             else:
                 lo_dtype = (
@@ -1934,7 +1928,7 @@ class _AsOfMerge(_OrderedMerge):
 
         if not self.right_index:
             right_on_0 = right_on[0]
-            if is_array_like(right_on_0):
+            if isinstance(right_on_0, _known):
                 ro_dtype = right_on_0.dtype
             else:
                 ro_dtype = (
@@ -1979,7 +1973,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            if not is_dtype_equal(lk.dtype, rk.dtype):
+            if lk.dtype != rk.dtype:
                 if isinstance(lk.dtype, CategoricalDtype) and isinstance(
                     rk.dtype, CategoricalDtype
                 ):
@@ -2107,7 +2101,7 @@ class _AsOfMerge(_OrderedMerge):
 
                 # TODO: we have no test cases with PeriodDtype here; probably
                 #  need to adjust tolerance for that case.
-                if left_values.dtype.kind in ["m", "M"]:
+                if left_values.dtype.kind in "mM":
                     # Make sure the i8 representation for tolerance
                     #  matches that for left_values/right_values.
                     lvs = ensure_wrapped_if_datetimelike(left_values)
@@ -2365,7 +2359,7 @@ def _factorize_keys(
     elif (
         isinstance(lk.dtype, CategoricalDtype)
         and isinstance(rk.dtype, CategoricalDtype)
-        and is_dtype_equal(lk.dtype, rk.dtype)
+        and lk.dtype == rk.dtype
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
@@ -2376,8 +2370,12 @@ def _factorize_keys(
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif isinstance(lk, ExtensionArray) and is_dtype_equal(lk.dtype, rk.dtype):
-        if not isinstance(lk, BaseMaskedArray):
+    elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
+        if not isinstance(lk, BaseMaskedArray) and not (
+            # exclude arrow dtypes that would get cast to object
+            isinstance(lk.dtype, ArrowDtype)
+            and is_numeric_dtype(lk.dtype.numpy_dtype)
+        ):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
@@ -2392,6 +2390,16 @@ def _factorize_keys(
         assert isinstance(rk, BaseMaskedArray)
         llab = rizer.factorize(lk._data, mask=lk._mask)
         rlab = rizer.factorize(rk._data, mask=rk._mask)
+    elif isinstance(lk, ArrowExtensionArray):
+        assert isinstance(rk, ArrowExtensionArray)
+        # we can only get here with numeric dtypes
+        # TODO: Remove when we have a Factorizer for Arrow
+        llab = rizer.factorize(
+            lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
+        )
+        rlab = rizer.factorize(
+            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
+        )
     else:
         # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
         # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
@@ -2430,7 +2438,7 @@ def _convert_arrays_and_get_rizer_klass(
 ) -> tuple[type[libhashtable.Factorizer], ArrayLike, ArrayLike]:
     klass: type[libhashtable.Factorizer]
     if is_numeric_dtype(lk.dtype):
-        if not is_dtype_equal(lk, rk):
+        if lk.dtype != rk.dtype:
             dtype = find_common_type([lk.dtype, rk.dtype])
             if isinstance(dtype, ExtensionDtype):
                 cls = dtype.construct_array_type()
@@ -2450,6 +2458,8 @@ def _convert_arrays_and_get_rizer_klass(
             #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
             #  expected type "Type[object]"
             klass = _factorizers[lk.dtype.type]  # type: ignore[index]
+        elif isinstance(lk.dtype, ArrowDtype):
+            klass = _factorizers[lk.dtype.numpy_dtype.type]
         else:
             klass = _factorizers[lk.dtype.type]
 

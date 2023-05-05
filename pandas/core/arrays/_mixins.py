@@ -36,10 +36,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -172,9 +169,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def equals(self, other) -> bool:
         if type(self) is not type(other):
             return False
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
-        return bool(array_equivalent(self._ndarray, other._ndarray))
+        return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -445,7 +442,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
-        return Series(result._values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(
         self,

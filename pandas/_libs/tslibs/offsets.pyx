@@ -15,8 +15,6 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from dateutil.easter import easter
-from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
@@ -348,6 +346,8 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        from dateutil.relativedelta import relativedelta
+
         return relativedelta(**kwds_no_nanos), True
 
     raise ValueError(
@@ -1217,7 +1217,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        other_nanos = 0
         if self._use_relativedelta:
+            if isinstance(other, _Timestamp):
+                other_nanos = other.nanosecond
             other = _as_datetime(other)
 
         if len(self.kwds) > 0:
@@ -1226,17 +1229,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if hasattr(self, "nanoseconds"):
-                td_nano = Timedelta(nanoseconds=self.nanoseconds)
-            else:
-                td_nano = Timedelta(0)
-
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset + td_nano
+                    other = other + self._offset
             else:
                 for i in range(-self.n):
-                    other = other - self._offset - td_nano
+                    other = other - self._offset
+
+            if hasattr(self, "nanoseconds"):
+                other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+            if other_nanos != 0:
+                other = Timedelta(nanoseconds=other_nanos) + other
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
@@ -1350,18 +1353,18 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     valid dates.  For example, Bday(2) can be added to a date to move
     it two business days forward.  If the date does not start on a
     valid date, first it is moved to a valid date.  Thus pseudo code
-    is:
+    is::
 
-    def __add__(date):
-      date = rollback(date) # does nothing if date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollback(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     When a date offset is created for a negative number of periods,
-    the date is first rolled forward.  The pseudo code is:
+    the date is first rolled forward.  The pseudo code is::
 
-    def __add__(date):
-      date = rollforward(date) # does nothing is date is valid
-      return date + <n number of periods>
+        def __add__(date):
+          date = rollforward(date) # does nothing if date is valid
+          return date + <n number of periods>
 
     Zero presents a problem.  Should it roll forward or back?  We
     arbitrarily have it rollforward:
@@ -2288,12 +2291,28 @@ cdef class BYearBegin(YearOffset):
 
 cdef class YearEnd(YearOffset):
     """
-    DateOffset increments between calendar year ends.
+    DateOffset increments between calendar year end dates.
+
+    YearEnd goes to the next date which is the end of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.YearEnd()
+    Timestamp('2022-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> ts + pd.offsets.YearEnd()
+    Timestamp('2023-12-31 00:00:00')
+
+    If you want to get the end of the current year:
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> pd.offsets.YearEnd().rollback(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2315,10 +2334,26 @@ cdef class YearBegin(YearOffset):
     """
     DateOffset increments between calendar year begin dates.
 
+    YearBegin goes to the next date which is the start of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
-    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts = pd.Timestamp(2022, 12, 1)
     >>> ts + pd.offsets.YearBegin()
+    Timestamp('2023-01-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2023, 1, 1)
+    >>> ts + pd.offsets.YearBegin()
+    Timestamp('2024-01-01 00:00:00')
+
+    If you want to get the start of the current year:
+
+    >>> ts = pd.Timestamp(2023, 1, 1)
+    >>> pd.offsets.YearBegin().rollback(ts)
     Timestamp('2023-01-01 00:00:00')
     """
 
@@ -3656,6 +3691,8 @@ cdef class Easter(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        from dateutil.easter import easter
+
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3686,6 +3723,9 @@ cdef class Easter(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
+
+        from dateutil.easter import easter
+
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
@@ -3761,6 +3801,13 @@ cdef class CustomBusinessDay(BusinessDay):
     _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
+
+    @property
+    def _period_dtype_code(self):
+        # GH#52534
+        raise TypeError(
+            "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        )
 
     _apply_array = BaseOffset._apply_array
 

@@ -27,10 +27,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_dtype_equal,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
@@ -46,14 +42,10 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import (
-    BooleanArray,
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
     range_to_ndarray,
@@ -320,7 +312,7 @@ def ndarray_to_mgr(
         # the dtypes will be coerced to a single dtype
         values = _prep_ndarraylike(values, copy=copy_on_sanitize)
 
-    if dtype is not None and not is_dtype_equal(values.dtype, dtype):
+    if dtype is not None and values.dtype != dtype:
         # GH#40110 see similar check inside sanitize_array
         values = sanitize_array(
             values,
@@ -349,7 +341,7 @@ def ndarray_to_mgr(
                 for i in range(values.shape[1])
             ]
         else:
-            if is_datetime_or_timedelta_dtype(values.dtype):
+            if lib.is_np_dtype(values.dtype, "mM"):
                 values = ensure_wrapped_if_datetimelike(values)
             arrays = [values[:, i] for i in range(values.shape[1])]
 
@@ -466,7 +458,7 @@ def dict_to_mgr(
 
     else:
         keys = list(data.keys())
-        columns = Index(keys)
+        columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
 
@@ -1019,8 +1011,8 @@ def convert_object_array(
             # 1) we DO get here when arr is all Timestamps and dtype=None
             # 2) disabling this doesn't break the world, so this must be
             #    getting caught at a higher level
-            # 3) passing convert_datetime to maybe_convert_objects get this right
-            # 4) convert_timedelta?
+            # 3) passing convert_non_numeric to maybe_convert_objects get this right
+            # 4) convert_non_numeric?
 
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
@@ -1029,12 +1021,8 @@ def convert_object_array(
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
                         arr = StringDtype().construct_array_type()._from_sequence(arr)
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
-                    if is_integer_dtype(arr.dtype):
-                        arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                    elif is_bool_dtype(arr.dtype):
-                        arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                    elif is_float_dtype(arr.dtype):
-                        arr = FloatingArray(arr, np.isnan(arr))
+                    if arr.dtype.kind in "iufb":
+                        arr = pd_array(arr, copy=False)
 
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here
@@ -1042,11 +1030,11 @@ def convert_object_array(
                 #  core.construction functions
                 cls = dtype.construct_array_type()
                 arr = cls._from_sequence(arr, dtype=dtype, copy=False)
-            elif dtype.kind in ["m", "M"]:
+            elif dtype.kind in "mM":
                 # This restriction is harmless bc these are the only cases
                 #  where maybe_cast_to_datetime is not a no-op.
                 # Here we know:
-                #  1) dtype.kind in ["m", "M"] and
+                #  1) dtype.kind in "mM" and
                 #  2) arr is either object or numeric dtype
                 arr = maybe_cast_to_datetime(arr, dtype)
 

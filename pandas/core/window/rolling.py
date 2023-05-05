@@ -384,7 +384,7 @@ class BaseWindow(SelectionMixin):
 
         if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
-            extra_col = Series(self._on, index=self.obj.index, name=name)
+            extra_col = Series(self._on, index=self.obj.index, name=name, copy=False)
             if name in result.columns:
                 # TODO: sure we want to overwrite results?
                 result[name] = extra_col
@@ -965,9 +965,9 @@ class Window(BaseWindow):
 
     Returns
     -------
-    ``Window`` subclass if a ``win_type`` is passed
-
-    ``Rolling`` subclass if ``win_type`` is not passed
+    pandas.api.typing.Window or pandas.api.typing.Rolling
+        An instance of Window is returned if ``win_type`` is passed. Otherwise,
+        an instance of Rolling is returned.
 
     See Also
     --------
@@ -1005,11 +1005,11 @@ class Window(BaseWindow):
     Rolling sum with a window span of 2 seconds.
 
     >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ...                        index = [pd.Timestamp('20130101 09:00:00'),
-    ...                                 pd.Timestamp('20130101 09:00:02'),
-    ...                                 pd.Timestamp('20130101 09:00:03'),
-    ...                                 pd.Timestamp('20130101 09:00:05'),
-    ...                                 pd.Timestamp('20130101 09:00:06')])
+    ...                        index=[pd.Timestamp('20130101 09:00:00'),
+    ...                               pd.Timestamp('20130101 09:00:02'),
+    ...                               pd.Timestamp('20130101 09:00:03'),
+    ...                               pd.Timestamp('20130101 09:00:05'),
+    ...                               pd.Timestamp('20130101 09:00:06')])
 
     >>> df_time
                            B
@@ -1418,7 +1418,7 @@ class RollingAndExpandingMixin(BaseWindow):
         def apply_func(values, begin, end, min_periods, raw=raw):
             if not raw:
                 # GH 45912
-                values = Series(values, index=self._on)
+                values = Series(values, index=self._on, copy=False)
             return window_func(values, begin, end, min_periods)
 
         return apply_func
@@ -1675,7 +1675,7 @@ class RollingAndExpandingMixin(BaseWindow):
                     notna(x_array + y_array).astype(np.float64), start, end, 0
                 )
                 result = (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, cov_func, numeric_only
@@ -1732,7 +1732,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 )
                 denominator = (x_var * y_var) ** 0.5
                 result = numerator / denominator
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, corr_func, numeric_only

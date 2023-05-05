@@ -18,12 +18,12 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -245,7 +245,7 @@ def __internal_pivot_table(
 
     # discard the top level
     if values_passed and not values_multi and table.columns.nlevels > 1:
-        table = table.droplevel(0, axis=1)
+        table.columns = table.columns.droplevel(0)
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
@@ -263,7 +263,7 @@ def _add_margins(
     rows,
     cols,
     aggfunc,
-    observed=None,
+    observed: bool,
     margins_name: Hashable = "All",
     fill_value=None,
 ):
@@ -292,7 +292,7 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append(Series({key: grand_margin[margins_name]}))
+        return table._append(table._constructor({key: grand_margin[margins_name]}))
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -326,7 +326,7 @@ def _add_margins(
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
             continue
 
@@ -364,8 +364,16 @@ def _compute_grand_margin(
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: Hashable = "All"
+    table,
+    data: DataFrame,
+    values,
+    rows,
+    cols,
+    aggfunc,
+    observed: bool,
+    margins_name: Hashable = "All",
 ):
+    margin_keys: list | Index
     if len(cols) > 0:
         # need to "interleave" the margins
         table_pieces = []
@@ -433,23 +441,24 @@ def _generate_marginal_results(
         new_order = [len(cols)] + list(range(len(cols)))
         row_margin.index = row_margin.index.reorder_levels(new_order)
     else:
-        row_margin = Series(np.nan, index=result.columns)
+        row_margin = data._constructor_sliced(np.nan, index=result.columns)
 
     return result, margin_keys, row_margin
 
 
 def _generate_marginal_results_without_values(
     table: DataFrame,
-    data,
+    data: DataFrame,
     rows,
     cols,
     aggfunc,
-    observed,
+    observed: bool,
     margins_name: Hashable = "All",
 ):
+    margin_keys: list | Index
     if len(cols) > 0:
         # need to "interleave" the margins
-        margin_keys: list | Index = []
+        margin_keys = []
 
         def _all_key():
             if len(cols) == 1:
@@ -510,6 +519,8 @@ def pivot(
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
+    data = data.copy(deep=False)
+    data.index = data.index.copy()
     data.index.names = [
         name if name is not None else lib.NoDefault for name in data.index.names
     ]
@@ -535,7 +546,9 @@ def pivot(
                     data.index.get_level_values(i) for i in range(data.index.nlevels)
                 ]
             else:
-                index_list = [Series(data.index, name=data.index.name)]
+                index_list = [
+                    data._constructor_sliced(data.index, name=data.index.name)
+                ]
         else:
             index_list = [data[idx] for idx in com.convert_to_list_like(index)]
 
