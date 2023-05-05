@@ -142,10 +142,15 @@ skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x *-musllinux_aarch64"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
-test-command = "python /home/runner/work/pandas/pandas/ci/test_wheels.py"
+test-command = """
+  python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db"]);' \
+  """
 
 [tool.cibuildwheel.macos]
 archs = "x86_64 arm64"
+before-test = "ls /home"
 test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
