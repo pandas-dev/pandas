@@ -4882,7 +4882,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
-        always copied and converted into an array.
+        always copied (or a reference is being tracked to them under CoW)
+        and converted into an array.
 
         Parameters
         ----------
@@ -4890,7 +4891,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.ndarray or ExtensionArray
+        tuple of numpy.ndarray or ExtensionArray and optional BlockValuesRefs
         """
         self._ensure_valid_index(value)
 
