@@ -335,7 +335,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
@@ -3890,8 +3889,6 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
 
-.. versionadded:: 1.1.0
-
 Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
 
 .. code-block:: python
@@ -5239,6 +5236,7 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 Write to a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    df.to_feather("example.feather")
 
@@ -5382,6 +5380,7 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df.to_parquet("test.parquet", engine="pyarrow")
@@ -5398,6 +5397,7 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
     df.to_parquet("test.parquet", index=False)
 
@@ -5420,6 +5420,7 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
     df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)

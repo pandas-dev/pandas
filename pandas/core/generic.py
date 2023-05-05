@@ -50,7 +50,6 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
-    Dtype,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -82,6 +81,7 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimeNonexistent,
     TimestampConvertibleTypes,
+    TimeUnit,
     ValueKeyFunc,
     WriteBuffer,
     WriteExcelBuffer,
@@ -113,7 +113,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_list_like,
@@ -273,7 +272,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cls,
         mgr: Manager,
         axes,
-        dtype: Dtype | None = None,
+        dtype: DtypeObj | None = None,
         copy: bool_t = False,
     ) -> Manager:
         """passed a manager and a axes dict"""
@@ -291,7 +290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 isinstance(mgr, BlockManager)
                 and len(mgr.blocks) == 1
-                and is_dtype_equal(mgr.blocks[0].values.dtype, dtype)
+                and mgr.blocks[0].values.dtype == dtype
             ):
                 pass
             else:
@@ -1899,6 +1898,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         iterator
             Info axis as iterator.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        >>> for x in df:
+        ...     print(x)
+        A
+        B
         """
         return iter(self._info_axis)
 
@@ -1913,6 +1920,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         Index
             Info axis.
+
+        Examples
+        --------
+        >>> d = pd.DataFrame(data={'A': [1, 2, 3], 'B': [0, 4, 8]},
+        ...                  index=['a', 'b', 'c'])
+        >>> d
+           A  B
+        a  1  0
+        b  2  4
+        c  3  8
+        >>> d.keys()
+        Index(['A', 'B'], dtype='object')
         """
         return self._info_axis
 
@@ -2284,7 +2303,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool_t = True,
-        date_unit: str = "ms",
+        date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
@@ -2564,11 +2583,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         path_or_buf: FilePath | HDFStore,
         key: str,
-        mode: str = "a",
+        mode: Literal["a", "w", "r+"] = "a",
         complevel: int | None = None,
-        complib: str | None = None,
+        complib: Literal["zlib", "lzo", "bzip2", "blosc"] | None = None,
         append: bool_t = False,
-        format: str | None = None,
+        format: Literal["fixed", "table"] | None = None,
         index: bool_t = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
@@ -3542,7 +3561,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # bold_rows is not a direct kwarg of Styler.to_latex
         render_kwargs = {} if render_kwargs is None else render_kwargs
         if render_kwargs.pop("bold_rows"):
-            styler.applymap_index(lambda v: "textbf:--rwrap;")
+            styler.map_index(lambda v: "textbf:--rwrap;")
 
         return styler.to_latex(buf=buf, **render_kwargs)
 
@@ -3679,13 +3698,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             is a non-binary file object.
         {compression_options}
 
-            .. versionchanged:: 1.0.0
-
-               May now be a dict with key 'method' as compression mode
+               May be a dict with key 'method' as compression mode
                and other entries as additional compression options if
                compression mode is 'zip'.
-
-            .. versionchanged:: 1.1.0
 
                Passing compression options as keys in dict is
                supported for compression modes 'gzip', 'bz2', 'zstd', and 'zip'.
@@ -3732,8 +3747,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
-
-            .. versionadded:: 1.1.0
 
         {storage_options}
 
@@ -4939,8 +4952,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``Series`` and return a Series with the same shape as the input.
             It will be applied to each column in `by` independently.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame or None
@@ -5593,7 +5604,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name = self._get_axis_name(axis)
             # error: Keywords must be strings
             return self.reindex(  # type: ignore[misc]
-                **{name: [r for r in items if r in labels]}  # type: ignore[arg-type]
+                **{name: labels.intersection(items)}
             )
         elif like:
 
@@ -5807,11 +5818,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
-
-            .. versionchanged:: 1.1.0
-
-                array-like and BitGenerator object now passed to np.random.RandomState()
-                as seed
 
             .. versionchanged:: 1.4.0
 
@@ -7597,11 +7603,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 * If 'method' is 'backfill' or 'bfill', the default is 'backward'
                 * else the default is 'forward'
 
-            .. versionchanged:: 1.1.0
-                raises ValueError if `limit_direction` is 'forward' or 'both' and
-                    method is 'backfill' or 'bfill'.
-                raises ValueError if `limit_direction` is 'backward' or 'both' and
-                    method is 'pad' or 'ffill'.
+            raises ValueError if `limit_direction` is 'forward' or 'both' and
+                method is 'backfill' or 'bfill'.
+            raises ValueError if `limit_direction` is 'backward' or 'both' and
+                method is 'pad' or 'ffill'.
 
         limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
@@ -7907,7 +7912,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Take all columns into consideration
 
-        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        >>> df = pd.DataFrame({'a': [10., 20., 30., 40., 50.],
         ...                    'b': [None, None, None, None, 500]},
         ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
         ...                                           '2018-02-27 09:02:00',
@@ -7925,9 +7930,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
         ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
-                              a   b
-        2018-02-27 09:03:30  30 NaN
-        2018-02-27 09:04:30  40 NaN
+                                a   b
+        2018-02-27 09:03:30  30.0 NaN
+        2018-02-27 09:04:30  40.0 NaN
         """
         if isinstance(where, str):
             where = Timestamp(where)
@@ -8339,9 +8344,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             lower, upper = min(lower, upper), max(lower, upper)
 
         # fast-path for scalars
-        if (lower is None or (is_scalar(lower) and is_number(lower))) and (
-            upper is None or (is_scalar(upper) and is_number(upper))
-        ):
+        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
             return self._clip_with_scalar(lower, upper, inplace=inplace)
 
         result = self
@@ -8692,8 +8695,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'start': `origin` is the first value of the timeseries
             - 'start_day': `origin` is the first day at midnight of the timeseries
 
-            .. versionadded:: 1.1.0
-
             - 'end': `origin` is the last value of the timeseries
             - 'end_day': `origin` is the ceiling midnight of the last day
 
@@ -8701,8 +8702,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
-
-            .. versionadded:: 1.1.0
 
         group_keys : bool, default False
             Whether to include the group keys in the result index when using
@@ -10274,8 +10273,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
 
-            .. versionchanged:: 1.1.0
-
         Returns
         -------
         {klass}
@@ -11686,11 +11683,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        if (
-            self.ndim == 1
-            and result._indexed_same(self)
-            and is_dtype_equal(result.dtype, self.dtype)
-        ):
+        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
@@ -11755,8 +11748,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __ior__(self, other) -> Self:
-        # error: Unsupported left operand type for | ("Type[NDFrame]")
-        return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
+        return self._inplace_method(other, type(self).__or__)
 
     @final
     def __ixor__(self, other) -> Self:

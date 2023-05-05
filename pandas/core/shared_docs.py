@@ -60,8 +60,6 @@ _shared_docs[
 ] = """
 Compare to another {klass} and show the differences.
 
-.. versionadded:: 1.1.0
-
 Parameters
 ----------
 other : {klass}
@@ -175,8 +173,6 @@ dropna : bool, default True
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
 pandas.api.typing.%(klass)sGroupBy
@@ -223,8 +219,6 @@ col_level : int or str, optional
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
     Index labels will be repeated as necessary.
-
-    .. versionadded:: 1.1.0
 
 Returns
 -------
