@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Literal,
     Sequence,
     cast,
     final,
@@ -1323,7 +1324,7 @@ class Block(PandasObject):
         limit_direction: str = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
-        downcast: str | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
