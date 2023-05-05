@@ -535,7 +535,7 @@ def json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        #### FIX BUG #37782: https://github.com/pandas-dev/pandas/issues/37782
+        #GH 37782
 
         values = np.array(v, dtype=object)
 
