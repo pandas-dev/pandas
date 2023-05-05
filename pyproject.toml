@@ -141,6 +141,7 @@ parentdir_prefix = "pandas-"
 skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x *-musllinux_aarch64"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
+before-test = "ls {project}"
 test-requires = "hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = "python ../ci/test_wheels.py"
 
