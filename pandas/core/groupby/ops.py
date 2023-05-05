@@ -697,8 +697,14 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
-            index = Index(to_groupby)
+            to_groupby = []
+            for ping in self.groupings:
+                gv = ping.grouping_vector
+                if not isinstance(gv, BaseGrouper):
+                    to_groupby.append(gv)
+                else:
+                    to_groupby.append(gv.groupings[0].grouping_vector)
+            index = MultiIndex.from_arrays(to_groupby)
             return self.axis.groupby(index)
 
     @final
