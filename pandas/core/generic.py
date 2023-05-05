@@ -6206,7 +6206,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
             # allow an actual np.nan through
-            if is_float(value) and np.isnan(value) or value is lib.no_default:
+            if (is_float(value) and np.isnan(value)) or value is lib.no_default:
                 return True
 
             raise TypeError(

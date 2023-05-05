@@ -71,9 +71,9 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-    na_position : {'first', 'last'}, default 'last'
-    sort_remaining : bool, default True
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}
+    na_position : {'first', 'last'}
+    sort_remaining : bool
     key : callable, optional
 
     Returns
@@ -424,7 +424,7 @@ def lexsort_indexer(
 
 def nargsort(
     items: ArrayLike | Index | Series,
-    kind: str = "quicksort",
+    kind: SortKind = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
     key: Callable | None = None,
@@ -440,7 +440,7 @@ def nargsort(
     Parameters
     ----------
     items : np.ndarray, ExtensionArray, Index, or Series
-    kind : str, default 'quicksort'
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
@@ -480,10 +480,7 @@ def nargsort(
         # i.e. ExtensionArray
         return items.argsort(
             ascending=ascending,
-            # error: Argument "kind" to "argsort" of "ExtensionArray" has
-            # incompatible type "str"; expected "Literal['quicksort',
-            # 'mergesort', 'heapsort', 'stable']"
-            kind=kind,  # type: ignore[arg-type]
+            kind=kind,
             na_position=na_position,
         )
 

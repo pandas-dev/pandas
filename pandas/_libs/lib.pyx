@@ -2612,7 +2612,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 return tdi._data._ndarray
         seen.object_ = True
 
-    if seen.period_:
+    elif seen.period_:
         if is_period_array(objects):
             from pandas import PeriodIndex
             pi = PeriodIndex(objects)
@@ -2621,7 +2621,7 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
-    if seen.interval_:
+    elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex
             ii = IntervalIndex(objects)
@@ -2631,7 +2631,7 @@ def maybe_convert_objects(ndarray[object] objects,
 
         seen.object_ = True
 
-    if seen.nat_:
+    elif seen.nat_:
         if not seen.object_ and not seen.numeric_ and not seen.bool_:
             # all NaT, None, or nan (at least one NaT)
             # see GH#49340 for discussion of desired behavior

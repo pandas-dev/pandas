@@ -346,7 +346,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, xi, yi, N, K
-        bint minpv
+        int64_t minpv
         float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -357,7 +357,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     if minp is None:
         minpv = 1
     else:
-        minpv = <int>minp
+        minpv = <int64_t>minp
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)

@@ -309,11 +309,7 @@ class Block(PandasObject):
         -------
         bool
         """
-        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
-        try:
-            return value.dtype == self.dtype
-        except TypeError:
-            return False
+        return value.dtype == self.dtype
 
     # ---------------------------------------------------------------------
     # Apply/Reduce and Helpers

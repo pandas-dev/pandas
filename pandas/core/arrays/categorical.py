@@ -2022,7 +2022,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
-            # is_dtype_equal implies categories_match_up_to_permutation
+            # dtype equality implies categories_match_up_to_permutation
             value = self._encode_with_my_categories(value)
             return value._codes
 

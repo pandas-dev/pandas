@@ -5,12 +5,14 @@ from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DatetimeIndex,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     isna,
     notna,
     offsets,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -114,11 +116,6 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import (
-            PeriodIndex,
-            period_range,
-        )
-
         # array or list or dates
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")

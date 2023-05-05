@@ -3068,7 +3068,7 @@ class TestFromScalar:
         result = constructor(scalar)
 
         item = get1(result)
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
 
         assert type(item) is Timestamp
         assert item.asm8.dtype == exp_dtype
@@ -3079,7 +3079,7 @@ class TestFromScalar:
         result = constructor(scalar)
         item = get1(result)
         assert type(item) is np.datetime64
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
         assert dtype == object
 
     @pytest.mark.xfail(
@@ -3097,7 +3097,7 @@ class TestFromScalar:
         result = constructor(scalar)
 
         item = get1(result)
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
 
         assert type(item) is Timedelta
         assert item.asm8.dtype == exp_dtype
@@ -3109,7 +3109,7 @@ class TestFromScalar:
         result = constructor(scalar)
         item = get1(result)
         assert type(item) is cls
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
         assert dtype == object
 
     def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):
