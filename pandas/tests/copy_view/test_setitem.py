@@ -37,7 +37,7 @@ def test_set_column_with_series(using_copy_on_write):
     df["c"] = ser
 
     if using_copy_on_write:
-        assert np.shares_memory(df["c"].values, get_array(ser))
+        assert np.shares_memory(get_array(df, "c"), get_array(ser))
     else:
         # the series data is copied
         assert not np.shares_memory(get_array(df, "c"), get_array(ser))
