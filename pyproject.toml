@@ -150,11 +150,11 @@ test-command = """
 
 [tool.cibuildwheel.macos]
 archs = "x86_64 arm64"
-before-test = "ls /home"
 test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
-repair-wheel-command = "python /home/runner/work/pandas/pandas/ci/fix_wheels.py {wheel} {dest_dir}"
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
