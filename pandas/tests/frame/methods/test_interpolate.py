@@ -152,6 +152,7 @@ class TestDataFrameInterpolate:
         tm.assert_series_equal(result, expected)
 
     def test_inerpolate_invalid_downcast(self):
+        # GH#53103
         df = DataFrame(
             {
                 "A": [1.0, 2.0, np.nan, 4.0],
