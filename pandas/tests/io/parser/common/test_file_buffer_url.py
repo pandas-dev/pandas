@@ -285,9 +285,14 @@ def test_file_handles_with_open(all_parsers, csv1):
     parser = all_parsers
 
     for mode in ["r", "rb"]:
-        with open(csv1, mode, encoding="utf-8") as f:
-            parser.read_csv(f)
-            assert not f.closed
+        if mode == "rb":
+            with open(csv1, mode) as f:
+                parser.read_csv(f)
+                assert not f.closed
+        else:
+            with open(csv1, mode, encoding="utf-8") as f:
+                parser.read_csv(f)
+                assert not f.closed
 
 
 def test_invalid_file_buffer_class(all_parsers):
