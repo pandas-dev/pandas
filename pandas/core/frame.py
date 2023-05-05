@@ -4803,8 +4803,8 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
 
-        value, _ = self._sanitize_column(value)
-        self._mgr.insert(loc, column, value)
+        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        self._mgr.insert(loc, column, value, refs=refs)
 
     def assign(self, **kwargs) -> DataFrame:
         r"""
