@@ -25,6 +25,8 @@ class TestUpdate:
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
+        # Cast to object to avoid upcast when setting "foo"
+        df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
         with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):

@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.loc` losing :class:`MultiIndex` name when enlarging object (:issue:`53053`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -20,6 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`api.interchange.from_dataframe` was raising ``IndexError`` on empty categorical data (:issue:`53077`)
 - Bug in :func:`api.interchange.from_dataframe` was returning :class:`DataFrame`'s of incorrect sizes when called on slices (:issue:`52824`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
 - Bug in :func:`to_timedelta` was raising ``ValueError`` with ``pandas.NA`` (:issue:`52909`)

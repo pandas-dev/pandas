@@ -921,7 +921,7 @@ class BaseBlockManager(DataManager):
 
         shape = (len(placement), self.shape[1])
 
-        dtype, fill_value = infer_dtype_from_scalar(fill_value, pandas_dtype=True)
+        dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = make_na_array(dtype, shape, fill_value)
         return new_block_2d(block_values, placement=placement)
 
@@ -1840,6 +1840,37 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
+
+    # ----------------------------------------------------------------
+    # Concatenation
+
+    @classmethod
+    def concat_horizontal(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed BlockManagers horizontally.
+        """
+        offset = 0
+        blocks: list[Block] = []
+        for mgr in mgrs:
+            for blk in mgr.blocks:
+                # We need to do getitem_block here otherwise we would be altering
+                #  blk.mgr_locs in place, which would render it invalid. This is only
+                #  relevant in the copy=False case.
+                nb = blk.getitem_block(slice(None))
+                nb._mgr_locs = nb._mgr_locs.add(offset)
+                blocks.append(nb)
+
+            offset += len(mgr.items)
+
+        new_mgr = cls(tuple(blocks), axes)
+        return new_mgr
+
+    @classmethod
+    def concat_vertical(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed BlockManagers vertically.
+        """
+        raise NotImplementedError("This logic lives (for now) in internals.concat")
 
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
