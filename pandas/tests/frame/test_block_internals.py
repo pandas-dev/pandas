@@ -228,6 +228,7 @@ class TestDataFrameBlockInternals:
                 "dt1": Timestamp("20130101"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
+                # FIXME: don't leave commented-out
             },
             index=range(3),
         )
@@ -242,6 +243,7 @@ class TestDataFrameBlockInternals:
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
+        # FIXME: don't leave commented-out
 
         tm.assert_frame_equal(df, expected)
 
