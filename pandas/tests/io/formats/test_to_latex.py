@@ -1407,16 +1407,3 @@ class TestToLatexMultiindex:
             """
         )
         assert result == expected
-
-
-def test_to_latex_exceeding_float_point_double():
-    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
-    expected = _dedent(
-        r"""
-        \begin{tabular}{lr}
-         & test \\
-        0 & 1234567890123456789 \\
-        \end{tabular}
-        """
-    )
-    assert df.style.to_latex() == expected

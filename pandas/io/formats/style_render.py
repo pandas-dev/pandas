@@ -1747,7 +1747,7 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     if is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
-        return f"{x:,.0f}" if thousands else str(x)
+        return f"{x:,}" if thousands else str(x)
     return x
 
 
