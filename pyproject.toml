@@ -142,14 +142,14 @@ skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x *-musllinux_aarch64"
 build-verbosity = "3"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
-test-command = "python {project}/ci/test_wheels.py"
+test-command = "python {package}/ci/test_wheels.py"
 
 [tool.cibuildwheel.macos]
 archs = "x86_64 arm64"
 test-skip = "*_arm64"
 
 [tool.cibuildwheel.windows]
-repair-wheel-command = "python ci/fix_wheels.py {wheel} {dest_dir}"
+repair-wheel-command = "python {package}/ci/fix_wheels.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-win*"
