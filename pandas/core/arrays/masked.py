@@ -1256,7 +1256,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             "max", result, skipna=skipna, axis=axis, **kwargs
         )
 
-    def any(self, *, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
         Return whether any element is truthy.
 
@@ -1275,6 +1275,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             If `skipna` is False, the result will still be True if there is
             at least one element that is truthy, otherwise NA will be returned
             if there are NA's present.
+        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -1318,7 +1319,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
         <NA>
         """
-        kwargs.pop("axis", None)
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
@@ -1337,7 +1337,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
         Return whether all elements are truthy.
 
@@ -1356,6 +1356,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             If `skipna` is False, the result will still be False if there is
             at least one element that is falsey, otherwise NA will be returned
             if there are NA's present.
+        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -1399,7 +1400,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
         False
         """
-        kwargs.pop("axis", None)
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
@@ -1409,7 +1409,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
-        result = values.all()
+        result = values.all(axis=axis)
 
         if skipna:
             return result
