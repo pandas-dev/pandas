@@ -13,7 +13,7 @@ Reshaping by pivoting DataFrame objects
 
 .. image:: ../_static/reshaping_pivot.png
 
-Data is often stored in so-called "stacked" or "record" format:
+Data is often stored in so-called "stacked" or "record" format. In a "record" or "wide" format typically there is one row for each subject. In the "stacked" or "long" format there are multiple rows for each subject where applicable.
 
 .. ipython:: python
 
@@ -298,8 +298,6 @@ For instance,
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
 
-.. versionadded:: 1.1.0
-
 .. ipython:: python
 
    index = pd.MultiIndex.from_tuples([("person", "A"), ("person", "B")])
@@ -350,7 +348,7 @@ some very expressive and fast data manipulations.
    df.stack().mean(1).unstack()
 
    # same result, another way
-   df.groupby(level=1, axis=1).mean()
+   df.T.groupby(level=1).mean()
 
    df.stack().groupby(level=1).mean()
 

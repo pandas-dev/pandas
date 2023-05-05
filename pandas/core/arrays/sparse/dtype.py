@@ -10,11 +10,6 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    type_t,
-)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -36,6 +31,12 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        type_t,
+    )
+
     from pandas.core.arrays.sparse.array import SparseArray
 
 

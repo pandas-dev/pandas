@@ -18,7 +18,6 @@ import string
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -36,7 +35,7 @@ def split_array(arr):
     def _split_array(arr):
         import pyarrow as pa
 
-        arrow_array = arr._data
+        arrow_array = arr._pa_array
         split = len(arrow_array) // 2
         arrow_array = pa.chunked_array(
             [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
@@ -166,10 +165,7 @@ class TestMissing(base.BaseMissingTests):
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
-        with tm.maybe_produces_warning(
-            PerformanceWarning, data.dtype.storage == "pyarrow"
-        ):
-            result = data.fillna(method="backfill")
+        result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
@@ -196,70 +192,20 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    def test_argsort(self, data_for_sorting):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0
-            and getattr(data_for_sorting.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_argsort(data_for_sorting)
+    def test_value_counts_with_normalize(self, data):
+        data = data[:10].unique()
+        values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-    def test_argsort_missing(self, data_missing_for_sorting):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0
-            and getattr(data_missing_for_sorting.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_argsort_missing(data_missing_for_sorting)
+        result = ser.value_counts(normalize=True).sort_index()
 
-    def test_argmin_argmax(
-        self, data_for_sorting, data_missing_for_sorting, na_value, request
-    ):
-        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
-
-    @pytest.mark.parametrize(
-        "op_name, skipna, expected",
-        [
-            ("idxmax", True, 0),
-            ("idxmin", True, 2),
-            ("argmax", True, 0),
-            ("argmin", True, 2),
-            ("idxmax", False, np.nan),
-            ("idxmin", False, np.nan),
-            ("argmax", False, -1),
-            ("argmin", False, -1),
-        ],
-    )
-    def test_argreduce_series(
-        self, data_missing_for_sorting, op_name, skipna, expected, request
-    ):
-        super().test_argreduce_series(
-            data_missing_for_sorting, op_name, skipna, expected
+        expected = pd.Series(
+            [1 / len(values)] * len(values), index=result.index, name="proportion"
         )
-
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
-        all_data = all_data[:10]
-        if dropna:
-            other = all_data[~all_data.isna()]
+        if getattr(data.dtype, "storage", "") == "pyarrow":
+            expected = expected.astype("double[pyarrow]")
         else:
-            other = all_data
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0
-            and getattr(all_data.dtype, "storage", "") == "pyarrow"
-            and not (dropna and "data_missing" in request.node.nodeid),
-        ):
-            result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0
-            and getattr(other.dtype, "storage", "") == "pyarrow"
-            and not (dropna and "data_missing" in request.node.nodeid),
-        ):
-            expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+            expected = expected.astype("Float64")
 
         self.assert_series_equal(result, expected)
 
@@ -272,7 +218,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, ser, data, op, other):
         op_name = f"__{op.__name__}__"
         result = getattr(ser, op_name)(other)
-        expected = getattr(ser.astype(object), op_name)(other).astype("boolean")
+        dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
+        expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
         self.assert_series_equal(result, expected)
 
     def test_compare_scalar(self, data, comparison_op):

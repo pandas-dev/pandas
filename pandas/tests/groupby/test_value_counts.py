@@ -233,7 +233,9 @@ def education_df():
 
 
 def test_axis(education_df):
-    gp = education_df.groupby("country", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gp = education_df.groupby("country", axis=1)
     with pytest.raises(NotImplementedError, match="axis"):
         gp.value_counts()
 

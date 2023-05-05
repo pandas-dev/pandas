@@ -192,6 +192,53 @@ def test_format_escape_html(escape, exp):
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
 
 
+@pytest.mark.parametrize(
+    "chars, expected",
+    [
+        (
+            r"$ \$&%#_{}~^\ $ &%#_{}~^\ $",
+            "".join(
+                [
+                    r"$ \$&%#_{}~^\ $ ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \$",
+                ]
+            ),
+        ),
+        (
+            r"\( &%#_{}~^\ \) &%#_{}~^\ \(",
+            "".join(
+                [
+                    r"\( &%#_{}~^\ \) ",
+                    r"\&\%\#\_\{\}\textasciitilde \textasciicircum ",
+                    r"\textbackslash \space \textbackslash (",
+                ]
+            ),
+        ),
+        (
+            r"$\&%#_{}^\$",
+            r"\$\textbackslash \&\%\#\_\{\}\textasciicircum \textbackslash \$",
+        ),
+        (
+            r"$ \frac{1}{2} $ \( \frac{1}{2} \)",
+            "".join(
+                [
+                    r"$ \frac{1}{2} $",
+                    r" \textbackslash ( \textbackslash frac\{1\}\{2\} \textbackslash )",
+                ]
+            ),
+        ),
+    ],
+)
+def test_format_escape_latex_math(chars, expected):
+    # GH 51903
+    # latex-math escape works for each DataFrame cell separately. If we have
+    # a combination of dollar signs and brackets, the dollar sign would apply.
+    df = DataFrame([[chars]])
+    s = df.style.format("{0}", escape="latex-math")
+    assert s._translate(True, True)["body"][0][1]["display_value"] == expected
+
+
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
     df = DataFrame([['<>&"', None]])
@@ -359,7 +406,7 @@ def test_format_decimal(formatter, thousands, precision, func, col):
 
 
 def test_str_escape_error():
-    msg = "`escape` only permitted in {'html', 'latex'}, got "
+    msg = "`escape` only permitted in {'html', 'latex', 'latex-math'}, got "
     with pytest.raises(ValueError, match=msg):
         _str_escape("text", "bad_escape")
 
@@ -367,6 +414,17 @@ def test_str_escape_error():
         _str_escape("text", [])
 
     _str_escape(2.00, "bad_escape")  # OK since dtype is float
+
+
+def test_long_int_formatting():
+    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
+    styler = df.style
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1234567890123456789"
+
+    styler = df.style.format(thousands="_")
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1_234_567_890_123_456_789"
 
 
 def test_format_options():
@@ -401,6 +459,9 @@ def test_format_options():
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][3]["display_value"] == "&amp;&lt;"
     with option_context("styler.format.escape", "latex"):
+        ctx_with_op = df.style._translate(True, True)
+        assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
+    with option_context("styler.format.escape", "latex-math"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
 

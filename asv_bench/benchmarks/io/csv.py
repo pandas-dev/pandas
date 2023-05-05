@@ -318,7 +318,7 @@ class ReadCSVFloatPrecision(StringIORewind):
             "".join([random.choice(string.digits) for _ in range(28)])
             for _ in range(15)
         ]
-        rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
+        rows = sep.join([f"0{decimal}{{}}"] * 3) + "\n"
         data = rows * 5
         data = data.format(*floats) * 200  # 1000 x 3 strings csv
         self.StringIO_input = StringIO(data)
@@ -553,6 +553,21 @@ class ReadCSVIndexCol(StringIORewind):
 
     def time_read_csv_index_col(self):
         read_csv(self.StringIO_input, index_col="a")
+
+
+class ReadCSVDatePyarrowEngine(StringIORewind):
+    def setup(self):
+        count_elem = 100_000
+        data = "a\n" + "2019-12-31\n" * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_index_col(self):
+        read_csv(
+            self.StringIO_input,
+            parse_dates=["a"],
+            engine="pyarrow",
+            dtype_backend="pyarrow",
+        )
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

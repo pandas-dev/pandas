@@ -125,7 +125,11 @@ def test_filter_with_axis_in_groupby():
     # issue 11041
     index = pd.MultiIndex.from_product([range(10), [0, 1]])
     data = DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
-    result = data.groupby(level=0, axis=1).filter(lambda x: x.iloc[0, 0] > 10)
+
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = data.groupby(level=0, axis=1)
+    result = gb.filter(lambda x: x.iloc[0, 0] > 10)
     expected = data.iloc[:, 12:20]
     tm.assert_frame_equal(result, expected)
 
@@ -599,12 +603,12 @@ def test_filter_non_bool_raises():
 def test_filter_dropna_with_empty_groups():
     # GH 10780
     data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
-    groupped = data.groupby(level=0)
-    result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
+    grouped = data.groupby(level=0)
+    result_false = grouped.filter(lambda x: x.mean() > 1, dropna=False)
     expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
-    result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
+    result_true = grouped.filter(lambda x: x.mean() > 1, dropna=True)
     expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
 

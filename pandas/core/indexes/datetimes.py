@@ -25,25 +25,15 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import (
-    Dtype,
-    DtypeObj,
-    Frequency,
-    IntervalClosedType,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.datetimes import (
@@ -60,6 +50,17 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        Dtype,
+        DtypeObj,
+        Frequency,
+        IntervalClosedType,
+        Self,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
+    )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -149,9 +150,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Set the Timezone of the data.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
+
+        .. deprecated:: 2.1.0
+
     closed : {'left', 'right'}, optional
         Set whether to include `start` and `end` that are on the
         boundary. The default includes boundary points on either end.
+
+        .. deprecated:: 2.1.0
+
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -264,9 +271,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return Index(arr, name=self.name, dtype=object)
 
     @doc(DatetimeArray.tz_convert)
-    def tz_convert(self, tz) -> DatetimeIndex:
+    def tz_convert(self, tz) -> Self:
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name)
+        return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
@@ -274,7 +281,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         tz,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
-    ) -> DatetimeIndex:
+    ) -> Self:
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -307,15 +314,32 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         data=None,
         freq: Frequency | lib.NoDefault = lib.no_default,
         tz=lib.no_default,
-        normalize: bool = False,
-        closed=None,
+        normalize: bool | lib.NoDefault = lib.no_default,
+        closed=lib.no_default,
         ambiguous: TimeAmbiguous = "raise",
         dayfirst: bool = False,
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
-    ) -> DatetimeIndex:
+    ) -> Self:
+        if closed is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'closed' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if normalize is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'normalize' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
@@ -345,8 +369,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+        refs = None
+        if not copy and isinstance(data, (Index, ABCSeries)):
+            refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name)
+        subarr = cls._simple_new(dtarr, name=name, refs=refs)
         return subarr
 
     # --------------------------------------------------------------------
@@ -377,9 +404,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
-            return is_datetime64tz_dtype(dtype)
+            return isinstance(dtype, DatetimeTZDtype)
         # if we dont have tz, we can only compare to tznaive
-        return is_datetime64_dtype(dtype)
+        return lib.is_np_dtype(dtype, "M")
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -784,7 +811,7 @@ def date_range(
         Right bound for generating dates.
     periods : int, optional
         Number of periods to generate.
-    freq : str, datetime.timedelta, or DateOffset, default 'D'
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.

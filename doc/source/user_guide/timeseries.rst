@@ -507,13 +507,17 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-Since pandas represents timestamps in nanosecond resolution, the time span that
+The limits of timestamp representation depend on the chosen resolution. For
+nanosecond resolution, the time span that
 can be represented using a 64-bit integer is limited to approximately 584 years:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+
+When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
+Different resolutions can be converted to each other through ``as_unit``.
 
 .. seealso::
 
@@ -817,8 +821,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
 Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
 on :ref:`.dt accessors<basics.dt_accessors>`.
-
-.. versionadded:: 1.1.0
 
 You may obtain the year, week and day components of the ISO year from the ISO 8601 standard:
 
@@ -1618,7 +1620,7 @@ The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
 operation.
 
-Any function available via :ref:`dispatching <groupby.dispatch>` is available as
+Any built-in method available via :ref:`GroupBy <api.groupby>` is available as
 a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
 ``max``, ``min``, ``median``, ``first``, ``last``, ``ohlc``:
 
@@ -1746,8 +1748,9 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window API <window.overview>`,
-a ``Resampler`` can be selectively resampled.
+The ``resample()`` method returns a ``pandas.api.typing.Resampler`` instance.  Similar to
+the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`,
+and the :ref:`window API <window.overview>`, a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
 
@@ -1864,8 +1867,6 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 Use ``origin`` or ``offset`` to adjust the start of the bins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.1.0
 
 The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like ``30D``) or that divide a day evenly (like ``90s`` or ``1min``). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
 
@@ -2111,8 +2112,6 @@ PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PeriodIndex now supports partial string slicing with non-monotonic indexes.
-
-.. versionadded:: 1.1.0
 
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
@@ -2485,8 +2484,6 @@ To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)
 
 Fold
 ~~~~
-
-.. versionadded:: 1.1.0
 
 For ambiguous times, pandas supports explicitly specifying the keyword-only fold argument.
 Due to daylight saving time, one wall clock time can occur twice when shifting

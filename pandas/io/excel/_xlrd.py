@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from datetime import time
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import (
-    Scalar,
-    StorageOptions,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -15,11 +12,20 @@ from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Scalar,
+        StorageOptions,
+    )
+
 
 class XlrdReader(BaseExcelReader):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
-        self, filepath_or_buffer, storage_options: StorageOptions = None
+        self,
+        filepath_or_buffer,
+        storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Reader using xlrd engine.
@@ -29,10 +35,16 @@ class XlrdReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         {storage_options}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
-        super().__init__(filepath_or_buffer, storage_options=storage_options)
+        super().__init__(
+            filepath_or_buffer,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     @property
     def _workbook_class(self):
@@ -40,14 +52,14 @@ class XlrdReader(BaseExcelReader):
 
         return Book
 
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs):
         from xlrd import open_workbook
 
         if hasattr(filepath_or_buffer, "read"):
             data = filepath_or_buffer.read()
-            return open_workbook(file_contents=data)
+            return open_workbook(file_contents=data, **engine_kwargs)
         else:
-            return open_workbook(filepath_or_buffer)
+            return open_workbook(filepath_or_buffer, **engine_kwargs)
 
     @property
     def sheet_names(self):

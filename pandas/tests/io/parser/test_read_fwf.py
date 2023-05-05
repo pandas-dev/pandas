@@ -28,6 +28,7 @@ from pandas.core.arrays import (
 )
 from pandas.tests.io.test_compression import _compression_to_extension
 
+from pandas.io.common import urlopen
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -966,7 +967,7 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes(string_storage, dtype_backend):
+def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
@@ -980,8 +981,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
-        with pd.option_context("mode.dtype_backend", dtype_backend):
-            result = read_fwf(StringIO(data), use_nullable_dtypes=True)
+        result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {
@@ -1011,17 +1011,60 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes_option():
-    # GH#50748
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        read_fwf("test", dtype_backend="numpy")
 
-    data = """a
-1
-3"""
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_fwf(StringIO(data))
 
-    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
-    tm.assert_frame_equal(result, expected)
+@pytest.mark.network
+@tm.network(
+    url="ftp://ftp.ncdc.noaa.gov/pub/data/igra/igra2-station-list.txt",
+    check_before_test=True,
+)
+def test_url_urlopen():
+    expected = pd.Index(
+        [
+            "CC",
+            "Network",
+            "Code",
+            "StationId",
+            "Latitude",
+            "Longitude",
+            "Elev",
+            "dummy",
+            "StationName",
+            "From",
+            "To",
+            "Nrec",
+        ],
+        dtype="object",
+    )
+    url = "ftp://ftp.ncdc.noaa.gov/pub/data/igra/igra2-station-list.txt"
+    with urlopen(url) as f:
+        result = read_fwf(
+            f,
+            widths=(2, 1, 3, 5, 9, 10, 7, 4, 30, 5, 5, 7),
+            names=(
+                "CC",
+                "Network",
+                "Code",
+                "StationId",
+                "Latitude",
+                "Longitude",
+                "Elev",
+                "dummy",
+                "StationName",
+                "From",
+                "To",
+                "Nrec",
+            ),
+        ).columns
+
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1056,7 +1099,7 @@ def test_use_nullable_dtypes_option():
     ],
 )
 def test_fwf_keep_whitespace_true(keep_whitespace, data, expected):
-    # see GH#####
+    # see GH51569
 
     result = read_fwf(
         StringIO("\n".join(data)),
@@ -1065,3 +1108,46 @@ def test_fwf_keep_whitespace_true(keep_whitespace, data, expected):
         keep_whitespace=keep_whitespace,
     )
     tm.assert_frame_equal(result, expected)
+
+
+# @pytest.mark.parametrize(
+#     "keep_whitespace, data, expected",
+#     [
+#         (
+#             # Preserve all whitespace:
+#             True,
+#             # 10-byte wide fields:
+#             ["left      ", "  centre  ", "    right "],
+#             DataFrame(["left      ", "  centre  ", "    right "]),
+#         ),
+#         (
+#             # Preserve no whitespace:
+#             False,
+#             # 10-byte wide fields:
+#             ["left      ", "  centre  ", "    right "],
+#             DataFrame(["left", "centre", "right"]),
+#         ),
+#         # Preserve leading whitespace only:
+#         (
+#             (True, False),
+#             ["left      ", "  centre  ", "    right"],
+#             DataFrame(["left", "  centre", "    right"]),
+#         ),
+#         # Preserve trailing whitespace only:
+#         (
+#             (False, True),
+#             ["left      ", "  centre  ", "    right"],
+#             DataFrame(["left      ", "centre  ", "right"]),
+#         ),
+#     ],
+# )
+# def test_fwf_keep_whitespace_true(keep_whitespace, data, expected):
+#     # see GH51569
+
+#     result = read_fwf(
+#         StringIO("\n".join(data)),
+#         header=None,
+#         widths=[10],
+#         keep_whitespace=keep_whitespace,
+#     )
+#     tm.assert_frame_equal(result, expected)
