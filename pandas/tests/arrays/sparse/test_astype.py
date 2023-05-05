@@ -6,13 +6,11 @@ from pandas._libs.sparse import IntIndex
 from pandas import (
     DataFrame,
     Series,
+    SparseDtype,
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestAstype:
