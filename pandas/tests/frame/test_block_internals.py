@@ -79,8 +79,6 @@ class TestDataFrameBlockInternals:
         assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
-        frame = float_frame.copy()  # noqa
-
         # triggers in-place consolidation
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
@@ -352,8 +350,8 @@ class TestDataFrameBlockInternals:
             else:
                 Y["g"]["c"] = np.NaN
             repr(Y)
-            result = Y.sum()  # noqa
-            exp = Y["g"].sum()  # noqa
+            Y.sum()
+            Y["g"].sum()
             if using_copy_on_write:
                 assert not pd.isna(Y["g"]["c"])
             else:
