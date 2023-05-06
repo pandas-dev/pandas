@@ -984,7 +984,7 @@ def test_stylesheet_file_like(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
     if mode == "rb":
-        with open(xsl, mode, encoding="utf-8") as f:
+        with open(xsl, mode) as f:
             assert geom_df.to_xml(stylesheet=f) == xsl_expected
     else:
         with open(xsl, mode, encoding="utf-8") as f:
@@ -1016,7 +1016,7 @@ def test_stylesheet_buffered_reader(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
     if mode == "rb":
-        with open(xsl, mode, encoding="utf-8") as f:
+        with open(xsl, mode) as f:
             xsl_obj = f.read()
     else:
         with open(xsl, mode, encoding="utf-8") as f:

@@ -351,7 +351,7 @@ def test_parser_consistency_url(parser):
 
 def test_file_like(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8") as f:
+    with open(filename, mode) as f:
         df_file = read_xml(f, parser=parser)
 
     df_expected = DataFrame(
@@ -369,7 +369,7 @@ def test_file_like(datapath, parser, mode):
 
 def test_file_io(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8") as f:
+    with open(filename, mode) as f:
         xml_obj = f.read()
 
     df_io = read_xml(
@@ -392,7 +392,7 @@ def test_file_io(datapath, parser, mode):
 
 def test_file_buffered_reader_string(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8") as f:
+    with open(filename, mode) as f:
         xml_obj = f.read()
 
     df_str = read_xml(xml_obj, parser=parser)
@@ -412,7 +412,7 @@ def test_file_buffered_reader_string(datapath, parser, mode):
 
 def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8") as f:
+    with open(filename, mode) as f:
         next(f)
         xml_obj = f.read()
 
@@ -1163,7 +1163,7 @@ def test_stylesheet_file_like(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    with open(xsl, mode, encoding="utf-8") as f:
+    with open(xsl, mode) as f:
         df_style = read_xml(
             kml,
             xpath=".//k:Placemark",
@@ -1183,7 +1183,7 @@ def test_stylesheet_io(datapath, mode):
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    with open(xsl, mode, encoding="utf-8") as f:
+    with open(xsl, mode) as f:
         if mode == "rb":
             xsl_obj = BytesIO(f.read())
         else:
@@ -1204,7 +1204,7 @@ def test_stylesheet_buffered_reader(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    with open(xsl, mode, encoding="utf-8") as f:
+    with open(xsl, mode) as f:
         xsl_obj = f.read()
 
     df_style = read_xml(
@@ -1364,7 +1364,7 @@ def test_stylesheet_file_close(datapath, mode):
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    with open(xsl, mode, encoding="utf-8") as f:
+    with open(xsl, mode) as f:
         if mode == "rb":
             xsl_obj = BytesIO(f.read())
         else:
@@ -1416,7 +1416,7 @@ def test_string_error(parser):
 def test_file_like_iterparse(datapath, parser, mode):
     filename = datapath("io", "data", "xml", "books.xml")
 
-    with open(filename, mode, encoding="utf-8") as f:
+    with open(filename, mode) as f:
         if mode == "r" and parser == "lxml":
             with pytest.raises(
                 TypeError, match=("reading file objects must return bytes objects")
