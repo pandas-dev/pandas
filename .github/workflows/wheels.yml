@@ -130,9 +130,14 @@ jobs:
           extra-specs: |
             python=${{ matrix.python[1] }}
             anaconda-client
+            wheel
           channels: conda-forge
           cache-downloads: true
           cache-env: true
+
+      - name: Validate wheel RECORD
+        shell: bash -el {0}
+        run: wheel unpack wheelhouse/$(ls wheelhouse) -d /tmp
 
       - name: Test wheels (Windows 64-bit only)
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
