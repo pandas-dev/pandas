@@ -55,6 +55,7 @@ from pandas._typing import (
     IndexLabel,
     JoinHow,
     Level,
+    NaPosition,
     Self,
     Shape,
     npt,
@@ -93,7 +94,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_any_real_numeric_dtype,
     is_bool_dtype,
-    is_dtype_equal,
     is_ea_or_datetimelike_dtype,
     is_float,
     is_float_dtype,
@@ -915,18 +915,27 @@ class Index(IndexOpsMixin, PandasObject):
         if ufunc.nout == 2:
             # i.e. np.divmod, np.modf, np.frexp
             return tuple(self.__array_wrap__(x) for x in result)
+        elif method == "reduce":
+            result = lib.item_from_zerodim(result)
+            return result
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
 
         return self.__array_wrap__(result)
 
+    @final
     def __array_wrap__(self, result, context=None):
         """
         Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
+        if (not isinstance(result, Index) and is_bool_dtype(result.dtype)) or np.ndim(
+            result
+        ) > 1:
+            # exclude Index to avoid warning from is_bool_dtype deprecation;
+            #  in the Index case it doesn't matter which path we go down.
+            # reached in plotting tests with e.g. np.nonzero(index)
             return result
 
         return Index(result, name=self.name)
@@ -1008,7 +1017,7 @@ class Index(IndexOpsMixin, PandasObject):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(self.dtype, dtype):
+        if self.dtype == dtype:
             # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
 
@@ -1270,7 +1279,7 @@ class Index(IndexOpsMixin, PandasObject):
             is_justify = False
         elif self.inferred_type == "categorical":
             self = cast("CategoricalIndex", self)
-            if is_object_dtype(self.categories):
+            if is_object_dtype(self.categories.dtype):
                 is_justify = False
 
         return format_object_summary(
@@ -1915,7 +1924,7 @@ class Index(IndexOpsMixin, PandasObject):
         level=None,
         ascending: bool | list[bool] = True,
         sort_remaining=None,
-        na_position: str_t = "first",
+        na_position: NaPosition = "first",
     ):
         """
         For internal compatibility with the Index API.
@@ -2527,7 +2536,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds categorical data.
 
         .. deprecated:: 2.0.0
-              Use :meth:`pandas.api.types.is_categorical_dtype` instead.
+              Use `isinstance(index.dtype, pd.CategoricalDtype)` instead.
 
         Returns
         -------
@@ -2580,7 +2589,7 @@ class Index(IndexOpsMixin, PandasObject):
         Check if the Index holds Interval objects.
 
         .. deprecated:: 2.0.0
-            Use `pandas.api.types.is_interval_dtype` instead.
+            Use `isinstance(index.dtype, pd.IntervalDtype)` instead.
 
         Returns
         -------
@@ -2859,8 +2868,9 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+        if not is_scalar(value):
+            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
-        value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -3083,7 +3093,7 @@ class Index(IndexOpsMixin, PandasObject):
         With mismatched timezones, cast both to UTC.
         """
         # Caller is responsibelf or checking
-        #  `not is_dtype_equal(self.dtype, other.dtype)`
+        #  `self.dtype != other.dtype`
         if (
             isinstance(self, ABCDatetimeIndex)
             and isinstance(other, ABCDatetimeIndex)
@@ -3183,7 +3193,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             if (
                 isinstance(self, ABCMultiIndex)
                 and not is_object_dtype(_unpack_nested_dtype(other))
@@ -3202,7 +3212,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not len(other) or self.equals(other):
             # NB: whether this (and the `if not len(self)` check below) come before
-            #  or after the is_dtype_equal check above affects the returned dtype
+            #  or after the dtype equality check above affects the returned dtype
             result = self._get_reconciled_name_object(other)
             if sort is True:
                 return result.sort_values()
@@ -3340,7 +3350,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other, result_name = self._convert_can_do_setop(other)
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             self, other = self._dti_setop_align_tzs(other, "intersection")
 
         if self.equals(other):
@@ -3361,7 +3371,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self[:0].rename(result_name)
 
             dtype = self._find_common_type_compat(other)
-            if is_dtype_equal(self.dtype, dtype):
+            if self.dtype == dtype:
                 # Slicing allows us to retain DTI/TDI.freq, RangeIndex
 
                 # Note: self[:0] vs other[:0] affects
@@ -3382,7 +3392,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self[:0].rename(result_name)
             return Index([], name=result_name)
 
-        elif not is_dtype_equal(self.dtype, other.dtype):
+        elif self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             other = other.astype(dtype, copy=False)
@@ -3584,13 +3594,13 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             self, other = self._dti_setop_align_tzs(other, "symmetric_difference")
 
         if not self._should_compare(other):
             return self.union(other, sort=sort).rename(result_name)
 
-        elif not is_dtype_equal(self.dtype, other.dtype):
+        elif self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             that = other.astype(dtype, copy=False)
@@ -3760,7 +3770,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.dtype, CategoricalDtype):
             # _maybe_cast_listlike_indexer ensures target has our dtype
             #  (could improve perf by doing _should_compare check earlier?)
-            assert is_dtype_equal(self.dtype, target.dtype)
+            assert self.dtype == target.dtype
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
@@ -3800,13 +3810,11 @@ class Index(IndexOpsMixin, PandasObject):
                 ptarget, method=method, limit=limit, tolerance=tolerance
             )
 
-        if is_dtype_equal(self.dtype, target.dtype) and self.equals(target):
+        if self.dtype == target.dtype and self.equals(target):
             # Only call equals if we have same dtype to avoid inference/casting
             return np.arange(len(target), dtype=np.intp)
 
-        if not is_dtype_equal(
-            self.dtype, target.dtype
-        ) and not self._should_partial_index(target):
+        if self.dtype != target.dtype and not self._should_partial_index(target):
             # _should_partial_index e.g. IntervalIndex with numeric scalars
             #  that can be matched to Interval scalars.
             dtype = self._find_common_type_compat(target)
@@ -4510,7 +4518,7 @@ class Index(IndexOpsMixin, PandasObject):
             lidx, ridx = ridx, lidx
             return join_index, lidx, ridx
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             other = other.astype(dtype, copy=False)
@@ -4900,7 +4908,7 @@ class Index(IndexOpsMixin, PandasObject):
             mask = lidx == -1
             join_idx = self.take(lidx)
             right = other.take(ridx)
-            join_index = join_idx.putmask(mask, right)
+            join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
             return join_index.set_names(name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
@@ -5112,16 +5120,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError
         return value
 
-    @final
-    def _require_scalar(self, value):
-        """
-        Check that this is a scalar value that we can use for setitem-like
-        operations without changing dtype.
-        """
-        if not is_scalar(value):
-            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
-        return value
-
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
@@ -5314,7 +5312,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
         except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self):  # pragma: no cover
+            if is_object_dtype(self.dtype):  # pragma: no cover
                 raise err
 
             # See also: Block.coerce_to_target_dtype
@@ -5567,7 +5565,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str_t = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         """
@@ -5594,8 +5592,6 @@ class Index(IndexOpsMixin, PandasObject):
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -5626,7 +5622,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        idx = ensure_key_mapped(self, key)
+        idx = cast(Index, ensure_key_mapped(self, key))
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
@@ -5835,7 +5831,7 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if not is_dtype_equal(self.dtype, target.dtype):
+        if self.dtype != target.dtype:
             # TODO: if object, could use infer_dtype to preempt costly
             #  conversion if still non-comparable?
             dtype = self._find_common_type_compat(target)
@@ -6083,7 +6079,7 @@ class Index(IndexOpsMixin, PandasObject):
         Implementation of find_common_type that adjusts for Index-specific
         special cases.
         """
-        target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+        target_dtype, _ = infer_dtype_from(target)
 
         # special case: if one dtype is uint64 and the other a signed int, return object
         # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
@@ -6107,8 +6103,12 @@ class Index(IndexOpsMixin, PandasObject):
         Check if `self == other` can ever have non-False entries.
         """
 
-        if (is_bool_dtype(other) and is_any_real_numeric_dtype(self)) or (
-            is_bool_dtype(self) and is_any_real_numeric_dtype(other)
+        # NB: we use inferred_type rather than is_bool_dtype to catch
+        #  object_dtype_of_bool and categorical[object_dtype_of_bool] cases
+        if (
+            other.inferred_type == "boolean" and is_any_real_numeric_dtype(self.dtype)
+        ) or (
+            self.inferred_type == "boolean" and is_any_real_numeric_dtype(other.dtype)
         ):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
@@ -6128,7 +6128,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # TODO: this was written assuming we only get here with object-dtype,
-        #  which is nom longer correct. Can we specialize for EA?
+        #  which is no longer correct. Can we specialize for EA?
         return True
 
     @final
@@ -6158,7 +6158,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return PrettyDict(result)
 
-    def map(self, mapper, na_action=None):
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using an input mapping or function.
 
@@ -6745,10 +6745,7 @@ class Index(IndexOpsMixin, PandasObject):
         values = cast("npt.NDArray[np.object_]", values)
         res_values = lib.maybe_convert_objects(
             values,
-            convert_datetime=True,
-            convert_timedelta=True,
-            convert_period=True,
-            convert_interval=True,
+            convert_non_numeric=True,
         )
         if copy and res_values is values:
             return self.copy()
@@ -6757,6 +6754,59 @@ class Index(IndexOpsMixin, PandasObject):
             result._references = self._references
             result._references.add_index_reference(result)
         return result
+
+    def diff(self, periods: int = 1):
+        """
+        Computes the difference between consecutive values in the Index object.
+
+        If periods is greater than 1, computes the difference between values that
+        are `periods` number of positions apart.
+
+        Parameters
+        ----------
+        periods : int, optional
+            The number of positions between the current and previous
+            value to compute the difference with. Default is 1.
+
+        Returns
+        -------
+        Index
+            A new Index object with the computed differences.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10, 20, 30, 40, 50])
+        >>> idx.diff()
+        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().diff(periods))
+
+    def round(self, decimals: int = 0):
+        """
+        Round each value in the Index to the given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+
+        Returns
+        -------
+        Index
+            A new Index with the rounded values.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> idx = pd.Index([10.1234, 20.5678, 30.9123, 40.4567, 50.7890])
+        >>> idx.round(decimals=2)
+        Index([10.12, 20.57, 30.91, 40.46, 50.79], dtype='float64')
+
+        """
+        return self._constructor(self.to_series().round(decimals))
 
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
@@ -7317,10 +7367,15 @@ def _unpack_nested_dtype(other: Index) -> Index:
     return other
 
 
-def _maybe_try_sort(result, sort):
+def _maybe_try_sort(result: Index | ArrayLike, sort: bool | None):
     if sort is not False:
         try:
-            result = algos.safe_sort(result)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ExtensionArray, ndarray[Any, Any], Index, Series,
+            # Tuple[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series],
+            # ndarray[Any, Any]]]", variable has type "Union[Index,
+            # Union[ExtensionArray, ndarray[Any, Any]]]")
+            result = algos.safe_sort(result)  # type: ignore[assignment]
         except TypeError as err:
             if sort is True:
                 raise

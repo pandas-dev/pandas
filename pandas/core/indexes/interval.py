@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_dtype_equal,
     is_float,
     is_float_dtype,
     is_integer,
@@ -113,6 +112,7 @@ _index_doc_kwargs.update(
 
 
 def _get_next_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64[ns]"
@@ -129,6 +129,7 @@ def _get_next_label(label):
 
 
 def _get_prev_label(label):
+    # see test_slice_locs_with_ints_and_floats_succeeds
     dtype = getattr(label, "dtype", type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = "datetime64[ns]"
@@ -218,7 +219,7 @@ class IntervalIndex(ExtensionIndex):
     def __new__(
         cls,
         data,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable = None,
@@ -557,7 +558,7 @@ class IntervalIndex(ExtensionIndex):
 
         if scalar:
             # Timestamp/Timedelta
-            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            key_dtype, key_i8 = infer_dtype_from_scalar(key)
             if lib.is_period(key):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
@@ -577,7 +578,7 @@ class IntervalIndex(ExtensionIndex):
         # ExtensionDtype]" has no attribute "subtype"
         subtype = self.dtype.subtype  # type: ignore[union-attr]
 
-        if not is_dtype_equal(subtype, key_dtype):
+        if subtype != key_dtype:
             raise ValueError(
                 f"Cannot index an IntervalIndex of subtype {subtype} with "
                 f"values of dtype {key_dtype}"

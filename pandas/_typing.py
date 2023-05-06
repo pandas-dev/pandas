@@ -132,6 +132,8 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
+ToTimestampHow = Literal["s", "e", "start", "end"]
+
 # NDFrameT is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: NDFrameT) -> NDFrameT: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
@@ -153,7 +155,7 @@ Axes = ListLike
 
 RandomState = Union[
     int,
-    ArrayLike,
+    np.ndarray,
     np.random.Generator,
     np.random.BitGenerator,
     np.random.RandomState,
@@ -361,6 +363,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
+# Arguments for nsmalles and n_largest
+NsmallestNlargestKeep = Literal["first", "last", "all"]
+
 # quantile interpolation
 QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
 
@@ -372,9 +377,32 @@ AnyAll = Literal["any", "all"]
 
 # merge
 MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeValidate = Literal[
+    "one_to_one",
+    "1:1",
+    "one_to_many",
+    "1:m",
+    "many_to_one",
+    "m:1",
+    "many_to_many",
+    "m:m",
+]
 
 # join
 JoinHow = Literal["left", "right", "inner", "outer"]
+JoinValidate = Literal[
+    "one_to_one",
+    "1:1",
+    "one_to_many",
+    "1:m",
+    "many_to_one",
+    "m:1",
+    "many_to_many",
+    "m:m",
+]
+
+# reindex
+ReindexMethod = Union[FillnaOptions, Literal["nearest"]]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[
@@ -390,3 +418,29 @@ CorrelationMethod = Union[
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
 DtypeBackend = Literal["pyarrow", "numpy_nullable"]
+
+TimeUnit = Literal["s", "ms", "us", "ns"]
+OpenFileErrors = Literal[
+    "strict",
+    "ignore",
+    "replace",
+    "surrogateescape",
+    "xmlcharrefreplace",
+    "backslashreplace",
+    "namereplace",
+]
+
+# update
+UpdateJoin = Literal["left"]
+
+# applymap
+NaAction = Literal["ignore"]
+
+# from_dict
+FromDictOrient = Literal["columns", "index", "tight"]
+
+# to_gbc
+ToGbqIfexist = Literal["fail", "replace", "append"]
+
+# to_stata
+ToStataByteorder = Literal[">", "<", "little", "big"]

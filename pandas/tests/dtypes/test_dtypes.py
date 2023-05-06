@@ -276,6 +276,7 @@ class TestDatetimeTZDtype(Base):
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
+        assert res.base == np.dtype("M8[ms]")
 
     def test_day_not_supported(self):
         msg = "DatetimeTZDtype only supports s, ms, us, ns units"
@@ -426,12 +427,10 @@ class TestPeriodDtype(Base):
         for s in ["period[D]", "Period[D]", "D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day()
-            assert is_period_dtype(dt)
 
         for s in ["period[3D]", "Period[3D]", "3D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day(3)
-            assert is_period_dtype(dt)
 
         for s in [
             "period[26H]",
@@ -443,7 +442,6 @@ class TestPeriodDtype(Base):
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)
-            assert is_period_dtype(dt)
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
@@ -529,20 +527,22 @@ class TestPeriodDtype(Base):
         assert not is_dtype_equal(PeriodDtype("D"), PeriodDtype("2D"))
 
     def test_basic(self, dtype):
-        assert is_period_dtype(dtype)
+        msg = "is_period_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_period_dtype(dtype)
 
-        pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
 
-        assert is_period_dtype(pidx.dtype)
-        assert is_period_dtype(pidx)
+            assert is_period_dtype(pidx.dtype)
+            assert is_period_dtype(pidx)
 
-        s = Series(pidx, name="A")
+            s = Series(pidx, name="A")
 
-        assert is_period_dtype(s.dtype)
-        assert is_period_dtype(s)
+            assert is_period_dtype(s.dtype)
+            assert is_period_dtype(s)
 
-        assert not is_period_dtype(np.dtype("float64"))
-        assert not is_period_dtype(1.0)
+            assert not is_period_dtype(np.dtype("float64"))
+            assert not is_period_dtype(1.0)
 
     def test_freq_argument_required(self):
         # GH#27388
@@ -558,6 +558,14 @@ class TestPeriodDtype(Base):
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
         assert not is_string_dtype(PeriodDtype("D"))
+
+    def test_perioddtype_caching_dateoffset_normalize(self):
+        # GH 24121
+        per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
+        assert per_d.freq.normalize
+
+        per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
+        assert not per_d2.freq.normalize
 
 
 class TestIntervalDtype(Base):
@@ -1131,6 +1139,7 @@ def test_is_dtype_no_warning(check):
         check is is_categorical_dtype
         or check is is_interval_dtype
         or check is is_datetime64tz_dtype
+        or check is is_period_dtype
     ):
         warn = FutureWarning
 
@@ -1158,6 +1167,13 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
+
+
+def test_cast_string_to_complex():
+    # GH 4895
+    expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
+    result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multi_column_dtype_assignment():

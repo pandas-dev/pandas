@@ -12,7 +12,10 @@ https://www.statsmodels.org/devel/
 from __future__ import annotations
 
 from collections import abc
-import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import BytesIO
 import os
 import struct
@@ -30,9 +33,9 @@ from typing import (
 )
 import warnings
 
-from dateutil.relativedelta import relativedelta
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
 from pandas.errors import (
@@ -49,7 +52,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_datetime64_dtype,
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -156,7 +158,7 @@ filepath_or_buffer : str, path object or file-like object
 
 Returns
 -------
-DataFrame or StataReader
+DataFrame or pandas.api.typing.StataReader
 
 See Also
 --------
@@ -226,7 +228,7 @@ path_or_buf : path (string), buffer or path object
 _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 
 
-stata_epoch: Final = datetime.datetime(1960, 1, 1)
+stata_epoch: Final = datetime(1960, 1, 1)
 
 
 # TODO: Add typing. As of January 2020 it is not possible to type this function since
@@ -279,8 +281,8 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         years since 0000
     """
     MIN_YEAR, MAX_YEAR = Timestamp.min.year, Timestamp.max.year
-    MAX_DAY_DELTA = (Timestamp.max - datetime.datetime(1960, 1, 1)).days
-    MIN_DAY_DELTA = (Timestamp.min - datetime.datetime(1960, 1, 1)).days
+    MAX_DAY_DELTA = (Timestamp.max - datetime(1960, 1, 1)).days
+    MIN_DAY_DELTA = (Timestamp.min - datetime(1960, 1, 1)).days
     MIN_MS_DELTA = MIN_DAY_DELTA * 24 * 3600 * 1000
     MAX_MS_DELTA = MAX_DAY_DELTA * 24 * 3600 * 1000
 
@@ -295,9 +297,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
             return to_datetime(100 * year + month, format="%Y%m")
         else:
             index = getattr(year, "index", None)
-            return Series(
-                [datetime.datetime(y, m, 1) for y, m in zip(year, month)], index=index
-            )
+            return Series([datetime(y, m, 1) for y, m in zip(year, month)], index=index)
 
     def convert_year_days_safe(year, days) -> Series:
         """
@@ -309,8 +309,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         else:
             index = getattr(year, "index", None)
             value = [
-                datetime.datetime(y, 1, 1) + relativedelta(days=int(d))
-                for y, d in zip(year, days)
+                datetime(y, 1, 1) + timedelta(days=int(d)) for y, d in zip(year, days)
             ]
             return Series(value, index=index)
 
@@ -323,12 +322,12 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         index = getattr(deltas, "index", None)
         if unit == "d":
             if deltas.max() > MAX_DAY_DELTA or deltas.min() < MIN_DAY_DELTA:
-                values = [base + relativedelta(days=int(d)) for d in deltas]
+                values = [base + timedelta(days=int(d)) for d in deltas]
                 return Series(values, index=index)
         elif unit == "ms":
             if deltas.max() > MAX_MS_DELTA or deltas.min() < MIN_MS_DELTA:
                 values = [
-                    base + relativedelta(microseconds=(int(d) * 1000)) for d in deltas
+                    base + timedelta(microseconds=(int(d) * 1000)) for d in deltas
                 ]
                 return Series(values, index=index)
         else:
@@ -405,7 +404,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     Parameters
     ----------
     dates : Series
-        Series or array containing datetime.datetime or datetime64[ns] to
+        Series or array containing datetime or datetime64[ns] to
         convert to the Stata Internal Format given by fmt
     fmt : str
         The format to convert to. Can be, tc, td, tw, tm, tq, th, ty
@@ -415,10 +414,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     US_PER_DAY = NS_PER_DAY / 1000
 
     def parse_dates_safe(
-        dates, delta: bool = False, year: bool = False, days: bool = False
+        dates: Series, delta: bool = False, year: bool = False, days: bool = False
     ):
         d = {}
-        if is_datetime64_dtype(dates.dtype):
+        if lib.is_np_dtype(dates.dtype, "M"):
             if delta:
                 time_delta = dates - Timestamp(stata_epoch).as_unit("ns")
                 d["delta"] = time_delta._values.view(np.int64) // 1000  # microseconds
@@ -436,7 +435,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
             if delta:
                 delta = dates._values - stata_epoch
 
-                def f(x: datetime.timedelta) -> float:
+                def f(x: timedelta) -> float:
                     return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
 
                 v = np.vectorize(f)
@@ -447,15 +446,15 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["month"] = year_month._values - d["year"] * 100
             if days:
 
-                def g(x: datetime.datetime) -> int:
-                    return (x - datetime.datetime(x.year, 1, 1)).days
+                def g(x: datetime) -> int:
+                    return (x - datetime(x.year, 1, 1)).days
 
                 v = np.vectorize(g)
                 d["days"] = v(dates)
         else:
             raise ValueError(
                 "Columns containing dates must contain either "
-                "datetime64, datetime.datetime or null values."
+                "datetime64, datetime or null values."
             )
 
         return DataFrame(d, index=index)
@@ -464,7 +463,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     index = dates.index
     if bad_loc.any():
         dates = Series(dates)
-        if is_datetime64_dtype(dates):
+        if lib.is_np_dtype(dates.dtype, "M"):
             dates[bad_loc] = to_datetime(stata_epoch)
         else:
             dates[bad_loc] = stata_epoch
@@ -2266,8 +2265,6 @@ class StataWriter(StataParser):
         Each label must be 80 characters or smaller.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
@@ -2293,7 +2290,7 @@ class StataWriter(StataParser):
         * If datetimes contain timezone information
     ValueError
         * Columns listed in convert_dates are neither datetime64[ns]
-          or datetime.datetime
+          or datetime
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
@@ -2326,7 +2323,7 @@ class StataWriter(StataParser):
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
-        time_stamp: datetime.datetime | None = None,
+        time_stamp: datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
@@ -2619,7 +2616,7 @@ class StataWriter(StataParser):
         for col in data:
             if col in self._convert_dates:
                 continue
-            if is_datetime64_dtype(data[col]):
+            if lib.is_np_dtype(data[col].dtype, "M"):
                 self._convert_dates[col] = "tc"
 
         self._convert_dates = _maybe_convert_to_int_keys(
@@ -2766,7 +2763,7 @@ supported types."""
     def _write_header(
         self,
         data_label: str | None = None,
-        time_stamp: datetime.datetime | None = None,
+        time_stamp: datetime | None = None,
     ) -> None:
         byteorder = self._byteorder
         # ds_format - just use 114
@@ -2791,8 +2788,8 @@ supported types."""
         # time stamp, 18 bytes, char, null terminated
         # format dd Mon yyyy hh:mm
         if time_stamp is None:
-            time_stamp = datetime.datetime.now()
-        elif not isinstance(time_stamp, datetime.datetime):
+            time_stamp = datetime.now()
+        elif not isinstance(time_stamp, datetime):
             raise ValueError("time_stamp should be datetime type")
         # GH #13856
         # Avoid locale-specific month conversion
@@ -3195,8 +3192,6 @@ class StataWriter117(StataWriter):
         characters, and either frequently repeated or sparse.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
@@ -3218,7 +3213,7 @@ class StataWriter117(StataWriter):
         * If datetimes contain timezone information
     ValueError
         * Columns listed in convert_dates are neither datetime64[ns]
-          or datetime.datetime
+          or datetime
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
@@ -3254,7 +3249,7 @@ class StataWriter117(StataWriter):
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
-        time_stamp: datetime.datetime | None = None,
+        time_stamp: datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
@@ -3299,7 +3294,7 @@ class StataWriter117(StataWriter):
     def _write_header(
         self,
         data_label: str | None = None,
-        time_stamp: datetime.datetime | None = None,
+        time_stamp: datetime | None = None,
     ) -> None:
         """Write the file header"""
         byteorder = self._byteorder
@@ -3325,8 +3320,8 @@ class StataWriter117(StataWriter):
         # time stamp, 18 bytes, char, null terminated
         # format dd Mon yyyy hh:mm
         if time_stamp is None:
-            time_stamp = datetime.datetime.now()
-        elif not isinstance(time_stamp, datetime.datetime):
+            time_stamp = datetime.now()
+        elif not isinstance(time_stamp, datetime):
             raise ValueError("time_stamp should be datetime type")
         # Avoid locale-specific month conversion
         months = [
@@ -3587,8 +3582,6 @@ class StataWriterUTF8(StataWriter117):
         for storing larger DataFrames.
     {compression_options}
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
@@ -3610,7 +3603,7 @@ class StataWriterUTF8(StataWriter117):
         * If datetimes contain timezone information
     ValueError
         * Columns listed in convert_dates are neither datetime64[ns]
-          or datetime.datetime
+          or datetime
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
         * Categorical label contains more than 32,000 characters
@@ -3647,7 +3640,7 @@ class StataWriterUTF8(StataWriter117):
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
-        time_stamp: datetime.datetime | None = None,
+        time_stamp: datetime | None = None,
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
         convert_strl: Sequence[Hashable] | None = None,

@@ -46,16 +46,14 @@ from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
-    is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -137,7 +135,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = is_timedelta64_dtype
+    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -912,7 +910,7 @@ def sequence_to_td64ns(
         inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
+    if data.dtype == object or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = _objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
@@ -925,7 +923,7 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        if is_extension_array_dtype(data):
+        if isinstance(data.dtype, ExtensionDtype):
             mask = data._mask
             data = data._data
         else:
@@ -1049,7 +1047,7 @@ def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
 
 def _validate_td64_dtype(dtype) -> DtypeObj:
     dtype = pandas_dtype(dtype)
-    if is_dtype_equal(dtype, np.dtype("timedelta64")):
+    if dtype == np.dtype("m8"):
         # no precision disallowed GH#24806
         msg = (
             "Passing in 'timedelta' dtype with no precision is not allowed. "
