@@ -357,7 +357,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`Series.where`, and :meth:`Series.mask` now let ``pd.NA`` propagate through (:issue:`52955`)
 -
 
 Missing
