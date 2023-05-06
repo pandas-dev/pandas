@@ -9870,6 +9870,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
+            # cond may contain NA, see GH #52955
+            # let NA propagate in where and mask operations
+            cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
                 cond = cond._constructor_expanddim(

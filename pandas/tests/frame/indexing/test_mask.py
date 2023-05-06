@@ -8,6 +8,7 @@ from pandas import (
     NA,
     DataFrame,
     Float64Dtype,
+    Int64Dtype,
     Series,
     StringDtype,
     Timedelta,
@@ -150,3 +151,12 @@ def test_mask_inplace_no_other():
     df.mask(cond, inplace=True)
     expected = DataFrame({"a": [np.nan, 2], "b": ["x", np.nan]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_mask_with_na():
+    # See GH #52955, NA should propagate in mask
+    df = DataFrame([[1, NA], [NA, 2]], dtype=Int64Dtype())
+    result = df.mask(df % 2 == 1, 0)
+
+    expected = DataFrame([[0, NA], [NA, 2]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result, expected)

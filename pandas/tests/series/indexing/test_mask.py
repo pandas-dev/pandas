@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import (
+    NA,
+    Int64Dtype,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -67,3 +71,12 @@ def test_mask_inplace():
     rs = s.copy()
     rs.mask(cond, -s, inplace=True)
     tm.assert_series_equal(rs, s.mask(cond, -s))
+
+
+def test_mask_with_na():
+    # See GH #52955, NA should propagate in mask
+    s = Series([1, 2, NA], dtype=Int64Dtype())
+    res = s.mask(s % 2 == 1, 0)
+
+    exp = Series([0, 2, NA], dtype=Int64Dtype())
+    tm.assert_series_equal(res, exp)

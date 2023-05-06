@@ -5,6 +5,8 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import (
+    NA,
+    Int64Dtype,
     Series,
     Timestamp,
     date_range,
@@ -464,3 +466,12 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+def test_where_with_na():
+    # See GH #52955, NA should propagate in where
+    s = Series([1, 2, NA], dtype=Int64Dtype())
+    res = s.where(s % 2 == 1, 0)
+
+    exp = Series([1, 0, NA], dtype=Int64Dtype())
+    tm.assert_series_equal(res, exp)

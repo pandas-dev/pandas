@@ -11,6 +11,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    Int64Dtype,
     Series,
     StringDtype,
     Timestamp,
@@ -1032,3 +1033,12 @@ def test_where_inplace_no_other():
     df.where(cond, inplace=True)
     expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_where_with_na():
+    # See GH #52955, NA should propagate in where
+    df = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
+    result = df.where(df % 2 == 1, 0)
+
+    expected = DataFrame([[1, pd.NA], [pd.NA, 0]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result, expected)
