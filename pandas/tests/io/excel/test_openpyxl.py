@@ -254,7 +254,7 @@ def test_to_excel_with_openpyxl_engine(ext):
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})
         df = pd.concat([df1, df2], axis=1)
-        styled = df.style.applymap(
+        styled = df.style.map(
             lambda val: f"color: {'red' if val < 0 else 'black'}"
         ).highlight_max()
 

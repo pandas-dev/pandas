@@ -74,6 +74,74 @@ def test_categorical_dtype(data):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
+def test_categorical_pyarrow():
+    # GH 49889
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
+    table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+    weekday = pd.Categorical(
+        arr, categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    )
+    expected = pd.DataFrame({"weekday": weekday})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_empty_categorical_pyarrow():
+    # https://github.com/pandas-dev/pandas/issues/53077
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = [None]
+    table = pa.table({"arr": pa.array(arr, "float64").dictionary_encode()})
+    exchange_df = table.__dataframe__()
+    result = pd.api.interchange.from_dataframe(exchange_df)
+    expected = pd.DataFrame({"arr": pd.Categorical([np.nan])})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_large_string_pyarrow():
+    # GH 52795
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = ["Mon", "Tue"]
+    table = pa.table({"weekday": pa.array(arr, "large_string")})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+    expected = pd.DataFrame({"weekday": ["Mon", "Tue"]})
+    tm.assert_frame_equal(result, expected)
+
+    # check round-trip
+    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+
+
+@pytest.mark.parametrize(
+    ("offset", "length", "expected_values"),
+    [
+        (0, None, [3.3, float("nan"), 2.1]),
+        (1, None, [float("nan"), 2.1]),
+        (2, None, [2.1]),
+        (0, 2, [3.3, float("nan")]),
+        (0, 1, [3.3]),
+        (1, 1, [float("nan")]),
+    ],
+)
+def test_bitmasks_pyarrow(offset, length, expected_values):
+    # GH 52795
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = [3.3, None, 2.1]
+    table = pa.table({"arr": arr}).slice(offset, length)
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+    expected = pd.DataFrame({"arr": expected_values})
+    tm.assert_frame_equal(result, expected)
+
+    # check round-trip
+    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+
+
 @pytest.mark.parametrize(
     "data", [int_data, uint_data, float_data, bool_data, datetime_data]
 )
@@ -101,9 +169,9 @@ def test_dataframe(data):
 def test_missing_from_masked():
     df = pd.DataFrame(
         {
-            "x": np.array([1, 2, 3, 4, 0]),
+            "x": np.array([1.0, 2.0, 3.0, 4.0, 0.0]),
             "y": np.array([1.5, 2.5, 3.5, 4.5, 0]),
-            "z": np.array([True, False, True, True, True]),
+            "z": np.array([1.0, 0.0, 1.0, 1.0, 1.0]),
         }
     )
 

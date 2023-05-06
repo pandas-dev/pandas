@@ -23,6 +23,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Iterator,
     Literal,
     Mapping,
@@ -74,6 +75,8 @@ if TYPE_CHECKING:
         IndexLabel,
         Self,
     )
+
+    from pandas import Index
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -683,7 +686,7 @@ def to_sql(
     index_label: IndexLabel = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: str | None = None,
+    method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -996,7 +999,9 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(
-        self, chunksize: int | None = None, method: str | None = None
+        self,
+        chunksize: int | None = None,
+        method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1253,7 +1258,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, col):
+    def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -1281,7 +1286,8 @@ class SQLTable(PandasObject):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
-                if col.dt.tz is not None:
+                # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
+                if col.dt.tz is not None:  # type: ignore[union-attr]
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
@@ -1402,7 +1408,7 @@ class PandasSQL(PandasObject, ABC):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1863,7 +1869,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2318,7 +2324,7 @@ class SQLiteDatabase(PandasSQL):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:

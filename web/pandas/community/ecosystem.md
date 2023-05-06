@@ -8,9 +8,10 @@ developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
 development to remain focused around its original requirements.
 
-This is an inexhaustive list of projects that build on pandas in order
-to provide tools in the PyData space. For a list of projects that depend
-on pandas, see the [libraries.io usage page for
+This is an community-maintained list of projects that build on pandas in order
+to provide tools in the PyData space. The pandas core development team does not necessarily endorse any particular project on this list or have any knowledge of the maintenance status of any particular library.
+
+For a more complete list of projects that depend on pandas, see the [libraries.io usage page for
 pandas](https://libraries.io/pypi/pandas/usage) or [search pypi for
 pandas](https://pypi.org/search/?q=pandas).
 
@@ -19,6 +20,10 @@ know of other substantial projects that you feel should be on this list,
 please let us know.
 
 ## Statistics and machine learning
+
+### [pandas-tfrecords](https://pypi.org/project/pandas-tfrecords/)
+
+Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
 
 ### [Statsmodels](https://www.statsmodels.org/)
 
@@ -48,6 +53,13 @@ Compose is a machine learning tool for labeling data and prediction engineering.
 It allows you to structure the labeling process by parameterizing
 prediction problems and transforming time-driven relational data into
 target values with cutoff times that can be used for supervised learning.
+
+### [STUMPY](https://github.com/TDAmeritrade/stumpy)
+
+STUMPY is a powerful and scalable Python library for modern time series analysis.
+At its core, STUMPY efficiently computes something called a
+`matrix profile <https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html>`__,
+which can be used for a wide variety of time series data mining tasks.
 
 ## Visualization
 
@@ -124,12 +136,53 @@ is free for unlimited sharing, and has
 [on-premise](https://plot.ly/product/enterprise/) accounts for private
 use.
 
+### [Lux](https://github.com/lux-org/lux)
+
+Lux is a Python library that facilitates fast and easy experimentation with data by automating the visual data exploration process. To use Lux, simply add an extra import alongside pandas:
+
+```python
+import lux
+import pandas as pd
+
+df = pd.read_csv("data.csv")
+df  # discover interesting insights!
+```
+
+By printing out a dataframe, Lux automatically [recommends a set of visualizations](https://raw.githubusercontent.com/lux-org/lux-resources/master/readme_img/demohighlight.gif) that highlights interesting trends and patterns in the dataframe. Users can leverage any existing pandas commands without modifying their code, while being able to visualize their pandas data structures (e.g., DataFrame, Series, Index) at the same time. Lux also offers a [powerful, intuitive language](https://lux-api.readthedocs.io/en/latest/source/guide/vis.html>) that allow users to create  Altair, matplotlib, or Vega-Lite visualizations without having to think at the level of code.
+
 ### [QtPandas](https://github.com/draperjames/qtpandas)
 
 Spun off from the main pandas library, the
 [qtpandas](https://github.com/draperjames/qtpandas) library enables
 DataFrame visualization and manipulation in PyQt4 and PySide
 applications.
+
+### [D-Tale](https://github.com/man-group/dtale)
+
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
+
+```python
+import dtale
+
+dtale.show(df)
+```
+
+D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
+& Google Colab. Here are some demos of the [grid](http://alphatechadmin.pythonanywhere.com/dtale/main/1).
+
+### [hvplot](https://hvplot.holoviz.org/index.html)
+
+hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
+It can be loaded as a native pandas plotting backend via
+
+```python
+pd.set_option("plotting.backend", "hvplot")
+```
 
 ## IDE
 
@@ -252,6 +305,13 @@ point-in-time data from ALFRED. fredapi makes use of pandas and returns
 data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
+### [dataframe_sql](https://github.com/zbrookle/dataframe_sql)
+
+``dataframe_sql`` is a Python package that translates SQL syntax directly into
+operations on pandas DataFrames. This is useful when migrating from a database to
+using pandas or for users more comfortable with SQL looking for a way to interface
+with pandas.
+
 ## Domain specific
 
 ### [Geopandas](https://github.com/geopandas/geopandas)
@@ -261,6 +321,13 @@ which support geometric operations. If your work entails maps and
 geographical coordinates, and you love pandas, you should take a close
 look at Geopandas.
 
+### [staricase](https://github.com/staircase-dev/staircase)
+
+staircase is a data analysis package, built upon pandas and numpy, for modelling and
+manipulation of mathematical step functions. It provides a rich variety of arithmetic
+operations, relational operations, logical operations, statistical operations and
+aggregations for step functions defined over real numbers, datetime and timedelta domains.
+
 ### [xarray](https://github.com/pydata/xarray)
 
 xarray brings the labeled data power of pandas to the physical sciences
@@ -269,6 +336,22 @@ It aims to provide a pandas-like and pandas-compatible toolkit for
 analytics on multi-dimensional arrays, rather than the tabular data for
 which pandas excels.
 
+## IO
+
+### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
+
+BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
+Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
+Rigorously tested, it is a complete replacement for ``df.to_sql``.
+
+### [Deltalake](https://pypi.org/project/deltalake)
+
+Deltalake python package lets you access tables stored in
+`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
+any Delta table into Pandas dataframe.
+
 ## Out-of-core
 
 ### [Blaze](https://blaze.pydata.org/)
@@ -276,6 +359,34 @@ which pandas excels.
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB,
 PyTables, PySpark.
+
+### [Cylon](https://cylondata.org/)
+
+Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
+like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache
+Arrow format to represent the data in-memory. Cylon DataFrame API implements
+most of the core operators of pandas such as merge, filter, join, concat,
+group-by, drop_duplicates, etc. These operators are designed to work across
+thousands of cores to scale applications. It can interoperate with pandas
+DataFrame by reading data from pandas or converting data to pandas so users
+can selectively scale parts of their pandas DataFrame applications.
+
+```python
+from pycylon import read_csv, DataFrame, CylonEnv
+from pycylon.net import MPIConfig
+
+# Initialize Cylon distributed environment
+config: MPIConfig = MPIConfig()
+env: CylonEnv = CylonEnv(config=config, distributed=True)
+
+df1: DataFrame = read_csv('/tmp/csv1.csv')
+df2: DataFrame = read_csv('/tmp/csv2.csv')
+
+# Using 1000s of cores across the cluster to compute the join
+df3: Table = df1.join(other=df2, on=[0], algorithm="hash", env=env)
+
+print(df3)
+```
 
 ### [Dask](https://docs.dask.org)
 
@@ -289,11 +400,32 @@ Dask-ML enables parallel and distributed machine learning using Dask
 alongside existing machine learning libraries like Scikit-Learn,
 XGBoost, and TensorFlow.
 
+### [Ibis](https://ibis-project.org/docs/)
+
+Ibis offers a standard way to write analytics code, that can be run in multiple engines. It helps in bridging the gap between local Python environments (like pandas) and remote storage and execution systems like Hadoop components (like HDFS, Impala, Hive, Spark) and SQL databases (Postgres, etc.).
+
+
 ### [Koalas](https://koalas.readthedocs.io/en/latest/)
 
 Koalas provides a familiar pandas DataFrame interface on top of Apache
 Spark. It enables users to leverage multi-cores on one machine or a
 cluster of machines to speed up or scale their DataFrame code.
+
+### [Modin](https://github.com/modin-project/modin)
+
+The ``modin.pandas`` DataFrame is a parallel and distributed drop-in replacement
+for pandas. This means that you can use Modin with existing pandas code or write
+new code with the existing pandas API. Modin can leverage your entire machine or
+cluster to speed up and scale your pandas workloads, including traditionally
+time-consuming tasks like ingesting data (``read_csv``, ``read_excel``,
+``read_parquet``, etc.).
+
+```python
+# import pandas as pd
+import modin.pandas as pd
+
+df = pd.read_csv("big.csv")  # use all your cores!
+```
 
 ### [Odo](http://odo.pydata.org)
 
@@ -302,6 +434,20 @@ uses pandas own `read_csv` for CSV IO and leverages many existing
 packages such as PyTables, h5py, and pymongo to move data between non
 pandas formats. Its graph based approach is also extensible by end users
 for custom formats that may be too specific for the core of odo.
+
+### [Pandarallel](https://github.com/nalepae/pandarallel)
+
+Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
+If also displays progress bars.
+
+```python
+from pandarallel import pandarallel
+
+pandarallel.initialize(progress_bar=True)
+
+# df.apply(func)
+df.parallel_apply(func)
+```
 
 ### [Ray](https://docs.ray.io/en/latest/data/modin/index.html)
 
@@ -342,6 +488,13 @@ wasted).
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
+### [Pandera](https://pandera.readthedocs.io/en/stable/)
+
+Pandera provides a flexible and expressive API for performing data validation on dataframes
+to make data processing pipelines more readable and robust.
+Dataframes contain information that pandera explicitly validates at runtime. This is useful in
+production-critical data pipelines or reproducible research settings.
+
 ### [Engarde](https://engarde.readthedocs.io/en/latest/)
 
 Engarde is a lightweight library used to explicitly state your
@@ -373,6 +526,10 @@ These arrays can be stored inside pandas' Series and DataFrame. Operations
 between Series and DataFrame columns which use pint's extension array are then
 units aware.
 
+### [Text Extensions](https://ibm.biz/text-extensions-for-pandas)
+
+Text Extensions for Pandas provides extension types to cover common data structures for representing natural language data, plus library integrations that convert the outputs of popular natural language processing libraries into Pandas DataFrames.
+
 ## Accessors
 
 A directory of projects providing
@@ -387,6 +544,9 @@ authors to coordinate on the namespace.
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
+  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
 
 ## Development tools
