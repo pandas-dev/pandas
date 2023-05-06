@@ -626,22 +626,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def product(self):
         # If the array is empty, return an empty array
         return_array = self[0]
-        for i in range(1,len(self)) :
-            # If the intersection of the current interval and the previous interval is not empty
-            if( (return_array*self[i] ) != Interval(0,0,closed="neither")):
+        for i in range(1, len(self)):
+            # If the intersection of the current interval and the
+            # previous interval is not empty
+            if (return_array * self[i]) != Interval(0, 0, closed="neither"):
                 return_array = return_array * self[i]
-            # If the intersection of the current interval and the previous interval is empty
+            # If the intersection of the current interval and the
+            # previous interval is empty
             else:
-                if(return_array!=self[0]):
+                if return_array != self[0]:
                     break
                 else:
-                    return_array =  Interval(0,0,'neither')
+                    return_array = Interval(0, 0, "neither")
         # If the intersection of all the intervals is empty
         return IntervalArray([return_array])
- 
-    # Return the simplified union of all the intervals in the IntervalArray in ascending order
+
+    # Return the simplified union of all the intervals
+    # in the IntervalArray in ascending order
     def sum(self):
-        # If there is only one interval in the array, then return a new IntervalArray with that one interval
+        # If there is only one interval in the array,
+        # then return a new IntervalArray with that one interval
         if len(self) < 2:
             return IntervalArray([self[0]])
         # Sort the intervals in the IntervalArray in ascending order
@@ -649,7 +653,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         output = [self[sorted_indices[0]]]
         for i in sorted_indices[1:]:
             prev = output.pop()
-            # Sums the current interval with the last interval in the intermediary sum list
+            # Sums the current interval with the last
+            # interval in the intermediary sum list
             cur = self[sorted_indices[i]]
             tmp = prev + cur
             if isinstance(tmp, Interval):
