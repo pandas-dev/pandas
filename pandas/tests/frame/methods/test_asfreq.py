@@ -143,11 +143,11 @@ class TestAsFreq:
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 
-        filled = rule_monthly.asfreq("B", method="pad")  # noqa
+        rule_monthly.asfreq("B", method="pad")
         # TODO: actually check that this worked.
 
         # don't forget!
-        filled_dep = rule_monthly.asfreq("B", method="pad")  # noqa
+        rule_monthly.asfreq("B", method="pad")
 
     def test_asfreq_datetimeindex(self):
         df = DataFrame(

@@ -123,7 +123,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_hist_by_no_extra_plots(self, hist_df):
         df = hist_df
-        axes = df.height.hist(by=df.gender)  # noqa
+        df.height.hist(by=df.gender)
         assert len(self.plt.get_fignums()) == 1
 
     def test_plot_fails_when_ax_differs_from_figure(self, ts):

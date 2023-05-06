@@ -210,7 +210,7 @@ _shared_docs = {**_shared_docs}
 _shared_doc_kwargs = {
     "axes": "keywords for axes",
     "klass": "Series/DataFrame",
-    "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa:E501
+    "axes_single_arg": "{0 or 'index'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame",  # noqa: E501
     "inplace": """
     inplace : bool, default False
         If True, performs operation inplace and returns None.""",
@@ -2904,7 +2904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with engine.connect() as conn:
         ...   conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
-        """  # noqa:E501
+        """  # noqa: E501
         from pandas.io import sql
 
         return sql.to_sql(
@@ -5901,7 +5901,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 num_legs  num_wings  num_specimen_seen
         falcon         2          2                 10
         fish           0          0                  8
-        """  # noqa:E501
+        """  # noqa: E501
         if axis is None:
             axis = 0
 

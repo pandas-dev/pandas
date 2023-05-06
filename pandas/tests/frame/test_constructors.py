@@ -262,12 +262,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self, float_string_frame):
-        index, data = tm.getMixedTypeDict()
-
-        # TODO(wesm), incomplete test?
-        indexed_frame = DataFrame(data, index=index)  # noqa
-        unindexed_frame = DataFrame(data)  # noqa
-
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):

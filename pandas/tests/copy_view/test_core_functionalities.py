@@ -47,7 +47,7 @@ def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write, reques
 
     df["b"] = 100
     arr = get_array(df, "a")
-    view = None  # noqa
+    view = None  # noqa: F841
     df.iloc[0, 0] = 100
     if using_copy_on_write:
         # Setitem split the block. Since the old block shared data with view

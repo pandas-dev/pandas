@@ -96,7 +96,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
        return arr
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
+   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
 
 .. versionadded:: 1.3
 
