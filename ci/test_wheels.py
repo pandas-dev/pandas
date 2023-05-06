@@ -36,7 +36,7 @@ if os.name == "nt":
     print(f"pandas project dir is {pandas_base_dir}")
     dist_dir = os.path.join(pandas_base_dir, "dist")
     print(f"Copying wheel into pandas_base_dir/dist ({dist_dir})")
-    os.mkdir(dist_dir)
+    # os.mkdir(dist_dir)
     shutil.copy(wheel_path, dist_dir)
     print(os.listdir(dist_dir))
     subprocess.run(
