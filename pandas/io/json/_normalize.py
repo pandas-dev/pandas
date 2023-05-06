@@ -535,7 +535,7 @@ def json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        #GH 37782
+        # GH 37782
 
         values = np.array(v, dtype=object)
 
