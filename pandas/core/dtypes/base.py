@@ -63,6 +63,7 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
+    * _maybe_promote
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
@@ -392,6 +393,22 @@ class ExtensionDtype:
         return True
 
     def _maybe_promote(self, item: Any) -> tuple[DtypeObj, Any]:
+        """
+        Find the minimal dtype that we need to upcast to in order to hold
+        the given item.
+
+        This is used in when doing Series setitem-with-expansion on a Series
+        with our dtype.
+
+        Parameters
+        ----------
+        item : object
+
+        Returns
+        -------
+        np.dtype or ExtensionDtype
+        object
+        """
         return np.dtype(object), item
 
 
