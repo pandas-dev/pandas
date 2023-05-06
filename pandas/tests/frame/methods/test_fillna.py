@@ -310,8 +310,8 @@ class TestFillNA:
         tm.assert_equal(res, expected)
 
         obj2 = obj.astype(np.float64)
-        msg = "fillna downcasting from floating dtype to integer dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg2 = "fillna downcasting from floating dtype to integer dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
             res2 = obj2.fillna("foo", downcast="infer")
         expected2 = obj  # get back int64
         tm.assert_equal(res2, expected2)
