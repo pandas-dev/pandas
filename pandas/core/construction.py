@@ -502,9 +502,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
-        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
+        data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
