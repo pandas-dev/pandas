@@ -502,12 +502,12 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        data = ma.asarray(data.astype(dtype, copy=True))
-        data.soften_mask()  # set hardmask False if it was True
-        data[mask] = fill_value
+        sanitized_ma = data.astype(dtype, copy=True)
+        sanitized_ma.soften_mask()  # set hardmask False if it was True
+        sanitized_ma[mask] = fill_value
+        return sanitized_ma
     else:
-        data = data.copy()
-    return data
+        return data.copy()
 
 
 def sanitize_array(
