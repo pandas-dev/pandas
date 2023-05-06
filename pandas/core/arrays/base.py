@@ -1461,7 +1461,7 @@ class ExtensionArray:
         Length: 1, dtype: Int64
         """
         result = self._reduce(name, skipna=skipna, **kwargs)
-        return np.array([[result]])
+        return np.array([result])
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
