@@ -53,10 +53,10 @@ from pandas._typing import (
     F,
     IgnoreRaise,
     IndexLabel,
-    IndexMethod,
     JoinHow,
     Level,
     NaPosition,
+    ReindexMethod,
     Self,
     Shape,
     npt,
@@ -3746,7 +3746,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self,
         target,
-        method: IndexMethod | None = None,
+        method: ReindexMethod | None = None,
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
@@ -4199,7 +4199,7 @@ class Index(IndexOpsMixin, PandasObject):
     def reindex(
         self,
         target,
-        method: IndexMethod | None = None,
+        method: ReindexMethod | None = None,
         level=None,
         limit: int | None = None,
         tolerance: float | None = None,
