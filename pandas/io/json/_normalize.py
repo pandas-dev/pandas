@@ -540,7 +540,7 @@ def json_normalize(
         values = np.array(v, dtype=object)
 
         if values.ndim > 1:
-            # GH#37782
+            # GH 37782
             values = np.empty((len(v),), dtype=object)
             for i, v in enumerate(v):
                 values[i] = v
