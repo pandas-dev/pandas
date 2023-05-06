@@ -50,7 +50,7 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.1.0
+black==23.3.0
 cpplint
 flake8==6.0.0
 isort>=5.2.1
@@ -65,7 +65,7 @@ numpydoc
 pydata-sphinx-theme<0.11
 pytest-cython
 sphinx
-sphinx-panels
+sphinx-design
 sphinx-copybutton
 types-python-dateutil
 types-PyMySQL

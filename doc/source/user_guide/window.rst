@@ -96,7 +96,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
        return arr
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
+   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
 
 .. versionadded:: 1.3
 
@@ -286,8 +286,6 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    4    10.0
 
 You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
-
-.. versionadded:: 1.1
 
 One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
