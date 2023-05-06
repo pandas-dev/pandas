@@ -47,8 +47,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
 #include <ultrajson.h>
-#include "date_conversions.h"
 #include "datetime.h"
+#include "pd_datetime.h"
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
@@ -1974,6 +1974,11 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
                     PyObject *kwargs) {
     PyDateTime_IMPORT;
     if (PyDateTimeAPI == NULL) {
+        return NULL;
+    }
+
+    PandasDateTime_IMPORT;
+    if (PandasDateTimeAPI == NULL) {
         return NULL;
     }
 

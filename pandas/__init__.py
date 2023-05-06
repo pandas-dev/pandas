@@ -18,20 +18,18 @@ if _missing_dependencies:  # pragma: no cover
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -43,7 +41,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore # noqa:F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
 from pandas.core.api import (
     # dtype

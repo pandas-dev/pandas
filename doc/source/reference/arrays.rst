@@ -93,9 +93,10 @@ PyArrow type                                    pandas extension type      NumPy
 
 .. note::
 
-    For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
-    by :class:`arrays.ArrowStringArray` and ``StringDtype("pyarrow")``. See the :ref:`string section <api.arrays.string>`
-    below.
+    Pyarrow-backed string support is provided by both ``pd.StringDtype("pyarrow")`` and ``pd.ArrowDtype(pa.string())``.
+    ``pd.StringDtype("pyarrow")`` is described below in the :ref:`string section <api.arrays.string>`
+    and will be returned if the string alias ``"string[pyarrow]"`` is specified. ``pd.ArrowDtype(pa.string())``
+    generally has better interoperability with :class:`ArrowDtype` of different types.
 
 While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned**
 as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing

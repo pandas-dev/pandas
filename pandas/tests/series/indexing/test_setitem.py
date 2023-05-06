@@ -61,7 +61,8 @@ class TestSetitemDT64Values:
 
     def test_setitem_with_string_index(self):
         # GH#23451
-        ser = Series([1, 2, 3], index=["Date", "b", "other"])
+        # Set object dtype to avoid upcast when setting date.today()
+        ser = Series([1, 2, 3], index=["Date", "b", "other"], dtype=object)
         ser["Date"] = date.today()
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
@@ -404,7 +405,7 @@ class TestSetitemBooleanMask:
 
 
 class TestSetitemViewCopySemantics:
-    def test_setitem_invalidates_datetime_index_freq(self):
+    def test_setitem_invalidates_datetime_index_freq(self, using_copy_on_write):
         # GH#24096 altering a datetime64tz Series inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex
 
@@ -412,7 +413,10 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
@@ -423,15 +427,20 @@ class TestSetitemViewCopySemantics:
         assert dti[1] == ts
         assert dti.freq == "D"
 
-    def test_dt64tz_setitem_does_not_mutate_dti(self):
+    def test_dt64tz_setitem_does_not_mutate_dti(self, using_copy_on_write):
         # GH#21907, GH#24096
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
+
         assert ser._mgr.arrays[0] is not dti
-        assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -451,7 +460,8 @@ class TestSetitemCallable:
         # GH#13299
         inc = lambda x: x + 1
 
-        ser = Series([1, 2, -1, 4])
+        # set object dtype to avoid upcast when setting inc
+        ser = Series([1, 2, -1, 4], dtype=object)
         ser[ser < 0] = inc
 
         expected = Series([1, 2, inc, 4])
@@ -570,7 +580,7 @@ def test_setitem_scalar_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     for n in series.index:
         msg = "assignment destination is read-only"
@@ -585,7 +595,7 @@ def test_setitem_slice_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     msg = "assignment destination is read-only"
     with pytest.raises(ValueError, match=msg):

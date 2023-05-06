@@ -607,7 +607,7 @@ even if some categories are not present in the data:
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
-``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories when ``observed=False``.
 
 .. ipython:: python
 
@@ -618,9 +618,9 @@ even if some categories are not present in the data:
         data=[[1, 2, 3], [4, 5, 6]],
         columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
     ).T
-    df.groupby(level=1).sum()
+    df.groupby(level=1, observed=False).sum()
 
-Groupby will also show "unused" categories:
+Groupby will also show "unused" categories when ``observed=False``:
 
 .. ipython:: python
 
@@ -628,7 +628,7 @@ Groupby will also show "unused" categories:
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
     )
     df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
-    df.groupby("cats").mean()
+    df.groupby("cats", observed=False).mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df2 = pd.DataFrame(
@@ -638,7 +638,7 @@ Groupby will also show "unused" categories:
             "values": [1, 2, 3, 4],
         }
     )
-    df2.groupby(["cats", "B"]).mean()
+    df2.groupby(["cats", "B"], observed=False).mean()
 
 
 Pivot tables:

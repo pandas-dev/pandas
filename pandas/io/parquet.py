@@ -21,11 +21,9 @@ from pandas.util._validators import check_dtype_backend
 import pandas as pd
 from pandas import (
     DataFrame,
-    MultiIndex,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
-from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -93,21 +91,17 @@ def _get_path_or_handle(
     if fs is not None:
         pa_fs = import_optional_dependency("pyarrow.fs", errors="ignore")
         fsspec = import_optional_dependency("fsspec", errors="ignore")
-        if pa_fs is None and fsspec is None:
+        if pa_fs is not None and isinstance(fs, pa_fs.FileSystem):
+            if storage_options:
+                raise NotImplementedError(
+                    "storage_options not supported with a pyarrow FileSystem."
+                )
+        elif fsspec is not None and isinstance(fs, fsspec.spec.AbstractFileSystem):
+            pass
+        else:
             raise ValueError(
                 f"filesystem must be a pyarrow or fsspec FileSystem, "
                 f"not a {type(fs).__name__}"
-            )
-        elif (pa_fs is not None and not isinstance(fs, pa_fs.FileSystem)) and (
-            fsspec is not None and not isinstance(fs, fsspec.spec.AbstractFileSystem)
-        ):
-            raise ValueError(
-                f"filesystem must be a pyarrow or fsspec FileSystem, "
-                f"not a {type(fs).__name__}"
-            )
-        elif pa_fs is not None and isinstance(fs, pa_fs.FileSystem) and storage_options:
-            raise NotImplementedError(
-                "storage_options not supported with a pyarrow FileSystem."
             )
     if is_fsspec_url(path_or_handle) and fs is None:
         if storage_options is None:
@@ -152,27 +146,6 @@ class BaseImpl:
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
-        # must have value column names for all index levels (strings only)
-        if isinstance(df.columns, MultiIndex):
-            if not all(
-                x.inferred_type in {"string", "empty"} for x in df.columns.levels
-            ):
-                raise ValueError(
-                    """
-                    parquet must have string column names for all values in
-                     each level of the MultiIndex
-                    """
-                )
-        elif df.columns.inferred_type not in {"string", "empty"}:
-            raise ValueError("parquet must have string column names")
-
-        # index level names must be strings
-        valid_names = all(
-            isinstance(name, str) for name in df.index.names if name is not None
-        )
-        if not valid_names:
-            raise ValueError("Index level names must be strings")
-
     def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
 
@@ -188,7 +161,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow.extension_types  # pyright: ignore # noqa:F401
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
 
         self.api = pyarrow
 
@@ -270,7 +243,7 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -369,9 +342,8 @@ class FastParquetImpl(BaseImpl):
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
-        if Version(self.api.__version__) >= Version("0.7.1"):
-            # We are disabling nullable dtypes for fastparquet pending discussion
-            parquet_kwargs["pandas_nulls"] = False
+        # We are disabling nullable dtypes for fastparquet pending discussion
+        parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
@@ -391,14 +363,7 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            if Version(self.api.__version__) > Version("0.6.1"):
-                parquet_kwargs["fs"] = fsspec.open(
-                    path, "rb", **(storage_options or {})
-                ).fs
-            else:
-                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
-                    path, "rb", **(storage_options or {})
-                ).open()
+            parquet_kwargs["fs"] = fsspec.open(path, "rb", **(storage_options or {})).fs
         elif isinstance(path, str) and not os.path.isdir(path):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories

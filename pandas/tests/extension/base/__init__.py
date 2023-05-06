@@ -41,32 +41,32 @@ by defining the staticmethods ``assert_frame_equal`` and
 ``assert_series_equal`` on your base test class.
 
 """
-from pandas.tests.extension.base.accumulate import BaseAccumulateTests  # noqa
-from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
-from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
-from pandas.tests.extension.base.dim2 import (  # noqa
+from pandas.tests.extension.base.accumulate import BaseAccumulateTests  # noqa: F401
+from pandas.tests.extension.base.casting import BaseCastingTests  # noqa: F401
+from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa: F401
+from pandas.tests.extension.base.dim2 import (  # noqa: F401
     Dim2CompatTests,
     NDArrayBacked2DTests,
 )
-from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
-from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
-from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
-from pandas.tests.extension.base.index import BaseIndexTests  # noqa
-from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa
-from pandas.tests.extension.base.io import BaseParsingTests  # noqa
-from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa
-from pandas.tests.extension.base.missing import BaseMissingTests  # noqa
-from pandas.tests.extension.base.ops import (  # noqa
+from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa: F401
+from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa: F401
+from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa: F401
+from pandas.tests.extension.base.index import BaseIndexTests  # noqa: F401
+from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa: F401
+from pandas.tests.extension.base.io import BaseParsingTests  # noqa: F401
+from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa: F401
+from pandas.tests.extension.base.missing import BaseMissingTests  # noqa: F401
+from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
     BaseOpsUtil,
     BaseUnaryOpsTests,
 )
-from pandas.tests.extension.base.printing import BasePrintingTests  # noqa
-from pandas.tests.extension.base.reduce import (  # noqa
+from pandas.tests.extension.base.printing import BasePrintingTests  # noqa: F401
+from pandas.tests.extension.base.reduce import (  # noqa: F401
     BaseBooleanReduceTests,
     BaseNoReduceTests,
     BaseNumericReduceTests,
 )
-from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa
-from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa
+from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa: F401
+from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa: F401

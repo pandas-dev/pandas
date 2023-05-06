@@ -92,7 +92,7 @@ class PandasDataFrameXchg(DataFrameXchg):
             self._df.loc[:, names], self._nan_as_null, self._allow_copy
         )
 
-    def get_chunks(self, n_chunks=None):
+    def get_chunks(self, n_chunks: int | None = None):
         """
         Return an iterator yielding the chunks.
         """

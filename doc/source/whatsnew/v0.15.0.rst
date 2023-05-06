@@ -85,7 +85,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
                                                   "medium", "good", "very good"])
     df["grade"]
     df.sort_values("grade")
-    df.groupby("grade").size()
+    df.groupby("grade", observed=False).size()
 
 - ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct
   a dataframe and use ``df.groupby(<group>).agg(<func>)``.
@@ -748,7 +748,7 @@ Other notable API changes:
 
   .. ipython:: python
 
-     s = pd.Series([1, 2, 3])
+     s = pd.Series([1., 2., 3.])
      s.loc[0] = None
      s
 

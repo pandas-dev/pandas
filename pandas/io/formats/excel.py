@@ -450,7 +450,7 @@ class CSSToExcelConverter:
             return size
         return self._pt_to_float(size)
 
-    def _select_font_family(self, font_names) -> int | None:
+    def _select_font_family(self, font_names: Sequence[str]) -> int | None:
         family = None
         for name in font_names:
             family = self.FAMILY_MAP.get(name)
@@ -726,7 +726,7 @@ class ExcelFormatter:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
-            if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
+            if reduce(lambda x, y: x and y, (x != "" for x in row)):
                 gen2 = (
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)

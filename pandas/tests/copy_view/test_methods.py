@@ -115,7 +115,13 @@ def test_methods_copy_keyword(
         index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
-    df2 = method(df, copy=copy)
+
+    if "swapaxes" in request.node.callspec.id:
+        msg = "'DataFrame.swapaxes' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
+    else:
+        df2 = method(df, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -184,7 +190,13 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
         index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
     ser = Series([1, 2, 3], index=index)
-    ser2 = method(ser, copy=copy)
+
+    if "swapaxes" in request.node.callspec.id:
+        msg = "'Series.swapaxes' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    else:
+        ser2 = method(ser, copy=copy)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -231,6 +243,21 @@ def test_reset_index(using_copy_on_write):
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), Index([1, 2])])
+def test_reset_index_series_drop(using_copy_on_write, index):
+    ser = Series([1, 2], index=index)
+    ser_orig = ser.copy()
+    ser2 = ser.reset_index(drop=True)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(ser2))
+        assert not ser._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(ser2))
+
+    ser2.iloc[0] = 100
+    tm.assert_series_equal(ser, ser_orig)
 
 
 def test_rename_columns(using_copy_on_write):
@@ -610,7 +637,9 @@ def test_to_frame(using_copy_on_write):
 def test_swapaxes_noop(using_copy_on_write, ax):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
-    df2 = df.swapaxes(ax, ax)
+    msg = "'DataFrame.swapaxes' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.swapaxes(ax, ax)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -627,7 +656,9 @@ def test_swapaxes_noop(using_copy_on_write, ax):
 def test_swapaxes_single_block(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=["x", "y", "z"])
     df_orig = df.copy()
-    df2 = df.swapaxes("index", "columns")
+    msg = "'DataFrame.swapaxes' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.swapaxes("index", "columns")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "x"), get_array(df, "a"))
@@ -643,7 +674,9 @@ def test_swapaxes_single_block(using_copy_on_write):
 
 def test_swapaxes_read_only_array():
     df = DataFrame({"a": [1, 2], "b": 3})
-    df = df.swapaxes(axis1="index", axis2="columns")
+    msg = "'DataFrame.swapaxes' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df = df.swapaxes(axis1="index", axis2="columns")
     df.iloc[0, 0] = 100
     expected = DataFrame({0: [100, 3], 1: [2, 3]}, index=["a", "b"])
     tm.assert_frame_equal(df, expected)
@@ -1488,8 +1521,8 @@ def test_isetitem_series(using_copy_on_write, dtype):
     df.isetitem(0, ser)
 
     if using_copy_on_write:
-        # TODO(CoW) this can share memory
-        assert not np.shares_memory(get_array(df, "a"), get_array(ser))
+        assert np.shares_memory(get_array(df, "a"), get_array(ser))
+        assert not df._mgr._has_no_reference(0)
 
     # mutating dataframe doesn't update series
     df.loc[0, "a"] = 0
@@ -1502,6 +1535,23 @@ def test_isetitem_series(using_copy_on_write, dtype):
 
     ser.loc[0] = 0
     expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_isetitem_frame(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
+    rhs = DataFrame({"a": [4, 5, 6], "b": 2})
+    df.isetitem([0, 1], rhs)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
+        assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+        assert not df._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
+        assert not np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+    expected = df.copy()
+    rhs.iloc[0, 0] = 100
+    rhs.iloc[0, 1] = 100
     tm.assert_frame_equal(df, expected)
 
 
@@ -1706,3 +1756,18 @@ def test_series_view(using_copy_on_write):
     else:
         expected = Series([100, 2, 3])
         tm.assert_series_equal(ser, expected)
+
+
+def test_insert_series(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+    df.insert(loc=1, value=ser, column="b")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(df, "b"))
+        assert not df._mgr._has_no_reference(1)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(df, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_series_equal(ser, ser_orig)
