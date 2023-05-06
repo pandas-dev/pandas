@@ -570,7 +570,11 @@ class TestSetitemWithExpansion:
         ser[3] = nulls_fixture
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3])
         tm.assert_series_equal(ser, expected)
-        assert ser[3] is nulls_fixture
+        if isinstance(nulls_fixture, float):
+            # We retain the same type, but maybe not the same _object_
+            assert np.isnan(ser[3])
+        else:
+            assert ser[3] is nulls_fixture
 
 
 def test_setitem_scalar_into_readonly_backing_data():

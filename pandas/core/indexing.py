@@ -50,12 +50,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    infer_fill_value,
-    is_valid_na_for_dtype,
-    isna,
-    na_value_for_dtype,
-)
+from pandas.core.dtypes.missing import infer_fill_value
 
 from pandas.core import algorithms as algos
 import pandas.core.common as com
@@ -2091,25 +2086,14 @@ class _iLocIndexer(_LocationIndexer):
                     return self._setitem_with_indexer(new_indexer, value, "loc")
 
             # this preserves dtype of the value and of the object
+            new_dtype = None
             if is_list_like(value):
-                new_dtype = None
-
-            elif is_valid_na_for_dtype(value, self.obj.dtype):
-                if not is_object_dtype(self.obj.dtype):
-                    # Every NA value is suitable for object, no conversion needed
-                    value = na_value_for_dtype(self.obj.dtype, compat=False)
-
-                new_dtype = maybe_promote(self.obj.dtype, value)[0]
-
-            elif isna(value):
-                new_dtype = None
+                pass
             elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
                 # We should not cast, if we have object dtype because we can
                 # set timedeltas into object series
                 curr_dtype = self.obj.dtype
                 new_dtype, value = maybe_promote(curr_dtype, value)
-            else:
-                new_dtype = None
 
             new_values = Series([value], dtype=new_dtype)._values
 
