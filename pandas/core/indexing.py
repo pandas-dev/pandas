@@ -933,7 +933,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         This is only called after a failed call to _getitem_lowerdim.
         """
         retval = self.obj
-        for i, key in enumerate(tup):
+        # Selecting columns before rows is signficiantly faster
+        for i, key in enumerate(reversed(tup)):
+            i = self.ndim - i - 1
             if com.is_null_slice(key):
                 continue
 
@@ -1753,6 +1755,13 @@ class _iLocIndexer(_LocationIndexer):
                             if not isinstance(value, ABCSeries):
                                 # if not Series (in which case we need to align),
                                 #  we can short-circuit
+                                if (
+                                    isinstance(arr, np.ndarray)
+                                    and arr.ndim == 1
+                                    and len(arr) == 1
+                                ):
+                                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                                    arr = arr[0, ...]
                                 empty_value[indexer[0]] = arr
                                 self.obj[key] = empty_value
                                 return

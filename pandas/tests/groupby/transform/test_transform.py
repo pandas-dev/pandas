@@ -362,11 +362,11 @@ def test_dispatch_transform(tsframe):
 
 def test_transform_fillna_null():
     df = DataFrame(
-        dict(
-            price=[10, 10, 20, 20, 30, 30],
-            color=[10, 10, 20, 20, 30, 30],
-            cost=(100, 200, 300, 400, 500, 600),
-        )
+        {
+            "price": [10, 10, 20, 20, 30, 30],
+            "color": [10, 10, 20, 20, 30, 30],
+            "cost": (100, 200, 300, 400, 500, 600),
+        }
     )
     with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
         df.groupby(["price"]).transform("fillna")
@@ -586,9 +586,7 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grouped.apply(f)
+    result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
@@ -743,13 +741,7 @@ def test_cython_transform_frame(op, args, targop):
                 f = gb[["float", "float_missing"]].apply(targop)
                 expected = concat([f, i], axis=1)
             else:
-                if op != "shift" or not isinstance(gb_target.get("by"), str):
-                    warn = None
-                else:
-                    warn = FutureWarning
-                msg = "DataFrameGroupBy.apply operated on the grouping columns"
-                with tm.assert_produces_warning(warn, match=msg):
-                    expected = gb.apply(targop)
+                expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
 

@@ -169,15 +169,30 @@ class TestDataFrameAnalytics:
         ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "unsupported operand type",
-                    "not supported between instances of",
-                ]
-            )
+            if opname in ["var", "std", "sem", "skew", "kurt"]:
+                msg = "could not convert string to float: 'bar'"
+            elif opname == "product":
+                if axis == 1:
+                    msg = "can't multiply sequence by non-int of type 'float'"
+                else:
+                    msg = "can't multiply sequence by non-int of type 'str'"
+            elif opname == "sum":
+                msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname == "mean":
+                if axis == 0:
+                    # different message on different builds
+                    msg = "|".join(
+                        [
+                            r"Could not convert \['.*'\] to numeric",
+                            "Could not convert string '(bar){30}' to numeric",
+                        ]
+                    )
+                else:
+                    msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname in ["min", "max"]:
+                msg = "'[><]=' not supported between instances of 'float' and 'str'"
+            elif opname == "median":
+                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -1759,5 +1774,16 @@ def test_fails_on_non_numeric(kernel):
             "argument must be a string or a real number",
         ]
     )
+    if kernel == "median":
+        # slightly different message on different builds
+        msg1 = (
+            r"Cannot convert \[\[<class 'object'> <class 'object'> "
+            r"<class 'object'>\]\] to numeric"
+        )
+        msg2 = (
+            r"Cannot convert \[<class 'object'> <class 'object'> "
+            r"<class 'object'>\] to numeric"
+        )
+        msg = "|".join([msg1, msg2])
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)

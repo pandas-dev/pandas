@@ -987,7 +987,8 @@ class TestDataFrameSetItemCallable:
         def inc(x):
             return x + 1
 
-        df = DataFrame([[-1, 1], [1, -1]])
+        # Set dtype object straight away to avoid upcast when setting inc below
+        df = DataFrame([[-1, 1], [1, -1]], dtype=object)
         df[df > 0] = inc
 
         expected = DataFrame([[-1, inc], [inc, -1]])
@@ -1262,6 +1263,17 @@ class TestDataFrameSetitemCopyViewSemantics:
                     df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
+
+    def test_setitem_column_frame_as_category(self):
+        # GH31581
+        df = DataFrame([1, 2, 3])
+        df["col1"] = DataFrame([1, 2, 3], dtype="category")
+        df["col2"] = Series([1, 2, 3], dtype="category")
+
+        expected_types = Series(
+            ["int64", "category", "category"], index=[0, "col1", "col2"]
+        )
+        tm.assert_series_equal(df.dtypes, expected_types)
 
     @pytest.mark.parametrize("dtype", ["int64", "Int64"])
     def test_setitem_iloc_with_numpy_array(self, dtype):

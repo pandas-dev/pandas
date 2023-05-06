@@ -125,7 +125,7 @@ Building criteria
 
 .. ipython:: python
 
-   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 0.1
+   df.loc[(df["BBB"] > 25) | (df["CCC"] >= 75), "AAA"] = 999
    df
 
 `Select rows with data closest to certain value using argsort
@@ -459,7 +459,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df
 
    # List the size of the animals with the highest weight.
-   df.groupby("animal")[["size", "weight"]].apply(lambda subf: subf["size"][subf["weight"].idxmax()])
+   df.groupby("animal").apply(lambda subf: subf["size"][subf["weight"].idxmax()])
 
 `Using get_group
 <https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__
@@ -482,7 +482,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
        return pd.Series(["L", avg_weight, True], index=["size", "weight", "adult"])
 
 
-   expected_df = gb[["size", "weight"]].apply(GrowUp)
+   expected_df = gb.apply(GrowUp)
    expected_df
 
 `Expanding apply

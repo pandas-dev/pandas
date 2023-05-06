@@ -64,7 +64,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -81,18 +80,12 @@ else:
     del pa
     has_pyarrow = True
 
-zoneinfo = None
-if compat.PY39:
-    # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+import zoneinfo
 
-    # Although zoneinfo can be imported in Py39, it is effectively
-    # "not available" without tzdata/IANA tz data.
-    # We will set zoneinfo to not found in this case
-    try:
-        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
-    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
-        zoneinfo = None
+try:
+    zoneinfo.ZoneInfo("UTC")
+except zoneinfo.ZoneInfoNotFoundError:
+    zoneinfo = None  # type: ignore[assignment]
 
 
 # ----------------------------------------------------------------
@@ -137,7 +130,10 @@ def pytest_collection_modifyitems(items, config) -> None:
     ignored_doctest_warnings = [
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
+        ("is_sparse", "is_sparse is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -149,7 +145,6 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
-        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
     ]
 
     for item in items:
@@ -1219,7 +1214,12 @@ TIMEZONES = [
     timezone(timedelta(hours=-1), name="foo"),
 ]
 if zoneinfo is not None:
-    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
+    TIMEZONES.extend(
+        [
+            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
+            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
+        ]
+    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1962,7 +1962,7 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
 
 
 @pytest.fixture(params=warsaws)

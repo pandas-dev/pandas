@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 from typing import (
     TYPE_CHECKING,
     Sequence,
@@ -20,14 +19,12 @@ from pandas._libs.missing import NA
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_scalar,
     needs_i8_conversion,
 )
@@ -39,13 +36,9 @@ from pandas.core.dtypes.missing import (
     isna_all,
 )
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.internals.array_manager import (
-    ArrayManager,
-    NullArrayProxy,
-)
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     new_block_2d,
@@ -60,7 +53,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         DtypeObj,
-        Manager,
+        Manager2D,
         Shape,
     )
 
@@ -72,8 +65,8 @@ if TYPE_CHECKING:
 
 
 def _concatenate_array_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
-) -> Manager:
+    mgrs: list[ArrayManager], axes: list[Index], concat_axis: AxisInt
+) -> Manager2D:
     """
     Concatenate array managers into one.
 
@@ -82,102 +75,22 @@ def _concatenate_array_managers(
     mgrs_indexers : list of (ArrayManager, {axis: indexer,...}) tuples
     axes : list of Index
     concat_axis : int
-    copy : bool
 
     Returns
     -------
     ArrayManager
     """
-    # reindex all arrays
-    mgrs = []
-    for mgr, indexers in mgrs_indexers:
-        axis1_made_copy = False
-        for ax, indexer in indexers.items():
-            mgr = mgr.reindex_indexer(
-                axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
-            )
-            if ax == 1 and indexer is not None:
-                axis1_made_copy = True
-        if copy and concat_axis == 0 and not axis1_made_copy:
-            # for concat_axis 1 we will always get a copy through concat_arrays
-            mgr = mgr.copy()
-        mgrs.append(mgr)
-
     if concat_axis == 1:
-        # concatting along the rows -> concat the reindexed arrays
-        # TODO(ArrayManager) doesn't yet preserve the correct dtype
-        arrays = [
-            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
-            for j in range(len(mgrs[0].arrays))
-        ]
+        return mgrs[0].concat_vertical(mgrs, axes)
     else:
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
-        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-
-    new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
-    return new_mgr
-
-
-def concat_arrays(to_concat: list) -> ArrayLike:
-    """
-    Alternative for concat_compat but specialized for use in the ArrayManager.
-
-    Differences: only deals with 1D arrays (no axis keyword), assumes
-    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
-    the dtype.
-    In addition ensures that all NullArrayProxies get replaced with actual
-    arrays.
-
-    Parameters
-    ----------
-    to_concat : list of arrays
-
-    Returns
-    -------
-    np.ndarray or ExtensionArray
-    """
-    # ignore the all-NA proxies to determine the resulting dtype
-    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
-
-    dtypes = {x.dtype for x in to_concat_no_proxy}
-    single_dtype = len(dtypes) == 1
-
-    if single_dtype:
-        target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
-        # GH#42092
-        target_dtype = np.find_common_type(list(dtypes), [])
-    else:
-        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
-
-    to_concat = [
-        arr.to_array(target_dtype)
-        if isinstance(arr, NullArrayProxy)
-        else astype_array(arr, target_dtype, copy=False)
-        for arr in to_concat
-    ]
-
-    if isinstance(to_concat[0], ExtensionArray):
-        cls = type(to_concat[0])
-        return cls._concat_same_type(to_concat)
-
-    result = np.concatenate(to_concat)
-
-    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
-    # see https://github.com/pandas-dev/pandas/issues/39817
-    if len(result) == 0:
-        # all empties -> check for bool to not coerce to float
-        kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
-        if len(kinds) != 1:
-            if "b" in kinds:
-                result = result.astype(object)
-    return result
+        return mgrs[0].concat_horizontal(mgrs, axes)
 
 
 def concatenate_managers(
     mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
-) -> Manager:
+) -> Manager2D:
     """
     Concatenate block managers into one.
 
@@ -192,9 +105,18 @@ def concatenate_managers(
     -------
     BlockManager
     """
+
+    needs_copy = copy and concat_axis == 0
+
     # TODO(ArrayManager) this assumes that all managers are of the same type
     if isinstance(mgrs_indexers[0][0], ArrayManager):
-        return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
+        mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+        # error: Argument 1 to "_concatenate_array_managers" has incompatible
+        # type "List[BlockManager]"; expected "List[Union[ArrayManager,
+        # SingleArrayManager, BlockManager, SingleBlockManager]]"
+        return _concatenate_array_managers(
+            mgrs, axes, concat_axis  # type: ignore[arg-type]
+        )
 
     # Assertions disabled for performance
     # for tup in mgrs_indexers:
@@ -203,7 +125,8 @@ def concatenate_managers(
     #    assert concat_axis not in indexers
 
     if concat_axis == 0:
-        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+        mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+        return mgrs[0].concat_horizontal(mgrs, axes)
 
     if len(mgrs_indexers) > 0 and mgrs_indexers[0][0].nblocks > 0:
         first_dtype = mgrs_indexers[0][0].blocks[0].dtype
@@ -220,19 +143,15 @@ def concatenate_managers(
                 nb = _concat_homogeneous_fastpath(mgrs_indexers, shape, first_dtype)
                 return BlockManager((nb,), axes)
 
-    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
-    if len(mgrs_indexers) == 1:
-        mgr, indexers = mgrs_indexers[0]
-        # Assertion correct but disabled for perf:
-        # assert not indexers
-        if copy:
-            out = mgr.copy(deep=True)
-        else:
-            out = mgr.copy(deep=False)
+    mgrs = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers, needs_copy)
+
+    if len(mgrs) == 1:
+        mgr = mgrs[0]
+        out = mgr.copy(deep=False)
         out.axes = axes
         return out
 
-    concat_plan = _get_combined_plan([mgr for mgr, _ in mgrs_indexers])
+    concat_plan = _get_combined_plan(mgrs)
 
     blocks = []
     values: ArrayLike
@@ -277,47 +196,11 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
-def _concat_managers_axis0(
-    mgrs_indexers, axes: list[Index], copy: bool
-) -> BlockManager:
-    """
-    concat_managers specialized to concat_axis=0, with reindexing already
-    having been done in _maybe_reindex_columns_na_proxy.
-    """
-    had_reindexers = {
-        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
-    }
-    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
-
-    mgrs: list[BlockManager] = [x[0] for x in mgrs_indexers]
-
-    offset = 0
-    blocks: list[Block] = []
-    for i, mgr in enumerate(mgrs):
-        # If we already reindexed, then we definitely don't need another copy
-        made_copy = had_reindexers[i]
-
-        for blk in mgr.blocks:
-            if made_copy:
-                nb = blk.copy(deep=False)
-            elif copy:
-                nb = blk.copy()
-            else:
-                # by slicing instead of copy(deep=False), we get a new array
-                #  object, see test_concat_copy
-                nb = blk.getitem_block(slice(None))
-            nb._mgr_locs = nb._mgr_locs.add(offset)
-            blocks.append(nb)
-
-        offset += len(mgr.items)
-
-    result = BlockManager(tuple(blocks), axes)
-    return result
-
-
 def _maybe_reindex_columns_na_proxy(
-    axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
-) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
+    axes: list[Index],
+    mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]],
+    needs_copy: bool,
+) -> list[BlockManager]:
     """
     Reindex along columns so that all of the BlockManagers being concatenated
     have matching columns.
@@ -325,7 +208,7 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
+    new_mgrs = []
 
     for mgr, indexers in mgrs_indexers:
         # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
@@ -340,8 +223,11 @@ def _maybe_reindex_columns_na_proxy(
                 allow_dups=True,
                 use_na_proxy=True,  # only relevant for i==0
             )
-        new_mgrs_indexers.append((mgr, {}))
-    return new_mgrs_indexers
+        if needs_copy and not indexers:
+            mgr = mgr.copy()
+
+        new_mgrs.append(mgr)
+    return new_mgrs
 
 
 def _is_homogeneous_mgr(mgr: BlockManager, first_dtype: DtypeObj) -> bool:
@@ -470,7 +356,7 @@ class JoinUnit:
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
         na_value = blk.fill_value
-        if na_value is NaT and not is_dtype_equal(blk.dtype, dtype):
+        if na_value is NaT and blk.dtype != dtype:
             # e.g. we are dt64 and other is td64
             # fill_values match but we should not cast blk.values to dtype
             # TODO: this will need updating if we ever have non-nano dt64/td64
@@ -683,7 +569,7 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
         and
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
-            is_dtype_equal(ju.block.dtype, first.dtype)
+            ju.block.dtype == first.dtype
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
             or ju.block.dtype.kind in "iub"

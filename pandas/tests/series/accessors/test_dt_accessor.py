@@ -385,6 +385,19 @@ class TestSeriesDatetimeValues:
         with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
+    @pytest.mark.parametrize("freq", ["ns", "U", "1000U"])
+    def test_dt_round_nonnano_higher_resolution_no_op(self, freq):
+        # GH 52761
+        ser = Series(
+            ["2020-05-31 08:00:00", "2000-12-31 04:00:05", "1800-03-14 07:30:20"],
+            dtype="datetime64[ms]",
+        )
+        expected = ser.copy()
+        result = ser.dt.round(freq)
+        tm.assert_series_equal(result, expected)
+
+        assert not np.shares_memory(ser.array._ndarray, result.array._ndarray)
+
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)

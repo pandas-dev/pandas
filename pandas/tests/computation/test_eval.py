@@ -218,7 +218,7 @@ class TestEval:
         else:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
-                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
+                lhs, rhs = (np.array([x]) for x in (lhs, rhs))
             expected = _eval_single_bin(lhs, op, rhs, engine)
             if is_scalar(expected):
                 expected = not expected
@@ -622,8 +622,8 @@ class TestEval:
         ),
     )
     def test_disallow_scalar_bool_ops(self, ex, engine, parser):
-        x, a, b = np.random.randn(3), 1, 2  # noqa:F841
-        df = DataFrame(np.random.randn(3, 2))  # noqa:F841
+        x, a, b = np.random.randn(3), 1, 2  # noqa: F841
+        df = DataFrame(np.random.randn(3, 2))  # noqa: F841
 
         msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
         with pytest.raises(NotImplementedError, match=msg):
@@ -657,7 +657,7 @@ class TestEval:
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         assert result.shape == (1,)
 
-        x = np.array([False])  # noqa:F841
+        x = np.array([False])  # noqa: F841
         result = pd.eval("x", engine=engine, parser=parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         assert result.shape == (1,)
@@ -746,7 +746,7 @@ class TestTypeCasting:
 def should_warn(*args):
     not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
     only_one_dt = reduce(
-        operator.xor, map(lambda x: issubclass(x.dtype.type, np.datetime64), args)
+        operator.xor, (issubclass(x.dtype.type, np.datetime64) for x in args)
     )
     return not_mono and only_one_dt
 
@@ -1103,7 +1103,7 @@ class TestOperations:
         tm.assert_frame_equal(df, df2)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
@@ -1172,7 +1172,7 @@ class TestOperations:
     def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         df = df.copy()
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         df.eval("a = 1 + b", inplace=True)
 
         expected = df.copy()
@@ -1182,7 +1182,7 @@ class TestOperations:
     def test_assignment_single_assign_name(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
 
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         old_a = df.a.copy()
         df.eval("a = a + b", inplace=True)
         result = old_a + df.b
@@ -1481,7 +1481,7 @@ class TestOperations:
                 pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
 
     def test_check_many_exprs(self, engine, parser):
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         expr = " * ".join("a" * 33)
         expected = 1
         res = pd.eval(expr, engine=engine, parser=parser)
@@ -1520,7 +1520,7 @@ class TestOperations:
 
     @pytest.mark.parametrize("char", ["|", "&"])
     def test_fails_ampersand_pipe(self, char, engine, parser):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
         if parser == "python":
             msg = "cannot evaluate scalar only bool ops"
@@ -1640,7 +1640,7 @@ class TestScope:
         assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
-        x = 1  # noqa:F841
+        x = 1  # noqa: F841
         gbls = globals().copy()
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1738,7 +1738,7 @@ def test_name_error_exprs(engine, parser):
 
 @pytest.mark.parametrize("express", ["a + @b", "@a + b", "@a + @b"])
 def test_invalid_local_variable_reference(engine, parser, express):
-    a, b = 1, 2  # noqa:F841
+    a, b = 1, 2  # noqa: F841
 
     if parser != "pandas":
         with pytest.raises(SyntaxError, match="The '@' prefix is only"):
@@ -1782,7 +1782,7 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()  # noqa:F841
+    mid = gen[lhs]()  # noqa: F841
     lhs = gen[lhs]()
     rhs = gen[rhs]()
 

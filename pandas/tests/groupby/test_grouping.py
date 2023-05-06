@@ -217,9 +217,7 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = g.apply(lambda x: x.sum())
+        result = g.apply(lambda x: x.sum())
         expected["A"] = [0, 2, 4]
         expected = expected.loc[:, ["A", "B"]]
         tm.assert_frame_equal(result, expected)
@@ -994,7 +992,7 @@ class TestIteration:
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
         # pylint: disable-next=unnecessary-comprehension
-        groups = {key: gp for key, gp in grouped}
+        groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
         # axis = 1

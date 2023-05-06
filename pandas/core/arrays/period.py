@@ -55,8 +55,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_dtype_equal,
-    is_period_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -172,7 +170,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = is_period_dtype  # check_compatible_with checks freq match
+    _is_recognized_dtype = lambda x: isinstance(
+        x, PeriodDtype
+    )  # check_compatible_with checks freq match
     _infer_matches = ("period",)
 
     @property
@@ -649,7 +649,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self._dtype):
+        if dtype == self._dtype:
             if not copy:
                 return self
             else:

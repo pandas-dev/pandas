@@ -16,8 +16,6 @@ import warnings
 
 import_datetime()
 
-from dateutil.easter import easter
-from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
@@ -349,6 +347,8 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        from dateutil.relativedelta import relativedelta
+
         return relativedelta(**kwds_no_nanos), True
 
     raise ValueError(
@@ -1218,7 +1218,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        other_nanos = 0
         if self._use_relativedelta:
+            if isinstance(other, _Timestamp):
+                other_nanos = other.nanosecond
             other = _as_datetime(other)
 
         if len(self.kwds) > 0:
@@ -1227,17 +1230,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if hasattr(self, "nanoseconds"):
-                td_nano = Timedelta(nanoseconds=self.nanoseconds)
-            else:
-                td_nano = Timedelta(0)
-
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset + td_nano
+                    other = other + self._offset
             else:
                 for i in range(-self.n):
-                    other = other - self._offset - td_nano
+                    other = other - self._offset
+
+            if hasattr(self, "nanoseconds"):
+                other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+            if other_nanos != 0:
+                other = Timedelta(nanoseconds=other_nanos) + other
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
@@ -2289,12 +2292,28 @@ cdef class BYearBegin(YearOffset):
 
 cdef class YearEnd(YearOffset):
     """
-    DateOffset increments between calendar year ends.
+    DateOffset increments between calendar year end dates.
+
+    YearEnd goes to the next date which is the end of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.YearEnd()
+    Timestamp('2022-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> ts + pd.offsets.YearEnd()
+    Timestamp('2023-12-31 00:00:00')
+
+    If you want to get the end of the current year:
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> pd.offsets.YearEnd().rollback(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2314,9 +2333,9 @@ cdef class YearEnd(YearOffset):
 
 cdef class YearBegin(YearOffset):
     """
-    DateOffset of one year at beginning.
+    DateOffset increments between calendar year begin dates.
 
-    YearBegin goes to the next date which is a start of the year.
+    YearBegin goes to the next date which is the start of the year.
 
     See Also
     --------
@@ -3673,6 +3692,8 @@ cdef class Easter(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        from dateutil.easter import easter
+
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3703,6 +3724,9 @@ cdef class Easter(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
+
+        from dateutil.easter import easter
+
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
