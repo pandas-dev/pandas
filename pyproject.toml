@@ -166,7 +166,7 @@ select = "*-win*"
 # We test separately for Windows, since we use
 # the base windows docker image to check if any dlls are
 # missing from the wheel
-test-command = 'wheel unpack {dest_dir} -d C:\Users\runneradmin\AppData\Local\Temp'
+test-command = ""
 
 [[tool.cibuildwheel.overrides]]
 # Don't strip wheels on macOS.
