@@ -135,13 +135,6 @@ jobs:
           cache-downloads: true
           cache-env: true
 
-      - name: Check wheel
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        shell: bash -el {0}
-        run: |
-          ls wheelhouse
-          wheel unpack "wheelhouse/$(ls wheelhouse)" -d /tmp
-
       - name: Validate wheel RECORD
         shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
