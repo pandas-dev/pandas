@@ -10955,7 +10955,7 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only=None,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
+    ) -> Series | np.bool_ | bool:
         # error: Incompatible return value type (got "Union[Series, bool]",
         # expected "Series")
 
@@ -10963,9 +10963,9 @@ class DataFrame(NDFrame, OpsMixin):
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
         if isinstance(result, (np.bool_, bool)):
-            return result  # type: ignore[return-value]
+            return result
 
-        return result.__finalize__(self)
+        return result.__finalize__(self, method="any")
 
     @doc(make_doc("all", ndim=2))
     def all(
