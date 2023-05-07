@@ -528,7 +528,7 @@ class TestCategoricalConstructors:
 
     @pytest.mark.parametrize("validate", [True, False])
     def test_from_codes_validate(self, validate):
-        # GHXXXXX
+        # GH53122
         dtype = CategoricalDtype(["a", "b"])
         if validate:
             with pytest.raises(ValueError, match="codes need to be between "):
