@@ -146,7 +146,9 @@ jobs:
 
       - name: Test wheels (Windows 64-bit only)
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
-        shell: C:\msys64\usr\bin\bash.exe --login '{0}'
+        shell: bash
+        env:
+          MSYS_NO_PATHCONV: 1
         run: |
           TST_CMD="import pandas as pd; \
           pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']); \
