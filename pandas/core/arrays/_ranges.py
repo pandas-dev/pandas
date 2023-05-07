@@ -54,6 +54,8 @@ def generate_regular_range(
     iend = end._value if end is not None else None
     freq.nanos  # raises if non-fixed frequency
     td = Timedelta(freq)
+    b: int | np.int64 | np.uint64
+    e: int | np.int64 | np.uint64
     try:
         td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
             unit, round_ok=False
@@ -196,11 +198,11 @@ def _generate_range_overflow_safe_signed(
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
 
-            result = np.uint64(endpoint) + np.uint64(addend)
+            uresult = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(i8max)
-            assert result > i64max
-            if result <= i64max + np.uint64(stride):
-                return result
+            assert uresult > i64max
+            if uresult <= i64max + np.uint64(stride):
+                return uresult
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"
