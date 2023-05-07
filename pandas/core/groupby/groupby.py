@@ -4230,7 +4230,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """  # noqa:E501
+        """  # noqa: E501
         if self._selected_obj.empty:
             # GH48459 prevent ValueError when object is empty
             return self._selected_obj
