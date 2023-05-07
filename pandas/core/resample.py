@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
+    ContextManager,
     Hashable,
     Literal,
     cast,
@@ -327,7 +329,13 @@ class Resampler(BaseGroupBy, PandasObject):
         axis="",
     )
     def aggregate(self, func=None, *args, **kwargs):
-        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        context_manager: ContextManager
+        if isinstance(self, DatetimeIndexResamplerGroupby):
+            context_manager = com.temp_setattr(self._groupby, "as_index", True)
+        else:
+            context_manager = nullcontext()
+        with context_manager:
+            result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
             result = self._groupby_and_aggregate(how, *args, **kwargs)

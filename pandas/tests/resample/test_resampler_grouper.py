@@ -659,3 +659,29 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     )
     with pytest.raises(KeyError, match="Columns not found"):
         df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+
+
+def test_groupby_resample_agg_dict_works_for_as_index_false():
+    # GH 52397
+    expected = (
+        DataFrame(
+            {"a": np.repeat([0, 1, 2, 3, 4], 2), "b": range(50, 60)},
+            index=date_range(start=Timestamp.now(), freq="1min", periods=10),
+        )
+        .groupby("a", as_index=True)
+        .resample("2min")
+        .min()
+    )
+    expected.drop(columns=["a"], inplace=True)
+
+    result = (
+        DataFrame(
+            {"a": np.repeat([0, 1, 2, 3, 4], 2), "b": range(50, 60)},
+            index=date_range(start=Timestamp.now(), freq="1min", periods=10),
+        )
+        .groupby("a", as_index=False)
+        .resample("2min")
+        .agg({"b": "min"})
+    )
+
+    tm.assert_frame_equal(expected, result)
