@@ -55,15 +55,12 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_datetime64_any_dtype,
-    is_datetime64_dtype,
-    is_dtype_equal,
-    is_float_dtype,
-    is_integer_dtype,
-    is_period_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCPeriodIndex,
@@ -173,7 +170,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = is_period_dtype  # check_compatible_with checks freq match
+    _is_recognized_dtype = lambda x: isinstance(
+        x, PeriodDtype
+    )  # check_compatible_with checks freq match
     _infer_matches = ("period",)
 
     @property
@@ -650,7 +649,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self._dtype):
+        if dtype == self._dtype:
             if not copy:
                 return self
             else:
@@ -658,7 +657,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if isinstance(dtype, PeriodDtype):
             return self.asfreq(dtype.freq)
 
-        if is_datetime64_any_dtype(dtype):
+        if lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp().tz_localize(tz)
@@ -915,7 +914,7 @@ def period_array(
     """
     data_dtype = getattr(data, "dtype", None)
 
-    if is_datetime64_dtype(data_dtype):
+    if lib.is_np_dtype(data_dtype, "M"):
         return PeriodArray._from_datetime64(data, freq)
     if isinstance(data_dtype, PeriodDtype):
         out = PeriodArray(data)
@@ -937,10 +936,10 @@ def period_array(
     else:
         dtype = None
 
-    if is_float_dtype(arrdata) and len(arrdata) > 0:
+    if arrdata.dtype.kind == "f" and len(arrdata) > 0:
         raise TypeError("PeriodIndex does not allow floating point in construction")
 
-    if is_integer_dtype(arrdata.dtype):
+    if arrdata.dtype.kind in "iu":
         arr = arrdata.astype(np.int64, copy=False)
         # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
         # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"

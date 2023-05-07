@@ -135,6 +135,24 @@ class TestDataFrameConstructors:
         result = Series(idx)
         tm.assert_series_equal(result, expected)
 
+    def test_columns_with_leading_underscore_work_with_to_dict(self):
+        col_underscore = "_b"
+        df = DataFrame({"a": [1, 2], col_underscore: [3, 4]})
+        d = df.to_dict(orient="records")
+
+        ref_d = [{"a": 1, col_underscore: 3}, {"a": 2, col_underscore: 4}]
+
+        assert ref_d == d
+
+    def test_columns_with_leading_number_and_underscore_work_with_to_dict(self):
+        col_with_num = "1_b"
+        df = DataFrame({"a": [1, 2], col_with_num: [3, 4]})
+        d = df.to_dict(orient="records")
+
+        ref_d = [{"a": 1, col_with_num: 3}, {"a": 2, col_with_num: 4}]
+
+        assert ref_d == d
+
     def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
         # GH#39462
         nat = np.datetime64("NaT", "ns")
@@ -244,12 +262,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self, float_string_frame):
-        index, data = tm.getMixedTypeDict()
-
-        # TODO(wesm), incomplete test?
-        indexed_frame = DataFrame(data, index=index)  # noqa
-        unindexed_frame = DataFrame(data)  # noqa
-
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
@@ -2639,6 +2651,12 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame(data=np.array([]), columns=["a", "b"])
 
+    def test_construct_with_strings_and_none(self):
+        # GH#32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+        expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
@@ -3044,7 +3062,7 @@ class TestFromScalar:
         result = constructor(scalar)
 
         item = get1(result)
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
 
         assert type(item) is Timestamp
         assert item.asm8.dtype == exp_dtype
@@ -3055,7 +3073,7 @@ class TestFromScalar:
         result = constructor(scalar)
         item = get1(result)
         assert type(item) is np.datetime64
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
         assert dtype == object
 
     @pytest.mark.xfail(
@@ -3073,7 +3091,7 @@ class TestFromScalar:
         result = constructor(scalar)
 
         item = get1(result)
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
 
         assert type(item) is Timedelta
         assert item.asm8.dtype == exp_dtype
@@ -3085,7 +3103,7 @@ class TestFromScalar:
         result = constructor(scalar)
         item = get1(result)
         assert type(item) is cls
-        dtype = result.dtype if isinstance(result, Series) else result.dtypes.iloc[0]
+        dtype = tm.get_dtype(result)
         assert dtype == object
 
     def test_tzaware_data_tznaive_dtype(self, constructor, box, frame_or_series):

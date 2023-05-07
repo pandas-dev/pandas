@@ -19,7 +19,11 @@ import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs import (
+    Period,
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -28,10 +32,7 @@ from pandas._typing import (
     T,
 )
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    _registry as registry,
-)
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
@@ -42,13 +43,9 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_timedelta64_ns_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
@@ -311,19 +308,17 @@ def array(
     data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
-    if isinstance(dtype, str):
-        dtype = registry.find(dtype) or dtype
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
 
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
+    if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
         # e.g. TimedeltaArray[s], avoid casting to PandasArray
         if copy:
             return data.copy()
         return data
 
-    if is_extension_array_dtype(dtype):
-        cls = cast(ExtensionDtype, dtype).construct_array_type()
+    if isinstance(dtype, ExtensionDtype):
+        cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
@@ -366,12 +361,22 @@ def array(
             return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for
-    #   1. datetime64[ns]
-    #   2. timedelta64[ns]
+    #   1. datetime64[ns,us,ms,s]
+    #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if is_datetime64_ns_dtype(dtype):
+    if (
+        lib.is_np_dtype(dtype, "M")
+        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+        # "Optional[dtype[Any]]"; expected "dtype[Any]"
+        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
+    ):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    elif is_timedelta64_ns_dtype(dtype):
+    if (
+        lib.is_np_dtype(dtype, "m")
+        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
+        # "Optional[dtype[Any]]"; expected "dtype[Any]"
+        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
+    ):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
@@ -497,9 +502,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
-        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
+        data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
@@ -749,7 +752,7 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if is_object_dtype(dtype):
+    if dtype == object:
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
@@ -773,7 +776,7 @@ def _try_cast(
 
     # GH#15832: Check if we are requesting a numeric dtype and
     # that we can convert the data to the requested dtype.
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)

@@ -340,6 +340,14 @@ class TestReaders:
                 usecols=["A", "C"],
             )
 
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_index_col_empty(self, read_ext):
         # see gh-9208
         result = pd.read_excel(
@@ -835,7 +843,13 @@ class TestReaders:
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
-        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        match = "|".join(
+            [
+                "(No such file or directory",
+                "没有那个文件或目录",
+                "File o directory non esistente)",
+            ]
+        )
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
@@ -1694,7 +1708,7 @@ class TestExcelFileRead:
             errors = (BadZipFile, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt")
+            Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
                     pd.ExcelFile(file, engine=engine)

@@ -144,3 +144,17 @@ class TestConvertDtypes:
             pytest.importorskip("pyarrow")
             pd.DataFrame({"x": ["1372636858620000589"]}).to_csv(path, index=False)
             pd.read_csv(path, dtype_backend="pyarrow")["x"].round()
+
+    def test_pyarrow_backend_no_convesion(self):
+        # GH#52872
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
+        expected = df.copy()
+        result = df.convert_dtypes(
+            convert_floating=False,
+            convert_integer=False,
+            convert_boolean=False,
+            convert_string=False,
+            dtype_backend="pyarrow",
+        )
+        tm.assert_frame_equal(result, expected)

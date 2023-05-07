@@ -99,8 +99,6 @@ class Grouper:
         - 'start': `origin` is the first value of the timeseries
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
-        .. versionadded:: 1.1.0
-
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
@@ -108,8 +106,6 @@ class Grouper:
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
-
-        .. versionadded:: 1.1.0
 
     dropna : bool, default True
         If True, and if group keys contain NA values, NA values together with
@@ -120,7 +116,9 @@ class Grouper:
 
     Returns
     -------
-    A specification for a groupby instruction
+    Grouper or pandas.api.typing.TimeGrouper
+        A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
+        is returned.
 
     Examples
     --------

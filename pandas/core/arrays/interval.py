@@ -50,7 +50,6 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_numeric_to_64bit,
 )
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -226,7 +225,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(
         cls,
         data,
-        closed=None,
+        closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
@@ -329,9 +328,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 raise ValueError("closed keyword does not match dtype.closed")
 
         # coerce dtypes to match if needed
-        if is_float_dtype(left) and is_integer_dtype(right):
+        if is_float_dtype(left.dtype) and is_integer_dtype(right.dtype):
             right = right.astype(left.dtype)
-        elif is_float_dtype(right) and is_integer_dtype(left):
+        elif is_float_dtype(right.dtype) and is_integer_dtype(left.dtype):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
@@ -1684,7 +1683,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
 
-            if is_dtype_equal(self.dtype, values.dtype):
+            if self.dtype == values.dtype:
                 # GH#38353 instead of casting to object, operating on a
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
@@ -1778,6 +1777,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
 
     if not hasattr(values, "dtype"):
         values = np.asarray(values)
-        if is_integer_dtype(values) and values.dtype != np.int64:
+        if values.dtype.kind in "iu" and values.dtype != np.int64:
             values = values.astype(np.int64)
     return values

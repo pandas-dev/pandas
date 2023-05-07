@@ -39,8 +39,6 @@ from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool_dtype,
     is_dict_like,
-    is_dtype_equal,
-    is_extension_array_dtype,
     is_hashable,
     is_integer_dtype,
     is_list_like,
@@ -533,7 +531,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
-        elif is_integer_dtype(dtype) and self.isna().any():
+        elif dtype.kind in "iu" and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
 
         elif len(self.codes) == 0 or len(self.categories) == 0:
@@ -618,13 +616,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
-            if is_any_real_numeric_dtype(dtype.categories):
+            if is_any_real_numeric_dtype(dtype.categories.dtype):
                 cats = to_numeric(inferred_categories, errors="coerce")
             elif lib.is_np_dtype(dtype.categories.dtype, "M"):
                 cats = to_datetime(inferred_categories, errors="coerce")
             elif lib.is_np_dtype(dtype.categories.dtype, "m"):
                 cats = to_timedelta(inferred_categories, errors="coerce")
-            elif is_bool_dtype(dtype.categories):
+            elif is_bool_dtype(dtype.categories.dtype):
                 if true_values is None:
                     true_values = ["True", "TRUE", "true"]
 
@@ -701,14 +699,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
             raise ValueError(msg)
 
-        if is_extension_array_dtype(codes) and is_integer_dtype(codes):
+        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
             # Avoid the implicit conversion of Int to object
             if isna(codes).any():
                 raise ValueError("codes cannot contain NA values")
             codes = codes.to_numpy(dtype=np.int64)
         else:
             codes = np.asarray(codes)
-        if len(codes) and not is_integer_dtype(codes):
+        if len(codes) and codes.dtype.kind not in "iu":
             raise ValueError("codes need to be array-like integers")
 
         if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
@@ -1395,7 +1393,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             categorical.categories.dtype.
         """
         ret = take_nd(self.categories._values, self._codes)
-        if dtype and not is_dtype_equal(dtype, self.categories.dtype):
+        if dtype and np.dtype(dtype) != self.categories.dtype:
             return np.asarray(ret, dtype)
         # When we're a Categorical[ExtensionArray], like Interval,
         # we need to ensure __array__ gets all the way to an
@@ -1598,7 +1596,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
             return self.categories.take(self._codes, fill_value=NaT)
-        elif is_integer_dtype(self.categories) and -1 in self._codes:
+        elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
         return np.array(self)
 
@@ -1809,7 +1807,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if mask.any():
                 values = values.astype("float64")
                 values[mask] = np.nan
-        elif is_any_real_numeric_dtype(self.categories):
+        elif is_any_real_numeric_dtype(self.categories.dtype):
             values = np.array(self)
         else:
             #  reorder the categories (so rank can use the float codes)
@@ -2019,12 +2017,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # require identical categories set
         if isinstance(value, Categorical):
-            if not is_dtype_equal(self.dtype, value.dtype):
+            if self.dtype != value.dtype:
                 raise TypeError(
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
-            # is_dtype_equal implies categories_match_up_to_permutation
+            # dtype equality implies categories_match_up_to_permutation
             value = self._encode_with_my_categories(value)
             return value._codes
 

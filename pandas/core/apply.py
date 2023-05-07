@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._config import option_context
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -55,7 +56,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -110,6 +110,7 @@ class Apply(metaclass=abc.ABCMeta):
         func,
         raw: bool,
         result_type: str | None,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -578,10 +579,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         if obj.ndim != 1:
             # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
+            from pandas import Index
+
+            cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise KeyError(f"Column(s) {cols_sorted} do not exist")
+                raise KeyError(f"Column(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
@@ -1037,10 +1039,21 @@ class SeriesApply(NDFrameApply):
         self,
         obj: Series,
         func: AggFuncType,
-        convert_dtype: bool,
+        *,
+        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args,
         kwargs,
     ) -> None:
+        if convert_dtype is lib.no_default:
+            convert_dtype = True
+        else:
+            warnings.warn(
+                "the convert_dtype parameter is deprecated and will be removed in a "
+                "future version.  Do ``ser.astype(object).apply()`` "
+                "instead if you want ``convert_dtype=False``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         self.convert_dtype = convert_dtype
 
         super().__init__(
@@ -1073,14 +1086,9 @@ class SeriesApply(NDFrameApply):
         result = super().agg()
         if result is None:
             f = self.f
-            kwargs = self.kwargs
 
             # string, list-like, and dict-like are entirely handled in super
             assert callable(f)
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_level", None)
 
             # try a regular apply, this evaluates lambdas
             # row-by-row; however if the lambda is expected a Series
@@ -1143,6 +1151,7 @@ class GroupByApply(Apply):
         self,
         obj: GroupBy[NDFrameT],
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -1172,6 +1181,7 @@ class ResamplerWindowApply(Apply):
         self,
         obj: Resampler | BaseWindow,
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:

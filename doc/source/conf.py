@@ -56,7 +56,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
-    "sphinx_panels",
+    "sphinx_design",
     "sphinx_toggleprompt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -76,6 +76,7 @@ exclude_patterns = [
     # to ensure that include files (partial pages) aren't built, exclude them
     # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
     "**/includes/**",
+    "**/api/pandas.Series.dt.rst",
 ]
 try:
     import nbconvert
@@ -116,9 +117,9 @@ if pattern:
                 elif single_doc and rel_fname != pattern:
                     exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template")) as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
@@ -141,10 +142,6 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
-
-# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
-# already loads it
-panels_add_bootstrap_css = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
@@ -250,6 +247,13 @@ html_theme_options = {
         "json_url": "/versions.json",
         "version_match": switcher_version,
     },
+    "icon_links": [
+        {
+            "name": "Mastodon",
+            "url": "https://fosstodon.org/@pandas_dev",
+            "icon": "fa-brands fa-mastodon",
+        },
+    ],
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -459,11 +463,10 @@ if include_api:
 
 # extlinks alias
 extlinks = {
-    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
+    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH %s"),
 }
 
 
-ipython_warning_is_error = False
 ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",

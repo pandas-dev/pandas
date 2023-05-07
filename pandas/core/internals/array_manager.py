@@ -3,6 +3,7 @@ Experimental manager based on storing a collection of 1D arrays
 """
 from __future__ import annotations
 
+import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,16 +21,18 @@ from pandas._libs import (
 )
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.astype import astype_array_safe
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_array_safe,
+)
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
+    find_common_type,
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
@@ -86,6 +89,7 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
+from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -392,10 +396,7 @@ class BaseArrayManager(DataManager):
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
-                    convert_datetime=True,
-                    convert_timedelta=True,
-                    convert_period=True,
-                    convert_interval=True,
+                    convert_non_numeric=True,
                 )
                 if result is arr and copy:
                     return arr.copy()
@@ -670,13 +671,8 @@ class BaseArrayManager(DataManager):
             fill_value = np.nan
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype[Any],
-        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-        # _DTypeDict, Tuple[Any, Any]]]"
-        values = np.empty(self.shape_proper[0], dtype=dtype)  # type: ignore[arg-type]
-        values.fill(fill_value)
-        return values
+        array_values = make_na_array(dtype, self.shape_proper[:1], fill_value)
+        return array_values
 
     def _equal_values(self, other) -> bool:
         """
@@ -802,7 +798,11 @@ class ArrayManager(BaseArrayManager):
         return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
-        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+        self,
+        loc: int | slice | np.ndarray,
+        value: ArrayLike,
+        inplace: bool = False,
+        refs=None,
     ) -> None:
         """
         Set new column(s).
@@ -878,7 +878,7 @@ class ArrayManager(BaseArrayManager):
             # update existing ArrayManager in-place
             self.arrays[loc] = new_mgr.arrays[0]
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
         Insert item at selected position.
 
@@ -1125,10 +1125,10 @@ class ArrayManager(BaseArrayManager):
             dtype = dtype.subtype
         elif isinstance(dtype, PandasDtype):
             dtype = dtype.numpy_dtype
-        elif is_extension_array_dtype(dtype):
-            dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            dtype = "object"
+        elif isinstance(dtype, ExtensionDtype):
+            dtype = np.dtype("object")
+        elif dtype == np.dtype(str):
+            dtype = np.dtype("object")
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
@@ -1140,6 +1140,30 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
+
+    @classmethod
+    def concat_horizontal(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed ArrayManagers horizontally.
+        """
+        # concatting along the columns -> combine reindexed arrays in a single manager
+        arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+        new_mgr = cls(arrays, [axes[1], axes[0]], verify_integrity=False)
+        return new_mgr
+
+    @classmethod
+    def concat_vertical(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed ArrayManagers vertically.
+        """
+        # concatting along the rows -> concat the reindexed arrays
+        # TODO(ArrayManager) doesn't yet preserve the correct dtype
+        arrays = [
+            concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
+            for j in range(len(mgrs[0].arrays))
+        ]
+        new_mgr = cls(arrays, [axes[1], axes[0]], verify_integrity=False)
+        return new_mgr
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
@@ -1359,3 +1383,59 @@ class NullArrayProxy:
             arr = np.empty(self.n, dtype=dtype)
             arr.fill(fill_value)
             return ensure_wrapped_if_datetimelike(arr)
+
+
+def concat_arrays(to_concat: list) -> ArrayLike:
+    """
+    Alternative for concat_compat but specialized for use in the ArrayManager.
+
+    Differences: only deals with 1D arrays (no axis keyword), assumes
+    ensure_wrapped_if_datetimelike and does not skip empty arrays to determine
+    the dtype.
+    In addition ensures that all NullArrayProxies get replaced with actual
+    arrays.
+
+    Parameters
+    ----------
+    to_concat : list of arrays
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    # ignore the all-NA proxies to determine the resulting dtype
+    to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
+
+    dtypes = {x.dtype for x in to_concat_no_proxy}
+    single_dtype = len(dtypes) == 1
+
+    if single_dtype:
+        target_dtype = to_concat_no_proxy[0].dtype
+    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
+        # GH#42092
+        target_dtype = np.find_common_type(list(dtypes), [])
+    else:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
+
+    to_concat = [
+        arr.to_array(target_dtype)
+        if isinstance(arr, NullArrayProxy)
+        else astype_array(arr, target_dtype, copy=False)
+        for arr in to_concat
+    ]
+
+    if isinstance(to_concat[0], ExtensionArray):
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat)
+
+    result = np.concatenate(to_concat)
+
+    # TODO decide on exact behaviour (we shouldn't do this only for empty result)
+    # see https://github.com/pandas-dev/pandas/issues/39817
+    if len(result) == 0:
+        # all empties -> check for bool to not coerce to float
+        kinds = {obj.dtype.kind for obj in to_concat_no_proxy}
+        if len(kinds) != 1:
+            if "b" in kinds:
+                result = result.astype(object)
+    return result
