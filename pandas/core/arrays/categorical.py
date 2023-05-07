@@ -684,7 +684,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             `categories` or `ordered`.
         validate : bool, default True
             If True, validate that the codes are valid for the dtype.
-            If False, don't validate that the codes are valid.
+            If False, don't validate that the codes are valid. Be careful about skipping
+            validation, as invalid codes can lead to severe problems, such as segfaults.
 
             .. versionadded:: 2.1.0
 
@@ -710,6 +711,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             raise ValueError(msg)
 
         if validate:
+            # beware: non-valid codes may segfault
             codes = cls._validate_codes_for_dtype(codes, dtype=dtype)
 
         return cls._simple_new(codes, dtype=dtype)
