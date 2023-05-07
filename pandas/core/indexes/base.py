@@ -56,6 +56,7 @@ from pandas._typing import (
     JoinHow,
     Level,
     NaPosition,
+    ReindexMethod,
     Self,
     Shape,
     npt,
@@ -207,7 +208,6 @@ _index_doc_kwargs: dict[str, str] = {
 }
 _index_shared_docs: dict[str, str] = {}
 str_t = str
-
 
 _dtype_obj = np.dtype("object")
 
@@ -3746,7 +3746,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self,
         target,
-        method: str_t | None = None,
+        method: ReindexMethod | None = None,
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
@@ -4199,7 +4199,7 @@ class Index(IndexOpsMixin, PandasObject):
     def reindex(
         self,
         target,
-        method=None,
+        method: ReindexMethod | None = None,
         level=None,
         limit: int | None = None,
         tolerance: float | None = None,
