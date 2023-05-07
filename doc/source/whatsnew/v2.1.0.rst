@@ -370,6 +370,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
+- Bug in :meth:`DatetimeIndexResamplerGroupby.agg({})`, where the aggregatio function wouldn't work if :class:`DatetimeIndexResamplerGroupby` was created from :class:`Groupby` w. ``as_index=False`` (:issue:`52819`)
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
 
 I/O
