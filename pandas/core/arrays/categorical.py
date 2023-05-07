@@ -1379,9 +1379,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return fill_value
 
     @classmethod
-    def _validate_codes_for_dtype(
-        cls, codes, *, dtype: CategoricalDtype
-    ) -> npt.NDArray[np.integer]:
+    def _validate_codes_for_dtype(cls, codes, *, dtype: CategoricalDtype) -> np.ndarray:
         if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
             # Avoid the implicit conversion of Int to object
             if isna(codes).any():
