@@ -36,7 +36,7 @@ ERROR_MESSAGE = (
 
 
 def get_warnings_and_exceptions_from_api_path() -> set[str]:
-    with open(API_PATH) as f:
+    with open(API_PATH, encoding="utf-8") as f:
         doc_errors = {
             line.split(".")[1].strip() for line in f.readlines() if "errors" in line
         }

@@ -110,7 +110,7 @@ class Preprocessors:
                 md = markdown.Markdown(
                     extensions=context["main"]["markdown_extensions"]
                 )
-                with open(os.path.join(posts_path, fname)) as f:
+                with open(os.path.join(posts_path, fname), encoding="utf-8") as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
                 summary = re.sub(tag_expr, "", html)
@@ -197,7 +197,11 @@ class Preprocessors:
 
         # save the data fetched from github to use it in case we exceed
         # git github api quota in the future
-        with open(pathlib.Path(context["target_path"]) / "maintainers.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "maintainers.json",
+            "w",
+            encoding="utf-8",
+        ) as f:
             json.dump(maintainers_info, f)
 
         return context
@@ -220,7 +224,11 @@ class Preprocessors:
             resp.raise_for_status()
             releases = resp.json()
 
-        with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "releases.json",
+            "w",
+            encoding="utf-8",
+        ) as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
         for release in releases:
@@ -304,7 +312,9 @@ class Preprocessors:
             resp.raise_for_status()
             pdeps = resp.json()
 
-        with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "pdeps.json", "w", encoding="utf-8"
+        ) as f:
             json.dump(pdeps, f)
 
         for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
@@ -346,7 +356,7 @@ def get_context(config_fname: str, **kwargs):
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
     """
-    with open(config_fname) as f:
+    with open(config_fname, encoding="utf-8") as f:
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
@@ -418,7 +428,7 @@ def main(
 
         extension = os.path.splitext(fname)[-1]
         if extension in (".html", ".md"):
-            with open(os.path.join(source_path, fname)) as f:
+            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
                 body = markdown.markdown(
@@ -431,7 +441,9 @@ def main(
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
             fname_html = os.path.splitext(fname)[0] + ".html"
-            with open(os.path.join(target_path, fname_html), "w") as f:
+            with open(
+                os.path.join(target_path, fname_html), "w", encoding="utf-8"
+            ) as f:
                 f.write(content)
         else:
             shutil.copy(

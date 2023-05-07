@@ -63,12 +63,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     ret = 0
     for path in args.paths:
-        with open(path) as fd:
+        with open(path, encoding="utf-8") as fd:
             content = fd.read()
         new_content = sort_whatsnew_note(content)
         if content != new_content:
             ret |= 1
-            with open(path, "w") as fd:
+            with open(path, "w", encoding="utf-8") as fd:
                 fd.write(new_content)
     return ret
 

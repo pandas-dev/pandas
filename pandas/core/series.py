@@ -1699,7 +1699,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if hasattr(buf, "write"):
                 buf.write(result)
             else:
-                with open(buf, "w") as f:
+                with open(buf, "w", encoding="utf-8") as f:
                     f.write(result)
         return None
 

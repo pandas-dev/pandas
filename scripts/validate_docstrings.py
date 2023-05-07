@@ -367,7 +367,7 @@ def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
+        with open(api_doc_fname, encoding="utf-8") as f:
             yield from get_api_items(f)
 
 

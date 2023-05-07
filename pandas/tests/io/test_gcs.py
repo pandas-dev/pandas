@@ -193,7 +193,7 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
         def open(self, path, mode="r", *args):
             if "w" not in mode:
                 raise FileNotFoundError
-            return open(os.path.join(tmpdir, "test.parquet"), mode)
+            return open(os.path.join(tmpdir, "test.parquet"), mode, encoding="utf-8")
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df1.to_parquet(

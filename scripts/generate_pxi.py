@@ -5,11 +5,11 @@ from Cython import Tempita
 
 
 def process_tempita(pxifile, outfile):
-    with open(pxifile) as f:
+    with open(pxifile, encoding="utf-8") as f:
         tmpl = f.read()
     pyxcontent = Tempita.sub(tmpl)
 
-    with open(outfile, "w") as f:
+    with open(outfile, "w", encoding="utf-8") as f:
         f.write(pyxcontent)
 
 

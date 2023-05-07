@@ -497,7 +497,7 @@ class ReadCSVMemoryGrowth(BaseIO):
     param_names = ["engine"]
 
     def setup(self, engine):
-        with open(self.fname, "w") as f:
+        with open(self.fname, "w", encoding="utf-8") as f:
             for i in range(self.num_rows):
                 f.write(f"{i}\n")
 

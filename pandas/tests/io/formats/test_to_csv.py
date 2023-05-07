@@ -32,7 +32,7 @@ class TestToCSV:
 """
         with tm.ensure_clean("test.csv") as path:
             df1.to_csv(path, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected1
 
         df2 = DataFrame([1, None])
@@ -42,7 +42,7 @@ class TestToCSV:
 """
         with tm.ensure_clean("test.csv") as path:
             df2.to_csv(path, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected2
 
     def test_to_csv_default_encoding(self):
@@ -64,7 +64,7 @@ class TestToCSV:
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         expected = """\
@@ -75,7 +75,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1, quotechar="$")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         with tm.ensure_clean("test.csv") as path:
@@ -92,7 +92,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         with tm.ensure_clean("test.csv") as path:
@@ -109,7 +109,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
             df.to_csv(path, quoting=1, doublequote=False, escapechar="\\")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
         df = DataFrame({"col": ["a,a", ",bb,"]})
@@ -121,7 +121,7 @@ $1$,$2$
 
         with tm.ensure_clean("test.csv") as path:
             df.to_csv(path, quoting=3, escapechar="\\")  # QUOTE_NONE
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
     def test_csv_to_string(self):
@@ -401,7 +401,7 @@ $1$,$2$
 """
         with tm.ensure_clean("str_test.csv") as path:
             df.to_csv(path, encoding="ascii")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_ascii
 
     def test_to_csv_string_array_utf8(self):
@@ -415,7 +415,7 @@ $1$,$2$
 """
         with tm.ensure_clean("unicode_test.csv") as path:
             df.to_csv(path, encoding="utf-8")
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_utf8
 
     def test_to_csv_string_with_lf(self):
@@ -521,10 +521,10 @@ y
 z
 """
         with tm.ensure_clean("test.txt") as path:
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
     def test_to_csv_write_to_open_file_with_newline_py3(self):
@@ -534,7 +534,7 @@ z
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
         with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", newline="") as f:
+            with open(path, "w", newline="", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None)
 

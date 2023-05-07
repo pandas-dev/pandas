@@ -626,7 +626,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_float32_nanrep__.csv") as path:
             df.to_csv(path, na_rep=999)
 
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert lines[1].split(",")[2] == "999"
 

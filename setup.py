@@ -88,11 +88,11 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile) as f:
+            with open(pxifile, encoding="utf-8") as f:
                 tmpl = f.read()
             pyxcontent = Tempita.sub(tmpl)
 
-            with open(outfile, "w") as f:
+            with open(outfile, "w", encoding="utf-8") as f:
                 f.write(pyxcontent)
 
     def build_extensions(self):
