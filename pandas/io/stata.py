@@ -414,7 +414,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     US_PER_DAY = NS_PER_DAY / 1000
 
     def parse_dates_safe(
-        dates, delta: bool = False, year: bool = False, days: bool = False
+        dates: Series, delta: bool = False, year: bool = False, days: bool = False
     ):
         d = {}
         if lib.is_np_dtype(dates.dtype, "M"):
