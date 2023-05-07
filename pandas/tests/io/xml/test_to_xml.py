@@ -983,12 +983,8 @@ xsl_expected = """\
 def test_stylesheet_file_like(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    if mode == "rb":
-        with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
-            assert geom_df.to_xml(stylesheet=f) == xsl_expected
-    else:
-        with open(xsl, mode, encoding="utf-8") as f:
-            assert geom_df.to_xml(stylesheet=f) == xsl_expected
+    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+        assert geom_df.to_xml(stylesheet=f) == xsl_expected
 
 
 @td.skip_if_no("lxml")
@@ -999,11 +995,10 @@ def test_stylesheet_io(datapath, mode):
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    if mode == "rb":
-        with open(xsl_path, "rb") as f:
+    with open(xsl_path, mode, encoding="utf-8" if mode == "r" else None) as f:
+        if mode == "rb":
             xsl_obj = BytesIO(f.read())
-    else:
-        with open(xsl_path, encoding="utf-8") as f:
+        else:
             xsl_obj = StringIO(f.read())
 
     output = geom_df.to_xml(stylesheet=xsl_obj)
@@ -1015,12 +1010,8 @@ def test_stylesheet_io(datapath, mode):
 def test_stylesheet_buffered_reader(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    if mode == "rb":
-        with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
-            xsl_obj = f.read()
-    else:
-        with open(xsl, mode, encoding="utf-8") as f:
-            xsl_obj = f.read()
+    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+        xsl_obj = f.read()
 
     output = geom_df.to_xml(stylesheet=xsl_obj)
 
