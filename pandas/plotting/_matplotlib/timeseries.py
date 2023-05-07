@@ -1,7 +1,6 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 from __future__ import annotations
-# import pandas as pd
 
 import functools
 from typing import (
@@ -10,7 +9,6 @@ from typing import (
 )
 
 import numpy as np
-import pandas
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -25,6 +23,8 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
+import pandas
+
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateFormatter,
@@ -36,6 +36,9 @@ from pandas.tseries.frequencies import (
     is_subperiod,
     is_superperiod,
 )
+
+# import pandas as pd
+
 
 if TYPE_CHECKING:
     from datetime import timedelta
@@ -67,12 +70,9 @@ def maybe_resample(series: Series, ax: Axes, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            # error: "Index" has no attribute "asfreq"
             series.index = pandas.to_datetime(series.index)
 
-            series.index = series.index.asfreq( 
-                ax_freq, how="s"
-            )
+            series.index = series.index.asfreq(ax_freq, how="s")
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop("how", "last")
@@ -235,8 +235,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(freq_str)._period_dtype_code 
+        base = to_offset(freq_str)._period_dtype_code
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -251,10 +250,9 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
         if freq == "B":
-            # error: "Index" has no attribute "dayofweek"
             index = pandas.to_datetime(index)
 
-            weekdays = np.unique(index.dayofweek) 
+            weekdays = np.unique(index.dayofweek)
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
 

@@ -82,8 +82,8 @@ def to_dict(
     # GH16122
     into_c = com.standardize_mapping(into)
 
-    orient = 'dict'
-    orient = orient.lower()  
+    if isinstance(orient, str):
+        orient = orient.lower()
 
     if not index and orient not in ["split", "tight"]:
         raise ValueError(
