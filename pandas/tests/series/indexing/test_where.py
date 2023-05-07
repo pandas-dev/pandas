@@ -471,7 +471,9 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
 def test_where_with_na():
     # See GH #52955, NA should propagate in where
     s = Series([1, 2, NA], dtype=Int64Dtype())
-    res = s.where(s % 2 == 1, 0)
+    res1 = s.where(s % 2 == 1, 0)
+    res2 = s.where(s.array % 2 == 1, 0)
 
     exp = Series([1, 0, NA], dtype=Int64Dtype())
-    tm.assert_series_equal(res, exp)
+    tm.assert_series_equal(res1, exp)
+    tm.assert_series_equal(res2, exp)

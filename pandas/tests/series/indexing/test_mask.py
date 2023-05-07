@@ -76,7 +76,9 @@ def test_mask_inplace():
 def test_mask_with_na():
     # See GH #52955, NA should propagate in mask
     s = Series([1, 2, NA], dtype=Int64Dtype())
-    res = s.mask(s % 2 == 1, 0)
+    res1 = s.mask(s % 2 == 1, 0)
+    res2 = s.mask(s.array % 2 == 1, 0)
 
     exp = Series([0, 2, NA], dtype=Int64Dtype())
-    tm.assert_series_equal(res, exp)
+    tm.assert_series_equal(res1, exp)
+    tm.assert_series_equal(res2, exp)
