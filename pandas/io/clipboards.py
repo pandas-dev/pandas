@@ -30,8 +30,8 @@ def read_clipboard(
 
     Parameters
     ----------
-    sep : str, default '\s+'
-        A string or regex delimiter. The default of '\s+' denotes
+    sep : str, default '\\s+'
+        A string or regex delimiter. The default of '\\s+' denotes
         one or more whitespace characters.
 
     dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames

@@ -23,8 +23,10 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Iterator,
     Literal,
+    Mapping,
     cast,
     overload,
 )
@@ -42,7 +44,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
     is_dict_like,
     is_list_like,
 )
@@ -74,6 +75,8 @@ if TYPE_CHECKING:
         IndexLabel,
         Self,
     )
+
+    from pandas import Index
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -110,7 +113,7 @@ def _handle_date_column(
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col.dtype):
+        elif isinstance(col.dtype, DatetimeTZDtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -129,7 +132,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
+        if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -358,7 +361,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: None = ...,
     dtype: DtypeArg | None = ...,
@@ -373,7 +376,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = ...,
     coerce_float=...,
-    params: list[str] | dict[str, str] | None = ...,
+    params: list[Any] | Mapping[str, Any] | None = ...,
     parse_dates: list[str] | dict[str, str] | None = ...,
     chunksize: int = ...,
     dtype: DtypeArg | None = ...,
@@ -387,7 +390,7 @@ def read_sql_query(
     con,
     index_col: str | list[str] | None = None,
     coerce_float: bool = True,
-    params: list[str] | dict[str, str] | None = None,
+    params: list[Any] | Mapping[str, Any] | None = None,
     parse_dates: list[str] | dict[str, str] | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
@@ -412,7 +415,7 @@ def read_sql_query(
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
         decimal.Decimal) to floating point. Useful for SQL result sets.
-    params : list, tuple or dict, optional, default: None
+    params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
@@ -683,7 +686,7 @@ def to_sql(
     index_label: IndexLabel = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: str | None = None,
+    method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -755,7 +758,7 @@ def to_sql(
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
-    """  # noqa:E501
+    """  # noqa: E501
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
@@ -886,6 +889,9 @@ class SQLTable(PandasObject):
         if self.table is None:
             raise ValueError(f"Could not init table '{name}'")
 
+        if not len(self.name):
+            raise ValueError("Empty table name specified")
+
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
 
@@ -965,7 +971,13 @@ class SQLTable(PandasObject):
 
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
-                d = ser.dt.to_pydatetime()
+                if isinstance(ser._values, ArrowExtensionArray):
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=FutureWarning)
+                        # GH#52459 to_pydatetime will return Index[object]
+                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                else:
+                    d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
                 vals = ser._values
                 if isinstance(vals, ArrowExtensionArray):
@@ -987,7 +999,9 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(
-        self, chunksize: int | None = None, method: str | None = None
+        self,
+        chunksize: int | None = None,
+        method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1244,7 +1258,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, col):
+    def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -1272,7 +1286,8 @@ class SQLTable(PandasObject):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
-                if col.dt.tz is not None:
+                # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
+                if col.dt.tz is not None:  # type: ignore[union-attr]
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
@@ -1393,7 +1408,7 @@ class PandasSQL(PandasObject, ABC):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1854,7 +1869,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2309,7 +2324,7 @@ class SQLiteDatabase(PandasSQL):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:

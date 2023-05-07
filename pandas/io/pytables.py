@@ -55,17 +55,17 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -455,7 +455,7 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, LookupError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
             with suppress(AttributeError):
@@ -513,7 +513,7 @@ class HDFStore:
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
         Specifies the compression library to be used.
-        As of v0.20.2 these additional compressors for Blosc are supported
+        These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
          'blosc:zlib', 'blosc:zstd'}.
@@ -653,8 +653,6 @@ class HDFStore:
         include : str, default 'pandas'
                 When kind equals 'pandas' return pandas objects.
                 When kind equals 'native' return native HDF5 Table objects.
-
-                .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1109,8 +1107,6 @@ class HDFStore:
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
-
-            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -2070,7 +2066,9 @@ class IndexCol:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
         factory: type[Index] | type[DatetimeIndex] = Index
-        if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
+        if lib.is_np_dtype(values.dtype, "M") or isinstance(
+            values.dtype, DatetimeTZDtype
+        ):
             factory = DatetimeIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
@@ -2219,7 +2217,9 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(new_metadata, cur_metadata)
+                and not array_equivalent(
+                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
+                )
             ):
                 raise ValueError(
                     "cannot append a categorical with "
@@ -2371,9 +2371,9 @@ class DataCol(IndexCol):
         if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
-        elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             atom = cls.get_atom_datetime64(shape)
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             atom = cls.get_atom_timedelta64(shape)
         elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
@@ -2551,7 +2551,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values)):
+        if not is_object_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -2786,7 +2786,8 @@ class GenericFixed(Fixed):
         elif index_class == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                parr = PeriodArray._simple_new(values, freq=freq)
+                dtype = PeriodDtype(freq)
+                parr = PeriodArray._simple_new(values, dtype=dtype)
                 return PeriodIndex._simple_new(parr, name=None)
 
             factory = f
@@ -2924,7 +2925,7 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names)
         ):
             # write the level
-            if is_extension_array_dtype(lev):
+            if isinstance(lev.dtype, ExtensionDtype):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )
@@ -3028,7 +3029,7 @@ class GenericFixed(Fixed):
         empty_array = value.size == 0
         transposed = False
 
-        if is_categorical_dtype(value.dtype):
+        if isinstance(value.dtype, CategoricalDtype):
             raise NotImplementedError(
                 "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
@@ -3074,10 +3075,10 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif is_datetime64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "M"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
-        elif is_datetime64tz_dtype(value.dtype):
+        elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
 
@@ -3092,7 +3093,7 @@ class GenericFixed(Fixed):
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
             node._v_attrs.value_type = "datetime64"
-        elif is_timedelta64_dtype(value.dtype):
+        elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
         elif empty_array:
@@ -3851,10 +3852,18 @@ class Table(Fixed):
         if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
             exist_axis = self.non_index_axes[indexer][1]
-            if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
+            if not array_equivalent(
+                np.array(append_axis),
+                np.array(exist_axis),
+                strict_nan=True,
+                dtype_equal=True,
+            ):
                 # ahah! -> reindex
                 if array_equivalent(
-                    np.array(sorted(append_axis)), np.array(sorted(exist_axis))
+                    np.array(sorted(append_axis)),
+                    np.array(sorted(exist_axis)),
+                    strict_nan=True,
+                    dtype_equal=True,
                 ):
                     append_axis = exist_axis
 
@@ -3950,7 +3959,7 @@ class Table(Fixed):
                 tz = _get_tz(data_converted.tz)
 
             meta = metadata = ordered = None
-            if is_categorical_dtype(data_converted.dtype):
+            if isinstance(data_converted.dtype, CategoricalDtype):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
@@ -4848,7 +4857,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     atom = DataIndexableCol._get_atom(converted)
 
     if (
-        (isinstance(index.dtype, np.dtype) and is_integer_dtype(index))
+        lib.is_np_dtype(index.dtype, "iu")
         or needs_i8_conversion(index.dtype)
         or is_bool_dtype(index.dtype)
     ):
@@ -5161,7 +5170,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
-    if data.dtype.kind in ["m", "M"]:
+    if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?

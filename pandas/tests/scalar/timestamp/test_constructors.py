@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -13,10 +14,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import (
-    PY39,
-    PY310,
-)
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -25,11 +23,14 @@ from pandas import (
     Timestamp,
 )
 
-if PY39:
-    import zoneinfo
-
 
 class TestTimestampConstructors:
+    def test_weekday_but_no_day_raises(self):
+        # GH#52659
+        msg = "Parsing datetimes with weekday but no day information is not supported"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2023 Sept Thu")
+
     def test_construct_from_string_invalid_raises(self):
         # dateutil (weirdly) parses "200622-12-31" as
         #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
@@ -599,21 +600,13 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
     def test_out_of_bounds_string_consistency(self, arg):
         # GH 15829
-        msg = "|".join(
-            [
-                "Cannot cast 1-01-01 00:00:00 to unit='ns' without overflow",
-                "Out of bounds nanosecond timestamp: 1-01-01 00:00:00",
-            ]
-        )
+        msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(arg).as_unit("ns")
 
-        if arg == "0001-01-01":
-            # only the 4-digit year goes through ISO path which gets second reso
-            #  instead of ns reso
-            ts = Timestamp(arg)
-            assert ts.unit == "s"
-            assert ts.year == ts.month == ts.day == 1
+        ts = Timestamp(arg)
+        assert ts.unit == "s"
+        assert ts.year == ts.month == ts.day == 1
 
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp
@@ -853,12 +846,13 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-_tzs = ["dateutil/Europe/London"]
-if PY39:
-    try:
-        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
-    except zoneinfo.ZoneInfoNotFoundError:
-        pass
+try:
+    _tzs = [
+        "dateutil/Europe/London",
+        zoneinfo.ZoneInfo("Europe/London"),
+    ]
+except zoneinfo.ZoneInfoNotFoundError:
+    _tzs = ["dateutil/Europe/London"]
 
 
 @pytest.mark.parametrize("tz", _tzs)

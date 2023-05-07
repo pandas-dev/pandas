@@ -61,7 +61,8 @@ class TestSetitemDT64Values:
 
     def test_setitem_with_string_index(self):
         # GH#23451
-        ser = Series([1, 2, 3], index=["Date", "b", "other"])
+        # Set object dtype to avoid upcast when setting date.today()
+        ser = Series([1, 2, 3], index=["Date", "b", "other"], dtype=object)
         ser["Date"] = date.today()
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
@@ -459,7 +460,8 @@ class TestSetitemCallable:
         # GH#13299
         inc = lambda x: x + 1
 
-        ser = Series([1, 2, -1, 4])
+        # set object dtype to avoid upcast when setting inc
+        ser = Series([1, 2, -1, 4], dtype=object)
         ser[ser < 0] = inc
 
         expected = Series([1, 2, inc, 4])
@@ -578,7 +580,7 @@ def test_setitem_scalar_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     for n in series.index:
         msg = "assignment destination is read-only"
@@ -593,7 +595,7 @@ def test_setitem_slice_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     msg = "assignment destination is read-only"
     with pytest.raises(ValueError, match=msg):

@@ -36,10 +36,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -172,9 +169,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def equals(self, other) -> bool:
         if type(self) is not type(other):
             return False
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
-        return bool(array_equivalent(self._ndarray, other._ndarray))
+        return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -224,13 +221,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         to_concat: Sequence[Self],
         axis: AxisInt = 0,
     ) -> Self:
-        dtypes = {str(x.dtype) for x in to_concat}
-        if len(dtypes) != 1:
-            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+        if not lib.dtypes_all_equal([x.dtype for x in to_concat]):
+            dtypes = {str(x.dtype) for x in to_concat}
+            raise ValueError("to_concat must have the same dtype", dtypes)
 
-        new_values = [x._ndarray for x in to_concat]
-        new_arr = np.concatenate(new_values, axis=axis)
-        return to_concat[0]._from_backing_data(new_arr)
+        return super()._concat_same_type(to_concat, axis=axis)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -447,7 +442,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
-        return Series(result._values, index=index, name=result.name)
+        return Series(result._values, index=index, name=result.name, copy=False)
 
     def _quantile(
         self,

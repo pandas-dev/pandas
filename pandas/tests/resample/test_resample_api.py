@@ -855,8 +855,8 @@ def test_end_and_end_day_origin(
         ("mean", False, "Could not convert"),
         ("mean", lib.no_default, "Could not convert"),
         ("median", True, {"num": [12.5]}),
-        ("median", False, "could not convert"),
-        ("median", lib.no_default, "could not convert"),
+        ("median", False, r"Cannot convert \['cat_1' 'cat_2'\] to numeric"),
+        ("median", lib.no_default, r"Cannot convert \['cat_1' 'cat_2'\] to numeric"),
         ("std", True, {"num": [10.606601717798213]}),
         ("std", False, "could not convert string to float"),
         ("std", lib.no_default, "could not convert string to float"),
@@ -1000,8 +1000,29 @@ def test_df_axis_param_depr():
 
 def test_series_axis_param_depr():
     warning_msg = (
-        "Series resample axis keyword is deprecated and will be removed in a "
-        "future version."
+        "The 'axis' keyword in Series.resample is "
+        "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         test_series.resample("H", axis=0)
+
+
+def test_resample_empty():
+    # GH#52484
+    df = DataFrame(
+        index=pd.to_datetime(
+            ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+        )
+    )
+    expected = DataFrame(
+        index=pd.to_datetime(
+            [
+                "2018-01-01 00:00:00",
+                "2018-01-01 08:00:00",
+                "2018-01-01 16:00:00",
+                "2018-01-02 00:00:00",
+            ]
+        )
+    )
+    result = df.resample("8H").mean()
+    tm.assert_frame_equal(result, expected)

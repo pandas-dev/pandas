@@ -196,3 +196,14 @@ class TestTableSchemaRepr:
             assert formatters[mimetype].enabled
             # smoke test that it works
             ip.instance(config=ip.config).display_formatter.format(cf)
+
+
+def test_multiindex_long_element():
+    # Non-regression test towards GH #52960
+    data = pd.MultiIndex.from_tuples([("c" * 62,)])
+
+    expected = (
+        "MultiIndex([('cccccccccccccccccccccccccccccccccccccccc"
+        "cccccccccccccccccccccc',)],\n           )"
+    )
+    assert str(data) == expected

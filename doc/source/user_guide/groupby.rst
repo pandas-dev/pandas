@@ -128,6 +128,7 @@ consider the following ``DataFrame``:
    df
 
 On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`.
+This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance.
 We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
@@ -195,7 +196,7 @@ only verifies that you've passed a valid mapping.
 GroupBy sorting
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups:
+By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:
 
 .. ipython:: python
 
@@ -216,8 +217,6 @@ For example, the groups created by ``groupby()`` below are in the order they app
 
 
 .. _groupby.dropna:
-
-.. versionadded:: 1.1.0
 
 GroupBy dropna
 ^^^^^^^^^^^^^^
@@ -1221,19 +1220,6 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
-``apply`` on a Series can operate on a returned value from the applied function
-that is itself a series, and possibly upcast the result to a DataFrame:
-
-.. ipython:: python
-
-    def f(x):
-        return pd.Series([x, x ** 2], index=["x", "x^2"])
-
-
-    s = pd.Series(np.random.rand(5))
-    s
-    s.apply(f)
-
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
@@ -1426,8 +1412,9 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
    df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-You have an ambiguous specification in that you have a named index and a column
-that could be potential groupers.
+When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
+instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
+in that you have a named index and a column that could be potential groupers.
 
 .. ipython:: python
 

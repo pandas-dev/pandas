@@ -10,10 +10,8 @@ from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
 import pandas as pd
-from pandas.api.types import (
-    is_categorical_dtype,
-    is_string_dtype,
-)
+from pandas.api.types import is_string_dtype
+from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,
@@ -99,7 +97,7 @@ class PandasColumn(Column):
     def dtype(self) -> tuple[DtypeKind, int, str, str]:
         dtype = self._col.dtype
 
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, pd.CategoricalDtype):
             codes = self._col.values.codes
             (
                 _,
@@ -137,8 +135,12 @@ class PandasColumn(Column):
         if kind is None:
             # Not a NumPy dtype. Check if it's a categorical maybe
             raise ValueError(f"Data type {dtype} not supported by interchange protocol")
+        if isinstance(dtype, ArrowDtype):
+            byteorder = dtype.numpy_dtype.byteorder
+        else:
+            byteorder = dtype.byteorder
 
-        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), dtype.byteorder
+        return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), byteorder
 
     @property
     def describe_categorical(self):

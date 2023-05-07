@@ -32,10 +32,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    ensure_str,
-    is_period_dtype,
-)
+from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
@@ -376,9 +374,9 @@ class JSONTableWriter(FrameWriter):
         obj = obj.copy()
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
-            obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
+            obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
         # Convert PeriodIndex to datetimes before serializing
-        if is_period_dtype(obj.index.dtype):
+        if isinstance(obj.index.dtype, PeriodDtype):
             obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
@@ -652,8 +650,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
 
-        .. versionadded:: 1.1
-
     {storage_options}
 
         .. versionadded:: 1.2.0
@@ -676,8 +672,9 @@ def read_json(
 
     Returns
     -------
-    Series or DataFrame
-        The type returned depends on the value of `typ`.
+    Series, DataFrame, or pandas.api.typing.JsonReader
+        A JsonReader is returned when ``chunksize`` is not ``0`` or ``None``.
+        Otherwise, the type returned depends on the value of ``typ``.
 
     See Also
     --------

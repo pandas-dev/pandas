@@ -1306,7 +1306,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected, check_index_type=True)
 
-    def test_dropna(self):
+    def test_value_counts_dropna(self):
         # https://github.com/pandas-dev/pandas/issues/9443#issuecomment-73719328
 
         tm.assert_series_equal(
