@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -54,7 +51,6 @@ if TYPE_CHECKING:
         Series,
         TimedeltaIndex,
     )
-    from pandas.core.arrays import TimedeltaArray
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
@@ -144,10 +140,7 @@ def infer_freq(
     >>> pd.infer_freq(idx)
     'D'
     """
-    from pandas.core.api import (
-        DatetimeIndex,
-        Index,
-    )
+    from pandas.core.api import DatetimeIndex
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -176,12 +169,10 @@ def infer_freq(
         inferer = _TimedeltaFrequencyInferer(index)
         return inferer.get_freq()
 
-    elif isinstance(index, Index):
-        if is_numeric_dtype(index.dtype):
-            raise TypeError(
-                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
-            )
-        index = cast("TimedeltaArray", index._values)
+    elif is_numeric_dtype(index.dtype):
+        raise TypeError(
+            f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
+        )
 
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
