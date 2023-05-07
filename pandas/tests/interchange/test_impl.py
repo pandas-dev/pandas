@@ -89,6 +89,18 @@ def test_categorical_pyarrow():
     tm.assert_frame_equal(result, expected)
 
 
+def test_empty_categorical_pyarrow():
+    # https://github.com/pandas-dev/pandas/issues/53077
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = [None]
+    table = pa.table({"arr": pa.array(arr, "float64").dictionary_encode()})
+    exchange_df = table.__dataframe__()
+    result = pd.api.interchange.from_dataframe(exchange_df)
+    expected = pd.DataFrame({"arr": pd.Categorical([np.nan])})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_large_string_pyarrow():
     # GH 52795
     pa = pytest.importorskip("pyarrow", "11.0.0")
@@ -157,9 +169,9 @@ def test_dataframe(data):
 def test_missing_from_masked():
     df = pd.DataFrame(
         {
-            "x": np.array([1, 2, 3, 4, 0]),
+            "x": np.array([1.0, 2.0, 3.0, 4.0, 0.0]),
             "y": np.array([1.5, 2.5, 3.5, 4.5, 0]),
-            "z": np.array([True, False, True, True, True]),
+            "z": np.array([1.0, 0.0, 1.0, 1.0, 1.0]),
         }
     )
 

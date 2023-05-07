@@ -902,7 +902,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     # error: Incompatible types in assignment (expression has type
     # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
     # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
-    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa:E501
+    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa: E501
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
