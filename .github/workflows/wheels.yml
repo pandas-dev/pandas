@@ -152,7 +152,7 @@ jobs:
           pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']); \
           pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db'])"
           docker pull python:${{ matrix.python[1] }}-windowsservercore
-          docker run -v ./wheelhouse:c:\pandas python:${{ matrix.python[1] }}-windowsservercore powershell \
+          docker run -v ./wheelhouse:/pandas python:${{ matrix.python[1] }}-windowsservercore powershell \
           "pip install hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17; \
           pip install --find-links=pandas --no-index pandas; \
           python -c '$TST_CMD'"
