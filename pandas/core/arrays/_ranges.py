@@ -96,7 +96,7 @@ def generate_regular_range(
 
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
-) -> np.int64:
+) -> np.int64 | np.uint64:
     """
     Calculate the second endpoint for passing to np.arange, checking
     to avoid an integer overflow.  Catch OverflowError and re-raise
@@ -115,7 +115,7 @@ def _generate_range_overflow_safe(
 
     Returns
     -------
-    other_end : int
+    other_end : np.int64 | np.uint64
 
     Raises
     ------
@@ -163,7 +163,7 @@ def _generate_range_overflow_safe(
 
 def _generate_range_overflow_safe_signed(
     endpoint: int, periods: int, stride: int, side: str
-) -> np.int64:
+) -> np.int64 | np.uint64:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
