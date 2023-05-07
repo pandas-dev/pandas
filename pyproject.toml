@@ -171,7 +171,7 @@ environment = { IS_32_BIT="true" }
 
 [tool.black]
 target-version = ['py39', 'py310']
-required-version = '23.1.0'
+required-version = '23.3.0'
 exclude = '''
 (
     asv_bench/env
@@ -195,22 +195,25 @@ line-length = 88
 update-check = false
 target-version = "py310"
 fix = true
-unfixable = ["E711"]
+unfixable = []
 
 select = [
   # pyflakes
   "F",
   # pycodestyle
-  "E",
-  "W",
+  "E", "W",
   # flake8-2020
   "YTT",
   # flake8-bugbear
   "B",
   # flake8-quotes
   "Q",
+  # flake8-debugger
+  "T10",
+  # flake8-gettext
+  "INT",
   # pylint
-  "PLE", "PLR", "PLW",
+  "PLC", "PLE", "PLR", "PLW",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -221,6 +224,10 @@ select = [
   "ISC",
   # type-checking imports
   "TCH",
+  # comprehensions
+  "C4",
+  # pygrep-hooks
+  "PGH"
 ]
 
 ignore = [
@@ -272,6 +279,10 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # No builtin `eval()` allowed
+  "PGH001",
+  # compare-to-empty-string
+  "PLC1901",
   # Use typing_extensions.TypeAlias for type aliases
   # "PYI026",  # not yet implemented
   # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
@@ -280,6 +291,8 @@ ignore = [
   # "PYI041",  # not yet implemented
 
   # Additional checks that don't pass yet
+  # Useless statement
+  "B018",
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
@@ -433,6 +446,9 @@ filterwarnings = [
   "error::pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:ResourceWarning",
+  # GH 44844: Can remove once minimum matplotlib version >= 3.7
+  "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
+  "ignore:.*BufferedRandom:ResourceWarning",
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",

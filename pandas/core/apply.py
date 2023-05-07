@@ -1086,14 +1086,9 @@ class SeriesApply(NDFrameApply):
         result = super().agg()
         if result is None:
             f = self.f
-            kwargs = self.kwargs
 
             # string, list-like, and dict-like are entirely handled in super
             assert callable(f)
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_level", None)
 
             # try a regular apply, this evaluates lambdas
             # row-by-row; however if the lambda is expected a Series

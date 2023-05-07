@@ -746,9 +746,7 @@ def test_date_parser_int_bug(all_parsers):
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
-    df = DataFrame(
-        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
-    )
+    df = DataFrame({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
     df.iloc[3:6, :] = np.nan
 
     with tm.ensure_clean("__nat_parse_.csv") as path:
