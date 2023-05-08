@@ -158,7 +158,9 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df.columns = columns
+        return df
     else:
         return DataFrame(columns=columns)
 
