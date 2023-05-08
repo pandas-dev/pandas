@@ -692,7 +692,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_gold_canyon(self, banklist_data):
         gc = "Gold Canyon"
-        with open(banklist_data) as f:
+        with open(banklist_data, encoding="utf-8") as f:
             raw_text = f.read()
 
         assert gc in raw_text

@@ -228,7 +228,7 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
     parser = all_parsers
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for i in range(1000):
                 f.write(str(i) + "\n")
 
