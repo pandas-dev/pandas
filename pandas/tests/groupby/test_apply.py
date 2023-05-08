@@ -19,21 +19,21 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
-
 def test_apply_func_that_appends_group_to_list_without_copy():
-
     # GH 17718
 
-    df = pd.DataFrame(1, index=list(range(10))*10, columns=[0]).reset_index()
+    df = DataFrame(1, index=list(range(10)) * 10, columns=[0]).reset_index()
     groups = []
 
     def store(group):
         groups.append(group)
-        
-    df.groupby('index').apply(store)
-    expected_value = pd.DataFrame(1, index=list(range(0,100,10)), columns=[0]).reset_index()
-    expected_value = expected_value.set_index('index',drop=False)
-    expected_value['index'] = 0
+
+    df.groupby("index").apply(store)
+    expected_value = DataFrame(
+        1, index=list(range(0, 100, 10)), columns=[0]
+    ).reset_index()
+    expected_value = expected_value.set_index("index", drop=False)
+    expected_value["index"] = 0
     expected_value = expected_value.rename_axis(None)
 
     tm.assert_frame_equal(groups[0], expected_value)
