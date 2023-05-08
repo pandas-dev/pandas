@@ -3,6 +3,7 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from cython.parallel cimport prange
 from libc.math cimport (
     NAN,
     sqrt,
@@ -459,13 +460,13 @@ def group_shift_indexer(
 
     if periods == 0:
         with nogil:
-            for i in range(N):
+            for i in prange(N):
                 out[i] = i
     else:
         # array of each previous indexer seen
         label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
         with nogil:
-            for i in range(N):
+            for i in prange(N):
                 # reverse iterator if shifting backwards
                 ii = offset + sign * i
                 lab = labels[ii]
