@@ -20,7 +20,7 @@ from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_apply_func_that_appends_group_to_list_without_copy():
-    # GH 17718
+    # GH: 17718
 
     df = DataFrame(1, index=list(range(10)) * 10, columns=[0]).reset_index()
     groups = []
