@@ -380,7 +380,6 @@ I/O
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
 - Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
 
-
 Period
 ^^^^^^
 - :meth:`PeriodIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
