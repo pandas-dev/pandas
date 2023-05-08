@@ -6,12 +6,14 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
@@ -206,3 +208,21 @@ class TestMultiIndexBasic:
         )
         with pytest.raises(KeyError, match="missing_key"):
             df[[("missing_key",)]]
+
+    def test_multiindex_dtype_preservation(self):
+        # GH51261
+        columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
+        df = DataFrame(["value"], columns=columns).astype("category")
+        df_no_multiindex = df["A"]
+        assert isinstance(df_no_multiindex["B"].dtype, CategoricalDtype)
+
+        # geopandas 1763 analogue
+        df = DataFrame(
+            [[1, 0], [0, 1]],
+            columns=[
+                ["foo", "foo"],
+                ["location", "location"],
+                ["x", "y"],
+            ],
+        ).assign(bools=Series([True, False], dtype="boolean"))
+        assert isinstance(df["bools"].dtype, BooleanDtype)
