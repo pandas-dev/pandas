@@ -622,7 +622,7 @@ def group_any_all(
     out[:] = 1 - flag_val
 
     with nogil:
-        for i in range(N):
+        for i in prange(N):
             lab = labels[i]
             if lab < 0:
                 continue
