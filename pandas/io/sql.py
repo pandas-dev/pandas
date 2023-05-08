@@ -161,7 +161,9 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df.columns = columns
+        return df
     else:
         return DataFrame(columns=columns)
 
@@ -758,7 +760,7 @@ def to_sql(
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
-    """  # noqa:E501
+    """  # noqa: E501
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
