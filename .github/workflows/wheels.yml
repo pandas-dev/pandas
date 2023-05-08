@@ -146,16 +146,15 @@ jobs:
 
       - name: Test wheels (Windows 64-bit only)
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
-        shell: bash
+        shell: pwsh
         run: |
-          TST_CMD="import pandas as pd; \
-          pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']); \
-          pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db'])"
           docker pull python:${{ matrix.python[1] }}-windowsservercore
-          docker run -v /$(pwd):/pandas python:${{ matrix.python[1] }}-windowsservercore powershell \
-          "pip install hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17; \
-          pip install --find-links=pandas/wheelhouse --no-index pandas; \
-          python -c '$TST_CMD'"
+          docker run python:${{ matrix.python[1] }}-windowsservercore python -m `
+            pip install hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
+          docker commit ${docker ps -lq} test_deps
+          docker run -v ${PWD}:C:\pandas test_deps python -m pip install --find-links=pandas/wheelhouse --no-index pandas
+          docker commit ${docker ps -lq} test_pandas
+          docker run test_pandas python -c 'import pandas as pd; pd.test(extra_args=[''-m not clipboard and not single_cpu and not slow and not network and not db'', ''-n 2'']); pd.test(extra_args=[''-m not clipboard and single_cpu and not slow and not network and not db''])'
 
       - uses: actions/upload-artifact@v3
         with:
