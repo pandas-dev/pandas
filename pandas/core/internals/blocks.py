@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Literal,
     Sequence,
     cast,
     final,
@@ -309,11 +310,7 @@ class Block(PandasObject):
         -------
         bool
         """
-        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
-        try:
-            return value.dtype == self.dtype
-        except TypeError:
-            return False
+        return value.dtype == self.dtype
 
     # ---------------------------------------------------------------------
     # Apply/Reduce and Helpers
@@ -1327,7 +1324,7 @@ class Block(PandasObject):
         limit_direction: str = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
-        downcast: str | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
@@ -1540,7 +1537,7 @@ class Block(PandasObject):
             else:
                 # No overload variant of "__getitem__" of "ExtensionArray" matches
                 # argument type "Tuple[slice, slice]"
-                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa: E501
                 locs = mgr_locs_arr[previous_loc + 1 : idx]
                 nb = type(self)(
                     values, placement=BlockPlacement(locs), ndim=self.ndim, refs=refs

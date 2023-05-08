@@ -63,7 +63,7 @@ def pin_min_versions_to_ci_deps() -> int:
         toml_dependencies = tomllib.load(toml_f)
     ret = 0
     for curr_file in all_yaml_files:
-        with open(curr_file) as yaml_f:
+        with open(curr_file, encoding="utf-8") as yaml_f:
             yaml_start_data = yaml_f.read()
         yaml_file = yaml.safe_load(yaml_start_data)
         yaml_dependencies = yaml_file["dependencies"]
@@ -73,7 +73,7 @@ def pin_min_versions_to_ci_deps() -> int:
             yaml_map, toml_map, yaml_start_data
         )
         if yaml_result_data != yaml_start_data:
-            with open(curr_file, "w") as f:
+            with open(curr_file, "w", encoding="utf-8") as f:
                 f.write(yaml_result_data)
             ret |= 1
     return ret
