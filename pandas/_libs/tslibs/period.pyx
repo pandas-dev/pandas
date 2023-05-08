@@ -803,7 +803,8 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     return npy_datetimestruct_to_datetime(unit, dts)
 
 
-cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) noexcept nogil:
+cdef void get_date_info(int64_t ordinal,
+                        int freq, npy_datetimestruct *dts) noexcept nogil:
     cdef:
         int64_t unix_date, nanos
         npy_datetimestruct dts2
