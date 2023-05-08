@@ -18,6 +18,7 @@ from pandas.errors import (
     ParserWarning,
 )
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -864,17 +865,13 @@ def test_read_seek(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-def test_pyarrow_with_multi_character_separator():
+@pytest.mark.parametrize("separator", [r"\s+", "  ", "||"])
+def test_pyarrow_with_multi_character_separator(separator):
     # GH#52554
-    import re
-
-    import pandas as pd
-
     data = "a b c\n1 2 3\n4 5 6"
-    msg = re.escape(
-        "the 'pyarrow' engine does not support separators "
-        "with more than one character, except for '\\t'. Please "
-        "use the C parser instead."
+    msg = (
+        "The 'pyarrow' engine does not support separators with more than "
+        "one character. Please use the C parser instead."
     )
     with pytest.raises(ValueError, match=msg):
-        pd.read_csv(StringIO(data), engine="pyarrow", sep=r"\s+")
+        pd.read_csv(StringIO(data), engine="pyarrow", sep=separator)
