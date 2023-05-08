@@ -899,7 +899,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     num = 102
     _metadata = ("freq",)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
-    _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    # error: Incompatible types in assignment (expression has type
+    # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
+    # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
+    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa: E501
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
@@ -916,12 +919,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             freq = cls._parse_dtype_strict(freq)
 
         try:
-            return cls._cache_dtypes[freq.freqstr]
+            return cls._cache_dtypes[freq]
         except KeyError:
             dtype_code = freq._period_dtype_code
             u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
             u._freq = freq
-            cls._cache_dtypes[freq.freqstr] = u
+            cls._cache_dtypes[freq] = u
             return u
 
     def __reduce__(self):
@@ -1248,9 +1251,7 @@ class IntervalDtype(PandasExtensionDtype):
         elif self.closed != other.closed:
             return False
         else:
-            from pandas.core.dtypes.common import is_dtype_equal
-
-            return is_dtype_equal(self.subtype, other.subtype)
+            return self.subtype == other.subtype
 
     def __setstate__(self, state) -> None:
         # for pickle compat. __get_state__ is defined in the
@@ -1471,13 +1472,13 @@ class BaseMaskedDtype(ExtensionDtype):
 
             return BooleanDtype()
         elif dtype.kind in "iu":
-            from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+            from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 
-            return INT_STR_TO_DTYPE[dtype.name]
+            return NUMPY_INT_TO_DTYPE[dtype]
         elif dtype.kind == "f":
-            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+            from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
 
-            return FLOAT_STR_TO_DTYPE[dtype.name]
+            return NUMPY_FLOAT_TO_DTYPE[dtype]
         else:
             raise NotImplementedError(dtype)
 

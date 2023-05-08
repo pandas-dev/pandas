@@ -73,7 +73,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - black=23.1.0
+  - black=23.3.0
   - cpplint
   - flake8=6.0.0
   - isort>=5.2.1  # check that imports are in the right order
@@ -90,7 +90,7 @@ dependencies:
   - pydata-sphinx-theme<0.11
   - pytest-cython  # doctest
   - sphinx
-  - sphinx-panels
+  - sphinx-design
   - sphinx-copybutton
   - types-python-dateutil
   - types-PyMySQL

@@ -40,8 +40,8 @@ def test_dask(df):
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        toolz = import_module("toolz")  # noqa:F841
-        dask = import_module("dask")  # noqa:F841
+        toolz = import_module("toolz")  # noqa: F841
+        dask = import_module("dask")  # noqa: F841
 
         import dask.dataframe as dd
 
@@ -58,7 +58,7 @@ def test_dask_ufunc():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa:F841
+        dask = import_module("dask")  # noqa: F841
         import dask.array as da
         import dask.dataframe as dd
 
@@ -100,7 +100,7 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
 
 
 def test_xarray(df):
-    xarray = import_module("xarray")  # noqa:F841
+    xarray = import_module("xarray")  # noqa: F841
 
     assert df.to_xarray() is not None
 
@@ -142,7 +142,7 @@ def test_oo_optimized_datetime_index_unpickle():
 @pytest.mark.network
 @tm.network
 def test_statsmodels():
-    statsmodels = import_module("statsmodels")  # noqa:F841
+    statsmodels = import_module("statsmodels")  # noqa: F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
@@ -151,7 +151,7 @@ def test_statsmodels():
 
 
 def test_scikit_learn():
-    sklearn = import_module("sklearn")  # noqa:F841
+    sklearn = import_module("sklearn")  # noqa: F841
     from sklearn import (
         datasets,
         svm,
@@ -174,7 +174,7 @@ def test_seaborn():
 def test_pandas_gbq():
     # Older versions import from non-public, non-existent pandas funcs
     pytest.importorskip("pandas_gbq", minversion="0.10.0")
-    pandas_gbq = import_module("pandas_gbq")  # noqa:F841
+    pandas_gbq = import_module("pandas_gbq")  # noqa: F841
 
 
 @pytest.mark.network
@@ -253,7 +253,7 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa:F841
+        dask = import_module("dask")  # noqa: F841
 
         import dask.array as da
 
