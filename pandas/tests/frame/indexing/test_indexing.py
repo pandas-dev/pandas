@@ -531,7 +531,7 @@ class TestDataFrameIndexing:
         df = DataFrame(np.random.randn(10, 5))
 
         # this is OK
-        result = df.iloc[:8:2]  # noqa
+        df.iloc[:8:2]
         df.iloc[:8:2] = np.nan
         assert isna(df.iloc[:8:2]).values.all()
 
@@ -635,7 +635,7 @@ class TestDataFrameIndexing:
 
         # individual value
         for j, col in enumerate(f.columns):
-            ts = f[col]  # noqa
+            f[col]
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
                 val = np.random.randn()

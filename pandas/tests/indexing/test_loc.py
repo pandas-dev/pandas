@@ -866,6 +866,7 @@ class TestLocBaseIndependent:
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
+        # Set object dtype to avoid upcast when setting 'Z'
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
@@ -1530,6 +1531,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_2d_to_1d_raises(self):
         data = np.random.randn(2, 2)
+        # float64 dtype to avoid upcast when trying to set float data
         ser = Series(range(2), dtype="float64")
 
         msg = "|".join(

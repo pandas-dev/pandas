@@ -193,7 +193,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data  # pyright: ignore
+        return data  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
