@@ -13,6 +13,7 @@ from pandas import (
     Index,
     IndexSlice,
     MultiIndex,
+    NaT,
     Series,
     Timedelta,
     Timestamp,
@@ -437,3 +438,52 @@ class TestDeprecatedIndexers:
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
+
+
+class TestSetitemValidation:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    def _check_setitem_invalid(self, arr, invalid):
+        msg = "Setting an item of incompatible dtype is deprecated"
+        msg = re.escape(msg)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr[0] = invalid
+
+        # FIXME: don't leave commented-out
+        # with tm.assert_produces_warning(FutureWarning, match=msg):
+        #     arr[:] = invalid
+
+        # with tm.assert_produces_warning(FutureWarning, match=msg):
+        #     arr[[0]] = invalid
+
+        # with pytest.raises(TypeError):
+        #    arr[[0]] = [invalid]
+
+        # with pytest.raises(TypeError):
+        #    arr[[0]] = np.array([invalid], dtype=object)
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    def test_setitem_validation_scalar_bool(self, invalid):
+        arr = Series([True, False, None], dtype="bool")
+        self._check_setitem_invalid(arr, invalid)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
+        arr = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        self._check_setitem_invalid(arr, invalid)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
+        arr = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(arr, invalid)
