@@ -469,7 +469,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
 
 
 def test_where_with_na():
-    # See GH #52955, NA should propagate in where
+    # See GH #52955, if cond is NA, propagate in where
     s = Series([1, 2, NA], dtype=Int64Dtype())
     res1 = s.where(s % 2 == 1, 0)
     res2 = s.where(s.array % 2 == 1, 0)

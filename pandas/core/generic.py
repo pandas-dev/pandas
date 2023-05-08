@@ -9870,8 +9870,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            # cond may contain NA, see GH #52955
-            # let NA propagate in where and mask operations
+            # GH #52955: if cond is NA, element propagates in mask and where
             cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
@@ -9887,8 +9886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
-            # cond may contain NA, see GH #52955
-            # let NA propagate in where and mask operations
+            # GH #52955: if cond is NA, element propagates in mask and where
             cond = cond.fillna(True)
 
         # make sure we are boolean

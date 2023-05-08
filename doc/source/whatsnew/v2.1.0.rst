@@ -357,7 +357,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-- :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`Series.where`, and :meth:`Series.mask` now let ``pd.NA`` propagate through (:issue:`52955`)
+- Bug in :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`Series.where`, and :meth:`Series.mask`, when ``cond`` for an element is ``pd.NA``; the corresponding element now propagates through (:issue:`52955`)
 -
 
 Missing

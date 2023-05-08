@@ -154,9 +154,13 @@ def test_mask_inplace_no_other():
 
 
 def test_mask_with_na():
-    # See GH #52955, NA should propagate in mask
+    # See GH #52955, if cond is NA, propagate in mask
     df = DataFrame([[1, NA], [NA, 2]], dtype=Int64Dtype())
-    result = df.mask(df % 2 == 1, 0)
 
-    expected = DataFrame([[0, NA], [NA, 2]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result, expected)
+    result1 = df.mask(df % 2 == 1, 0)
+    expected1 = DataFrame([[0, NA], [NA, 2]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result1, expected1)
+
+    result2 = df.mask(df[0] % 2 == 1, 0)
+    expected2 = DataFrame([[0, 0], [NA, 2]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result2, expected2)

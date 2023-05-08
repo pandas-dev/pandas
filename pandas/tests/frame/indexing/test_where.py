@@ -1036,9 +1036,13 @@ def test_where_inplace_no_other():
 
 
 def test_where_with_na():
-    # See GH #52955, NA should propagate in where
+    # See GH #52955, if cond is NA, propagate in where
     df = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
-    result = df.where(df % 2 == 1, 0)
 
-    expected = DataFrame([[1, pd.NA], [pd.NA, 0]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result, expected)
+    result1 = df.where(df % 2 == 1, 0)
+    expected1 = DataFrame([[1, pd.NA], [pd.NA, 0]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result1, expected1)
+
+    result2 = df.where(df[0] % 2 == 1, 0)
+    expected2 = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
+    tm.assert_frame_equal(result2, expected2)
