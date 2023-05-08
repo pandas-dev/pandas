@@ -920,11 +920,15 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
     tm.assert_series_equal(result_1, result_2)
 
     # check that we have the same behavior with epoch even if we are not timezone aware
-    ts_no_tz = ts_1.tz_localize(None)
+    ts_no_tz = ts_1.axis_ops.tz_localize(None)
     result_3 = ts_no_tz.resample("D", origin="epoch").mean()
     result_4 = ts_no_tz.resample("24H", origin="epoch").mean()
-    tm.assert_series_equal(result_1, result_3.tz_localize(rng.tz), check_freq=False)
-    tm.assert_series_equal(result_1, result_4.tz_localize(rng.tz), check_freq=False)
+    tm.assert_series_equal(
+        result_1, result_3.axis_ops.tz_localize(rng.tz), check_freq=False
+    )
+    tm.assert_series_equal(
+        result_1, result_4.axis_ops.tz_localize(rng.tz), check_freq=False
+    )
 
     # check that we have the similar results with two different timezones (+2H and +5H)
     start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
@@ -932,8 +936,12 @@ def test_resample_origin_epoch_with_tz_day_vs_24h(unit):
     ts_2 = Series(random_values, index=rng)
     result_5 = ts_2.resample("D", origin="epoch").mean()
     result_6 = ts_2.resample("24H", origin="epoch").mean()
-    tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
-    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
+    tm.assert_series_equal(
+        result_1.axis_ops.tz_localize(None), result_5.axis_ops.tz_localize(None)
+    )
+    tm.assert_series_equal(
+        result_1.axis_ops.tz_localize(None), result_6.axis_ops.tz_localize(None)
+    )
 
 
 def test_resample_origin_with_day_freq_on_dst(unit):
@@ -1020,7 +1028,7 @@ def test_period_with_agg():
         dtype="float64",
     )
 
-    expected = s2.to_timestamp().resample("D").mean().to_period()
+    expected = s2.axis_ops.to_timestamp().resample("D").mean().axis_ops.to_period()
     result = s2.resample("D").agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
@@ -1120,7 +1128,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("M").mean()
-    expected = df.resample("M", kind="period").mean().to_timestamp(how="end")
+    expected = df.resample("M", kind="period").mean().axis_ops.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "M"
@@ -1128,7 +1136,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
 
     result = df.resample("M", closed="left").mean()
     exp = df.shift(1, freq="D").resample("M", kind="period").mean()
-    exp = exp.to_timestamp(how="end")
+    exp = exp.axis_ops.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
@@ -1139,7 +1147,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("Q").mean()
-    expected = df.resample("Q", kind="period").mean().to_timestamp(how="end")
+    expected = df.resample("Q", kind="period").mean().axis_ops.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"
     expected.index._freq = lib.no_default
@@ -1148,7 +1156,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
 
     result = df.resample("Q", closed="left").mean()
     expected = df.shift(1, freq="D").resample("Q", kind="period", closed="left").mean()
-    expected = expected.to_timestamp(how="end")
+    expected = expected.axis_ops.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"
     expected.index._freq = lib.no_default

@@ -26,7 +26,7 @@ class TestDataFrameAlign:
         # different timezones convert to UTC
 
         # frame with frame
-        df1_central = df1.tz_convert("US/Central")
+        df1_central = df1.axis_ops.tz_convert("US/Central")
         new1, new2 = df1.align(df1_central)
         assert new1.index.tz is timezone.utc
         assert new2.index.tz is timezone.utc

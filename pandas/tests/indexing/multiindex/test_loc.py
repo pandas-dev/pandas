@@ -161,17 +161,19 @@ class TestMultiIndexLoc:
         )
 
         # the first 2 rows
-        expected = df.iloc[[0, 1]].droplevel(0)
+        expected = df.iloc[[0, 1]].axis_ops.drop_level(0)
         result = df.loc["i"]
         tm.assert_frame_equal(result, expected)
 
         # 2nd (last) column
-        expected = df.iloc[:, [2]].droplevel(0, axis=1)
+        expected = df.iloc[:, [2]].axis_ops.drop_level(0, axis=1)
         result = df.loc[:, "j"]
         tm.assert_frame_equal(result, expected)
 
         # bottom right corner
-        expected = df.iloc[[2], [2]].droplevel(0).droplevel(0, axis=1)
+        expected = (
+            df.iloc[[2], [2]].axis_ops.drop_level(0).axis_ops.drop_level(0, axis=1)
+        )
         result = df.loc["j"].loc[:, "j"]
         tm.assert_frame_equal(result, expected)
 
@@ -186,7 +188,7 @@ class TestMultiIndexLoc:
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
-        expected = df.iloc[[0, 1]].droplevel(0)
+        expected = df.iloc[[0, 1]].axis_ops.drop_level(0)
         result = df.loc[4]
         tm.assert_frame_equal(result, expected)
 
@@ -681,14 +683,14 @@ def test_loc_mi_with_level1_named_0():
     df2.index.get_loc(dti[0])  # smoke test
 
     result = df2.loc[dti[0]]
-    expected = df2.iloc[[0]].droplevel(None)
+    expected = df2.iloc[[0]].axis_ops.drop_level(None)
     tm.assert_frame_equal(result, expected)
 
     ser2 = df2[1]
     assert ser2.index.names == (None, 0)
 
     result = ser2.loc[dti[0]]
-    expected = ser2.iloc[[0]].droplevel(None)
+    expected = ser2.iloc[[0]].axis_ops.drop_level(None)
     tm.assert_series_equal(result, expected)
 
 
@@ -698,7 +700,7 @@ def test_getitem_str_slice(datapath):
     df = pd.read_csv(path, parse_dates=["time"])
     df2 = df.set_index(["ticker", "time"]).sort_index()
 
-    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :].droplevel(0)
+    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :].axis_ops.drop_level(0)
     expected = df2.loc["AAPL"].loc[slice("2016-05-25 13:30:00"), :]
     tm.assert_frame_equal(res, expected)
 
@@ -863,7 +865,7 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     # GH#10521 "x" and "z" are both scalar indexing, so those levels are dropped
     mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
     df = DataFrame({"d": [0]}, index=mi)
-    expected = df.droplevel([0, 2])
+    expected = df.axis_ops.drop_level([0, 2])
     result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
 

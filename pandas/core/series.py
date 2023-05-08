@@ -4076,6 +4076,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         {examples}
         """
+        warnings.warn(
+            f"{type(self).__name__}.swaplevel is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.swap_level instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.swap_level(i, j, copy=copy)
 
     def reorder_levels(self, order: Sequence[Level]) -> Series:
@@ -4093,6 +4099,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         type of caller (new object)
         """
+        warnings.warn(
+            f"{type(self).__name__}.reorder_levels is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.reorder_levels instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.reorder_levels(order)
 
     def explode(self, ignore_index: bool = False) -> Series:
@@ -5410,6 +5422,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-31    3
         Freq: A-JAN, dtype: int64
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_timestamp is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.to_timestamp instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.to_timestamp(freq=freq, how=how, copy=copy)
 
     def to_period(
@@ -5446,6 +5464,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_period is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.to_period instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.to_period(freq=freq, copy=copy)
 
     # ----------------------------------------------------------------------

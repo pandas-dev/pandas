@@ -351,7 +351,7 @@ class TestSlicing:
 
         # partial string indexing on first level, scalar indexing on the other two
         result = df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
-        expected = df_multi.iloc[:1].droplevel([1, 2])
+        expected = df_multi.iloc[:1].axis_ops.drop_level([1, 2])
         tm.assert_frame_equal(result, expected)
 
     def test_partial_slicing_with_multiindex_series(self):
@@ -444,7 +444,7 @@ class TestSlicing:
             df[start : end[:-4] + "1:00"]
 
         with pytest.raises(ValueError, match="The index must be timezone"):
-            df = df.tz_localize(None)
+            df = df.axis_ops.tz_localize(None)
             df[start:end]
 
     def test_slice_reduce_to_series(self):

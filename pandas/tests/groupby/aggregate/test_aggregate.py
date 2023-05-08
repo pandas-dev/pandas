@@ -428,7 +428,7 @@ def test_more_flexible_frame_multi_function(df):
     exstd = grouped.agg({"C": np.std, "D": np.std})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
-    expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
+    expected = expected.axis_ops.swap_level(0, 1, axis=1).sort_index(level=0, axis=1)
 
     d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
     result = grouped.aggregate(d)

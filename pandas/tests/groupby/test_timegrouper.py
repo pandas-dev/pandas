@@ -381,7 +381,7 @@ class TestGroupBy:
             .resample(freq)
             .sum(min_count=1)  # XXX
             .dropna()
-            .reorder_levels(["date", "user_id"])
+            .axis_ops.reorder_levels(["date", "user_id"])
             .sort_index()
             .astype("int64")
         )

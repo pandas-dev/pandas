@@ -314,14 +314,14 @@ class TestDataFrameBlockInternals:
 
         ser_starting = df.starting
         ser_starting.index = ser_starting.values
-        ser_starting = ser_starting.tz_localize("US/Eastern")
-        ser_starting = ser_starting.tz_convert("UTC")
+        ser_starting = ser_starting.axis_ops.tz_localize("US/Eastern")
+        ser_starting = ser_starting.axis_ops.tz_convert("UTC")
         ser_starting.index.name = "starting"
 
         ser_ending = df.ending
         ser_ending.index = ser_ending.values
-        ser_ending = ser_ending.tz_localize("US/Eastern")
-        ser_ending = ser_ending.tz_convert("UTC")
+        ser_ending = ser_ending.axis_ops.tz_localize("US/Eastern")
+        ser_ending = ser_ending.axis_ops.tz_convert("UTC")
         ser_ending.index.name = "ending"
 
         df.starting = ser_starting.index

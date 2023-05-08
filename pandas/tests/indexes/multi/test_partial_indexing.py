@@ -37,7 +37,11 @@ def df():
 
 def test_partial_string_matching_single_index(df):
     # partial string matching on a single index
-    for df_swap in [df.swaplevel(), df.swaplevel(0), df.swaplevel(0, 1)]:
+    for df_swap in [
+        df.axis_ops.swap_level(),
+        df.axis_ops.swap_level(0),
+        df.axis_ops.swap_level(0, 1),
+    ]:
         df_swap = df_swap.sort_index()
         just_a = df_swap.loc["a"]
         result = just_a.loc["2016-01-01"]
@@ -84,7 +88,7 @@ def test_get_loc_partial_timestamp_multiindex(df):
 
 def test_partial_string_timestamp_multiindex(df):
     # GH10331
-    df_swap = df.swaplevel(0, 1).sort_index()
+    df_swap = df.axis_ops.swap_level(0, 1).sort_index()
     SLC = IndexSlice
 
     # indexing with IndexSlice
@@ -111,7 +115,7 @@ def test_partial_string_timestamp_multiindex(df):
     result = df.loc["2016-01-02 12"]
     # hourly resolution, same as index.levels[0], so we are _not_ slicing on
     #  that level, so that level gets dropped
-    expected = df.iloc[9:12].droplevel(0)
+    expected = df.iloc[9:12].axis_ops.drop_level(0)
     tm.assert_frame_equal(result, expected)
 
     # partial string match on secondary index
@@ -123,7 +127,7 @@ def test_partial_string_timestamp_multiindex(df):
     # "2016-01-01" has daily resolution, so _is_ a slice on the first level.
     result = df.loc[("2016-01-01", "a"), :]
     expected = df.iloc[[0, 3]]
-    expected = df.iloc[[0, 3]].droplevel(1)
+    expected = df.iloc[[0, 3]].axis_ops.drop_level(1)
     tm.assert_frame_equal(result, expected)
 
     # Slicing date on first level should break (of course) bc the DTI is the

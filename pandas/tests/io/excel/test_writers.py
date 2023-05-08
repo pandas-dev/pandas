@@ -742,7 +742,7 @@ class TestExcelWriter:
 
         with ExcelFile(path) as reader:
             rs = pd.read_excel(reader, sheet_name="sht1", index_col=0)
-        tm.assert_frame_equal(xp, rs.to_period("M"))
+        tm.assert_frame_equal(xp, rs.axis_ops.to_period("M"))
 
     def test_to_excel_multiindex(self, merge_cells, frame, path):
         arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)

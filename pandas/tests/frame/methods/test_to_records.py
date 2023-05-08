@@ -513,7 +513,7 @@ class TestDataFrameToRecords:
         df = DataFrame({"datetime": dr}, index=dr)
 
         expected = df.to_records()
-        result = df.tz_convert("UTC").to_records()
+        result = df.axis_ops.tz_convert("UTC").to_records()
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)

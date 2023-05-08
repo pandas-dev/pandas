@@ -1108,12 +1108,12 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb = df.T.groupby(axis=0, level=0)
-    by_rows = gb.apply(lambda x: x.droplevel(axis=0, level=0))
+    by_rows = gb.apply(lambda x: x.axis_ops.drop_level(axis=0, level=0))
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb2 = df.groupby(axis=1, level=0)
-    by_cols = gb2.apply(lambda x: x.droplevel(axis=1, level=0))
+    by_cols = gb2.apply(lambda x: x.axis_ops.drop_level(axis=1, level=0))
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)

@@ -18,7 +18,7 @@ class TestTZConvert:
         obj = DataFrame({"a": 1}, index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
-        result = obj.tz_convert("Europe/Berlin")
+        result = obj.axis_ops.tz_convert("Europe/Berlin")
         expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
         expected = tm.get_obj(expected, frame_or_series)
 
@@ -31,7 +31,7 @@ class TestTZConvert:
         obj = DataFrame({"a": 1}, index=rng)
 
         obj = obj.T
-        result = obj.tz_convert("Europe/Berlin", axis=1)
+        result = obj.axis_ops.tz_convert("Europe/Berlin", axis=1)
         assert result.columns.tz.zone == "Europe/Berlin"
 
         expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
@@ -45,7 +45,7 @@ class TestTZConvert:
         ts = frame_or_series(ts)
 
         with pytest.raises(TypeError, match="Cannot convert tz-naive"):
-            ts.tz_convert("US/Eastern")
+            ts.axis_ops.tz_convert("US/Eastern")
 
     @pytest.mark.parametrize("fn", ["tz_localize", "tz_convert"])
     def test_tz_convert_and_localize(self, fn):
@@ -63,7 +63,7 @@ class TestTZConvert:
             l1_expected = getattr(idx, fn)("US/Pacific")
 
             df1 = DataFrame(np.ones(5), index=l0)
-            df1 = getattr(df1, fn)("US/Pacific")
+            df1 = getattr(df1.axis_ops, fn)("US/Pacific")
             tm.assert_index_equal(df1.index, l0_expected)
 
             # MultiIndex
@@ -76,13 +76,13 @@ class TestTZConvert:
             l1 = l1._with_freq(None)
             l0 = l0._with_freq(None)
 
-            df3 = getattr(df2, fn)("US/Pacific", level=0)
+            df3 = getattr(df2.axis_ops, fn)("US/Pacific", level=0)
             assert not df3.index.levels[0].equals(l0)
             tm.assert_index_equal(df3.index.levels[0], l0_expected)
             tm.assert_index_equal(df3.index.levels[1], l1)
             assert not df3.index.levels[1].equals(l1_expected)
 
-            df3 = getattr(df2, fn)("US/Pacific", level=1)
+            df3 = getattr(df2.axis_ops, fn)("US/Pacific", level=1)
             tm.assert_index_equal(df3.index.levels[0], l0)
             assert not df3.index.levels[0].equals(l0_expected)
             tm.assert_index_equal(df3.index.levels[1], l1_expected)
@@ -91,7 +91,7 @@ class TestTZConvert:
             df4 = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
 
             # TODO: untested
-            getattr(df4, fn)("US/Pacific", level=1)
+            getattr(df4.axis_ops, fn)("US/Pacific", level=1)
 
             tm.assert_index_equal(df3.index.levels[0], l0)
             assert not df3.index.levels[0].equals(l0_expected)
@@ -103,17 +103,17 @@ class TestTZConvert:
         # Not DatetimeIndex / PeriodIndex
         with pytest.raises(TypeError, match="DatetimeIndex"):
             df = DataFrame(index=int_idx)
-            getattr(df, fn)("US/Pacific")
+            getattr(df.axis_ops, fn)("US/Pacific")
 
         # Not DatetimeIndex / PeriodIndex
         with pytest.raises(TypeError, match="DatetimeIndex"):
             df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
-            getattr(df, fn)("US/Pacific", level=0)
+            getattr(df.axis_ops, fn)("US/Pacific", level=0)
 
         # Invalid level
         with pytest.raises(ValueError, match="not valid"):
             df = DataFrame(index=l0)
-            getattr(df, fn)("US/Pacific", level=1)
+            getattr(df.axis_ops, fn)("US/Pacific", level=1)
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_tz_convert_copy_inplace_mutate(self, copy, frame_or_series):
@@ -123,7 +123,7 @@ class TestTZConvert:
             index=date_range("20131027", periods=5, freq="1H", tz="Europe/Berlin"),
         )
         orig = obj.copy()
-        result = obj.tz_convert("UTC", copy=copy)
+        result = obj.axis_ops.tz_convert("UTC", copy=copy)
         expected = frame_or_series(np.arange(0, 5), index=obj.index.tz_convert("UTC"))
         tm.assert_equal(result, expected)
         tm.assert_equal(obj, orig)

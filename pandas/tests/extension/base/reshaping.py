@@ -315,7 +315,7 @@ class BaseReshapingTests(BaseExtensionTests):
                 # We should get the same result with to_frame+unstack+droplevel
                 df = ser.to_frame()
 
-                alt = df.unstack(level=level).droplevel(0, axis=1)
+                alt = df.unstack(level=level).axis_ops.drop_level(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
             obj_ser = ser.astype(object)

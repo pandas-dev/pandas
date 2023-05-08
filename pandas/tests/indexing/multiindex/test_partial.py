@@ -238,8 +238,8 @@ class TestMultiIndexPartial:
         result = df.loc[indexer, :]
         tm.assert_frame_equal(result, expected)
 
-        df2 = df.swaplevel(0, 1).sort_index()
-        expected = expected.swaplevel(0, 1).sort_index()
+        df2 = df.axis_ops.swap_level(0, 1).sort_index()
+        expected = expected.axis_ops.swap_level(0, 1).sort_index()
 
         result = df2.loc[:, indexer, :]
         tm.assert_frame_equal(result, expected)
@@ -251,6 +251,8 @@ def test_loc_getitem_partial_both_axis():
     columns = MultiIndex.from_product(iterables, names=["col1", "col2"])
     rows = MultiIndex.from_product(iterables, names=["row1", "row2"])
     df = DataFrame(np.random.randn(4, 4), index=rows, columns=columns)
-    expected = df.iloc[:2, 2:].droplevel("row1").droplevel("col1", axis=1)
+    expected = (
+        df.iloc[:2, 2:].axis_ops.drop_level("row1").axis_ops.drop_level("col1", axis=1)
+    )
     result = df.loc["a", "b"]
     tm.assert_frame_equal(result, expected)

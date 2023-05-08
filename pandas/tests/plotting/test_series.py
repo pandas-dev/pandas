@@ -144,7 +144,7 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
         tz_ts = ts.copy()
-        tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
+        tz_ts.index = tz_ts.axis_ops.tz_localize("GMT").axis_ops.tz_convert("CET")
         _, ax = self.plt.subplots()
         ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()

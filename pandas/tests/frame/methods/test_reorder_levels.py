@@ -19,15 +19,19 @@ class TestReorderLevels:
         obj = tm.get_obj(df, frame_or_series)
 
         # no change, position
-        result = obj.reorder_levels([0, 1, 2])
+        msg = "(Series|DataFrame).reorder_levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.reorder_levels([0, 1, 2])
         tm.assert_equal(obj, result)
 
         # no change, labels
-        result = obj.reorder_levels(["L0", "L1", "L2"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.reorder_levels(["L0", "L1", "L2"])
         tm.assert_equal(obj, result)
 
         # rotate, position
-        result = obj.reorder_levels([1, 2, 0])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.reorder_levels([1, 2, 0])
         e_idx = MultiIndex(
             levels=[["one", "two", "three"], [0, 1], ["bar"]],
             codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1], [0, 0, 0, 0, 0, 0]],
@@ -37,7 +41,8 @@ class TestReorderLevels:
         expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
-        result = obj.reorder_levels([0, 0, 0])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.reorder_levels([0, 0, 0])
         e_idx = MultiIndex(
             levels=[["bar"], ["bar"], ["bar"]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]],
@@ -47,7 +52,8 @@ class TestReorderLevels:
         expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
-        result = obj.reorder_levels(["L0", "L0", "L0"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.reorder_levels(["L0", "L0", "L0"])
         tm.assert_equal(result, expected)
 
     def test_reorder_levels_swaplevel_equivalence(
@@ -55,20 +61,22 @@ class TestReorderLevels:
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
-        result = ymd.reorder_levels(["month", "day", "year"])
-        expected = ymd.swaplevel(0, 1).swaplevel(1, 2)
+        result = ymd.axis_ops.reorder_levels(["month", "day", "year"])
+        expected = ymd.axis_ops.swap_level(0, 1).axis_ops.swap_level(1, 2)
         tm.assert_frame_equal(result, expected)
 
-        result = ymd["A"].reorder_levels(["month", "day", "year"])
-        expected = ymd["A"].swaplevel(0, 1).swaplevel(1, 2)
+        result = ymd["A"].axis_ops.reorder_levels(["month", "day", "year"])
+        expected = ymd["A"].axis_ops.swap_level(0, 1).axis_ops.swap_level(1, 2)
         tm.assert_series_equal(result, expected)
 
-        result = ymd.T.reorder_levels(["month", "day", "year"], axis=1)
-        expected = ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
+        result = ymd.T.axis_ops.reorder_levels(["month", "day", "year"], axis=1)
+        expected = ymd.T.axis_ops.swap_level(0, 1, axis=1).axis_ops.swap_level(
+            1, 2, axis=1
+        )
         tm.assert_frame_equal(result, expected)
 
         with pytest.raises(TypeError, match="hierarchical axis"):
-            ymd.reorder_levels([1, 2], axis=1)
+            ymd.axis_ops.reorder_levels([1, 2], axis=1)
 
         with pytest.raises(IndexError, match="Too many levels"):
             ymd.index.reorder_levels([1, 2, 3])

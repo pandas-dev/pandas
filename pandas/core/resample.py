@@ -1549,7 +1549,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         # convert to timestamp
         if self.kind == "timestamp":
-            obj = obj.to_timestamp(how=self.convention)
+            obj = obj.axis_ops.to_timestamp(how=self.convention)
 
         return obj
 

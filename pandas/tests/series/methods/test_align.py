@@ -191,7 +191,7 @@ def test_align_with_dataframe_method(method):
 def test_align_dt64tzindex_mismatched_tzs():
     idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
     ser = Series(np.random.randn(len(idx1)), index=idx1)
-    ser_central = ser.tz_convert("US/Central")
+    ser_central = ser.axis_ops.tz_convert("US/Central")
     # different timezones convert to UTC
 
     new1, new2 = ser.align(ser_central)

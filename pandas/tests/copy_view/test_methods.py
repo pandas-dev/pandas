@@ -101,6 +101,7 @@ def test_copy_shallow(using_copy_on_write):
         "set_flags",
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*use obj.axis_ops:FutureWarning")
 def test_methods_copy_keyword(
     request, method, copy, using_copy_on_write, using_array_manager
 ):
@@ -176,6 +177,7 @@ def test_methods_copy_keyword(
         "set_flags",
     ],
 )
+@pytest.mark.filterwarnings("ignore:.* obj.axis_ops:FutureWarning")
 def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write):
     index = None
     if "to_timestamp" in request.node.callspec.id:
@@ -717,7 +719,7 @@ def test_to_timestamp(using_copy_on_write, obj):
     obj.index = Index([Period("2012-1-1", freq="D"), Period("2012-1-2", freq="D")])
 
     obj_orig = obj.copy()
-    obj2 = obj.to_timestamp()
+    obj2 = obj.axis_ops.to_timestamp()
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
@@ -735,7 +737,7 @@ def test_to_period(using_copy_on_write, obj):
     obj.index = Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")])
 
     obj_orig = obj.copy()
-    obj2 = obj.to_period(freq="Y")
+    obj2 = obj.axis_ops.to_period(freq="Y")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
@@ -1134,7 +1136,9 @@ def test_reorder_levels(using_copy_on_write):
     )
     df = DataFrame({"a": [1, 2, 3, 4]}, index=index)
     df_orig = df.copy()
-    df2 = df.reorder_levels(order=["two", "one"])
+    msg = "DataFrame.reorder_levels is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.reorder_levels(order=["two", "one"])
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1153,7 +1157,10 @@ def test_series_reorder_levels(using_copy_on_write):
     )
     ser = Series([1, 2, 3, 4], index=index)
     ser_orig = ser.copy()
-    ser2 = ser.reorder_levels(order=["two", "one"])
+
+    msg = "Series.reorder_levels is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2 = ser.reorder_levels(order=["two", "one"])
 
     if using_copy_on_write:
         assert np.shares_memory(ser2.values, ser.values)
@@ -1171,7 +1178,7 @@ def test_swaplevel(using_copy_on_write, obj):
     index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
     obj.index = index
     obj_orig = obj.copy()
-    obj2 = obj.swaplevel()
+    obj2 = obj.axis_ops.swap_level()
 
     if using_copy_on_write:
         assert np.shares_memory(obj2.values, obj.values)
@@ -1262,7 +1269,9 @@ def test_tz_convert_localize(using_copy_on_write, func, tz):
         [1, 2], index=date_range(start="2014-08-01 09:00", freq="H", periods=2, tz=tz)
     )
     ser_orig = ser.copy()
-    ser2 = getattr(ser, func)("US/Central")
+    msg = f"Series.{func} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2 = getattr(ser, func)("US/Central")
 
     if using_copy_on_write:
         assert np.shares_memory(ser.values, ser2.values)
@@ -1280,7 +1289,7 @@ def test_droplevel(using_copy_on_write):
     index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=index)
     df_orig = df.copy()
-    df2 = df.droplevel(0)
+    df2 = df.axis_ops.drop_level(0)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))

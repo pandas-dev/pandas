@@ -441,6 +441,7 @@ def ndframe_method(request):
     return request.param
 
 
+@pytest.mark.filterwarnings("ignore:.*use obj.axis_ops:FutureWarning")
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)

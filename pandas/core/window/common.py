@@ -107,12 +107,12 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                         # GH 34440
                         num_levels = len(result.index.levels)
                         new_order = [num_levels - 1] + list(range(num_levels - 1))
-                        result = result.reorder_levels(new_order).sort_index()
+                        result = result.axis_ops.reorder_levels(new_order).sort_index()
                     else:
                         result.index = MultiIndex.from_product(
                             [range(len(arg2.columns)), range(len(result_index))]
                         )
-                        result = result.swaplevel(1, 0).sort_index()
+                        result = result.axis_ops.swap_level(1, 0).sort_index()
                         result.index = MultiIndex.from_product(
                             [result_index] + [arg2.columns]
                         )

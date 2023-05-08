@@ -21,16 +21,19 @@ class TestDropLevel:
 
         # test that dropping of a level in index works
         expected = df.reset_index("a", drop=True)
-        result = df.droplevel("a", axis="index")
+
+        msg = "(Series|DataFrame).droplevel is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.droplevel("a", axis="index")
         tm.assert_equal(result, expected)
 
         if frame_or_series is DataFrame:
             # test that dropping of a level in columns works
             expected = df.copy()
             expected.columns = Index(["c", "d"], name="level_1")
-            result = df.droplevel("level_2", axis="columns")
+            result = df.axis_ops.drop_level("level_2", axis="columns")
             tm.assert_equal(result, expected)
         else:
             # test that droplevel raises ValueError on axis != 0
             with pytest.raises(ValueError, match="No axis named columns"):
-                df.droplevel(1, axis="columns")
+                df.axis_ops.drop_level(1, axis="columns")

@@ -82,9 +82,9 @@ class TestTZLocalize:
             with tm.external_error_raised(pytz.NonExistentTimeError):
                 dti.tz_localize(tz, nonexistent=method)
             with tm.external_error_raised(pytz.NonExistentTimeError):
-                ser.tz_localize(tz, nonexistent=method)
+                ser.axis_ops.tz_localize(tz, nonexistent=method)
             with tm.external_error_raised(pytz.NonExistentTimeError):
-                df.tz_localize(tz, nonexistent=method)
+                df.axis_ops.tz_localize(tz, nonexistent=method)
 
         elif exp == "invalid":
             msg = (
@@ -95,16 +95,16 @@ class TestTZLocalize:
             with pytest.raises(ValueError, match=msg):
                 dti.tz_localize(tz, nonexistent=method)
             with pytest.raises(ValueError, match=msg):
-                ser.tz_localize(tz, nonexistent=method)
+                ser.axis_ops.tz_localize(tz, nonexistent=method)
             with pytest.raises(ValueError, match=msg):
-                df.tz_localize(tz, nonexistent=method)
+                df.axis_ops.tz_localize(tz, nonexistent=method)
 
         else:
-            result = ser.tz_localize(tz, nonexistent=method)
+            result = ser.axis_ops.tz_localize(tz, nonexistent=method)
             expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))
             tm.assert_series_equal(result, expected)
 
-            result = df.tz_localize(tz, nonexistent=method)
+            result = df.axis_ops.tz_localize(tz, nonexistent=method)
             expected = expected.to_frame()
             tm.assert_frame_equal(result, expected)
 
@@ -116,8 +116,8 @@ class TestTZLocalize:
         # GH#2248
         ser = Series(dtype=object)
 
-        ser2 = ser.tz_localize("utc")
+        ser2 = ser.axis_ops.tz_localize("utc")
         assert ser2.index.tz == timezone.utc
 
-        ser2 = ser.tz_localize(tzstr)
+        ser2 = ser.axis_ops.tz_localize(tzstr)
         timezones.tz_compare(ser2.index.tz, timezones.maybe_get_tz(tzstr))

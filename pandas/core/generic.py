@@ -790,6 +790,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @Appender(AxisOps.drop_level.__doc__)
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
+        warnings.warn(
+            f"{type(self).__name__}.droplevel is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.droplevel instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.drop_level(level=level, axis=axis)
 
     def pop(self, item: Hashable) -> Series | Any:
@@ -9374,9 +9380,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # bring self-other to inner level
         order = list(range(1, ax.nlevels)) + [0]
         if isinstance(diff, ABCDataFrame):
-            diff = diff.reorder_levels(order, axis=axis)
+            diff = diff.axis_ops.reorder_levels(order, axis=axis)
         else:
-            diff = diff.reorder_levels(order)
+            diff = diff.axis_ops.reorder_levels(order)
 
         # restore the index names in order
         diff._get_axis(axis=axis).names = ax_names[order]
@@ -10512,6 +10518,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def tz_convert(
         self, tz, axis: Axis = 0, level=None, copy: bool_t | None = None
     ) -> Self:
+        warnings.warn(
+            f"{type(self).__name__}.tz_convert is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.tz_convert instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.tz_convert(tz, axis=axis, level=level, copy=copy)
 
     @final
@@ -10525,6 +10537,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        warnings.warn(
+            f"{type(self).__name__}.tz_localize is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.tz_localize instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.tz_localize(
             tz,
             axis=axis,

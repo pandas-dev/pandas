@@ -430,7 +430,7 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
         assert df.index.names == ["datetime", "label"]
 
-        df = df.swaplevel(0, 1)
+        df = df.axis_ops.swap_level(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
         assert df.index.names == ["label", "datetime"]

@@ -1202,7 +1202,9 @@ class TestDataFrameReshape:
         )
         expected.index.name = "bar"
 
-        result = df.unstack().swaplevel(axis=1).sort_index(axis=1, level=level)
+        result = (
+            df.unstack().axis_ops.swap_level(axis=1).sort_index(axis=1, level=level)
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -1441,12 +1443,12 @@ class TestStackUnstackMultiLevel:
 
         unlexsorted = unlexsorted[::-1]
         unstacked = unlexsorted.unstack(1)
-        restacked = unstacked.stack().swaplevel(1, 2)
+        restacked = unstacked.stack().axis_ops.swap_level(1, 2)
         tm.assert_frame_equal(restacked.sort_index(level=0), ymd)
 
-        unlexsorted = unlexsorted.swaplevel(0, 1)
-        unstacked = unlexsorted.unstack(0).swaplevel(0, 1, axis=1)
-        restacked = unstacked.stack(0).swaplevel(1, 2)
+        unlexsorted = unlexsorted.axis_ops.swap_level(0, 1)
+        unstacked = unlexsorted.unstack(0).axis_ops.swap_level(0, 1, axis=1)
+        restacked = unstacked.stack(0).axis_ops.swap_level(1, 2)
         tm.assert_frame_equal(restacked.sort_index(level=0), ymd)
 
         # columns unsorted
@@ -1647,7 +1649,7 @@ Thu,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(s_unstacked, expected["A"])
 
         restacked = unstacked.stack(["year", "month"])
-        restacked = restacked.swaplevel(0, 1).swaplevel(1, 2)
+        restacked = restacked.axis_ops.swap_level(0, 1).axis_ops.swap_level(1, 2)
         restacked = restacked.sort_index(level=0)
 
         tm.assert_frame_equal(restacked, ymd)

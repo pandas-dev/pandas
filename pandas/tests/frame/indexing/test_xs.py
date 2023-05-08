@@ -341,7 +341,7 @@ class TestXSWithMultiIndex:
         if frame_or_series is Series:
             obj = obj[0]
 
-        expected = obj.iloc[-2:].droplevel(0)
+        expected = obj.iloc[-2:].axis_ops.drop_level(0)
 
         result = obj.xs(IndexSlice[("foo", "qux", 0), :])
         tm.assert_equal(result, expected)

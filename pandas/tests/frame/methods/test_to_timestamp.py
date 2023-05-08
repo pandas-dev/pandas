@@ -38,32 +38,32 @@ class TestToTimestamp:
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="A-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
-        result = obj.to_timestamp("D", "end")
+        result = obj.axis_ops.to_timestamp("D", how="end")
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, obj.values)
         if frame_or_series is Series:
             assert result.name == "A"
 
         exp_index = date_range("1/1/2001", end="1/1/2009", freq="AS-JAN")
-        result = obj.to_timestamp("D", "start")
+        result = obj.axis_ops.to_timestamp("D", how="start")
         tm.assert_index_equal(result.index, exp_index)
 
-        result = obj.to_timestamp(how="start")
+        result = obj.axis_ops.to_timestamp(how="start")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23)
-        result = obj.to_timestamp("H", "end")
+        result = obj.axis_ops.to_timestamp("H", how="end")
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
-        result = obj.to_timestamp("T", "end")
+        result = obj.axis_ops.to_timestamp("T", how="end")
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
 
-        result = obj.to_timestamp("S", "end")
+        result = obj.axis_ops.to_timestamp("S", how="end")
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
@@ -84,34 +84,34 @@ class TestToTimestamp:
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="A-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
-        result = df.to_timestamp("D", "end", axis=1)
+        result = df.axis_ops.to_timestamp("D", how="end", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
 
         exp_index = date_range("1/1/2001", end="1/1/2009", freq="AS-JAN")
-        result = df.to_timestamp("D", "start", axis=1)
+        result = df.axis_ops.to_timestamp("D", how="start", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23)
-        result = df.to_timestamp("H", "end", axis=1)
+        result = df.axis_ops.to_timestamp("H", how="end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
-        result = df.to_timestamp("T", "end", axis=1)
+        result = df.axis_ops.to_timestamp("T", how="end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
-        result = df.to_timestamp("S", "end", axis=1)
+        result = df.axis_ops.to_timestamp("S", how="end", axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
-        result1 = df.to_timestamp("5t", axis=1)
-        result2 = df.to_timestamp("t", axis=1)
+        result1 = df.axis_ops.to_timestamp("5t", axis=1)
+        result2 = df.axis_ops.to_timestamp("t", axis=1)
         expected = date_range("2001-01-01", "2009-01-01", freq="AS")
         assert isinstance(result1.columns, DatetimeIndex)
         assert isinstance(result2.columns, DatetimeIndex)
@@ -127,7 +127,7 @@ class TestToTimestamp:
 
         # invalid axis
         with pytest.raises(ValueError, match="axis"):
-            obj.to_timestamp(axis=2)
+            obj.axis_ops.to_timestamp(axis=2)
 
     def test_to_timestamp_hourly(self, frame_or_series):
         index = period_range(freq="H", start="1/1/2001", end="1/2/2001")
@@ -136,7 +136,9 @@ class TestToTimestamp:
             obj = obj.to_frame()
 
         exp_index = date_range("1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="H")
-        result = obj.to_timestamp(how="end")
+        msg = "(Series|DataFrame).to_timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp(how="end")
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
         if frame_or_series is Series:
@@ -149,4 +151,4 @@ class TestToTimestamp:
         if not isinstance(index, PeriodIndex):
             msg = f"unsupported Type {type(index).__name__}"
             with pytest.raises(TypeError, match=msg):
-                obj.to_timestamp()
+                obj.axis_ops.to_timestamp()

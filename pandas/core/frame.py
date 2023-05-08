@@ -7291,10 +7291,22 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Appender(AxisOps.swap_level.__doc__)
     def swaplevel(self, i: Axis = -2, j: Axis = -1, axis: Axis = 0) -> DataFrame:
+        warnings.warn(
+            f"{type(self).__name__}.swaplevel is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.swap_level instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.swap_level(i, j, axis=axis)
 
     @Appender(AxisOps.reorder_levels.__doc__)
     def reorder_levels(self, order: Sequence[int | str], axis: Axis = 0) -> DataFrame:
+        warnings.warn(
+            f"{type(self).__name__}.reorder_levels is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.reorder_levels instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.reorder_levels(order=order, axis=axis)
 
     # ----------------------------------------------------------------------
@@ -11439,6 +11451,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_timestamp is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.to_timestamp instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.to_timestamp(freq=freq, how=how, axis=axis, copy=copy)
 
     def to_period(
@@ -11486,6 +11504,12 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
+        warnings.warn(
+            f"{type(self).__name__}.to_period is deprecated and will be "
+            "removed in a future version. Use obj.axis_ops.to_period instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.axis_ops.to_period(freq=freq, axis=axis, copy=copy)
 
     def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:

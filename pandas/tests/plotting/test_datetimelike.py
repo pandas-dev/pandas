@@ -319,7 +319,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_business_freq_convert(self):
         bts = tm.makeTimeSeries(300).asfreq("BM")
-        ts = bts.to_period("M")
+        ts = bts.axis_ops.to_period("M")
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
@@ -630,7 +630,7 @@ class TestTSPlot(TestPlotBase):
         assert not hasattr(ax, "right_ax")
         axes = fig.get_axes()
         line = ax.get_lines()[0]
-        xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
+        xp = Series(line.get_ydata(), line.get_xdata()).axis_ops.to_timestamp()
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
         assert not axes[0].get_yaxis().get_visible()

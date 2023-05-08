@@ -21,7 +21,7 @@ class TestTZLocalize:
         obj = DataFrame({"a": 1}, index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
-        result = obj.tz_localize("utc")
+        result = obj.axis_ops.tz_localize("utc")
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
         expected = tm.get_obj(expected, frame_or_series)
 
@@ -34,7 +34,7 @@ class TestTZLocalize:
         df = DataFrame({"a": 1}, index=rng)
 
         df = df.T
-        result = df.tz_localize("utc", axis=1)
+        result = df.axis_ops.tz_localize("utc", axis=1)
         assert result.columns.tz is timezone.utc
 
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
@@ -47,8 +47,10 @@ class TestTZLocalize:
         ts = Series(1, index=rng)
         ts = frame_or_series(ts)
 
-        with pytest.raises(TypeError, match="Already tz-aware"):
-            ts.tz_localize("US/Eastern")
+        msg = "(Series|DataFrame).tz_localize is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(TypeError, match="Already tz-aware"):
+                ts.tz_localize("US/Eastern")
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_tz_localize_copy_inplace_mutate(self, copy, frame_or_series):
@@ -57,7 +59,7 @@ class TestTZLocalize:
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1H", tz=None)
         )
         orig = obj.copy()
-        result = obj.tz_localize("UTC", copy=copy)
+        result = obj.axis_ops.tz_localize("UTC", copy=copy)
         expected = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1H", tz="UTC"),

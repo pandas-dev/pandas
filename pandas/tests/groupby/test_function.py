@@ -514,7 +514,7 @@ def test_idxmin_idxmax_axis1():
     alt = df.iloc[:, 1:].idxmax(axis=1)
     indexer = res.index.get_level_values(1)
 
-    tm.assert_series_equal(alt[indexer], res.droplevel("A"))
+    tm.assert_series_equal(alt[indexer], res.axis_ops.drop_level("A"))
 
     df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
