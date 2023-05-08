@@ -361,7 +361,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)
 -
 
 Missing
