@@ -1496,6 +1496,18 @@ class _TestSQLApi(PandasSQLTest):
 
         tm.assert_frame_equal(res, df)
 
+    def test_read_sql_duplicate_columns(self):
+        # GH#53117
+        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
+        df.to_sql("test_table", self.conn, index=False)
+
+        result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table;", self.conn)
+        expected = DataFrame(
+            [[1, 0.1, 2, 1], [2, 0.2, 3, 1], [3, 0.3, 4, 1]],
+            columns=["a", "b", "a", "c"],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
