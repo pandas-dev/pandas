@@ -18,22 +18,6 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    Self,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -69,6 +53,7 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.base import BaseStringArrayMethods
 
+from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
 if not pa_version_under7p0:
@@ -139,8 +124,22 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        Iterator,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        Scalar,
+        Self,
+        SortKind,
+        TakeIndexer,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
     )
 
     from pandas import Series
@@ -577,7 +576,7 @@ class ArrowExtensionArray(
     def __contains__(self, key) -> bool:
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
-            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+            if self.dtype.kind == "f" and lib.is_float(key):
                 return pc.any(pc.is_nan(self._pa_array)).as_py()
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
@@ -804,8 +803,9 @@ class ArrowExtensionArray(
             fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
-        if is_array_like(value):
-            value = cast(ArrayLike, value)
+        if isinstance(value, (np.ndarray, ExtensionArray)):
+            # Similar to check_value_size, but we do not mask here since we may
+            #  end up passing it to the super() method.
             if len(value) != len(self):
                 raise ValueError(
                     f"Length of 'value' does not match. Got ({len(value)}) "
@@ -1729,42 +1729,18 @@ class ArrowExtensionArray(
 
     def _to_masked(self):
         pa_dtype = self._pa_array.type
-        na_value = 1
-        from pandas.core.arrays import (
-            BooleanArray,
-            FloatingArray,
-            IntegerArray,
-        )
 
-        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
-        if pa.types.is_floating(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Float{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = FloatingArray
-        elif pa.types.is_unsigned_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"UInt{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
-        elif pa.types.is_signed_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Int{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
+        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
+            na_value = 1
         elif pa.types.is_boolean(pa_dtype):
-            dtype = "boolean"
-            np_dtype = "bool"
             na_value = True
-            arr_cls = BooleanArray
         else:
             raise NotImplementedError
 
+        dtype = _arrow_dtype_mapping()[pa_dtype]
         mask = self.isna()
-        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
-        return arr_cls(arr, mask)
+        arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
+        return dtype.construct_array_type()(arr, mask)
 
     def _groupby_op(
         self,
@@ -2367,6 +2343,11 @@ class ArrowExtensionArray(
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
     def _dt_to_pydatetime(self):
+        if pa.types.is_date(self.dtype.pyarrow_dtype):
+            raise ValueError(
+                f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
+                "Convert to pyarrow timestamp type."
+            )
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]

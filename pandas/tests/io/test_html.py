@@ -201,7 +201,7 @@ class TestReadHtml:
         check_before_test=True,
     )
     def test_banklist_url(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa: E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
             url,
@@ -692,7 +692,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_gold_canyon(self, banklist_data):
         gc = "Gold Canyon"
-        with open(banklist_data) as f:
+        with open(banklist_data, encoding="utf-8") as f:
             raw_text = f.read()
 
         assert gc in raw_text
