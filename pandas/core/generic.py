@@ -9867,6 +9867,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
 
         # align the cond to same shape as myself
+        # meanwhile make sure cond is boolean
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             # GH #52955: if cond is NA, element propagates in mask and where
@@ -9878,7 +9879,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     copy=False,
                 )
                 cond.columns = self.columns
-            cond = cond.align(self, join="right", copy=False)[0]
+            # align can introduce na, make sure we are boolean
+            cond = cond.align(self, join="right", copy=False)[0].fillna(bool(inplace))
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
@@ -9887,10 +9889,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
             # GH #52955: if cond is NA, element propagates in mask and where
             cond = cond.fillna(True)
-
-        # make sure we are boolean
-        fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
@@ -9906,7 +9904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(
-                        cond.to_numpy(dtype=bool, na_value=fill_value),
+                        cond.to_numpy(dtype=bool),
                         **cond._construct_axes_dict(),
                     )
         else:
