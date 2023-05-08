@@ -140,10 +140,7 @@ def infer_freq(
     >>> pd.infer_freq(idx)
     'D'
     """
-    from pandas.core.api import (
-        DatetimeIndex,
-        Index,
-    )
+    from pandas.core.api import DatetimeIndex
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -172,15 +169,10 @@ def infer_freq(
         inferer = _TimedeltaFrequencyInferer(index)
         return inferer.get_freq()
 
-    if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if is_numeric_dtype(index.dtype):
-            raise TypeError(
-                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
-            )
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
-        # "Union[DatetimeIndex, TimedeltaIndex, Series, DatetimeLikeArrayMixin]")
-        index = index._values  # type: ignore[assignment]
+    elif is_numeric_dtype(index.dtype):
+        raise TypeError(
+            f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
+        )
 
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
