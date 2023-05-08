@@ -63,7 +63,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
-from pandas.core.arrays.sparse.dtype import SparseDtype
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -535,7 +534,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
     # incompatible with return type "ExtensionDtype" in supertype
     # "ExtensionArray"
-    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa:E501
+    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa: E501
         """
         The dtype for the DatetimeArray.
 
@@ -2035,11 +2034,7 @@ def _sequence_to_dt64ns(
     if out_unit is not None:
         out_dtype = np.dtype(f"M8[{out_unit}]")
 
-    if (
-        data_dtype == object
-        or is_string_dtype(data_dtype)
-        or isinstance(data_dtype, SparseDtype)
-    ):
+    if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
