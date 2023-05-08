@@ -29,12 +29,7 @@ def test_apply_func_that_appends_group_to_list_without_copy():
         groups.append(group)
 
     df.groupby("index").apply(store)
-    expected_value = DataFrame(
-        1, index=list(range(0, 100, 10)), columns=[0]
-    ).reset_index()
-    expected_value = expected_value.set_index("index", drop=False)
-    expected_value["index"] = 0
-    expected_value = expected_value.rename_axis(None)
+    expected_value = DataFrame({"index": [0] * 10, 0: [1] * 10}, index=np.arange(0, 100, 10))
 
     tm.assert_frame_equal(groups[0], expected_value)
 
