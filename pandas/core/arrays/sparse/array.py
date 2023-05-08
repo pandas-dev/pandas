@@ -44,7 +44,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_dtype_equal,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -180,7 +179,7 @@ def _sparse_array_op(
     ltype = left.dtype.subtype
     rtype = right.dtype.subtype
 
-    if not is_dtype_equal(ltype, rtype):
+    if ltype != rtype:
         subtype = find_common_type([ltype, rtype])
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
@@ -399,6 +398,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             dtype = dtype.subtype
 
         if is_scalar(data):
+            warnings.warn(
+                f"Constructing {type(self).__name__} with scalar data is deprecated "
+                "and will raise in a future version. Pass a sequence instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             if sparse_index is None:
                 npoints = 1
             else:
@@ -1240,7 +1245,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        if is_dtype_equal(dtype, self._dtype):
+        if dtype == self._dtype:
             if not copy:
                 return self
             else:
