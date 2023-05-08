@@ -18,6 +18,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
+    if: github.repository_owner == 'pandas-dev'
 
     strategy:
       fail-fast: false
