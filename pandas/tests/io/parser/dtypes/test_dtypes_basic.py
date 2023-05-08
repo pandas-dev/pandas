@@ -414,10 +414,6 @@ def test_dtype_backend(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"]
     )
-    if parser.engine == "pyarrow":
-        jcol = pd.Series([None, None], dtype=object)
-    else:
-        jcol = pd.Series([pd.NA, pd.NA], dtype="Int64")
     expected = DataFrame(
         {
             "a": pd.Series([1, 3], dtype="Int64"),
@@ -429,7 +425,7 @@ def test_dtype_backend(all_parsers):
             "g": pd.Series([pd.NA, True], dtype="boolean"),
             "h": pd.Series([pd.NA, "a"], dtype="string"),
             "i": pd.Series([Timestamp("2019-12-31")] * 2),
-            "j": jcol,
+            "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
     tm.assert_frame_equal(result, expected)
