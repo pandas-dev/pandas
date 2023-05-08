@@ -91,7 +91,8 @@ class TestSeriesMissingData:
 
 def test_hasnans_uncached_for_series():
     # GH#19700
-    idx = Index([0, 1])
+    # set float64 dtype to avoid upcast when setting nan
+    idx = Index([0, 1], dtype="float64")
     assert idx.hasnans is False
     assert "hasnans" in idx._cache
     ser = idx.to_series()

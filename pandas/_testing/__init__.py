@@ -852,9 +852,7 @@ class SubclassedDataFrame(DataFrame):
 
 
 class SubclassedCategorical(Categorical):
-    @property
-    def _constructor(self):
-        return SubclassedCategorical
+    pass
 
 
 def _make_skipna_wrapper(alternative, skipna_alternative=None):
