@@ -2051,7 +2051,7 @@ class Styler(StylerRenderer):
 
         .. deprecated:: 2.1.0
 
-           Styler.applymap_index has been deprecated. Use Styler.map_index instead.
+           Styler.applymap has been deprecated. Use Styler.map instead.
 
         Parameters
         ----------
