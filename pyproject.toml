@@ -174,9 +174,6 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
-[[tool.cibuildwheel.overrides]]
-select = "*-win32"
-
 [tool.black]
 target-version = ['py39', 'py310']
 required-version = '23.3.0'
