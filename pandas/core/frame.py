@@ -4107,9 +4107,8 @@ class DataFrame(NDFrame, OpsMixin):
                 locs = [loc]
             else:
                 locs = loc.nonzero()[0]
-            for idx, loc in enumerate(locs):
-                self.isetitem(loc, value.iloc[:, idx])
-            return
+
+            return self.isetitem(locs, value)
 
         if len(value.columns) != 1:
             raise ValueError(
