@@ -151,9 +151,11 @@ jobs:
           docker pull python:${{ matrix.python[1] }}-windowsservercore
           docker run python:${{ matrix.python[1] }}-windowsservercore python -m `
             pip install hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
-          docker commit ${docker ps -lq} test_deps
+          $LAST_DEPS_ID = docker ps -lq
+          docker commit $LAST_ID test_deps
           docker run -v ${PWD}:C:\pandas test_deps python -m pip install --find-links=pandas/wheelhouse --no-index pandas
-          docker commit ${docker ps -lq} test_pandas
+          $LAST_PANDAS_ID = docker ps -lq
+          docker commit $LAST_PANDAS_ID test_pandas
           docker run test_pandas python -c 'import pandas as pd; pd.test(extra_args=[''-m not clipboard and not single_cpu and not slow and not network and not db'', ''-n 2'']); pd.test(extra_args=[''-m not clipboard and single_cpu and not slow and not network and not db''])'
 
       - uses: actions/upload-artifact@v3
