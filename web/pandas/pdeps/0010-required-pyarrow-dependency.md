@@ -1,4 +1,4 @@
-# PDEP-10: PyArrow as a required dependency
+# PDEP-10: PyArrow as a required dependency for default string inference implementation
 
 - Created: 17 April 2023
 - Status: Under discussion
@@ -12,10 +12,14 @@
 
 This PDEP proposes that:
 
-- PyArrow becomes a runtime dependency starting with pandas 2.1
-- The minimum version of PyArrow supported starting with pandas 2.1 is version 7 of PyArrow.
+- PyArrow becomes a runtime dependency starting with pandas 3.0
+- The minimum version of PyArrow supported starting with pandas 3.0 is version 7 of PyArrow.
 - When the minimum version of PyArrow is bumped, PyArrow will be bumped to the highest version that has
   been released for at least 2 years.
+- Starting in pandas 2.1, pandas raises a ``FutureWarning`` when needing to infer string data that the future
+  data type result will be `ArrowDtype` with `pyarrow.string` instead of object
+- Starting in pandas 3.0, the default type inferred for string data will be `ArrowDtype` with `pyarrow.string`
+  instead of `object`
 
 ## Background
 
@@ -33,8 +37,19 @@ accelerate PyArrow-backed data in pandas, notibly string and datetime types.
 
 As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data representation to NumPy with advantages such as:
 
-1. Consistent ``NA`` support for all data types
-2. Broader support of data types such as ``decimal``, ``date`` and nested types
+1. Consistent `NA` support for all data types
+2. Broader support of data types such as `decimal`, `date` and nested types
+
+Additionally, when users pass string data into pandas constructors without specifying a data type, the result data type
+is `object`. With pyarrow string support available since 1.2.0, requiring pyarrow for 3.0 will allow pandas to default
+the inferred type to the more efficient pyarrow string type.
+
+```python
+In [1]: import pandas as pd
+
+In [2]: pd.Series(["a"]).dtype
+Out[2]: dtype('O')
+```
 
 ## Motivation
 
@@ -48,16 +63,15 @@ Additionally, requiring PyArrow would simplify the related development within pa
 functionality that would be better suited by PyArrow including:
 
 - Avoiding runtime checking if PyArrow is available to perform PyArrow object inference during constructor or indexing operations
-  - Currently, there are 17 `import_optional_dependency("pyarrow")` checks throughout the pandas code base
 
-- Removing unnecessary functionality:
-  - fastparquet engine in ``read_parquet``
-  - potentially simplifying the ``read_csv`` logic (needs more investigation)
+- Removing redundant functionality:
+  - fastparquet engine in `read_parquet`
+  - potentially simplifying the `read_csv` logic (needs more investigation)
 
 - Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as:
   - decimal
   - binary
-  - nested types (like lists, dicts, ...)
+  - nested types (list or dict data)
   - strings
 
 Out of this group, strings offer the most advantages for users. They use significantly less memory and are faster:
@@ -76,8 +90,7 @@ def random_string() -> str:
 
 
 ser_object = pd.Series([random_string() for _ in range(1_000_000)])
-ser_string = ser_object.astype("string[pyarrow]")
-
+ser_string = ser_object.astype("string[pyarrow]")\
 ```
 
 PyArrow backed strings are significantly faster than NumPy object strings:
