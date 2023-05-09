@@ -125,8 +125,9 @@ class TestDataFrameSelectReindex:
 
         ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
         res = df.reindex([0, 1], axis=1, fill_value=ts)
-        assert res.dtypes[1] == pd.DatetimeTZDtype(tz="US/Pacific")
+        assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
         expected = DataFrame({0: [1], 1: [ts]})
+        expected[1] = expected[1].astype(res.dtypes[1])
         tm.assert_frame_equal(res, expected)
 
         per = ts.tz_localize(None).to_period("s")
@@ -137,8 +138,9 @@ class TestDataFrameSelectReindex:
 
         interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
         res = df.reindex([0, 1], axis=1, fill_value=interval)
-        assert res.dtypes[1] == pd.IntervalDtype("datetime64[ns, US/Pacific]", "right")
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[s, US/Pacific]", "right")
         expected = DataFrame({0: [1], 1: [interval]})
+        expected[1] = expected[1].astype(res.dtypes[1])
         tm.assert_frame_equal(res, expected)
 
     def test_reindex_copies(self):

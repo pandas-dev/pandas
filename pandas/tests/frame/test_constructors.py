@@ -97,6 +97,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
         dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
+        dt = dt.as_unit("ns")
 
         df = DataFrame({"dt": dt}, index=[0])
         expected = DataFrame({"dt": [dt]})
@@ -926,7 +927,7 @@ class TestDataFrameConstructors:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )
@@ -1912,7 +1913,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"End Date": dt}, index=[0])
         assert df.iat[0, 0] == dt
         tm.assert_series_equal(
-            df.dtypes, Series({"End Date": "datetime64[ns, US/Eastern]"})
+            df.dtypes, Series({"End Date": "datetime64[us, US/Eastern]"})
         )
 
         df = DataFrame([{"End Date": dt}])
