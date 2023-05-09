@@ -16,7 +16,7 @@ class IntegerDtype(NumericDtype):
     An ExtensionDtype to hold a single size & kind of integer dtype.
 
     These specific implementations are subclasses of the non-public
-    IntegerDtype. For example we have Int8Dtype to represent signed int 8s.
+    IntegerDtype. For example, we have Int8Dtype to represent signed int 8s.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -36,8 +36,8 @@ class IntegerDtype(NumericDtype):
         return IntegerArray
 
     @classmethod
-    def _str_to_dtype_mapping(cls):
-        return INT_STR_TO_DTYPE
+    def _get_dtype_mapping(cls) -> dict[np.dtype, IntegerDtype]:
+        return NUMPY_INT_TO_DTYPE
 
     @classmethod
     def _safe_cast(cls, values: np.ndarray, dtype: np.dtype, copy: bool) -> np.ndarray:
@@ -63,10 +63,7 @@ class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
 
-    .. versionchanged:: 1.0.0
-
-       Now uses :attr:`pandas.NA` as the missing value rather
-       than :attr:`numpy.nan`.
+    Uses :attr:`pandas.NA` as the missing value.
 
     .. warning::
 
@@ -141,10 +138,7 @@ class IntegerArray(NumericArray):
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
 
-.. versionchanged:: 1.0.0
-
-   Now uses :attr:`pandas.NA` as its missing value,
-   rather than :attr:`numpy.nan`.
+Uses :attr:`pandas.NA` as its missing value, rather than :attr:`numpy.nan`.
 
 Attributes
 ----------
@@ -214,13 +208,13 @@ class UInt64Dtype(IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-INT_STR_TO_DTYPE: dict[str, IntegerDtype] = {
-    "int8": Int8Dtype(),
-    "int16": Int16Dtype(),
-    "int32": Int32Dtype(),
-    "int64": Int64Dtype(),
-    "uint8": UInt8Dtype(),
-    "uint16": UInt16Dtype(),
-    "uint32": UInt32Dtype(),
-    "uint64": UInt64Dtype(),
+NUMPY_INT_TO_DTYPE: dict[np.dtype, IntegerDtype] = {
+    np.dtype(np.int8): Int8Dtype(),
+    np.dtype(np.int16): Int16Dtype(),
+    np.dtype(np.int32): Int32Dtype(),
+    np.dtype(np.int64): Int64Dtype(),
+    np.dtype(np.uint8): UInt8Dtype(),
+    np.dtype(np.uint16): UInt16Dtype(),
+    np.dtype(np.uint32): UInt32Dtype(),
+    np.dtype(np.uint64): UInt64Dtype(),
 }

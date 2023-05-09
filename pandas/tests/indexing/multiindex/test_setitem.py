@@ -281,7 +281,7 @@ class TestMultiIndexSetItem:
     def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         df = frame.T.copy()
-        values = df.values
+        values = df.values.copy()
 
         result = df[df > 0]
         expected = df.where(df > 0)
@@ -479,15 +479,37 @@ class TestSetitemWithExpansionMultiIndex:
         df["new"] = s
         assert df["new"].isna().all()
 
+    def test_setitem_enlargement_keep_index_names(self):
+        # GH#53053
+        mi = MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
+        df = DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
+        df.loc[(0, 0, 0)] = df.loc[(1, 2, 3)]
+        mi_expected = MultiIndex.from_tuples(
+            [(1, 2, 3), (0, 0, 0)], names=["i1", "i2", "i3"]
+        )
+        expected = DataFrame(
+            data=[[10, 20, 30], [10, 20, 30]],
+            index=mi_expected,
+            columns=["A", "B", "C"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 @td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
 # is not a view
-def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
+def test_frame_setitem_view_direct(
+    multiindex_dataframe_random_data, using_copy_on_write
+):
     # this works because we are modifying the underlying array
     # really a no-no
     df = multiindex_dataframe_random_data.T
-    df["foo"].values[:] = 0
-    assert (df["foo"].values == 0).all()
+    if using_copy_on_write:
+        with pytest.raises(ValueError, match="read-only"):
+            df["foo"].values[:] = 0
+        assert (df["foo"].values != 0).all()
+    else:
+        df["foo"].values[:] = 0
+        assert (df["foo"].values == 0).all()
 
 
 def test_frame_setitem_copy_raises(

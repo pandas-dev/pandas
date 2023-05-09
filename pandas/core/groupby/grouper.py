@@ -16,21 +16,16 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
+from pandas._libs import lib
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -51,6 +46,13 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        npt,
+    )
+
     from pandas.core.generic import NDFrame
 
 
@@ -97,8 +99,6 @@ class Grouper:
         - 'start': `origin` is the first value of the timeseries
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
-        .. versionadded:: 1.1.0
-
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
@@ -106,8 +106,6 @@ class Grouper:
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
-
-        .. versionadded:: 1.1.0
 
     dropna : bool, default True
         If True, and if group keys contain NA values, NA values together with
@@ -118,7 +116,9 @@ class Grouper:
 
     Returns
     -------
-    A specification for a groupby instruction
+    Grouper or pandas.api.typing.TimeGrouper
+        A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
+        is returned.
 
     Examples
     --------
@@ -258,10 +258,25 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
+        if type(self) is Grouper:
+            # i.e. not TimeGrouper
+            if axis is not lib.no_default:
+                warnings.warn(
+                    "Grouper axis keyword is deprecated and will be removed in a "
+                    "future version. To group on axis=1, use obj.T.groupby(...) "
+                    "instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                axis = 0
+        if axis is lib.no_default:
+            axis = 0
+
         self.key = key
         self.level = level
         self.freq = freq
@@ -595,13 +610,13 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(grouping_vector, np.ndarray):
-            if grouping_vector.dtype.kind in ["m", "M"]:
+            if grouping_vector.dtype.kind in "mM":
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif is_categorical_dtype(grouping_vector):
+        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
             grouping_vector, self._all_grouper = recode_for_groupby(
@@ -618,7 +633,8 @@ class Grouping:
 
     @cache_readonly
     def _passed_categorical(self) -> bool:
-        return is_categorical_dtype(self.grouping_vector)
+        dtype = getattr(self.grouping_vector, "dtype", None)
+        return isinstance(dtype, CategoricalDtype)
 
     @cache_readonly
     def name(self) -> Hashable:
@@ -944,12 +960,17 @@ def get_grouper(
         if not hasattr(gpr, "name"):
             return False
         if using_copy_on_write():
-            # For the CoW case, we need an equality check as the identity check
-            # no longer works (each Series from column access is a new object)
+            # For the CoW case, we check the references to determine if the
+            # series is part of the object
             try:
-                return gpr.equals(obj[gpr.name])
-            except (AttributeError, KeyError, IndexError, InvalidIndexError):
+                obj_gpr_column = obj[gpr.name]
+            except (KeyError, IndexError, InvalidIndexError):
                 return False
+            if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
+                return gpr._mgr.references_same_values(  # type: ignore[union-attr]
+                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                )
+            return False
         try:
             return gpr is obj[gpr.name]
         except (KeyError, IndexError, InvalidIndexError):

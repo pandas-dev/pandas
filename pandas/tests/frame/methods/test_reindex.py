@@ -23,7 +23,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.common as com
 
 
 class TestReindexSetIndex:
@@ -119,6 +118,29 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    @td.skip_array_manager_not_yet_implemented
+    def test_reindex_tzaware_fill_value(self):
+        # GH#52586
+        df = DataFrame([[1]])
+
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        res = df.reindex([0, 1], axis=1, fill_value=ts)
+        assert res.dtypes[1] == pd.DatetimeTZDtype(tz="US/Pacific")
+        expected = DataFrame({0: [1], 1: [ts]})
+        tm.assert_frame_equal(res, expected)
+
+        per = ts.tz_localize(None).to_period("s")
+        res = df.reindex([0, 1], axis=1, fill_value=per)
+        assert res.dtypes[1] == pd.PeriodDtype("s")
+        expected = DataFrame({0: [1], 1: [per]})
+        tm.assert_frame_equal(res, expected)
+
+        interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
+        res = df.reindex([0, 1], axis=1, fill_value=interval)
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[ns, US/Pacific]", "right")
+        expected = DataFrame({0: [1], 1: [interval]})
+        tm.assert_frame_equal(res, expected)
+
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
@@ -133,7 +155,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
-    def test_reindex_copies_ea(self):
+    def test_reindex_copies_ea(self, using_copy_on_write):
         # https://github.com/pandas-dev/pandas/pull/51197
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
@@ -142,11 +164,17 @@ class TestDataFrameSelectReindex:
         np.random.shuffle(cols)
 
         result = df.reindex(columns=cols, copy=True)
-        assert not np.shares_memory(result[0].array._data, df[0].array._data)
+        if using_copy_on_write:
+            assert np.shares_memory(result[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result[0].array._data, df[0].array._data)
 
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
-        assert not np.shares_memory(result2[0].array._data, df[0].array._data)
+        if using_copy_on_write:
+            assert np.shares_memory(result2[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
@@ -326,7 +354,7 @@ class TestDataFrameSelectReindex:
         result = df.reindex(range(15))
         assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
 
-        mask = com.isna(result)["B"]
+        mask = isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
 

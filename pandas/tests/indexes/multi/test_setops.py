@@ -558,6 +558,8 @@ def test_union_with_missing_values_on_both_sides(nulls_fixture):
     mi2 = MultiIndex.from_arrays([[1, nulls_fixture, 3]])
     result = mi1.union(mi2)
     expected = MultiIndex.from_arrays([[1, 3, nulls_fixture]])
+    # We don't particularly care about having levels[0] be float64, but it is
+    expected = expected.set_levels([expected.levels[0].astype(np.float64)])
     tm.assert_index_equal(result, expected)
 
 

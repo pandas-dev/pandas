@@ -13,7 +13,6 @@ import uuid
 
 import pytest
 
-from pandas.compat import is_ci_environment
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -108,7 +107,7 @@ def test_no_permission(all_parsers):
 
         # verify that this process cannot open the file (not running as sudo)
         try:
-            with open(path):
+            with open(path, encoding="utf-8"):
                 pass
             pytest.skip("Running as sudo.")
         except PermissionError:
@@ -286,7 +285,7 @@ def test_file_handles_with_open(all_parsers, csv1):
     parser = all_parsers
 
     for mode in ["r", "rb"]:
-        with open(csv1, mode) as f:
+        with open(csv1, mode, encoding="utf-8" if mode == "r" else None) as f:
             parser.read_csv(f)
             assert not f.closed
 
@@ -393,7 +392,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     # make sure that user-provided handles are not closed
     parser = all_parsers
 
-    with open(datapath("io", "data", "csv", "iris.csv")) as path:
+    with open(datapath("io", "data", "csv", "iris.csv"), encoding="utf-8") as path:
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:
@@ -404,25 +403,14 @@ def test_context_manageri_user_provided(all_parsers, datapath):
             assert not reader.handles.handle.closed
 
 
-def test_file_descriptor_leak(all_parsers, using_copy_on_write, request):
+def test_file_descriptor_leak(all_parsers, using_copy_on_write):
     # GH 31488
-    if using_copy_on_write and is_ci_environment():
-        mark = pytest.mark.xfail(
-            reason="2023-02-12 frequent-but-flaky failures", strict=False
-        )
-        request.node.add_marker(mark)
-
     parser = all_parsers
     with tm.ensure_clean() as path:
-
-        def test():
-            with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-                parser.read_csv(path)
-
-        td.check_file_leaks(test)()
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+            parser.read_csv(path)
 
 
-@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers

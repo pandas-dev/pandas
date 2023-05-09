@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p21
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -26,16 +25,14 @@ class BaseCastingTests(BaseExtensionTests):
 
         result = df.astype(object)
         if hasattr(result._mgr, "blocks"):
-            blk = result._data.blocks[0]
+            blk = result._mgr.blocks[0]
             assert isinstance(blk, ObjectBlock), type(blk)
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 
-        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
-        if not np_version_under1p21:
-            # check that we can compare the dtypes
-            comp = result.dtypes == df.dtypes
-            assert not comp.any()
+        # check that we can compare the dtypes
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()

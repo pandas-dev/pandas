@@ -12,9 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
+from pandas import CategoricalDtype
 import pandas._testing as tm
 from pandas.core.frame import (
     DataFrame,
@@ -736,10 +735,8 @@ class TestStata:
             original.to_stata(path, write_index=False)
 
             with StataReader(path) as sr:
-                typlist = sr.typlist
-                variables = sr.varlist
-                formats = sr.fmtlist
-                for variable, fmt, typ in zip(variables, formats, typlist):
+                sr._ensure_open()  # The `_*list` variables are initialized here
+                for variable, fmt, typ in zip(sr._varlist, sr._fmtlist, sr._typlist):
                     assert int(variable[1:]) == int(fmt[1:-1])
                     assert int(variable[1:]) == typ
 
@@ -1086,7 +1083,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if is_categorical_dtype(expected[col].dtype):
+            if isinstance(expected[col].dtype, CategoricalDtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1116,7 +1113,7 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not is_categorical_dtype(parsed[col].dtype):
+            if not isinstance(parsed[col].dtype, CategoricalDtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
@@ -1180,7 +1177,7 @@ class TestStata:
         """
         for col in from_frame:
             ser = from_frame[col]
-            if is_categorical_dtype(ser.dtype):
+            if isinstance(ser.dtype, CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
                     categories = pd.Index._with_infer(cat.categories._values)
@@ -1889,6 +1886,44 @@ def test_backward_compat(version, datapath):
     expected = read_stata(ref)
     old_dta = read_stata(old)
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
+
+
+def test_direct_read(datapath, monkeypatch):
+    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
+
+    # Test that opening a file path doesn't buffer the file.
+    with StataReader(file_path) as reader:
+        # Must not have been buffered to memory
+        assert not reader.read().empty
+        assert not isinstance(reader._path_or_buf, io.BytesIO)
+
+    # Test that we use a given fp exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with StataReader(fp) as reader:
+            assert not reader.read().empty
+            assert reader._path_or_buf is fp
+
+    # Test that we use a given BytesIO exactly, if possible.
+    with open(file_path, "rb") as fp:
+        with io.BytesIO(fp.read()) as bio:
+            with StataReader(bio) as reader:
+                assert not reader.read().empty
+                assert reader._path_or_buf is bio
+
+
+def test_statareader_warns_when_used_without_context(datapath):
+    file_path = datapath("io", "data", "stata", "stata-compat-118.dta")
+    with tm.assert_produces_warning(
+        ResourceWarning,
+        match="without using a context manager",
+    ):
+        sr = StataReader(file_path)
+        sr.read()
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="is not part of the public API",
+    ):
+        sr.close()
 
 
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])

@@ -6,6 +6,7 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -83,8 +84,19 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
+    if sys.version_info >= (3, 10):
+        from typing import TypeGuard
+    else:
+        from typing_extensions import TypeGuard  # pyright: reportUnusedImport = false
+
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self  # pyright: reportUnusedImport = false
 else:
     npt: Any = None
+    Self: Any = None
+    TypeGuard: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 
@@ -93,6 +105,13 @@ HashableT = TypeVar("HashableT", bound=Hashable)
 ArrayLike = Union["ExtensionArray", np.ndarray]
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
+
+# list-like
+
+# Cannot use `Sequence` because a string is a sequence, and we don't want to
+# accept that.  Could refine if https://github.com/python/typing/issues/256 is
+# resolved to differentiate between Sequence[str] and str
+ListLike = Union[AnyArrayLike, List, range]
 
 # scalars
 
@@ -113,6 +132,8 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
+ToTimestampHow = Literal["s", "e", "start", "end"]
+
 # NDFrameT is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: NDFrameT) -> NDFrameT: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
@@ -130,11 +151,11 @@ Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "BaseOffset"]
-Axes = Union[AnyArrayLike, List, range]
+Axes = ListLike
 
 RandomState = Union[
     int,
-    ArrayLike,
+    np.ndarray,
     np.random.Generator,
     np.random.BitGenerator,
     np.random.RandomState,
@@ -342,6 +363,9 @@ DateTimeErrorChoices = Union[IgnoreRaise, Literal["coerce"]]
 SortKind = Literal["quicksort", "mergesort", "heapsort", "stable"]
 NaPosition = Literal["first", "last"]
 
+# Arguments for nsmalles and n_largest
+NsmallestNlargestKeep = Literal["first", "last", "all"]
+
 # quantile interpolation
 QuantileInterpolation = Literal["linear", "lower", "higher", "midpoint", "nearest"]
 
@@ -353,9 +377,32 @@ AnyAll = Literal["any", "all"]
 
 # merge
 MergeHow = Literal["left", "right", "inner", "outer", "cross"]
+MergeValidate = Literal[
+    "one_to_one",
+    "1:1",
+    "one_to_many",
+    "1:m",
+    "many_to_one",
+    "m:1",
+    "many_to_many",
+    "m:m",
+]
 
 # join
 JoinHow = Literal["left", "right", "inner", "outer"]
+JoinValidate = Literal[
+    "one_to_one",
+    "1:1",
+    "one_to_many",
+    "1:m",
+    "many_to_one",
+    "m:1",
+    "many_to_many",
+    "m:m",
+]
+
+# reindex
+ReindexMethod = Union[FillnaOptions, Literal["nearest"]]
 
 MatplotlibColor = Union[str, Sequence[float]]
 TimeGrouperOrigin = Union[
@@ -370,3 +417,30 @@ CorrelationMethod = Union[
     Literal["pearson", "kendall", "spearman"], Callable[[np.ndarray, np.ndarray], float]
 ]
 AlignJoin = Literal["outer", "inner", "left", "right"]
+DtypeBackend = Literal["pyarrow", "numpy_nullable"]
+
+TimeUnit = Literal["s", "ms", "us", "ns"]
+OpenFileErrors = Literal[
+    "strict",
+    "ignore",
+    "replace",
+    "surrogateescape",
+    "xmlcharrefreplace",
+    "backslashreplace",
+    "namereplace",
+]
+
+# update
+UpdateJoin = Literal["left"]
+
+# applymap
+NaAction = Literal["ignore"]
+
+# from_dict
+FromDictOrient = Literal["columns", "index", "tight"]
+
+# to_gbc
+ToGbqIfexist = Literal["fail", "replace", "append"]
+
+# to_stata
+ToStataByteorder = Literal[">", "<", "little", "big"]

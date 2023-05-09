@@ -10,13 +10,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    FilePath,
-    ReadBuffer,
-    Scalar,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
@@ -34,6 +27,14 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
     from openpyxl.workbook import Workbook
+
+    from pandas._typing import (
+        FilePath,
+        ReadBuffer,
+        Scalar,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 
 
 class OpenpyxlWriter(ExcelWriter):
@@ -70,11 +71,19 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self._mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            try:
+                self._book = load_workbook(self._handles.handle, **engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
             self._handles.handle.seek(0)
         else:
             # Create workbook object with default optimized_write=True.
-            self._book = Workbook(**engine_kwargs)
+            try:
+                self._book = Workbook(**engine_kwargs)
+            except TypeError:
+                self._handles.handle.close()
+                raise
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
@@ -527,6 +536,7 @@ class OpenpyxlReader(BaseExcelReader):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Reader using openpyxl engine.
@@ -536,9 +546,15 @@ class OpenpyxlReader(BaseExcelReader):
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         {storage_options}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("openpyxl")
-        super().__init__(filepath_or_buffer, storage_options=storage_options)
+        super().__init__(
+            filepath_or_buffer,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     @property
     def _workbook_class(self):
@@ -546,11 +562,17 @@ class OpenpyxlReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
+    def load_workbook(
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
+    ):
         from openpyxl import load_workbook
 
         return load_workbook(
-            filepath_or_buffer, read_only=True, data_only=True, keep_links=False
+            filepath_or_buffer,
+            read_only=True,
+            data_only=True,
+            keep_links=False,
+            **engine_kwargs,
         )
 
     @property

@@ -3,9 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -388,24 +385,12 @@ class TestDataFrameCombineFirst:
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         )
         df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            df.set_index(["a", "b"], inplace=True)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            df2.set_index(["a", "b"], inplace=True)
+        df.set_index(["a", "b"], inplace=True)
+        df2.set_index(["a", "b"], inplace=True)
         result = df.combine_first(df2)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            expected = DataFrame(
-                {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
-            ).set_index(["a", "b"])
+        expected = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
+        ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
 

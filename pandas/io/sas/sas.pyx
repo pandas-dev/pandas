@@ -375,9 +375,9 @@ cdef class Parser:
     def read(self, int nrows):
         cdef:
             bint done
-            Py_ssize_t i
+            Py_ssize_t _
 
-        for i in range(nrows):
+        for _ in range(nrows):
             done = self.readline()
             if done:
                 break

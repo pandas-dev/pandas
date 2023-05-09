@@ -9,8 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-
-from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
@@ -26,12 +25,12 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
 
 
 @pytest.mark.parametrize(
@@ -452,7 +451,7 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+    if value.dtype.kind == "M" and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
@@ -536,7 +535,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesn't return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0),
@@ -544,7 +544,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesn't return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0).tz_localize("UTC"),

@@ -22,7 +22,7 @@ from numpy cimport (
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias tzinfo_type bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,
@@ -88,11 +88,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dtstruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
@@ -461,7 +464,7 @@ cdef class _Timestamp(ABCTimestamp):
             raise integer_op_not_supported(self)
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -493,7 +496,7 @@ cdef class _Timestamp(ABCTimestamp):
             return self + neg_other
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -978,7 +981,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO 8610.
+        Return the time formatted according to ISO 8601.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -1012,7 +1015,7 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self.year}-" + base.split("-", 1)[1]
+        base = f"{self.year:04d}-" + base.split("-", 1)[1]
 
         if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
@@ -1290,13 +1293,14 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
+
+        For float inputs, the result will be stored in nanoseconds, and
+        the unit attribute will be set as ``'ns'``.
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
-
-        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -1451,7 +1455,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)  # doctest: +SKIP
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
@@ -1723,7 +1727,13 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_nsint64(value, mode, nanos)[0]
+        try:
+            r = round_nsint64(value, mode, nanos)[0]
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"Cannot round {self} to freq={freq} without overflow"
+            ) from err
+
         result = Timestamp._from_value_and_reso(r, self._creso, None)
         if self.tz is not None:
             result = result.tz_localize(
@@ -2369,7 +2379,7 @@ default 'raise'
         Monday == 1 ... Sunday == 7.
         """
         # same as super().isoweekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return self.weekday() + 1
 
     def weekday(self):
@@ -2379,7 +2389,7 @@ default 'raise'
         Monday == 0 ... Sunday == 6.
         """
         # same as super().weekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return ccalendar.dayofweek(self.year, self.month, self.day)
 
 

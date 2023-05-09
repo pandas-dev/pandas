@@ -34,12 +34,17 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydate_to_dt64,
     string_to_dts,
 )
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.strptime cimport parse_today_now
 from pandas._libs.util cimport (
     is_datetime64_object,
@@ -56,7 +61,6 @@ from pandas._libs.tslibs.conversion cimport (
     convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
-    precision_from_unit,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -306,7 +310,6 @@ def array_with_unit_to_datetime(
     """
     cdef:
         Py_ssize_t i, n=len(values)
-        int64_t mult
         bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_raise = errors == "raise"
@@ -322,8 +325,6 @@ def array_with_unit_to_datetime(
             errors=errors,
         )
         return result, tz
-
-    mult, _ = precision_from_unit(unit)
 
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
@@ -747,7 +748,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
             if ts is NaT:
                 ival = NPY_NAT
             else:
-                if ts.tz is not None:
+                if ts.tzinfo is not None:
                     ts = ts.tz_convert(tz)
                 else:
                     # datetime64, tznaive pydatetime, int, float

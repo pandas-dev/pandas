@@ -215,9 +215,7 @@ class TestPandasContainer:
             idx = pd.Index([], dtype=(float if convert_axes else object))
             expected = DataFrame(index=idx, columns=idx)
         elif orient in ["index", "columns"]:
-            # TODO: this condition is probably a bug
-            idx = pd.Index([], dtype=(float if convert_axes else object))
-            expected = DataFrame(columns=idx)
+            expected = DataFrame()
         else:
             expected = empty_frame.copy()
 
@@ -651,11 +649,9 @@ class TestPandasContainer:
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient)
 
-        expected = empty_series
-        if orient in ("values", "records"):
-            expected = expected.reset_index(drop=True)
-        else:
-            expected.index = expected.index.astype(float)
+        expected = empty_series.reset_index(drop=True)
+        if orient in ("split"):
+            expected.index = expected.index.astype(np.float64)
 
         tm.assert_series_equal(result, expected)
 
@@ -1218,7 +1214,7 @@ class TestPandasContainer:
     def test_read_local_jsonl(self):
         # GH17200
         with tm.ensure_clean("tmp_items.json") as path:
-            with open(path, "w") as infile:
+            with open(path, "w", encoding="utf-8") as infile:
                 infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
             result = read_json(path, lines=True)
             expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
@@ -1867,8 +1863,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "orient", ["split", "records", "values", "index", "columns"]
     )
-    @pytest.mark.parametrize("option", [True, False])
-    def test_read_json_nullable(self, string_storage, dtype_backend, orient, option):
+    def test_read_json_dtype_backend(self, string_storage, dtype_backend, orient):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
         df = DataFrame(
@@ -1894,12 +1889,7 @@ class TestPandasContainer:
 
         out = df.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", option):
-                        result = read_json(out, orient=orient)
-                else:
-                    result = read_json(out, use_nullable_dtypes=True, orient=orient)
+            result = read_json(out, dtype_backend=dtype_backend, orient=orient)
 
         expected = DataFrame(
             {
@@ -1937,10 +1927,9 @@ class TestPandasContainer:
 
         out = ser.to_json(orient=orient)
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_json(
-                    out, use_nullable_dtypes=True, orient=orient, typ="series"
-                )
+            result = read_json(
+                out, dtype_backend=dtype_backend, orient=orient, typ="series"
+            )
 
         expected = Series([1, np.nan, 3], dtype="Int64")
 
@@ -1950,6 +1939,14 @@ class TestPandasContainer:
             expected = Series(ArrowExtensionArray(pa.array(expected, from_pandas=True)))
 
         tm.assert_series_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_json("test", dtype_backend="numpy")
 
 
 def test_invalid_engine():

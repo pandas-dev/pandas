@@ -73,7 +73,7 @@ class DatetimeLike(Base):
     def test_map_callable(self, simple_index):
         index = simple_index
         expected = index + index.freq
-        result = index.map(lambda x: x + x.freq)
+        result = index.map(lambda x: x + index.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT

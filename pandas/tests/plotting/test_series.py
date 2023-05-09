@@ -456,8 +456,8 @@ class TestSeriesPlots(TestPlotBase):
     )
     def test_secondary_logy(self, input_logy, expected_scale):
         # GH 25545
-        s1 = Series(np.random.randn(30))
-        s2 = Series(np.random.randn(30))
+        s1 = Series(np.random.randn(100))
+        s2 = Series(np.random.randn(100))
 
         # GH 24980
         ax1 = s1.plot(logy=input_logy)
@@ -848,3 +848,10 @@ class TestSeriesPlots(TestPlotBase):
         xlims = (3, 1)
         ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
+
+    def test_series_none_color(self):
+        # GH51953
+        series = Series([1, 2, 3])
+        ax = series.plot(color=None)
+        expected = self._unpack_cycler(self.plt.rcParams)[:1]
+        self._check_colors(ax.get_lines(), linecolors=expected)

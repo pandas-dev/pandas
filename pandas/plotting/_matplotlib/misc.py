@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 def scatter_matrix(
     frame: DataFrame,
     alpha: float = 0.5,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     ax=None,
     grid: bool = False,
     diagonal: str = "hist",

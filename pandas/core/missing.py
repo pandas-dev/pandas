@@ -25,6 +25,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     F,
+    ReindexMethod,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -79,14 +80,17 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
-    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
-    # _DTypeDict, Tuple[Any, Any]]]"
-    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
+
+    if isinstance(dtype, np.dtype):
+        values_to_mask = np.array(values_to_mask, dtype=dtype)
+    else:
+        cls = dtype.construct_array_type()
+        if not lib.is_list_like(values_to_mask):
+            values_to_mask = [values_to_mask]
+        values_to_mask = cls._from_sequence(values_to_mask, dtype=dtype, copy=False)
 
     potential_na = False
-    if is_object_dtype(arr):
+    if is_object_dtype(arr.dtype):
         # pre-compute mask to avoid comparison to NA
         potential_na = True
         arr_mask = ~isna(arr)
@@ -183,15 +187,12 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(
-    values, *, how: str, is_valid: npt.NDArray[np.bool_]
-) -> int | None:
+def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
     """
-    Retrieves the index of the first valid value.
+    Retrieves the positional index of the first valid value.
 
     Parameters
     ----------
-    values : ndarray or ExtensionArray
     how : {'first', 'last'}
         Use this parameter to change between the first or last valid index.
     is_valid: np.ndarray
@@ -203,17 +204,17 @@ def find_valid_index(
     """
     assert how in ["first", "last"]
 
-    if len(values) == 0:  # early stop
+    if len(is_valid) == 0:  # early stop
         return None
 
-    if values.ndim == 2:
+    if is_valid.ndim == 2:
         is_valid = is_valid.any(axis=1)  # reduce axis 1
 
     if how == "first":
         idxpos = is_valid[::].argmax()
 
     elif how == "last":
-        idxpos = len(values) - 1 - is_valid[::-1].argmax()
+        idxpos = len(is_valid) - 1 - is_valid[::-1].argmax()
 
     chk_notna = is_valid[idxpos]
 
@@ -417,12 +418,12 @@ def _interpolate_1d(
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
 
-    first_valid_index = find_valid_index(yvalues, how="first", is_valid=valid)
+    first_valid_index = find_valid_index(how="first", is_valid=valid)
     if first_valid_index is None:  # no nan found in start
         first_valid_index = 0
     start_nans = set(range(first_valid_index))
 
-    last_valid_index = find_valid_index(yvalues, how="last", is_valid=valid)
+    last_valid_index = find_valid_index(how="last", is_valid=valid)
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
     end_nans = set(range(1 + last_valid_index, len(valid)))
@@ -458,7 +459,7 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
-    is_datetimelike = needs_i8_conversion(yvalues.dtype)
+    is_datetimelike = yvalues.dtype.kind in "mM"
 
     if is_datetimelike:
         yvalues = yvalues.view("i8")
@@ -766,10 +767,10 @@ def _interpolate_with_limit_area(
     is_valid = ~invalid
 
     if not invalid.all():
-        first = find_valid_index(values, how="first", is_valid=is_valid)
+        first = find_valid_index(how="first", is_valid=is_valid)
         if first is None:
             first = 0
-        last = find_valid_index(values, how="last", is_valid=is_valid)
+        last = find_valid_index(how="last", is_valid=is_valid)
         if last is None:
             last = len(values)
 
@@ -876,7 +877,7 @@ def _datetimelike_compat(func: F) -> F:
     """
 
     @wraps(func)
-    def new_func(values, limit=None, mask=None):
+    def new_func(values, limit: int | None = None, mask=None):
         if needs_i8_conversion(values.dtype):
             if mask is None:
                 # This needs to occur before casting to int64
@@ -913,7 +914,11 @@ def _backfill_1d(
 
 
 @_datetimelike_compat
-def _pad_2d(values: np.ndarray, limit=None, mask: npt.NDArray[np.bool_] | None = None):
+def _pad_2d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
+):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -925,7 +930,9 @@ def _pad_2d(values: np.ndarray, limit=None, mask: npt.NDArray[np.bool_] | None =
 
 
 @_datetimelike_compat
-def _backfill_2d(values, limit=None, mask: npt.NDArray[np.bool_] | None = None):
+def _backfill_2d(
+    values, limit: int | None = None, mask: npt.NDArray[np.bool_] | None = None
+):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -946,7 +953,7 @@ def get_fill_func(method, ndim: int = 1):
     return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
-def clean_reindex_fill_method(method) -> str | None:
+def clean_reindex_fill_method(method) -> ReindexMethod | None:
     return clean_fill_method(method, allow_nearest=True)
 
 
@@ -985,7 +992,7 @@ def _interp_limit(invalid: npt.NDArray[np.bool_], fw_limit, bw_limit):
     f_idx = set()
     b_idx = set()
 
-    def inner(invalid, limit):
+    def inner(invalid, limit: int):
         limit = min(limit, N)
         windowed = _rolling_window(invalid, limit + 1).all(1)
         idx = set(np.where(windowed)[0] + limit) | set(

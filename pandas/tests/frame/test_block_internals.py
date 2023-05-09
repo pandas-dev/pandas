@@ -79,13 +79,17 @@ class TestDataFrameBlockInternals:
         assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
-        frame = float_frame.copy()  # noqa
-
         # triggers in-place consolidation
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame):
+    def test_modify_values(self, float_frame, using_copy_on_write):
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                float_frame.values[5] = 5
+            assert (float_frame.values[5] != 5).all()
+            return
+
         float_frame.values[5] = 5
         assert (float_frame.values[5] == 5).all()
 
@@ -222,6 +226,7 @@ class TestDataFrameBlockInternals:
                 "dt1": Timestamp("20130101"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
+                # FIXME: don't leave commented-out
             },
             index=range(3),
         )
@@ -236,6 +241,7 @@ class TestDataFrameBlockInternals:
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
+        # FIXME: don't leave commented-out
 
         tm.assert_frame_equal(df, expected)
 
@@ -344,8 +350,8 @@ class TestDataFrameBlockInternals:
             else:
                 Y["g"]["c"] = np.NaN
             repr(Y)
-            result = Y.sum()  # noqa
-            exp = Y["g"].sum()  # noqa
+            Y.sum()
+            Y["g"].sum()
             if using_copy_on_write:
                 assert not pd.isna(Y["g"]["c"])
             else:

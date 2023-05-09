@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import lib
@@ -7,21 +9,11 @@ from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
 )
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    NpDtype,
-    Scalar,
-    npt,
-)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
@@ -35,8 +27,19 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AxisInt,
+        Dtype,
+        NpDtype,
+        Scalar,
+        npt,
+    )
 
-class PandasArray(
+
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PandasArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
@@ -142,7 +145,7 @@ class PandasArray(
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
 
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
         if result is not NotImplemented:
@@ -193,7 +196,7 @@ class PandasArray(
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -211,7 +214,7 @@ class PandasArray(
         return fill_value
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             fv = None
         else:
             fv = np.nan
@@ -441,8 +444,7 @@ class PandasArray(
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
-        with np.errstate(all="ignore"):
-            result = pd_op(self._ndarray, other)
+        result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result
