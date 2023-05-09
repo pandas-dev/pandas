@@ -69,6 +69,26 @@ Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
 to ``na_action=None``, like for all the other array types.
 
+.. _whatsnew_210.enhancements.enhancement3:
+
+Strftime performance improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- New :func:`convert_strftime_format` to convert a strftime formatting template into
+  a python string formatting template.
+- New :meth:`Period.fast_strftime` and :meth:`Timestamp.fast_strftime` leveraging
+  templates created with :func:`convert_strftime_format`
+- New `fast_strftime` boolean flag in all formatting procedures to enable faster
+  strftime operations leveraging :func:`convert_strftime_format` and python string
+  formatting:
+    - in :meth:`DatetimeLikeArrayMixin.strftime` and
+      :meth:`DatetimeIndexOpsMixin.format`. Classes :class:`DatetimeArray`,
+      :class:`PeriodArray`, :class:`DatetimeIndex`, :class:`PeriodIndex` benefit
+      from the improvement. :class:`TimedeltaArray.strftime` and
+      :class:`TimedeltaArray.format` are not impacted as their `date_format`
+      argument is currently ignored.
+    - in :meth:`NDFrame.to_csv`, :meth:`DataFrameRenderer.to_csv` and
+      :class:`CSVFormatter`
+
 .. _whatsnew_210.enhancements.other:
 
 Other enhancements
