@@ -79,7 +79,9 @@ def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
         raise RuntimeError(
             "To join chunks a copy is required which is forbidden by allow_copy=False"
         )
-    if len(pandas_dfs) == 1:
+    if not pandas_dfs:
+        pandas_df = pd.DataFrame({col: [] for col in df.column_names()})
+    elif len(pandas_dfs) == 1:
         pandas_df = pandas_dfs[0]
     else:
         pandas_df = pd.concat(pandas_dfs, axis=0, ignore_index=True, copy=False)
