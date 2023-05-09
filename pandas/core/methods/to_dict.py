@@ -81,17 +81,14 @@ def to_dict(
     # GH16122
     into_c = com.standardize_mapping(into)
 
-    #  error: Incompatible types in assignment (expression has type "str",
-    # variable has type "Literal['dict', 'list', 'series', 'split', 'tight',
-    # 'records', 'index']")
-    orient = orient.lower()  # type: ignore[assignment]
+    orient_low = orient.lower()
 
-    if not index and orient not in ["split", "tight"]:
+    if not index and orient_low not in ["split", "tight"]:
         raise ValueError(
             "'index=False' is only valid when 'orient' is 'split' or 'tight'"
         )
 
-    if orient == "series":
+    if orient_low == "series":
         # GH46470 Return quickly if orient series to avoid creating dtype objects
         return into_c((k, v) for k, v in df.items())
 
@@ -102,10 +99,10 @@ def to_dict(
     ]
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
-    if orient == "dict":
+    if orient_low == "dict":
         return into_c((k, v.to_dict(into)) for k, v in df.items())
 
-    elif orient == "list":
+    elif orient_low == "list":
         object_dtype_indices_as_set = set(box_native_indices)
         return into_c(
             (
@@ -117,7 +114,7 @@ def to_dict(
             for i, (k, v) in enumerate(df.items())
         )
 
-    elif orient == "split":
+    elif orient_low == "split":
         data = df._create_data_for_split_and_tight_to_dict(
             are_all_object_dtype_cols, box_native_indices
         )
@@ -130,7 +127,7 @@ def to_dict(
             )
         )
 
-    elif orient == "tight":
+    elif orient_low == "tight":
         data = df._create_data_for_split_and_tight_to_dict(
             are_all_object_dtype_cols, box_native_indices
         )
@@ -151,7 +148,7 @@ def to_dict(
             + (("column_names", list(df.columns.names)),)
         )
 
-    elif orient == "records":
+    elif orient_low == "records":
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
             rows = (
@@ -176,7 +173,7 @@ def to_dict(
                         row[col] = maybe_box_native(row[col])
             return data
 
-    elif orient == "index":
+    elif orient_low == "index":
         if not df.index.is_unique:
             raise ValueError("DataFrame index must be unique for orient='index'.")
         columns = df.columns.tolist()
@@ -208,4 +205,4 @@ def to_dict(
             )
 
     else:
-        raise ValueError(f"orient '{orient}' not understood")
+        raise ValueError(f"orient '{orient_low}' not understood")
