@@ -4101,10 +4101,15 @@ class DataFrame(NDFrame, OpsMixin):
                 self[cols] = value[value.columns[0]]
                 return
 
-            # now align rows
-            arraylike, _ = _reindex_for_setitem(value, self.index)
-            self._set_item_mgr(key, arraylike)
-            return
+            locs: np.ndarray | list
+            if isinstance(loc, slice):
+                locs = np.arange(loc.start, loc.stop, loc.step)
+            elif is_scalar(loc):
+                locs = [loc]
+            else:
+                locs = loc.nonzero()[0]
+
+            return self.isetitem(locs, value)
 
         if len(value.columns) != 1:
             raise ValueError(
