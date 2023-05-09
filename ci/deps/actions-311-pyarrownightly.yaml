@@ -6,7 +6,9 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
+  - meson[ninja]=1.0.1
   - cython>=0.29.33
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
