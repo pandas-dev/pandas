@@ -18,12 +18,12 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -245,7 +245,7 @@ def __internal_pivot_table(
 
     # discard the top level
     if values_passed and not values_multi and table.columns.nlevels > 1:
-        table = table.droplevel(0, axis=1)
+        table.columns = table.columns.droplevel(0)
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
@@ -326,7 +326,7 @@ def _add_margins(
     row_names = result.index.names
     # check the result column and leave floats
     for dtype in set(result.dtypes):
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
             continue
 
@@ -519,6 +519,8 @@ def pivot(
     # If columns is None we will create a MultiIndex level with None as name
     # which might cause duplicated names because None is the default for
     # level names
+    data = data.copy(deep=False)
+    data.index = data.index.copy()
     data.index.names = [
         name if name is not None else lib.NoDefault for name in data.index.names
     ]

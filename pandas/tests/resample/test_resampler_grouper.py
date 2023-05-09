@@ -3,6 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -302,6 +303,25 @@ def test_apply_columns_multilevel():
     tm.assert_frame_equal(result, expected)
 
 
+def test_apply_non_naive_index():
+    def weighted_quantile(series, weights, q):
+        series = series.sort_values()
+        cumsum = weights.reindex(series.index).fillna(0).cumsum()
+        cutoff = cumsum.iloc[-1] * q
+        return series[cumsum >= cutoff].iloc[0]
+
+    times = date_range("2017-6-23 18:00", periods=8, freq="15T", tz="UTC")
+    data = Series([1.0, 1, 1, 1, 1, 2, 2, 0], index=times)
+    weights = Series([160.0, 91, 65, 43, 24, 10, 1, 0], index=times)
+
+    result = data.resample("D").apply(weighted_quantile, weights=weights, q=0.5)
+    ind = date_range(
+        "2017-06-23 00:00:00+00:00", "2017-06-23 00:00:00+00:00", freq="D", tz="UTC"
+    )
+    expected = Series([1.0], index=ind)
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_groupby_with_label():
     # GH 13235
     index = date_range("2000-01-01", freq="2D", periods=5)
@@ -494,7 +514,7 @@ def test_groupby_resample_with_list_of_keys():
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
-def test_resample_empty_Dataframe(keys):
+def test_resample_no_index(keys):
     # GH 47705
     df = DataFrame([], columns=["a", "b", "date"])
     df["date"] = pd.to_datetime(df["date"])
@@ -507,6 +527,37 @@ def test_resample_empty_Dataframe(keys):
         expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_no_columns():
+    # GH#52484
+    df = DataFrame(
+        index=Index(
+            pd.to_datetime(
+                ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+            ),
+            name="date",
+        )
+    )
+    result = df.groupby([0, 0, 1]).resample(rule=pd.to_timedelta("06:00:00")).mean()
+    index = pd.to_datetime(
+        [
+            "2018-01-01 00:00:00",
+            "2018-01-01 06:00:00",
+            "2018-01-01 12:00:00",
+            "2018-01-02 00:00:00",
+        ]
+    )
+    expected = DataFrame(
+        index=pd.MultiIndex(
+            levels=[np.array([0, 1], dtype=np.intp), index],
+            codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
+            names=[None, "date"],
+        )
+    )
+
+    # GH#52710 - Index comes out as 32-bit on 64-bit Windows
+    tm.assert_frame_equal(result, expected, check_index_type=not is_platform_windows())
 
 
 def test_groupby_resample_size_all_index_same():

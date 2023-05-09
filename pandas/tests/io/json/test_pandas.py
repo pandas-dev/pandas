@@ -215,9 +215,7 @@ class TestPandasContainer:
             idx = pd.Index([], dtype=(float if convert_axes else object))
             expected = DataFrame(index=idx, columns=idx)
         elif orient in ["index", "columns"]:
-            # TODO: this condition is probably a bug
-            idx = pd.Index([], dtype=(float if convert_axes else object))
-            expected = DataFrame(columns=idx)
+            expected = DataFrame()
         else:
             expected = empty_frame.copy()
 
@@ -651,11 +649,9 @@ class TestPandasContainer:
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient)
 
-        expected = empty_series
-        if orient in ("values", "records"):
-            expected = expected.reset_index(drop=True)
-        else:
-            expected.index = expected.index.astype(float)
+        expected = empty_series.reset_index(drop=True)
+        if orient in ("split"):
+            expected.index = expected.index.astype(np.float64)
 
         tm.assert_series_equal(result, expected)
 
@@ -1218,7 +1214,7 @@ class TestPandasContainer:
     def test_read_local_jsonl(self):
         # GH17200
         with tm.ensure_clean("tmp_items.json") as path:
-            with open(path, "w") as infile:
+            with open(path, "w", encoding="utf-8") as infile:
                 infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
             result = read_json(path, lines=True)
             expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])

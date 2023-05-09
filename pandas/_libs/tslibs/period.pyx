@@ -1155,46 +1155,81 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
+
     cdef:
-        int freq_group
+        int freq_group, quarter
+        npy_datetimestruct dts
+        bint is_fmt_none
 
     if value == NPY_NAT:
         return "NaT"
 
-    if isinstance(fmt, str):
-        # Encode using current locale, in case fmt contains non-utf8 chars
-        fmt = <bytes>util.string_encode_locale(fmt)
+    # fill dts and freq group
+    get_date_info(value, freq, &dts)
+    freq_group = get_freq_group(freq)
 
-    if fmt is None:
-        freq_group = get_freq_group(freq)
-        if freq_group == FR_ANN:
-            fmt = b"%Y"
-        elif freq_group == FR_QTR:
-            fmt = b"%FQ%q"
-        elif freq_group == FR_MTH:
-            fmt = b"%Y-%m"
-        elif freq_group == FR_WK:
-            left = period_asfreq(value, freq, FR_DAY, 0)
-            right = period_asfreq(value, freq, FR_DAY, 1)
-            return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
-        elif freq_group == FR_BUS or freq_group == FR_DAY:
-            fmt = b"%Y-%m-%d"
-        elif freq_group == FR_HR:
-            fmt = b"%Y-%m-%d %H:00"
-        elif freq_group == FR_MIN:
-            fmt = b"%Y-%m-%d %H:%M"
-        elif freq_group == FR_SEC:
-            fmt = b"%Y-%m-%d %H:%M:%S"
-        elif freq_group == FR_MS:
-            fmt = b"%Y-%m-%d %H:%M:%S.%l"
-        elif freq_group == FR_US:
-            fmt = b"%Y-%m-%d %H:%M:%S.%u"
-        elif freq_group == FR_NS:
-            fmt = b"%Y-%m-%d %H:%M:%S.%n"
-        else:
-            raise ValueError(f"Unknown freq: {freq}")
+    # use the appropriate default format depending on frequency group
+    is_fmt_none = fmt is None
+    if freq_group == FR_ANN and (is_fmt_none or fmt == "%Y"):
+        return f"{dts.year}"
 
-    return _period_strftime(value, freq, fmt)
+    elif freq_group == FR_QTR and (is_fmt_none or fmt == "%FQ%q"):
+        # get quarter and modify dts.year to be the 'Fiscal' year
+        quarter = get_yq(value, freq, &dts)
+        return f"{dts.year}Q{quarter}"
+
+    elif freq_group == FR_MTH and (is_fmt_none or fmt == "%Y-%m"):
+        return f"{dts.year}-{dts.month:02d}"
+
+    elif freq_group == FR_WK and is_fmt_none:
+        # special: start_date/end_date. Recurse
+        left = period_asfreq(value, freq, FR_DAY, 0)
+        right = period_asfreq(value, freq, FR_DAY, 1)
+        return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
+
+    elif (
+        (freq_group == FR_BUS or freq_group == FR_DAY)
+        and (is_fmt_none or fmt == "%Y-%m-%d")
+    ):
+        return f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+
+    elif freq_group == FR_HR and (is_fmt_none or fmt == "%Y-%m-%d %H:00"):
+        return f"{dts.year}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
+
+    elif freq_group == FR_MIN and (is_fmt_none or fmt == "%Y-%m-%d %H:%M"):
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}")
+
+    elif freq_group == FR_SEC and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S"):
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+    elif freq_group == FR_MS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%l"):
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{(dts.us // 1_000):03d}")
+
+    elif freq_group == FR_US and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%u"):
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{(dts.us):06d}")
+
+    elif freq_group == FR_NS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%n"):
+        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+                f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
+                f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
+
+    elif is_fmt_none:
+        # `freq_group` is invalid, raise
+        raise ValueError(f"Unknown freq: {freq}")
+
+    else:
+        # A custom format is requested
+        if isinstance(fmt, str):
+            # Encode using current locale, in case fmt contains non-utf8 chars
+            fmt = <bytes>util.string_encode_locale(fmt)
+
+        return _period_strftime(value, freq, fmt, dts)
 
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
@@ -1207,18 +1242,15 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
-cdef str _period_strftime(int64_t value, int freq, bytes fmt):
+cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
     cdef:
         Py_ssize_t i
-        npy_datetimestruct dts
         char *formatted
         bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
         int quarter
         int32_t us, ps
         str result, repl
-
-    get_date_info(value, freq, &dts)
 
     # Find our additional directives in the pattern and replace them with
     # placeholders that are not processed by c_strftime
@@ -1688,6 +1720,8 @@ cdef class _Period(PeriodMixin):
             # We already have a dtype code
             dtype = PeriodDtypeBase(freq, 1)
             freq = dtype._freqstr
+        elif isinstance(freq, PeriodDtypeBase):
+            freq = freq._freqstr
 
         freq = to_offset(freq)
 
@@ -1711,7 +1745,7 @@ cdef class _Period(PeriodMixin):
 
     def __richcmp__(self, other, op):
         if is_period_object(other):
-            if other.freq != self.freq:
+            if other._dtype != self._dtype:
                 if op == Py_EQ:
                     return False
                 elif op == Py_NE:
@@ -1781,7 +1815,7 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
-            ordinal = self.ordinal + other * self.freq.n
+            ordinal = self.ordinal + other * self._dtype._n
             return Period(ordinal=ordinal, freq=self.freq)
 
         elif is_period_object(other):
@@ -1866,7 +1900,7 @@ cdef class _Period(PeriodMixin):
         # self.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = self.ordinal + self.freq.n - 1
+            ordinal = self.ordinal + self._dtype._n - 1
         else:
             ordinal = self.ordinal
         ordinal = period_asfreq(ordinal, base1, base2, end)
@@ -2372,7 +2406,7 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
         """
-        return self.freq.freqstr
+        return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
@@ -2630,7 +2664,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
+            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:

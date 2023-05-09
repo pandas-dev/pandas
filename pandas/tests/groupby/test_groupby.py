@@ -4,7 +4,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -16,6 +15,7 @@ from pandas import (
     DataFrame,
     Grouper,
     Index,
+    Interval,
     MultiIndex,
     RangeIndex,
     Series,
@@ -165,7 +165,8 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     result = df.groupby("A").apply(f_1)[["B"]]
-    e = expected.copy()
+    # Cast to avoid upcast when setting nan below
+    e = expected.copy().astype("float64")
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
@@ -175,7 +176,8 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     result = df.groupby("A").apply(f_2)[["B"]]
-    e = expected.copy()
+    # Explicit cast to float to avoid implicit cast when setting nan
+    e = expected.copy().astype({"B": "float"})
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
@@ -232,18 +234,26 @@ def test_pass_args_kwargs(ts, tsframe):
     # DataFrame
     for as_index in [True, False]:
         df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
-        agg_result = df_grouped.agg(np.percentile, 80, axis=0)
-        apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
-        expected = df_grouped.quantile(0.8)
+        warn = None if as_index else FutureWarning
+        msg = "A grouping .* was excluded from the result"
+        with tm.assert_produces_warning(warn, match=msg):
+            agg_result = df_grouped.agg(np.percentile, 80, axis=0)
+        with tm.assert_produces_warning(warn, match=msg):
+            apply_result = df_grouped.apply(DataFrame.quantile, 0.8)
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = df_grouped.quantile(0.8)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
         tm.assert_frame_equal(agg_result, expected)
 
         apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
-        expected_seq = df_grouped.quantile([0.4, 0.8])
+        with tm.assert_produces_warning(warn, match=msg):
+            expected_seq = df_grouped.quantile([0.4, 0.8])
         tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
-        agg_result = df_grouped.agg(f, q=80)
-        apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
+        with tm.assert_produces_warning(warn, match=msg):
+            agg_result = df_grouped.agg(f, q=80)
+        with tm.assert_produces_warning(warn, match=msg):
+            apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
         tm.assert_frame_equal(agg_result, expected)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
@@ -254,7 +264,10 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     tsframe.columns = ["A", "B", "A", "C"]
     gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
 
-    res = gb.agg(np.percentile, 80, axis=0)
+    warn = None if as_index else FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        res = gb.agg(np.percentile, 80, axis=0)
 
     ex_data = {
         1: tsframe[tsframe.index.month == 1].quantile(0.8),
@@ -628,7 +641,8 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+    msg = "Could not convert string 'dullshinyshiny' to numeric"
+    with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
 
@@ -947,6 +961,8 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
         # columns when numeric_only is False
         klass = ValueError if agg_function in ("std", "sem") else TypeError
         msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
+        if agg_function == "median":
+            msg = r"Cannot convert \['one' 'three' 'two'\] to numeric"
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
@@ -2455,7 +2471,6 @@ def test_groupby_series_with_tuple_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 @pytest.mark.parametrize(
     "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
 )
@@ -2468,7 +2483,6 @@ def test_groupby_numerical_stability_sum_mean(func, values):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 def test_groupby_numerical_stability_cumsum():
     # GH#38934
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
@@ -2616,7 +2630,7 @@ def test_groupby_filtered_df_std():
     ]
     df = DataFrame(dicts)
 
-    df_filter = df[df["filter_col"] == True]  # noqa:E712
+    df_filter = df[df["filter_col"] == True]  # noqa: E712
     dfgb = df_filter.groupby("groupby_col")
     result = dfgb.std()
     expected = DataFrame(
@@ -2708,6 +2722,26 @@ def test_single_element_list_grouping():
     result = [key for key, _ in df.groupby(["a"])]
     expected = [(1,), (2,)]
     assert result == expected
+
+
+def test_groupby_string_dtype():
+    # GH 40148
+    df = DataFrame({"str_col": ["a", "b", "c", "a"], "num_col": [1, 2, 3, 2]})
+    df["str_col"] = df["str_col"].astype("string")
+    expected = DataFrame(
+        {
+            "str_col": [
+                "a",
+                "b",
+                "c",
+            ],
+            "num_col": [1.5, 2.0, 3.0],
+        }
+    )
+    expected["str_col"] = expected["str_col"].astype("string")
+    grouped = df.groupby("str_col", as_index=False)
+    result = grouped.mean()
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -2910,3 +2944,117 @@ def test_groupby_numeric_only_std_no_result(numeric_only):
             ValueError, match="could not convert string to float: 'bar'"
         ):
             dfgb.std(numeric_only=numeric_only)
+
+
+def test_grouping_with_categorical_interval_columns():
+    # GH#34164
+    df = DataFrame({"x": [0.1, 0.2, 0.3, -0.4, 0.5], "w": ["a", "b", "a", "c", "a"]})
+    qq = pd.qcut(df["x"], q=np.linspace(0, 1, 5))
+    result = df.groupby([qq, "w"], observed=False)["x"].agg("mean")
+    categorical_index_level_1 = Categorical(
+        [
+            Interval(-0.401, 0.1, closed="right"),
+            Interval(0.1, 0.2, closed="right"),
+            Interval(0.2, 0.3, closed="right"),
+            Interval(0.3, 0.5, closed="right"),
+        ],
+        ordered=True,
+    )
+    index_level_2 = ["a", "b", "c"]
+    mi = MultiIndex.from_product(
+        [categorical_index_level_1, index_level_2], names=["x", "w"]
+    )
+    expected = Series(
+        np.array(
+            [
+                0.1,
+                np.nan,
+                -0.4,
+                np.nan,
+                0.2,
+                np.nan,
+                0.3,
+                np.nan,
+                np.nan,
+                0.5,
+                np.nan,
+                np.nan,
+            ]
+        ),
+        index=mi,
+        name="x",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bug_var", [1, "a"])
+def test_groupby_sum_on_nan_should_return_nan(bug_var):
+    # GH 24196
+    df = DataFrame({"A": [bug_var, bug_var, bug_var, np.nan]})
+    dfgb = df.groupby(lambda x: x)
+    result = dfgb.sum(min_count=1)
+
+    expected_df = DataFrame([bug_var, bug_var, bug_var, np.nan], columns=["A"])
+    tm.assert_frame_equal(result, expected_df)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "count",
+        "corr",
+        "cummax",
+        "cummin",
+        "cumprod",
+        "describe",
+        "rank",
+        "quantile",
+        "diff",
+        "shift",
+        "all",
+        "any",
+        "idxmin",
+        "idxmax",
+        "ffill",
+        "bfill",
+        "pct_change",
+    ],
+)
+def test_groupby_selection_with_methods(df, method):
+    # some methods which require DatetimeIndex
+    rng = date_range("2014", periods=len(df))
+    df.index = rng
+
+    g = df.groupby(["A"])[["C"]]
+    g_exp = df[["C"]].groupby(df["A"])
+    # TODO check groupby with > 1 col ?
+
+    res = getattr(g, method)()
+    exp = getattr(g_exp, method)()
+
+    # should always be frames!
+    tm.assert_frame_equal(res, exp)
+
+
+def test_groupby_selection_other_methods(df):
+    # some methods which require DatetimeIndex
+    rng = date_range("2014", periods=len(df))
+    df.columns.name = "foo"
+    df.index = rng
+
+    g = df.groupby(["A"])[["C"]]
+    g_exp = df[["C"]].groupby(df["A"])
+
+    # methods which aren't just .foo()
+    tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
+    msg = "DataFrameGroupBy.dtypes is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
+    tm.assert_frame_equal(g.apply(lambda x: x.sum()), g_exp.apply(lambda x: x.sum()))
+
+    tm.assert_frame_equal(g.resample("D").mean(), g_exp.resample("D").mean())
+    tm.assert_frame_equal(g.resample("D").ohlc(), g_exp.resample("D").ohlc())
+
+    tm.assert_frame_equal(
+        g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
+    )

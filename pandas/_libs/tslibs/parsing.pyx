@@ -46,7 +46,6 @@ from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
 )
-from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -692,7 +691,11 @@ cdef datetime dateutil_parse(
         ) from err
 
     if res.weekday is not None and not res.day:
-        ret = ret + relativedelta.relativedelta(weekday=res.weekday)
+        # GH#52659
+        raise ValueError(
+            "Parsing datetimes with weekday but no day information is "
+            "not supported"
+        )
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
             # GH#50791

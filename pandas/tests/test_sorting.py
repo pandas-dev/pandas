@@ -156,61 +156,33 @@ class TestSorting:
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     @pytest.mark.parametrize(
-        "ascending, na_position, exp, box",
+        "ascending, na_position, exp",
         [
             [
                 True,
                 "last",
                 list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 True,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                list,
             ],
             [
                 False,
                 "last",
                 list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 False,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                list,
-            ],
-            [
-                True,
-                "last",
-                list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                True,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "last",
-                list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                lambda x: np.array(x, dtype="O"),
             ],
         ],
     )
-    def test_nargsort(self, ascending, na_position, exp, box):
+    def test_nargsort(self, ascending, na_position, exp):
         # list places NaNs last, np.array(..., dtype="O") may not place NaNs first
-        items = box([np.nan] * 5 + list(range(100)) + [np.nan] * 5)
+        items = np.array([np.nan] * 5 + list(range(100)) + [np.nan] * 5, dtype="O")
 
         # mergesort is the most difficult to get right because we want it to be
         # stable.
@@ -401,12 +373,15 @@ class TestSafeSort:
         "arg, exp",
         [
             [[3, 1, 2, 0, 4], [0, 1, 2, 3, 4]],
-            [list("baaacb"), np.array(list("aaabbc"), dtype=object)],
+            [
+                np.array(list("baaacb"), dtype=object),
+                np.array(list("aaabbc"), dtype=object),
+            ],
             [[], []],
         ],
     )
     def test_basic_sort(self, arg, exp):
-        result = safe_sort(arg)
+        result = safe_sort(np.array(arg))
         expected = np.array(exp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -419,7 +394,7 @@ class TestSafeSort:
         ],
     )
     def test_codes(self, verify, codes, exp_codes):
-        values = [3, 1, 2, 0, 4]
+        values = np.array([3, 1, 2, 0, 4])
         expected = np.array([0, 1, 2, 3, 4])
 
         result, result_codes = safe_sort(
@@ -435,7 +410,7 @@ class TestSafeSort:
         "Windows fatal exception: access violation",
     )
     def test_codes_out_of_bound(self):
-        values = [3, 1, 2, 0, 4]
+        values = np.array([3, 1, 2, 0, 4])
         expected = np.array([0, 1, 2, 3, 4])
 
         # out of bound indices
@@ -445,9 +420,8 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
-    @pytest.mark.parametrize("box", [lambda x: np.array(x, dtype=object), list])
-    def test_mixed_integer(self, box):
-        values = box(["b", 1, 0, "a", 0, "b"])
+    def test_mixed_integer(self):
+        values = np.array(["b", 1, 0, "a", 0, "b"], dtype=object)
         result = safe_sort(values)
         expected = np.array([0, 0, 1, "a", "b", "b"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
@@ -471,9 +445,9 @@ class TestSafeSort:
     @pytest.mark.parametrize(
         "arg, codes, err, msg",
         [
-            [1, None, TypeError, "Only list-like objects are allowed"],
-            [[0, 1, 2], 1, TypeError, "Only list-like objects or None"],
-            [[0, 1, 2, 1], [0, 1], ValueError, "values should be unique"],
+            [1, None, TypeError, "Only np.ndarray, ExtensionArray, and Index"],
+            [np.array([0, 1, 2]), 1, TypeError, "Only list-like objects or None"],
+            [np.array([0, 1, 2, 1]), [0, 1], ValueError, "values should be unique"],
         ],
     )
     def test_exceptions(self, arg, codes, err, msg):
