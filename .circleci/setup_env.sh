@@ -54,10 +54,7 @@ if pip list | grep -q ^pandas; then
     pip uninstall -y pandas || true
 fi
 
-echo "Build extensions"
-python setup.py build_ext -q -j4
-
 echo "Install pandas"
-python -m pip install --no-build-isolation --no-use-pep517 -e .
+python -m pip install --no-build-isolation -ve .
 
 echo "done"

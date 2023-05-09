@@ -12,7 +12,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
 
 # If no X server is found, we use xvfb to emulate it
 if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
@@ -20,7 +20,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -r fEs -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 ${XVFB}pytest -r fEs -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 if [[ "$PATTERN" ]]; then
   PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""

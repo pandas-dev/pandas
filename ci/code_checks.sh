@@ -65,13 +65,8 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests' ; echo $MSG
-    # Ignore test_*.py files or else the unit tests will run
-    python -m pytest --doctest-modules --ignore-glob="**/test_*.py" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Cython Doctests' ; echo $MSG
-    python -m pytest --doctest-cython pandas/_libs
+    MSG='Python and Cython Doctests' ; echo $MSG
+    python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

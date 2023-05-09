@@ -207,13 +207,47 @@ for :ref:`building pandas with GitPod <contributing-gitpod>`.
 Step 3: build and install pandas
 --------------------------------
 
-You can now run::
+There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py).
+Historically, pandas has only supported using setuptools to build pandas. However, this method
+requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel
+due to limitations in setuptools.
+
+The newer build system, invokes the meson backend through pip (via a `PEP 517 <https://peps.python.org/pep-0517/>`_ build).
+It automatically uses all available cores on your CPU, and also avoids the need for manual rebuilds by
+rebuilding automatically whenever pandas is imported(with an editable install).
+
+For these reasons, you should compile pandas with meson.
+Because the meson build system is newer, you may find bugs/minor issues as it matures. You can report these bugs
+`here <https://github.com/pandas-dev/pandas/issues/49683>`_.
+
+To compile pandas with meson, run::
 
    # Build and install pandas
-   # The number after -j is the number of compiling jobs run in parallel
-   # Change it according to your machine's hardware spec
-   python setup.py build_ext -j 4
-   python -m pip install -e . --no-build-isolation --no-use-pep517
+   python -m pip install -ve . --no-build-isolation
+
+** Build options **
+
+It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
+install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
+
+You can pass a build directory to pandas by appending ``--config-settings builddir="your builddir here"`` to your pip command.
+This option allows you to configure where meson stores your built C extensions, and allows for fast rebuilds.
+
+Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
+Appending ``--config-settings setup-args="-Ddebug=true"`` will do the trick.
+
+With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
+and building with debug symbols would look like
+``--config-settings builddir="your builddir here" --config-settings=setup-args="-Dbuildtype=debug"``.
+
+**Compiling pandas with setup.py**
+
+.. note::
+   This method of compiling pandas will be deprecated and removed very soon, as the meson backend matures.
+
+To compile pandas with setuptools, run::
+
+   python setup.py develop
 
 .. note::
    You will need to repeat this step each time the C extensions change, for example
@@ -226,5 +260,22 @@ At this point you should be able to import pandas from your locally built versio
    >>> print(pandas.__version__)  # note: the exact output may differ
    2.0.0.dev0+880.g2b9e661fbb.dirty
 
-This will create the new environment, and not touch any of your existing environments,
-nor any existing Python installation.
+When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified.
+By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's
+output when importing pandas, you can set the environment variable ``MESONPY_EDTIABLE_VERBOSE``. For example, this would be::
+
+   # On Linux/macOS
+   MESONPY_EDITABLE_VERBOSE=1 python
+
+   # Windows
+   set MESONPY_EDITABLE_VERBOSE=1 # Only need to set this once per session
+   python
+
+If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::
+
+   python -m pip install -ve . --config-settings editable-verbose=true
+
+.. tip::
+   If you ever find yourself wondering whether setuptools or meson was used to build your pandas,
+   you can check the value of ``pandas._built_with_meson``, which will be true if meson was used
+   to compile pandas.

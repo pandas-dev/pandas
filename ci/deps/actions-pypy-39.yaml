@@ -10,6 +10,8 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython>=0.29.33
+  - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -22,6 +24,5 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
-
   - pip:
     - tzdata>=2022.1

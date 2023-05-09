@@ -41,7 +41,6 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
-        "numpy": [],
         "Cython": ["0.29.33"],
         "matplotlib": [],
         "sqlalchemy": [],
@@ -56,6 +55,9 @@
         "xlrd": [],
         "odfpy": [],
         "jinja2": [],
+        "meson": [],
+        "meson-python": [],
+        "python-build": [],
     },
     "conda_channels": ["conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
@@ -125,7 +127,5 @@
     "regression_thresholds": {
     },
     "build_command":
-    ["python -m pip install versioneer[toml]",
-     "python setup.py build -j4",
-     "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
+    ["python -m build -Cbuilddir=builddir --wheel --outdir {build_cache_dir} {build_dir}"]
 }
