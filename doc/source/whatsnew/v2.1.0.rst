@@ -371,7 +371,6 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
 
 I/O
