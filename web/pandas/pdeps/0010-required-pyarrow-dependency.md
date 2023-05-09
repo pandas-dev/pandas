@@ -12,7 +12,7 @@
 
 This PDEP proposes that:
 
-- PyArrow becomes a runtime dependency starting with pandas 3.0
+- PyArrow becomes a required runtime dependency starting with pandas 3.0
 - The minimum version of PyArrow supported starting with pandas 3.0 is version 7 of PyArrow.
 - When the minimum version of PyArrow is bumped, PyArrow will be bumped to the highest version that has
   been released for at least 2 years.
@@ -40,7 +40,7 @@ As of pandas 2.0, one can feasibly utilize PyArrow as an alternative data repres
 1. Consistent `NA` support for all data types
 2. Broader support of data types such as `decimal`, `date` and nested types
 
-Additionally, when users pass string data into pandas constructors without specifying a data type, the result data type
+Currently, when users pass string data into pandas constructors without specifying a data type, the resulting data type
 is `object`. With pyarrow string support available since 1.2.0, requiring pyarrow for 3.0 will allow pandas to default
 the inferred type to the more efficient pyarrow string type.
 
@@ -48,7 +48,11 @@ the inferred type to the more efficient pyarrow string type.
 In [1]: import pandas as pd
 
 In [2]: pd.Series(["a"]).dtype
+# Current behavior
 Out[2]: dtype('O')
+
+# Future behavior in 3.0
+Out[2]: string[pyarrow]
 ```
 
 ## Motivation
@@ -129,8 +133,9 @@ Short summary: PyArrow strings required 1/3 of the original memory.
 ## Drawbacks
 
 Including PyArrow would naturally increase the installation size of pandas. For example, installing pandas and PyArrow
-using pip from wheels, numpy and pandas are about `70MB`, and PyArrow is around `120MB`. An increase of installation size would
-have negative impliciation using pandas in space-constrained development or deployment environments such as AWS Lambda.
+using pip from wheels, numpy and pandas requires about `70MB`, and including PyArrow requires around `120MB`. An increase
+of installation size would have negative implication using pandas in space-constrained development or deployment environments
+such as AWS Lambda.
 
 Additionally, if a user is installing pandas in an environment where wheels are not available through a `pip install` or `conda install`,
 the user will need to also build Arrow C++ and related dependencies when installing from source. These environments include
@@ -146,6 +151,7 @@ before releasing a new pandas version.
 ### PDEP-1 History
 
 - 17 April 2023: Initial version
+- 8 May 2023: Changed proposal to make pyarrow required in pandas 3.0 instead of 2.1
 
 [^1] <https://pandas.pydata.org/docs/development/roadmap.html#apache-arrow-interoperability>
 [^2] <https://arrow.apache.org/powered_by/>
