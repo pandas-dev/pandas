@@ -147,12 +147,12 @@ def to_json(
     if orient in ["records", "values"] and index is True:
         raise ValueError(
             "'index=True' is only valid when 'orient' is 'split', 'table', "
-            "'index', or 'columns'. Convert index to column for other orients."
+            "'index', or 'columns'."
         )
     elif orient in ["index", "columns"] and index is False:
         raise ValueError(
             "'index=False' is only valid when 'orient' is 'split', 'table', "
-            "'records', or 'values'. Convert index to column for other orients."
+            "'records', or 'values'."
         )
     elif index is None:
         # will be ignored for orient='records' and 'values'
