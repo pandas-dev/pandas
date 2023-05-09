@@ -4,6 +4,8 @@
 pip
 versioneer[toml]
 cython==0.29.33
+meson[ninja]==1.0.1
+meson-python==0.13.1
 pytest>=7.0.0
 pytest-cov
 pytest-xdist>=2.2.0
@@ -24,10 +26,10 @@ gcsfs>=2022.05.0
 ipython
 jinja2>=3.1.2
 lxml>=4.8.0
-matplotlib>=3.6.1, <3.7.0
+matplotlib>=3.6.1
 numba>=0.55.2
 numexpr>=2.8.0
-openpyxl<3.1.1, >=3.0.7
+openpyxl>=3.0.10
 odfpy>=1.4.1
 py
 psycopg2-binary>=2.9.3
@@ -50,7 +52,7 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.1.0
+black==23.3.0
 cpplint
 flake8==6.0.0
 isort>=5.2.1
@@ -65,7 +67,7 @@ numpydoc
 pydata-sphinx-theme<0.11
 pytest-cython
 sphinx
-sphinx-panels
+sphinx-design
 sphinx-copybutton
 types-python-dateutil
 types-PyMySQL
@@ -88,4 +90,3 @@ pygments
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1
-setuptools>=61.0.0

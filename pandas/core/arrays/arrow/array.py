@@ -18,22 +18,6 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    Self,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -69,6 +53,7 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.base import BaseStringArrayMethods
 
+from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
 if not pa_version_under7p0:
@@ -139,8 +124,22 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        Iterator,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        Scalar,
+        Self,
+        SortKind,
+        TakeIndexer,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
     )
 
     from pandas import Series
@@ -245,6 +244,16 @@ class ArrowExtensionArray(
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_dtype = to_pyarrow_type(dtype)
+        if (
+            isinstance(scalars, np.ndarray)
+            and isinstance(dtype, ArrowDtype)
+            and (
+                pa.types.is_large_binary(pa_dtype) or pa.types.is_large_string(pa_dtype)
+            )
+        ):
+            # See https://github.com/apache/arrow/issues/35289
+            scalars = scalars.tolist()
+
         if isinstance(scalars, cls):
             scalars = scalars._pa_array
         elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
@@ -258,7 +267,13 @@ class ArrowExtensionArray(
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype and scalars.type != pa_dtype:
             scalars = scalars.cast(pa_dtype)
-        return cls(scalars)
+        arr = cls(scalars)
+        if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
+            # GH52843: upstream bug for duration types when originally
+            # constructed with data containing numpy NaT.
+            # https://github.com/apache/arrow/issues/35088
+            arr = arr.fillna(arr.dtype.na_value)
+        return arr
 
     @classmethod
     def _from_sequence_of_strings(
@@ -480,22 +495,13 @@ class ArrowExtensionArray(
             operator.add,
             roperator.radd,
         ]:
-            length = self._pa_array.length()
-
-            seps: list[str] | list[bytes]
-            if pa.types.is_string(pa_type):
-                seps = [""] * length
-            else:
-                seps = [b""] * length
-
-            if is_scalar(other):
-                other = [other] * length
-            elif isinstance(other, type(self)):
+            sep = pa.scalar("", type=pa_type)
+            if isinstance(other, type(self)):
                 other = other._pa_array
             if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, seps)
+                result = pc.binary_join_element_wise(self._pa_array, other, sep)
             else:
-                result = pc.binary_join_element_wise(other, self._pa_array, seps)
+                result = pc.binary_join_element_wise(other, self._pa_array, sep)
             return type(self)(result)
 
         pc_func = arrow_funcs[op.__name__]
@@ -561,7 +567,7 @@ class ArrowExtensionArray(
     def __contains__(self, key) -> bool:
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
-            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+            if self.dtype.kind == "f" and lib.is_float(key):
                 return pc.any(pc.is_nan(self._pa_array)).as_py()
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
@@ -788,8 +794,9 @@ class ArrowExtensionArray(
             fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
-        if is_array_like(value):
-            value = cast(ArrayLike, value)
+        if isinstance(value, (np.ndarray, ExtensionArray)):
+            # Similar to check_value_size, but we do not mask here since we may
+            #  end up passing it to the super() method.
             if len(value) != len(self):
                 raise ValueError(
                     f"Length of 'value' does not match. Got ({len(value)}) "
@@ -1217,9 +1224,9 @@ class ArrowExtensionArray(
 
         return type(self)(result)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce_pyarrow(self, name: str, *, skipna: bool = True, **kwargs) -> pa.Scalar:
         """
-        Return a scalar result of performing the reduction operation.
+        Return a pyarrow scalar result of performing the reduction operation.
 
         Parameters
         ----------
@@ -1235,7 +1242,7 @@ class ArrowExtensionArray(
 
         Returns
         -------
-        scalar
+        pyarrow scalar
 
         Raises
         ------
@@ -1315,7 +1322,7 @@ class ArrowExtensionArray(
             # GH 52679: Use quantile instead of approximate_median; returns array
             result = result[0]
         if pc.is_null(result).as_py():
-            return self.dtype.na_value
+            return result
 
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
@@ -1334,6 +1341,37 @@ class ArrowExtensionArray(
             else:
                 # i.e. timestamp
                 result = result.cast(pa.duration(pa_type.unit))
+
+        return result
+
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+
+        if pc.is_null(result).as_py():
+            return self.dtype.na_value
 
         return result.as_py()
 
@@ -1682,42 +1720,18 @@ class ArrowExtensionArray(
 
     def _to_masked(self):
         pa_dtype = self._pa_array.type
-        na_value = 1
-        from pandas.core.arrays import (
-            BooleanArray,
-            FloatingArray,
-            IntegerArray,
-        )
 
-        arr_cls: type[FloatingArray | IntegerArray | BooleanArray]
-        if pa.types.is_floating(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Float{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = FloatingArray
-        elif pa.types.is_unsigned_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"UInt{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
-        elif pa.types.is_signed_integer(pa_dtype):
-            nbits = pa_dtype.bit_width
-            dtype = f"Int{nbits}"
-            np_dtype = dtype.lower()
-            arr_cls = IntegerArray
-
+        if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
+            na_value = 1
         elif pa.types.is_boolean(pa_dtype):
-            dtype = "boolean"
-            np_dtype = "bool"
             na_value = True
-            arr_cls = BooleanArray
         else:
             raise NotImplementedError
 
+        dtype = _arrow_dtype_mapping()[pa_dtype]
         mask = self.isna()
-        arr = self.to_numpy(dtype=np_dtype, na_value=na_value)
-        return arr_cls(arr, mask)
+        arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
+        return dtype.construct_array_type()(arr, mask)
 
     def _groupby_op(
         self,
@@ -2320,6 +2334,11 @@ class ArrowExtensionArray(
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
     def _dt_to_pydatetime(self):
+        if pa.types.is_date(self.dtype.pyarrow_dtype):
+            raise ValueError(
+                f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
+                "Convert to pyarrow timestamp type."
+            )
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]

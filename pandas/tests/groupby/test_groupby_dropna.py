@@ -324,9 +324,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
+    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
     mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
@@ -627,7 +625,7 @@ def test_categorical_transformers(
     result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
     for iloc, value in zip(
-        df[df["x"].isnull()].index.tolist(), null_group_result.values
+        df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
     ):
         if expected.ndim == 1:
             expected.iloc[iloc] = value

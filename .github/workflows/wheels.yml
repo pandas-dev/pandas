@@ -23,7 +23,10 @@ on:
   - cron: "27 3 */1 * *"
   push:
   pull_request:
-      types: [labeled, opened, synchronize, reopened]
+    types: [labeled, opened, synchronize, reopened]
+    paths-ignore:
+      - "doc/**"
+      - "web/**"
   workflow_dispatch:
 
 concurrency:
@@ -37,7 +40,7 @@ jobs:
   build_wheels:
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
     if: >-
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.repository_owner == 'pandas-dev') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
@@ -53,9 +56,8 @@ jobs:
         - [ubuntu-20.04, manylinux_x86_64]
         - [macos-11, macosx_*]
         - [windows-2019, win_amd64]
-        - [windows-2019, win32]
         # TODO: support PyPy?
-        python: [["cp38", "3.8"], ["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]# "pp38", "pp39"]
+        python: [["cp39", "3.9"], ["cp310", "3.10"],  ["cp311", "3.11"]]#  "pp39"]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -71,7 +73,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.12.1
+        uses: pypa/cibuildwheel@v2.12.3
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
@@ -152,7 +154,7 @@ jobs:
           auto-update-conda: true
           # Really doesn't matter what version we upload with
           # just the version we test with
-          python-version: '3.8'
+          python-version: '3.10'
           channels: conda-forge
           channel-priority: true
           # mamba fails to solve, also we really don't need this since we're just installing python
