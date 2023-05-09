@@ -92,11 +92,11 @@ class LocaleSpecificDtStrings:
 
     __slots__ = ("am", "pm")
 
-    def __init__(self, am: str, pm: str):
+    def __init__(self, am: str, pm: str) -> None:
         self.am = am
         self.pm = pm
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         attrs = ", ".join(
             [f"{k}={repr(getattr(self, k))}" for k in type(self).__slots__]
         )

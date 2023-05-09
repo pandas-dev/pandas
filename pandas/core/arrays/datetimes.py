@@ -708,7 +708,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         *,
         na_rep: str | float = "NaT",
         date_format=None,
-        fast_strftime=True,
+        fast_strftime: bool=True,
         **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values

@@ -7,12 +7,12 @@ import locale
 
 import pytest
 
-from pandas import convert_strftime_format
 from pandas._libs.tslibs.strftime import (
     UnsupportedStrFmtDirective,
     get_current_locale_specific_string,
 )
 
+from pandas import convert_strftime_format
 import pandas._testing as tm
 
 
