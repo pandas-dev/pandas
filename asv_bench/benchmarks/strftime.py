@@ -23,14 +23,23 @@ class DatetimeStrftime:
             self.data["dt"] = self.data["dt"].dt.tz_localize("UTC")
             self.data["d"] = self.data["d"].dt.tz_localize("UTC")
 
+        self.data["i"] = self.data["dt"]
+        self.data.set_index("i", inplace=True)
+
     def time_frame_date_to_str(self, nobs, tz_aware):
         self.data["d"].astype(str)
 
     def time_frame_date_formatting_default(self, nobs, tz_aware):
         self.data["d"].dt.strftime(date_format=None)
 
+    def time_frame_date_formatting_index_default(self, nobs, tz_aware):
+        self.data.index.format()
+
     def time_frame_date_formatting_custom(self, nobs, tz_aware):
         self.data["d"].dt.strftime(date_format="%Y---%m---%d")
+
+    def time_frame_date_formatting_index_custom(self, nobs, tz_aware):
+        self.data.index.format(date_format="%Y---%m---%d")
 
     def time_frame_datetime_to_str(self, nobs, tz_aware):
         self.data["dt"].astype(str)
