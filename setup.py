@@ -342,8 +342,6 @@ else:
         extra_compile_args.append("-UNDEBUG")
         extra_compile_args.append("-O0")
 
-    extra_link_args.append("-fopenmp")
-
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
 # python was built for. This may be overridden by setting

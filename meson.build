@@ -22,7 +22,7 @@ py = py_mod.find_installation('python')
 py_dep = py.dependency()
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
-
+openmp = dependency('openmp', required: false)
 
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')

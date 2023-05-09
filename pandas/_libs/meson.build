@@ -64,7 +64,7 @@ libs_sources = {
     'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper, _khash_primitive_helper],
               'include_dirs': klib_include},
     'arrays': {'sources': ['arrays.pyx']},
-    'groupby': {'sources': ['groupby.pyx']},
+    'groupby': {'sources': ['groupby.pyx'], 'deps': [openmp]},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {'sources': ['hashtable.pyx', _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper],
                   'include_dirs': klib_include},
