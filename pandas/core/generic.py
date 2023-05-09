@@ -96,7 +96,10 @@ from pandas.errors import (
     SettingWithCopyWarning,
 )
 from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
@@ -8364,23 +8367,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ):
             lower, upper = min(lower, upper), max(lower, upper)
 
-        # fast-path for scalars
-        if (lower is None or is_number(lower)) and (upper is None or is_number(upper)):
-            return self._clip_with_scalar(lower, upper, inplace=inplace)
+        # We can get a message about "where" downcasting being deprecated,
+        #  catch and re-issue the warning about "clip""
+        msg = (
+            "clip downcasting from floating dtype to integer dtype is "
+            "deprecated. In a future version this will retain floating "
+            "dtype. To retain the old behavior, explicitly cast the result "
+            "to integer dtype"
+        )
+        with rewrite_warning("where downcasting", FutureWarning, msg):
+            # fast-path for scalars
+            if (lower is None or is_number(lower)) and (
+                upper is None or is_number(upper)
+            ):
+                return self._clip_with_scalar(lower, upper, inplace=inplace)
 
-        result = self
-        if lower is not None:
-            result = result._clip_with_one_bound(
-                lower, method=self.ge, axis=axis, inplace=inplace
-            )
-        if upper is not None:
-            if inplace:
-                result = self
-            result = result._clip_with_one_bound(
-                upper, method=self.le, axis=axis, inplace=inplace
-            )
+            result = self
+            if lower is not None:
+                result = result._clip_with_one_bound(
+                    lower, method=self.ge, axis=axis, inplace=inplace
+                )
+            if upper is not None:
+                if inplace:
+                    result = self
+                result = result._clip_with_one_bound(
+                    upper, method=self.le, axis=axis, inplace=inplace
+                )
 
-        return result
+            return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])

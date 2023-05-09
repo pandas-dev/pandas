@@ -69,7 +69,7 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        msg = "where downcasting from floating dtype to integer dtype is deprecated"
+        msg = "clip downcasting from floating dtype to integer dtype is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = s.clip(lower=[0, 4, np.nan])
         tm.assert_series_equal(res, Series([1, 4, 3]))

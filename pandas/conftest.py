@@ -147,7 +147,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         (
             "pandas.core.generic.NDFrame.clip",
-            "where downcasting from floating dtype to integer dtype is deprecated",
+            "clip downcasting from floating dtype to integer dtype is deprecated",
         ),
     ]
 
