@@ -1052,7 +1052,7 @@ cdef str _fill_token(token: str, padding: int):
     return token_filled
 
 
-cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
+cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
         int day_index = format.find("%d")

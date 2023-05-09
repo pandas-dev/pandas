@@ -89,7 +89,7 @@ cdef float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
 
 cdef void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
                   float64_t *compensation, int64_t *num_consecutive_same_value,
-                  float64_t *prev_value) nogil:
+                  float64_t *prev_value) noexcept nogil:
     """ add a value from the sum calc using Kahan summation """
 
     cdef:

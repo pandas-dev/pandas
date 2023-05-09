@@ -691,7 +691,7 @@ cdef int get_freq_group_index(int freq) nogil:
     return freq // 1000
 
 
-cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
+cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) noexcept nogil:
     if from_end != 12:
         dts.month += from_end
         if dts.month > 12:
@@ -700,7 +700,7 @@ cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
             dts.year -= 1
 
 
-cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
+cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) noexcept nogil:
     if to_end != 12:
         dts.month -= to_end
         if dts.month <= 0:
@@ -803,7 +803,8 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     return npy_datetimestruct_to_datetime(unit, dts)
 
 
-cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
+cdef void get_date_info(int64_t ordinal,
+                        int freq, npy_datetimestruct *dts) noexcept nogil:
     cdef:
         int64_t unix_date, nanos
         npy_datetimestruct dts2
@@ -985,7 +986,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
-                          bint is_end, asfreq_info *af_info) nogil:
+                          bint is_end, asfreq_info *af_info) noexcept nogil:
     """
     Construct the `asfreq_info` object used to convert an ordinal from
     `from_freq` to `to_freq`.
@@ -1084,7 +1085,7 @@ cdef void _period_asfreq(
     int freq2,
     bint end,
     Py_ssize_t increment=1,
-):
+) noexcept:
     """See period_asfreq.__doc__"""
     cdef:
         Py_ssize_t i

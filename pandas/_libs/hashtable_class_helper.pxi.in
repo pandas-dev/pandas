@@ -141,7 +141,7 @@ ctypedef struct {{name}}VectorData:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef void append_data_{{dtype}}({{name}}VectorData *data,
-                                       {{c_type}} x) nogil:
+                                       {{c_type}} x) noexcept nogil:
 
     data.data[data.n] = x
     data.n += 1
@@ -241,7 +241,7 @@ cdef class {{name}}Vector(Vector):
         self.external_view_exists = True
         return self.ao
 
-    cdef void append(self, {{c_type}} x):
+    cdef void append(self, {{c_type}} x) noexcept:
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -311,7 +311,7 @@ cdef class StringVector(Vector):
         self.data.m = self.data.n
         return ao
 
-    cdef void append(self, char *x):
+    cdef void append(self, char *x) noexcept:
 
         if needs_resize(self.data):
             self.resize()

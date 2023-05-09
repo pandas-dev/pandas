@@ -213,7 +213,7 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
+cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) noexcept nogil:
     """NOTE: overwrites indexer with the result to avoid allocating another array"""
     cdef:
         Py_ssize_t i, n, idx
