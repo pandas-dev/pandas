@@ -1486,7 +1486,7 @@ def from_ordinals(const int64_t[:] values, freq, is_period):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray values, freq, is_period) -> np.ndarray:
+def extract_ordinals(ndarray values, freq) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
@@ -1701,7 +1701,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq, is_period) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """

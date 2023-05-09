@@ -318,7 +318,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         periods = dtl.validate_periods(periods)
 
         if freq is not None:
-            freq = Period._maybe_convert_freq(freq, is_period=True)
+            freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
         if start is not None or end is not None:
@@ -528,7 +528,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             freq = self._dtype._get_to_timestamp_base()
             base = freq
         else:
-            freq = Period._maybe_convert_freq(freq, is_period=True)
+            freq = Period._maybe_convert_freq(freq)
             base = freq._period_dtype_code
 
         new_parr = self.asfreq(freq, how=how)
@@ -604,7 +604,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         how = libperiod.validate_end_alias(how)
 
-        freq = Period._maybe_convert_freq(freq, is_period=True)
+        freq = Period._maybe_convert_freq(freq)
 
         base1 = self._dtype._dtype_code
         base2 = freq._period_dtype_code
@@ -1036,12 +1036,12 @@ def dt64arr_to_periodarr(
         data = data._values
 
     reso = get_unit_from_dtype(data.dtype)
-    freq = Period._maybe_convert_freq(freq, is_period=True)
+    freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 
-def _get_ordinal_range(start, end, periods, freq, is_period, mult: int = 1):
+def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(
             "Of the three parameters: start, end, and periods, "
@@ -1049,7 +1049,7 @@ def _get_ordinal_range(start, end, periods, freq, is_period, mult: int = 1):
         )
 
     if freq is not None:
-        freq = to_offset(freq, is_period)
+        freq = to_offset(freq, is_period=True)
         mult = freq.n
 
     if start is not None:

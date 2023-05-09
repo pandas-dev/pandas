@@ -4272,13 +4272,14 @@ cpdef to_offset(freq, bint is_period=False):
                         UserWarning,
                     )
                     name = "ME"
-                if is_period is True and name == "M":
-                    name = "ME"
-                elif is_period is True and name == "ME":
-                    raise ValueError(
+                if is_period is True and name == "ME":
+                     warnings.warn(
                         r"for Period, please use \'M\' "
-                        "instead of \'ME\'"
+                        "instead of \'ME\'",
+                        UserWarning,
                     )
+                elif is_period is True and name == "M":
+                    name = "ME"
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
