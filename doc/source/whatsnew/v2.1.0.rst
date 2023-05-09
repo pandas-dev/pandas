@@ -423,8 +423,8 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in :class:`SparseDtype` constructor failing to raise ``TypeError`` when given an incompatible ``dtype`` for its subtype, which must be a ``numpy`` dtype (:issue:`53160`)
 - Bug in :meth:`arrays.SparseArray.map` allowed the fill value to be included in the sparse values (:issue:`52095`)
-- Bug in :class:`SparseDtype` constructor failing to raise ``TypeError`` when given an incompatible ``dtype`` for its subtype, which must be a ``numpy`` dtype (:issue:`??`)
 -
 
 ExtensionArray
