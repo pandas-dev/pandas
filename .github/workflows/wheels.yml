@@ -134,7 +134,7 @@ jobs:
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       # Testing on windowsservercore instead of GHA runner to fail on missing DLLs
-      - name: Test wheels (Windows 64-bit only)
+      - name: Test Windows Wheels
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
         shell: pwsh
         run: |
