@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    IS64,
     is_platform_arm,
     is_platform_mac,
     is_platform_power,
@@ -1711,7 +1712,11 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
     if np.isnan(q1):
         assert np.isnan(q2)
     else:
-        assert q1 == q2
+        if not IS64:
+            # Less precision on 32-bit
+            assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
+        else:
+            assert q1 == q2
 
 
 def test_invalid_quantile_value():
