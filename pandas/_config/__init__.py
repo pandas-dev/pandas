@@ -32,9 +32,8 @@ from pandas._config.display import detect_console_encoding
 
 def using_copy_on_write() -> bool:
     """
-    Determine if copy-on-write mode is being used.
+    Determine if copy-on-write mode is enabled.
 
-    This function examines the global pandas configuration settings.
     Copy-on-write is a memory-saving technique that avoids copying data
     until it is actually modified, which can be particularly useful when
     working with large datasets.
@@ -47,10 +46,10 @@ def using_copy_on_write() -> bool:
 
     Example
     -------
-    >>> pd.set_option('mode.copy', True)
+    >>> pd.set_option("mode.copy_on_write", True)
     >>> using_copy_on_write()
     True
-    >>> pd.set_option('mode.copy', False)
+    >>> pd.set_option("mode.copy_on_write", False)
     >>> using_copy_on_write()
     False
     """
