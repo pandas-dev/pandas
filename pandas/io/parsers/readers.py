@@ -1515,10 +1515,11 @@ class TextFileReader(abc.Iterator):
             if engine == "c" and sep == r"\s+":
                 result["delim_whitespace"] = True
                 del result["delimiter"]
-            elif engine == "pyarrow" and (sep in ("\\s+", "  ", "||")):
+            elif engine == "pyarrow":
                 fallback_reason = (
-                    "The 'pyarrow' engine does not support separators with more than "
-                    "one character. Please use the C parser instead."
+                    "The 'pyarrow' engine does not support separators "
+                    "with more than one character. Please consider "
+                    "using a different engine."
                 )
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated

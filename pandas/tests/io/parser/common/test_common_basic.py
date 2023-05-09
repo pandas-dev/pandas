@@ -870,8 +870,9 @@ def test_pyarrow_with_multi_character_separator(separator):
     # GH#52554
     data = "a b c\n1 2 3\n4 5 6"
     msg = (
-        "The 'pyarrow' engine does not support separators with more than "
-        "one character. Please use the C parser instead."
+        "The 'pyarrow' engine does not support separators "
+        "with more than one character. Please consider "
+        "using a different engine."
     )
     with pytest.raises(ValueError, match=msg):
         pd.read_csv(StringIO(data), engine="pyarrow", sep=separator)
