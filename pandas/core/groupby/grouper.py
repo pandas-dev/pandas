@@ -721,7 +721,7 @@ class Grouping:
             if self._sort and (codes == len(uniques)).any():
                 # Add NA value on the end when sorting
                 uniques = Categorical.from_codes(
-                    np.append(uniques.codes, [-1]), uniques.categories
+                    np.append(uniques.codes, [-1]), uniques.categories, validate=False
                 )
             elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
@@ -730,8 +730,9 @@ class Grouping:
                 if cat.codes[na_idx] < 0:
                     # count number of unique codes that comes before the nan value
                     na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    new_codes = np.insert(uniques.codes, na_unique_idx, -1)
                     uniques = Categorical.from_codes(
-                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                        new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
 
@@ -754,7 +755,7 @@ class Grouping:
                 ucodes = np.arange(len(categories))
 
             uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered
+                codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
 
             codes = cat.codes
@@ -800,7 +801,8 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        return self._index.groupby(cats)
 
 
 def get_grouper(
