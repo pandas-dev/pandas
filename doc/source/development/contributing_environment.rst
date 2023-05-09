@@ -238,7 +238,7 @@ Appending ``--config-settings setup-args="-Ddebug=true"`` will do the trick.
 
 With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
 and building with debug symbols would look like
-``--config-settings builddir="your builddir here" --config-settings setup-args="-Ddebug=true"``.
+``--config-settings builddir="your builddir here" --config-settings=setup-args="-Dbuildtype=debug"``.
 
 **Compiling pandas with setup.py**
 
