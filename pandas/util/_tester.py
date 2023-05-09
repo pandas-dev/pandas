@@ -11,7 +11,7 @@ from pandas.compat._optional import import_optional_dependency
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args: list[str] | None = None) -> None:
+def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:
     """
     Run the pandas test suite using pytest.
 
@@ -21,6 +21,10 @@ def test(extra_args: list[str] | None = None) -> None:
     ----------
     extra_args : list[str], default None
         Extra marks to run the tests.
+    run_doctests : bool, default False
+        Whether to only run the Python and Cython doctests. If you would like to run
+        both doctests/regular tests, just append "--doctest-modules"/"--doctest-cython"
+        to extra_args.
     """
     pytest = import_optional_dependency("pytest")
     import_optional_dependency("hypothesis")
@@ -29,6 +33,12 @@ def test(extra_args: list[str] | None = None) -> None:
         if not isinstance(extra_args, list):
             extra_args = [extra_args]
         cmd = extra_args
+    if run_doctests:
+        cmd = [
+            "--doctest-modules",
+            "--doctest-cython",
+            f"--ignore={os.path.join(PKG, 'tests')}",
+        ]
     cmd += [PKG]
     joined = " ".join(cmd)
     print(f"running: pytest {joined}")
