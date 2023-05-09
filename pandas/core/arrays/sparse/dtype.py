@@ -91,6 +91,8 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
             dtype = np.dtype("object")
+        if not isinstance(dtype, np.dtype):
+            raise TypeError("SparseDtype subtype must be a numpy dtype")
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
