@@ -1378,6 +1378,7 @@ class Index(IndexOpsMixin, PandasObject):
         decimal: str_t = ".",
         float_format=None,
         date_format=None,
+        fast_strftime: bool = True,
         quoting=None,
     ) -> npt.NDArray[np.object_]:
         """
