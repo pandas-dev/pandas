@@ -1212,7 +1212,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     Traceback (most recent call last):
         ...
     TypeError: dtype=timedelta64[ps] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
-    """  # noqa:E501
+    """  # noqa: E501
     msg = (
         f"The '{dtype.name}' dtype has no unit. "
         f"Please pass in '{dtype.name}[ns]' instead."

@@ -8,6 +8,8 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython>=0.29.33
+  - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -69,7 +71,6 @@ dependencies:
   - pandas-datareader
   - pyyaml
   - py
-
   - pip:
     - pyqt5>=5.15.6
     - tzdata>=2022.1
