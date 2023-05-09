@@ -317,8 +317,7 @@ class Preprocessors:
         ) as f:
             json.dump(pdeps, f)
 
-        regex = r"^PDEP-(\d+)"
-        compiled_pattern = re.compile(regex)
+        compiled_pattern = re.compile(r"^PDEP-(\d+)")
 
         def sort_pdep(pdep: dict) -> int:
             title = pdep["title"]
