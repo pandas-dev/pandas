@@ -460,7 +460,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         *,
         na_rep: str | float = "NaT",
         date_format=None,
-        fast_strftime: bool=True,
+        fast_strftime: bool = True,
         **kwargs,
     ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_timedelta64
