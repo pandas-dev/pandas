@@ -453,7 +453,7 @@ class ArrowExtensionArray(
                 raise NotImplementedError(
                     f"{op.__name__} not implemented for {type(other)}"
                 )
-        return type(self)(result)
+        return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
         pa_type = self._pa_array.type
@@ -1611,6 +1611,8 @@ class ArrowExtensionArray(
             pa_array = value
         elif isinstance(value, BaseMaskedArray):
             # GH 52625
+            if copy:
+                value = value.copy()
             pa_array = value.__arrow_array__()
         else:
             if (
