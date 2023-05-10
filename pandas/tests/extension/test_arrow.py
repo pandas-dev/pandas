@@ -2926,7 +2926,7 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_from_sequence_temporal(pa_type):
-    # GH#####
+    # GH 53171
     val = 3
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
@@ -2943,7 +2943,7 @@ def test_from_sequence_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_setitem_temporal(pa_type):
-    # GH#####
+    # GH 53171
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
         val = pd.Timedelta(1, unit=unit).as_unit(unit)
@@ -2962,7 +2962,7 @@ def test_setitem_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_arithmetic_temporal(pa_type):
-    # GH#####
+    # GH 53171
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
     unit = pa_type.unit
 
@@ -2975,7 +2975,7 @@ def test_arithmetic_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_comparison_temporal(pa_type):
-    # GH#####
+    # GH 53171
     unit = pa_type.unit
     if pa.types.is_duration(pa_type):
         val = pd.Timedelta(1, unit=unit).as_unit(unit)

@@ -1574,7 +1574,7 @@ class ArrowExtensionArray(
         elif isna(value):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
-            # GH#####: pyarrow does not yet handle pandas non-nano correctly
+            # GH 53171: pyarrow does not yet handle pandas non-nano correctly
             # see https://github.com/apache/arrow/issues/33321
             from pandas import (
                 Timedelta,
@@ -1632,7 +1632,7 @@ class ArrowExtensionArray(
                 and pa.types.is_duration(pa_type)
                 and (not isinstance(value, np.ndarray) or value.dtype.kind not in "mi")
             ):
-                # GH#####: pyarrow does not yet handle pandas non-nano correctly
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
                 # see https://github.com/apache/arrow/issues/33321
                 from pandas import to_timedelta
 
@@ -1646,7 +1646,7 @@ class ArrowExtensionArray(
                 pa_array = pa.array(value, from_pandas=True)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
-                # GH#####: pyarrow does not yet handle pandas non-nano correctly
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
                 # see https://github.com/apache/arrow/issues/33321
                 from pandas import to_timedelta
 
