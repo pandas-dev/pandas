@@ -207,6 +207,9 @@ class ToJSONISO(BaseIO):
     def time_iso_format(self, orient):
         self.df.to_json(orient=orient, date_format="iso")
 
+    def time_custom_format(self, orient):
+        self.df.to_json(orient=orient, date_format="%Y-%m-%d__%H:%M:%S")
+
 
 class ToJSONLines(BaseIO):
     fname = "__test__.json"

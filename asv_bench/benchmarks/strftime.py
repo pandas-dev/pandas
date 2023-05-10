@@ -103,6 +103,12 @@ class PeriodStrftime:
     def time_frame_period_to_str(self, nobs, freq):
         self.data["p"].astype(str)
 
+    def time_frame_period_str(self, nobs):
+        self.data["p"].apply(str)
+
+    def time_frame_period_repr(self, nobs):
+        self.data["p"].apply(repr)
+
     def time_frame_period_formatting_default(self, nobs, freq):
         self.data["p"].dt.strftime(date_format=None)
 
@@ -117,6 +123,9 @@ class PeriodStrftime:
 
     def time_frame_period_formatting_custom(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
+
+    # def time_frame_period_formatting_iso8601_map(self, obs, fq):
+    #     self.data["p"].map(lambda p: p.isoformat())
 
     def time_frame_period_formatting_iso8601_strftime_Z(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%SZ")
