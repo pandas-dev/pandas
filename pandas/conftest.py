@@ -147,7 +147,11 @@ def pytest_collection_modifyitems(items, config) -> None:
         ),
         (
             "pandas.core.generic.NDFrame.clip",
-            "clip downcasting from floating dtype to integer dtype is deprecated",
+            # when run manually the warning produced from the example in the
+            #  docstring says "clip downcasting" as expected. But when the doctest
+            #  is run via pytest it says "where downcasting".
+            #  No idea why 2023-05-09
+            "where downcasting from floating dtype to integer dtype is deprecated",
         ),
     ]
 
