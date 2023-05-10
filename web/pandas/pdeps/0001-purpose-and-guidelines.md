@@ -56,14 +56,19 @@ advisor on the PDEP when it is submitted to the PDEP repository.
 
 ### Workflow
 
+#### Rationale
+
 Our workflow was created to support and enable a consensus seeking process, and to provide clarify,
 for current and future authors, as well as voting members. It is not a strict policy, and we
 discourage any interpretation which seeks to take advantage of it in a way that could "force" or
 "sneak" decisions in one way or another. We expect and encourage transparency, active discussion,
 feedback, and compromise from all our community members.
 
+#### PDEP States
+
 The possible states of a PDEP are:
 
+- Draft
 - Under discussion
 - Accepted
 - Implemented
@@ -81,7 +86,8 @@ The initial status of a PDEP will be `Status: Draft`. This will be changed to
 `Status: Under discussion` by the author(s), when they are ready to proceed with the descision
 making process. 
 
-#### Schedule
+#### PDEP Discussion Timeline
+
 A PDEP discussion will remain open for up to 60 days. This period aims to enable participation
 from volunteers, who might not always be available to respond quickly, as well as provide ample
 time to make changes based on suggestions and considerations offered by the participants.
@@ -100,6 +106,7 @@ E-mail:
 - After 10 voting days, with 5 days remaining for voting.
 
 #### Casting Votes
+
 As the voting period starts, a VOTE issue is created which links to the PDEP discussion issue.
 Each voting member may cast a vote by adding one of the following comments:
 
@@ -114,6 +121,7 @@ Once the voting period ends, any voter may tally the votes in a comment, using t
 where x stands for the total of approving, y of abstaining, and z of disapproving votes cast.
 
 #### Quorum and Majority
+
 For a PDEP vote to result in accepting the proposal, a quorum is required. All votes (including
 abstentions) are counted towards the quorum. The quorum is computed as the lower of these two
 values:
