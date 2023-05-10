@@ -212,6 +212,7 @@ def convert_strftime_format(
     distribution, as well as specific additional directives ``%f``, ``%F``,
     ``%q``, ``%l``, ``%u``, ``%n``).
     """
+    unsupported: Tuple[Tuple[str, ...], ...]
     if target in ("datetime", "date", "time"):
         directive_maps = (_COMMON_MAP, _DATETIME_MAP)
         unsupported = (_COMMON_UNSUPPORTED, _DATETIME_UNSUPPORTED)
