@@ -277,8 +277,10 @@ def test_categorical_to_numpy_dlpack():
 @pytest.mark.parametrize("data", [{}, {"a": []}])
 def test_empty_pyarrow(data):
     # GH 53155
-    pa_interchange = pytest.importorskip("pyarrow.interchange", "11.0.0")
+    pytest.importorskip("pyarrow", "11.0.0")
+    from pyarrow.interchange import from_dataframe as pa_from_dataframe
+
     expected = pd.DataFrame(data)
-    arrow_df = pa_interchange.from_dataframe(expected)
+    arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
     tm.assert_frame_equal(result, expected)

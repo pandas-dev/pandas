@@ -80,7 +80,7 @@ def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
             "To join chunks a copy is required which is forbidden by allow_copy=False"
         )
     if not pandas_dfs:
-        pandas_df = pd.DataFrame({col: [] for col in df.column_names()})
+        pandas_df = protocol_df_chunk_to_pandas(df)
     elif len(pandas_dfs) == 1:
         pandas_df = pandas_dfs[0]
     else:
