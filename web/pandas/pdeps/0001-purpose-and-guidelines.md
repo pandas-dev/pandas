@@ -84,7 +84,7 @@ for the expected format.
 
 The initial status of a PDEP will be `Status: Draft`. This will be changed to
 `Status: Under discussion` by the author(s), when they are ready to proceed with the decision
-making process. 
+making process.
 
 #### PDEP Discussion Timeline
 
@@ -111,7 +111,7 @@ As the voting period starts, a VOTE issue is created which links to the PDEP dis
 Each voting member may cast a vote by adding one of the following comments:
 
 - +1: approve.
-- 0: abstain. 
+- 0: abstain.
   - Reason: A one sentence reason is required.
 - -1: disapprove
   - Reason: A one sentence reason is required.
