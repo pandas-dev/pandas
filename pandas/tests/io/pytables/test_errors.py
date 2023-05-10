@@ -56,13 +56,15 @@ def test_table_index_incompatible_dtypes(setup_path):
 
 
 def test_unimplemented_dtypes_table_columns(setup_path):
+    warn_msg = "type inference with a `datetime.date` object"
     with ensure_clean_store(setup_path) as store:
         dtypes = [("date", datetime.date(2001, 1, 2))]
 
         # currently not supported dtypes ####
         for n, f in dtypes:
             df = tm.makeDataFrame()
-            df[n] = f
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                df[n] = f
             msg = re.escape(f"[{n}] is not implemented as a table column")
             with pytest.raises(TypeError, match=msg):
                 store.append(f"df1_{n}", df)
@@ -71,7 +73,8 @@ def test_unimplemented_dtypes_table_columns(setup_path):
     df = tm.makeDataFrame()
     df["obj1"] = "foo"
     df["obj2"] = "bar"
-    df["datetime1"] = datetime.date(2001, 1, 2)
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        df["datetime1"] = datetime.date(2001, 1, 2)
     df = df._consolidate()
 
     with ensure_clean_store(setup_path) as store:

@@ -23,6 +23,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 
 
 def test_infer_dtype_from_int_scalar(any_int_numpy_dtype):
@@ -102,7 +103,9 @@ def test_infer_dtype_from_period(freq):
 
 def test_infer_dtype_misc():
     dt = date(2000, 1, 1)
-    dtype, val = infer_dtype_from_scalar(dt)
+    msg = "type inference with a `datetime.date` object"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        dtype, val = infer_dtype_from_scalar(dt)
     assert dtype == np.object_
 
     ts = Timestamp(1, tz="US/Eastern")

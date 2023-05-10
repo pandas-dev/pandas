@@ -1443,7 +1443,10 @@ class TestLocBaseIndependent:
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
-        df.loc[2, "c"] = date(2005, 5, 5)
+
+        warn_msg = "type inference with a `datetime.date` object"
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            df.loc[2, "c"] = date(2005, 5, 5)
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
