@@ -1560,13 +1560,15 @@ class ArrowExtensionArray(
         return type(self)(most_common)
 
     @classmethod
-    def _box_pa(cls, value, pa_type=None):
+    def _box_pa(
+        cls, value, pa_type: pa.DataType | None = None
+    ) -> pa.Array | pa.ChunkedArray | pa.Scalar:
         if is_list_like(value):
             return cls._box_pa_array(value, pa_type)
         return cls._box_pa_scalar(value, pa_type)
 
     @classmethod
-    def _box_pa_scalar(cls, value, pa_type=None):
+    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
         if isinstance(value, pa.Scalar):
             pa_scalar = value
         elif isna(value):
@@ -1600,7 +1602,9 @@ class ArrowExtensionArray(
         return pa_scalar
 
     @classmethod
-    def _box_pa_array(cls, value, pa_type=None, copy: bool = False):
+    def _box_pa_array(
+        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
+    ) -> pa.Array | pa.ChunkedArray:
         if isinstance(value, cls):
             pa_array = value._pa_array
         elif isinstance(value, (pa.Array, pa.ChunkedArray)):
