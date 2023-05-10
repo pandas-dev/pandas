@@ -292,7 +292,7 @@ def test_cython_group_mean_Inf_at_begining_and_end():
         [[np.inf, 1.0], [1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0], [5, np.inf]],
         dtype="float64",
     )
-    labels = np.array([0, 1, 0, 1, 0, 1], dtype="int64")
+    labels = np.array([0, 1, 0, 1, 0, 1], dtype=np.intp)
 
     group_mean(actual, counts, data, labels, is_datetimelike=False)
 
