@@ -62,20 +62,20 @@ class DatetimeStrftime:
     def time_frame_datetime_formatting_custom(self, nobs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
-    def time_frame_datetime_formatting_index_custom(self, obs, tz_aware):
+    def time_frame_datetime_formatting_index_custom(self, nobs, tz_aware):
         self.data.set_index("dt").index.format(date_format="%Y-%m-%d --- %H:%M:%S")
 
-    def time_frame_datetime_formatting_iso8601_map(self, obs, tz_aware):
+    def time_frame_datetime_formatting_iso8601_map(self, nobs, tz_aware):
         self.data["dt"].map(lambda timestamp: timestamp.isoformat())
 
-    def time_frame_datetime_formatting_iso8601_strftime_Z(self, obs, tz_aware):
+    def time_frame_datetime_formatting_iso8601_strftime_Z(self, nobs, tz_aware):
         self.data["dt"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%SZ")
 
-    def time_frame_datetime_formatting_iso8601_strftime_offset(self, obs, tz_aware):
+    def time_frame_datetime_formatting_iso8601_strftime_offset(self, nobs, tz_aware):
         """Not optimized yet as %z is not supported by `convert_strftime_format`"""
         self.data["dt"].dt.strftime(date_format="%Y-%m-%dT%H:%M:%S%z")
 
-    # def time_frame_datetime_formatting_iso8601_isoformat(self, obs, tz_aware):
+    # def time_frame_datetime_formatting_iso8601_isoformat(self, nobs, tz_aware):
     #     TODO this PR is probably a good opportunity to add this too, or maybe
     #      another PR
     #     self.data["dt"].dt.isoformat()
@@ -103,10 +103,10 @@ class PeriodStrftime:
     def time_frame_period_to_str(self, nobs, freq):
         self.data["p"].astype(str)
 
-    def time_frame_period_str(self, nobs):
+    def time_frame_period_str(self, nobs, freq):
         self.data["p"].apply(str)
 
-    def time_frame_period_repr(self, nobs):
+    def time_frame_period_repr(self, nobs, freq):
         self.data["p"].apply(repr)
 
     def time_frame_period_formatting_default(self, nobs, freq):
@@ -124,7 +124,9 @@ class PeriodStrftime:
     def time_frame_period_formatting_custom(self, nobs, freq):
         self.data["p"].dt.strftime(date_format="%Y-%m-%d --- %H:%M:%S")
 
-    # def time_frame_period_formatting_iso8601_map(self, obs, fq):
+    # def time_frame_period_formatting_iso8601_map(self, nobs, fq):
+    #     TODO this PR is probably a good opportunity to add this too, or maybe
+    #      another PR
     #     self.data["p"].map(lambda p: p.isoformat())
 
     def time_frame_period_formatting_iso8601_strftime_Z(self, nobs, freq):
