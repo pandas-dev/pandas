@@ -200,7 +200,9 @@ class TestDataFrameSelectReindex:
         ts = df.iloc[0, 0]
         fv = ts.date()
 
-        res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+        msg = "type inference with a sequence of `datetime.date` objects is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
 
         expected = DataFrame(
             {"A": df["A"].tolist() + [fv], "B": df["B"].tolist() + [fv], "C": [fv] * 4},

@@ -1087,11 +1087,15 @@ class TestPivotTable:
                 [1.0],
             )
         )
-        df = DataFrame(data)
-        table = df.pivot_table(values=4, index=[0, 1, 3], columns=[2])
+        msg = "type inference with a sequence of `datetime.date` objects is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame(data)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = df.pivot_table(values=4, index=[0, 1, 3], columns=[2])
 
         df2 = df.rename(columns=str)
-        table2 = df2.pivot_table(values="4", index=["0", "1", "3"], columns=["2"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table2 = df2.pivot_table(values="4", index=["0", "1", "3"], columns=["2"])
 
         tm.assert_frame_equal(table, table2, check_names=False)
 

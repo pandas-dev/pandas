@@ -156,7 +156,12 @@ def test_nunique_with_timegrouper():
 )
 def test_nunique_with_NaT(key, data, dropna, expected):
     # GH 27951
-    df = DataFrame({"key": key, "data": data})
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    warn = None
+    if type(data[0]) is dt.date:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
+        df = DataFrame({"key": key, "data": data})
     result = df.groupby(["key"])["data"].nunique(dropna=dropna)
     tm.assert_series_equal(result, expected)
 

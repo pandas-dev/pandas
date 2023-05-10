@@ -2239,9 +2239,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_datetime_date(self):
         # test support for datetime.date
-        df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         assert df.to_sql("test_date", self.conn, index=False) == 2
-        res = read_sql_table("test_date", self.conn)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = read_sql_table("test_date", self.conn)
         result = res["a"]
         expected = to_datetime(df["a"])
         # comes back as datetime64
@@ -3099,7 +3102,9 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
     def test_datetime_date(self):
         # test support for datetime.date
-        df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         assert df.to_sql("test_date", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_date", self.conn)
         if self.flavor == "sqlite":
@@ -3112,7 +3117,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
 
-        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
+        warn_msg = "Pandas type inference with a sequence of `datetime.time` objects"
         if not tz_aware:
             tz_times = [time(9, 0, 0), time(9, 1, 30)]
             warn = FutureWarning

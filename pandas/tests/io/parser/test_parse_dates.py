@@ -1621,10 +1621,12 @@ def test_generic(all_parsers):
         parse_dates={"ym": [0, 1]},
         date_parser=parse_function,
     )
-    expected = DataFrame(
-        [[date(2001, 1, 1), 10, 10.0], [date(2001, 2, 1), 1, 11.0]],
-        columns=["ym", "day", "a"],
-    )
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = DataFrame(
+            [[date(2001, 1, 1), 10, 10.0], [date(2001, 2, 1), 1, 11.0]],
+            columns=["ym", "day", "a"],
+        )
     expected["ym"] = expected["ym"].astype("datetime64[ns]")
     tm.assert_frame_equal(result, expected)
 

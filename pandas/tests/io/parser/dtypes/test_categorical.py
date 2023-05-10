@@ -264,7 +264,14 @@ def test_categorical_coerces_timestamp(all_parsers):
     data = "b\n2014-01-01\n2014-01-01"
     expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    msg = (
+        "Pandas type inference with a sequence of `datetime.date` objects is deprecated"
+    )
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 

@@ -1564,7 +1564,7 @@ class TestTypeInference:
 
     def test_date(self):
         dates = [date(2012, 1, day) for day in range(1, 20)]
-        index = Index(dates)
+        index = Index(dates, dtype=object)
         assert index.inferred_type == "date"
 
         dates = [date(2012, 1, day) for day in range(1, 20)] + [np.nan]

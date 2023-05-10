@@ -744,9 +744,18 @@ class TestSeriesDatetimeValues:
             tz="US/Eastern",
         )
         ser = Series(rng)
-        expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
+
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.date` objects "
+            "is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
         tm.assert_series_equal(ser.dt.date, expected)
-        tm.assert_series_equal(ser.apply(lambda x: x.date()), expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            res = ser.apply(lambda x: x.date())
+        tm.assert_series_equal(res, expected)
 
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358

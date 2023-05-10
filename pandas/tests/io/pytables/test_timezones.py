@@ -277,10 +277,12 @@ def test_store_timezone(setup_path):
     # issue storing datetime.date with a timezone as it resets when read
     # back in a new timezone
 
+    today = date(2013, 9, 10)
+    idx = pd.Index([today, today, today], dtype=object)
+
     # original method
     with ensure_clean_store(setup_path) as store:
-        today = date(2013, 9, 10)
-        df = DataFrame([1, 2, 3], index=[today, today, today])
+        df = DataFrame([1, 2, 3], index=idx)
         store["obj1"] = df
         result = store["obj1"]
         tm.assert_frame_equal(result, df)
@@ -288,8 +290,7 @@ def test_store_timezone(setup_path):
     # with tz setting
     with ensure_clean_store(setup_path) as store:
         with tm.set_timezone("EST5EDT"):
-            today = date(2013, 9, 10)
-            df = DataFrame([1, 2, 3], index=[today, today, today])
+            df = DataFrame([1, 2, 3], index=idx)
             store["obj1"] = df
 
         with tm.set_timezone("CST6CDT"):

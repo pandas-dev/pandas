@@ -61,8 +61,11 @@ def test_apply_issues():
     )
     df = df.set_index("date_time")
 
-    expected = df.groupby(df.index.date).idxmax()
-    result = df.groupby(df.index.date).apply(lambda x: x.idxmax())
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    gb = df.groupby(df.index.date)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = gb.idxmax()
+    result = gb.apply(lambda x: x.idxmax())
     tm.assert_frame_equal(result, expected)
 
     # GH 5789
@@ -844,6 +847,9 @@ def test_apply_datetime_issue(group_column_dtlike):
     )
     if isinstance(group_column_dtlike, time):
         warn = FutureWarning
+    elif type(group_column_dtlike) is date:
+        warn = FutureWarning
+        warn_msg = warn_msg.replace("datetime.time", "datetime.date")
 
     with tm.assert_produces_warning(warn, match=warn_msg):
         df = DataFrame({"a": ["foo"], "b": [group_column_dtlike]})
@@ -1098,27 +1104,31 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
 def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     # GH 29617
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
 
-    df = DataFrame(
-        {
-            "A": ["a", "a", "a", "b"],
-            "B": [
-                date(2020, 1, 10),
-                date(2020, 1, 10),
-                date(2020, 2, 10),
-                date(2020, 2, 10),
-            ],
-            "C": [1, 2, 3, 4],
-        },
-        index=Index([100, 101, 102, 103], name="idx"),
-    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df = DataFrame(
+            {
+                "A": ["a", "a", "a", "b"],
+                "B": [
+                    date(2020, 1, 10),
+                    date(2020, 1, 10),
+                    date(2020, 2, 10),
+                    date(2020, 2, 10),
+                ],
+                "C": [1, 2, 3, 4],
+            },
+            index=Index([100, 101, 102, 103], name="idx"),
+        )
 
     grp = df.groupby(["A", "B"])
-    result = grp.apply(lambda x: x.head(1))
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grp.apply(lambda x: x.head(1))
 
     expected = df.iloc[[0, 2, 3]]
     expected = expected.reset_index()
-    expected.index = MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected.index = MultiIndex.from_frame(expected[["A", "B", "idx"]])
     expected = expected.drop(columns="idx")
 
     tm.assert_frame_equal(result, expected)
@@ -1217,9 +1227,11 @@ def test_positional_slice_groups_datetimelike():
             "let": list("abcde"),
         }
     )
-    result = expected.groupby(
-        [expected.let, expected.date.dt.date], group_keys=False
-    ).apply(lambda x: x.iloc[0:])
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = expected.groupby(
+            [expected.let, expected.date.dt.date], group_keys=False
+        ).apply(lambda x: x.iloc[0:])
     tm.assert_frame_equal(result, expected)
 
 

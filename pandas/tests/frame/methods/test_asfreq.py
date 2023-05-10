@@ -186,7 +186,12 @@ class TestAsFreq:
         ts = frame_or_series(np.random.randn(20), index=rng)
 
         ts2 = ts.copy()
-        ts2.index = [x.date() for x in ts2.index]
+        msg = (
+            "Pandas type inference with a sequence of `datetime.date` "
+            "objects is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts2.index = [x.date() for x in ts2.index]
 
         result = ts2.asfreq("4H", method="ffill")
         expected = ts.asfreq("4H", method="ffill")

@@ -78,12 +78,15 @@ class TestAstype:
         # astype to categorical and back should preserve date objects
         v = date.today()
 
-        obj = Index([v, v])
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            obj = Index([v, v])
         assert obj.dtype == object
         if box:
             obj = obj.array
 
-        cat = obj.astype("category")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat = obj.astype("category")
 
         rtrip = cat.astype(object)
         assert rtrip.dtype == object

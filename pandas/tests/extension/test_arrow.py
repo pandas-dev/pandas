@@ -734,6 +734,13 @@ class TestBaseReshaping(base.BaseReshapingTests):
             # FIXME: need to avoid doing inference when calling frame._constructor
             #  in _stack_multi_columns
             warn = FutureWarning
+        if pa.types.is_date(pa_dtype):
+            # FIXME: need to avoid doing inference when calling frame._constructor
+            #  in _stack_multi_columns
+            warn = FutureWarning
+            warn_msg = (
+                "Pandas type inference with a sequence of `datetime.date` objects"
+            )
 
         with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
             super().test_stack(data, columns)
@@ -802,9 +809,9 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
 class TestBaseMethods(base.BaseMethodsTests):
     def test_hash_pandas_object_works(self, data, as_frame):
         pa_dtype = data.dtype.pyarrow_dtype
-        warn_msg = "Pandas type inference with a sequence of `datetime.time`"
+        warn_msg = "Pandas type inference with a sequence of `datetime.(time|date)`"
         warn = None
-        if pa.types.is_time(pa_dtype):
+        if pa.types.is_time(pa_dtype) or pa.types.is_date(pa_dtype):
             # TODO(#48964) This warning will be avoided by implementing
             #  ArrowExtensionArray.hash_pandas_object
             warn = FutureWarning
@@ -1693,7 +1700,15 @@ def test_pickle_roundtrip(data):
 
 def test_astype_from_non_pyarrow(data):
     # GH49795
-    pd_array = data._pa_array.to_pandas().array
+    msg = (
+        "Pandas type inference with a sequence of `datetime.date` objects is deprecated"
+    )
+    warn = None
+    if pa.types.is_date(data.dtype.pyarrow_dtype):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        pd_array = data._pa_array.to_pandas().array
     result = pd_array.astype(data.dtype)
     assert not isinstance(pd_array.dtype, ArrowDtype)
     assert isinstance(result.dtype, ArrowDtype)

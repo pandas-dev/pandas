@@ -67,13 +67,16 @@ def test_min_date_with_nans():
     ).dt.date
     df = DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
 
-    result = df.groupby("b", as_index=False)["c"].min()["c"]
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("b", as_index=False)["c"].min()["c"]
     expected = pd.to_datetime(
         Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
     ).dt.date
     tm.assert_series_equal(result, expected)
 
-    result = df.groupby("b")["c"].min()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("b")["c"].min()
     expected.index.name = "b"
     tm.assert_series_equal(result, expected)
 

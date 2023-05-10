@@ -269,13 +269,18 @@ class TestMultiLevel:
         tm.assert_series_equal(result, expected)
 
     def test_datetime_object_multiindex(self):
+        msg = (
+            "Pandas type inference with a sequence of `datetime.date` "
+            "objects is deprecated"
+        )
         data_dic = {
             (0, datetime.date(2018, 3, 3)): {"A": 1, "B": 10},
             (0, datetime.date(2018, 3, 4)): {"A": 2, "B": 11},
             (1, datetime.date(2018, 3, 3)): {"A": 3, "B": 12},
             (1, datetime.date(2018, 3, 4)): {"A": 4, "B": 13},
         }
-        result = DataFrame.from_dict(data_dic, orient="index")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = DataFrame.from_dict(data_dic, orient="index")
         data = {"A": [1, 2, 3, 4], "B": [10, 11, 12, 13]}
         index = [
             [0, 0, 1, 1],
@@ -286,7 +291,8 @@ class TestMultiLevel:
                 datetime.date(2018, 3, 4),
             ],
         ]
-        expected = DataFrame(data=data, index=index)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = DataFrame(data=data, index=index)
 
         tm.assert_frame_equal(result, expected)
 

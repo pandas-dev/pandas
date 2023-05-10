@@ -1271,6 +1271,7 @@ cdef class Seen:
         bint period_          # seen_period
         bint interval_        # seen_interval
         bint time_
+        bint date_
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1298,6 +1299,7 @@ cdef class Seen:
         self.period_ = False
         self.interval_ = False
         self.time_ = False
+        self.date_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2565,6 +2567,11 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif PyDate_Check(val):
+            if convert_non_numeric:
+                seen.date_ = True
+            else:
+                seen.object_ = True
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True
@@ -2688,7 +2695,36 @@ def maybe_convert_objects(ndarray[object] objects,
 
         seen.object_ = True
 
-    if seen.nat_:
+    elif seen.date_:
+        if is_date_array(objects, skipna=True):
+            opt = get_option("future.infer_date")
+            if opt is True:
+                import pyarrow as pa
+
+                from pandas.core.dtypes.dtypes import ArrowDtype
+
+                obj = pa.array(objects)
+                dtype = ArrowDtype(obj.type)
+                return dtype.construct_array_type()(obj)
+            elif opt is False:
+                # explicitly set to keep the old behavior and avoid the warning
+                pass
+            else:
+                from pandas.util._exceptions import find_stack_level
+                warnings.warn(
+                    "Pandas type inference with a sequence of `datetime.date` "
+                    "objects is deprecated. In a future version, this will give "
+                    "date32[pyarrow] dtype, which will require pyarrow to be "
+                    "installed. To opt in to the new behavior immediately set "
+                    "`pd.set_option('future.infer_time', True)`. To keep the "
+                    "old behavior pass `dtype=object`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        seen.object_ = True
+
+    elif seen.nat_:
         if not seen.object_ and not seen.numeric_ and not seen.bool_:
             # all NaT, None, or nan (at least one NaT)
             # see GH#49340 for discussion of desired behavior

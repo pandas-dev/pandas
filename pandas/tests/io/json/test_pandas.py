@@ -836,7 +836,13 @@ class TestPandasContainer:
         if as_object:
             data.append("a")
 
-        ser = Series(data, index=data)
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        warn = None
+        if date_typ is datetime.date and not as_object:
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            ser = Series(data, index=data)
         result = ser.to_json(date_format=date_format)
 
         if date_format == "epoch":

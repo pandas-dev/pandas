@@ -1043,7 +1043,12 @@ class TestSeriesConstructors:
 
         # leave datetime.date alone
         dates2 = np.array([d.date() for d in dates.to_pydatetime()], dtype=object)
-        series1 = Series(dates2, dates)
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.date` objects "
+            "is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            series1 = Series(dates2, dates)
         tm.assert_numpy_array_equal(series1.values, dates2)
         assert series1.dtype == object
 

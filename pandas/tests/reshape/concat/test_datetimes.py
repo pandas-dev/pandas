@@ -131,34 +131,43 @@ class TestDatetimeConcat:
             dtype="object",
         )
 
-        s = Series(
-            ["a", "b"],
-            index=MultiIndex.from_arrays(
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # TODO: should this be not-inferring since we already specified
+            # object dtype?
+            mi = MultiIndex.from_arrays(
                 [
                     [1, 2],
                     idx[:-1],
                 ],
                 names=["first", "second"],
-            ),
-        )
-        s2 = Series(
+            )
+        s = Series(
             ["a", "b"],
-            index=MultiIndex.from_arrays(
+            index=mi,
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mi2 = MultiIndex.from_arrays(
                 [[1, 2], idx[::2]],
                 names=["first", "second"],
-            ),
+            )
+        s2 = Series(
+            ["a", "b"],
+            index=mi2,
         )
-        mi = MultiIndex.from_arrays(
-            [[1, 2, 2], idx],
-            names=["first", "second"],
-        )
-        assert mi.levels[1].dtype == object
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mi3 = MultiIndex.from_arrays(
+                [[1, 2, 2], idx],
+                names=["first", "second"],
+            )
+        assert mi3.levels[1].dtype == object
 
         expected = DataFrame(
             [["a", "a"], ["b", np.nan], [np.nan, "b"]],
-            index=mi,
+            index=mi3,
         )
-        result = concat([s, s2], axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([s, s2], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_NaT_series(self):

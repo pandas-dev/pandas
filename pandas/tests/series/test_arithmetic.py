@@ -219,9 +219,8 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        ser = Series(
-            [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
-        )
+        index = Index([date(2012, 1, 1), date(2012, 1, 2)], dtype=object)
+        ser = Series([Decimal("1.3"), Decimal("2.3")], index=index)
 
         result = ser + ser.shift(1)
         result2 = ser.shift(1) + ser
@@ -761,7 +760,13 @@ class TestTimeSeriesArithmetic:
 
         ts_slice = ts[5:]
         ts2 = ts_slice.copy()
-        ts2.index = [x.date() for x in ts2.index]
+
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.date` objects "
+            "is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            ts2.index = [x.date() for x in ts2.index]
 
         result = ts + ts2
         result2 = ts2 + ts

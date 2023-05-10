@@ -900,3 +900,12 @@ with cf.config_prefix("future"):
         "(at which point this option will be deprecated).",
         validator=is_one_of_factory([True, False, None]),
     )
+
+    cf.register_option(
+        "future.infer_date",
+        None,
+        "Whether to infer sequence of datetime.date objects as pyarrow date "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False, None]),
+    )

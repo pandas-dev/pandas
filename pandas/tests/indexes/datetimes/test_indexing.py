@@ -513,7 +513,9 @@ class TestGetIndexer:
     def test_get_indexer_date_objs(self):
         rng = date_range("1/1/2000", periods=20)
 
-        result = rng.get_indexer(rng.map(lambda x: x.date()))
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = rng.get_indexer(rng.map(lambda x: x.date()))
         expected = rng.get_indexer(rng)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -568,7 +570,9 @@ class TestGetIndexer:
     def test_get_indexer_mixed_dtypes(self, target):
         # https://github.com/pandas-dev/pandas/issues/33741
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
-        result = values.get_indexer(target)
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -583,7 +587,9 @@ class TestGetIndexer:
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
-        result = values.get_indexer(target)
+        msg = "Pandas type inference with a sequence of `datetime.date` objects"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 

@@ -38,6 +38,12 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
     warn = None
     if dtype == "category" and inferred_dtype == "time":
         warn = FutureWarning
+    if dtype == "category" and inferred_dtype == "date":
+        warn = FutureWarning
+        warn_msg = (
+            "Pandas type inference with a sequence of `datetime.date` objects "
+            "is deprecated"
+        )
 
     with tm.assert_produces_warning(warn, match=warn_msg):
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting

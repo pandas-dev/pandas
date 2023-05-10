@@ -1895,7 +1895,12 @@ class TestDataFrameConstructors:
         datetimes = [ts.to_pydatetime() for ts in ind]
         dates = [ts.date() for ts in ind]
         df = DataFrame(datetimes, columns=["datetimes"])
-        df["dates"] = dates
+        msg = (
+            "Pandas type inference with a sequence of `datetime.date` "
+            "objects is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df["dates"] = dates
         result = df.dtypes
         expected = Series(
             [np.dtype("datetime64[ns]"), np.dtype("object")],
@@ -2361,7 +2366,12 @@ class TestDataFrameConstructors:
         # GH 10863
         v = date.today()
         tup = v, v
-        result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
+        msg = (
+            "Pandas type inference with a sequence of `datetime.date` "
+            "objects is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
         expected = DataFrame([0, 1, 2], columns=Index(Series([tup])))
         tm.assert_frame_equal(result, expected)
 

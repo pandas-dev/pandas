@@ -68,19 +68,22 @@ def test_agg_datetimes_mixed():
         for row in data
     ]
 
-    df2 = DataFrame(
-        {
-            "key": [x[0] for x in data],
-            "date": [x[1] for x in data],
-            "value": [x[2] for x in data],
-        }
-    )
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = DataFrame(
+            {
+                "key": [x[0] for x in data],
+                "date": [x[1] for x in data],
+                "value": [x[2] for x in data],
+            }
+        )
 
     df1["weights"] = df1["value"] / df1["value"].sum()
     gb1 = df1.groupby("date").aggregate(np.sum)
 
     df2["weights"] = df1["value"] / df1["value"].sum()
-    gb2 = df2.groupby("date").aggregate(np.sum)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = df2.groupby("date").aggregate(np.sum)
 
     assert len(gb1) == len(gb2)
 
@@ -367,22 +370,25 @@ def test_agg_consistency():
     def P1(a):
         return np.percentile(a.dropna(), q=1)
 
-    df = DataFrame(
-        {
-            "col1": [1, 2, 3, 4],
-            "col2": [10, 25, 26, 31],
-            "date": [
-                dt.date(2013, 2, 10),
-                dt.date(2013, 2, 10),
-                dt.date(2013, 2, 11),
-                dt.date(2013, 2, 11),
-            ],
-        }
-    )
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df = DataFrame(
+            {
+                "col1": [1, 2, 3, 4],
+                "col2": [10, 25, 26, 31],
+                "date": [
+                    dt.date(2013, 2, 10),
+                    dt.date(2013, 2, 10),
+                    dt.date(2013, 2, 11),
+                    dt.date(2013, 2, 11),
+                ],
+            }
+        )
 
     g = df.groupby("date")
 
-    expected = g.agg([P1])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = g.agg([P1])
     expected.columns = expected.columns.levels[0]
 
     result = g.agg(P1)

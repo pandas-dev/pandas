@@ -369,7 +369,12 @@ class TestCategoricalConstructors:
         # we dont cast date objects to timestamps, matching Index constructor
         v = date.today()
 
-        cat = Categorical([v, v])
+        msg = (
+            "Pandas type inference with a sequence of `datetime.date` "
+            "objects is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat = Categorical([v, v])
         assert cat.categories.dtype == object
         assert type(cat.categories[0]) is date
 

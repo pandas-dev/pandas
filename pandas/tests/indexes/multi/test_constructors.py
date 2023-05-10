@@ -801,7 +801,9 @@ def test_datetimeindex():
 
     # but NOT date objects, matching Index behavior
     date4 = date.today()
-    index = MultiIndex.from_product([[date4], [date2]])
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        index = MultiIndex.from_product([[date4], [date2]])
     assert not isinstance(index.levels[0], pd.DatetimeIndex)
     assert isinstance(index.levels[1], pd.DatetimeIndex)
 
@@ -829,23 +831,27 @@ def test_constructor_with_tz():
 
 def test_multiindex_inference_consistency():
     # check that inference behavior matches the base class
-
+    msg = "Pandas type inference with a sequence of `datetime.date` objects"
     v = date.today()
 
     arr = [v, v]
 
-    idx = Index(arr)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx = Index(arr)
     assert idx.dtype == object
 
-    mi = MultiIndex.from_arrays([arr])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        mi = MultiIndex.from_arrays([arr])
     lev = mi.levels[0]
     assert lev.dtype == object
 
-    mi = MultiIndex.from_product([arr])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        mi = MultiIndex.from_product([arr])
     lev = mi.levels[0]
     assert lev.dtype == object
 
-    mi = MultiIndex.from_tuples([(x,) for x in arr])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        mi = MultiIndex.from_tuples([(x,) for x in arr])
     lev = mi.levels[0]
     assert lev.dtype == object
 

@@ -633,7 +633,7 @@ class TestExcelWriter:
 
         tsf = tsframe.copy()
 
-        tsf.index = [x.date() for x in tsframe.index]
+        tsf.index = Index([x.date() for x in tsframe.index], dtype=object)
         tsf.to_excel(path, "test1", merge_cells=merge_cells)
 
         with ExcelFile(path) as reader:
