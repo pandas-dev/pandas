@@ -115,6 +115,7 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
+- :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
 -
@@ -309,7 +310,9 @@ Performance improvements
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
+- Performance improvement in :meth:`Series.add` for pyarrow string and binary dtypes (:issue:`53150`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
+- Performance improvement in :meth:`Series.str.get` for pyarrow-backed strings (:issue:`53152`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
@@ -381,7 +384,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)
 -
 
 Missing
@@ -391,7 +394,6 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
 
 I/O
