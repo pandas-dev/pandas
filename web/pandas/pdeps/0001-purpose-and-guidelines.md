@@ -83,7 +83,7 @@ The file is a markdown file, you can use `web/pdeps/0001.md` as a reference
 for the expected format.
 
 The initial status of a PDEP will be `Status: Draft`. This will be changed to
-`Status: Under discussion` by the author(s), when they are ready to proceed with the descision
+`Status: Under discussion` by the author(s), when they are ready to proceed with the decision
 making process. 
 
 #### PDEP Discussion Timeline
@@ -130,7 +130,7 @@ values:
 - 50% of voting members.
 
 Given a quorum, a majority of 75% of the non-abstaining votes is required as well, i.e. 75% of
-the approving and disapproving votes must be in favor. 
+the approving and disapproving votes must be in favor.
 
 Thus, abstaining votes count towards a quorum, but not towards a majority. A voting member might
 choose to abstain when they have participated in the discussion, have some objections to the
