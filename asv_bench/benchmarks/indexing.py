@@ -540,7 +540,7 @@ class Block:
         (np.array(True), "np.array(True)"),
     ]
 
-    def setup(self, true_value, name):
+    def setup(self, true_value, mode):
         self.df = DataFrame(
             False,
             columns=np.arange(500).astype(str),
@@ -549,7 +549,7 @@ class Block:
 
         self.true_value = true_value
 
-    def time_test(self, true_value, name):
+    def time_test(self, true_value, mode):
         start = datetime(2010, 5, 1)
         end = datetime(2010, 9, 1)
         self.df.loc[start:end, :] = true_value
