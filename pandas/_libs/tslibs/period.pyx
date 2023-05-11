@@ -1426,7 +1426,7 @@ def period_array_strftime(
             item_repr = period_format(
                 ordinal,
                 dtype_code,
-                date_format,
+                date_fmt_bytes,
                 fast_fmt,
                 fast_loc_am,
                 fast_loc_pm,
