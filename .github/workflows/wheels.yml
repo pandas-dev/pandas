@@ -112,7 +112,7 @@ jobs:
           path: ./dist
 
       - name: Set up QEMU
-        if: ${{ runner.os == 'Linux' && contains(matrix.buildplat, 'aarch64') }}
+        if: ${{ contains(matrix.buildplat[1], 'linux_aarch64') }}
         uses: docker/setup-qemu-action@v2
         with:
           platforms: arm64
@@ -123,7 +123,7 @@ jobs:
           package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_ARCHS_LINUX: ${{ contains(matrix.buildplat, 'aarch64') && 'aarch64' || 'x86_64' }}
+          CIBW_ARCHS_LINUX: ${{ contains(matrix.buildplat[1], 'linux_aarch64') && 'aarch64' || 'x86_64' }}
 
       - name: Set up Python
         uses: mamba-org/provision-with-micromamba@v15
