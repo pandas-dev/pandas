@@ -92,13 +92,13 @@ Other enhancements
 - Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)
 - Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
+- Improved error handling when using :meth:`DataFrame.to_json` with incompatible ``index`` and ``orient`` arguments (:issue:`52143`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -426,6 +426,7 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in :class:`SparseDtype` constructor failing to raise ``TypeError`` when given an incompatible ``dtype`` for its subtype, which must be a ``numpy`` dtype (:issue:`53160`)
 - Bug in :meth:`arrays.SparseArray.map` allowed the fill value to be included in the sparse values (:issue:`52095`)
 -
 
