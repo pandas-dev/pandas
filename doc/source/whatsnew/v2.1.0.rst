@@ -77,7 +77,7 @@ Strftime performance improvements
   a python string formatting template.
 - New :meth:`Period.fast_strftime` and :meth:`Timestamp.fast_strftime` leveraging
   templates created with :func:`convert_strftime_format`
-- New `fast_strftime` boolean flag in all formatting procedures to enable faster
+- New ``fast_strftime`` boolean flag in all formatting procedures to enable faster
   strftime operations leveraging :func:`convert_strftime_format` and python string
   formatting:
     - in :meth:`DatetimeLikeArrayMixin.strftime` and
