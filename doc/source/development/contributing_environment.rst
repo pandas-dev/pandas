@@ -225,7 +225,7 @@ To compile pandas with meson, run::
    # Build and install pandas
    python -m pip install -ve . --no-build-isolation
 
-** Build options **
+**Build options**
 
 It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
 install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
