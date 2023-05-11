@@ -2958,19 +2958,20 @@ def test_setitem_temporal(pa_type):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    pa_version_under8p0,
-    reason="Function 'subtract_checked' has no kernel matching input types",
-    raises=pa.ArrowNotImplementedError,
-)
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
-def test_arithmetic_temporal(pa_type):
+def test_arithmetic_temporal(pa_type, request):
     # GH 53171
+    if pa_version_under8p0 and pa.types.is_duration(pa_type):
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowNotImplementedError,
+            reason="Function 'subtract_checked' has no kernel matching input types",
+        )
+        request.node.add_marker(mark)
+
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
     unit = pa_type.unit
-
     result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
     expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
