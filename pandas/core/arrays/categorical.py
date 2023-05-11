@@ -649,7 +649,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def from_codes(
-        cls, codes, categories=None, ordered=None, dtype: Dtype | None = None
+        cls,
+        codes,
+        categories=None,
+        ordered=None,
+        dtype: Dtype | None = None,
+        validate: bool = True,
     ) -> Self:
         """
         Make a Categorical type from codes and categories or dtype.
@@ -677,6 +682,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
+        validate : bool, default True
+            If True, validate that the codes are valid for the dtype.
+            If False, don't validate that the codes are valid. Be careful about skipping
+            validation, as invalid codes can lead to severe problems, such as segfaults.
+
+            .. versionadded:: 2.1.0
 
         Returns
         -------
@@ -699,18 +710,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
             raise ValueError(msg)
 
-        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
-            # Avoid the implicit conversion of Int to object
-            if isna(codes).any():
-                raise ValueError("codes cannot contain NA values")
-            codes = codes.to_numpy(dtype=np.int64)
-        else:
-            codes = np.asarray(codes)
-        if len(codes) and codes.dtype.kind not in "iu":
-            raise ValueError("codes need to be array-like integers")
-
-        if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
-            raise ValueError("codes need to be between -1 and len(categories)-1")
+        if validate:
+            # beware: non-valid codes may segfault
+            codes = cls._validate_codes_for_dtype(codes, dtype=dtype)
 
         return cls._simple_new(codes, dtype=dtype)
 
@@ -1325,7 +1327,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
-            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+            return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
 
         if has_nans:
             new_categories = new_categories.insert(len(new_categories), na_val)
@@ -1377,6 +1379,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 f"category ({fill_value}), set the categories first"
             ) from None
         return fill_value
+
+    @classmethod
+    def _validate_codes_for_dtype(cls, codes, *, dtype: CategoricalDtype) -> np.ndarray:
+        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
+            # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
+            codes = codes.to_numpy(dtype=np.int64)
+        else:
+            codes = np.asarray(codes)
+        if len(codes) and codes.dtype.kind not in "iu":
+            raise ValueError("codes need to be array-like integers")
+
+        if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
+            raise ValueError("codes need to be between -1 and len(categories)-1")
+        return codes
 
     # -------------------------------------------------------------
 
@@ -2724,7 +2742,7 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
-        cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        cat = Categorical.from_codes(cat_codes, dtype=values.dtype, validate=False)
 
         categories = CategoricalIndex(cat)
         codes = values.codes

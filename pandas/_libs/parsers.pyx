@@ -303,19 +303,19 @@ PandasParser_IMPORT
 # cdef extern'ed declarations seem to leave behind an undefined symbol
 cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
                             char sci, char tsep, int skip_trailing,
-                            int *error, int *maybe_int) nogil:
+                            int *error, int *maybe_int) noexcept nogil:
     return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
                                     char sci, char tsep, int skip_trailing,
-                                    int *error, int *maybe_int) nogil:
+                                    int *error, int *maybe_int) noexcept nogil:
     return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef double round_trip_wrapper(const char *p, char **q, char decimal,
                                char sci, char tsep, int skip_trailing,
-                               int *error, int *maybe_int) nogil:
+                               int *error, int *maybe_int) noexcept nogil:
     return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
