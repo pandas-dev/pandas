@@ -318,7 +318,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.fillna \
         pandas.Index.dropna \
         pandas.Index.astype \
-        pandas.Index.item \
         pandas.Index.map \
         pandas.Index.ravel \
         pandas.Index.to_list \
