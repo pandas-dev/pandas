@@ -178,7 +178,7 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
         mi = wide_multi_index
         result = mi[:1].__repr__()
         expected = """MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...)],
-           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""  # noqa:E501
+           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""  # noqa: E501
         assert result == expected
 
         result = mi[:10].__repr__()

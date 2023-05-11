@@ -103,11 +103,12 @@ filepath_or_buffer : str, path object or file-like object
 sep : str, default {_default_sep}
     Delimiter to use. If sep is None, the C engine cannot automatically detect
     the separator, but the Python parsing engine can, meaning the latter will
-    be used and automatically detect the separator by Python's builtin sniffer
-    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
-    different from ``'\s+'`` will be interpreted as regular expressions and
-    will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
+    be used and automatically detect the separator from only the first valid
+    row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
+    In addition, separators longer than 1 character and different from
+    ``'\s+'`` will be interpreted as regular expressions and will also force
+    the use of the Python parsing engine. Note that regex delimiters are prone
+    to ignoring quoted data. Regex example: ``'\r\t'``.
 delimiter : str, default ``None``
     Alias for sep.
 header : int, list of int, None, default 'infer'
