@@ -89,7 +89,7 @@ dependencies:
   - gitdb
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme<0.11
+  - pydata-sphinx-theme
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
