@@ -1159,11 +1159,20 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
 
 
-cdef str period_format(int64_t value, int freq, object fmt=None):
+cdef str period_format(
+    int64_t value,
+    int freq,
+    object fmt=None,
+    object fast_fmt=None,
+    object fast_loc_am=None,
+    object fast_loc_pm=None,
+    bint preencoded_str=False
+):
+    """Important: please provide a dummy non-None fmt if fast_fmt is non-None"""
 
     cdef:
         int freq_group, quarter
-        npy_datetimestruct dts
+        npy_datetimestruct dts, dts2
         bint is_fmt_none
 
     if value == NPY_NAT:
@@ -1228,51 +1237,50 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         # `freq_group` is invalid, raise
         raise ValueError(f"Unknown freq: {freq}")
 
+    elif fast_fmt is not None:
+        # A custom format is requested using python string formatting
+
+        if not preencoded_str:
+            # Encode strings using current locale, in case they contain non-utf8 chars
+            if isinstance(fast_fmt, str):
+                fast_fmt = <bytes>util.string_encode_locale(fast_fmt)
+            if isinstance(fast_loc_am, str):
+                fast_loc_am = <bytes>util.string_encode_locale(fast_loc_am)
+            if isinstance(fast_loc_pm, str):
+                fast_loc_pm = <bytes>util.string_encode_locale(fast_loc_pm)
+
+        # Get the quarter and fiscal year
+        quarter = get_yq(value, freq, &dts2)
+
+        # Finally use the string template
+        y = dts.year
+        h = dts.hour
+        return fast_fmt % {
+            "year": y,
+            "shortyear": y % 100,
+            "month": dts.month,
+            "day": dts.day,
+            "hour": h,
+            "hour12": 12 if h in (0, 12) else (h % 12),
+            "ampm": fast_loc_pm if (h // 12) else fast_loc_am,
+            "min": dts.min,
+            "sec": dts.sec,
+            "ms": dts.us // 1000,
+            "us": dts.us,
+            "ns": (dts.us * 1000) + (dts.ps // 1000),
+            "q": quarter,
+            "Fyear": dts2.year,
+            "fyear": dts2.year % 100,
+        }
     else:
-        # A custom format is requested
-        if isinstance(fmt, str):
+        # A custom format is requested using strftime (slower)
+
+        if not preencoded_str and isinstance(fmt, str):
             # Encode using current locale, in case fmt contains non-utf8 chars
             fmt = <bytes>util.string_encode_locale(fmt)
 
         return _period_strftime(value, freq, fmt, dts)
 
-
-cdef str fast_period_format(int64_t value, int freq, object fmt_str, object loc_s):
-    """
-    A faster alternative to `strftime` using string formatting.
-    `fmt_str` and `loc_s` should be created beforehand using
-    `convert_strftime_format(fmt, target="period")`.
-    """
-    cdef:
-        npy_datetimestruct dts, dts2
-        int quarter, y, h
-
-    # Fill dts with all fields
-    get_date_info(value, freq, &dts)
-
-    # Get the quarter and fiscal year
-    quarter = get_yq(value, freq, &dts2)
-
-    # Finally use the string template
-    y = dts.year
-    h = dts.hour
-    return fmt_str % {
-        "year": y,
-        "shortyear": y % 100,
-        "month": dts.month,
-        "day": dts.day,
-        "hour": h,
-        "hour12": 12 if h in (0, 12) else (h % 12),
-        "ampm": loc_s.pm if (h // 12) else loc_s.am,
-        "min": dts.min,
-        "sec": dts.sec,
-        "ms": dts.us // 1000,
-        "us": dts.us,
-        "ns": (dts.us * 1000) + (dts.ps // 1000),
-        "q": quarter,
-        "Fyear": dts2.year,
-        "fyear": dts2.year % 100,
-    }
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%f", b"^`CD`^"),
@@ -1371,18 +1379,33 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
-        object fmt_str, loc_s
+        object date_fmt_bytes
+        object fast_fmt = None
+        object fast_loc
+        object fast_loc_am
+        object fast_loc_pm
 
-    if fast_strftime:
-        if date_format is None:
-            fast_strftime = False
+    if fast_strftime and date_format is not None:
+        try:
+            # Try to get the string formatting template for this format
+            fast_fmt, fast_loc = convert_strftime_format(date_format, target="period")
+            fast_loc_am = fast_loc.am
+            fast_loc_pm = fast_loc.pm
+        except UnsupportedStrFmtDirective:
+            # Unsupported directive: fallback to standard `strftime`
+            pass
         else:
-            try:
-                # Try to get the string formatting template for this format
-                fmt_str, loc_s = convert_strftime_format(date_format, target="period")
-            except UnsupportedStrFmtDirective:
-                # Unsupported directive: fallback to standard `strftime`
-                fast_strftime = False
+            # Encode strings using current locale, in case they contain non-utf8 chars
+            if isinstance(fast_fmt, str):
+                fast_fmt = <bytes>util.string_encode_locale(fast_fmt)
+            if isinstance(fast_loc_am, str):
+                fast_loc_am = <bytes>util.string_encode_locale(fast_loc_am)
+            if isinstance(fast_loc_pm, str):
+                fast_loc_pm = <bytes>util.string_encode_locale(fast_loc_pm)
+
+    if fast_fmt is None:
+        # Encode string using current locale, in case it contains non-utf8 chars
+        date_fmt_bytes = <bytes>util.string_encode_locale(date_format)
 
     for i in range(n):
         # Analogous to: ordinal = values[i]
@@ -1391,18 +1414,24 @@ def period_array_strftime(
         if ordinal == NPY_NAT:
             item_repr = na_rep
         else:
-            if fast_strftime:
-                # Use python string formatting (faster than strftime)
-                item_repr = fast_period_format(ordinal, dtype_code, fmt_str, loc_s)
-            else:
-                # This is equivalent to
-                # freq = frequency_corresponding_to_dtype_code(dtype_code)
-                # per = Period(ordinal, freq=freq)
-                # if date_format:
-                #     item_repr = per.strftime(date_format)
-                # else:
-                #     item_repr = str(per)
-                item_repr = period_format(ordinal, dtype_code, date_format)
+            # This is equivalent to
+            # freq = frequency_corresponding_to_dtype_code(dtype_code)
+            # per = Period(ordinal, freq=freq)
+            # if fast_fmt:
+            #     item_repr = per.fast_strftime(fast_fmt, fast_loc)
+            # elif date_format:
+            #     item_repr = per.strftime(date_format)
+            # else:
+            #     item_repr = str(per)
+            item_repr = period_format(
+                ordinal,
+                dtype_code,
+                date_format,
+                fast_fmt,
+                fast_loc_am,
+                fast_loc_pm,
+                True,
+            )
 
         # Analogous to: ordinals[i] = ordinal
         out_flat[i] = item_repr
@@ -2516,7 +2545,14 @@ cdef class _Period(PeriodMixin):
             return "NaT"
         else:
             freq = self._dtype._dtype_code
-            return fast_period_format(value, freq, fmt_str, loc_s)
+            return period_format(
+                value,
+                freq,
+                "dummy" if fmt_str is not None else None,
+                fmt_str,
+                loc_s.am,
+                loc_s.pm
+            )
 
     def strftime(self, fmt: str) -> str:
         r"""
