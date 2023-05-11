@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash -el {0}
+
 jobs:
   pip:
     if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
@@ -38,15 +42,42 @@ jobs:
         id: setup_python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
-
-      - name: Install required dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel python-dateutil pytz numpy cython
-          python -m pip install versioneer[toml]
-        shell: bash -el {0}
+          python-version: '3.10'
 
       - name: Pip install with extra
         run: |
-          python -m pip install -e .[${{ matrix.extra }}] --no-build-isolation
+          python -m pip install .[${{ matrix.extra }}] -v
         shell: bash -el {0}
+  conda_forge_recipe:
+    if: ${{ github.event.label.name == 'Build' || contains(github.event.pull_request.labels.*.name, 'Build') || github.event_name == 'push'}}
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+      fail-fast: false
+    name: Test Conda Forge Recipe - Python ${{ matrix.python-version }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-conda-forge-recipe-${{ matrix.python-version }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: mamba-org/provision-with-micromamba@v15
+        with:
+          environment-file: false
+          environment-name: recipe-test
+          extra-specs: |
+            python=${{ matrix.python-version }}
+            boa
+            conda-verify
+          channels: conda-forge
+          cache-downloads: true
+          cache-env: true
+
+      - name: Build conda package
+        run: conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder .

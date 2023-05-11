@@ -88,11 +88,11 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile) as f:
+            with open(pxifile, encoding="utf-8") as f:
                 tmpl = f.read()
             pyxcontent = Tempita.sub(tmpl)
 
-            with open(outfile, "w") as f:
+            with open(outfile, "w", encoding="utf-8") as f:
                 f.write(pyxcontent)
 
     def build_extensions(self):
@@ -204,7 +204,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/interval.pyx",
         "pandas/_libs/hashing.pyx",
         "pandas/_libs/missing.pyx",
-        "pandas/_libs/reduction.pyx",
         "pandas/_libs/testing.pyx",
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
@@ -486,7 +485,6 @@ ext_data = {
             "pandas/_libs/src/pd_parser.h",
         ],
     },
-    "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},

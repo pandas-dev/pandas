@@ -130,15 +130,14 @@ def get_api_items(api_doc_fd):
             if line_stripped == "":
                 position = None
                 continue
-            item = line_stripped.strip()
-            if item in IGNORE_VALIDATION:
+            if line_stripped in IGNORE_VALIDATION:
                 continue
             func = importlib.import_module(current_module)
-            for part in item.split("."):
+            for part in line_stripped.split("."):
                 func = getattr(func, part)
 
             yield (
-                ".".join([current_module, item]),
+                ".".join([current_module, line_stripped]),
                 func,
                 current_section,
                 current_subsection,
@@ -368,7 +367,7 @@ def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
+        with open(api_doc_fname, encoding="utf-8") as f:
             yield from get_api_items(f)
 
 

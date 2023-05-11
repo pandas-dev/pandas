@@ -40,11 +40,9 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_numeric_dtype,
     is_object_dtype,
-    is_scalar,
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -292,7 +290,6 @@ def _get_values(
     # In _get_values is only called from within nanops, and in all cases
     #  with scalar fill_value.  This guarantee is important for the
     #  np.where call below
-    assert is_scalar(fill_value)
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -669,7 +666,6 @@ def _mask_datetimelike_result(
     return result
 
 
-@disallow(PeriodDtype)
 @bottleneck_switch()
 @_datetimelike_compat
 def nanmean(
@@ -718,7 +714,8 @@ def nanmean(
         dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
-    the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
+    the_sum = values.sum(axis, dtype=dtype_sum)
+    the_sum = _ensure_numeric(the_sum)
 
     if axis is not None and getattr(the_sum, "ndim", False):
         count = cast(np.ndarray, count)
@@ -777,6 +774,11 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask, fill_value=0)
     if values.dtype.kind != "f":
+        if values.dtype == object:
+            # GH#34671 avoid casting strings to numeric
+            inferred = lib.infer_dtype(values)
+            if inferred in ["string", "mixed"]:
+                raise TypeError(f"Cannot convert {values} to numeric")
         try:
             values = values.astype("f8")
         except ValueError as err:
@@ -808,7 +810,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
             # empty set so return nans of shape "everything but the passed axis"
             # since "axis" is where the reduction would occur if we had a nonempty
             # array
-            res = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
+            res = _get_empty_reduction_result(values.shape, axis)
 
     else:
         # otherwise return a scalar value
@@ -816,21 +818,17 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     return _wrap_results(res, dtype)
 
 
-def get_empty_reduction_result(
-    shape: tuple[int, ...],
+def _get_empty_reduction_result(
+    shape: Shape,
     axis: AxisInt,
-    dtype: np.dtype | type[np.floating],
-    fill_value: Any,
 ) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
 
     Parameters
     ----------
-    shape : Tuple[int]
+    shape : Tuple[int, ...]
     axis : int
-    dtype : np.dtype
-    fill_value : Any
 
     Returns
     -------
@@ -838,8 +836,8 @@ def get_empty_reduction_result(
     """
     shp = np.array(shape)
     dims = np.arange(len(shape))
-    ret = np.empty(shp[dims != axis], dtype=dtype)
-    ret.fill(fill_value)
+    ret = np.empty(shp[dims != axis], dtype=np.float64)
+    ret.fill(np.nan)
     return ret
 
 
@@ -876,12 +874,15 @@ def _get_counts_nanvar(
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
-    if is_scalar(count):
+    if is_float(count):
         if count <= ddof:
-            count = np.nan
+            # error: Incompatible types in assignment (expression has type
+            # "float", variable has type "Union[floating[Any], ndarray[Any,
+            # dtype[floating[Any]]]]")
+            count = np.nan  # type: ignore[assignment]
             d = np.nan
     else:
-        # count is not narrowed by is_scalar check
+        # count is not narrowed by is_float check
         count = cast(np.ndarray, count)
         mask = count <= ddof
         if mask.any():
@@ -1073,22 +1074,14 @@ def _nanminmax(meth, fill_value_typ):
         axis: AxisInt | None = None,
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
-    ) -> Dtype:
-        dtype = values.dtype
+    ):
+        if values.size == 0:
+            return _na_for_min_count(values, axis)
+
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
-
-        if (axis is not None and values.shape[axis] == 0) or values.size == 0:
-            dtype_max = _get_dtype_max(dtype)
-            try:
-                result = getattr(values, meth)(axis, dtype=dtype_max)
-                result.fill(np.nan)
-            except (AttributeError, TypeError, ValueError):
-                result = np.nan
-        else:
-            result = getattr(values, meth)(axis)
-
+        result = getattr(values, meth)(axis)
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
 
@@ -1452,8 +1445,8 @@ def _get_counts(
     values_shape: Shape,
     mask: npt.NDArray[np.bool_] | None,
     axis: AxisInt | None,
-    dtype: np.dtype = np.dtype(np.float64),
-) -> float | np.ndarray:
+    dtype: np.dtype[np.floating] = np.dtype(np.float64),
+) -> np.floating | npt.NDArray[np.floating]:
     """
     Get the count of non-null values along an axis
 
@@ -1484,7 +1477,7 @@ def _get_counts(
     else:
         count = values_shape[axis]
 
-    if is_scalar(count):
+    if is_integer(count):
         return dtype.type(count)
     return count.astype(dtype, copy=False)
 
@@ -1673,6 +1666,10 @@ def _ensure_numeric(x):
         if x.dtype.kind in "biu":
             x = x.astype(np.float64)
         elif x.dtype == object:
+            inferred = lib.infer_dtype(x)
+            if inferred in ["string", "mixed"]:
+                # GH#44008, GH#36703 avoid casting e.g. strings to numeric
+                raise TypeError(f"Could not convert {x} to numeric")
             try:
                 x = x.astype(np.complex128)
             except (TypeError, ValueError):
@@ -1685,6 +1682,9 @@ def _ensure_numeric(x):
                 if not np.any(np.imag(x)):
                     x = x.real
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
+        if isinstance(x, str):
+            # GH#44008, GH#36703 avoid casting e.g. strings to numeric
+            raise TypeError(f"Could not convert string '{x}' to numeric")
         try:
             x = float(x)
         except (TypeError, ValueError):

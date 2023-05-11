@@ -746,9 +746,7 @@ def test_date_parser_int_bug(all_parsers):
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
-    df = DataFrame(
-        dict({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
-    )
+    df = DataFrame({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
     df.iloc[3:6, :] = np.nan
 
     with tm.ensure_clean("__nat_parse_.csv") as path:
@@ -1252,19 +1250,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    if parser.engine == "pyarrow" and not cache_dates:
-        # None in input gets converted to 'None', for which
-        # pandas tries to guess the datetime format, triggering
-        # the warning. TODO: parse dates directly in pyarrow, see
-        # https://github.com/pandas-dev/pandas/issues/48017
-        warn = UserWarning
-    else:
-        # Note: warning is not raised if 'cache_dates', because here there is only a
-        # single unique date and hence no risk of inconsistent parsing.
-        warn = None
-    parser.read_csv_check_warnings(
-        warn,
-        "Could not infer format",
+    parser.read_csv(
         s,
         header=None,
         names=["foo", "bar"],
