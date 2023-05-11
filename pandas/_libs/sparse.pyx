@@ -390,6 +390,7 @@ cdef class BlockIndex(SparseIndex):
     def indices(self):
         return self.to_int_index().indices
 
+    @cython.cdivision(True)
     cpdef BlockIndex intersect(self, SparseIndex other):
         """
         Intersect two BlockIndex objects
@@ -596,6 +597,7 @@ cdef class BlockUnion(BlockMerge):
     lot easier and reduces code duplication
     """
 
+    @cython.cdivision(True)
     cdef _make_merged_blocks(self):
         cdef:
             ndarray[int32_t, ndim=1] xstart, xend, ystart

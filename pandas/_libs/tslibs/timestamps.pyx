@@ -130,7 +130,7 @@ _no_input = object()
 
 # ----------------------------------------------------------------------
 
-
+@cython.cdivision(True)
 cdef _Timestamp create_timestamp_from_ts(
     int64_t value,
     npy_datetimestruct dts,
@@ -877,6 +877,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
+    @cython.cdivision(True)
     @property
     def quarter(self) -> int:
         """
@@ -2164,6 +2165,7 @@ default 'raise'
 
     astimezone = tz_convert
 
+    @cython.cdivision(True)
     def replace(
         self,
         year=None,

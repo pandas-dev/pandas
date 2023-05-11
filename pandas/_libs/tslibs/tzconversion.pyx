@@ -70,6 +70,7 @@ cdef class Localizer:
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
+    @cython.cdivision(True)
     def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT creso):
         self.tz = tz
         self._creso = creso
@@ -141,6 +142,7 @@ cdef class Localizer:
             return utc_val + self.deltas[pos[0]]
 
 
+@cython.cdivision(True)
 cdef int64_t tz_localize_to_utc_single(
     int64_t val,
     tzinfo tz,
@@ -188,6 +190,7 @@ cdef int64_t tz_localize_to_utc_single(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def tz_localize_to_utc(
     ndarray[int64_t] vals,
     tzinfo tz,
@@ -425,6 +428,7 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
+@cython.cdivision(True)
 cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
@@ -516,6 +520,7 @@ cdef _get_utc_bounds(
     return result_a, result_b
 
 
+@cython.cdivision(True)
 cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     """
     For each point in 'vals', find the UTC time that it corresponds to if

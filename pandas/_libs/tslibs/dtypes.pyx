@@ -1,5 +1,6 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
+import cython
 from enum import Enum
 
 from pandas._libs.tslibs.np_datetime cimport (
@@ -35,6 +36,7 @@ cdef class PeriodDtypeBase:
     def __hash__(self) -> int:
         return hash((self._n, self._dtype_code))
 
+    @cython.cdivision(True)
     @property
     def _freq_group_code(self) -> int:
         # See also: libperiod.get_freq_group

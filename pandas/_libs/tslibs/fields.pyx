@@ -193,6 +193,7 @@ def get_date_name_field(
     return out
 
 
+@cython.cdivision(True)
 cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
     """
     Analogous to DateOffset.is_on_offset checking for the month part of a date.
@@ -207,6 +208,7 @@ cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def get_start_end_field(
     const int64_t[:] dtindex,
     str field,
@@ -329,6 +331,7 @@ def get_start_end_field(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def get_date_field(
     const int64_t[:] dtindex,
     str field,
@@ -703,6 +706,7 @@ class RoundTo:
         return 4
 
 
+@cython.cdivision(True)
 cdef ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -721,6 +725,7 @@ cdef ndarray[int64_t] _floor_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
+@cython.cdivision(True)
 cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -745,14 +750,17 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     return result
 
 
+@cython.cdivision(True)
 cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
     return _ceil_int64(values - unit // 2, unit)
 
 
+@cython.cdivision(True)
 cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 
+@cython.cdivision(True)
 cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -781,6 +789,7 @@ cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit
     return result
 
 
+@cython.cdivision(True)
 def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
     """
     Applies rounding mode at given frequency

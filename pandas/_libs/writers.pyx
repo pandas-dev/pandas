@@ -1,4 +1,5 @@
 cimport cython
+import cython
 import numpy as np
 
 from cpython cimport (
@@ -17,6 +18,7 @@ ctypedef fused pandas_string:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def write_csv_rows(
     list data,
     ndarray data_index,

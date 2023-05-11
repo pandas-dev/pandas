@@ -14,6 +14,7 @@ FUNCTIONS:
     _getlang -- Figure out what language is being used for the locale
     strptime -- Calculates the time struct represented by the passed-in string
 """
+import cython
 from datetime import timezone
 
 from cpython.datetime cimport (
@@ -153,6 +154,7 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
+@cython.cdivision(True)
 def array_strptime(
     ndarray[object] values,
     str fmt,
@@ -577,6 +579,7 @@ _CACHE_MAX_SIZE = 5  # Max number of regexes stored in _regex_cache
 _regex_cache = {}
 
 
+@cython.cdivision(True)
 cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
                                   int day_of_week, int week_starts_Mon):
     """
@@ -657,6 +660,7 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
     return iso_year, ordinal
 
 
+@cython.cdivision(True)
 cdef tzinfo parse_timezone_directive(str z):
     """
     Parse the '%z' directive and return a datetime.timezone object.

@@ -1217,6 +1217,7 @@ cdef class _Timedelta(timedelta):
         pandas_datetime_to_datetimestruct(other._value, other._creso, &dts_other)
         return cmp_dtstructs(&dts_self,  &dts_other, op)
 
+    @cython.cdivision(True)
     cdef bint _has_ns(self):
         if self._creso == NPY_FR_ns:
             return self._value % 1000 != 0

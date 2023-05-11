@@ -1,3 +1,4 @@
+import cython
 import numpy as np
 
 cimport numpy as cnp
@@ -409,6 +410,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     return obj
 
 
+@cython.cdivision(True)
 cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
                                                 int tzoffset, tzinfo tz=None,
                                                 NPY_DATETIMEUNIT reso=NPY_FR_ns):

@@ -1,3 +1,4 @@
+# cython: cdivision=True
 import re
 import time
 
@@ -1607,6 +1608,7 @@ cdef class BusinessDay(BusinessMixin):
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
+    @cython.cdivision(True)
     cdef ndarray _shift_bdays(
         self,
         ndarray i8other,
@@ -2759,6 +2761,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     @apply_array_wraps
     @cython.wraparound(False)
     @cython.boundscheck(False)
+    @cython.cdivision(True)
     def _apply_array(self, dtarr):
         cdef:
             ndarray i8other = dtarr.view("i8")
@@ -4331,6 +4334,7 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
+@cython.cdivision(True)
 cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
     """
     New year number after shifting npy_datetimestruct number of months.

@@ -136,6 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
+@cython.cdivision(True)
 cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
     cdef:
         float64_t result
@@ -432,6 +433,7 @@ def group_cumsum(
                     out[i, j] = t
 
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_shift_indexer(
@@ -1163,6 +1165,7 @@ def group_ohlc(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def group_quantile(
     ndarray[float64_t, ndim=2] out,
     ndarray[numeric_t, ndim=1] values,

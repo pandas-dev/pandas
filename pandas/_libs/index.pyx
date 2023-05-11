@@ -471,6 +471,7 @@ cdef class IndexEngine:
         return result[0:count], missing[0:count_missing]
 
 
+@cython.cdivision(True)
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # GH#1757 ndarray.searchsorted is not safe to use with array of tuples
     #  (treats a tuple `val` as a sequence of keys instead of a single key),

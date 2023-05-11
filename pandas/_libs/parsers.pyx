@@ -370,6 +370,7 @@ cdef class TextReader:
         set unnamed_cols  # set[str]
         str dtype_backend
 
+    @cython.cdivision(True)
     def __cinit__(self, source,
                   delimiter=b",",  # bytes | str
                   header=0,

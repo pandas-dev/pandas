@@ -200,6 +200,7 @@ def ints_to_pydatetime(
 # -------------------------------------------------------------------------
 
 
+@cython.cdivision(True)
 cdef c_Resolution _reso_stamp(npy_datetimestruct *dts):
     if dts.ps != 0:
         return c_Resolution.RESO_NS
@@ -257,6 +258,7 @@ def get_resolution(
 @cython.cdivision(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso):
     # stamps is int64_t, arbitrary ndim
     """
@@ -304,6 +306,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -> bool:
     # stamps is int64_t, arbitrary ndim
     """

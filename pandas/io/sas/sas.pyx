@@ -1,5 +1,6 @@
 # cython: language_level=3, initializedcheck=False
 # cython: warn.maybe_uninitialized=True, warn.unused=True
+import cython
 from cython cimport Py_ssize_t
 from libc.stddef cimport size_t
 from libc.stdint cimport (
@@ -410,6 +411,7 @@ cdef class Parser:
         )
         self.current_page_subheaders_count = self.parser._current_page_subheaders_count
 
+    @cython.cdivision(True)
     cdef bint readline(self) except? True:
 
         cdef:

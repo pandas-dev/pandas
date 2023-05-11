@@ -106,6 +106,7 @@ def _test_parse_iso8601(ts: str):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def format_array_from_datetime(
     ndarray values,
     tzinfo tz=None,

@@ -293,6 +293,7 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
 # --------------------------------------------------------------------
 # Frequency Conversion Helpers
 
+@cython.cdivision(True)
 cdef int64_t DtoB_weekday(int64_t unix_date) nogil:
     return ((unix_date + 4) // 7) * 5 + ((unix_date + 4) % 7) - 4
 
@@ -323,6 +324,7 @@ cdef int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
         return ordinal * af_info.intraday_conversion_factor
 
 
+@cython.cdivision(True)
 cdef int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
     return ordinal // af_info.intraday_conversion_factor
 
@@ -358,6 +360,7 @@ cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     return upsample_daytime(unix_date, af_info)
 
 
+@cython.cdivision(True)
 cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
@@ -374,6 +377,7 @@ cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     return upsample_daytime(unix_date, af_info)
 
 
+@cython.cdivision(True)
 cdef int64_t asfreq_MtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
@@ -502,6 +506,7 @@ cdef int64_t asfreq_DTtoW(int64_t ordinal, asfreq_info *af_info) nogil:
     return unix_date_to_week(ordinal, af_info.to_end)
 
 
+@cython.cdivision(True)
 cdef int64_t unix_date_to_week(int64_t unix_date, int to_end) nogil:
     return (unix_date + 3 - to_end) // 7 + 1
 
@@ -509,6 +514,7 @@ cdef int64_t unix_date_to_week(int64_t unix_date, int to_end) nogil:
 # --------------------------------------------------------------------
 # Conversion _from_ BusinessDay Freq
 
+@cython.cdivision(True)
 cdef int64_t asfreq_BtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     ordinal = ((ordinal + 3) // 5) * 7 + (ordinal + 3) % 5 - 3
     return upsample_daytime(ordinal, af_info)
@@ -682,11 +688,13 @@ cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
 # ----------------------------------------------------------------------
 # Conversion between date_info and npy_datetimestruct
 
+@cython.cdivision(True)
 cdef int get_freq_group(int freq) nogil:
     # See also FreqGroup.get_freq_group
     return (freq // 1000) * 1000
 
 
+@cython.cdivision(True)
 cdef int get_freq_group_index(int freq) nogil:
     return freq // 1000
 
@@ -935,6 +943,7 @@ cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
     return quarter
 
 
+@cython.cdivision(True)
 cdef int month_to_quarter(int month) nogil:
     return (month - 1) // 3 + 1
 
@@ -1050,6 +1059,7 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
@@ -1154,6 +1164,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
 
 
+@cython.cdivision(True)
 cdef str period_format(int64_t value, int freq, object fmt=None):
 
     cdef:
@@ -1242,6 +1253,7 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
+@cython.cdivision(True)
 cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
     cdef:
         Py_ssize_t i

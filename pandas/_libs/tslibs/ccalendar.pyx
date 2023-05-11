@@ -114,6 +114,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
     return (day + 6) % 7
 
 
+@cython.cdivision(True)
 cdef bint is_leapyear(int64_t year) nogil:
     """
     Returns 1 if the given year is a leap year, 0 otherwise.
@@ -155,6 +156,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
     """
     Return the year, week, and day of year corresponding to ISO 8601
@@ -243,6 +245,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 # ---------------------------------------------------------------------
 # Business Helpers
 
+@cython.cdivision(True)
 cpdef int get_lastbday(int year, int month) nogil:
     """
     Find the last day of the month that is a business day.
