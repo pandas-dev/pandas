@@ -108,10 +108,10 @@ Other enhancements
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
+- :class:`CategoricalDtype` has gotten a new parameter and attribute named :meth:`CategoricalDtype.categories_dtype` (:issue:`48515`)
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
-- :class:`CategoricalDtype` has gotten a new parameter and attribute named :meth:`CategoricalDtype.categories_dtype` (:issue:`48515`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
 -
 
