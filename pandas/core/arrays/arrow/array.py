@@ -321,6 +321,152 @@ class ArrowExtensionArray(
             )
         return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
+    @classmethod
+    def _box_pa(
+        cls, value, pa_type: pa.DataType | None = None
+    ) -> pa.Array | pa.ChunkedArray | pa.Scalar:
+        """
+        Box value into a pyarrow Array, ChunkedArray or Scalar.
+
+        Parameters
+        ----------
+        value : any
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Array or pa.ChunkedArray or pa.Scalar
+        """
+        if is_list_like(value):
+            return cls._box_pa_array(value, pa_type)
+        return cls._box_pa_scalar(value, pa_type)
+
+    @classmethod
+    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
+        """
+        Box value into a pyarrow Scalar.
+
+        Parameters
+        ----------
+        value : any
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Scalar
+        """
+        if isinstance(value, pa.Scalar):
+            pa_scalar = value
+        elif isna(value):
+            pa_scalar = pa.scalar(None, type=pa_type)
+        else:
+            # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+            # see https://github.com/apache/arrow/issues/33321
+            from pandas import (
+                Timedelta,
+                Timestamp,
+            )
+
+            if isinstance(value, Timedelta):
+                if pa_type is None:
+                    pa_type = pa.duration(value.unit)
+                elif value.unit != pa_type.unit:
+                    value = value.as_unit(pa_type.unit)
+                value = value._value
+            elif isinstance(value, Timestamp):
+                if pa_type is None:
+                    pa_type = pa.timestamp(value.unit, tz=value.tz)
+                elif value.unit != pa_type.unit:
+                    value = value.as_unit(pa_type.unit)
+                value = value._value
+
+            pa_scalar = pa.scalar(value, type=pa_type, from_pandas=True)
+
+        if pa_type is not None and pa_scalar.type != pa_type:
+            pa_scalar = pa_scalar.cast(pa_type)
+
+        return pa_scalar
+
+    @classmethod
+    def _box_pa_array(
+        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Box value into a pyarrow Array or ChunkedArray.
+
+        Parameters
+        ----------
+        value : Sequence
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Array or pa.ChunkedArray
+        """
+        if isinstance(value, cls):
+            pa_array = value._pa_array
+        elif isinstance(value, (pa.Array, pa.ChunkedArray)):
+            pa_array = value
+        elif isinstance(value, BaseMaskedArray):
+            # GH 52625
+            if copy:
+                value = value.copy()
+            pa_array = value.__arrow_array__()
+        else:
+            if (
+                isinstance(value, np.ndarray)
+                and pa_type is not None
+                and (
+                    pa.types.is_large_binary(pa_type)
+                    or pa.types.is_large_string(pa_type)
+                )
+            ):
+                # See https://github.com/apache/arrow/issues/35289
+                value = value.tolist()
+            elif copy and is_array_like(value):
+                # pa array should not get updated when numpy array is updated
+                value = value.copy()
+
+            if (
+                pa_type is not None
+                and pa.types.is_duration(pa_type)
+                and (not isinstance(value, np.ndarray) or value.dtype.kind not in "mi")
+            ):
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+                # see https://github.com/apache/arrow/issues/33321
+                from pandas import to_timedelta
+
+                value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
+                value = value.to_numpy()
+
+            try:
+                pa_array = pa.array(value, type=pa_type, from_pandas=True)
+            except pa.ArrowInvalid:
+                # GH50430: let pyarrow infer type, then cast
+                pa_array = pa.array(value, from_pandas=True)
+
+            if pa_type is None and pa.types.is_duration(pa_array.type):
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+                # see https://github.com/apache/arrow/issues/33321
+                from pandas import to_timedelta
+
+                value = to_timedelta(value)
+                value = value.to_numpy()
+                pa_array = pa.array(value, type=pa_type, from_pandas=True)
+
+            if pa.types.is_duration(pa_array.type) and pa_array.null_count > 0:
+                # GH52843: upstream bug for duration types when originally
+                # constructed with data containing numpy NaT.
+                # https://github.com/apache/arrow/issues/35088
+                arr = cls(pa_array)
+                arr = arr.fillna(arr.dtype.na_value)
+                pa_array = arr._pa_array
+
+        if pa_type is not None and pa_array.type != pa_type:
+            pa_array = pa_array.cast(pa_type)
+
+        return pa_array
+
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.
 
@@ -1558,116 +1704,6 @@ class ArrowExtensionArray(
             most_common = most_common.cast(pa_type)
 
         return type(self)(most_common)
-
-    @classmethod
-    def _box_pa(
-        cls, value, pa_type: pa.DataType | None = None
-    ) -> pa.Array | pa.ChunkedArray | pa.Scalar:
-        if is_list_like(value):
-            return cls._box_pa_array(value, pa_type)
-        return cls._box_pa_scalar(value, pa_type)
-
-    @classmethod
-    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
-        if isinstance(value, pa.Scalar):
-            pa_scalar = value
-        elif isna(value):
-            pa_scalar = pa.scalar(None, type=pa_type)
-        else:
-            # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-            # see https://github.com/apache/arrow/issues/33321
-            from pandas import (
-                Timedelta,
-                Timestamp,
-            )
-
-            if isinstance(value, Timedelta):
-                if pa_type is None:
-                    pa_type = pa.duration(value.unit)
-                elif value.unit != pa_type.unit:
-                    value = value.as_unit(pa_type.unit)
-                value = value._value
-            elif isinstance(value, Timestamp):
-                if pa_type is None:
-                    pa_type = pa.timestamp(value.unit, tz=value.tz)
-                elif value.unit != pa_type.unit:
-                    value = value.as_unit(pa_type.unit)
-                value = value._value
-
-            pa_scalar = pa.scalar(value, type=pa_type, from_pandas=True)
-
-        if pa_type is not None and pa_scalar.type != pa_type:
-            pa_scalar = pa_scalar.cast(pa_type)
-
-        return pa_scalar
-
-    @classmethod
-    def _box_pa_array(
-        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
-    ) -> pa.Array | pa.ChunkedArray:
-        if isinstance(value, cls):
-            pa_array = value._pa_array
-        elif isinstance(value, (pa.Array, pa.ChunkedArray)):
-            pa_array = value
-        elif isinstance(value, BaseMaskedArray):
-            # GH 52625
-            if copy:
-                value = value.copy()
-            pa_array = value.__arrow_array__()
-        else:
-            if (
-                isinstance(value, np.ndarray)
-                and pa_type is not None
-                and (
-                    pa.types.is_large_binary(pa_type)
-                    or pa.types.is_large_string(pa_type)
-                )
-            ):
-                # See https://github.com/apache/arrow/issues/35289
-                value = value.tolist()
-            elif copy and is_array_like(value):
-                # pa array should not get updated when numpy array is updated
-                value = value.copy()
-
-            if (
-                pa_type is not None
-                and pa.types.is_duration(pa_type)
-                and (not isinstance(value, np.ndarray) or value.dtype.kind not in "mi")
-            ):
-                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-                # see https://github.com/apache/arrow/issues/33321
-                from pandas import to_timedelta
-
-                value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
-                value = value.to_numpy()
-
-            try:
-                pa_array = pa.array(value, type=pa_type, from_pandas=True)
-            except pa.ArrowInvalid:
-                # GH50430: let pyarrow infer type, then cast
-                pa_array = pa.array(value, from_pandas=True)
-
-            if pa_type is None and pa.types.is_duration(pa_array.type):
-                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-                # see https://github.com/apache/arrow/issues/33321
-                from pandas import to_timedelta
-
-                value = to_timedelta(value)
-                value = value.to_numpy()
-                pa_array = pa.array(value, type=pa_type, from_pandas=True)
-
-            if pa.types.is_duration(pa_array.type) and pa_array.null_count > 0:
-                # GH52843: upstream bug for duration types when originally
-                # constructed with data containing numpy NaT.
-                # https://github.com/apache/arrow/issues/35088
-                arr = cls(pa_array)
-                arr = arr.fillna(arr.dtype.na_value)
-                pa_array = arr._pa_array
-
-        if pa_type is not None and pa_array.type != pa_type:
-            pa_array = pa_array.cast(pa_type)
-
-        return pa_array
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
