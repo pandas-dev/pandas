@@ -2958,6 +2958,11 @@ def test_setitem_temporal(pa_type):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    pa_version_under8p0,
+    reason="Function 'add_checked' has no kernel matching input types",
+    raises=pa.ArrowNotImplementedError,
+)
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
