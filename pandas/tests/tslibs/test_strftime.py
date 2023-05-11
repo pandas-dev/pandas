@@ -65,13 +65,15 @@ class TestConvertStrftimeFormat:
             ),
             (
                 "20%y-%m-%d__foo__%I:%M:%S%p",
-                "20%(shortyear)02d-%(month)02d-%(day)02d__foo__%(hour12)02d:%(min)02d:%(sec)02d%(ampm)s",
-                "20{shortyear:02d}-{month:02d}-{day:02d}__foo__{hour12:02d}:{min:02d}:{sec:02d}{ampm:s}",
+                "20%(shortyear)02d-%(month)02d-%(day)02d__foo__"
+                "%(hour12)02d:%(min)02d:%(sec)02d%(ampm)s",
+                "20{shortyear:02d}-{month:02d}-{day:02d}__foo__"
+                "{hour12:02d}:{min:02d}:{sec:02d}{ampm:s}",
             ),
         ),
     )
     def test_format_datetime(self, strftime_fmt, res_fmt_old, res_fmt_new):
-        """Test that `convert_strftime_format` returns the correct formatting template"""
+        """Test that `convert_strftime_format` returns the correct template"""
         str_tmp, loc_s = convert_strftime_format(
             strftime_fmt, target="datetime", new_style_fmt=False
         )
@@ -94,18 +96,22 @@ class TestConvertStrftimeFormat:
             ),
             (
                 "%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                "%(shortyear)02d %(hour12)02d:%(min)02d:%(sec)02d%(ampm)s (ms=%(ms)03d us=%(us)06d ns=%(ns)09d)",
-                "{shortyear:02d} {hour12:02d}:{min:02d}:{sec:02d}{ampm:s} (ms={ms:03d} us={us:06d} ns={ns:09d})",
+                "%(shortyear)02d %(hour12)02d:%(min)02d:%(sec)02d%(ampm)s "
+                "(ms=%(ms)03d us=%(us)06d ns=%(ns)09d)",
+                "{shortyear:02d} {hour12:02d}:{min:02d}:{sec:02d}{ampm:s} "
+                "(ms={ms:03d} us={us:06d} ns={ns:09d})",
             ),
             (
                 "20%y-%m-%d__foo__%I:%M:%S%p",
-                "20%(shortyear)02d-%(month)02d-%(day)02d__foo__%(hour12)02d:%(min)02d:%(sec)02d%(ampm)s",
-                "20{shortyear:02d}-{month:02d}-{day:02d}__foo__{hour12:02d}:{min:02d}:{sec:02d}{ampm:s}",
+                "20%(shortyear)02d-%(month)02d-%(day)02d__foo__"
+                "%(hour12)02d:%(min)02d:%(sec)02d%(ampm)s",
+                "20{shortyear:02d}-{month:02d}-{day:02d}__foo__"
+                "{hour12:02d}:{min:02d}:{sec:02d}{ampm:s}",
             ),
         ),
     )
     def test_format_period(self, strftime_fmt, res_fmt_old, res_fmt_new):
-        """Test that `convert_strftime_format` returns the correct formatting template"""
+        """Test that `convert_strftime_format` returns the correct template"""
         str_tmp, loc_s = convert_strftime_format(
             strftime_fmt, target="period", new_style_fmt=False
         )
@@ -129,7 +135,7 @@ class TestConvertStrftimeFormat:
     )
     @pytest.mark.parametrize("target", ("datetime", "date", "time", "period"))
     def test_format_non_ascii(self, locale_str, target):
-        """Test that `convert_strftime_format` is robust to locale and format encoding"""
+        """Test that `convert_strftime_format` is robust to locale and fmt encoding"""
 
         # Skip if locale cannot be set
         if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):

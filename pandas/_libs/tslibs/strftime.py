@@ -201,7 +201,9 @@ def convert_strftime_format(
 
     See Also
     --------
-    `strftime format codes reference <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes>`_  # noqa
+    `strftime format codes reference
+    <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format\
+-codes>`_
 
     `Stackoverflow post <https://stackoverflow.com/a/43495629/7262247>`_
     explaining how old-style formatting is faster than new-style formatting,
