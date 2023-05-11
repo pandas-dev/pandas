@@ -111,6 +111,7 @@ _factorizers = {
     np.int32: libhashtable.Int32Factorizer,
     np.int16: libhashtable.Int16Factorizer,
     np.int8: libhashtable.Int8Factorizer,
+    np.intc: libhashtable.Int64Factorizer,
     np.uint64: libhashtable.UInt64Factorizer,
     np.uint32: libhashtable.UInt32Factorizer,
     np.uint16: libhashtable.UInt16Factorizer,
