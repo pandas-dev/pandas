@@ -10,7 +10,6 @@ from typing import (
     Any,
     Hashable,
     Sequence,
-    cast,
 )
 
 import numpy as np
@@ -672,14 +671,11 @@ def reorder_arrays(
     """
     Pre-emptively (cheaply) reindex arrays with new columns.
     """
-    from pandas._typing import ArrayLike
-
     # reorder according to the columns
     if columns is not None:
         if not columns.equals(arr_columns):
             # if they are equal, there is nothing to do
-            new_arrays: list[ArrayLike | None]
-            new_arrays = [None] * len(columns)
+            new_arrays: list[ArrayLike] = []
             indexer = arr_columns.get_indexer(columns)
             for i, k in enumerate(indexer):
                 if k == -1:
@@ -688,9 +684,9 @@ def reorder_arrays(
                     arr.fill(np.nan)
                 else:
                     arr = arrays[k]
-                new_arrays[i] = arr
+                new_arrays.append(arr)
 
-            arrays = cast(list[ArrayLike], new_arrays)
+            arrays = new_arrays
             arr_columns = columns
 
     return arrays, arr_columns
