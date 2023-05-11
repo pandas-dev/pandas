@@ -453,7 +453,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     ) from err
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered)
+            dtype = CategoricalDtype(categories, dtype.ordered, dtype.categories_dtype)
 
         elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes

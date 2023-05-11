@@ -14,12 +14,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_210.enhancements.enhancement1:
+.. _whatsnew_210.enhancements.category_subtype:
 
-enhancement1
-^^^^^^^^^^^^
+Specific categorical string dtypes like ``dtype="category[string]"`` now works
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_210.enhancements.enhancement2:
+When giving the string ``"category"`` as a dtype it is now possible to specify the dtype
+of the categories as part of the dtype string:
+
+.. ipython:: python
+
+    ser = pd.Series(["a", "b", np.nan], dtype="category[string]")
+    ser.dtype.categories
+
+The expression inside the brackets can be any string that Pandas accepts for a dtype and
+whose data can be stored in an :class:`Index` (:issue:`48515`).
+
+
+.. _whatsnew_210.enhancements.map_na_action:
 
 ``map(func, na_action="ignore")`` now works for all array types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,6 +111,7 @@ Other enhancements
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
+- :class:`CategoricalDtype` has gotten a new parameter and attribute named :meth:`CategoricalDtype.categories_dtype` (:issue:`48515`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
 -
 

@@ -152,13 +152,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     ----------
     categories : sequence, optional
         Must be unique, and must not contain any nulls.
-        The categories are stored in an Index,
-        and if an index is provided the dtype of that index will be used.
+        The categories are stored in an Index.
     ordered : bool or None, default False
         Whether or not this categorical is treated as a ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
         used in operations that combine categoricals, e.g. astype, and will resolve to
         False if there is no existing ordered to maintain.
+    categories_dtype : dtype, optional
+        If given, will be the dtype of the categories.
+        If not given, the categories dtype will be inferred.
+
+        .. versionadded:: 2.1.0
 
     Attributes
     ----------
@@ -181,14 +185,14 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(['b', 'a'], ordered=True, categories_dtype="string")
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b
     2      a
     3    NaN
     dtype: category
-    Categories (2, object): ['b' < 'a']
+    Categories (2, string): ['b' < 'a']
 
     An empty CategoricalDtype with a specific dtype can be created
     by providing an empty index. As follows,
@@ -205,8 +209,19 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _categories_dtype: Dtype | None = None
+    _match = re.compile(r"category\[(?P<categories_dtype>.+)\]")
 
-    def __init__(self, categories=None, ordered: Ordered = False) -> None:
+    def __init__(
+        self,
+        categories=None,
+        ordered: Ordered = False,
+        categories_dtype: Dtype | None = None,
+    ) -> None:
+        if categories_dtype is not None:
+            from pandas.core.dtypes.common import pandas_dtype
+
+            self._categories_dtype = pandas_dtype(categories_dtype)
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
@@ -352,12 +367,31 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
-        if string != cls.name:
-            raise TypeError(f"Cannot construct a 'CategoricalDtype' from '{string}'")
 
         # need ordered=None to ensure that operations specifying dtype="category" don't
         # override the ordered value for existing categoricals
-        return cls(ordered=None)
+
+        if string == cls.name:
+            return cls(ordered=None)
+
+        msg = f"Cannot construct a '{cls.__name__}' from '{string}'"
+        match = cls._match.match(string)
+        if match:
+            d = match.groupdict()
+            try:
+                return cls(categories_dtype=d["categories_dtype"])
+            except (KeyError, TypeError, ValueError) as err:
+                # keyError is if "categories_dtype" key is not found
+                # TypeError if we pass a nonsense;
+                raise TypeError(msg) from err
+        raise TypeError(msg)
+
+    @property
+    def categories_dtype(self) -> Dtype:
+        if self.categories is None:
+            return self._categories_dtype
+
+        return self.categories.dtype
 
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
         if ordered is not None:
@@ -451,18 +485,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def __repr__(self) -> str_type:
         if self.categories is None:
             data = "None"
-            dtype = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
             if data is None:
                 # self.categories is RangeIndex
                 data = str(self.categories._range)
             data = data.rstrip(", ")
-            dtype = self.categories.dtype
 
         return (
             f"CategoricalDtype(categories={data}, ordered={self.ordered}, "
-            f"categories_dtype={dtype})"
+            f"categories_dtype={self.categories_dtype})"
         )
 
     @cache_readonly
@@ -537,8 +569,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if not is_bool(ordered):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
-    @staticmethod
-    def validate_categories(categories, fastpath: bool = False) -> Index:
+    def validate_categories(self, categories, fastpath: bool = False) -> Index:
         """
         Validates that we have good categories
 
@@ -558,8 +589,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
+        dtype = self._categories_dtype
         if not isinstance(categories, ABCIndex):
-            categories = Index._with_infer(categories, tupleize_cols=False)
+            categories = Index._with_infer(categories, dtype=dtype, tupleize_cols=False)
+        elif dtype is not None:
+            categories = categories.astype(dtype)
 
         if not fastpath:
             if categories.hasnans:

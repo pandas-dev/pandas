@@ -138,7 +138,18 @@ behavior:
 1. Categories are inferred from the data.
 2. Categories are unordered.
 
-To control those behaviors, instead of passing ``'category'``, use an instance
+It is also possible to give a dtype inside bracket to ensure the dtype of the categories, like this:
+
+.. ipython:: python
+
+    s = pd.Series(["a", "b", "c", "a"], dtype="category[string]")
+    s.dtype.categories
+
+.. versionadded:: 2.1.0
+
+    The ability to a specify the categories dtype in the dtype string was added in :ref:`v2.1.0 <whatsnew_210.enhancements.category_subtype>`
+
+To control those behaviors even more, instead of passing ``'category'``, use an instance
 of :class:`~pandas.api.types.CategoricalDtype`.
 
 .. ipython:: python
@@ -146,7 +157,7 @@ of :class:`~pandas.api.types.CategoricalDtype`.
     from pandas.api.types import CategoricalDtype
 
     s = pd.Series(["a", "b", "c", "a"])
-    cat_type = CategoricalDtype(categories=["b", "c", "d"], ordered=True)
+    cat_type = CategoricalDtype(["b", "c", "d"], ordered=True, categories_dtype="string")
     s_cat = s.astype(cat_type)
     s_cat
 
