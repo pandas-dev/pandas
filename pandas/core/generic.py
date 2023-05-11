@@ -657,9 +657,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.size
         4
         """
-        # error: Incompatible return value type (got "signedinteger[_64Bit]",
-        # expected "int")  [return-value]
-        return np.prod(self.shape)  # type: ignore[return-value]
+
+        return int(np.prod(self.shape))
 
     def set_axis(
         self,
@@ -2307,7 +2306,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
-        index: bool_t = True,
+        index: bool_t | None = None,
         indent: int | None = None,
         storage_options: StorageOptions = None,
         mode: Literal["a", "w"] = "w",
@@ -2376,10 +2375,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
-        index : bool, default True
-            Whether to include the index values in the JSON string. Not
-            including the index (``index=False``) is only supported when
-            orient is 'split' or 'table'.
+        index : bool or None, default None
+            The index is only used when 'orient' is 'split', 'index', 'column',
+            or 'table'. Of these, 'index' and 'column' do not support
+            `index=False`.
+
         indent : int, optional
            Length of whitespace used to indent each record.
 
@@ -9472,6 +9472,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : DataFrame or Series
         join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+            Type of alignment to be performed.
+
+            * left: use only keys from left frame, preserve key order.
+            * right: use only keys from right frame, preserve key order.
+            * outer: use union of keys from both frames, sort keys lexicographically.
+            * inner: use intersection of keys from both frames,
+              preserve the order of the left keys.
+
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None).
         level : int or level name, default None

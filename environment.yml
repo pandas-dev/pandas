@@ -9,6 +9,8 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython=0.29.33
+  - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -68,7 +70,7 @@ dependencies:
   # benchmarks
   - asv>=0.5.1
 
-  # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
+  ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
@@ -87,7 +89,7 @@ dependencies:
   - gitdb
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme<0.11
+  - pydata-sphinx-theme
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
