@@ -1379,11 +1379,11 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
-        object date_fmt_bytes
+        object date_fmt_bytes = None
         object fast_fmt = None
         object fast_loc
-        object fast_loc_am
-        object fast_loc_pm
+        object fast_loc_am = None
+        object fast_loc_pm = None
 
     if fast_strftime and date_format is not None:
         try:
