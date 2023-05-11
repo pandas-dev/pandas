@@ -1,5 +1,9 @@
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
+inputs:
+  editable:
+    description: Whether to build pandas in editable mode (default true)
+    default: true
 runs:
   using: composite
   steps:
@@ -12,9 +16,9 @@ runs:
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -j $N_JOBS
-        python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
+        if [[ ${{ inputs.editable }} == "true" ]]; then
+          pip install -e . --no-build-isolation -v
+        else
+          pip install . --no-build-isolation -v
+        fi
       shell: bash -el {0}
-      env:
-        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-        N_JOBS: ${{ runner.os == 'macOS' && 3 || 2 }}
