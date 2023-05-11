@@ -385,6 +385,7 @@ class TestDataFrameBlockInternals:
         expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
         assert isinstance(result._mgr.blocks[0], NumpyBlock)
+        assert result._mgr.blocks[0].is_numeric
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
