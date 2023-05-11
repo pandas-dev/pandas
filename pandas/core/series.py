@@ -2081,6 +2081,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
             Modes of the Series in sorted order.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 4, 2, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        dtype: float64
+
+        More than one mode:
+
+        >>> s = pd.Series([2, 4, 8, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        1    4.0
+        dtype: float64
+
+        With and without considering null value:
+
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode(dropna=False)
+        0   NaN
+        dtype: float64
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode()
+        0    4.0
+        dtype: float64
         """
         # TODO: Add option for bins like value_counts()
         values = self._values
