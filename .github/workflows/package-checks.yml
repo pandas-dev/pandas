@@ -75,7 +75,7 @@ jobs:
             boa
             conda-verify
           cache-downloads: true
-          cache-env: true
+          cache-environment: true
 
       - name: Build conda package
         run: conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder .
