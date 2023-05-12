@@ -1283,3 +1283,19 @@ class TestDataFrameSetitemCopyViewSemantics:
 
         expected = DataFrame({"a": [2, 1, 1]}, dtype=dtype)
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_dup_cols_dtype(self):
+        # GH#53143
+        df = DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=["a", "b", "a", "c"])
+        rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
+        df["a"] = rhs
+        expected = DataFrame(
+            [[0, 2, 1.5, 4], [2, 5, 2.5, 7]], columns=["a", "b", "a", "c"]
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
+        df["a"] = rhs
+        expected = DataFrame([[0, 1.5, 3], [2, 2.5, 6]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)
