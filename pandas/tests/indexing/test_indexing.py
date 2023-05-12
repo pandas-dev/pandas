@@ -1114,57 +1114,58 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
 
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
-    def _check_setitem_invalid(self, arr, invalid):
+    def _check_setitem_invalid(self, ser, invalid):
         msg = "Setting an item of incompatible dtype is deprecated"
         msg = re.escape(msg)
 
-        orig_arr = arr.copy()
+        orig_ser = ser.copy()
 
         # setitem
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr[0] = invalid
-            arr = orig_arr.copy()
+            ser[0] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr[[0]] = invalid
-            arr = orig_arr.copy()
+            ser[[0]] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr[0:1] = invalid
-            arr = orig_arr.copy()
+            ser[0:1] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr[[True, False, False]] = invalid
-            arr = orig_arr.copy()
+            ser[[True, False, False]] = invalid
+            ser = orig_ser.copy()
 
         # iloc
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.iloc[0] = invalid
-            arr = orig_arr.copy()
+            ser.iloc[0] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.iloc[[0]] = invalid
-            arr = orig_arr.copy()
+            ser.iloc[[0]] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.iloc[0:1] = invalid
-            arr = orig_arr.copy()
+            ser.iloc[0:1] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.iloc[[True, False, False]] = invalid
-            arr = orig_arr.copy()
+            ser.iloc[[True, False, False]] = invalid
+            ser = orig_ser.copy()
 
         # loc
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.loc[0] = invalid
-            arr = orig_arr.copy()
+            ser.loc[0] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.loc[[0]] = invalid
-            arr = orig_arr.copy()
+            ser.loc[[0]] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.loc[0:1] = invalid
-            arr = orig_arr.copy()
+            ser.loc[0:1] = invalid
+            ser = orig_ser.copy()
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr.loc[[True, False, False]] = invalid
-            arr = orig_arr.copy()
+            ser.loc[[True, False, False]] = invalid
+            ser = orig_ser.copy()
 
+        # note: commented-out in the EA case too
         # FIXME: don't leave commented-out
         # with tm.assert_produces_warning(FutureWarning, match=msg):
-        #     arr[:] = invalid
+        #     ser[:] = invalid
 
     _invalid_scalars = [
         1 + 2j,
@@ -1180,15 +1181,79 @@ class TestSetitemValidation:
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
     )
     def test_setitem_validation_scalar_bool(self, invalid):
-        arr = Series([True, False, False], dtype="bool")
-        self._check_setitem_invalid(arr, invalid)
+        ser = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(ser, invalid)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
-        arr = Series([1, 2, 3], dtype=any_int_numpy_dtype)
-        self._check_setitem_invalid(arr, invalid)
+        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
-        arr = Series([1, 2, None], dtype=float_numpy_dtype)
-        self._check_setitem_invalid(arr, invalid)
+        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid)
+
+
+class TestSetitemValidationDataFrame:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    def _check_setitem_invalid(self, df, invalid):
+        msg = "Setting an item of incompatible dtype is deprecated"
+        msg = re.escape(msg)
+
+        orig_df = df.copy()
+
+        # iloc
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[0, 0] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[[0], 0] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[0:1, 0] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[[True, False, False], 0] = invalid
+            df = orig_df.copy()
+
+        # loc
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[0, "a"] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[[0], "a"] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[0:1, "a"] = invalid
+            df = orig_df.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.loc[[True, False, False], "a"] = invalid
+            df = orig_df.copy()
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    def test_setitem_validation_scalar_bool(self, invalid):
+        df = DataFrame({"a": [True, False, False]}, dtype="bool")
+        self._check_setitem_invalid(df, invalid)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
+        df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
+        self._check_setitem_invalid(df, invalid)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
+        df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
+        self._check_setitem_invalid(df, invalid)
