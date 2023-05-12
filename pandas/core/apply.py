@@ -1437,7 +1437,7 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = Index(s.index).get_indexer(fun)
-            s = s[col_idx_order]
+            s = s.iloc[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
