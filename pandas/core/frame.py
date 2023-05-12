@@ -4800,7 +4800,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not allow_duplicates and column in self.columns:
             # Should this be a different kind of error??
             raise ValueError(f"cannot insert {column}, already exists")
-        if not isinstance(loc, int):
+        if not is_integer(loc):
             raise TypeError("loc must be int")
 
         if isinstance(value, DataFrame) and len(value.columns) > 1:
