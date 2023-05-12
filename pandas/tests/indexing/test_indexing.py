@@ -1176,28 +1176,19 @@ class TestSetitemValidation:
         np.timedelta64("NaT"),
     ]
 
-    # @pytest.mark.parametrize(
-    #    "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
-    # )
-    # @pytest.mark.parametrize(
-    #    "indexer",
-    #    [
-    #        slice(0, 1),
-    #        [True, False, False],
-    #        0,
-    #        [0],
-    #    ]
-    # )
-    # def test_setitem_validation_scalar_bool(self, invalid, indexer):
-    #    arr = Series([True, False], dtype="bool")
-    #    self._check_setitem_invalid(arr, invalid)
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    def test_setitem_validation_scalar_bool(self, invalid):
+        arr = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(arr, invalid)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
         arr = Series([1, 2, 3], dtype=any_int_numpy_dtype)
         self._check_setitem_invalid(arr, invalid)
 
-    # @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
-    # def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
-    #    arr = Series([1, 2, None], dtype=float_numpy_dtype)
-    #    self._check_setitem_invalid(arr, invalid)
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
+        arr = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(arr, invalid)
