@@ -1902,8 +1902,8 @@ class ArrowExtensionArray(
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        result = pa.array([None] * self._pa_array.length(), type=self._pa_array.type)
-        result = pc.if_else(not_out_of_bounds, selected, result)
+        null_value = pa.scalar(None, type=self._pa_array.type)
+        result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
 
     def _str_join(self, sep: str):
