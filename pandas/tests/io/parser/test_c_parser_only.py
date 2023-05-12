@@ -17,10 +17,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
@@ -683,10 +680,7 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    if IS64:
-        assert not df.iloc[0, 0] == df3.iloc[0, 0]
-    else:
-        assert df.iloc[0, 0] == df3.iloc[0, 0]
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 
