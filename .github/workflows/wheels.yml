@@ -120,7 +120,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: wheel-env
-          extra-specs: >-
+          create-args: >-
             python=${{ matrix.python[1] }}
             anaconda-client
             wheel
