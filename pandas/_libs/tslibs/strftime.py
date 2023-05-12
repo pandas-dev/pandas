@@ -1,11 +1,9 @@
 """Strftime-related classes and functions.
 """
+from __future__ import annotations
+
 from datetime import time
 import locale
-from typing import (
-    Dict,
-    Tuple,
-)
 
 
 class UnsupportedStrFmtDirective(ValueError):
@@ -110,7 +108,7 @@ class LocaleSpecificDtStrings:
         )
 
 
-_locale_specifics: Dict[str, LocaleSpecificDtStrings] = {}
+_locale_specifics: dict[str, LocaleSpecificDtStrings] = {}
 
 
 def get_current_locale_specific_string() -> LocaleSpecificDtStrings:
@@ -136,7 +134,7 @@ def convert_strftime_format(
     strftime_fmt: str,
     target: str,
     new_style_fmt: bool = False,
-) -> Tuple[str, LocaleSpecificDtStrings]:
+) -> tuple[str, LocaleSpecificDtStrings]:
     """Convert a strftime formatting string into a formatting template string.
 
     The set of supported directives varies according to the `target`.
@@ -214,7 +212,7 @@ def convert_strftime_format(
     distribution, as well as specific additional directives ``%f``, ``%F``,
     ``%q``, ``%l``, ``%u``, ``%n``).
     """
-    unsupported: Tuple[Tuple[str, ...], ...]
+    unsupported: tuple[tuple[str, ...], ...]
     if target in ("datetime", "date", "time"):
         directive_maps = (_COMMON_MAP, _DATETIME_MAP)
         unsupported = (_COMMON_UNSUPPORTED, _DATETIME_UNSUPPORTED)
