@@ -362,7 +362,7 @@ class ArrowExtensionArray(
         else:
             # GH 53171: pyarrow does not yet handle pandas non-nano correctly
             # see https://github.com/apache/arrow/issues/33321
-            from pandas import (
+            from pandas._libs.tslibs import (
                 Timedelta,
                 Timestamp,
             )
@@ -434,7 +434,7 @@ class ArrowExtensionArray(
             ):
                 # GH 53171: pyarrow does not yet handle pandas non-nano correctly
                 # see https://github.com/apache/arrow/issues/33321
-                from pandas import to_timedelta
+                from pandas.core.tools.timedeltas import to_timedelta
 
                 value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
                 value = value.to_numpy()
@@ -448,7 +448,7 @@ class ArrowExtensionArray(
             if pa_type is None and pa.types.is_duration(pa_array.type):
                 # GH 53171: pyarrow does not yet handle pandas non-nano correctly
                 # see https://github.com/apache/arrow/issues/33321
-                from pandas import to_timedelta
+                from pandas.core.tools.timedeltas import to_timedelta
 
                 value = to_timedelta(value)
                 value = value.to_numpy()
