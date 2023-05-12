@@ -70,7 +70,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: recipe-test
-          extra-specs: >-
+          create-args: >-
             python=${{ matrix.python-version }}
             boa
             conda-verify
