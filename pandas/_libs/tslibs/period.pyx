@@ -1379,11 +1379,18 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
-        object date_fmt_bytes = None
+        object date_fmt_bytes
         object fast_fmt = None
         object fast_loc
         object fast_loc_am = None
         object fast_loc_pm = None
+
+    if isinstance(date_format, str):
+        # Encode string using current locale, in case it contains non-utf8 chars
+        date_fmt_bytes = <bytes>util.string_encode_locale(date_format)
+    else:
+        # None or bytes already
+        date_fmt_bytes = date_format
 
     if fast_strftime and date_format is not None:
         try:
@@ -1402,10 +1409,6 @@ def period_array_strftime(
                 fast_loc_am = <bytes>util.string_encode_locale(fast_loc_am)
             if isinstance(fast_loc_pm, str):
                 fast_loc_pm = <bytes>util.string_encode_locale(fast_loc_pm)
-
-    if fast_fmt is None:
-        # Encode string using current locale, in case it contains non-utf8 chars
-        date_fmt_bytes = <bytes>util.string_encode_locale(date_format)
 
     for i in range(n):
         # Analogous to: ordinal = values[i]
