@@ -413,10 +413,10 @@ Groupby/resample/rolling
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
 - Bug in :meth:`DataFrameGroupBy.apply` causing an error to be raised when the input :class:`DataFrame` was subset as a :class:`DataFrame` after groupby (``[['a']]`` and not ``['a']``) and the given callable returned :class:`Series` that were not all indexed the same. (:issue:`52444`)
+- Bug in :meth:`DataFrameGroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)
 - Bug in :meth:`GroupBy.groups` with a datetime key in conjunction with another key produced incorrect number of group keys (:issue:`51158`)
 - Bug in :meth:`GroupBy.quantile` may implicitly sort the result index with ``sort=False`` (:issue:`53009`)
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)
-- Bug in :meth:`GroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)
 
 Reshaping
 ^^^^^^^^^
