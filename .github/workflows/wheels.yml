@@ -117,17 +117,15 @@ jobs:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       - name: Set up Python
-        uses: mamba-org/provision-with-micromamba@v15
+        uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: false
           environment-name: wheel-env
-          extra-specs: |
+          extra-specs: >-
             python=${{ matrix.python[1] }}
             anaconda-client
             wheel
-          channels: conda-forge
           cache-downloads: true
-          cache-env: true
+          cache-environment: true
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
