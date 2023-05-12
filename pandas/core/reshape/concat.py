@@ -446,7 +446,7 @@ class _Concatenator:
                 keys = type(keys).from_tuples(clean_keys, names=keys.names)
             else:
                 name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name)
+                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
 
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
@@ -743,15 +743,19 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         for hlevel, level in zip(zipped, levels):
             to_concat = []
-            for key, index in zip(hlevel, indexes):
-                # Find matching codes, include matching nan values as equal.
-                mask = (isna(level) & isna(key)) | (level == key)
-                if not mask.any():
-                    raise ValueError(f"Key {key} not in level {level}")
-                i = np.nonzero(mask)[0][0]
+            if isinstance(hlevel, Index) and hlevel.equals(level):
+                lens = [len(idx) for idx in indexes]
+                codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
+            else:
+                for key, index in zip(hlevel, indexes):
+                    # Find matching codes, include matching nan values as equal.
+                    mask = (isna(level) & isna(key)) | (level == key)
+                    if not mask.any():
+                        raise ValueError(f"Key {key} not in level {level}")
+                    i = np.nonzero(mask)[0][0]
 
-                to_concat.append(np.repeat(i, len(index)))
-            codes_list.append(np.concatenate(to_concat))
+                    to_concat.append(np.repeat(i, len(index)))
+                codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 
