@@ -19,9 +19,7 @@ import pandas._testing as tm
 
 pytestmark = pytest.mark.skipif(
     is_ci_environment(),
-    reason="This test can hang in our CI min_versions build "
-    "and leads to '##[error]The runner has "
-    "received a shutdown signal...' in GHA. GH 45651",
+    reason="GH 45651: This test can hang in our CI min_versions build",
 )
 
 
