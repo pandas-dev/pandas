@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+from datetime import datetime
 import warnings
 
 import numpy as np
@@ -529,9 +530,6 @@ class ChainIndexing:
             with option_context("mode.chained_assignment", mode):
                 df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
-
-
-from datetime import datetime
 
 
 class Block:
