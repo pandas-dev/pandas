@@ -118,6 +118,11 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    @pytest.mark.xfail(
+        np.intc(0).itemsize == 4,
+        reason="Passes int32 values to DatetimeArray in make_na_array on "
+        "windows, 32bit linux builds",
+    )
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_tzaware_fill_value(self):
         # GH#52586
