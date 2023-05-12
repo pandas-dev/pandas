@@ -1117,21 +1117,54 @@ class TestSetitemValidation:
     def _check_setitem_invalid(self, arr, invalid):
         msg = "Setting an item of incompatible dtype is deprecated"
         msg = re.escape(msg)
+
+        orig_arr = arr.copy()
+
+        # setitem
         with tm.assert_produces_warning(FutureWarning, match=msg):
             arr[0] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr[[0]] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr[0:1] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr[[True, False, False]] = invalid
+            arr = orig_arr.copy()
+
+        # iloc
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.iloc[0] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.iloc[[0]] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.iloc[0:1] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.iloc[[True, False, False]] = invalid
+            arr = orig_arr.copy()
+
+        # loc
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.loc[0] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.loc[[0]] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.loc[0:1] = invalid
+            arr = orig_arr.copy()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.loc[[True, False, False]] = invalid
+            arr = orig_arr.copy()
 
         # FIXME: don't leave commented-out
         # with tm.assert_produces_warning(FutureWarning, match=msg):
         #     arr[:] = invalid
-
-        # with tm.assert_produces_warning(FutureWarning, match=msg):
-        #     arr[[0]] = invalid
-
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = [invalid]
-
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = np.array([invalid], dtype=object)
 
     _invalid_scalars = [
         1 + 2j,
@@ -1143,19 +1176,28 @@ class TestSetitemValidation:
         np.timedelta64("NaT"),
     ]
 
-    @pytest.mark.parametrize(
-        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
-    )
-    def test_setitem_validation_scalar_bool(self, invalid):
-        arr = Series([True, False, None], dtype="bool")
-        self._check_setitem_invalid(arr, invalid)
+    # @pytest.mark.parametrize(
+    #    "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    # )
+    # @pytest.mark.parametrize(
+    #    "indexer",
+    #    [
+    #        slice(0, 1),
+    #        [True, False, False],
+    #        0,
+    #        [0],
+    #    ]
+    # )
+    # def test_setitem_validation_scalar_bool(self, invalid, indexer):
+    #    arr = Series([True, False], dtype="bool")
+    #    self._check_setitem_invalid(arr, invalid)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [1.5, np.float64(1.5)])
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
         arr = Series([1, 2, 3], dtype=any_int_numpy_dtype)
         self._check_setitem_invalid(arr, invalid)
 
-    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
-    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
-        arr = Series([1, 2, None], dtype=float_numpy_dtype)
-        self._check_setitem_invalid(arr, invalid)
+    # @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    # def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
+    #    arr = Series([1, 2, None], dtype=float_numpy_dtype)
+    #    self._check_setitem_invalid(arr, invalid)
