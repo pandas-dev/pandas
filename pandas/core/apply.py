@@ -44,6 +44,7 @@ from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
+    is_scalar,
     is_sequence,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1100,8 +1101,14 @@ class SeriesApply(NDFrameApply):
             # operation is actually defined on the Series, e.g. str
             try:
                 result = self.obj.apply(f)
+                # GH 41768: Attempt to return a reduced result
+                if not is_scalar(result):
+                    result = f(self.obj)
             except (ValueError, AttributeError, TypeError):
                 result = f(self.obj)
+
+            # TODO: Shouldn't we validate this returns a scalar?
+            # Would fail test_agg_listlike_result, test_agg_transform
 
         return result
 

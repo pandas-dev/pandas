@@ -1515,3 +1515,24 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_lambda_tuple_result_rename():
+    # GH 41768
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9], [np.nan, np.nan, np.nan]],
+        columns=["A", "B", "C"],
+    )
+    result = df.agg(z=("C", lambda x: np.mean(x)))
+    expected = DataFrame([6.0], index=["z"], columns=["C"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dictlike_lambda():
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9], [np.nan, np.nan, np.nan]],
+        columns=["A", "B", "C"],
+    )
+    result = df.agg({"C": lambda x: np.mean(x)})
+    expected = Series([6.0], index=["C"])
+    tm.assert_series_equal(result, expected)
