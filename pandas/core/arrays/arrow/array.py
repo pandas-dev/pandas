@@ -18,6 +18,10 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -362,11 +366,6 @@ class ArrowExtensionArray(
         else:
             # GH 53171: pyarrow does not yet handle pandas non-nano correctly
             # see https://github.com/apache/arrow/issues/33321
-            from pandas._libs.tslibs import (
-                Timedelta,
-                Timestamp,
-            )
-
             if isinstance(value, Timedelta):
                 if pa_type is None:
                     pa_type = pa.duration(value.unit)
