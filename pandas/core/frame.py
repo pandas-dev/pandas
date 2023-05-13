@@ -4802,7 +4802,8 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"cannot insert {column}, already exists")
         if not is_integer(loc):
             raise TypeError("loc must be int")
-
+        # convert non stdlib ints to satisfy typing checks
+        loc = int(loc)
         if isinstance(value, DataFrame) and len(value.columns) > 1:
             raise ValueError(
                 f"Expected a one-dimensional object, got a DataFrame with "
