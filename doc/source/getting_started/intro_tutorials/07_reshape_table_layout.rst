@@ -28,7 +28,7 @@
 
         </li>
         <li class="list-group-item gs-data-list">
-            <div data-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
+            <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
                 <span class="badge badge-dark">Air quality data</span>
             </div>
             <div class="collapse" id="collapsedata2">

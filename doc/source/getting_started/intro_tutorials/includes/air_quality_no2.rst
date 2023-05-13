@@ -1,6 +1,6 @@
 .. raw:: html
 
-    <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
+    <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
         <span class="badge badge-dark">Air quality data</span>
     </div>
     <div class="collapse" id="collapsedata">
