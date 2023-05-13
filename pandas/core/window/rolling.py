@@ -18,7 +18,6 @@ from typing import (
     Sized,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -29,8 +28,10 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -2384,8 +2385,8 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        quantile : float
-            Quantile to compute. 0 <= quantile <= 1.
+        q : float
+            Quantile to compute. 0 <= q <= 1.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2396,6 +2397,11 @@ class Rolling(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
+        cols : float
+            Alias for keyword 'q', kwargs only.
+
+            .. deprecated:: 2.1.0
+                Use keyword 'q' instead.
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
@@ -2426,23 +2432,13 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
-        q: float = None,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
-        *,
-        quantile: float = None,
     ):
-        if quantile is not None:
-            warnings.warn(
-                "The 'quantile' argument in Rolling.quantile "
-                "has been deprecated. Use 'q' instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            q = quantile if q is None else q
-
         return super().quantile(
             quantile=q,
             interpolation=interpolation,
