@@ -1117,16 +1117,22 @@ class TestExcelWriter:
 
     def test_engine_kwargs(self, engine, path):
         df = DataFrame([{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+
         msgs = {
             "odf": r"OpenDocumentSpreadsheet() got an unexpected keyword argument 'foo'",
             "openpyxl": r"load_workbook() got an unexpected keyword argument 'foo'",
             "xlsxwriter": r"Workbook.__init__() got an unexpected keyword argument 'foo'",
         }
 
-        df.to_excel(path,
-                    engine_kwargs={"foo": "bar"}
-                    )
+        # Handle change in error message for openpyxl (write and append mode)
+        if engine == "openpyxl" and os.path.exists(path):
+            msgs["openpyxl"] = r"Workbook.__init__() got an unexpected keyword argument 'foo'"
 
+        else:
+            with pytest.raises(TypeError, match=re.escape(msgs[engine])):
+                df.to_excel(path,
+                            engine_kwargs={"foo": "bar"},
+                            )
 
     def test_write_lists_dict(self, path):
         # see gh-8188.
