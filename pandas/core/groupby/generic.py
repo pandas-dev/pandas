@@ -1477,9 +1477,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  after raising AttributeError above
             # GH 18930
             if not is_hashable(self._selection):
-                name = tuple(self._selection)
+                # error: Need type annotation for "name"
+                name = tuple(self._selection)  # type: ignore[var-annotated]
             else:
-                name = self._selection
+                # error: Incompatible types in assignment
+                # (expression has type "Hashable", variable
+                # has type "Tuple[Any, ...]")
+                name = self._selection  # type: ignore[assignment]
             return self.obj._constructor_sliced(values, index=key_index, name=name)
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
