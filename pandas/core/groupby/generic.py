@@ -1251,6 +1251,7 @@ class SeriesGroupBy(GroupBy[Series]):
         4  Chihuahua        dog         7.0
         5    Persian        cat         8.8
         >>> ser = df.groupby('animal')['breed'].unique()
+        >>> ser
         animal
         cat              [Persian]
         dog    [Chihuahua, Beagle]
