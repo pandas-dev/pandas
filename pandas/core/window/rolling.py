@@ -18,6 +18,7 @@ from typing import (
     Sized,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -29,6 +30,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -2426,12 +2428,23 @@ class Rolling(RollingAndExpandingMixin):
     )
     def quantile(
         self,
-        quantile: float,
+        q: float = None,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
+        *,
+        quantile: float = None,
     ):
+        if quantile is not None:
+            warnings.warn(
+                "The 'quantile' argument in Rolling.quantile "
+                "has been deprecated. Use 'q' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            q = quantile if q is None else q
+
         return super().quantile(
-            quantile=quantile,
+            quantile=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )
