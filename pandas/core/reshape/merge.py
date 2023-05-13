@@ -1398,9 +1398,7 @@ class _MergeOperation:
             elif (
                 isinstance(lk.dtype, DatetimeTZDtype)
                 and isinstance(rk.dtype, DatetimeTZDtype)
-            ) or (
-                lk.dtype.kind == "M" and rk.dtype.kind == "M"
-            ):
+            ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
                 # allows datetime with different resolutions
                 continue
 
