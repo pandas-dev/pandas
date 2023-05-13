@@ -1478,7 +1478,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH 18930
             if not is_hashable(self._selection):
                 # error: Need type annotation for "name"
-                name = tuple(self._selection)  # type: ignore[var-annotated]
+                name = tuple(self._selection)  # type: ignore[var-annotated, arg-type]
             else:
                 # error: Incompatible types in assignment
                 # (expression has type "Hashable", variable
