@@ -14,6 +14,25 @@ runs:
         micromamba list
       shell: bash -el {0}
 
+    - name: Make ccache-action key
+      id: ccache-action-key
+      run: |
+        key="${{ runner.os }}--${{ runner.arch }}--${{ github.workflow }}"
+        # Date: Daily invalidation of all ccaches as an extra safety measure.
+        key="$key--$(/bin/date -u '+%Y%m%d')"
+        # Python version: Separate caches for each Python version. This reduces the number of cache misses.
+        key="$key--$(python -V)"
+        # Cache version: Bump this number to manually invalidate the cache.
+        key="$key--0"
+
+        echo "key=$key" >> $GITHUB_OUTPUT
+      shell: bash
+    - name: Use sccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        variant: sccache
+        key: ${{ steps.ccache-action-key.outputs.key }}
+
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
