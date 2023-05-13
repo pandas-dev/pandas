@@ -2779,17 +2779,21 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 @pytest.mark.parametrize("tzinfo", [None, pytz.timezone("America/Chicago")])
 def test_merge_datetime_different_resolution(tzinfo):
     # https://github.com/pandas-dev/pandas/issues/53200
-    df1 = pd.DataFrame({
-        't': [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
-        'a': [1],
-    })
+    df1 = DataFrame(
+        {
+            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
+            "a": [1],
+        }
+    )
     df2 = df1.copy()
-    df2['t'] = df2['t'].dt.as_unit('s')
+    df2["t"] = df2["t"].dt.as_unit("s")
 
-    expected = pd.DataFrame({
-        't': [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
-        'a_x': [1],
-        'a_y': [1],
-    })
-    result = df1.merge(df2, on='t')
+    expected = DataFrame(
+        {
+            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
+            "a_x": [1],
+            "a_y": [1],
+        }
+    )
+    result = df1.merge(df2, on="t")
     tm.assert_frame_equal(result, expected)
