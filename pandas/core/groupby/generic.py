@@ -1219,15 +1219,15 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def unique(self) -> Series:
         """
-        Return unique values of GroupedBy Series object.
+        Return unique values for each group.
 
-        It returns unique values for each of the GroupedBy values. Returned in
+        It returns unique values for each of the grouped values. Returned in
         order of appearance. Hash table-based unique, therefore does NOT sort.
 
         Returns
         -------
         Series
-            Unique values for each of the GroupedBy values.
+            Unique values for each of the grouped values.
 
         See Also
         --------
