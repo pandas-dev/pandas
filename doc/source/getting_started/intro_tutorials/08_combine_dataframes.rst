@@ -17,7 +17,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item gs-data-list">
                 <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality Nitrate data</span>
+                    <span class="badge bg-dark">Air quality Nitrate data</span>
                 </div>
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
@@ -51,7 +51,7 @@ Westminster* in respectively Paris, Antwerp and London.
         </li>
         <li class="list-group-item gs-data-list">
             <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
-                <span class="badge badge-dark">Air quality Particulate matter data</span>
+                <span class="badge bg-secondary">Air quality Particulate matter data</span>
             </div>
             <div class="collapse" id="collapsedata2">
                 <div class="card-body">

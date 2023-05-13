@@ -29,7 +29,7 @@
         </li>
         <li class="list-group-item gs-data-list">
             <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
-                <span class="badge badge-dark">Air quality data</span>
+                <span class="badge bg-secondary">Air quality data</span>
             </div>
             <div class="collapse" id="collapsedata2">
                 <div class="card-body">

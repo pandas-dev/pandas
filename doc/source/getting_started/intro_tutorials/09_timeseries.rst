@@ -18,7 +18,7 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item gs-data-list">
                 <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality data</span>
+                    <span class="badge bg-secondary">Air quality data</span>
                 </div>
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
