@@ -1224,14 +1224,6 @@ class SeriesGroupBy(GroupBy[Series]):
         Uniques are returned in order of appearance. Hash table-based unique,
         therefore does NOT sort.
 
-        Parameters
-        ----------
-        *docstrings : None, str, or callable
-            The string / docstring / docstring template to be appended in order
-            after default docstring under callable.
-        **params
-            The string which would be used to format docstring template.
-
         Returns
         -------
         ndarray or ExtensionArray
@@ -1248,16 +1240,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns the unique values as a NumPy array. In case of an
         extension-array backed Series, a new ExtensionArray of that type with
         just the unique values is returned. This includes
-        ```
-        Categorical
-        Period
-        Datetime with Timezone
-        Datetime without Timezone
-        Timedelta
-        Interval
-        Sparse
-        IntegerNA
-        ```
+
+        - Categorical
+        - Period
+        - Datetime with Timezone
+        - Datetime without Timezone
+        - Timedelta
+        - Interval
+        - Sparse
+        - IntegerNA
 
         See Examples section.
 
