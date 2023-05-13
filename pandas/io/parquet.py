@@ -578,7 +578,6 @@ def read_parquet(
     -------
     DataFrame
 
-
     """
     impl = get_engine(engine)
 
