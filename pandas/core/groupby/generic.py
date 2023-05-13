@@ -1219,19 +1219,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def unique(self) -> Series:
         """
-        Return unique values of Series object.
+        Return unique values of GroupedBy Series object.
 
-        TODO Uniques are returned in order of appearance. Hash table-based unique,
-        therefore does NOT sort.
+        It returns unique values for each of the GroupedBy values. Returned in
+        order of appearance. Hash table-based unique, therefore does NOT sort.
 
         Returns
         -------
         Series
-            TODO The unique values returned as a NumPy array. See Notes.
+            Unique values for each of the GroupedBy values.
 
         See Also
         --------
-        Series.unique : TODO Return Series with duplicate values removed.
+        Series.unique : Return unique values of Series object.
 
         Examples
         --------
