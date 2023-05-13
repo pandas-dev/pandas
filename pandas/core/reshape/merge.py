@@ -2261,23 +2261,14 @@ def _get_no_sort_one_missing_indexer(
 def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys, sort: bool = False
 ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
-    if len(join_keys) > 1:
-        if not (
-            isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
-        ):
-            raise AssertionError(
-                "If more than one join key is given then "
-                "'right_ax' must be a MultiIndex and the "
-                "number of join keys must be the number of levels in right_ax"
-            )
-
+    if isinstance(right_ax, MultiIndex):
         left_indexer, right_indexer = _get_multiindex_indexer(
             join_keys, right_ax, sort=sort
         )
     else:
-        jkey = join_keys[0]
-
-        left_indexer, right_indexer = _get_single_indexer(jkey, right_ax, sort=sort)
+        left_indexer, right_indexer = _get_single_indexer(
+            join_keys[0], right_ax, sort=sort
+        )
 
     if sort or len(left_ax) != len(left_indexer):
         # if asked to sort or there are 1-to-many matches

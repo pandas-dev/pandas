@@ -2773,3 +2773,17 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     result = df2.merge(df)
     expected = df2.copy()
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_single_level():
+    # Non-regression test for GH #52331
+    # Merge on MultiIndex with single level
+    df = DataFrame({"col": ["A", "B"]})
+    df2 = DataFrame(
+        data={"b": [100]},
+        index=MultiIndex.from_tuples([("A",), ("C",)], names=["col"]),
+    )
+    expected = DataFrame({"col": ["A", "B"], "b": [100, np.nan]})
+
+    result = df.merge(df2, left_on=["col"], right_index=True, how="left")
+    tm.assert_frame_equal(result, expected)
