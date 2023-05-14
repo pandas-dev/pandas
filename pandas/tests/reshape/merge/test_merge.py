@@ -7,6 +7,7 @@ import re
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
