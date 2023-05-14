@@ -2781,7 +2781,7 @@ def test_merge_datetime_different_resolution(tzinfo):
     # https://github.com/pandas-dev/pandas/issues/53200
     df1 = DataFrame(
         {
-            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
+            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo, unit="ns")],
             "a": [1],
         }
     )
