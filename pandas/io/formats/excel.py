@@ -948,7 +948,7 @@ class ExcelFormatter:
                 writer,
                 engine=engine,
                 storage_options=storage_options,
-                engine_kwargs=engine_kwargs
+                engine_kwargs=engine_kwargs,
             )
             need_save = True
 

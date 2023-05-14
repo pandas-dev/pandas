@@ -1,5 +1,4 @@
 import contextlib
-import re
 
 import pytest
 
@@ -68,6 +67,7 @@ def test_engine_kwargs(ext, nan_inf_to_errors):
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=engine_kwargs) as writer:
             assert writer.book.nan_inf_to_errors == nan_inf_to_errors
+
 
 def test_book_and_sheets_consistent(ext):
     # GH#45687 - Ensure sheets is updated if user modifies book
