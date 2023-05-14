@@ -1922,7 +1922,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy(deep)
+        ser = self if inplace else self.copy(deep and not using_copy_on_write())
         ser.name = name
         return ser
 
@@ -4672,7 +4672,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
         else:
             return self._set_name(
-                index, inplace=inplace, deep=copy and not using_copy_on_write()
+                index, inplace=inplace, deep=copy
             )
 
     @Appender(
