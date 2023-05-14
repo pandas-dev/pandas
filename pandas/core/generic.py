@@ -2212,7 +2212,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
-        engine_kwargs: dict, optional
+        engine_kwargs : dict
             Arbitrary keyword arguments passed to excel engine.
 
         See Also
