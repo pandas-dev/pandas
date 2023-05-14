@@ -2389,7 +2389,7 @@ class Rolling(RollingAndExpandingMixin):
             Quantile to compute. 0 <= quantile <= 1.
 
             .. deprecated:: 2.1.0
-                This will be renamed to 'q'.
+                This will be renamed to 'q' in a future version.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
