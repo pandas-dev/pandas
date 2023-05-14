@@ -1166,6 +1166,7 @@ cdef str period_format(
     object fast_fmt=None,
     object fast_loc_am=None,
     object fast_loc_pm=None,
+    bint preencoded_str=False
 ):
     """Important: please provide a dummy non-None fmt if fast_fmt is non-None"""
 
@@ -1239,11 +1240,19 @@ cdef str period_format(
     elif fast_fmt is not None:
         # A custom format is requested using python string formatting
 
+        if not preencoded_str:
+            # Encode strings using current locale, in case they contain non-utf8 chars
+            if isinstance(fast_fmt, str):
+                fast_fmt = <bytes>util.string_encode_locale(fast_fmt)
+            if isinstance(fast_loc_am, str):
+                fast_loc_am = <bytes>util.string_encode_locale(fast_loc_am)
+            if isinstance(fast_loc_pm, str):
+                fast_loc_pm = <bytes>util.string_encode_locale(fast_loc_pm)
+
         # Get the quarter and fiscal year
         quarter = get_yq(value, freq, &dts2)
 
-        # Finally use the string template. Note: handling of non-utf8 chars is directly
-        # done in python here, no need to encode as for c-strftime
+        # Finally use the string template
         y = dts.year
         h = dts.hour
         return fast_fmt % {
@@ -1266,7 +1275,7 @@ cdef str period_format(
     else:
         # A custom format is requested using strftime (slower)
 
-        if isinstance(fmt, str):
+        if not preencoded_str and isinstance(fmt, str):
             # Encode using current locale, in case fmt contains non-utf8 chars
             fmt = <bytes>util.string_encode_locale(fmt)
 
@@ -1392,6 +1401,14 @@ def period_array_strftime(
         except UnsupportedStrFmtDirective:
             # Unsupported directive: fallback to standard `strftime`
             pass
+        else:
+            # Encode strings using current locale, in case they contain non-utf8 chars
+            if isinstance(fast_fmt, str):
+                fast_fmt = <bytes>util.string_encode_locale(fast_fmt)
+            if isinstance(fast_loc_am, str):
+                fast_loc_am = <bytes>util.string_encode_locale(fast_loc_am)
+            if isinstance(fast_loc_pm, str):
+                fast_loc_pm = <bytes>util.string_encode_locale(fast_loc_pm)
 
     for i in range(n):
         # Analogous to: ordinal = values[i]
@@ -1416,6 +1433,7 @@ def period_array_strftime(
                 fast_fmt,
                 fast_loc_am,
                 fast_loc_pm,
+                True,
             )
 
         # Analogous to: ordinals[i] = ordinal
