@@ -96,6 +96,7 @@ def test_engine_kwargs_write(ext, iso_dates):
             # ExcelWriter won't allow us to close without writing something
             DataFrame().to_excel(writer)
 
+
 def test_engine_kwargs_append_invalid(ext):
     # GH 43445
     # test whether an invalid engine kwargs actually raises
