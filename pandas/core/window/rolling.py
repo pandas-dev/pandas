@@ -2385,8 +2385,11 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        q : float
-            Quantile to compute. 0 <= q <= 1.
+        quantile : float
+            Quantile to compute. 0 <= quantile <= 1.
+
+            .. deprecated:: 2.1.0
+                This will be renamed to 'q'.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2397,11 +2400,6 @@ class Rolling(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
-        cols : float
-            Alias for keyword 'q', kwargs only.
-
-            .. deprecated:: 2.1.0
-                Use keyword 'q' instead.
         """
         ).replace("\n", "", 1),
         kwargs_numeric_only,
