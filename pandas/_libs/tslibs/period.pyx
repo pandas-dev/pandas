@@ -1162,7 +1162,8 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
 cdef str period_format(
     int64_t value,
     int freq,
-    object fmt=None,
+    str fmt=None,
+    bytes fmt_bytes=None,
     object fast_fmt=None,
     object fast_loc_am=None,
     object fast_loc_pm=None,
@@ -1266,11 +1267,12 @@ cdef str period_format(
     else:
         # A custom format is requested using strftime (slower)
 
-        if isinstance(fmt, str):
-            # Encode using current locale, in case fmt contains non-utf8 chars
-            fmt = <bytes>util.string_encode_locale(fmt)
+        if fmt_bytes is None and isinstance(fmt, str):
+            # If not already done,
+            # encode using current locale, in case fmt contains non-utf8 chars
+            fmt_bytes = <bytes>util.string_encode_locale(fmt)
 
-        return _period_strftime(value, freq, fmt, dts)
+        return _period_strftime(value, freq, fmt_bytes, dts)
 
 
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
@@ -1412,6 +1414,7 @@ def period_array_strftime(
             item_repr = period_format(
                 ordinal,
                 dtype_code,
+                date_format,
                 date_fmt_bytes,
                 fast_fmt,
                 fast_loc_am,
@@ -2534,6 +2537,7 @@ cdef class _Period(PeriodMixin):
                 value,
                 freq,
                 "dummy" if fmt_str is not None else None,
+                None,
                 fmt_str,
                 loc_s.am,
                 loc_s.pm
