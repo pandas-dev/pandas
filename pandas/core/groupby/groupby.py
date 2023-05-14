@@ -70,7 +70,10 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    ensure_dtype_can_hold_na,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
@@ -417,8 +420,6 @@ f : function, str
 
     If a string is chosen, then it needs to be the name
     of the groupby method you want to use.
-
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -426,7 +427,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -435,7 +435,6 @@ engine_kwargs : dict, default None
       ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     Keyword arguments to be passed into func.
 
@@ -508,17 +507,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
     .. deprecated:: 2.1.0
 
@@ -531,7 +528,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -540,7 +536,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -595,17 +590,15 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    .. versionchanged:: 1.1.0
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-        Can also accept a Numba JIT function with
-        ``engine='numba'`` specified. Only passing a single function is supported
-        with this engine.
-
-        If the ``'numba'`` engine is chosen, the function must be
-        a user defined function with ``values`` and ``index`` as the
-        first and second arguments respectively in the function signature.
-        Each group's index will be passed to the user defined function
-        and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
 *args
     Positional arguments to pass to func.
@@ -614,7 +607,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -623,7 +615,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -1244,8 +1235,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
+            if name not in columns:
+                if in_axis:
+                    result.insert(0, name, lev)
+                else:
+                    msg = (
+                        "A grouping was used that is not in the columns of the "
+                        "DataFrame and so was excluded from the result. This grouping "
+                        "will be included in a future version of pandas. Add the "
+                        "grouping as a column of the DataFrame to silence this warning."
+                    )
+                    warnings.warn(
+                        message=msg,
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         return result
 
@@ -2618,8 +2622,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        Grouper
-            Return a new grouper with our resampler appended.
+        pandas.api.typing.DatetimeIndexResamplerGroupby,
+        pandas.api.typing.PeriodIndexResamplerGroupby, or
+        pandas.api.typing.TimedeltaIndexResamplerGroupby
+            Return a new groupby object, with type depending on the data
+            being resampled.
 
         See Also
         --------
@@ -2767,7 +2774,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             If ``'left'``, the last point in the window is excluded from calculations.
 
-            If ``'both'``, the no points in the window are excluded from calculations.
+            If ``'both'``, no points in the window are excluded from calculations.
 
             If ``'neither'``, the first and last points in the window are excluded
             from calculations.
@@ -2783,7 +2790,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        RollingGroupby
+        pandas.api.typing.RollingGroupby
             Return a new grouper with our rolling appended.
 
         See Also
@@ -2846,6 +2853,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding
         functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExpandingGroupby
         """
         from pandas.core.window import ExpandingGroupby
 
@@ -2862,6 +2873,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindowGroupby
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
@@ -3135,6 +3150,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
+        grouper: np.ndarray | Index | ops.BaseGrouper
         if self.keys is None and self.level is None:
             # we don't have the grouper info available
             # (e.g. we have selected out
@@ -3216,7 +3232,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals):
+            if is_object_dtype(vals.dtype):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
@@ -3242,7 +3258,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
                 # Optional[Union[dtype[Any], ExtensionDtype]]]")
                 return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
@@ -3302,13 +3318,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         orig_scalar = is_scalar(q)
         if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
-        qs = np.array(q, dtype=np.float64)
+            qs = np.array([q], dtype=np.float64)
+        else:
+            qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
@@ -4106,9 +4118,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = list(
+        in_axis_grps = [
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
-        )
+        ]
         if len(in_axis_grps) > 0:
             g_nums, g_names = zip(*in_axis_grps)
             output = output.drop(labels=list(g_names), axis=1)
@@ -4138,8 +4150,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Return a random sample of items from each group.
 
         You can use `random_state` for reproducibility.
-
-        .. versionadded:: 1.1.0
 
         Parameters
         ----------
@@ -4220,7 +4230,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """  # noqa:E501
+        """  # noqa: E501
         if self._selected_obj.empty:
             # GH48459 prevent ValueError when object is empty
             return self._selected_obj
@@ -4302,13 +4312,19 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     MultiIndex
     """
     nqs = len(qs)
+    lev_codes, lev = Index(qs).factorize()
+    lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:
         idx = cast(MultiIndex, idx)
-        lev_codes, lev = Index(qs).factorize()
         levels = list(idx.levels) + [lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
         mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
-        mi = MultiIndex.from_product([idx, qs])
+        nidx = len(idx)
+        idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)
+        levels = [idx, lev]
+        codes = [np.repeat(idx_codes, nqs), np.tile(lev_codes, nidx)]
+        mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
+
     return mi

@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
@@ -51,6 +50,7 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
+        NaPosition,
         Self,
         npt,
     )
@@ -347,6 +347,8 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
+        if isinstance(key, Hashable):
+            raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
 
@@ -494,7 +496,7 @@ class RangeIndex(Index):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         if key is not None:
@@ -978,7 +980,7 @@ class RangeIndex(Index):
             # GH#19333 is_integer evaluated True on timedelta64,
             # so we need to catch these explicitly
             return super()._arith_method(other, op)
-        elif is_timedelta64_dtype(other):
+        elif lib.is_np_dtype(getattr(other, "dtype", None), "m"):
             # Must be an np.ndarray; GH#22390
             return super()._arith_method(other, op)
 

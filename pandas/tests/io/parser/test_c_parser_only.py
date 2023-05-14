@@ -17,10 +17,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
@@ -603,7 +600,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1) as f:
+    with open(csv1, encoding="utf-8") as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
             parser.read_csv(m)
             assert not m.closed
@@ -615,7 +612,7 @@ def test_file_binary_mode(c_parser_only):
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write("1,2,3\n4,5,6")
 
         with open(path, "rb") as f:
@@ -627,7 +624,7 @@ def test_unix_style_breaks(c_parser_only):
     # GH 11020
     parser = c_parser_only
     with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n") as f:
+        with open(path, "w", newline="\n", encoding="utf-8") as f:
             f.write("blah\n\ncol_1,col_2,col_3\n\n")
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
@@ -683,10 +680,7 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    if IS64:
-        assert not df.iloc[0, 0] == df3.iloc[0, 0]
-    else:
-        assert df.iloc[0, 0] == df3.iloc[0, 0]
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 

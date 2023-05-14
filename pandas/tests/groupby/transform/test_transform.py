@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas._libs import lib
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
@@ -337,10 +336,10 @@ def test_transform_casting():
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.dtype)
+    assert lib.is_np_dtype(result.dtype, "m")
 
     result = df[["ID3", "DATETIME"]].groupby("ID3").transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.DATETIME.dtype)
+    assert lib.is_np_dtype(result.DATETIME.dtype, "m")
 
 
 def test_transform_multiple(ts):
@@ -363,11 +362,11 @@ def test_dispatch_transform(tsframe):
 
 def test_transform_fillna_null():
     df = DataFrame(
-        dict(
-            price=[10, 10, 20, 20, 30, 30],
-            color=[10, 10, 20, 20, 30, 30],
-            cost=(100, 200, 300, 400, 500, 600),
-        )
+        {
+            "price": [10, 10, 20, 20, 30, 30],
+            "color": [10, 10, 20, 20, 30, 30],
+            "cost": (100, 200, 300, 400, 500, 600),
+        }
     )
     with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
         df.groupby(["price"]).transform("fillna")

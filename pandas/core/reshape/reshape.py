@@ -21,7 +21,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_extension_array_dtype,
     is_integer,
     needs_i8_conversion,
 )
@@ -46,7 +45,11 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import npt
+    from pandas._typing import (
+        ArrayLike,
+        Level,
+        npt,
+    )
 
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.frozen import FrozenList
@@ -98,9 +101,7 @@ class _Unstacker:
     unstacked : DataFrame
     """
 
-    def __init__(self, index: MultiIndex, level=-1, constructor=None) -> None:
-        if constructor is None:
-            constructor = DataFrame
+    def __init__(self, index: MultiIndex, level: Level, constructor) -> None:
         self.constructor = constructor
 
         self.index = index.remove_unused_levels()
@@ -374,13 +375,14 @@ class _Unstacker:
         )
 
 
-def _unstack_multiple(data, clocs, fill_value=None):
+def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
+    index = cast(MultiIndex, index)  # caller is responsible for checking
 
     # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
     # recognised as a whole
@@ -433,10 +435,10 @@ def _unstack_multiple(data, clocs, fill_value=None):
             return result
 
         # GH#42579 deep=False to avoid consolidating
-        dummy = data.copy(deep=False)
-        dummy.index = dummy_index
+        dummy_df = data.copy(deep=False)
+        dummy_df.index = dummy_index
 
-        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        unstacked = dummy_df.unstack("__placeholder__", fill_value=fill_value)
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -497,7 +499,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
         )
 
 
-def _unstack_frame(obj: DataFrame, level, fill_value=None):
+def _unstack_frame(obj: DataFrame, level, fill_value=None) -> DataFrame:
     assert isinstance(obj.index, MultiIndex)  # checked by caller
     unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
 
@@ -589,13 +591,14 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
             verify_integrity=False,
         )
 
+    new_values: ArrayLike
     if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type(
                 [col._values for _, col in frame.items()]
@@ -617,7 +620,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     return frame._constructor_sliced(new_values, index=new_index)
 
 
-def stack_multiple(frame, level, dropna: bool = True):
+def stack_multiple(frame: DataFrame, level, dropna: bool = True):
     # If all passed levels match up to column names, no
     # ambiguity about what to do
     if all(lev in frame.columns.names for lev in level):
@@ -751,7 +754,7 @@ def _stack_multi_columns(
         else:
             subset = this.iloc[:, loc]
             dtype = find_common_type(subset.dtypes.tolist())
-            if is_extension_array_dtype(dtype):
+            if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): won't need special case, can go through .values
                 #  paths below (might change to ._values)
                 value_slice = dtype.construct_array_type()._concat_same_type(

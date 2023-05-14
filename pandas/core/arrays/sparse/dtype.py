@@ -18,6 +18,7 @@ from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_object_dtype,
@@ -25,10 +26,14 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
 )
+
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -91,6 +96,9 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
             dtype = np.dtype("object")
+        if not isinstance(dtype, np.dtype):
+            # GH#53160
+            raise TypeError("SparseDtype subtype must be a numpy dtype")
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
@@ -161,18 +169,41 @@ class SparseDtype(ExtensionDtype):
             raise ValueError(
                 f"fill_value must be a scalar. Got {self._fill_value} instead"
             )
-        # TODO: Right now we can use Sparse boolean array
-        #       with any fill_value. Here was an attempt
-        #       to allow only 3 value: True, False or nan
-        #       but plenty test has failed.
-        # see pull 44955
-        # if self._is_boolean and not (
-        #    is_bool(self._fill_value) or isna(self._fill_value)
-        # ):
-        #    raise ValueError(
-        #        "fill_value must be True, False or nan "
-        #        f"for boolean type. Got {self._fill_value} instead"
-        #    )
+
+        # GH#23124 require fill_value and subtype to match
+        val = self._fill_value
+        if isna(val):
+            if not is_valid_na_for_dtype(val, self.subtype):
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        elif isinstance(self.subtype, CategoricalDtype):
+            # TODO: is this even supported?  It is reached in
+            #  test_dtype_sparse_with_fill_value_not_present_in_data
+            if self.subtype.categories is None or val not in self.subtype.categories:
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            dummy = np.empty(0, dtype=self.subtype)
+            dummy = ensure_wrapped_if_datetimelike(dummy)
+
+            if not can_hold_element(dummy, val):
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
     @property
     def _is_na_fill_value(self) -> bool:
