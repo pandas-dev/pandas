@@ -4671,9 +4671,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
-            return self._set_name(
-                index, inplace=inplace, deep=copy
-            )
+            return self._set_name(index, inplace=inplace, deep=copy)
 
     @Appender(
         """
