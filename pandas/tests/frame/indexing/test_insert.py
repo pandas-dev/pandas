@@ -110,3 +110,9 @@ class TestDataFrameInsert:
         )
         with pytest.raises(ValueError, match=msg):
             df.insert(1, "newcol", df)
+
+    def test_insert_int64_loc(self):
+        # GH#53193
+        df = DataFrame({"a": [1, 2]})
+        df.insert(np.int64(0), "b", 0)
+        tm.assert_frame_equal(df, DataFrame({"b": [0, 0], "a": [1, 2]}))
