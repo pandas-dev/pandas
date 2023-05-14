@@ -2776,8 +2776,7 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 
 def test_merge_multiindex_single_level():
-    # Non-regression test for GH #52331
-    # Merge on MultiIndex with single level
+    # GH #52331
     df = DataFrame({"col": ["A", "B"]})
     df2 = DataFrame(
         data={"b": [100]},
