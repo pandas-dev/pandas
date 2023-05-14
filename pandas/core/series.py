@@ -1940,7 +1940,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace: bool = False) -> Series:
+    def _set_name(
+        self, name, inplace: bool = False, deep: bool | None = None
+    ) -> Series:
         """
         Set the Series name.
 
@@ -1949,9 +1951,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
+        deep : bool|None, default None
+            Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy()
+        ser = self if inplace else self.copy(deep and not using_copy_on_write())
         ser.name = name
         return ser
 
@@ -4770,7 +4774,7 @@ Keep all original rows and also all original values
         index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -4857,7 +4861,7 @@ Keep all original rows and also all original values
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(index, inplace=inplace, deep=copy)
 
     @Appender(
         """
