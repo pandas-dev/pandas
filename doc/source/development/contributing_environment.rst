@@ -250,6 +250,11 @@ To compile pandas with setuptools, run::
    python setup.py develop
 
 .. note::
+   If pandas is already installed, you have to uninstall it first::
+
+        pip uninstall pandas
+
+.. note::
    You will need to repeat this step each time the C extensions change, for example
    if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
