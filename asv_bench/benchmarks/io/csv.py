@@ -184,7 +184,7 @@ class ToCSVDatetimeBig(BaseIO):
     def time_frame_formatting_default(self, nobs):
         self.data.to_csv(self.fname)
 
-    def time_frame_date_formatting_custom(self):
+    def time_frame_date_formatting_custom(self, nobs):
         self.data.to_csv(self.fname, date_format="%Y%m%d__%H%M%S")
 
 
