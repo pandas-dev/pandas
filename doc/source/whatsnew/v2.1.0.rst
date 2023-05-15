@@ -371,12 +371,14 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
+- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
 
 I/O
 ^^^
@@ -386,7 +388,7 @@ I/O
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
-- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
+- Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 
 Period
 ^^^^^^
