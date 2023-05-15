@@ -1170,41 +1170,13 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
+    @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
-        """
-        Return whether each group's values are monotonically increasing.
-
-        Returns
-        -------
-        Series
-
-        Examples
-        --------
-        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
-        >>> s.groupby(level=0).is_monotonic_increasing
-        Falcon    False
-        Parrot     True
-        dtype: bool
-        """
         return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
+    @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
-        """
-        Return whether each group's values are monotonically decreasing.
-
-        Returns
-        -------
-        Series
-
-        Examples
-        --------
-        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
-        >>> s.groupby(level=0).is_monotonic_decreasing
-        Falcon     True
-        Parrot    False
-        dtype: bool
-        """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
@@ -1357,9 +1329,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
-        if not is_dict_like(func) and result is not None:
-            return result
-        elif relabeling:
+        if relabeling and (is_dict_like(func) or result is None):
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
             result = cast(DataFrame, result)
@@ -1411,7 +1381,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result.columns = self._obj_with_exclusions.columns.copy()
 
         if not self.as_index:
-            result = self._insert_inaxis_grouper(result)
+            result = self._insert_inaxis_grouper(result, finalize=True)
             result.index = default_index(len(result))
 
         return result
