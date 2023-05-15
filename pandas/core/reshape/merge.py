@@ -1395,6 +1395,12 @@ class _MergeOperation:
                 rk.dtype, DatetimeTZDtype
             ):
                 raise ValueError(msg)
+            elif (
+                isinstance(lk.dtype, DatetimeTZDtype)
+                and isinstance(rk.dtype, DatetimeTZDtype)
+            ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
+                # allows datetime with different resolutions
+                continue
 
             elif lk_is_object and rk_is_object:
                 continue
@@ -2343,7 +2349,7 @@ def _factorize_keys(
     if isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        # TODO(non-nano): need to make sure resolutions match
+        lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
         lk = cast("DatetimeArray", lk)._ndarray
         rk = cast("DatetimeArray", rk)._ndarray
 
