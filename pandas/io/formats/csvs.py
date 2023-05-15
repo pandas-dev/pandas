@@ -26,9 +26,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
 )
-from pandas.core.dtypes.missing import notna
-
-from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_handle
 
@@ -41,6 +38,8 @@ if TYPE_CHECKING:
         StorageOptions,
         WriteBuffer,
     )
+
+    from pandas.core.indexes.api import Index
 
     from pandas.io.formats.format import DataFrameFormatter
 
