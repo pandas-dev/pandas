@@ -297,7 +297,11 @@ class TestFillNA:
         #  2) _can_hold_na + noop + not can_hold_element
 
         obj = frame_or_series([1, 2, 3], dtype=np.int64)
-        res = obj.fillna("foo", downcast=np.dtype(np.int32))
+
+        msg = "downcast other than None, False, and 'infer' are deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#40988
+            res = obj.fillna("foo", downcast=np.dtype(np.int32))
         expected = obj.astype(np.int32)
         tm.assert_equal(res, expected)
 
@@ -306,7 +310,9 @@ class TestFillNA:
         expected2 = obj  # get back int64
         tm.assert_equal(res2, expected2)
 
-        res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#40988
+            res3 = obj2.fillna("foo", downcast=np.dtype(np.int32))
         tm.assert_equal(res3, expected)
 
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
@@ -597,15 +603,15 @@ class TestFillNA:
         assert (filled.loc[filled.index[5:20], "foo"] == 0).all()
         del float_string_frame["foo"]
 
-        empty_float = float_frame.reindex(columns=[])
-
-        # TODO(wesm): unused?
-        result = empty_float.fillna(value=0)  # noqa
+        float_frame.reindex(columns=[]).fillna(value=0)
 
     def test_fillna_downcast_dict(self):
         # GH#40809
         df = DataFrame({"col1": [1, np.nan]})
-        result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
+
+        msg = "downcast entries other than None, False, and 'infer' are deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
         expected = DataFrame({"col1": [1, 2]})
         tm.assert_frame_equal(result, expected)
 

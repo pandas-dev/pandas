@@ -47,6 +47,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
+    "__git_version__",
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",

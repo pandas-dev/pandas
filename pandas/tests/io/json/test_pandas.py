@@ -1214,7 +1214,7 @@ class TestPandasContainer:
     def test_read_local_jsonl(self):
         # GH17200
         with tm.ensure_clean("tmp_items.json") as path:
-            with open(path, "w") as infile:
+            with open(path, "w", encoding="utf-8") as infile:
                 infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
             result = read_json(path, lines=True)
             expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
@@ -1472,16 +1472,33 @@ class TestPandasContainer:
 
         assert result == expected
 
-    @pytest.mark.parametrize("orient", ["records", "index", "columns", "values"])
+    @pytest.mark.parametrize("orient", ["index", "columns"])
     def test_index_false_error_to_json(self, orient):
-        # GH 17394
+        # GH 17394, 25513
         # Testing error message from to_json with index=False
 
         df = DataFrame([[1, 2], [4, 5]], columns=["a", "b"])
 
-        msg = "'index=False' is only valid when 'orient' is 'split' or 'table'"
+        msg = (
+            "'index=False' is only valid when 'orient' is 'split', "
+            "'table', 'records', or 'values'"
+        )
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
+
+    @pytest.mark.parametrize("orient", ["records", "values"])
+    def test_index_true_error_to_json(self, orient):
+        # GH 25513
+        # Testing error message from to_json with index=True
+
+        df = DataFrame([[1, 2], [4, 5]], columns=["a", "b"])
+
+        msg = (
+            "'index=True' is only valid when 'orient' is 'split', "
+            "'table', 'index', or 'columns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient=orient, index=True)
 
     @pytest.mark.parametrize("orient", ["split", "table"])
     @pytest.mark.parametrize("index", [True, False])

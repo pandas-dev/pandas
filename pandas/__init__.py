@@ -21,7 +21,7 @@ del _hard_dependencies, _dependency, _missing_dependencies
 try:
     # numpy compat
     from pandas.compat import (
-        is_numpy_dev as _is_numpy_dev,  # pyright: ignore # noqa:F401
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
     )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
@@ -41,7 +41,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore # noqa:F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
 from pandas.core.api import (
     # dtype
@@ -174,12 +174,21 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-from pandas._version import get_versions
+_built_with_meson = False
+try:
+    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+        __version__,
+        __git_version__,
+    )
 
-v = get_versions()
-__version__ = v.get("closest-tag", v["version"])
-__git_version__ = v.get("full-revisionid")
-del get_versions, v
+    _built_with_meson = True
+except ImportError:
+    from pandas._version import get_versions
+
+    v = get_versions()
+    __version__ = v.get("closest-tag", v["version"])
+    __git_version__ = v.get("full-revisionid")
+    del get_versions, v
 
 
 # module level doc-string

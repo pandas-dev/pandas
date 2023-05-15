@@ -83,9 +83,7 @@ repos:
     hooks:
     -   id: pylint
         stages: [manual]
--   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
-    hooks:
+        args: [--load-plugins=pylint.extensions.redefined_loop_name]
     -   id: pylint
         alias: redefined-outer-name
         name: Redefining name from outer scope
@@ -98,6 +96,11 @@ repos:
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
+        stages: [manual]
+    -   id: pylint
+        alias: unspecified-encoding
+        name: Using open without explicitly specifying an encoding
+        args: [--disable=all, --enable=unspecified-encoding]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
