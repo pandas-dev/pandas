@@ -7824,6 +7824,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         obj = self.T if should_transpose else self
 
         if obj.empty:
+            if inplace:
+                return None
             return self.copy()
 
         if method not in fillna_methods:
