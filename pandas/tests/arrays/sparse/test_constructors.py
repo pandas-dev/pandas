@@ -5,12 +5,12 @@ from pandas._libs.sparse import IntIndex
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import isna
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
+from pandas import (
     SparseDtype,
+    isna,
 )
+import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestConstructors:
