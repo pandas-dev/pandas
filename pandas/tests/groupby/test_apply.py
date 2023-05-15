@@ -1406,3 +1406,15 @@ def test_apply_inconsistent_output(group_col):
     )
 
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_array_output_multi_getitem():
+    # GH 18930
+    df = DataFrame(
+        {"A": {"a": 1, "b": 2}, "B": {"a": 1, "b": 2}, "C": {"a": 1, "b": 2}}
+    )
+    result = df.groupby("A")[["B", "C"]].apply(lambda x: np.array([0]))
+    expected = Series(
+        [np.array([0])] * 2, index=Index([1, 2], name="A"), name=("B", "C")
+    )
+    tm.assert_series_equal(result, expected)

@@ -11,9 +11,10 @@ import numpy as np
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.dtypes import CategoricalDtype
-
-from pandas.core.arrays.arrow.dtype import ArrowDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 
 if typing.TYPE_CHECKING:
     from pandas._typing import DtypeObj
