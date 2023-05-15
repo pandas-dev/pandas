@@ -51,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -66,7 +69,6 @@ from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (

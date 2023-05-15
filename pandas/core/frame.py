@@ -105,7 +105,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -131,7 +134,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,

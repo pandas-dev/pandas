@@ -9,9 +9,10 @@ from pandas._libs.tslibs import iNaT
 from pandas.errors import NoBufferPresent
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.dtypes import ArrowDtype
+
 import pandas as pd
 from pandas.api.types import is_string_dtype
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.interchange.buffer import PandasBuffer
 from pandas.core.interchange.dataframe_protocol import (
     Column,

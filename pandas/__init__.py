@@ -108,7 +108,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets

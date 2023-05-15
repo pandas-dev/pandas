@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -61,7 +62,6 @@ from pandas.core.arrays import (
     PandasArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,

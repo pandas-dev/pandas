@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.sparse import SparseDtype
+from pandas import SparseDtype
 
 
 @pytest.mark.parametrize(

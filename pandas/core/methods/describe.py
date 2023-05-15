@@ -32,11 +32,11 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.reshape.concat import concat
 

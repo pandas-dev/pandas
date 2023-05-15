@@ -6,11 +6,9 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas import SparseDtype
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class TestSeriesAccessor:
