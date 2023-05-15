@@ -229,11 +229,10 @@ jobs:
         run: |
           /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir --no-deps -U pip wheel setuptools
+          python -m pip install -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
-          python setup.py build_ext -q -j$(nproc)
-          python -m pip install --no-cache-dir --no-build-isolation --no-use-pep517 -e .
-          python -m pip list
+          python -m pip install --no-cache-dir --no-build-isolation -e .
+          python -m pip list --no-cache-dir
           export PANDAS_CI=1
           python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
@@ -268,10 +267,9 @@ jobs:
         run: |
           /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install --no-cache-dir --no-deps -U pip wheel setuptools
+          python -m pip install -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
-          python setup.py build_ext -q -j$(nproc)
-          python -m pip install --no-cache-dir --no-build-isolation --no-use-pep517 -e .
+          python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
 
       - name: Run Tests
@@ -347,8 +345,7 @@ jobs:
 
       - name: Build Pandas
         run: |
-          python setup.py build_ext -q -j4
-          python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
+          python -m pip install -e . --no-build-isolation --no-index
 
       - name: Build Version
         run: |

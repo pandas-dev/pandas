@@ -18,22 +18,6 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    Self,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -140,8 +124,22 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        Iterator,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        Scalar,
+        Self,
+        SortKind,
+        TakeIndexer,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
     )
 
     from pandas import Series
@@ -497,22 +495,13 @@ class ArrowExtensionArray(
             operator.add,
             roperator.radd,
         ]:
-            length = self._pa_array.length()
-
-            seps: list[str] | list[bytes]
-            if pa.types.is_string(pa_type):
-                seps = [""] * length
-            else:
-                seps = [b""] * length
-
-            if is_scalar(other):
-                other = [other] * length
-            elif isinstance(other, type(self)):
+            sep = pa.scalar("", type=pa_type)
+            if isinstance(other, type(self)):
                 other = other._pa_array
             if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, seps)
+                result = pc.binary_join_element_wise(self._pa_array, other, sep)
             else:
-                result = pc.binary_join_element_wise(other, self._pa_array, seps)
+                result = pc.binary_join_element_wise(other, self._pa_array, sep)
             return type(self)(result)
 
         pc_func = arrow_funcs[op.__name__]
@@ -578,7 +567,7 @@ class ArrowExtensionArray(
     def __contains__(self, key) -> bool:
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
         if isna(key) and key is not self.dtype.na_value:
-            if self.dtype.kind == "f" and lib.is_float(key) and isna(key):
+            if self.dtype.kind == "f" and lib.is_float(key):
                 return pc.any(pc.is_nan(self._pa_array)).as_py()
 
             # e.g. date or timestamp types we do not allow None here to match pd.NA
@@ -805,8 +794,9 @@ class ArrowExtensionArray(
             fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
-        if is_array_like(value):
-            value = cast(ArrayLike, value)
+        if isinstance(value, (np.ndarray, ExtensionArray)):
+            # Similar to check_value_size, but we do not mask here since we may
+            #  end up passing it to the super() method.
             if len(value) != len(self):
                 raise ValueError(
                     f"Length of 'value' does not match. Got ({len(value)}) "
@@ -1912,8 +1902,8 @@ class ArrowExtensionArray(
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        result = pa.array([None] * self._pa_array.length(), type=self._pa_array.type)
-        result = pc.if_else(not_out_of_bounds, selected, result)
+        null_value = pa.scalar(None, type=self._pa_array.type)
+        result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
 
     def _str_join(self, sep: str):
@@ -2344,6 +2334,11 @@ class ArrowExtensionArray(
         return type(self)(pc.strftime(self._pa_array, format="%B", locale=locale))
 
     def _dt_to_pydatetime(self):
+        if pa.types.is_date(self.dtype.pyarrow_dtype):
+            raise ValueError(
+                f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
+                "Convert to pyarrow timestamp type."
+            )
         data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
             data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]

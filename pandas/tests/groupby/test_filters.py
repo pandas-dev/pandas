@@ -363,7 +363,8 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -405,7 +406,8 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -447,7 +449,8 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -492,7 +495,8 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -534,7 +538,8 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
