@@ -117,9 +117,9 @@ if pattern:
                 elif single_doc and rel_fname != pattern:
                     exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template")) as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
@@ -237,14 +237,14 @@ elif "rc" in version:
 
 html_theme_options = {
     "external_links": [],
-    "footer_items": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "google_analytics_id": "UA-27880019-2",
+    "analytics": {"google_analytics_id": "UA-27880019-2"},
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "/versions.json",
+        "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
     "icon_links": [

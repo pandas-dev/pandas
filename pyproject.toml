@@ -2,13 +2,15 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "setuptools>=61.0.0",
+    "meson-python==0.13.1",
+    "meson[ninja]==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
-# build-backend = "setuptools.build_meta"
+
+build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
@@ -136,6 +138,9 @@ versionfile_source = "pandas/_version.py"
 versionfile_build = "pandas/_version.py"
 tag_prefix = "v"
 parentdir_prefix = "pandas-"
+
+[tool.meson-python.args]
+setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"

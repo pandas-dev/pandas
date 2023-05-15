@@ -80,7 +80,7 @@ cdef extern from "src/datetime/pd_datetime.h":
         INFER_FORMAT
 
 # You must call this before using the PandasDateTime CAPI functions
-cdef inline void import_pandas_datetime():
+cdef inline void import_pandas_datetime() noexcept:
     PandasDateTime_IMPORT
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
@@ -90,11 +90,11 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
 )
-cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
 )
-cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
 cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil

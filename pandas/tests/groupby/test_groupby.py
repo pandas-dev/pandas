@@ -4,7 +4,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -2472,7 +2471,6 @@ def test_groupby_series_with_tuple_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 @pytest.mark.parametrize(
     "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
 )
@@ -2485,7 +2483,6 @@ def test_groupby_numerical_stability_sum_mean(func, values):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 def test_groupby_numerical_stability_cumsum():
     # GH#38934
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
@@ -3061,3 +3058,27 @@ def test_groupby_selection_other_methods(df):
     tm.assert_frame_equal(
         g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
     )
+
+
+def test_groupby_with_Time_Grouper():
+    idx2 = [
+        to_datetime("2016-08-31 22:08:12.000"),
+        to_datetime("2016-08-31 22:09:12.200"),
+        to_datetime("2016-08-31 22:20:12.400"),
+    ]
+
+    test_data = DataFrame(
+        {"quant": [1.0, 1.0, 3.0], "quant2": [1.0, 1.0, 3.0], "time2": idx2}
+    )
+
+    expected_output = DataFrame(
+        {
+            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1T"),
+            "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        }
+    )
+
+    df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
+
+    tm.assert_frame_equal(df, expected_output)
