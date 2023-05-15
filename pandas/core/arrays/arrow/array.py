@@ -64,8 +64,9 @@ if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -462,7 +463,10 @@ class ArrowExtensionArray(
                 pa_array = arr._pa_array
 
         if pa_type is not None and pa_array.type != pa_type:
-            pa_array = pa_array.cast(pa_type)
+            if pa.types.is_dictionary(pa_type):
+                pa_array = pa_array.dictionary_encode()
+            else:
+                pa_array = pa_array.cast(pa_type)
 
         return pa_array
 
@@ -981,7 +985,10 @@ class ArrowExtensionArray(
         else:
             data = self._pa_array
 
-        encoded = data.dictionary_encode(null_encoding=null_encoding)
+        if pa.types.is_dictionary(data.type):
+            encoded = data
+        else:
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
