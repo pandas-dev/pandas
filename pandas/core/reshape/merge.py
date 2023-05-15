@@ -88,6 +88,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
+    DatetimeArray,
     ExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -103,7 +104,6 @@ from pandas.core.sorting import is_int64_overflow_possible
 if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
-    from pandas.core.arrays import DatetimeArray
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -2355,9 +2355,9 @@ def _factorize_keys(
     rk = extract_array(rk, extract_numpy=True, extract_range=True)
     # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
-    if (
-        isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype)
-    ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
+    if (isinstance(lk, DatetimeArray) and isinstance(rk, DatetimeArray)) and (
+        lk._is_tzawareness_compat(rk)
+    ):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
