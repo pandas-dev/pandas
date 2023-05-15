@@ -4,11 +4,13 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.8.0
+  - python=3.9
 
   # build dependencies
   - versioneer[toml]
   - cython>=0.29.33
+  - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
   - pytest>=7.0.0
@@ -19,7 +21,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil=2.8.2
-  - numpy=1.20.3
+  - numpy=1.21.6
   - pytz=2020.1
 
   # optional dependencies

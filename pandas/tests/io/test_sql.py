@@ -36,8 +36,6 @@ import pytest
 from pandas._libs import lib
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_datetime64_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1494,6 +1492,18 @@ class _TestSQLApi(PandasSQLTest):
 
         tm.assert_frame_equal(res, df)
 
+    def test_read_sql_duplicate_columns(self):
+        # GH#53117
+        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
+        df.to_sql("test_table", self.conn, index=False)
+
+        result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table;", self.conn)
+        expected = DataFrame(
+            [[1, 0.1, 2, 1], [2, 0.2, 3, 1], [3, 0.3, 4, 1]],
+            columns=["a", "b", "a", "c"],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
@@ -1924,7 +1934,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def check(col):
             # check that a column is either datetime64[ns]
             # or datetime64[ns, UTC]
-            if is_datetime64_dtype(col.dtype):
+            if lib.is_np_dtype(col.dtype, "M"):
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
                 assert col[0] == Timestamp("2000-01-01 08:00:00")
@@ -2135,13 +2145,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
         res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
-        ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+        ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
         assert sql.to_sql(df, "test_time3", self.conn, index=False) == 2
         if self.flavor == "sqlite":
             res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
-            ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(ref, res)
         res = sql.read_sql_table("test_time3", self.conn)
         tm.assert_frame_equal(df, res)
@@ -2676,6 +2686,11 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
 
+    def test_valueerror_exception(self):
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        with pytest.raises(ValueError, match="Empty table name specified"):
+            df.to_sql(name="", con=self.conn, if_exists="replace", index=False)
+
     def test_row_object_is_named_tuple(self):
         # GH 40682
         # Test for the is_named_tuple() function
@@ -2949,7 +2964,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
-            expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(res, expected)
 
     def _get_index_columns(self, tbl_name):

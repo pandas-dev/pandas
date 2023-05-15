@@ -18,20 +18,18 @@ if _missing_dependencies:  # pragma: no cover
     )
 del _hard_dependencies, _dependency, _missing_dependencies
 
-# numpy compat
-from pandas.compat import is_numpy_dev as _is_numpy_dev  # pyright: ignore # noqa:F401
-
 try:
-    from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
+    # numpy compat
+    from pandas.compat import (
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+    )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
     raise ImportError(
         f"C extension: {_module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --force' to build the C extensions first."
+        "'python setup.py build_ext' to build the C extensions first."
     ) from _err
-else:
-    del _tslib, _lib, _hashtable
 
 from pandas._config import (
     get_option,
@@ -43,7 +41,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore # noqa:F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
 
 from pandas.core.api import (
     # dtype
@@ -110,7 +108,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -176,12 +174,21 @@ from pandas.io.json._normalize import json_normalize
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
-from pandas._version import get_versions
+_built_with_meson = False
+try:
+    from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+        __version__,
+        __git_version__,
+    )
 
-v = get_versions()
-__version__ = v.get("closest-tag", v["version"])
-__git_version__ = v.get("full-revisionid")
-del get_versions, v
+    _built_with_meson = True
+except ImportError:
+    from pandas._version import get_versions
+
+    v = get_versions()
+    __version__ = v.get("closest-tag", v["version"])
+    __git_version__ = v.get("full-revisionid")
+    del get_versions, v
 
 
 # module level doc-string

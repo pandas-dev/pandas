@@ -36,6 +36,10 @@ _class_locations_map = {
         "pandas.core.indexes.base",
         "Index",
     ),
+    ("pandas.core.arrays.sparse.dtype", "SparseDtype"): (
+        "pandas.core.dtypes.dtypes",
+        "SparseDtype",
+    ),
 }
 
 

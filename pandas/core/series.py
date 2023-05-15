@@ -167,6 +167,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
+        ReindexMethod,
         Renamer,
         Scalar,
         Self,
@@ -1018,10 +1019,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
-        if isinstance(key, Index):
-            key_type = key.inferred_type
-        else:
-            key_type = lib.infer_dtype(key, skipna=False)
+        key_type = lib.infer_dtype(key, skipna=False)
 
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
@@ -1701,7 +1699,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if hasattr(buf, "write"):
                 buf.write(result)
             else:
-                with open(buf, "w") as f:
+                with open(buf, "w", encoding="utf-8") as f:
                     f.write(result)
         return None
 
@@ -1756,7 +1754,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index : bool, optional, default True
             Add index (row) labels.
 
-            .. versionadded:: 1.1.0
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -1822,6 +1819,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Index
             Index of the Series.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s.keys()
+        Index([0, 1, 2], dtype='int64')
         """
         return self.index
 
@@ -1904,7 +1907,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim(mgr)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace: bool = False) -> Series:
+    def _set_name(
+        self, name, inplace: bool = False, deep: bool | None = None
+    ) -> Series:
         """
         Set the Series name.
 
@@ -1913,9 +1918,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
+        deep : bool|None, default None
+            Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy()
+        ser = self if inplace else self.copy(deep and not using_copy_on_write())
         ser.name = name
         return ser
 
@@ -2078,6 +2085,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
             Modes of the Series in sorted order.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 4, 2, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        dtype: float64
+
+        More than one mode:
+
+        >>> s = pd.Series([2, 4, 8, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        1    4.0
+        dtype: float64
+
+        With and without considering null value:
+
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode(dropna=False)
+        0   NaN
+        dtype: float64
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode()
+        0    4.0
+        dtype: float64
         """
         # TODO: Add option for bins like value_counts()
         values = self._values
@@ -2222,14 +2255,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Generate a Series with duplicated entries.
 
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
+        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama', 'hippo'],
         ...               name='animal')
         >>> s
-        0      lama
+        0     llama
         1       cow
-        2      lama
+        2     llama
         3    beetle
-        4      lama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -2238,7 +2271,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> s.drop_duplicates()
-        0      lama
+        0     llama
         1       cow
         3    beetle
         5     hippo
@@ -2250,7 +2283,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.drop_duplicates(keep='last')
         1       cow
         3    beetle
-        4      lama
+        4     llama
         5     hippo
         Name: animal, dtype: object
 
@@ -2311,7 +2344,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> animals = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama'])
         >>> animals.duplicated()
         0    False
         1    False
@@ -2679,7 +2712,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
-        """  # noqa:E501
+        """  # noqa: E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
@@ -2719,8 +2752,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ddof : int, default 1
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -2891,7 +2922,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         one, or the Series and each columns of a DataFrame, or the Series and
         each columns of an array.
 
-        It can also be called using `self @ other` in Python >= 3.5.
+        It can also be called using `self @ other`.
 
         Parameters
         ----------
@@ -2963,13 +2994,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __matmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(other)
 
     def __rmatmul__(self, other):
         """
-        Matrix multiplication using binary `@` operator in Python>=3.5.
+        Matrix multiplication using binary `@` operator.
         """
         return self.dot(np.transpose(other))
 
@@ -3334,8 +3365,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[False] = ...,
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Series:
@@ -3348,8 +3379,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
         inplace: Literal[True],
-        kind: str = ...,
-        na_position: str = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> None:
@@ -3361,8 +3392,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
+        kind: SortKind = "quicksort",
+        na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
     ) -> Series | None:
@@ -3394,8 +3425,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
             ``Series`` and return an array-like.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3535,7 +3564,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
+        if key:
+            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
+        else:
+            values_to_sort = self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
@@ -3652,8 +3684,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
             ``Index`` and return an ``Index`` of the same shape.
-
-            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3781,6 +3811,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.argsort()
+        0    2
+        1    1
+        2    0
+        dtype: int64
         """
         values = self._values
         mask = isna(values)
@@ -3897,7 +3936,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(self, n: int = 5, keep: str = "first") -> Series:
+    def nsmallest(
+        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    ) -> Series:
         """
         Return the smallest `n` elements.
 
@@ -4112,8 +4153,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
-            .. versionadded:: 1.1.0
-
         Returns
         -------
         Series
@@ -4250,7 +4289,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.apply : For applying more complex functions on a Series.
         Series.replace: Replace values given in `to_replace` with `value`.
         DataFrame.apply : Apply a function row-/column-wise.
-        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        DataFrame.map : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -4365,7 +4404,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if func is None:
             func = dict(kwargs.items())
 
-        op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
+        op = SeriesApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         return result
 
@@ -4381,9 +4420,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(
-            self, func=func, convert_dtype=True, args=args, kwargs=kwargs
-        ).transform()
+        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4505,17 +4542,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Helsinki    2.484907
         dtype: float64
         """
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
+        return SeriesApply(
+            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+        ).apply()
 
     def _reindex_indexer(
         self,
@@ -4590,7 +4619,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -4677,7 +4706,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(index, inplace=inplace, deep=copy)
 
     @Appender(
         """
@@ -4725,7 +4754,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=None,
         *,
         axis: Axis | None = None,
-        method: str | None = None,
+        method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
         fill_value: Scalar | None = None,
@@ -4872,14 +4901,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Drop 2nd level label in MultiIndex Series
 
-        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        >>> midx = pd.MultiIndex(levels=[['llama', 'cow', 'falcon'],
         ...                              ['speed', 'weight', 'length']],
         ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
         ...               index=midx)
         >>> s
-        lama    speed      45.0
+        llama   speed      45.0
                 weight    200.0
                 length      1.2
         cow     speed      30.0
@@ -4891,7 +4920,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
 
         >>> s.drop(labels='weight', level=1)
-        lama    speed      45.0
+        llama   speed      45.0
                 length      1.2
         cow     speed      30.0
                 length      1.5
@@ -5058,9 +5087,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
+        >>> s = pd.Series(['llama', 'cow', 'llama', 'beetle', 'llama',
         ...                'hippo'], name='animal')
-        >>> s.isin(['cow', 'lama'])
+        >>> s.isin(['cow', 'llama'])
         0     True
         1     True
         2     True
@@ -5071,7 +5100,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         To invert the boolean values, use the ``~`` operator:
 
-        >>> ~s.isin(['cow', 'lama'])
+        >>> ~s.isin(['cow', 'llama'])
         0    False
         1    False
         2    False
@@ -5080,10 +5109,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5     True
         Name: animal, dtype: bool
 
-        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        Passing a single string as ``s.isin('llama')`` will raise an error. Use
         a list of one element instead:
 
-        >>> s.isin(['lama'])
+        >>> s.isin(['llama'])
         0     True
         1    False
         2     True
@@ -5486,7 +5515,47 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _info_axis_name: Literal["index"] = "index"
 
     index = properties.AxisProperty(
-        axis=0, doc="The index (axis labels) of the Series."
+        axis=0,
+        doc="""
+        The index (axis labels) of the Series.
+
+        The index of a Series is used to label and identify each element of the
+        underlying data. The index can be thought of as an immutable ordered set
+        (technically a multi-set, as it may contain duplicate labels), and is
+        used to index and align data in pandas.
+
+        Returns
+        -------
+        Index
+            The index labels of the Series.
+
+        See Also
+        --------
+        Series.reindex : Conform Series to new index.
+        Series.set_index : Set Series as DataFrame index.
+        Index : The base pandas index type.
+
+        Notes
+        -----
+        For more information on pandas indexing, see the `indexing user guide
+        <https://pandas.pydata.org/docs/user_guide/indexing.html>`__.
+
+        Examples
+        --------
+        To create a Series with a custom index and view the index labels:
+
+        >>> cities = ['Kolkata', 'Chicago', 'Toronto', 'Lisbon']
+        >>> populations = [14.85, 2.71, 2.93, 0.51]
+        >>> city_series = pd.Series(populations, index=cities)
+        >>> city_series.index
+        Index(['Kolkata', 'Chicago', 'Toronto', 'Lisbon'], dtype='object')
+
+        To change the index labels of an existing Series:
+
+        >>> city_series.index = ['KOL', 'CHI', 'TOR', 'LIS']
+        >>> city_series.index
+        Index(['KOL', 'CHI', 'TOR', 'LIS'], dtype='object')
+        """,
     )
 
     # ----------------------------------------------------------------------
@@ -5543,6 +5612,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # avoid repeated alignment
             if not left.index.equals(right.index):
                 if align_asobject:
+                    if left.dtype not in (object, np.bool_) or right.dtype not in (
+                        object,
+                        np.bool_,
+                    ):
+                        warnings.warn(
+                            "Operation between non boolean Series with different "
+                            "indexes will no longer return a boolean result in "
+                            "a future version. Cast both Series to object type "
+                            "to maintain the prior behavior.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     # to keep original value's dtype for bool ops
                     left = left.astype(object)
                     right = right.astype(object)
@@ -5570,9 +5651,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
         """
-        if not isinstance(other, Series):
-            raise AssertionError("Other operand must be Series")
-
         this = self
 
         if not self.index.equals(other.index):
@@ -5638,7 +5716,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
-            result.name = res_name
+            result._name = res_name
             return result
         else:
             if fill_value is not None:

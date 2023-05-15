@@ -2,13 +2,15 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "setuptools>=61.0.0",
+    "meson-python==0.13.1",
+    "meson[ninja]==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
-# build-backend = "setuptools.build_meta"
+
+build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
@@ -21,10 +23,9 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.8'
+requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.20.3; python_version<'3.10'",
-  "numpy>=1.21.0; python_version>='3.10'",
+  "numpy>=1.21.6; python_version<'3.11'",
   "numpy>=1.23.2; python_version>='3.11'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
@@ -40,7 +41,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
@@ -139,6 +139,9 @@ versionfile_build = "pandas/_version.py"
 tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
+[tool.meson-python.args]
+setup = ['--vsenv'] # For Windows
+
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
@@ -172,8 +175,8 @@ select = "*-win32"
 environment = { IS_32_BIT="true" }
 
 [tool.black]
-target-version = ['py38', 'py39']
-required-version = '23.1.0'
+target-version = ['py39', 'py310']
+required-version = '23.3.0'
 exclude = '''
 (
     asv_bench/env
@@ -195,24 +198,27 @@ exclude = '''
 [tool.ruff]
 line-length = 88
 update-check = false
-target-version = "py38"
+target-version = "py310"
 fix = true
-unfixable = ["E711"]
+unfixable = []
 
 select = [
   # pyflakes
   "F",
   # pycodestyle
-  "E",
-  "W",
+  "E", "W",
   # flake8-2020
   "YTT",
   # flake8-bugbear
   "B",
   # flake8-quotes
   "Q",
+  # flake8-debugger
+  "T10",
+  # flake8-gettext
+  "INT",
   # pylint
-  "PLE", "PLR", "PLW",
+  "PLC", "PLE", "PLR", "PLW",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -223,6 +229,10 @@ select = [
   "ISC",
   # type-checking imports
   "TCH",
+  # comprehensions
+  "C4",
+  # pygrep-hooks
+  "PGH"
 ]
 
 ignore = [
@@ -258,6 +268,8 @@ ignore = [
   "B023",
   # Functions defined inside a loop must not use variables redefined in the loop
   # "B301",  # not yet implemented
+  # Only works with python >=3.10
+  "B905",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
@@ -272,6 +284,10 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # No builtin `eval()` allowed
+  "PGH001",
+  # compare-to-empty-string
+  "PLC1901",
   # Use typing_extensions.TypeAlias for type aliases
   # "PYI026",  # not yet implemented
   # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
@@ -280,6 +296,8 @@ ignore = [
   # "PYI041",  # not yet implemented
 
   # Additional checks that don't pass yet
+  # Useless statement
+  "B018",
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
@@ -433,6 +451,9 @@ filterwarnings = [
   "error::pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:ResourceWarning",
+  # GH 44844: Can remove once minimum matplotlib version >= 3.7
+  "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
+  "ignore:.*BufferedRandom:ResourceWarning",
   "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
@@ -472,7 +493,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.8"
+python_version = "3.10"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -550,7 +571,7 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.8"
+pythonVersion = "3.10"
 typeCheckingMode = "basic"
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]

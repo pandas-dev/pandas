@@ -626,7 +626,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_float32_nanrep__.csv") as path:
             df.to_csv(path, na_rep=999)
 
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert lines[1].split(",")[2] == "999"
 
@@ -997,9 +997,7 @@ class TestDataFrameToCSV:
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
 
-            datetime_frame_int = datetime_frame.applymap(
-                lambda x: int(x.strftime("%Y%m%d"))
-            )
+            datetime_frame_int = datetime_frame.map(lambda x: int(x.strftime("%Y%m%d")))
             datetime_frame_int.index = datetime_frame_int.index.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
@@ -1010,9 +1008,7 @@ class TestDataFrameToCSV:
 
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
-            datetime_frame_str = datetime_frame.applymap(
-                lambda x: x.strftime("%Y-%m-%d")
-            )
+            datetime_frame_str = datetime_frame.map(lambda x: x.strftime("%Y-%m-%d"))
             datetime_frame_str.index = datetime_frame_str.index.map(
                 lambda x: x.strftime("%Y-%m-%d")
             )
@@ -1025,7 +1021,7 @@ class TestDataFrameToCSV:
 
             test = read_csv(path, index_col=0)
 
-            datetime_frame_columns = datetime_frame_columns.applymap(
+            datetime_frame_columns = datetime_frame_columns.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
             # Columns don't get converted to ints by read_csv

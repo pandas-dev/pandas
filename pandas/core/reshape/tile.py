@@ -23,8 +23,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
-    is_datetime64_dtype,
-    is_datetime_or_timedelta_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
@@ -115,8 +113,6 @@ def cut(
         Categorical and Series (with Categorical dtype). If True,
         the resulting categorical will be ordered. If False, the resulting
         categorical will be unordered (labels must be provided).
-
-        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -415,7 +411,8 @@ def _bins_to_cuts(
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = Categorical.from_codes(ids, categories=bins, ordered=True)
+        cat_dtype = CategoricalDtype(bins, ordered=True)
+        result = Categorical.from_codes(ids, dtype=cat_dtype, validate=False)
         return result, bins
 
     unique_bins = algos.unique(bins)
@@ -530,10 +527,10 @@ def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype) or isinstance(dtype, DatetimeTZDtype):
+    elif lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
         if bins_dtype in ["datetime", "datetime64"]:
             bins = to_datetime(bins)
-            if is_datetime64_dtype(bins):
+            if lib.is_np_dtype(bins.dtype, "M"):
                 # As of 2.0, to_datetime may give non-nano, so we need to convert
                 #  here until the rest of this file recognizes non-nano
                 bins = bins.astype("datetime64[ns]", copy=False)
@@ -561,7 +558,7 @@ def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
     """
     if isinstance(dtype, DatetimeTZDtype):
         bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "mM"):
         bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
@@ -581,7 +578,7 @@ def _format_labels(
     if isinstance(dtype, DatetimeTZDtype):
         formatter = lambda x: Timestamp(x, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
-    elif is_datetime64_dtype(dtype):
+    elif lib.is_np_dtype(dtype, "M"):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta("1ns")
     elif lib.is_np_dtype(dtype, "m"):

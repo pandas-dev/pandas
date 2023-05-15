@@ -118,7 +118,7 @@ def main(content: str, file: str) -> int:
                     assert isinstance(_node, ast.FunctionDef)  # help mypy
                     should_continue = False
                     for _file in (Path("pandas") / "tests").rglob("*.py"):
-                        with open(os.path.join(_file)) as fd:
+                        with open(os.path.join(_file), encoding="utf-8") as fd:
                             _content = fd.read()
                         if f"self.{_node.name}" in _content:
                             should_continue = True

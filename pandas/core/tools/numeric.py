@@ -14,7 +14,6 @@ from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
     is_decimal,
     is_integer_dtype,
     is_number,
@@ -23,13 +22,13 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
 from pandas.core.arrays import BaseMaskedArray
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
@@ -213,13 +212,13 @@ def to_numeric(
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
-    elif is_datetime_or_timedelta_dtype(values_dtype):
+    elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
