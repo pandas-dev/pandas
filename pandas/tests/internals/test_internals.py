@@ -943,7 +943,7 @@ class TestIndexing:
             if isinstance(slobj, slice):
                 sliced = mgr.get_slice(slobj, axis=axis)
             elif mgr.ndim == 1 and axis == 0:
-                sliced = mgr.getitem_mgr(slobj)
+                sliced = mgr.get_rows_with_mask(slobj)
             else:
                 # BlockManager doesn't support non-slice, SingleBlockManager
                 #  doesn't support axis > 0

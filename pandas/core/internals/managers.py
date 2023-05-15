@@ -1872,7 +1872,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # We need to do getitem_block here otherwise we would be altering
                 #  blk.mgr_locs in place, which would render it invalid. This is only
                 #  relevant in the copy=False case.
-                nb = blk.getitem_block(slice(None))
+                nb = blk.slice_block_columns(slice(None))
                 nb._mgr_locs = nb._mgr_locs.add(offset)
                 blocks.append(nb)
 
@@ -2018,7 +2018,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer: slice | np.ndarray) -> SingleBlockManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Self:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
         if (
