@@ -1815,7 +1815,6 @@ class TestDataFrameConstructors:
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
-        np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
 
         # single item
@@ -3056,7 +3055,8 @@ class TestFromScalar:
         if box is list or (frame_or_series is Series and box is dict):
             mark = pytest.mark.xfail(
                 reason="Timestamp constructor has been updated to cast dt64 to "
-                "non-nano, but DatetimeArray._from_sequence has not"
+                "non-nano, but DatetimeArray._from_sequence has not",
+                strict=True,
             )
             request.node.add_marker(mark)
 
@@ -3091,7 +3091,8 @@ class TestFromScalar:
         if box is list or (frame_or_series is Series and box is dict):
             mark = pytest.mark.xfail(
                 reason="TimedeltaArray constructor has been updated to cast td64 "
-                "to non-nano, but TimedeltaArray._from_sequence has not"
+                "to non-nano, but TimedeltaArray._from_sequence has not",
+                strict=True,
             )
             request.node.add_marker(mark)
 

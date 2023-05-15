@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -119,7 +120,7 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     @pytest.mark.xfail(
-        np.intc(0).itemsize == 4,
+        not IS64,
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
