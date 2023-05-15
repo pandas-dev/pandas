@@ -75,13 +75,8 @@ def test_infer_dtype_from_timedelta(data):
     assert dtype == "m8[ns]"
 
 
-<<<<<<< HEAD
-@pytest.mark.parametrize("freq", ["ME", "D"])
-def test_infer_dtype_from_period(freq, pandas_dtype):
-=======
 @pytest.mark.parametrize("freq", ["M", "D"])
 def test_infer_dtype_from_period(freq):
->>>>>>> main
     p = Period("2011-01-01", freq=freq)
     dtype, val = infer_dtype_from_scalar(p)
 

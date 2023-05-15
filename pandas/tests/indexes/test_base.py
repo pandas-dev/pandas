@@ -1413,12 +1413,12 @@ class TestMixedIntIndex(Base):
                 TimedeltaIndex(["1 days", "2 days", "3 days"]),
             ),
             (
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="ME"),
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="ME"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
             (
-                PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="ME"),
-                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="ME"),
+                PeriodIndex(["2012-02", "2012-04", "NaT", "2012-05"], freq="M"),
+                PeriodIndex(["2012-02", "2012-04", "2012-05"], freq="M"),
             ),
         ],
     )

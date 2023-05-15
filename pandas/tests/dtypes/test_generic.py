@@ -15,7 +15,7 @@ class TestABCClasses:
     multi_index = pd.MultiIndex.from_arrays(tuples, names=("number", "color"))
     datetime_index = pd.to_datetime(["2000/1/1", "2010/1/1"])
     timedelta_index = pd.to_timedelta(np.arange(5), unit="s")
-    period_index = pd.period_range("2000/1/1", "2010/1/1/", freq="ME")
+    period_index = pd.period_range("2000/1/1", "2010/1/1/", freq="M")
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)

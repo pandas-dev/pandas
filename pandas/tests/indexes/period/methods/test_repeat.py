@@ -15,7 +15,7 @@ class TestRepeat:
         [
             period_range("2000-01-01", periods=3, freq="D"),
             period_range("2001-01-01", periods=3, freq="2D"),
-            PeriodIndex(["2001-01", "NaT", "2003-01"], freq="ME"),
+            PeriodIndex(["2001-01", "NaT", "2003-01"], freq="M"),
         ],
     )
     def test_repeat_freqstr(self, index, use_numpy):

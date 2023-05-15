@@ -171,9 +171,9 @@ class TestToIterable:
             assert res == exp
 
         # period
-        vals = [pd.Period("2011-01-01", freq="ME"), pd.Period("2011-01-02", freq="ME")]
+        vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = Series(vals)
-        assert s.dtype == "period[ME]"
+        assert s.dtype == "period[M]"
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
             assert res.freq == "ME"

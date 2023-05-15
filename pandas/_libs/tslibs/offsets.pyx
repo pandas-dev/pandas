@@ -4273,10 +4273,9 @@ cpdef to_offset(freq, bint is_period=False):
                     )
                     name = "ME"
                 if is_period is True and name == "ME":
-                     warnings.warn(
+                    raise ValueError(
                         r"for Period, please use \'M\' "
-                        "instead of \'ME\'",
-                        UserWarning,
+                        "instead of \'ME\'"
                     )
                 elif is_period is True and name == "M":
                     name = "ME"

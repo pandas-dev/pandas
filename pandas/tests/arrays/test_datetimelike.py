@@ -784,10 +784,7 @@ class TestDatetimeArray(SharedTests):
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
-        print("propname = ", propname)
-        print("RESULT = ", result)
-        print("EXPECT = ", expected)
-        # tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_take_fill_valid(self, arr1d, fixed_now_ts):
         arr = arr1d

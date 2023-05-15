@@ -173,8 +173,8 @@ class TestDatetime64SeriesComparison:
                 [NaT, NaT, Timedelta("3 days")],
             ),
             (
-                [Period("2011-01", freq="ME"), NaT, Period("2011-03", freq="ME")],
-                [NaT, NaT, Period("2011-03", freq="ME")],
+                [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")],
+                [NaT, NaT, Period("2011-03", freq="M")],
             ),
         ],
     )
@@ -218,7 +218,7 @@ class TestDatetime64SeriesComparison:
         [
             [Timestamp("2011-01-01"), NaT, Timestamp("2011-01-03")],
             [Timedelta("1 days"), NaT, Timedelta("3 days")],
-            [Period("2011-01", freq="ME"), NaT, Period("2011-03", freq="ME")],
+            [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")],
         ],
     )
     @pytest.mark.parametrize("dtype", [None, object])
