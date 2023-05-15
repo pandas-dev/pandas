@@ -4109,6 +4109,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             for ping in groupings
         ):
             return output
+
         levels_list = [ping.group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:

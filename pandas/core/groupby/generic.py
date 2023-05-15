@@ -1173,6 +1173,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def is_monotonic_increasing(self) -> Series:
         """
         Return whether each group's values are monotonically increasing.
+
         Returns
         -------
         Series
@@ -1190,6 +1191,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def is_monotonic_decreasing(self) -> Series:
         """
         Return whether each group's values are monotonically decreasing.
+
         Returns
         -------
         Series
