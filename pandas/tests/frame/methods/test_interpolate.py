@@ -437,3 +437,11 @@ class TestDataFrameInterpolate:
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
         tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_empty_df(self):
+        # GH#53199
+        df = DataFrame()
+        expected = df.copy()
+        result = df.interpolate(inplace=True)
+        assert result is None
+        tm.assert_frame_equal(df, expected)
