@@ -1019,6 +1019,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
             output_format.append(tokens[i])
 
+    # if am/pm token present, replace 24-hour %H, with 12-hour %I
+    if "%p" in format_guess and "%H" in format_guess:
+        i = format_guess.index("%H")
+        format_guess[i] = "%I"
+
     guessed_format = "".join(output_format)
 
     try:
