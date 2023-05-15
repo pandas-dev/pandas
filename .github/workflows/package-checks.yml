@@ -67,17 +67,15 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: mamba-org/provision-with-micromamba@v15
+        uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: false
           environment-name: recipe-test
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
             boa
             conda-verify
-          channels: conda-forge
           cache-downloads: true
-          cache-env: true
+          cache-environment: true
 
       - name: Build conda package
         run: conda mambabuild ci --no-anaconda-upload --verify --strict-verify --output --output-folder .
