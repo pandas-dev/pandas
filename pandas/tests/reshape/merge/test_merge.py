@@ -7,7 +7,6 @@ import re
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -2776,24 +2775,28 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("tzinfo", [None, pytz.timezone("America/Chicago")])
-def test_merge_datetime_different_resolution(tzinfo):
+@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
+@pytest.mark.parametrize("tz", [None, "America/Chicago"])
+def test_merge_datetime_different_resolution(tz, how):
     # https://github.com/pandas-dev/pandas/issues/53200
-    df1 = DataFrame(
-        {
-            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo, unit="ns")],
-            "a": [1],
-        }
-    )
-    df2 = df1.copy()
+    vals = [
+        pd.Timestamp(2023, 5, 12, tz=tz),
+        pd.Timestamp(2023, 5, 13, tz=tz),
+        pd.Timestamp(2023, 5, 14, tz=tz),
+    ]
+    df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
+    df1["t"] = df1["t"].dt.as_unit("ns")
+    df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
     df2["t"] = df2["t"].dt.as_unit("s")
 
-    expected = DataFrame(
-        {
-            "t": [pd.Timestamp(2023, 5, 12, tzinfo=tzinfo)],
-            "a_x": [1],
-            "a_y": [1],
-        }
-    )
-    result = df1.merge(df2, on="t")
+    expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
+    expected["t"] = expected["t"].dt.as_unit("ns")
+    if how == "inner":
+        expected = expected.iloc[[1]].reset_index(drop=True)
+    elif how == "left":
+        expected = expected.iloc[[0, 1]]
+    elif how == "right":
+        expected = expected.iloc[[1, 2]].reset_index(drop=True)
+
+    result = df1.merge(df2, on="t", how=how)
     tm.assert_frame_equal(result, expected)
