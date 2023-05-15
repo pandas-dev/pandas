@@ -1172,11 +1172,11 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     def is_monotonic_increasing(self) -> Series:
         """
-        Return boolean if values in the group are monotonically increasing.
+        Return a Series of booleans if values in the group are monotonically increasing.
 
         Returns
         -------
-        bool
+        Series
 
         Examples
         --------
@@ -1191,11 +1191,11 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     def is_monotonic_decreasing(self) -> Series:
         """
-        Return boolean if values in the group are monotonically decreasing.
+        Return Series of booleans if values in the group are monotonically decreasing.
 
         Returns
         -------
-        bool
+        Series
 
         Examples
         --------
