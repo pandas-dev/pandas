@@ -111,7 +111,6 @@ _factorizers = {
     np.int32: libhashtable.Int32Factorizer,
     np.int16: libhashtable.Int16Factorizer,
     np.int8: libhashtable.Int8Factorizer,
-    np.intc: libhashtable.Int64Factorizer,
     np.uint64: libhashtable.UInt64Factorizer,
     np.uint32: libhashtable.UInt32Factorizer,
     np.uint16: libhashtable.UInt16Factorizer,
@@ -123,6 +122,9 @@ _factorizers = {
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
 }
+
+if np.intc is not np.int32:
+    _factorizers[np.intc] = libhashtable.Int64Factorizer
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
