@@ -1,7 +1,7 @@
 .. raw:: html
 
-    <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-        <span class="badge badge-dark">Titanic data</span>
+    <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
+        <span class="badge bg-secondary">Titanic data</span>
     </div>
     <div class="collapse" id="collapsedata">
         <div class="card-body">
