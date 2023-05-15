@@ -1177,6 +1177,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
@@ -1195,6 +1196,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Returns
         -------
         Series
+
         Examples
         --------
         >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
