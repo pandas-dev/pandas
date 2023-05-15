@@ -214,7 +214,7 @@ class XlsxWriter(ExcelWriter):
 
         try:
             self._book = Workbook(self._handles.handle, **engine_kwargs)
-        except:
+        except TypeError:
             self._handles.handle.close()
             raise
 
