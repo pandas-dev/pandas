@@ -361,7 +361,7 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        values = np.empty(shape, dtype=object)
+        values = np.empty(shape, dtype=cls._cache_dtype)
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -381,8 +381,8 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
         mask = self.isna()
-        arr[mask] = None
-        return arr, None
+        arr[mask] = self._na_value
+        return arr, self._na_value
 
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
@@ -599,6 +599,7 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
 class ObjectStringArray(BaseNumpyStringArray):
     _cache_dtype = "object"
+    _na_value = None
     _storage = "python"
 
     def _validate(self):
@@ -649,6 +650,7 @@ StringArray = ObjectStringArray
 
 class NumpyStringArray(BaseNumpyStringArray):
     _cache_dtype = get_string_dtype()
+    _na_value = libmissing.NA
     _storage = "numpy"
 
     @classmethod

@@ -1742,11 +1742,24 @@ def map_array(
     if not len(arr):
         return arr.copy()
 
+    if isinstance(arr.dtype, np.dtype):
+        ret_dtype = arr.dtype
+    else:
+        try:
+            ret_dtype = arr._ndarray.dtype
+        except AttributeError:
+            ret_dtype = None
+
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper, convert=convert)
+        ret = lib.map_infer(values, mapper, convert=convert)
     else:
-        return lib.map_infer_mask(
+        ret = lib.map_infer_mask(
             values, mapper, mask=isna(values).view(np.uint8), convert=convert
         )
+
+    if ret.dtype == object and ret_dtype is not None:
+        return ret.astype(ret_dtype, copy=False)
+
+    return ret

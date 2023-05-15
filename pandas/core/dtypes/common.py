@@ -1037,6 +1037,13 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     )
 
 
+StringDType = type(get_string_dtype())
+
+
+def needs_object_conversion(dtype: DtypeObj | None) -> bool:
+    return type(dtype) is StringDType
+
+
 def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     """
     Check whether the dtype should be converted to int64.
@@ -1766,6 +1773,7 @@ __all__ = [
     "is_timedelta64_ns_dtype",
     "is_unsigned_integer_dtype",
     "needs_i8_conversion",
+    "needs_object_conversion",
     "pandas_dtype",
     "TD64NS_DTYPE",
     "validate_all_hashable",

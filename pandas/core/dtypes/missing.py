@@ -310,10 +310,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     elif type(dtype) is StringDType:
-        if inf_as_na:
-            result = ~np.isfinite(values)
-        else:
-            result = np.isnan(values)
+        result = np.isnan(values)
     else:
         if values.ndim in {1, 2}:
             result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
@@ -679,6 +676,10 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
             return False
         return np.nan
     return np.nan
+
+
+def dtype_supports_na(dtype: np.dtype):
+    return dtype.kind in "iufcmM" or type(dtype) is StringDType
 
 
 def remove_na_arraylike(arr: Series | Index | np.ndarray):

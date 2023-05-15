@@ -2368,7 +2368,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     if is_numeric:
         return NumericBlock
     else:
-        if is_legacy_string_dtype(dtype):
+        if dtype_class == _dtype_obj or is_legacy_string_dtype(dtype):
             return ObjectBlock
         return NumpyBlock
 
