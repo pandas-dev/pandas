@@ -732,7 +732,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         """
         Return True if either both self and other are tz-aware or both are tz-naive.
         """
-        return ~((self.tz is None) ^ (other.tz is None))
+        return not ((self.tz is None) ^ (other.tz is None))
 
     def _assert_tzawareness_compat(self, other) -> None:
         # adapted from _Timestamp._assert_tzawareness_compat

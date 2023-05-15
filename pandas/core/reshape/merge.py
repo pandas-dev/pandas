@@ -2360,9 +2360,9 @@ def _factorize_keys(
     ):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
-        lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", rk)._ndarray
+        lk, rk = lk._ensure_matching_resos(rk)
+        lk = lk._ndarray
+        rk = rk._ndarray
 
     elif (
         isinstance(lk.dtype, CategoricalDtype)
