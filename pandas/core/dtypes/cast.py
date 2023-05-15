@@ -485,8 +485,7 @@ def _maybe_cast_to_extension_array(
     ExtensionArray or obj
     """
 
-    if hasattr(cls, "_from_scalars"):
-        # TODO: get this everywhere!
+    if dtype is not None:
         try:
             result = cls._from_scalars(obj, dtype=dtype)
         except (TypeError, ValueError, NotImplementedError):

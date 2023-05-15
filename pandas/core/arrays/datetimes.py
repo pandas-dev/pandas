@@ -74,6 +74,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DateTimeErrorChoices,
+        DtypeObj,
         IntervalClosedType,
         Self,
         TimeAmbiguous,
@@ -258,7 +259,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
 
     @classmethod
-    def _from_scalars(cls, scalars, dtype=None):
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj):
         if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
             # TODO: require any NAs be valid-for-DTA
             # TODO: if dtype is passed, check for tzawareness compat?

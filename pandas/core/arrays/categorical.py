@@ -495,7 +495,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_scalars(cls, scalars, dtype=None):
+    def _from_scalars(cls, scalars, *, dtype):
         if dtype is None:
             # The _from_scalars strictness doesn't make much sense in this case.
             raise NotImplementedError

@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
@@ -230,7 +231,7 @@ class BaseStringArray(ExtensionArray):
         return list(self.to_numpy())
 
     @classmethod
-    def _from_scalars(cls, scalars, dtype=None) -> Self:
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
         if lib.infer_dtype(scalars, skipna=True) != "string":
             # TODO: require any NAs be valid-for-string
             raise ValueError
