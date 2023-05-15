@@ -187,10 +187,10 @@ class CSVFormatter:
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
-            # TODO This branch seems unreachable, remove the if ?
-            data_index = Index(
-                [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
-            )
+            # Format and replace missings with empty string
+            data_index = data_index.strftime(
+                date_format=self.date_format, fast_strftime=self.fast_strftime
+            ).fillna("")
         elif isinstance(data_index, ABCMultiIndex):
             data_index = data_index.remove_unused_levels()
         return data_index
@@ -314,6 +314,8 @@ class CSVFormatter:
         res = df._mgr.to_native_types(**self._number_format)
         data = [res.iget_values(i) for i in range(len(res.items))]
 
+        # Format the index. Note that if `self.date_format` is not None the actual
+        # formatting is done beforehand, inside the `.data_index` property accessor.
         ix = self.data_index[slicer]._format_native_types(**self._number_format)
         libwriters.write_csv_rows(
             data,
