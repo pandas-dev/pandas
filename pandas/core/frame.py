@@ -4101,10 +4101,15 @@ class DataFrame(NDFrame, OpsMixin):
                 self[cols] = value[value.columns[0]]
                 return
 
-            # now align rows
-            arraylike, _ = _reindex_for_setitem(value, self.index)
-            self._set_item_mgr(key, arraylike)
-            return
+            locs: np.ndarray | list
+            if isinstance(loc, slice):
+                locs = np.arange(loc.start, loc.stop, loc.step)
+            elif is_scalar(loc):
+                locs = [loc]
+            else:
+                locs = loc.nonzero()[0]
+
+            return self.isetitem(locs, value)
 
         if len(value.columns) != 1:
             raise ValueError(
@@ -4795,9 +4800,10 @@ class DataFrame(NDFrame, OpsMixin):
         if not allow_duplicates and column in self.columns:
             # Should this be a different kind of error??
             raise ValueError(f"cannot insert {column}, already exists")
-        if not isinstance(loc, int):
+        if not is_integer(loc):
             raise TypeError("loc must be int")
-
+        # convert non stdlib ints to satisfy typing checks
+        loc = int(loc)
         if isinstance(value, DataFrame) and len(value.columns) > 1:
             raise ValueError(
                 f"Expected a one-dimensional object, got a DataFrame with "
@@ -10431,7 +10437,7 @@ class DataFrame(NDFrame, OpsMixin):
               dogs  cats
         dogs   1.0   NaN
         cats   NaN   1.0
-        """  # noqa:E501
+        """  # noqa: E501
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
@@ -10676,7 +10682,7 @@ class DataFrame(NDFrame, OpsMixin):
         d    1.0
         e    NaN
         dtype: float64
-        """  # noqa:E501
+        """  # noqa: E501
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data() if numeric_only else self
 
