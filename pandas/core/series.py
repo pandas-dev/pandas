@@ -3811,6 +3811,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.argsort()
+        0    2
+        1    1
+        2    0
+        dtype: int64
         """
         values = self._values
         mask = isna(values)

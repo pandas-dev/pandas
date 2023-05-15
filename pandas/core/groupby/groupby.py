@@ -3019,6 +3019,61 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.bfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+
+        With Series:
+
+        >>> index = ['Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot']
+        >>> s = pd.Series([None, 1, None, None, 3], index=index)
+        >>> s
+        Falcon    NaN
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    NaN
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill()
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    3.0
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill(limit=1)
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+
+        With DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, None, None, None, 4],
+        ...                    'B': [None, None, 5, None, 7]}, index=index)
+        >>> df
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	NaN	  NaN
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill()
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	4.0	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill(limit=1)
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
         """
         return self._fill("bfill", limit=limit)
 
