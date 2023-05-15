@@ -377,6 +377,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
+- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
 
 I/O
 ^^^
@@ -386,7 +387,7 @@ I/O
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
-- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
+- Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 
 Period
 ^^^^^^
