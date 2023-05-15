@@ -80,12 +80,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.item \
-        pandas.Series.pipe \
-        pandas.Series.mode \
-        pandas.Series.is_unique \
-        pandas.Series.is_monotonic_increasing \
-        pandas.Series.is_monotonic_decreasing \
         pandas.Series.backfill \
         pandas.Series.bfill \
         pandas.Series.ffill \
@@ -319,7 +313,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.fillna \
         pandas.Index.dropna \
         pandas.Index.astype \
-        pandas.Index.item \
         pandas.Index.map \
         pandas.Index.ravel \
         pandas.Index.to_list \
@@ -462,8 +455,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.cumsum \
         pandas.core.groupby.SeriesGroupBy.diff \
         pandas.core.groupby.SeriesGroupBy.ffill \
-        pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing \
-        pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing \
         pandas.core.groupby.SeriesGroupBy.max \
         pandas.core.groupby.SeriesGroupBy.median \
         pandas.core.groupby.SeriesGroupBy.min \

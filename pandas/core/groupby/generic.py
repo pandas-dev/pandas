@@ -1170,13 +1170,41 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
-    @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically increasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_increasing
+        Falcon    False
+        Parrot     True
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
-    @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically decreasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_decreasing
+        Falcon     True
+        Parrot    False
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
