@@ -1000,6 +1000,10 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([1, 2, 2])
         >>> s.is_monotonic_increasing
         True
+
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.is_monotonic_increasing
+        False
         """
         from pandas import Index
 
@@ -1019,6 +1023,10 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 2, 2, 1])
         >>> s.is_monotonic_decreasing
         True
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_monotonic_decreasing
+        False
         """
         from pandas import Index
 
