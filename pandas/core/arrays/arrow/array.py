@@ -269,7 +269,10 @@ class ArrowExtensionArray(
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype:
-            scalars = scalars.cast(pa_dtype)
+            if pa.types.is_dictionary(pa_dtype):
+                scalars = scalars.dictionary_encode()
+            else:
+                scalars = scalars.cast(pa_dtype)
         arr = cls(scalars)
         if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
             # GH52843: upstream bug for duration types when originally
@@ -868,7 +871,10 @@ class ArrowExtensionArray(
         else:
             data = self._data
 
-        encoded = data.dictionary_encode(null_encoding=null_encoding)
+        if pa.types.is_dictionary(data.type):
+            encoded = data
+        else:
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))

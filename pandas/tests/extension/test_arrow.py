@@ -1831,6 +1831,20 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
         arr.searchsorted(b)
 
 
+def test_sort_values_dictionary():
+    df = pd.DataFrame(
+        {
+            "a": pd.Series(
+                ["x", "y"], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+            ),
+            "b": [1, 2],
+        },
+    )
+    expected = df.copy()
+    result = df.sort_values(by=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
 def test_str_count(pat):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
