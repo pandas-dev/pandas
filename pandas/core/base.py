@@ -980,6 +980,10 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_unique
+        True
+
         >>> s = pd.Series([1, 2, 3, 1])
         >>> s.is_unique
         False
