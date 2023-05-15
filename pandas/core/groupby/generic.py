@@ -51,6 +51,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
 )
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1540,9 +1541,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  fall through to the outer else clause
             # TODO: sure this is right?  we used to do this
             #  after raising AttributeError above
-            return self.obj._constructor_sliced(
-                values, index=key_index, name=self._selection
-            )
+            # GH 18930
+            if not is_hashable(self._selection):
+                # error: Need type annotation for "name"
+                name = tuple(self._selection)  # type: ignore[var-annotated, arg-type]
+            else:
+                # error: Incompatible types in assignment
+                # (expression has type "Hashable", variable
+                # has type "Tuple[Any, ...]")
+                name = self._selection  # type: ignore[assignment]
+            return self.obj._constructor_sliced(values, index=key_index, name=name)
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
             # self._selection not passed through to Series as the
