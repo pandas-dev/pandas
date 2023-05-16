@@ -11883,15 +11883,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> d = pd.DataFrame({{'A': [None, None, 2], 'B': [None, 3, 4]}})
-        >>> d
+        >>> df = pd.DataFrame({{'A': [None, None, 2], 'B': [None, 3, 4]}})
+        >>> df
              A      B
         0  NaN    NaN
         1  NaN    3.0
         2  2.0    4.0
-        >>> d.first_valid_index()
+        >>> df.first_valid_index()
         1
-        >>> d.last_valid_index()
+        >>> df.last_valid_index()
         2
         """
         return self._find_valid_index(how="first")
