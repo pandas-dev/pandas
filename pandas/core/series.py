@@ -770,6 +770,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.ravel : Return a flattened array.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.ravel()
+        array([1, 2, 3])
         """
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
@@ -2085,6 +2091,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
             Modes of the Series in sorted order.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 4, 2, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        dtype: float64
+
+        More than one mode:
+
+        >>> s = pd.Series([2, 4, 8, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        1    4.0
+        dtype: float64
+
+        With and without considering null value:
+
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode(dropna=False)
+        0   NaN
+        dtype: float64
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode()
+        0    4.0
+        dtype: float64
         """
         # TODO: Add option for bins like value_counts()
         values = self._values
@@ -3785,6 +3817,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.argsort()
+        0    2
+        1    1
+        2    0
+        dtype: int64
         """
         values = self._values
         mask = isna(values)
@@ -4100,6 +4141,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         type of caller (new object)
+
+        Examples
+        --------
+        >>> arrays = [np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
+        ...           np.array(["white", "black", "white", "black", "white", "black"])]
+        >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=arrays)
+        >>> s
+        dog   white    1
+              black    2
+        cat   white    3
+              black    3
+        bird  white    5
+              black    2
+        dtype: int64
+        >>> s.reorder_levels([1, 0])
+        white  dog     1
+        black  dog     2
+        white  cat     3
+        black  cat     3
+        white  bird    5
+        black  bird    2
+        dtype: int64
         """
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
