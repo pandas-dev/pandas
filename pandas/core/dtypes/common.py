@@ -28,6 +28,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.dtypes.inference import (
@@ -213,7 +214,6 @@ def is_sparse(arr) -> bool:
         FutureWarning,
         stacklevel=find_stack_level(),
     )
-    from pandas.core.arrays.sparse import SparseDtype
 
     dtype = getattr(arr, "dtype", arr)
     return isinstance(dtype, SparseDtype)

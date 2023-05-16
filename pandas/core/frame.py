@@ -105,7 +105,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -131,7 +134,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -1371,18 +1373,7 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         1. Because ``iterrows`` returns a Series for each row,
            it does **not** preserve dtypes across the rows (dtypes are
-           preserved across columns for DataFrames). For example,
-
-           >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
-           >>> row = next(df.iterrows())[1]
-           >>> row
-           int      1.0
-           float    1.5
-           Name: 0, dtype: float64
-           >>> print(row['int'].dtype)
-           float64
-           >>> print(df['int'].dtype)
-           int64
+           preserved across columns for DataFrames).
 
            To preserve dtypes while iterating over the rows, it is better
            to use :meth:`itertuples` which returns namedtuples of the values
@@ -1392,6 +1383,20 @@ class DataFrame(NDFrame, OpsMixin):
            This is not guaranteed to work in all cases. Depending on the
            data types, the iterator returns a copy and not a view, and writing
            to it will have no effect.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
+        >>> row = next(df.iterrows())[1]
+        >>> row
+        int      1.0
+        float    1.5
+        Name: 0, dtype: float64
+        >>> print(row['int'].dtype)
+        float64
+        >>> print(df['int'].dtype)
+        int64
         """
         columns = self.columns
         klass = self._constructor_sliced
@@ -4101,10 +4106,15 @@ class DataFrame(NDFrame, OpsMixin):
                 self[cols] = value[value.columns[0]]
                 return
 
-            # now align rows
-            arraylike, _ = _reindex_for_setitem(value, self.index)
-            self._set_item_mgr(key, arraylike)
-            return
+            locs: np.ndarray | list
+            if isinstance(loc, slice):
+                locs = np.arange(loc.start, loc.stop, loc.step)
+            elif is_scalar(loc):
+                locs = [loc]
+            else:
+                locs = loc.nonzero()[0]
+
+            return self.isetitem(locs, value)
 
         if len(value.columns) != 1:
             raise ValueError(
@@ -4795,9 +4805,10 @@ class DataFrame(NDFrame, OpsMixin):
         if not allow_duplicates and column in self.columns:
             # Should this be a different kind of error??
             raise ValueError(f"cannot insert {column}, already exists")
-        if not isinstance(loc, int):
+        if not is_integer(loc):
             raise TypeError("loc must be int")
-
+        # convert non stdlib ints to satisfy typing checks
+        loc = int(loc)
         if isinstance(value, DataFrame) and len(value.columns) > 1:
             raise ValueError(
                 f"Expected a one-dimensional object, got a DataFrame with "
@@ -10431,7 +10442,7 @@ class DataFrame(NDFrame, OpsMixin):
               dogs  cats
         dogs   1.0   NaN
         cats   NaN   1.0
-        """  # noqa:E501
+        """  # noqa: E501
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
@@ -10676,7 +10687,7 @@ class DataFrame(NDFrame, OpsMixin):
         d    1.0
         e    NaN
         dtype: float64
-        """  # noqa:E501
+        """  # noqa: E501
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data() if numeric_only else self
 
