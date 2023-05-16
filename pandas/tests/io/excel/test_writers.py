@@ -1133,7 +1133,7 @@ class TestExcelWriter:
             ] = r"Workbook.__init__() got an unexpected keyword argument 'foo'"
 
         elif not engine:
-            msgs["xlsxwriter"] = "__init__() got an unexpected keyword argument 'foo'"
+            msgs["xlsxwriter"] = r"__init__() got an unexpected keyword argument 'foo'"
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
