@@ -535,5 +535,15 @@ def json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        result[k] = np.array(v, dtype=object).repeat(lengths)
+        # GH 37782
+
+        values = np.array(v, dtype=object)
+
+        if values.ndim > 1:
+            # GH 37782
+            values = np.empty((len(v),), dtype=object)
+            for i, v in enumerate(v):
+                values[i] = v
+
+        result[k] = values.repeat(lengths)
     return result

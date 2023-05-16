@@ -33,7 +33,7 @@ class Base:
 class TestPDApi(Base):
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ["tests", "locale", "conftest"]
+    ignored = ["tests", "locale", "conftest", "_version_meson"]
 
     # top-level sub-packages
     public_lib = [
@@ -47,7 +47,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -192,8 +192,9 @@ class TestPDApi(Base):
         "_pandas_parser_CAPI",
         "_testing",
         "_typing",
-        "_version",
     ]
+    if not pd._built_with_meson:
+        private_modules.append("_version")
 
     def test_api(self):
         checkthese = (

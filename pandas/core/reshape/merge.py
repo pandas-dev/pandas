@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_object,
-    is_array_like,
     is_bool,
     is_bool_dtype,
     is_extension_array_dtype,
@@ -123,6 +122,8 @@ _factorizers = {
     np.complex128: libhashtable.Complex128Factorizer,
     np.object_: libhashtable.ObjectFactorizer,
 }
+
+_known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
 @Substitution("\nleft : DataFrame or named Series")
@@ -928,7 +929,7 @@ class _MergeOperation:
         left_has_missing = None
         right_has_missing = None
 
-        assert all(is_array_like(x) for x in self.left_join_keys)
+        assert all(isinstance(x, _known) for x in self.left_join_keys)
 
         keys = zip(self.join_names, self.left_on, self.right_on)
         for i, (name, lname, rname) in enumerate(keys):
@@ -1141,8 +1142,8 @@ class _MergeOperation:
 
         left, right = self.left, self.right
 
-        is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
-        is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, _known) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, _known) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
@@ -1394,6 +1395,12 @@ class _MergeOperation:
                 rk.dtype, DatetimeTZDtype
             ):
                 raise ValueError(msg)
+            elif (
+                isinstance(lk.dtype, DatetimeTZDtype)
+                and isinstance(rk.dtype, DatetimeTZDtype)
+            ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
+                # allows datetime with different resolutions
+                continue
 
             elif lk_is_object and rk_is_object:
                 continue
@@ -1914,7 +1921,7 @@ class _AsOfMerge(_OrderedMerge):
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
             left_on_0 = left_on[0]
-            if is_array_like(left_on_0):
+            if isinstance(left_on_0, _known):
                 lo_dtype = left_on_0.dtype
             else:
                 lo_dtype = (
@@ -1927,7 +1934,7 @@ class _AsOfMerge(_OrderedMerge):
 
         if not self.right_index:
             right_on_0 = right_on[0]
-            if is_array_like(right_on_0):
+            if isinstance(right_on_0, _known):
                 ro_dtype = right_on_0.dtype
             else:
                 ro_dtype = (
@@ -2351,7 +2358,7 @@ def _factorize_keys(
     if isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        # TODO(non-nano): need to make sure resolutions match
+        lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
         lk = cast("DatetimeArray", lk)._ndarray
         rk = cast("DatetimeArray", rk)._ndarray
 

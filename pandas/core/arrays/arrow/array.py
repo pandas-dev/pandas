@@ -18,22 +18,6 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    Dtype,
-    FillnaOptions,
-    Iterator,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    Self,
-    SortKind,
-    TakeIndexer,
-    TimeAmbiguous,
-    TimeNonexistent,
-    npt,
-)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -76,8 +60,9 @@ if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -140,8 +125,22 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        Dtype,
+        FillnaOptions,
+        Iterator,
+        NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
+        PositionalIndexer,
+        Scalar,
+        Self,
+        SortKind,
+        TakeIndexer,
+        TimeAmbiguous,
+        TimeNonexistent,
+        npt,
     )
 
     from pandas import Series
@@ -268,7 +267,10 @@ class ArrowExtensionArray(
                 # GH50430: let pyarrow infer type, then cast
                 scalars = pa.array(scalars, from_pandas=True)
         if pa_dtype and scalars.type != pa_dtype:
-            scalars = scalars.cast(pa_dtype)
+            if pa.types.is_dictionary(pa_dtype):
+                scalars = scalars.dictionary_encode()
+            else:
+                scalars = scalars.cast(pa_dtype)
         arr = cls(scalars)
         if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
             # GH52843: upstream bug for duration types when originally
@@ -497,22 +499,13 @@ class ArrowExtensionArray(
             operator.add,
             roperator.radd,
         ]:
-            length = self._pa_array.length()
-
-            seps: list[str] | list[bytes]
-            if pa.types.is_string(pa_type):
-                seps = [""] * length
-            else:
-                seps = [b""] * length
-
-            if is_scalar(other):
-                other = [other] * length
-            elif isinstance(other, type(self)):
+            sep = pa.scalar("", type=pa_type)
+            if isinstance(other, type(self)):
                 other = other._pa_array
             if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, seps)
+                result = pc.binary_join_element_wise(self._pa_array, other, sep)
             else:
-                result = pc.binary_join_element_wise(other, self._pa_array, seps)
+                result = pc.binary_join_element_wise(other, self._pa_array, sep)
             return type(self)(result)
 
         pc_func = arrow_funcs[op.__name__]
@@ -805,8 +798,9 @@ class ArrowExtensionArray(
             fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
-        if is_array_like(value):
-            value = cast(ArrayLike, value)
+        if isinstance(value, (np.ndarray, ExtensionArray)):
+            # Similar to check_value_size, but we do not mask here since we may
+            #  end up passing it to the super() method.
             if len(value) != len(self):
                 raise ValueError(
                     f"Length of 'value' does not match. Got ({len(value)}) "
@@ -888,7 +882,10 @@ class ArrowExtensionArray(
         else:
             data = self._pa_array
 
-        encoded = data.dictionary_encode(null_encoding=null_encoding)
+        if pa.types.is_dictionary(data.type):
+            encoded = data
+        else:
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
@@ -1912,8 +1909,8 @@ class ArrowExtensionArray(
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        result = pa.array([None] * self._pa_array.length(), type=self._pa_array.type)
-        result = pc.if_else(not_out_of_bounds, selected, result)
+        null_value = pa.scalar(None, type=self._pa_array.type)
+        result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
 
     def _str_join(self, sep: str):

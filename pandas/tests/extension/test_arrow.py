@@ -40,7 +40,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.dtypes import CategoricalDtypeType
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtypeType,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -58,8 +61,6 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
-from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -1809,6 +1810,20 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_sort_values_dictionary():
+    df = pd.DataFrame(
+        {
+            "a": pd.Series(
+                ["x", "y"], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+            ),
+            "b": [1, 2],
+        },
+    )
+    expected = df.copy()
+    result = df.sort_values(by=["a", "b"])
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])

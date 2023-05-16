@@ -2,13 +2,15 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "setuptools>=61.0.0",
+    "meson-python==0.13.1",
+    "meson[ninja]==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
     "versioneer[toml]"
 ]
-# build-backend = "setuptools.build_meta"
+
+build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
@@ -137,6 +139,9 @@ versionfile_build = "pandas/_version.py"
 tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
+[tool.meson-python.args]
+setup = ['--vsenv'] # For Windows
+
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
@@ -208,8 +213,12 @@ select = [
   "B",
   # flake8-quotes
   "Q",
+  # flake8-debugger
+  "T10",
+  # flake8-gettext
+  "INT",
   # pylint
-  "PLE", "PLR", "PLW",
+  "PLC", "PLE", "PLR", "PLW",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -222,6 +231,8 @@ select = [
   "TCH",
   # comprehensions
   "C4",
+  # pygrep-hooks
+  "PGH"
 ]
 
 ignore = [
@@ -273,6 +284,10 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # No builtin `eval()` allowed
+  "PGH001",
+  # compare-to-empty-string
+  "PLC1901",
   # Use typing_extensions.TypeAlias for type aliases
   # "PYI026",  # not yet implemented
   # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)

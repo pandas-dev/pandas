@@ -124,9 +124,10 @@ def ensure_clean(
     path.touch()
 
     handle_or_str: str | IO = str(path)
+    encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
-        handle_or_str = open(path, **kwargs)
+        handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
         yield handle_or_str
