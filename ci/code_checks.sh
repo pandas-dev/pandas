@@ -83,10 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.reorder_levels \
-        pandas.Series.ravel \
-        pandas.Series.first_valid_index \
-        pandas.Series.last_valid_index \
         pandas.Series.dt.days \
         pandas.Series.dt.seconds \
         pandas.Series.dt.microseconds \
@@ -302,7 +298,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.dropna \
         pandas.Index.astype \
         pandas.Index.map \
-        pandas.Index.ravel \
         pandas.Index.to_list \
         pandas.Index.append \
         pandas.Index.join \
@@ -507,8 +502,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
-        pandas.DataFrame.first_valid_index \
-        pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
