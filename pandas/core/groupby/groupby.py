@@ -1232,6 +1232,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # with as_index=False after the result has been set. For categorical data,
         # the result would have already included unused categories, so calling
         # get_group_levels is not feasible.
+        group_levels: Sequence[ExtensionArray | np.ndarray]
         if (
             finalize
             and not self.observed
