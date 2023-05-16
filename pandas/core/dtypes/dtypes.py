@@ -916,7 +916,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return freq
 
         if not isinstance(freq, BaseOffset):
-            freq = cls._parse_dtype_strict(freq)
+            freq = cls._parse_dtype_strict(freq, is_period=True)
 
         try:
             return cls._cache_dtypes[freq]
@@ -938,14 +938,14 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         return self._freq
 
     @classmethod
-    def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
+    def _parse_dtype_strict(cls, freq: str_type, is_period=None) -> BaseOffset:
         if isinstance(freq, str):  # note: freq is already of type str!
             if freq.startswith(("Period[", "period[")):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
 
-            freq_offset = to_offset(freq)
+            freq_offset = to_offset(freq, is_period=True)
             if freq_offset is not None:
                 return freq_offset
 
@@ -982,10 +982,8 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        if self._freqstr == "ME":
-            return "period[M]"
-        else:
-            return f"period[{self._freqstr}]"
+        dname = {"ME": "period[M]"}
+        return dname.get(self._freqstr, f"period[{self._freqstr}]")
 
     @property
     def na_value(self) -> NaTType:
@@ -1011,7 +1009,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith(("period[", "Period[")):
                 try:
-                    return cls._parse_dtype_strict(dtype) is not None
+                    return cls._parse_dtype_strict(dtype, is_period=True) is not None
                 except ValueError:
                     return False
             else:

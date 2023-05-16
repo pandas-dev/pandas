@@ -62,7 +62,7 @@ class TestSelectDtypes:
                 "g": pd.date_range("20130101", periods=3),
                 "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "i": pd.date_range("20130101", periods=3, tz="CET"),
-                "j": pd.period_range("2013-01", periods=3, freq="ME"),
+                "j": pd.period_range("2013-01", periods=3, freq="M"),
                 "k": pd.timedelta_range("1 day", periods=3),
             }
         )
@@ -163,7 +163,7 @@ class TestSelectDtypes:
                 "g": pd.date_range("20130101", periods=3),
                 "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "i": pd.date_range("20130101", periods=3, tz="CET"),
-                "j": pd.period_range("2013-01", periods=3, freq="ME"),
+                "j": pd.period_range("2013-01", periods=3, freq="M"),
                 "k": pd.timedelta_range("1 day", periods=3),
             }
         )
@@ -199,7 +199,7 @@ class TestSelectDtypes:
                 "g": pd.date_range("20130101", periods=3),
                 "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "i": pd.date_range("20130101", periods=3, tz="CET"),
-                "j": pd.period_range("2013-01", periods=3, freq="ME"),
+                "j": pd.period_range("2013-01", periods=3, freq="M"),
                 "k": pd.timedelta_range("1 day", periods=3),
             }
         )
@@ -227,7 +227,7 @@ class TestSelectDtypes:
                 "g": pd.date_range("20130101", periods=3),
                 "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "i": pd.date_range("20130101", periods=3, tz="CET"),
-                "j": pd.period_range("2013-01", periods=3, freq="ME"),
+                "j": pd.period_range("2013-01", periods=3, freq="M"),
                 "k": pd.timedelta_range("1 day", periods=3),
             }
         )
@@ -248,7 +248,7 @@ class TestSelectDtypes:
                 "g": pd.date_range("20130101", periods=3),
                 "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "i": pd.date_range("20130101", periods=3, tz="CET"),
-                "j": pd.period_range("2013-01", periods=3, freq="ME"),
+                "j": pd.period_range("2013-01", periods=3, freq="M"),
                 "k": pd.timedelta_range("1 day", periods=3),
             }
         )

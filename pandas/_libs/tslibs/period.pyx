@@ -1879,7 +1879,7 @@ cdef class _Period(PeriodMixin):
 
         return NotImplemented
 
-    def asfreq(self, freq, is_period, how="E") -> "Period":
+    def asfreq(self, freq, how="E") -> "Period":
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
@@ -2413,10 +2413,8 @@ cdef class _Period(PeriodMixin):
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
-        if self.freqstr == "ME":
-            return f"Period('{formatted}', 'M')"
-        else:
-            return f"Period('{formatted}', '{self.freqstr}')"
+        dname = {"ME": f"Period('{formatted}', 'M')"}
+        return dname.get(self.freqstr, f"Period('{formatted}', '{self.freqstr}')")
 
     def __str__(self) -> str:
         """

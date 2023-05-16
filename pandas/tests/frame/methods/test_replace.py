@@ -1045,15 +1045,15 @@ class TestDataFrameReplace:
     def test_replace_period(self):
         d = {
             "fname": {
-                "out_augmented_AUG_2011.json": pd.Period(year=2011, month=8, freq="ME"),
-                "out_augmented_JAN_2011.json": pd.Period(year=2011, month=1, freq="ME"),
-                "out_augmented_MAY_2012.json": pd.Period(year=2012, month=5, freq="ME"),
+                "out_augmented_AUG_2011.json": pd.Period(year=2011, month=8, freq="M"),
+                "out_augmented_JAN_2011.json": pd.Period(year=2011, month=1, freq="M"),
+                "out_augmented_MAY_2012.json": pd.Period(year=2012, month=5, freq="M"),
                 "out_augmented_SUBSIDY_WEEK.json": pd.Period(
-                    year=2011, month=4, freq="ME"
+                    year=2011, month=4, freq="M"
                 ),
-                "out_augmented_AUG_2012.json": pd.Period(year=2012, month=8, freq="ME"),
-                "out_augmented_MAY_2011.json": pd.Period(year=2011, month=5, freq="ME"),
-                "out_augmented_SEP_2013.json": pd.Period(year=2013, month=9, freq="ME"),
+                "out_augmented_AUG_2012.json": pd.Period(year=2012, month=8, freq="M"),
+                "out_augmented_MAY_2011.json": pd.Period(year=2011, month=5, freq="M"),
+                "out_augmented_SEP_2013.json": pd.Period(year=2013, month=9, freq="M"),
             }
         }
 
@@ -1072,7 +1072,7 @@ class TestDataFrameReplace:
         assert set(df.fname.values) == set(d["fname"].keys())
 
         expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
-        assert expected.dtypes[0] == "period[ME]"
+        assert expected.dtypes[0] == "period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 

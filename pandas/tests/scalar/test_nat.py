@@ -38,7 +38,7 @@ from pandas.core.arrays import (
     [
         (Timestamp("NaT"), DatetimeArray),
         (Timedelta("NaT"), TimedeltaArray),
-        (Period("NaT", freq="ME"), PeriodArray),
+        (Period("NaT", freq="M"), PeriodArray),
     ],
 )
 def test_nat_fields(nat, idx):

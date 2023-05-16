@@ -168,8 +168,8 @@ class TestFactorize:
         tm.assert_index_equal(uniques, exp)
 
         # period
-        v1 = Period("201302", freq="ME")
-        v2 = Period("201303", freq="ME")
+        v1 = Period("201302", freq="M")
+        v2 = Period("201303", freq="M")
         x = Series([v1, v1, v1, v2, v2, v1])
 
         # periods are not 'sorted' as they are converted back into an index

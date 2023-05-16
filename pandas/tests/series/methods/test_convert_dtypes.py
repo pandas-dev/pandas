@@ -136,7 +136,7 @@ test_cases = [
         np.dtype("datetime64[ns]"),
         {("infer_objects", False): np.dtype("object")},
     ),
-    (pd.period_range("1/1/2011", freq="ME", periods=3), None, pd.PeriodDtype("ME"), {}),
+    (pd.period_range("1/1/2011", freq="M", periods=3), None, pd.PeriodDtype("M"), {}),
     (
         pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
         None,

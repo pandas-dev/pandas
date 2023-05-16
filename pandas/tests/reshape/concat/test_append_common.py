@@ -26,9 +26,9 @@ td_data = [
     pd.Timedelta("3 days"),
 ]
 period_data = [
-    pd.Period("2011-01", freq="ME"),
-    pd.Period("2011-02", freq="ME"),
-    pd.Period("2011-03", freq="ME"),
+    pd.Period("2011-01", freq="M"),
+    pd.Period("2011-02", freq="M"),
+    pd.Period("2011-03", freq="M"),
 ]
 data_dict = {
     "bool": [True, False, True],
@@ -39,7 +39,7 @@ data_dict = {
     "datetime64[ns]": dt_data,
     "datetime64[ns, US/Eastern]": tz_data,
     "timedelta64[ns]": td_data,
-    "period[ME]": period_data,
+    "period[M]": period_data,
 }
 
 
@@ -63,7 +63,7 @@ class TestConcatAppendCommon:
             assert obj.dtype == typ
         elif isinstance(obj, Series):
             if typ.startswith("period"):
-                assert obj.dtype == "period[ME]"
+                assert obj.dtype == "period[M]"
             else:
                 assert obj.dtype == typ
 
@@ -379,10 +379,10 @@ class TestConcatAppendCommon:
 
     def test_concatlike_common_period(self):
         # GH 13660
-        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="ME")
-        pi2 = pd.PeriodIndex(["2012-01", "2012-02"], freq="ME")
+        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
+        pi2 = pd.PeriodIndex(["2012-01", "2012-02"], freq="M")
 
-        exp = pd.PeriodIndex(["2011-01", "2011-02", "2012-01", "2012-02"], freq="ME")
+        exp = pd.PeriodIndex(["2011-01", "2011-02", "2012-01", "2012-02"], freq="M")
 
         res = pi1.append(pi2)
         tm.assert_index_equal(res, exp)
@@ -397,13 +397,13 @@ class TestConcatAppendCommon:
 
     def test_concatlike_common_period_diff_freq_to_object(self):
         # GH 13221
-        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="ME")
+        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
         pi2 = pd.PeriodIndex(["2012-01-01", "2012-02-01"], freq="D")
 
         exp = Index(
             [
-                pd.Period("2011-01", freq="ME"),
-                pd.Period("2011-02", freq="ME"),
+                pd.Period("2011-01", freq="M"),
+                pd.Period("2011-02", freq="M"),
                 pd.Period("2012-01-01", freq="D"),
                 pd.Period("2012-02-01", freq="D"),
             ],
@@ -424,12 +424,12 @@ class TestConcatAppendCommon:
     def test_concatlike_common_period_mixed_dt_to_object(self):
         # GH 13221
         # different datetimelike
-        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="ME")
+        pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
         tdi = pd.TimedeltaIndex(["1 days", "2 days"])
         exp = Index(
             [
-                pd.Period("2011-01", freq="ME"),
-                pd.Period("2011-02", freq="ME"),
+                pd.Period("2011-01", freq="M"),
+                pd.Period("2011-02", freq="M"),
                 pd.Timedelta("1 days"),
                 pd.Timedelta("2 days"),
             ],
@@ -452,8 +452,8 @@ class TestConcatAppendCommon:
             [
                 pd.Timedelta("1 days"),
                 pd.Timedelta("2 days"),
-                pd.Period("2011-01", freq="ME"),
-                pd.Period("2011-02", freq="ME"),
+                pd.Period("2011-01", freq="M"),
+                pd.Period("2011-02", freq="M"),
             ],
             dtype=object,
         )

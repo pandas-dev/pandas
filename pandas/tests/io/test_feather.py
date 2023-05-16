@@ -81,7 +81,7 @@ class TestFeather:
                 ),
             }
         )
-        df["periods"] = pd.period_range("2013", freq="ME", periods=3)
+        df["periods"] = pd.period_range("2013", freq="M", periods=3)
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 

@@ -568,7 +568,7 @@ class TestResetIndex:
     def test_reset_index_period(self):
         # GH#7746
         idx = MultiIndex.from_product(
-            [pd.period_range("20130101", periods=3, freq="ME"), list("abc")],
+            [pd.period_range("20130101", periods=3, freq="M"), list("abc")],
             names=["month", "feature"],
         )
 
@@ -578,9 +578,9 @@ class TestResetIndex:
         expected = DataFrame(
             {
                 "month": (
-                    [pd.Period("2013-01", freq="ME")] * 3
-                    + [pd.Period("2013-02", freq="ME")] * 3
-                    + [pd.Period("2013-03", freq="ME")] * 3
+                    [pd.Period("2013-01", freq="M")] * 3
+                    + [pd.Period("2013-02", freq="M")] * 3
+                    + [pd.Period("2013-03", freq="M")] * 3
                 ),
                 "feature": ["a", "b", "c"] * 3,
                 "a": np.arange(9, dtype="int64"),

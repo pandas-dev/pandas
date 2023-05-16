@@ -592,10 +592,10 @@ class TestSeriesReplace:
                 IntervalArray([pd.Interval(10.6, 20.8), pd.Interval(2.8, 3.1)]),
             ),
             (
-                pd.PeriodDtype("ME"),
-                [pd.Period("2020-05", freq="ME")],
-                {pd.Period("2020-05", freq="ME"): pd.Period("2020-06", freq="ME")},
-                [pd.Period("2020-06", freq="ME")],
+                pd.PeriodDtype("M"),
+                [pd.Period("2020-05", freq="M")],
+                {pd.Period("2020-05", freq="M"): pd.Period("2020-06", freq="M")},
+                [pd.Period("2020-06", freq="M")],
             ),
         ],
     )

@@ -194,7 +194,7 @@ class TestIsNA:
         tm.assert_numpy_array_equal(mask, exp)
 
         # GH 9129
-        pidx = idx.to_period(freq="ME")
+        pidx = idx.to_period(freq="M")
         mask = isna(pidx)
         assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
@@ -315,7 +315,7 @@ class TestIsNA:
         tm.assert_series_equal(notna(s), ~exp)
 
     def test_period(self):
-        idx = pd.PeriodIndex(["2011-01", "NaT", "2012-01"], freq="ME")
+        idx = pd.PeriodIndex(["2011-01", "NaT", "2012-01"], freq="M")
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -687,7 +687,7 @@ def test_array_equivalent_index_with_tuples():
         (np.dtype("M8[ns]"), np.datetime64("NaT", "ns")),
         (np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")),
         (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), NaT),
-        (PeriodDtype("ME"), NaT),
+        (PeriodDtype("M"), NaT),
         # Integer
         ("u1", 0),
         ("u2", 0),

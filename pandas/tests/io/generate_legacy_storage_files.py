@@ -134,12 +134,12 @@ def create_data():
         "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
     }
 
-    scalars = {"timestamp": Timestamp("20130101"), "period": Period("2012", "ME")}
+    scalars = {"timestamp": Timestamp("20130101"), "period": Period("2012", "M")}
 
     index = {
         "int": Index(np.arange(10)),
         "date": date_range("20130101", periods=10),
-        "period": period_range("2013-01-01", freq="ME", periods=10),
+        "period": period_range("2013-01-01", freq="M", periods=10),
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
         "timedelta": timedelta_range("00:00:00", freq="30T", periods=10),

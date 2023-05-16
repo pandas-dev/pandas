@@ -51,8 +51,8 @@ def test_period_array_readonly_object():
 def test_from_datetime64_freq_changes():
     # https://github.com/pandas-dev/pandas/issues/23438
     arr = pd.date_range("2017", periods=3, freq="D")
-    result = PeriodArray._from_datetime64(arr, freq="ME")
-    expected = period_array(["2017-01-01", "2017-01-01", "2017-01-01"], freq="ME")
+    result = PeriodArray._from_datetime64(arr, freq="M")
+    expected = period_array(["2017-01-01", "2017-01-01", "2017-01-01"], freq="M")
     tm.assert_period_array_equal(result, expected)
 
 
@@ -81,7 +81,7 @@ def test_period_array_non_period_series_raies():
 def test_period_array_freq_mismatch():
     arr = period_array(["2000", "2001"], freq="D")
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, dtype="period[ME]")
+        PeriodArray(arr, dtype="period[M]")
 
     dtype = pd.PeriodDtype(pd.tseries.offsets.MonthEnd())
     with pytest.raises(IncompatibleFrequency, match="freq"):
@@ -129,7 +129,7 @@ def test_freq_deprecated():
     data = np.arange(5).astype(np.int64)
     msg = "The 'freq' keyword in the PeriodArray constructor is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = PeriodArray(data, freq="ME")
+        res = PeriodArray(data, freq="M")
 
-    expected = PeriodArray(data, dtype="period[ME]")
+    expected = PeriodArray(data, dtype="period[M]")
     tm.assert_equal(res, expected)

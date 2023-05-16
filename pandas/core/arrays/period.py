@@ -408,7 +408,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        period_type = ArrowPeriodType(self.freqstr)
+        if self.freqstr == "ME":
+            period_type = ArrowPeriodType("M")
+        else:
+            period_type = ArrowPeriodType(self.freqstr)
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
@@ -1113,10 +1116,10 @@ def _range_from_fields(
 
     if quarter is not None:
         if freq is None:
-            freq = to_offset("Q", is_period)
+            freq = to_offset("Q", is_period=True)
             base = FreqGroup.FR_QTR.value
         else:
-            freq = to_offset(freq, is_period)
+            freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
             if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
@@ -1130,7 +1133,7 @@ def _range_from_fields(
             )
             ordinals.append(val)
     else:
-        freq = to_offset(freq, is_period)
+        freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):

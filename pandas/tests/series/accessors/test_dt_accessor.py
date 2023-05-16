@@ -768,15 +768,15 @@ class TestSeriesPeriodValuesDtAccessor:
     @pytest.mark.parametrize(
         "input_vals",
         [
-            [Period("2016-01", freq="ME"), Period("2016-02", freq="ME")],
+            [Period("2016-01", freq="M"), Period("2016-02", freq="M")],
             [Period("2016-01-01", freq="D"), Period("2016-01-02", freq="D")],
             [
                 Period("2016-01-01 00:00:00", freq="H"),
                 Period("2016-01-01 01:00:00", freq="H"),
             ],
             [
-                Period("2016-01-01 00:00:00", freq="ME"),
-                Period("2016-01-01 00:01:00", freq="ME"),
+                Period("2016-01-01 00:00:00", freq="M"),
+                Period("2016-01-01 00:01:00", freq="M"),
             ],
             [
                 Period("2016-01-01 00:00:00", freq="S"),

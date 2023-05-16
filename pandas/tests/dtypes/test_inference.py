@@ -1340,7 +1340,7 @@ class TestTypeInference:
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
         # non-homogeneous freqs -> mixed
-        arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="ME")])
+        arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "mixed"
 
     @pytest.mark.parametrize("klass", [pd.array, Series, Index])
@@ -1360,7 +1360,7 @@ class TestTypeInference:
         values = klass(
             [
                 Period("2011-01-01", freq="D"),
-                Period("2011-01-02", freq="ME"),
+                Period("2011-01-02", freq="M"),
                 pd.NaT,
             ]
         )
@@ -1370,12 +1370,12 @@ class TestTypeInference:
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
-            [Period("2011-01", freq="ME"), np.datetime64("nat")], dtype=object
+            [Period("2011-01", freq="M"), np.datetime64("nat")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
         arr = np.array(
-            [np.datetime64("nat"), Period("2011-01", freq="ME")], dtype=object
+            [np.datetime64("nat"), Period("2011-01", freq="M")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
@@ -1623,8 +1623,8 @@ class TestTypeInference:
         tm.assert_numpy_array_equal(out, expected)
 
     def test_is_period(self):
-        assert lib.is_period(Period("2011-01", freq="ME"))
-        assert not lib.is_period(PeriodIndex(["2011-01"], freq="ME"))
+        assert lib.is_period(Period("2011-01", freq="M"))
+        assert not lib.is_period(PeriodIndex(["2011-01"], freq="M"))
         assert not lib.is_period(Timestamp("2011-01"))
         assert not lib.is_period(1)
         assert not lib.is_period(np.nan)
