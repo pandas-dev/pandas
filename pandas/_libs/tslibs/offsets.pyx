@@ -1714,6 +1714,8 @@ cdef class BusinessHour(BusinessMixin):
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
@@ -2242,6 +2244,15 @@ cdef class YearOffset(SingleConstructorOffset):
 cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
 
     Examples
     --------
@@ -3073,7 +3084,10 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     Parameters
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     week : int {0, 1, 2, 3, ...}, default 0
         A specific integer for the week of the month.
         e.g. 0 is 1st week of month, 1 is the 2nd week, etc.
