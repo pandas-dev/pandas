@@ -444,6 +444,26 @@ class IndexingMixin:
         viper               0       0
         sidewinder          0       0
 
+        Add value matching location
+
+        >>> df.loc["viper", "shield"] += 5
+        >>> df
+                    max_speed  shield
+        cobra              30      10
+        viper               0       5
+        sidewinder          0       0
+
+        Setting using a ``Series`` or a ``DataFrame`` sets the values mathcing the
+        index labels, not the index positions.
+
+        >>> shuffled_df = df.loc[["viper", "cobra", "sidewinder"]]
+        >>> df.loc[:] += shuffled_df
+        >>> df
+                    max_speed  shield
+        cobra              60      20
+        viper               0      10
+        sidewinder          0       0
+
         **Getting values on a DataFrame with an index that has integer labels**
 
         Another example using integers for the index
