@@ -317,6 +317,7 @@ Datetimelike
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
+- Bug in :func:`to_datetime`, if date contains "AM" / "PM" tokens (:issue:`53147`)
 -
 
 Timedelta
@@ -352,7 +353,7 @@ Conversion
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 - Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
-- Bug in :meth:`datetimes._guess_datetime_format` if contains "AM" / "PM" tokens (:issue:`53147`)
+-
 
 Strings
 ^^^^^^^
