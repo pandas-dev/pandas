@@ -40,7 +40,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.dtypes import CategoricalDtypeType
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtypeType,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -58,8 +61,6 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
-from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -1719,8 +1720,9 @@ def test_setitem_null_slice(data):
 
     result = orig.copy()
     result[:] = data[0]
-    expected = ArrowExtensionArray(
-        pa.array([data[0]] * len(data), type=data._pa_array.type)
+    expected = ArrowExtensionArray._from_sequence(
+        [data[0]] * len(data),
+        dtype=data._pa_array.type,
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -1809,6 +1811,20 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_sort_values_dictionary():
+    df = pd.DataFrame(
+        {
+            "a": pd.Series(
+                ["x", "y"], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+            ),
+            "b": [1, 2],
+        },
+    )
+    expected = df.copy()
+    result = df.sort_values(by=["a", "b"])
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
@@ -2919,3 +2935,76 @@ def test_infer_dtype_pyarrow_dtype(data, request):
         request.node.add_marker(mark)
 
     assert res == lib.infer_dtype(list(data), skipna=True)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_from_sequence_temporal(pa_type):
+    # GH 53171
+    val = 3
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        seq = [pd.Timedelta(val, unit=unit).as_unit(unit)]
+    else:
+        seq = [pd.Timestamp(val, unit=unit, tz=pa_type.tz).as_unit(unit)]
+
+    result = ArrowExtensionArray._from_sequence(seq, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([val], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_setitem_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr.copy()
+    result[:] = val
+    expected = ArrowExtensionArray(pa.array([1, 1, 1], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_arithmetic_temporal(pa_type, request):
+    # GH 53171
+    if pa_version_under8p0 and pa.types.is_duration(pa_type):
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowNotImplementedError,
+            reason="Function 'subtract_checked' has no kernel matching input types",
+        )
+        request.node.add_marker(mark)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    unit = pa_type.unit
+    result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
+    expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_comparison_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr > val
+    expected = ArrowExtensionArray(pa.array([False, True, True], type=pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)

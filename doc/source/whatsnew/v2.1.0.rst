@@ -352,6 +352,7 @@ Conversion
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
+- Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
 -
 
 Strings
@@ -371,12 +372,14 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)
+- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
 
 I/O
 ^^^
@@ -386,7 +389,7 @@ I/O
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
-- Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)
+- Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 
 Period
 ^^^^^^
@@ -414,13 +417,14 @@ Groupby/resample/rolling
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
 - Bug in :meth:`DataFrameGroupBy.apply` causing an error to be raised when the input :class:`DataFrame` was subset as a :class:`DataFrame` after groupby (``[['a']]`` and not ``['a']``) and the given callable returned :class:`Series` that were not all indexed the same. (:issue:`52444`)
+- Bug in :meth:`DataFrameGroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)
 - Bug in :meth:`GroupBy.groups` with a datetime key in conjunction with another key produced incorrect number of group keys (:issue:`51158`)
 - Bug in :meth:`GroupBy.quantile` may implicitly sort the result index with ``sort=False`` (:issue:`53009`)
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)
--
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`crosstab` when ``dropna=False`` would not keep ``np.nan`` in the result (:issue:`10772`)
 - Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)
 - Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
@@ -435,6 +439,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
@@ -452,6 +457,7 @@ Metadata
 Other
 ^^^^^
 - Bug in :class:`FloatingArray.__contains__` with ``NaN`` item incorrectly returning ``False`` when ``NaN`` values are present (:issue:`52840`)
+- Bug in :func:`api.interchange.from_dataframe` when converting an empty DataFrame object (:issue:`53155`)
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
 - Bug in :func:`assert_frame_equal` checks category dtypes even when asked not to check index type (:issue:`52126`)
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
