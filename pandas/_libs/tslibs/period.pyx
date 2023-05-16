@@ -1661,6 +1661,21 @@ cdef class PeriodMixin:
         Period.dayofyear : Return the day of year.
         Period.daysinmonth : Return the days in that month.
         Period.dayofweek : Return the day of the week.
+
+        Examples
+        --------
+        >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period)
+        >>> s
+        0   2020-01
+        1   2020-02
+        2   2020-03
+        dtype: period[M]
+        >>> s.dt.end_time
+        0   2020-01-31 23:59:59.999999999
+        1   2020-02-29 23:59:59.999999999
+        2   2020-03-31 23:59:59.999999999
+        dtype: datetime64[ns]
         """
         return self.to_timestamp(how="end")
 
