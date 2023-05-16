@@ -2775,7 +2775,7 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     expected = df2.copy()
     tm.assert_frame_equal(result, expected)
 
-    
+
 @pytest.mark.parametrize("tzinfo", [None, pytz.timezone("America/Chicago")])
 def test_merge_datetime_different_resolution(tzinfo):
     # https://github.com/pandas-dev/pandas/issues/53200
@@ -2797,6 +2797,7 @@ def test_merge_datetime_different_resolution(tzinfo):
     )
     result = df1.merge(df2, on="t")
     tm.assert_frame_equal(result, expected)
+
 
 def test_merge_multiindex_single_level():
     # GH #52331
