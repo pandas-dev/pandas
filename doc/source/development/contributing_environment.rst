@@ -252,7 +252,11 @@ To compile pandas with setuptools, run::
 .. note::
    If pandas is already installed (via meson), you have to uninstall it first::
 
-        pip uninstall pandas
+        python -m pip uninstall pandas
+
+This is because python setup.py develop will not uninstall the loader script that ``meson-python``
+uses to import the extension from the build folder, which may cause errors such as an
+``FileNotFoundError`` to be raised.
 
 .. note::
    You will need to repeat this step each time the C extensions change, for example
