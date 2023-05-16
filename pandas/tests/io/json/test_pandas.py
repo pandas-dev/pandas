@@ -1399,7 +1399,7 @@ class TestPandasContainer:
             read_json(dfjson, orient="table", dtype=dtype)
 
     @pytest.mark.parametrize("orient", ["index", "columns", "records", "values"])
-    def test_read_json_table_empty_dtype(self, orient):
+    def test_read_json_table_empty_axes_dtype(self, orient):
         # GH 28558
 
         df = DataFrame()
