@@ -980,7 +980,7 @@ class TestIndexing:
 
                 # fancy indexer
                 assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
+                assert_slice_ok(mgr, ax, np.array(list(range(mgr.shape[ax]))))
 
                 if mgr.shape[ax] >= 3:
                     assert_slice_ok(mgr, ax, [0, 1, 2])
