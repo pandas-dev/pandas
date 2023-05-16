@@ -1124,6 +1124,7 @@ class TestExcelWriter:
             "openpyxl": r"load_workbook() got an unexpected keyword argument 'foo'",
             "xlsxwriter": r"Workbook.__init__() got an unexpected keyword "
             r"argument 'foo'",
+            None: "Workbook.__init__() got an unexpected keyword argument 'foo'",
         }
 
         # Handle change in error message for openpyxl (write and append mode)
