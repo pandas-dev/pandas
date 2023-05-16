@@ -1131,12 +1131,11 @@ class TestExcelWriter:
                 "openpyxl"
             ] = r"Workbook.__init__() got an unexpected keyword argument 'foo'"
 
-        else:
-            with pytest.raises(TypeError, match=re.escape(msgs[engine])):
-                df.to_excel(
-                    path,
-                    engine_kwargs={"foo": "bar"},
-                )
+        with pytest.raises(TypeError, match=re.escape(msgs[engine])):
+            df.to_excel(
+                path,
+                engine_kwargs={"foo": "bar"},
+            )
 
     def test_write_lists_dict(self, path):
         # see gh-8188.
