@@ -69,7 +69,7 @@ Intro to pandas
     <div id="accordion" class="shadow tutorial-accordion">
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseOne">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseOne">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -116,7 +116,7 @@ to explore, clean, and process your data. In pandas, a data table is called a :c
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseTwo">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -163,7 +163,7 @@ data sources is provided by function with the prefix ``read_*``. Similarly, the 
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseThree">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseThree">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -210,7 +210,7 @@ data you need are available in pandas.
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseFour">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseFour">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -257,7 +257,7 @@ corresponding to your data.
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseFive">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseFive">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -304,7 +304,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseSix">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseSix">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -351,7 +351,7 @@ data set, a sliding window of the data, or grouped by categories. The latter is 
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseSeven">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseSeven">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -398,7 +398,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseEight">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseEight">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -444,7 +444,7 @@ Multiple tables can be concatenated both column wise and row wise as database-li
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseNine">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseNine">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
@@ -487,7 +487,7 @@ pandas has great support for time series and has an extensive set of tools for w
         </div>
 
         <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseTen">
+            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseTen">
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
