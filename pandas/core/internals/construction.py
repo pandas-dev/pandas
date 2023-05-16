@@ -675,8 +675,7 @@ def reorder_arrays(
     if columns is not None:
         if not columns.equals(arr_columns):
             # if they are equal, there is nothing to do
-            new_arrays: list[ArrayLike | None]
-            new_arrays = [None] * len(columns)
+            new_arrays: list[ArrayLike] = []
             indexer = arr_columns.get_indexer(columns)
             for i, k in enumerate(indexer):
                 if k == -1:
@@ -685,12 +684,9 @@ def reorder_arrays(
                     arr.fill(np.nan)
                 else:
                     arr = arrays[k]
-                new_arrays[i] = arr
+                new_arrays.append(arr)
 
-            # Incompatible types in assignment (expression has type
-            # "List[Union[ExtensionArray, ndarray[Any, Any], None]]", variable
-            # has type "List[Union[ExtensionArray, ndarray[Any, Any]]]")
-            arrays = new_arrays  # type: ignore[assignment]
+            arrays = new_arrays
             arr_columns = columns
 
     return arrays, arr_columns

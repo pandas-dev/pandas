@@ -1,10 +1,11 @@
 import re
+import warnings
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.sparse import SparseDtype
+from pandas import SparseDtype
 
 
 @pytest.mark.parametrize(
@@ -67,15 +68,22 @@ def test_nans_equal():
     assert b == a
 
 
-@pytest.mark.parametrize(
-    "a, b",
-    [
+with warnings.catch_warnings():
+    msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+    warnings.filterwarnings("ignore", msg, category=FutureWarning)
+
+    tups = [
         (SparseDtype("float64"), SparseDtype("float32")),
         (SparseDtype("float64"), SparseDtype("float64", 0)),
         (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
         (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
         (SparseDtype("float64"), np.dtype("float64")),
-    ],
+    ]
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    tups,
 )
 def test_not_equal(a, b):
     assert a != b
