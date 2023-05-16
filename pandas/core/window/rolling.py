@@ -1604,18 +1604,18 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
-        if quantile == 1.0:
+        if q == 1.0:
             window_func = window_aggregations.roll_max
-        elif quantile == 0.0:
+        elif q == 0.0:
             window_func = window_aggregations.roll_min
         else:
             window_func = partial(
                 window_aggregations.roll_quantile,
-                quantile=quantile,
+                quantile=q,
                 interpolation=interpolation,
             )
 
@@ -2438,7 +2438,7 @@ class Rolling(RollingAndExpandingMixin):
         numeric_only: bool = False,
     ):
         return super().quantile(
-            quantile=q,
+            q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )

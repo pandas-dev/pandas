@@ -610,7 +610,7 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only: bool = False,
     ):
         return super().quantile(
-            quantile=q,
+            q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )
