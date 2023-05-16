@@ -453,7 +453,7 @@ class IndexingMixin:
         viper               0       5
         sidewinder          0       0
 
-        Setting using a ``Series`` or a ``DataFrame`` sets the values mathcing the
+        Setting using a ``Series`` or a ``DataFrame`` sets the values matching the
         index labels, not the index positions.
 
         >>> shuffled_df = df.loc[["viper", "cobra", "sidewinder"]]
