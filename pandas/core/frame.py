@@ -11004,7 +11004,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11016,7 +11016,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11047,7 +11047,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11058,7 +11058,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("var", ndim=2))
     def var(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11069,7 +11069,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("std", ndim=2))
     def std(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
