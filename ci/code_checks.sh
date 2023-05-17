@@ -80,21 +80,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.item \
-        pandas.Series.pipe \
-        pandas.Series.mode \
-        pandas.Series.is_unique \
-        pandas.Series.is_monotonic_increasing \
-        pandas.Series.is_monotonic_decreasing \
         pandas.Series.backfill \
-        pandas.Series.bfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.argsort \
-        pandas.Series.reorder_levels \
-        pandas.Series.ravel \
-        pandas.Series.first_valid_index \
-        pandas.Series.last_valid_index \
         pandas.Series.dt.date \
         pandas.Series.dt.time \
         pandas.Series.dt.timetz \
@@ -319,9 +307,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.fillna \
         pandas.Index.dropna \
         pandas.Index.astype \
-        pandas.Index.item \
         pandas.Index.map \
-        pandas.Index.ravel \
         pandas.Index.to_list \
         pandas.Index.append \
         pandas.Index.join \
@@ -431,7 +417,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.get_group \
         pandas.core.groupby.DataFrameGroupBy.all \
         pandas.core.groupby.DataFrameGroupBy.any \
-        pandas.core.groupby.DataFrameGroupBy.bfill \
         pandas.core.groupby.DataFrameGroupBy.count \
         pandas.core.groupby.DataFrameGroupBy.cummax \
         pandas.core.groupby.DataFrameGroupBy.cummin \
@@ -454,7 +439,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.var \
         pandas.core.groupby.SeriesGroupBy.all \
         pandas.core.groupby.SeriesGroupBy.any \
-        pandas.core.groupby.SeriesGroupBy.bfill \
         pandas.core.groupby.SeriesGroupBy.count \
         pandas.core.groupby.SeriesGroupBy.cummax \
         pandas.core.groupby.SeriesGroupBy.cummin \
@@ -462,8 +446,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.cumsum \
         pandas.core.groupby.SeriesGroupBy.diff \
         pandas.core.groupby.SeriesGroupBy.ffill \
-        pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing \
-        pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing \
         pandas.core.groupby.SeriesGroupBy.max \
         pandas.core.groupby.SeriesGroupBy.median \
         pandas.core.groupby.SeriesGroupBy.min \
@@ -526,15 +508,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.columns \
-        pandas.DataFrame.iterrows \
-        pandas.DataFrame.pipe \
         pandas.DataFrame.backfill \
-        pandas.DataFrame.bfill \
         pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
-        pandas.DataFrame.first_valid_index \
-        pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
