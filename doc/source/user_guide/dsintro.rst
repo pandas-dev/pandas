@@ -104,7 +104,7 @@ However, operations such as slicing will also slice the index.
 
     s.iloc[0]
     s.iloc[:3]
-    s.iloc[s > s.median()]
+    s[s > s.median()]
     s.iloc[[4, 3, 1]]
     np.exp(s)
 
