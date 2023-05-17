@@ -51,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PandasDtype, ArrowDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,

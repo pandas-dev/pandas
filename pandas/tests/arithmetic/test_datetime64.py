@@ -1171,11 +1171,17 @@ class TestDatetime64Arithmetic:
         "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
     )
     def test_dt64arr_addsub_time_objects_raises(
-        self, box_with_array, tz_naive_fixture, future
+        self, box_with_array, tz_naive_fixture, future, request
     ):
         # https://github.com/pandas-dev/pandas/issues/10329
 
         tz = tz_naive_fixture
+        if str(tz) == "tzlocal()" and future is True:
+            # TODO(GH#53278)
+            mark = pytest.mark.xfail(
+                reason="Incorrectly raises AttributeError instead of TypeError"
+            )
+            request.node.add_marker(mark)
 
         obj1 = date_range("2012-01-01", periods=3, tz=tz)
         obj2 = [time(i, i, i) for i in range(3)]
