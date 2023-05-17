@@ -83,6 +83,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.ffill \
         pandas.Series.pad \
+        pandas.Series.dt.end_time \
         pandas.Series.dt.days \
         pandas.Series.dt.seconds \
         pandas.Series.dt.microseconds \
@@ -169,7 +170,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.to_numpy \
         pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
-        pandas.Period.end_time \
         pandas.Period.freqstr \
         pandas.Period.is_leap_year \
         pandas.Period.month \
