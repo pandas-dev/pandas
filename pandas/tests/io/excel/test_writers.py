@@ -1116,6 +1116,7 @@ class TestExcelWriter:
             tm.assert_frame_equal(df, reread_df)
 
     def test_engine_kwargs(self, engine, path):
+        # GH#52368
         df = DataFrame([{"A": 1, "B": 2}, {"A": 3, "B": 4}])
 
         msgs = {
