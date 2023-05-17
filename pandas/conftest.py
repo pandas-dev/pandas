@@ -746,7 +746,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.randn(8)
     ser = Series(data, index=index)
-    ser[3] = np.NaN
+    ser.iloc[3] = np.NaN
     return ser
 
 
