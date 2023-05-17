@@ -731,7 +731,6 @@ def _stack_multi_columns(
     level_codes = unique(mi_cols.codes[-1])
     if sort:
         level_codes = sorted(level_codes)
-    # level_codes = sorted(set(mi_cols.codes[-1]))
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)
