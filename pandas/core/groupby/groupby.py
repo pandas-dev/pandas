@@ -70,7 +70,10 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    ensure_dtype_can_hold_na,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
@@ -2773,7 +2776,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             If ``'left'``, the last point in the window is excluded from calculations.
 
-            If ``'both'``, the no points in the window are excluded from calculations.
+            If ``'both'``, no points in the window are excluded from calculations.
 
             If ``'neither'``, the first and last points in the window are excluded
             from calculations.
@@ -3018,6 +3021,61 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.bfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+
+        With Series:
+
+        >>> index = ['Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot']
+        >>> s = pd.Series([None, 1, None, None, 3], index=index)
+        >>> s
+        Falcon    NaN
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    NaN
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill()
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    3.0
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill(limit=1)
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+
+        With DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, None, None, None, 4],
+        ...                    'B': [None, None, 5, None, 7]}, index=index)
+        >>> df
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	NaN	  NaN
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill()
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	4.0	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill(limit=1)
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
         """
         return self._fill("bfill", limit=limit)
 
@@ -4117,9 +4175,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = list(
+        in_axis_grps = [
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
-        )
+        ]
         if len(in_axis_grps) > 0:
             g_nums, g_names = zip(*in_axis_grps)
             output = output.drop(labels=list(g_names), axis=1)
@@ -4229,7 +4287,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """  # noqa:E501
+        """  # noqa: E501
         if self._selected_obj.empty:
             # GH48459 prevent ValueError when object is empty
             return self._selected_obj
@@ -4311,13 +4369,19 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     MultiIndex
     """
     nqs = len(qs)
+    lev_codes, lev = Index(qs).factorize()
+    lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:
         idx = cast(MultiIndex, idx)
-        lev_codes, lev = Index(qs).factorize()
         levels = list(idx.levels) + [lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
         mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
-        mi = MultiIndex.from_product([idx, qs])
+        nidx = len(idx)
+        idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)
+        levels = [idx, lev]
+        codes = [np.repeat(idx_codes, nqs), np.tile(lev_codes, nidx)]
+        mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
+
     return mi

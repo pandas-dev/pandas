@@ -713,7 +713,7 @@ class ParserBase:
                     values,
                     na_values,
                     False,
-                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
+                    convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa: E501
                 )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
@@ -749,7 +749,7 @@ class ParserBase:
                 np.asarray(values),
                 true_values=self.true_values,
                 false_values=self.false_values,
-                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa
+                convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]  # noqa: E501
             )
             if result.dtype == np.bool_ and non_default_dtype_backend:
                 if bool_mask is None:
@@ -757,8 +757,7 @@ class ParserBase:
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
-                inferred_type = lib.infer_dtype(result)
-                if inferred_type != "datetime":
+                if not lib.is_datetime_array(result, skipna=True):
                     result = StringDtype().construct_array_type()._from_sequence(values)
 
         if dtype_backend == "pyarrow":
@@ -813,7 +812,7 @@ class ParserBase:
                 if is_bool_dtype(cast_type):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
-                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa:E501
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa: E501
                         values,
                         dtype=cast_type,
                         true_values=self.true_values,
