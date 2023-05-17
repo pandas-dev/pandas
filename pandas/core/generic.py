@@ -7262,6 +7262,52 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series([1, None, None, 2])
+        >>> s.bfill()
+        0    1.0
+        1    2.0
+        2    2.0
+        3    2.0
+        dtype: float64
+        >>> s.bfill(downcast='infer')
+        0    1
+        1    2
+        2    2
+        3    2
+        dtype: int64
+        >>> s.bfill(limit=1)
+        0    1.0
+        1    NaN
+        2    2.0
+        3    2.0
+        dtype: float64
+
+        With DataFrame:
+
+        >>> df = pd.DataFrame({{'A': [1, None, None, 4], 'B': [None, 5, None, 7]}})
+        >>> df
+              A     B
+        0   1.0	  NaN
+        1   NaN	  5.0
+        2   NaN   NaN
+        3   4.0   7.0
+        >>> df.bfill()
+              A     B
+        0   1.0   5.0
+        1   4.0   5.0
+        2   4.0   7.0
+        3   4.0   7.0
+        >>> df.bfill(downcast='infer', limit=1)
+              A	   B
+        0   1.0    5
+        1   NaN    5
+        2   4.0    7
+        3   4.0    7
         """
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
@@ -11824,6 +11870,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         If all elements are non-NA/null, returns None.
         Also returns None for empty {klass}.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series([None, 3, 4])
+        >>> s.first_valid_index()
+        1
+        >>> s.last_valid_index()
+        2
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({{'A': [None, None, 2], 'B': [None, 3, 4]}})
+        >>> df
+             A      B
+        0  NaN    NaN
+        1  NaN    3.0
+        2  2.0    4.0
+        >>> df.first_valid_index()
+        1
+        >>> df.last_valid_index()
+        2
         """
         return self._find_valid_index(how="first")
 
