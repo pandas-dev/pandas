@@ -1671,8 +1671,8 @@ cdef class PeriodMixin:
 
         For Series:
 
-        >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
-        >>> s = pd.Series(period)
+        >>> period_index = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period_index)
         >>> s
         0   2020-01
         1   2020-02
