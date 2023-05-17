@@ -169,11 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.to_numpy \
         pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
-        pandas.Period.freqstr \
-        pandas.Period.is_leap_year \
-        pandas.Period.month \
-        pandas.Period.quarter \
-        pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
