@@ -328,7 +328,10 @@ def _get_block_for_concat_plan(
         slc = lib.maybe_indices_to_slice(ax0_blk_indexer, max_len)
         # TODO: in all extant test cases 2023-04-08 we have a slice here.
         #  Will this always be the case?
-        nb = blk.getitem_block(slc)
+        if isinstance(slc, slice):
+            nb = blk.slice_block_columns(slc)
+        else:
+            nb = blk.take_block_columns(slc)
 
     # assert nb.shape == (len(bp), mgr.shape[1])
     return nb
