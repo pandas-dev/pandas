@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,

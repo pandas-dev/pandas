@@ -649,7 +649,15 @@ class ArrowExtensionArray(
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
-        result = pc_func(self._pa_array, other)
+        try:
+            result = pc_func(self._pa_array, other)
+        except pa.lib.ArrowNotImplementedError:
+            if op in [operator.add, roperator.radd, operator.sub, roperator.rsub]:
+                # By returning NotImplemented we get standard message with a
+                #  TypeError
+                return NotImplemented
+            raise
+
         return type(self)(result)
 
     def _logical_method(self, other, op):

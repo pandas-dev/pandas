@@ -844,7 +844,6 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
                 import pyarrow as pa
 
                 pa_dtype = pa.time64("us")
-                from pandas.core.arrays.arrow import ArrowDtype
 
                 dtype = ArrowDtype(pa_dtype)
 
