@@ -821,6 +821,8 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 @pytest.mark.parametrize("conn", postgresql_connectable)
 def test_insertion_method_on_conflict(conn, request):
     # GH 15988: Example in to_sql docstring
+    conn = request.getfixturevalue(conn)
+
     from sqlalchemy.dialects.postgresql import insert
     from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
@@ -834,8 +836,6 @@ def test_insertion_method_on_conflict(conn, request):
         )
         result = conn.execute(stmt)
         return result.rowcount
-
-    conn = request.getfixturevalue(conn)
 
     create_sql = text(
         """
