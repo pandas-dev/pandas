@@ -22,13 +22,13 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
 from pandas.core.arrays import BaseMaskedArray
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
