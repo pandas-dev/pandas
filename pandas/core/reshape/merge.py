@@ -1623,7 +1623,7 @@ def get_join_indexers(
     """
     assert len(left_keys) == len(
         right_keys
-    ), "left_key and right_keys must be the same length"
+    ), "left_keys and right_keys must be the same length"
 
     # fast-path for empty left/right
     left_n = len(left_keys[0])
@@ -1960,7 +1960,7 @@ class _AsOfMerge(_OrderedMerge):
                 self.right_by = [self.right_by]
 
             if len(self.left_by) != len(self.right_by):
-                raise MergeError("left_by and right_by must be same length")
+                raise MergeError("left_by and right_by must be the same length")
 
             left_on = self.left_by + list(left_on)
             right_on = self.right_by + list(right_on)

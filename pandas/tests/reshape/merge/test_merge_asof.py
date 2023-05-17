@@ -455,7 +455,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
-            MergeError, match="left_by and right_by must be same length"
+            MergeError, match="left_by and right_by must be the same length"
         ):
             merge_asof(
                 left,
