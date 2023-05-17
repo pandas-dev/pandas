@@ -37,6 +37,7 @@ Bug fixes
 - Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)
 - Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend="pyarrow"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)
+- Bug in :func:`to_datetime`, if date contains "AM" / "PM" tokens (:issue:`53147`)
 - Bug in :func:`to_numeric` with ``errors='coerce'`` and ``dtype_backend='pyarrow'`` with :class:`ArrowDtype` data (:issue:`52588`)
 - Bug in :meth:`ArrowDtype.__from_arrow__` not respecting if dtype is explicitly given (:issue:`52533`)
 - Bug in :meth:`DataFrame.describe` not respecting ``ArrowDtype`` in ``include`` and ``exclude`` (:issue:`52570`)
