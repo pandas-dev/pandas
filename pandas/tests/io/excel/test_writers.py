@@ -1129,9 +1129,7 @@ class TestExcelWriter:
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and os.path.exists(path):
-            msgs[
-                "openpyxl"
-            ] = r"Workbook.__init__() got an unexpected keyword argument 'foo'"
+            msgs["openpyxl"] = r"__init__() got an unexpected keyword argument 'foo'"
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
