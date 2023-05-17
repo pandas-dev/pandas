@@ -215,9 +215,8 @@ class XlsxWriter(ExcelWriter):
         try:
             self._book = Workbook(self._handles.handle, **engine_kwargs)
         except TypeError:
-            raise
-        finally:
             self._handles.handle.close()
+            raise
 
     @property
     def book(self):
