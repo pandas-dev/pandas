@@ -1406,7 +1406,7 @@ class TestPandasContainer:
         result = read_json("{}", orient=orient, convert_axes=True)
 
         tm.assert_index_equal(result.index, expected.index)
-        tm.assert_equal(result.columns, expected.columns)
+        tm.assert_index_equal(result.columns, expected.columns)
 
     def test_read_json_table_convert_axes_raises(self):
         # GH25433 GH25435
