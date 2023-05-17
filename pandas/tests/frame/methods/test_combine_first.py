@@ -324,14 +324,14 @@ class TestDataFrameCombineFirst:
         assert res["TD"].dtype == "timedelta64[ns]"
 
     def test_combine_first_period(self):
-        data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="ME")
+        data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="M")
         df1 = DataFrame({"P": data1}, index=[1, 3, 5, 7])
-        data2 = pd.PeriodIndex(["2012-01-01", "2012-02", "2012-03"], freq="ME")
+        data2 = pd.PeriodIndex(["2012-01-01", "2012-02", "2012-03"], freq="M")
         df2 = DataFrame({"P": data2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
         exp_dts = pd.PeriodIndex(
-            ["2011-01", "2012-01", "NaT", "2012-02", "2011-03", "2011-04"], freq="ME"
+            ["2011-01", "2012-01", "NaT", "2012-02", "2011-03", "2011-04"], freq="M"
         )
         exp = DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
@@ -343,12 +343,12 @@ class TestDataFrameCombineFirst:
 
         res = df1.combine_first(df2)
         exp_dts = [
-            pd.Period("2011-01", freq="ME"),
+            pd.Period("2011-01", freq="M"),
             pd.Period("2012-01-01", freq="D"),
             pd.NaT,
             pd.Period("2012-01-02", freq="D"),
-            pd.Period("2011-03", freq="ME"),
-            pd.Period("2011-04", freq="ME"),
+            pd.Period("2011-03", freq="M"),
+            pd.Period("2011-04", freq="M"),
         ]
         exp = DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)

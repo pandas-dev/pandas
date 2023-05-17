@@ -963,6 +963,8 @@ class TestPeriodIndexArithmetic:
         expected = tm.box_expected(expected, box_with_array, transpose=transpose)
 
         result = pi + per.freq
+        print("AAAAAAAA = ", result)
+        print("BBBBBBBB = ", expected)
         tm.assert_equal(result, expected)
 
         result = per.freq + pi

@@ -169,7 +169,9 @@ def test_apply_box():
     s = Series(vals)
     assert s.dtype == "period[M]"
     res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}")
-    exp = Series(["Period_ME", "Period_ME"])
+    exp = Series(["Period_M", "Period_M"])
+    print("AAAAAAA =", res)
+    print("BBBBBBB =", exp)
     tm.assert_series_equal(res, exp)
 
 

@@ -1101,7 +1101,6 @@ def _range_from_fields(
     minute=None,
     second=None,
     freq=None,
-    is_period=None,
 ) -> tuple[np.ndarray, BaseOffset]:
     if hour is None:
         hour = 0

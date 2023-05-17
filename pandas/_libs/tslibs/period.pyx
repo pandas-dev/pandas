@@ -37,6 +37,7 @@ from libc.time cimport (
     strftime,
     tm,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 # import datetime C API
 import_datetime()
@@ -1503,7 +1504,7 @@ def from_ordinals(const int64_t[:] values, freq, is_period):
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq, is_period)
+    freq = to_offset(freq, is_period=True)
     if not isinstance(freq, BaseOffset):
         raise ValueError("freq not specified and cannot be inferred")
 
@@ -1536,6 +1537,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
+    freqstr = OFFSET_TO_PERIOD_FREQSTR.get(freqstr, freqstr)
 
     for i in range(n):
         # Analogous to: p = values[i]
@@ -2408,13 +2410,15 @@ cdef class _Period(PeriodMixin):
         """
         Return a string representation of the frequency.
         """
-        return self._dtype._freqstr
+        if "ME" in self._dtype._freqstr:
+            return self._dtype._freqstr.replace("E", "")
+        else:
+            return self._dtype._freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
-        dname = {"ME": f"Period('{formatted}', 'M')"}
-        return dname.get(self.freqstr, f"Period('{formatted}', '{self.freqstr}')")
+        return f"Period('{formatted}', '{self.freqstr}')"
 
     def __str__(self) -> str:
         """

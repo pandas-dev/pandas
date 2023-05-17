@@ -10,6 +10,15 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+# ----------------------------------------------------------------------
+# Constants
+
+OFFSET_TO_PERIOD_FREQSTR = {
+    'ME': 'M',
+}
+
+
+# ----------------------------------------------------------------------
 
 cdef class PeriodDtypeBase:
     """
@@ -109,7 +118,7 @@ _period_code_map = {
     "Q-OCT": PeriodDtypeCode.Q_OCT,    # Quarterly - October year end
     "Q-NOV": PeriodDtypeCode.Q_NOV,    # Quarterly - November year end
 
-    "ME": PeriodDtypeCode.M,        # Monthly
+    "M": PeriodDtypeCode.M,        # Monthly
 
     "W-SUN": PeriodDtypeCode.W_SUN,    # Weekly - Sunday end of week
     "W-MON": PeriodDtypeCode.W_MON,    # Weekly - Monday end of week
