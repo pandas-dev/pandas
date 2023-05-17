@@ -13,7 +13,11 @@ from cpython.datetime cimport (
     PyDateTime_Check,
     PyDelta_Check,
     PyTime_Check,
+    date,
+    datetime,
     import_datetime,
+    time,
+    timedelta,
 )
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
@@ -1204,6 +1208,12 @@ _TYPE_MAP = {
     "m": "timedelta64",
     "interval": "interval",
     Period: "period",
+    datetime: "datetime64",
+    date: "date",
+    time: "time",
+    timedelta: "timedelta64",
+    Decimal: "decimal",
+    bytes: "bytes",
 }
 
 # types only exist on certain platform
@@ -1373,7 +1383,8 @@ cdef object _try_infer_map(object dtype):
     cdef:
         object val
         str attr
-    for attr in ["kind", "name", "base", "type"]:
+    for attr in ["type", "kind", "name", "base"]:
+        # Checking type before kind matters for ArrowDtype cases
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
@@ -2385,11 +2396,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint try_float=False,
                           bint safe=False,
                           bint convert_numeric=True,  # NB: different default!
-                          bint convert_datetime=False,
-                          bint convert_timedelta=False,
-                          bint convert_period=False,
-                          bint convert_interval=False,
                           bint convert_to_nullable_dtype=False,
+                          bint convert_non_numeric=False,
                           object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2406,21 +2414,11 @@ def maybe_convert_objects(ndarray[object] objects,
         True, no upcasting will be performed.
     convert_numeric : bool, default True
         Whether to convert numeric entries.
-    convert_datetime : bool, default False
-        If an array-like object contains only datetime values or NaT is
-        encountered, whether to convert and return an array of M8[ns] dtype.
-    convert_timedelta : bool, default False
-        If an array-like object contains only timedelta values or NaT is
-        encountered, whether to convert and return an array of m8[ns] dtype.
-    convert_period : bool, default False
-        If an array-like object contains only (homogeneous-freq) Period values
-        or NaT, whether to convert and return a PeriodArray.
-    convert_interval : bool, default False
-        If an array-like object contains only Interval objects (with matching
-        dtypes and closedness) or NaN, whether to convert to IntervalArray.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
         encountered, whether to convert and return an Boolean/IntegerArray.
+    convert_non_numeric : bool, default False
+        Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
 
@@ -2443,12 +2441,11 @@ def maybe_convert_objects(ndarray[object] objects,
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
-        #  without both convert_datetime and convert_timedelta, so disallow
+        #  without both convert_non_numeric, so disallow
         #  it to avoid needing to handle it below.
-        if not convert_datetime or not convert_timedelta:
+        if not convert_non_numeric:
             raise ValueError(
-                "Cannot specify 'dtype_if_all_nat' without convert_datetime=True "
-                "and convert_timedelta=True"
+                "Cannot specify 'dtype_if_all_nat' without convert_non_numeric=True"
             )
 
     n = len(objects)
@@ -2473,7 +2470,7 @@ def maybe_convert_objects(ndarray[object] objects,
             mask[i] = True
         elif val is NaT:
             seen.nat_ = True
-            if not (convert_datetime or convert_timedelta or convert_period):
+            if not convert_non_numeric:
                 seen.object_ = True
                 break
         elif util.is_nan(val):
@@ -2491,7 +2488,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if not convert_numeric:
                 break
         elif is_timedelta(val):
-            if convert_timedelta:
+            if convert_non_numeric:
                 seen.timedelta_ = True
                 try:
                     convert_to_timedelta64(val, "ns")
@@ -2532,7 +2529,7 @@ def maybe_convert_objects(ndarray[object] objects,
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
-            if convert_datetime:
+            if convert_non_numeric:
                 if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
                     break
@@ -2548,7 +2545,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif is_period_object(val):
-            if convert_period:
+            if convert_non_numeric:
                 seen.period_ = True
                 break
             else:
@@ -2564,7 +2561,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
                 break
         elif is_interval(val):
-            if convert_interval:
+            if convert_non_numeric:
                 seen.interval_ = True
                 break
             else:
@@ -2615,7 +2612,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 return tdi._data._ndarray
         seen.object_ = True
 
-    if seen.period_:
+    elif seen.period_:
         if is_period_array(objects):
             from pandas import PeriodIndex
             pi = PeriodIndex(objects)
@@ -2624,7 +2621,7 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
-    if seen.interval_:
+    elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex
             ii = IntervalIndex(objects)
@@ -2634,7 +2631,7 @@ def maybe_convert_objects(ndarray[object] objects,
 
         seen.object_ = True
 
-    if seen.nat_:
+    elif seen.nat_:
         if not seen.object_ and not seen.numeric_ and not seen.bool_:
             # all NaT, None, or nan (at least one NaT)
             # see GH#49340 for discussion of desired behavior
@@ -2650,18 +2647,8 @@ def maybe_convert_objects(ndarray[object] objects,
             elif dtype is not None:
                 # EA, we don't expect to get here, but _could_ implement
                 raise NotImplementedError(dtype)
-            elif convert_datetime and convert_timedelta:
-                # we don't guess
-                seen.object_ = True
-            elif convert_datetime:
-                res = np.empty((<object>objects).shape, dtype="M8[ns]")
-                res[:] = NPY_NAT
-                return res
-            elif convert_timedelta:
-                res = np.empty((<object>objects).shape, dtype="m8[ns]")
-                res[:] = NPY_NAT
-                return res
             else:
+                # we don't guess
                 seen.object_ = True
         else:
             seen.object_ = True

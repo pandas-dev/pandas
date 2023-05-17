@@ -76,6 +76,8 @@ if TYPE_CHECKING:
         Self,
     )
 
+    from pandas import Index
+
 # -----------------------------------------------------------------------------
 # -- Helper functions
 
@@ -159,7 +161,9 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df.columns = columns
+        return df
     else:
         return DataFrame(columns=columns)
 
@@ -1259,7 +1263,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, col):
+    def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -1287,7 +1291,8 @@ class SQLTable(PandasObject):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
-                if col.dt.tz is not None:
+                # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
+                if col.dt.tz is not None:  # type: ignore[union-attr]
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex

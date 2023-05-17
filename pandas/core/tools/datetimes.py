@@ -56,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
@@ -599,8 +598,7 @@ def _adjust_to_origin(arg, origin, unit):
     else:
         # arg must be numeric
         if not (
-            (is_scalar(arg) and (is_integer(arg) or is_float(arg)))
-            or is_numeric_dtype(np.asarray(arg))
+            (is_integer(arg) or is_float(arg)) or is_numeric_dtype(np.asarray(arg))
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "

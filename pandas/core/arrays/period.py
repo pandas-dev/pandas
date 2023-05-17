@@ -55,7 +55,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
-    is_dtype_equal,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -484,6 +483,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "days_in_month",
         """
         The number of days in the month.
+
+        Examples
+        --------
+        >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period)
+        >>> s
+        0   2020-01
+        1   2020-02
+        2   2020-03
+        dtype: period[M]
+        >>> s.dt.days_in_month
+        0    31
+        1    29
+        2    31
+        dtype: int64
         """,
     )
     daysinmonth = days_in_month
@@ -650,7 +664,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self._dtype):
+        if dtype == self._dtype:
             if not copy:
                 return self
             else:

@@ -15,8 +15,6 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from dateutil.easter import easter
-from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
@@ -348,6 +346,8 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        from dateutil.relativedelta import relativedelta
+
         return relativedelta(**kwds_no_nanos), True
 
     raise ValueError(
@@ -1714,6 +1714,8 @@ cdef class BusinessHour(BusinessMixin):
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
@@ -2243,6 +2245,15 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BYearEnd
@@ -2291,12 +2302,28 @@ cdef class BYearBegin(YearOffset):
 
 cdef class YearEnd(YearOffset):
     """
-    DateOffset increments between calendar year ends.
+    DateOffset increments between calendar year end dates.
+
+    YearEnd goes to the next date which is the end of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.YearEnd()
+    Timestamp('2022-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> ts + pd.offsets.YearEnd()
+    Timestamp('2023-12-31 00:00:00')
+
+    If you want to get the end of the current year:
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> pd.offsets.YearEnd().rollback(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2316,9 +2343,9 @@ cdef class YearEnd(YearOffset):
 
 cdef class YearBegin(YearOffset):
     """
-    DateOffset of one year at beginning.
+    DateOffset increments between calendar year begin dates.
 
-    YearBegin goes to the next date which is a start of the year.
+    YearBegin goes to the next date which is the start of the year.
 
     See Also
     --------
@@ -3057,7 +3084,10 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     Parameters
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     week : int {0, 1, 2, 3, ...}, default 0
         A specific integer for the week of the month.
         e.g. 0 is 1st week of month, 1 is the 2nd week, etc.
@@ -3675,6 +3705,8 @@ cdef class Easter(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        from dateutil.easter import easter
+
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3705,6 +3737,9 @@ cdef class Easter(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
+
+        from dateutil.easter import easter
+
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
