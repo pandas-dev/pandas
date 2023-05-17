@@ -1004,7 +1004,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if com.is_bool_indexer(key):
             key = check_bool_indexer(self.index, key)
             key = np.asarray(key, dtype=bool)
-            return self._get_values(key)
+            return self._get_rows_with_mask(key)
 
         return self._get_with(key)
 
@@ -1060,8 +1060,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
-    def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
-        new_mgr = self._mgr.getitem_mgr(indexer)
+    def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
+        new_mgr = self._mgr.get_rows_with_mask(indexer)
         return self._constructor(new_mgr, fastpath=True).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
