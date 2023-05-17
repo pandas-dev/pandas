@@ -123,6 +123,10 @@ _factorizers = {
     np.object_: libhashtable.ObjectFactorizer,
 }
 
+# See https://github.com/pandas-dev/pandas/issues/52451
+if np.intc is not np.int32:
+    _factorizers[np.intc] = libhashtable.Int64Factorizer
+
 
 @Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
