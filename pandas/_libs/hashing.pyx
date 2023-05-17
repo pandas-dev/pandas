@@ -126,7 +126,7 @@ cdef uint64_t u8to64_le(uint8_t* p) nogil:
 
 
 cdef void _sipround(uint64_t* v0, uint64_t* v1,
-                    uint64_t* v2, uint64_t* v3) nogil:
+                    uint64_t* v2, uint64_t* v3) noexcept nogil:
     v0[0] += v1[0]
     v1[0] = _rotl(v1[0], 13)
     v1[0] ^= v0[0]
