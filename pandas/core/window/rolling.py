@@ -28,7 +28,10 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -1601,18 +1604,18 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
-        if quantile == 1.0:
+        if q == 1.0:
             window_func = window_aggregations.roll_max
-        elif quantile == 0.0:
+        elif q == 0.0:
             window_func = window_aggregations.roll_min
         else:
             window_func = partial(
                 window_aggregations.roll_quantile,
-                quantile=quantile,
+                quantile=q,
                 interpolation=interpolation,
             )
 
@@ -2384,6 +2387,9 @@ class Rolling(RollingAndExpandingMixin):
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
+
+            .. deprecated:: 2.1.0
+                This will be renamed to 'q' in a future version.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2424,14 +2430,15 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
         return super().quantile(
-            quantile=quantile,
+            q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )

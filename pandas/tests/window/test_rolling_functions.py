@@ -340,7 +340,7 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
         lambda x: x.rolling(window=10, min_periods=5).var(),
         lambda x: x.rolling(window=10, min_periods=5).skew(),
         lambda x: x.rolling(window=10, min_periods=5).kurt(),
-        lambda x: x.rolling(window=10, min_periods=5).quantile(quantile=0.5),
+        lambda x: x.rolling(window=10, min_periods=5).quantile(q=0.5),
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
