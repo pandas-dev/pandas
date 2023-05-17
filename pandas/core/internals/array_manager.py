@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -61,7 +62,6 @@ from pandas.core.arrays import (
     PandasArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -1275,7 +1275,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
 
-    def getitem_mgr(self, indexer) -> SingleArrayManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> SingleArrayManager:
         new_array = self.array[indexer]
         new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
