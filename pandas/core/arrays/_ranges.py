@@ -74,10 +74,10 @@ def generate_regular_range(
         e = b + (iend - b) // stride * stride + stride // 2 + 1
     elif istart is not None and periods is not None:
         b = istart
-        e = _generate_range_overflow_safe(b, periods, stride, side="start")
+        e = int(_generate_range_overflow_safe(b, periods, stride, side="start"))
     elif iend is not None and periods is not None:
         e = iend + stride
-        b = _generate_range_overflow_safe(e, periods, stride, side="end")
+        b = int(_generate_range_overflow_safe(e, periods, stride, side="end"))
     else:
         raise ValueError(
             "at least 'start' or 'end' should be specified if a 'period' is given."
