@@ -483,6 +483,21 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "days_in_month",
         """
         The number of days in the month.
+
+        Examples
+        --------
+        >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period)
+        >>> s
+        0   2020-01
+        1   2020-02
+        2   2020-03
+        dtype: period[M]
+        >>> s.dt.days_in_month
+        0    31
+        1    29
+        2    31
+        dtype: int64
         """,
     )
     daysinmonth = days_in_month
