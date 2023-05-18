@@ -172,16 +172,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Interval.closed \
-        pandas.Interval.left \
-        pandas.Interval.length \
-        pandas.Interval.right \
-        pandas.arrays.IntervalArray.left \
-        pandas.arrays.IntervalArray.right \
-        pandas.arrays.IntervalArray.closed \
-        pandas.arrays.IntervalArray.mid \
-        pandas.arrays.IntervalArray.length \
-        pandas.arrays.IntervalArray.is_non_overlapping_monotonic \
         pandas.arrays.IntervalArray.from_arrays \
         pandas.arrays.IntervalArray.to_tuples \
         pandas.Int8Dtype \
