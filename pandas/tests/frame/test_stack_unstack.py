@@ -1209,7 +1209,7 @@ class TestDataFrameReshape:
 def test_unstack_series_sort_false():
     # GH 15105
     index = MultiIndex.from_tuples(
-        [("one", "z", "b"), ("one", "y", "a"), ("two", "z", "b"), ("two", "y", "a")]
+        [("two", "z", "b"), ("two", "y", "a"), ("one", "z", "b"), ("one", "y", "a")]
     )
     ser = Series(np.arange(1.0, 5.0), index=index)
     result = ser.unstack(level=-1, sort=False)
@@ -1217,8 +1217,16 @@ def test_unstack_series_sort_false():
         [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
         columns=["b", "a"],
         index=MultiIndex.from_tuples(
-            [("one", "z"), ("one", "y"), ("two", "z"), ("two", "y")]
+            [("two", "z"), ("two", "y"), ("one", "z"), ("one", "y")]
         ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.unstack(level=[1, 2], sort=False)
+    expected = DataFrame(
+        [[1.0, 2.0], [3.0, 4.0]],
+        index=["two", "one"],
+        columns=MultiIndex.from_tuples([("z", "b"), ("y", "a")]),
     )
     tm.assert_frame_equal(result, expected)
 

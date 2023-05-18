@@ -206,7 +206,10 @@ class _Unstacker:
 
         self.group_index = comp_index
         self.mask = mask
-        self.compressor = comp_index.searchsorted(np.arange(ngroups))
+        if self.sort:
+            self.compressor = comp_index.searchsorted(np.arange(ngroups))
+        else:
+            self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
 
     @cache_readonly
     def mask_all(self) -> bool:
@@ -370,12 +373,7 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex:
         # Does not depend on values or value_columns
-        if self.sort:
-            result_codes = [
-                lab.take(self.compressor) for lab in self.sorted_labels[:-1]
-            ]
-        else:
-            result_codes = self.sorted_labels[:-1]
+        result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
