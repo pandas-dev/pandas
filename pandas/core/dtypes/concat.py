@@ -127,7 +127,7 @@ def concat_compat(
 
 def _get_result_dtype(
     to_concat: Sequence[ArrayLike], non_empties: Sequence[ArrayLike]
-) -> tuple[bool, set[str], DtypeObj]:
+) -> tuple[bool, set[str], DtypeObj | None]:
     target_dtype = None
 
     dtypes = {obj.dtype for obj in to_concat}
