@@ -32,7 +32,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_re,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -41,7 +44,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -1300,8 +1302,6 @@ class StringMethods(NoNewAttributesMixin):
         """
         Determine if each string entirely matches a regular expression.
 
-        .. versionadded:: 1.1.0
-
         Parameters
         ----------
         pat : str
@@ -1393,7 +1393,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        When `pat` is a string and `regex` is True (the default), the given `pat`
+        When `pat` is a string and `regex` is True, the given `pat`
         is compiled as a regex. When `repl` is a string, it replaces matching
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
         left as is:

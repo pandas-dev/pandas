@@ -211,7 +211,7 @@ class ExtensionDtype:
         """
         raise AbstractMethodError(cls)
 
-    def empty(self, shape: Shape) -> type_t[ExtensionArray]:
+    def empty(self, shape: Shape) -> ExtensionArray:
         """
         Construct an ExtensionArray of this dtype with the given shape.
 

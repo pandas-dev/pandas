@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Literal,
     Sequence,
     cast,
     final,
@@ -35,6 +36,7 @@ from pandas._typing import (
     FillnaOptions,
     IgnoreRaise,
     QuantileInterpolation,
+    Self,
     Shape,
     npt,
 )
@@ -56,7 +58,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_list_like,
     is_string_dtype,
 )
@@ -66,6 +67,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -104,7 +106,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -259,36 +260,41 @@ class Block(PandasObject):
         return len(self.values)
 
     @final
-    def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
+    def slice_block_columns(self, slc: slice) -> Self:
+        """
+        Perform __getitem__-like, return result as block.
+        """
+        new_mgr_locs = self._mgr_locs[slc]
+
+        new_values = self._slice(slc)
+        refs = self.refs
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+
+    @final
+    def take_block_columns(self, indices: npt.NDArray[np.intp]) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
-        # Note: the only place where we are called with ndarray[intp]
-        #  is from internals.concat, and we can verify that never happens
-        #  with 1-column blocks, i.e. never for ExtensionBlock.
+        # Note: only called from is from internals.concat, and we can verify
+        #  that never happens with 1-column blocks, i.e. never for ExtensionBlock.
 
-        new_mgr_locs = self._mgr_locs[slicer]
+        new_mgr_locs = self._mgr_locs[indices]
 
-        new_values = self._slice(slicer)
-        refs = self.refs if isinstance(slicer, slice) else None
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+        new_values = self._slice(indices)
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=None)
 
     @final
     def getitem_block_columns(
         self, slicer: slice, new_mgr_locs: BlockPlacement
-    ) -> Block:
+    ) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-
-        if new_values.ndim != self.values.ndim:
-            raise ValueError("Only same dim slicing is allowed")
-
         return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
 
     @final
@@ -310,11 +316,7 @@ class Block(PandasObject):
         -------
         bool
         """
-        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
-        try:
-            return value.dtype == self.dtype
-        except TypeError:
-            return False
+        return value.dtype == self.dtype
 
     # ---------------------------------------------------------------------
     # Apply/Reduce and Helpers
@@ -959,7 +961,7 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             new_mgr_locs = self._mgr_locs
 
-        if not is_dtype_equal(new_values.dtype, self.dtype):
+        if new_values.dtype != self.dtype:
             return self.make_block(new_values, new_mgr_locs)
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
@@ -1063,7 +1065,9 @@ class Block(PandasObject):
                 self = self.make_block_same_class(
                     values.T if values.ndim == 2 else values
                 )
-
+            if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
+                # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                casted = casted[0, ...]
             values[indexer] = casted
         return self
 
@@ -1326,7 +1330,7 @@ class Block(PandasObject):
         limit_direction: str = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
-        downcast: str | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
@@ -1539,7 +1543,7 @@ class Block(PandasObject):
             else:
                 # No overload variant of "__getitem__" of "ExtensionArray" matches
                 # argument type "Tuple[slice, slice]"
-                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa: E501
                 locs = mgr_locs_arr[previous_loc + 1 : idx]
                 nb = type(self)(
                     values, placement=BlockPlacement(locs), ndim=self.ndim, refs=refs
@@ -1999,7 +2003,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         -------
         ExtensionArray
         """
-        # Notes: ndarray[bool] is only reachable when via getitem_mgr, which
+        # Notes: ndarray[bool] is only reachable when via get_rows_with_mask, which
         #  is only for Series, i.e. self.ndim == 1.
 
         # return same dims as we currently have
@@ -2025,7 +2029,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         return self.values[slicer]
 
     @final
-    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+    def slice_block_rows(self, slicer: slice) -> Self:
         """
         Perform __getitem__-like specialized to slicing along index.
         """
@@ -2283,10 +2287,7 @@ class ObjectBlock(NumpyBlock):
 
         res_values = lib.maybe_convert_objects(
             values,
-            convert_datetime=True,
-            convert_timedelta=True,
-            convert_period=True,
-            convert_interval=True,
+            convert_non_numeric=True,
         )
         refs = None
         if copy and res_values is values:

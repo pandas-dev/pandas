@@ -1026,7 +1026,7 @@ cdef class _Timestamp(ABCTimestamp):
             base1, base2 = base, ""
 
         if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
-            if self.microsecond:
+            if self.microsecond or timespec == "nanoseconds":
                 base1 += f"{self.nanosecond:03d}"
             else:
                 base1 += f".{self.nanosecond:09d}"
@@ -1301,8 +1301,6 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
-
-        .. versionadded:: 1.1.0
 
     Notes
     -----

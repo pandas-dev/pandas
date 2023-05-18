@@ -887,20 +887,20 @@ def test_none_comparison(request, series_with_simple_index):
     series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
-    result = series == None  # noqa:E711
+    result = series == None  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
     # noinspection PyComparisonWithNone
-    result = series != None  # noqa:E711
+    result = series != None  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 
-    result = None == series  # noqa:E711
+    result = None == series  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
-    result = None != series  # noqa:E711
+    result = None != series  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 

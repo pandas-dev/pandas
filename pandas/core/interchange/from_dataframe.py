@@ -79,7 +79,9 @@ def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
         raise RuntimeError(
             "To join chunks a copy is required which is forbidden by allow_copy=False"
         )
-    if len(pandas_dfs) == 1:
+    if not pandas_dfs:
+        pandas_df = protocol_df_chunk_to_pandas(df)
+    elif len(pandas_dfs) == 1:
         pandas_df = pandas_dfs[0]
     else:
         pandas_df = pd.concat(pandas_dfs, axis=0, ignore_index=True, copy=False)
@@ -202,7 +204,10 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
 
     # Doing module in order to not get ``IndexError`` for
     # out-of-bounds sentinel values in `codes`
-    values = categories[codes % len(categories)]
+    if len(categories) > 0:
+        values = categories[codes % len(categories)]
+    else:
+        values = codes
 
     cat = pd.Categorical(
         values, categories=categories, ordered=categorical["is_ordered"]
