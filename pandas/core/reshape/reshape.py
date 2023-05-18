@@ -28,6 +28,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
+from pandas.core.algorithms import unique
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -101,8 +102,11 @@ class _Unstacker:
     unstacked : DataFrame
     """
 
-    def __init__(self, index: MultiIndex, level: Level, constructor) -> None:
+    def __init__(
+        self, index: MultiIndex, level: Level, constructor, sort: bool = True
+    ) -> None:
         self.constructor = constructor
+        self.sort = sort
 
         self.index = index.remove_unused_levels()
 
@@ -118,11 +122,15 @@ class _Unstacker:
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
+        if not self.sort:
+            unique_codes = unique(self.index.codes[self.level])
+            self.removed_level = self.removed_level.take(unique_codes)
+            self.removed_level_full = self.removed_level.take(unique_codes)
 
         # Bug fix GH 20601
         # If the data frame is too big, the number of unique index combination
         # will cause int32 overflow on windows environments.
-        # We want to check and raise an error before this happens
+        # We want to check and raise an warning before this happens
         num_rows = np.max([index_level.size for index_level in self.new_index_levels])
         num_columns = self.removed_level.size
 
@@ -163,13 +171,17 @@ class _Unstacker:
     @cache_readonly
     def sorted_labels(self) -> list[np.ndarray]:
         indexer, to_sort = self._indexer_and_to_sort
-        return [line.take(indexer) for line in to_sort]
+        if self.sort:
+            return [line.take(indexer) for line in to_sort]
+        return to_sort
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
-        indexer, _ = self._indexer_and_to_sort
+        if self.sort:
+            indexer, _ = self._indexer_and_to_sort
 
-        sorted_values = algos.take_nd(values, indexer, axis=0)
-        return sorted_values
+            sorted_values = algos.take_nd(values, indexer, axis=0)
+            return sorted_values
+        return values
 
     def _make_selectors(self):
         new_levels = self.new_index_levels
@@ -358,7 +370,12 @@ class _Unstacker:
     @cache_readonly
     def new_index(self) -> MultiIndex:
         # Does not depend on values or value_columns
-        result_codes = [lab.take(self.compressor) for lab in self.sorted_labels[:-1]]
+        if self.sort:
+            result_codes = [
+                lab.take(self.compressor) for lab in self.sorted_labels[:-1]
+            ]
+        else:
+            result_codes = self.sorted_labels[:-1]
 
         # construct the new index
         if len(self.new_index_levels) == 1:
@@ -375,7 +392,9 @@ class _Unstacker:
         )
 
 
-def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
+def _unstack_multiple(
+    data: Series | DataFrame, clocs, fill_value=None, sort: bool = True
+):
     if len(clocs) == 0:
         return data
 
@@ -420,7 +439,7 @@ def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
         dummy = data.copy()
         dummy.index = dummy_index
 
-        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
         new_levels = clevels
         new_names = cnames
         new_codes = recons_codes
@@ -429,7 +448,7 @@ def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
             result = data
             while clocs:
                 val = clocs.pop(0)
-                result = result.unstack(val, fill_value=fill_value)
+                result = result.unstack(val, fill_value=fill_value, sort=sort)
                 clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
@@ -438,7 +457,9 @@ def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
         dummy_df = data.copy(deep=False)
         dummy_df.index = dummy_index
 
-        unstacked = dummy_df.unstack("__placeholder__", fill_value=fill_value)
+        unstacked = dummy_df.unstack(
+            "__placeholder__", fill_value=fill_value, sort=sort
+        )
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -463,12 +484,12 @@ def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
     return unstacked
 
 
-def unstack(obj: Series | DataFrame, level, fill_value=None):
+def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            return _unstack_multiple(obj, level, fill_value=fill_value)
+            return _unstack_multiple(obj, level, fill_value=fill_value, sort=sort)
         else:
             level = level[0]
 
@@ -478,9 +499,9 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level, fill_value=fill_value)
+            return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(dropna=False)
+            return obj.T.stack(dropna=False, sort=sort)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose
@@ -490,9 +511,9 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
         )
     else:
         if is_1d_only_ea_dtype(obj.dtype):
-            return _unstack_extension_series(obj, level, fill_value)
+            return _unstack_extension_series(obj, level, fill_value, sort=sort)
         unstacker = _Unstacker(
-            obj.index, level=level, constructor=obj._constructor_expanddim
+            obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
         )
         return unstacker.get_result(
             obj._values, value_columns=None, fill_value=fill_value

@@ -1206,6 +1206,23 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_series_sort_false():
+    # GH 15105
+    index = MultiIndex.from_tuples(
+        [("one", "z", "b"), ("one", "y", "a"), ("two", "z", "b"), ("two", "y", "a")]
+    )
+    ser = Series(np.arange(1.0, 5.0), index=index)
+    result = ser.unstack(level=-1, sort=False)
+    expected = DataFrame(
+        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        columns=["b", "a"],
+        index=MultiIndex.from_tuples(
+            [("one", "z"), ("one", "y"), ("two", "z"), ("two", "y")]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = Series(["a", "b", "c", "a"], dtype="object")
