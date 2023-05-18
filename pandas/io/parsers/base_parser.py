@@ -61,8 +61,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import (
     ArrowDtype,
+    DataFrame,
     DatetimeIndex,
     StringDtype,
+    concat,
 )
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -91,8 +93,6 @@ if TYPE_CHECKING:
         DtypeObj,
         Scalar,
     )
-
-    from pandas import DataFrame
 
 
 class ParserBase:
@@ -1307,7 +1307,10 @@ def _process_date_conversion(
             new_cols.append(new_name)
             date_cols.update(old_names)
 
-    data_dict.update(new_data)
+    if isinstance(data_dict, DataFrame):
+        data_dict = concat([DataFrame(new_data), data_dict], axis=1, copy=False)
+    else:
+        data_dict.update(new_data)
     new_cols.extend(columns)
 
     if not keep_date_col:
