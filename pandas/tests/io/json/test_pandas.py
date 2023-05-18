@@ -1398,6 +1398,16 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             read_json(dfjson, orient="table", dtype=dtype)
 
+    @pytest.mark.parametrize("orient", ["index", "columns", "records", "values"])
+    def test_read_json_table_empty_axes_dtype(self, orient):
+        # GH28558
+
+        expected = DataFrame()
+        result = read_json("{}", orient=orient, convert_axes=True)
+
+        tm.assert_index_equal(result.index, expected.index)
+        tm.assert_index_equal(result.columns, expected.columns)
+
     def test_read_json_table_convert_axes_raises(self):
         # GH25433 GH25435
         df = DataFrame([[1, 2], [3, 4]], index=[1.0, 2.0], columns=["1.", "2."])
