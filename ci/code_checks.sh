@@ -81,24 +81,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.bfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.argsort \
-        pandas.Series.reorder_levels \
-        pandas.Series.ravel \
-        pandas.Series.first_valid_index \
-        pandas.Series.last_valid_index \
-        pandas.Series.dt.date \
-        pandas.Series.dt.time \
-        pandas.Series.dt.timetz \
-        pandas.Series.dt.dayofyear \
-        pandas.Series.dt.day_of_year \
-        pandas.Series.dt.quarter \
-        pandas.Series.dt.daysinmonth \
-        pandas.Series.dt.days_in_month \
-        pandas.Series.dt.tz \
-        pandas.Series.dt.end_time \
         pandas.Series.dt.days \
         pandas.Series.dt.seconds \
         pandas.Series.dt.microseconds \
@@ -185,12 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.to_numpy \
         pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
-        pandas.Period.end_time \
-        pandas.Period.freqstr \
-        pandas.Period.is_leap_year \
-        pandas.Period.month \
-        pandas.Period.quarter \
-        pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
@@ -314,7 +292,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Index.dropna \
         pandas.Index.astype \
         pandas.Index.map \
-        pandas.Index.ravel \
         pandas.Index.to_list \
         pandas.Index.append \
         pandas.Index.join \
@@ -424,7 +401,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.get_group \
         pandas.core.groupby.DataFrameGroupBy.all \
         pandas.core.groupby.DataFrameGroupBy.any \
-        pandas.core.groupby.DataFrameGroupBy.bfill \
         pandas.core.groupby.DataFrameGroupBy.count \
         pandas.core.groupby.DataFrameGroupBy.cummax \
         pandas.core.groupby.DataFrameGroupBy.cummin \
@@ -447,7 +423,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.var \
         pandas.core.groupby.SeriesGroupBy.all \
         pandas.core.groupby.SeriesGroupBy.any \
-        pandas.core.groupby.SeriesGroupBy.bfill \
         pandas.core.groupby.SeriesGroupBy.count \
         pandas.core.groupby.SeriesGroupBy.cummax \
         pandas.core.groupby.SeriesGroupBy.cummin \
@@ -517,15 +492,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.columns \
-        pandas.DataFrame.iterrows \
-        pandas.DataFrame.pipe \
         pandas.DataFrame.backfill \
-        pandas.DataFrame.bfill \
         pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
-        pandas.DataFrame.first_valid_index \
-        pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
