@@ -770,6 +770,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.ravel : Return a flattened array.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.ravel()
+        array([1, 2, 3])
         """
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
@@ -998,7 +1004,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if com.is_bool_indexer(key):
             key = check_bool_indexer(self.index, key)
             key = np.asarray(key, dtype=bool)
-            return self._get_values(key)
+            return self._get_rows_with_mask(key)
 
         return self._get_with(key)
 
@@ -1054,8 +1060,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
-    def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
-        new_mgr = self._mgr.getitem_mgr(indexer)
+    def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
+        new_mgr = self._mgr.get_rows_with_mask(indexer)
         return self._constructor(new_mgr, fastpath=True).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
@@ -4135,6 +4141,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         type of caller (new object)
+
+        Examples
+        --------
+        >>> arrays = [np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
+        ...           np.array(["white", "black", "white", "black", "white", "black"])]
+        >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=arrays)
+        >>> s
+        dog   white    1
+              black    2
+        cat   white    3
+              black    3
+        bird  white    5
+              black    2
+        dtype: int64
+        >>> s.reorder_levels([1, 0])
+        white  dog     1
+        black  dog     2
+        white  cat     3
+        black  cat     3
+        white  bird    5
+        black  bird    2
+        dtype: int64
         """
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
