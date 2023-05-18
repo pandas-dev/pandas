@@ -1136,6 +1136,7 @@ class TestExcelWriter:
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
                 path,
+                engine=engine,
                 engine_kwargs={"foo": "bar"},
             )
 
