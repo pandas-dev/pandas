@@ -162,10 +162,7 @@ def _get_result_dtype(
         # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
         target_dtype = np.find_common_type(list(dtypes), [])  # type: ignore[arg-type]
 
-    # error: Incompatible return value type (got "Tuple[bool, Set[Union[str, Any]],
-    # Union[dtype[Any], ExtensionDtype, None]]", expected "Tuple[bool,
-    # Set[str], Union[dtype[Any], ExtensionDtype]]")
-    return any_ea, kinds, target_dtype  # type: ignore[return-value]
+    return any_ea, kinds, target_dtype
 
 
 def union_categoricals(
