@@ -2355,7 +2355,7 @@ cdef class YearEnd(YearOffset):
     If you want to get the end of the current year:
 
     >>> ts = pd.Timestamp(2022, 12, 31)
-    >>> pd.offsets.YearEnd().rollback(ts)
+    >>> pd.offsets.YearEnd().rollforward(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
