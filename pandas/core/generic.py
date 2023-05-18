@@ -6209,6 +6209,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (is_float(value) and np.isnan(value)) or value is lib.no_default:
                 return True
 
+            # Deprecate raising introduced in GH#7657, as the original
+            #  inconsistency no longer appears to exist.
+            # TODO(3.0): once this is enforced, is_numeric_mixed_type can
+            #  be removed.
+            warnings.warn(
+                "DataFrame.__setitem__ with a boolean mask and "
+                "DataFrame.putmask with mixed non-numeric "
+                "dtypes and a value other than NaN behavior is deprecated. In a "
+                "future version this will be allowed.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
             raise TypeError(
                 "Cannot do inplace boolean setting on "
                 "mixed-types with a non np.nan value"
