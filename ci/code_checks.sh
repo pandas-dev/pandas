@@ -300,9 +300,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered \
         pandas.CategoricalIndex.as_unordered \
         pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.closed \
         pandas.IntervalIndex.values \
-        pandas.IntervalIndex.is_non_overlapping_monotonic \
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
