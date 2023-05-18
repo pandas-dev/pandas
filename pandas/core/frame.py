@@ -10959,7 +10959,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
@@ -10973,7 +10973,7 @@ class DataFrame(NDFrame, OpsMixin):
     def all(
         self,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
