@@ -1222,39 +1222,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def _insert_inaxis_grouper(
-        self, result: Series | DataFrame, finalize: bool = False
-    ) -> DataFrame:
+    def _insert_inaxis_grouper(self, result: Series | DataFrame) -> DataFrame:
         if isinstance(result, Series):
             result = result.to_frame()
-
-        # GH #52849: when called with finalize=True, this means we are dealing
-        # with as_index=False after the result has been set. For categorical data,
-        # the result would have already included unused categories, so calling
-        # get_group_levels is not feasible.
-        group_levels: Sequence[ExtensionArray | np.ndarray]
-        if (
-            finalize
-            and not self.observed
-            and len(self.grouper.groupings) != 1
-            and any(
-                isinstance(ping.grouping_vector, (Categorical, CategoricalIndex))
-                for ping in self.grouper.groupings
-            )
-        ):
-            from pandas.core.reshape.util import cartesian_product
-
-            group_levels = cartesian_product(
-                [ping.group_index for ping in self.grouper.groupings]
-            )
-        else:
-            group_levels = self.grouper.get_group_levels()
 
         # zip in reverse so we can always insert at loc 0
         columns = result.columns
         for name, lev, in_axis in zip(
             reversed(self.grouper.names),
-            reversed(group_levels),
+            reversed(self.grouper.get_group_levels()),
             reversed([grp.in_axis for grp in self.grouper.groupings]),
         ):
             # GH #28549
