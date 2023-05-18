@@ -1664,8 +1664,25 @@ cdef class PeriodMixin:
 
         Examples
         --------
+        For Period:
+
         >>> pd.Period('2020-01', 'D').end_time
         Timestamp('2020-01-01 23:59:59.999999999')
+
+        For Series:
+
+        >>> period_index = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period_index)
+        >>> s
+        0   2020-01
+        1   2020-02
+        2   2020-03
+        dtype: period[M]
+        >>> s.dt.end_time
+        0   2020-01-31 23:59:59.999999999
+        1   2020-02-29 23:59:59.999999999
+        2   2020-03-31 23:59:59.999999999
+        dtype: datetime64[ns]
         """
         return self.to_timestamp(how="end")
 
@@ -1967,6 +1984,12 @@ cdef class _Period(PeriodMixin):
     def year(self) -> int:
         """
         Return the year this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.year
+        2022
         """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
@@ -1975,6 +1998,12 @@ cdef class _Period(PeriodMixin):
     def month(self) -> int:
         """
         Return the month this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.month
+        1
         """
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
@@ -2284,6 +2313,12 @@ cdef class _Period(PeriodMixin):
     def quarter(self) -> int:
         """
         Return the quarter this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-04', 'M')
+        >>> period.quarter
+        2
         """
         base = self._dtype._dtype_code
         return pquarter(self.ordinal, base)
@@ -2392,6 +2427,16 @@ cdef class _Period(PeriodMixin):
     def is_leap_year(self) -> bool:
         """
         Return True if the period's year is in a leap year.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.is_leap_year
+        False
+
+        >>> period = pd.Period('2020-01', 'M')
+        >>> period.is_leap_year
+        True
         """
         return bool(is_leapyear(self.year))
 
@@ -2411,6 +2456,11 @@ cdef class _Period(PeriodMixin):
     def freqstr(self) -> str:
         """
         Return a string representation of the frequency.
+
+        Examples
+        --------
+        >>> pd.Period('2020-01', 'D').freqstr
+        'D'
         """
         return self._dtype._freqstr
 

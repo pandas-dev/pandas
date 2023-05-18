@@ -123,6 +123,10 @@ _factorizers = {
     np.object_: libhashtable.ObjectFactorizer,
 }
 
+# See https://github.com/pandas-dev/pandas/issues/52451
+if np.intc is not np.int32:
+    _factorizers[np.intc] = libhashtable.Int64Factorizer
+
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
@@ -994,6 +998,14 @@ class _MergeOperation:
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
+                    if (
+                        lvals.dtype.kind == "M"
+                        and rvals.dtype.kind == "M"
+                        and result_dtype.kind == "O"
+                    ):
+                        # TODO(non-nano) Workaround for common_type not dealing
+                        # with different resolutions
+                        result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):
                     result[name] = result._constructor_sliced(
@@ -1623,7 +1635,7 @@ def get_join_indexers(
     """
     assert len(left_keys) == len(
         right_keys
-    ), "left_key and right_keys must be the same length"
+    ), "left_keys and right_keys must be the same length"
 
     # fast-path for empty left/right
     left_n = len(left_keys[0])
@@ -1960,7 +1972,7 @@ class _AsOfMerge(_OrderedMerge):
                 self.right_by = [self.right_by]
 
             if len(self.left_by) != len(self.right_by):
-                raise MergeError("left_by and right_by must be same length")
+                raise MergeError("left_by and right_by must be the same length")
 
             left_on = self.left_by + list(left_on)
             right_on = self.right_by + list(right_on)

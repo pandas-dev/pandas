@@ -154,7 +154,7 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC")
+        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
 
         expected = DataFrame(
             [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
@@ -234,7 +234,7 @@ class TestDataFrameSetItem:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )

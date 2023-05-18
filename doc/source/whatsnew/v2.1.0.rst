@@ -219,6 +219,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
+- Deprecated 'quantile' keyword in :meth:`Rolling.quantile` and :meth:`Expanding.quantile`, renamed as 'q' instead (:issue:`52550`)
 - Deprecated :meth:`.DataFrameGroupBy.apply` and methods on the objects returned by :meth:`.DataFrameGroupBy.resample` operating on the grouping column(s); select the columns to operate on after groupby to either explicitly include or exclude the groupings and avoid the ``FutureWarning`` (:issue:`7155`)
 - Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
 - Deprecated :meth:`Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)
@@ -316,6 +317,7 @@ Datetimelike
 - Bug in :func:`date_range` when ``freq`` was a :class:`DateOffset` with ``nanoseconds`` (:issue:`46877`)
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+- Bug in constructing a :class:`Series` or :class:`DataFrame` from a datetime or timedelta scalar always inferring nanosecond resolution instead of inferring from the input (:issue:`52212`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
 -
 
