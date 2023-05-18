@@ -96,20 +96,20 @@ class TestGetItem:
             assert result.freq == "D"
 
     def test_getitem_index(self):
-        idx = period_range("2007-01", periods=10, freq="ME", name="x")
+        idx = period_range("2007-01", periods=10, freq="M", name="x")
 
         result = idx[[1, 3, 5]]
-        exp = PeriodIndex(["2007-02", "2007-04", "2007-06"], freq="ME", name="x")
+        exp = PeriodIndex(["2007-02", "2007-04", "2007-06"], freq="M", name="x")
         tm.assert_index_equal(result, exp)
 
         result = idx[[True, True, False, False, False, True, True, False, False, False]]
         exp = PeriodIndex(
-            ["2007-01", "2007-02", "2007-06", "2007-07"], freq="ME", name="x"
+            ["2007-01", "2007-02", "2007-06", "2007-07"], freq="M", name="x"
         )
         tm.assert_index_equal(result, exp)
 
     def test_getitem_partial(self):
-        rng = period_range("2007-01", periods=50, freq="ME")
+        rng = period_range("2007-01", periods=50, freq="M")
         ts = Series(np.random.randn(len(rng)), rng)
 
         with pytest.raises(KeyError, match=r"^'2006'$"):
@@ -153,15 +153,15 @@ class TestGetItem:
         tm.assert_series_equal(rs, ts)
 
     def test_getitem_nat(self):
-        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="ME")
-        assert idx[0] == Period("2011-01", freq="ME")
+        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
+        assert idx[0] == Period("2011-01", freq="M")
         assert idx[1] is NaT
 
         s = Series([0, 1, 2], index=idx)
         assert s[NaT] == 1
 
         s = Series(idx, index=idx)
-        assert s[Period("2011-01", freq="ME")] == Period("2011-01", freq="ME")
+        assert s[Period("2011-01", freq="M")] == Period("2011-01", freq="M")
         assert s[NaT] is NaT
 
     def test_getitem_list_periods(self):
@@ -250,7 +250,7 @@ class TestGetLoc:
 
     def test_get_loc_nat(self):
         didx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-03"])
-        pidx = PeriodIndex(["2011-01-01", "NaT", "2011-01-03"], freq="ME")
+        pidx = PeriodIndex(["2011-01-01", "NaT", "2011-01-03"], freq="M")
 
         # check DatetimeIndex compat
         for idx in [didx, pidx]:
@@ -770,21 +770,21 @@ class TestContains:
         assert p3 not in idx0
 
     def test_contains_freq_mismatch(self):
-        rng = period_range("2007-01", freq="ME", periods=10)
+        rng = period_range("2007-01", freq="M", periods=10)
 
-        assert Period("2007-01", freq="ME") in rng
+        assert Period("2007-01", freq="M") in rng
         assert Period("2007-01", freq="D") not in rng
-        assert Period("2007-01", freq="2ME") not in rng
+        assert Period("2007-01", freq="2M") not in rng
 
     def test_contains_nat(self):
         # see gh-13582
-        idx = period_range("2007-01", freq="ME", periods=10)
+        idx = period_range("2007-01", freq="M", periods=10)
         assert NaT not in idx
         assert None not in idx
         assert float("nan") not in idx
         assert np.nan not in idx
 
-        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="ME")
+        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
         assert NaT in idx
         assert None in idx
         assert float("nan") in idx

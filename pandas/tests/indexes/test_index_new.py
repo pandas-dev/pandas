@@ -107,7 +107,7 @@ class TestIndexConstructorInference:
         assert not isinstance(result, CategoricalIndex)
 
     def test_constructor_infer_periodindex(self):
-        xp = period_range("2012-1-1", freq="ME", periods=3)
+        xp = period_range("2012-1-1", freq="M", periods=3)
         rs = Index(xp)
         tm.assert_index_equal(rs, xp)
         assert isinstance(rs, PeriodIndex)

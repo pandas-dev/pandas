@@ -2281,6 +2281,8 @@ class TestPartialStringSlicing:
         ser = pi.to_series()
         result = ser.loc[:"2017-12"]
         expected = ser.iloc[:-1]
+        print("EEEEEEE = ", expected)
+        print("RRRRRRR = ", result)
 
         tm.assert_series_equal(result, expected)
 

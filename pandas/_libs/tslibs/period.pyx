@@ -1537,7 +1537,8 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
-    freqstr = OFFSET_TO_PERIOD_FREQSTR.get(freqstr, freqstr)
+    for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+        freqstr = freqstr.replace(key, value)
 
     for i in range(n):
         # Analogous to: p = values[i]

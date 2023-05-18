@@ -44,13 +44,13 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(series, Series)
 
     def test_view_asi8(self):
-        idx = PeriodIndex([], freq="ME")
+        idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.view("i8"), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
-        idx = PeriodIndex(["2011-01", NaT], freq="ME")
+        idx = PeriodIndex(["2011-01", NaT], freq="M")
 
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.view("i8"), exp)
@@ -62,7 +62,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_values(self):
-        idx = PeriodIndex([], freq="ME")
+        idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
@@ -71,9 +71,9 @@ class TestPeriodIndex(DatetimeLike):
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
-        idx = PeriodIndex(["2011-01", NaT], freq="ME")
+        idx = PeriodIndex(["2011-01", NaT], freq="M")
 
-        exp = np.array([Period("2011-01", freq="ME"), NaT], dtype=object)
+        exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
@@ -94,7 +94,7 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 4 * 9
 
-        pi = period_range(freq="ME", start="1/1/2001", end="12/1/2009")
+        pi = period_range(freq="M", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 12 * 9
 
         start = Period("02-Apr-2005", "B")
@@ -157,7 +157,7 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2002")
         self._check_all_fields(pi)
 
-        pi = period_range(freq="ME", start="1/1/2001", end="1/1/2002")
+        pi = period_range(freq="M", start="1/1/2001", end="1/1/2002")
         self._check_all_fields(pi)
 
         pi = period_range(freq="D", start="12/1/2001", end="6/1/2001")
@@ -229,7 +229,7 @@ class TestPeriodIndex(DatetimeLike):
         index.name = "Apple"
         assert ind2.is_(index)
         assert not index.is_(index[:])
-        assert not index.is_(index.asfreq("ME"))
+        assert not index.is_(index.asfreq("M"))
         assert not index.is_(index.asfreq("A"))
 
         assert not index.is_(index - 2)
@@ -266,18 +266,18 @@ class TestPeriodIndex(DatetimeLike):
     def test_pindex_multiples(self):
         expected = PeriodIndex(
             ["2011-01", "2011-03", "2011-05", "2011-07", "2011-09", "2011-11"],
-            freq="2ME",
+            freq="2M",
         )
 
-        pi = period_range(start="1/1/11", end="12/31/11", freq="2ME")
+        pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2ME"
+        assert pi.freqstr == "2M"
 
-        pi = period_range(start="1/1/11", periods=6, freq="2ME")
+        pi = period_range(start="1/1/11", periods=6, freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2ME"
+        assert pi.freqstr == "2M"
 
     def test_iteration(self):
         index = period_range(start="1/1/10", periods=4, freq="B")

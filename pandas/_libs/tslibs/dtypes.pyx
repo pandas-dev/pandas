@@ -14,7 +14,7 @@ import_pandas_datetime()
 # Constants
 
 OFFSET_TO_PERIOD_FREQSTR = {
-    'ME': 'M',
+    "ME": "M",
 }
 
 

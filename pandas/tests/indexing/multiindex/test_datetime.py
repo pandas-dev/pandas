@@ -18,7 +18,7 @@ def test_multiindex_period_datetime():
     # GH4861, using datetime in period of multiindex raises exception
 
     idx1 = Index(["a", "a", "a", "b", "b"])
-    idx2 = period_range("2012-01", periods=len(idx1), freq="ME")
+    idx2 = period_range("2012-01", periods=len(idx1), freq="M")
     s = Series(np.random.randn(len(idx1)), [idx1, idx2])
 
     # try Period as index
