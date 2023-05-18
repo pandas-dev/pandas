@@ -614,7 +614,7 @@ class TestRangeIndex(NumericBase):
         pytest.skip("casting of strings not relevant for RangeIndex")
 
     def test_range_index_rsub_by_const(self):
-        # GH #53255
+        # GH#53255
         result = 3 - RangeIndex(0, 4, 1)
         expected = RangeIndex(3, -1, -1)
         tm.assert_index_equal(result, expected)
