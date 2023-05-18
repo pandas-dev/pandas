@@ -62,7 +62,7 @@ def test_group_shift_with_fill_value():
 
 def test_group_shift_lose_timezone():
     # GH 30134
-    now_dt = Timestamp.utcnow()
+    now_dt = Timestamp.utcnow().as_unit("ns")
     df = DataFrame({"a": [1, 1], "date": now_dt})
     result = df.groupby("a").shift(0).iloc[0]
     expected = Series({"date": now_dt}, name=result.name)

@@ -746,7 +746,12 @@ def test_date_parser_int_bug(all_parsers):
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
-    df = DataFrame({"A": np.arange(10, dtype="float64"), "B": Timestamp("20010101")})
+    df = DataFrame(
+        {
+            "A": np.arange(10, dtype="float64"),
+            "B": Timestamp("20010101").as_unit("ns"),
+        }
+    )
     df.iloc[3:6, :] = np.nan
 
     with tm.ensure_clean("__nat_parse_.csv") as path:
@@ -1902,7 +1907,9 @@ def test_date_parser_multiindex_columns(all_parsers):
 1,2
 2019-12-31,6"""
     result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
-    expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
+    expected = DataFrame(
+        {("a", "1"): Timestamp("2019-12-31").as_unit("ns"), ("b", "2"): [6]}
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -1924,7 +1931,9 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
         parse_dates=parse_spec,
         header=[0, 1],
     )
-    expected = DataFrame({col_name: Timestamp("2019-12-31"), ("c", "3"): [6]})
+    expected = DataFrame(
+        {col_name: Timestamp("2019-12-31").as_unit("ns"), ("c", "3"): [6]}
+    )
     tm.assert_frame_equal(result, expected)
 
 

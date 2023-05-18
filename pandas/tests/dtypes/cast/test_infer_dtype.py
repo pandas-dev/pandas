@@ -61,17 +61,31 @@ def test_infer_dtype_from_complex(complex_dtype):
     assert dtype == np.complex_
 
 
-@pytest.mark.parametrize(
-    "data", [np.datetime64(1, "ns"), Timestamp(1), datetime(2000, 1, 1, 0, 0)]
-)
-def test_infer_dtype_from_datetime(data):
-    dtype, val = infer_dtype_from_scalar(data)
+def test_infer_dtype_from_datetime():
+    dt64 = np.datetime64(1, "ns")
+    dtype, val = infer_dtype_from_scalar(dt64)
     assert dtype == "M8[ns]"
 
+    ts = Timestamp(1)
+    dtype, val = infer_dtype_from_scalar(ts)
+    assert dtype == "M8[ns]"
 
-@pytest.mark.parametrize("data", [np.timedelta64(1, "ns"), Timedelta(1), timedelta(1)])
-def test_infer_dtype_from_timedelta(data):
-    dtype, val = infer_dtype_from_scalar(data)
+    dt = datetime(2000, 1, 1, 0, 0)
+    dtype, val = infer_dtype_from_scalar(dt)
+    assert dtype == "M8[us]"
+
+
+def test_infer_dtype_from_timedelta():
+    td64 = np.timedelta64(1, "ns")
+    dtype, val = infer_dtype_from_scalar(td64)
+    assert dtype == "m8[ns]"
+
+    pytd = timedelta(1)
+    dtype, val = infer_dtype_from_scalar(pytd)
+    assert dtype == "m8[us]"
+
+    td = Timedelta(1)
+    dtype, val = infer_dtype_from_scalar(td)
     assert dtype == "m8[ns]"
 
 
@@ -140,9 +154,9 @@ def test_infer_dtype_from_scalar_errors():
         (b"foo", np.object_),
         (1, np.int64),
         (1.5, np.float_),
-        (np.datetime64("2016-01-01"), np.dtype("M8[ns]")),
-        (Timestamp("20160101"), np.dtype("M8[ns]")),
-        (Timestamp("20160101", tz="UTC"), "datetime64[ns, UTC]"),
+        (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
+        (Timestamp("20160101"), np.dtype("M8[s]")),
+        (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
     ],
 )
 def test_infer_dtype_from_scalar(value, expected):

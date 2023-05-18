@@ -191,20 +191,20 @@ class TestDataFrameBlockInternals:
 
         # check dtypes
         result = df.dtypes
-        expected = Series({"datetime64[ns]": 3})
+        expected = Series({"datetime64[us]": 3})
 
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
-        assert float_string_frame["datetime"].dtype == "M8[ns]"
-        assert float_string_frame["timedelta"].dtype == "m8[ns]"
+        assert float_string_frame["datetime"].dtype == "M8[us]"
+        assert float_string_frame["timedelta"].dtype == "m8[us]"
         result = float_string_frame.dtypes
         expected = Series(
             [np.dtype("float64")] * 4
             + [
                 np.dtype("object"),
-                np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("datetime64[us]"),
+                np.dtype("timedelta64[us]"),
             ],
             index=list("ABCD") + ["foo", "datetime", "timedelta"],
         )
@@ -230,7 +230,7 @@ class TestDataFrameBlockInternals:
             },
             index=range(3),
         )
-        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))

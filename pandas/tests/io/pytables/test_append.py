@@ -146,8 +146,8 @@ def test_append_some_nans(setup_path):
                 "A2": np.random.randn(20),
                 "B": "foo",
                 "C": "bar",
-                "D": Timestamp("20010101"),
-                "E": datetime.datetime(2001, 1, 2, 0, 0),
+                "D": Timestamp("2001-01-01").as_unit("ns"),
+                "E": Timestamp("2001-01-02").as_unit("ns"),
             },
             index=np.arange(20),
         )
@@ -247,8 +247,8 @@ def test_append_all_nans(setup_path):
                     "A2": np.random.randn(20),
                     "B": "foo",
                     "C": "bar",
-                    "D": Timestamp("20010101"),
-                    "E": datetime.datetime(2001, 1, 2, 0, 0),
+                    "D": Timestamp("2001-01-01").as_unit("ns"),
+                    "E": Timestamp("2001-01-02").as_unit("ns"),
                 },
                 index=np.arange(20),
             )
@@ -572,7 +572,7 @@ def test_append_with_data_columns(setup_path):
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
         df_dc["string2"] = "cool"
-        df_dc["datetime"] = Timestamp("20010102")
+        df_dc["datetime"] = Timestamp("20010102").as_unit("ns")
         df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
         _maybe_remove(store, "df_dc")
@@ -654,8 +654,8 @@ def test_append_misc_chunksize(setup_path, chunksize):
     df["float322"] = 1.0
     df["float322"] = df["float322"].astype("float32")
     df["bool"] = df["float322"] > 0
-    df["time1"] = Timestamp("20130101")
-    df["time2"] = Timestamp("20130102")
+    df["time1"] = Timestamp("20130101").as_unit("ns")
+    df["time2"] = Timestamp("20130102").as_unit("ns")
     with ensure_clean_store(setup_path, mode="w") as store:
         store.append("obj", df, chunksize=chunksize)
         result = store.select("obj")
@@ -767,12 +767,11 @@ def test_append_with_timedelta(setup_path):
     # GH 3577
     # append timedelta
 
+    ts = Timestamp("20130101").as_unit("ns")
     df = DataFrame(
         {
-            "A": Timestamp("20130101"),
-            "B": [
-                Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
-            ],
+            "A": ts,
+            "B": [ts + timedelta(days=i, seconds=10) for i in range(10)],
         }
     )
     df["C"] = df["A"] - df["B"]

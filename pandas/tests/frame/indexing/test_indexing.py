@@ -819,7 +819,7 @@ class TestDataFrameIndexing:
         # check our dtypes
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")] * 3 + [np.dtype("datetime64[ns]")],
+            [np.dtype("float64")] * 3 + [np.dtype("datetime64[s]")],
             index=["foo", "bar", "baz", "timestamp"],
         )
         tm.assert_series_equal(result, expected)
