@@ -125,7 +125,7 @@ class _Unstacker:
         if not self.sort:
             unique_codes = unique(self.index.codes[self.level])
             self.removed_level = self.removed_level.take(unique_codes)
-            self.removed_level_full = self.removed_level.take(unique_codes)
+            self.removed_level_full = self.removed_level_full.take(unique_codes)
 
         # Bug fix GH 20601
         # If the data frame is too big, the number of unique index combination
@@ -518,9 +518,13 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         )
 
 
-def _unstack_frame(obj: DataFrame, level, fill_value=None) -> DataFrame:
+def _unstack_frame(
+    obj: DataFrame, level, fill_value=None, sort: bool = True
+) -> DataFrame:
     assert isinstance(obj.index, MultiIndex)  # checked by caller
-    unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
+    unstacker = _Unstacker(
+        obj.index, level=level, constructor=obj._constructor, sort=sort
+    )
 
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
@@ -531,7 +535,9 @@ def _unstack_frame(obj: DataFrame, level, fill_value=None) -> DataFrame:
         )
 
 
-def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
+def _unstack_extension_series(
+    series: Series, level, fill_value, sort: bool
+) -> DataFrame:
     """
     Unstack an ExtensionArray-backed Series.
 
@@ -547,6 +553,8 @@ def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
         The user-level (not physical storage) fill value to use for
         missing values introduced by the reshape. Passed to
         ``series.values.take``.
+    sort : bool
+        Whether to sort the resulting MuliIndex levels
 
     Returns
     -------
@@ -556,7 +564,7 @@ def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
     """
     # Defer to the logic in ExtensionBlock._unstack
     df = series.to_frame()
-    result = df.unstack(level=level, fill_value=fill_value)
+    result = df.unstack(level=level, fill_value=fill_value, sort=sort)
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
