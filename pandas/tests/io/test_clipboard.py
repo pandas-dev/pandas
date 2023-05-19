@@ -316,7 +316,7 @@ class TestClipboard:
         df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
-        assert df.iloc[1][1] == "Harry Carney"
+        assert df.iloc[1, 1] == "Harry Carney"
 
         # having diff tab counts doesn't trigger it
         text = dedent(

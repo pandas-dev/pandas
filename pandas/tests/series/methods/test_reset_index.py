@@ -20,7 +20,7 @@ class TestResetIndex:
         dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")._with_freq(None)
         d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
         d2 = d1.reset_index()
-        assert d2.dtypes[0] == np.dtype("M8[ns]")
+        assert d2.dtypes.iloc[0] == np.dtype("M8[ns]")
         d3 = d2.set_index("index")
         tm.assert_frame_equal(d1, d3, check_names=False)
 
@@ -30,7 +30,7 @@ class TestResetIndex:
         df = df.set_index("Date")
 
         assert df.index[0] == stamp
-        assert df.reset_index()["Date"][0] == stamp
+        assert df.reset_index()["Date"].iloc[0] == stamp
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]

@@ -71,16 +71,16 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        assert result == ts[3]
+        assert result == ts.iloc[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
@@ -144,15 +144,15 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
-        assert ts.asof(ts.index[3]) == ts[3]
+        assert ts.asof(ts.index[3]) == ts.iloc[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()

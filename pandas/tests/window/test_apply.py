@@ -250,7 +250,7 @@ def test_time_rule_series(raw, series):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], np.mean(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], np.mean(trunc_series))
 
 
 def test_time_rule_frame(raw, frame):

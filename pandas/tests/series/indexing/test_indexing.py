@@ -27,11 +27,14 @@ import pandas._testing as tm
 def test_basic_indexing():
     s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
 
+    warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
-        s[5]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
     with pytest.raises(IndexError, match=msg):
-        s[5] = 0
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
@@ -39,10 +42,12 @@ def test_basic_indexing():
     s = s.sort_index()
 
     with pytest.raises(IndexError, match=msg):
-        s[5]
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
     with pytest.raises(IndexError, match=msg):
-        s[5] = 0
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            s[5] = 0
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
@@ -144,7 +149,9 @@ def test_series_box_timestamp():
     assert isinstance(ser.iloc[4], Timestamp)
 
     ser = Series(rng, index=rng)
-    assert isinstance(ser[0], Timestamp)
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert isinstance(ser[0], Timestamp)
     assert isinstance(ser.at[rng[1]], Timestamp)
     assert isinstance(ser.iat[2], Timestamp)
     assert isinstance(ser.loc[rng[3]], Timestamp)
@@ -187,12 +194,12 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
 
 def test_setitem(datetime_series):
     datetime_series[datetime_series.index[5]] = np.NaN
-    datetime_series[[1, 2, 17]] = np.NaN
-    datetime_series[6] = np.NaN
-    assert np.isnan(datetime_series[6])
-    assert np.isnan(datetime_series[2])
+    datetime_series.iloc[[1, 2, 17]] = np.NaN
+    datetime_series.iloc[6] = np.NaN
+    assert np.isnan(datetime_series.iloc[6])
+    assert np.isnan(datetime_series.iloc[2])
     datetime_series[np.isnan(datetime_series)] = 5
-    assert not np.isnan(datetime_series[2])
+    assert not np.isnan(datetime_series.iloc[2])
 
 
 def test_setslice(datetime_series):
@@ -291,9 +298,9 @@ def test_underlying_data_conversion(using_copy_on_write):
 
 
 def test_preserve_refs(datetime_series):
-    seq = datetime_series[[5, 10, 15]]
-    seq[1] = np.NaN
-    assert not np.isnan(datetime_series[10])
+    seq = datetime_series.iloc[[5, 10, 15]]
+    seq.iloc[1] = np.NaN
+    assert not np.isnan(datetime_series.iloc[10])
 
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):

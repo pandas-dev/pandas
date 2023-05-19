@@ -72,7 +72,7 @@ class TestSeriesFillNA:
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
 
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
 
         exp = Series([0.0, 1.0, 1.0, 3.0, 4.0], index=ts.index)
         tm.assert_series_equal(ts.fillna(method="ffill"), exp)
@@ -859,7 +859,7 @@ class TestFillnaPad:
 
     def test_ffill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
@@ -870,7 +870,7 @@ class TestFillnaPad:
 
     def test_bfill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
     def test_pad_nan(self):
@@ -885,7 +885,7 @@ class TestFillnaPad:
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
         )
         tm.assert_series_equal(x[1:], expected[1:])
-        assert np.isnan(x[0]), np.isnan(expected[0])
+        assert np.isnan(x.iloc[0]), np.isnan(expected.iloc[0])
 
     def test_series_fillna_limit(self):
         index = np.arange(10)

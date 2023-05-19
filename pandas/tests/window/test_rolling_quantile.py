@@ -65,7 +65,7 @@ def test_time_rule_series(series, q):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])

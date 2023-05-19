@@ -56,7 +56,7 @@ def test_time_rule_series(series, sp_func, roll_func):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @td.skip_if_no_scipy

@@ -368,7 +368,7 @@ Index aware interpolation is available via the ``method`` keyword:
 .. ipython:: python
    :suppress:
 
-   ts2 = ts[[0, 1, 30, 60, 99]]
+   ts2 = ts.iloc[[0, 1, 30, 60, 99]]
 
 .. ipython:: python
 
@@ -443,7 +443,7 @@ Compare several methods:
 
    ser = pd.Series(np.arange(1, 10.1, 0.25) ** 2 + np.random.randn(37))
    missing = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
-   ser[missing] = np.nan
+   ser.iloc[missing] = np.nan
    methods = ["linear", "quadratic", "cubic"]
 
    df = pd.DataFrame({m: ser.interpolate(method=m) for m in methods})

@@ -262,7 +262,7 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
 
 
 def check_iris_frame(frame: DataFrame):
-    pytype = frame.dtypes[0].type
+    pytype = frame.dtypes.iloc[0].type
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])

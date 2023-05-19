@@ -39,7 +39,7 @@ class TestPeriodIndex:
         pi = PeriodIndex(["2Q05", "3Q05", "4Q05", "1Q06", "2Q06"], freq="Q")
         ser = Series(np.random.rand(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
-        assert ser["05Q4"] == ser[2]
+        assert ser["05Q4"] == ser.iloc[2]
 
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
@@ -160,7 +160,7 @@ class TestPeriodIndex:
         ser_montonic = Series(np.arange(30), index=pi)
 
         shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
-        ser = ser_montonic[shuffler]
+        ser = ser_montonic.iloc[shuffler]
         nidx = ser.index
 
         # Manually identified locations of year==2014
@@ -173,7 +173,7 @@ class TestPeriodIndex:
         result = nidx.get_loc("2014")
         tm.assert_numpy_array_equal(result, indexer_2014)
 
-        expected = ser[indexer_2014]
+        expected = ser.iloc[indexer_2014]
         result = ser.loc["2014"]
         tm.assert_series_equal(result, expected)
 
@@ -187,7 +187,7 @@ class TestPeriodIndex:
         result = nidx.get_loc("May 2015")
         tm.assert_numpy_array_equal(result, indexer_may2015)
 
-        expected = ser[indexer_may2015]
+        expected = ser.iloc[indexer_may2015]
         result = ser.loc["May 2015"]
         tm.assert_series_equal(result, expected)
 

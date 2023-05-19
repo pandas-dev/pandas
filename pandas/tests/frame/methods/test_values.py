@@ -38,9 +38,9 @@ class TestDataFrameValues:
             for j, value in enumerate(row):
                 col = frame_cols[j]
                 if np.isnan(value):
-                    assert np.isnan(frame[col][i])
+                    assert np.isnan(frame[col].iloc[i])
                 else:
-                    assert value == frame[col][i]
+                    assert value == frame[col].iloc[i]
 
         # mixed type
         arr = float_string_frame[["foo", "A"]].values

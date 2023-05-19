@@ -217,7 +217,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
         df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
         store.append("df_f4", df1)
         tm.assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
-        assert df1.dtypes[0] == "float32"
+        assert df1.dtypes.iloc[0] == "float32"
 
         # check with mixed dtypes
         df1 = DataFrame(

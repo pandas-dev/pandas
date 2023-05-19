@@ -2575,11 +2575,11 @@ class TestToDatetimeMisc:
 
         expected = Series(np.empty(5, dtype="M8[ns]"), index=idx)
         for i in range(5):
-            x = series[i]
+            x = series.iloc[i]
             if isna(x):
-                expected[i] = NaT
+                expected.iloc[i] = NaT
             else:
-                expected[i] = to_datetime(x, cache=cache)
+                expected.iloc[i] = to_datetime(x, cache=cache)
 
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name == "foo"

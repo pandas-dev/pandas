@@ -1344,11 +1344,11 @@ def test_convert_objects_leave_decimal_alone():
 
     result = grouped.agg(convert_fast)
     assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
+    assert isinstance(result.iloc[0], Decimal)
 
     result = grouped.agg(convert_force_pure)
     assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
+    assert isinstance(result.iloc[0], Decimal)
 
 
 def test_groupby_dtype_inference_empty():
@@ -1967,8 +1967,8 @@ def test_empty_groupby(
         expected = DataFrame([], columns=[], index=idx)
         return expected
 
-    is_per = isinstance(df.dtypes[0], pd.PeriodDtype)
-    is_dt64 = df.dtypes[0].kind == "M"
+    is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
+    is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
 
     if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:

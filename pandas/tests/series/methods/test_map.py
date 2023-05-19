@@ -242,7 +242,7 @@ def test_map_type_inference():
 def test_map_decimal(string_series):
     result = string_series.map(lambda x: Decimal(str(x)))
     assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
+    assert isinstance(result.iloc[0], Decimal)
 
 
 def test_map_na_exclusion():

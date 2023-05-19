@@ -287,7 +287,7 @@ def test_fillna_ea_noop_shares_memory(
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
         assert not df2._mgr._has_no_reference(1)
-    elif isinstance(df.dtypes[0], ArrowDtype):
+    elif isinstance(df.dtypes.iloc[0], ArrowDtype):
         # arrow is immutable, so no-ops do not need to copy underlying array
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
     else:
@@ -317,7 +317,7 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
-    elif isinstance(df.dtypes[0], ArrowDtype):
+    elif isinstance(df.dtypes.iloc[0], ArrowDtype):
         # arrow is immutable, so no-ops do not need to copy underlying array
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     else:

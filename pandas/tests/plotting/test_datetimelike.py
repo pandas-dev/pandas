@@ -235,7 +235,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(ser.values, Index(np.asarray(ser.index)))
         _check_plot_works(ser.plot, ser.index.inferred_freq)
 
-        ser = ser[[0, 3, 5, 6]]
+        ser = ser.iloc[[0, 3, 5, 6]]
         _check_plot_works(ser.plot)
 
     def test_fake_inferred_business(self):
@@ -299,7 +299,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_irregular_datetime64_repr_bug(self):
         ser = tm.makeTimeSeries()
-        ser = ser[[0, 1, 2, 7]]
+        ser = ser.iloc[[0, 1, 2, 7]]
 
         _, ax = self.plt.subplots()
 
@@ -539,7 +539,7 @@ class TestTSPlot(TestPlotBase):
 
         # irregular
         ts = tm.makeTimeSeries()
-        ts = ts[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
+        ts = ts.iloc[[0, 1, 2, 5, 7, 9, 12, 15, 20]]
         ts.iloc[2:5] = np.nan
         _, ax = self.plt.subplots()
         ax = ts.plot(ax=ax)
@@ -679,7 +679,7 @@ class TestTSPlot(TestPlotBase):
     def test_mixed_freq_regular_first(self):
         # TODO
         s1 = tm.makeTimeSeries()
-        s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
+        s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15]]
 
         # it works!
         _, ax = self.plt.subplots()
@@ -700,7 +700,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_mixed_freq_irregular_first(self):
         s1 = tm.makeTimeSeries()
-        s2 = s1[[0, 5, 10, 11, 12, 13, 14, 15]]
+        s2 = s1.iloc[[0, 5, 10, 11, 12, 13, 14, 15]]
         _, ax = self.plt.subplots()
         s2.plot(style="g", ax=ax)
         s1.plot(ax=ax)
@@ -792,7 +792,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
-        irreg = ts[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
+        irreg = ts.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
         rng = period_range("1/3/2000", periods=30, freq="B")
         ps = Series(np.random.randn(len(rng)), rng)
         _, ax = self.plt.subplots()
@@ -1246,7 +1246,7 @@ class TestTSPlot(TestPlotBase):
         from pandas.plotting._matplotlib.converter import DatetimeConverter
 
         ts = tm.makeTimeSeries()[:20]
-        ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
+        ts_irregular = ts.iloc[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
         # plot the left section of the irregular series, then the right section
         _, ax = self.plt.subplots()
@@ -1310,7 +1310,7 @@ class TestTSPlot(TestPlotBase):
         from pandas.plotting._matplotlib.converter import DatetimeConverter
 
         ts = tm.makeTimeSeries()[:20]
-        ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
+        ts_irregular = ts.iloc[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
         _, ax = self.plt.subplots()
         ts_irregular[:5].plot(ax=ax)

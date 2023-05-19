@@ -72,14 +72,18 @@ class TestSeriesGetitemScalars:
         ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
+        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            ser[-11]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser[-11]
 
     def test_getitem_out_of_bounds_indexerror(self, datetime_series):
         # don't segfault, GH#495
         msg = r"index \d+ is out of bounds for axis 0 with size \d+"
+        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            datetime_series[len(datetime_series)]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                datetime_series[len(datetime_series)]
 
     def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
         # GH#917
@@ -109,7 +113,10 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_int64(self, datetime_series):
         idx = np.int64(5)
-        assert datetime_series[idx] == datetime_series[5]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = datetime_series[idx]
+        assert res == datetime_series.iloc[5]
 
     def test_getitem_full_range(self):
         # github.com/pandas-dev/pandas/commit/4f433773141d2eb384325714a2776bcc5b2e20f7
@@ -140,7 +147,7 @@ class TestSeriesGetitemScalars:
         ser = Series(np.random.randn(len(rng)), index=rng)
 
         result = ser["1/3/2000"]
-        tm.assert_almost_equal(result, ser[2])
+        tm.assert_almost_equal(result, ser.iloc[2])
 
     def test_getitem_time_object(self):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
@@ -205,7 +212,9 @@ class TestSeriesGetitemScalars:
     def test_getitem_bool_index_positional(self):
         # GH#48653
         ser = Series({True: 1, False: 0})
-        result = ser[0]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser[0]
         assert result == 1
 
 
@@ -371,7 +380,9 @@ class TestSeriesGetitemListLike:
 
         expected = ser.iloc[:1]
         key = box([0])
-        result = ser[key]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser[key]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("box", [list, np.array, Index])
@@ -612,7 +623,9 @@ def test_getitem_preserve_name(datetime_series):
     result = datetime_series[datetime_series > 0]
     assert result.name == datetime_series.name
 
-    result = datetime_series[[0, 2, 4]]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = datetime_series[[0, 2, 4]]
     assert result.name == datetime_series.name
 
     result = datetime_series[5:10]
@@ -640,16 +653,20 @@ def test_getitem_missing(datetime_series):
 
 
 def test_getitem_fancy(string_series, object_series):
-    slice1 = string_series[[1, 2, 3]]
-    slice2 = object_series[[1, 2, 3]]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        slice1 = string_series[[1, 2, 3]]
+        slice2 = object_series[[1, 2, 3]]
     assert string_series.index[2] == slice1.index[1]
     assert object_series.index[2] == slice2.index[1]
-    assert string_series[2] == slice1[1]
-    assert object_series[2] == slice2[1]
+    assert string_series.iloc[2] == slice1.iloc[1]
+    assert object_series.iloc[2] == slice2.iloc[1]
 
 
 def test_getitem_box_float64(datetime_series):
-    value = datetime_series[5]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        value = datetime_series[5]
     assert isinstance(value, np.float64)
 
 
@@ -683,7 +700,10 @@ def test_slice_can_reorder_not_uniquely_indexed():
 def test_duplicated_index_getitem_positional_indexer(index_vals):
     # GH 11747
     s = Series(range(5), index=list(index_vals))
-    result = s[3]
+
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s[3]
     assert result == 3
 
 

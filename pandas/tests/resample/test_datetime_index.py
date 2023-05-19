@@ -111,7 +111,7 @@ def test_custom_grouper_df(index, unit):
         (
             "right",
             lambda s: Series(
-                [s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
+                [s.iloc[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                 index=date_range("1/1/2000", periods=4, freq="5min", name="index"),
             ),
         ),
@@ -164,7 +164,7 @@ def test_resample_basic_grouper(series, unit):
     s.index = s.index.as_unit(unit)
     result = s.resample("5Min").last()
     grouper = Grouper(freq=Minute(5), closed="left", label="left")
-    expected = s.groupby(grouper).agg(lambda x: x[-1])
+    expected = s.groupby(grouper).agg(lambda x: x.iloc[-1])
     tm.assert_series_equal(result, expected)
 
 
@@ -227,7 +227,7 @@ def test_resample_how_ohlc(series, unit):
     def _ohlc(group):
         if isna(group).all():
             return np.repeat(np.nan, 4)
-        return [group[0], group.max(), group.min(), group[-1]]
+        return [group.iloc[0], group.max(), group.min(), group.iloc[-1]]
 
     expected = DataFrame(
         s.groupby(grouplist).agg(_ohlc).values.tolist(),
@@ -460,8 +460,8 @@ def test_resample_upsample(unit):
     # to minutely, by padding
     result = s.resample("Min").ffill()
     assert len(result) == 12961
-    assert result[0] == s[0]
-    assert result[-1] == s[-1]
+    assert result.iloc[0] == s.iloc[0]
+    assert result.iloc[-1] == s.iloc[-1]
 
     assert result.index.name == "index"
 
@@ -534,23 +534,23 @@ def test_resample_ohlc(series, unit):
     s.index = s.index.as_unit(unit)
 
     grouper = Grouper(freq=Minute(5))
-    expect = s.groupby(grouper).agg(lambda x: x[-1])
+    expect = s.groupby(grouper).agg(lambda x: x.iloc[-1])
     result = s.resample("5Min").ohlc()
 
     assert len(result) == len(expect)
     assert len(result.columns) == 4
 
     xs = result.iloc[-2]
-    assert xs["open"] == s[-6]
+    assert xs["open"] == s.iloc[-6]
     assert xs["high"] == s[-6:-1].max()
     assert xs["low"] == s[-6:-1].min()
-    assert xs["close"] == s[-2]
+    assert xs["close"] == s.iloc[-2]
 
     xs = result.iloc[0]
-    assert xs["open"] == s[0]
+    assert xs["open"] == s.iloc[0]
     assert xs["high"] == s[:5].max()
     assert xs["low"] == s[:5].min()
-    assert xs["close"] == s[4]
+    assert xs["close"] == s.iloc[4]
 
 
 def test_resample_ohlc_result(unit):
@@ -688,14 +688,14 @@ def test_ohlc_5min(unit):
     def _ohlc(group):
         if isna(group).all():
             return np.repeat(np.nan, 4)
-        return [group[0], group.max(), group.min(), group[-1]]
+        return [group.iloc[0], group.max(), group.min(), group.iloc[-1]]
 
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 5:59:50", freq="10s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     resampled = ts.resample("5min", closed="right", label="right").ohlc()
 
-    assert (resampled.loc["1/1/2000 00:00"] == ts[0]).all()
+    assert (resampled.loc["1/1/2000 00:00"] == ts.iloc[0]).all()
 
     exp = _ohlc(ts[1:31])
     assert (resampled.loc["1/1/2000 00:05"] == exp).all()
@@ -713,8 +713,8 @@ def test_downsample_non_unique(unit):
 
     expected = ts.groupby(lambda x: x.month).mean()
     assert len(result) == 2
-    tm.assert_almost_equal(result[0], expected[1])
-    tm.assert_almost_equal(result[1], expected[2])
+    tm.assert_almost_equal(result.iloc[0], expected[1])
+    tm.assert_almost_equal(result.iloc[1], expected[2])
 
 
 def test_asfreq_non_unique(unit):
@@ -1318,7 +1318,7 @@ def test_resample_consistency(unit):
 
     i30 = date_range("2002-02-02", periods=4, freq="30T").as_unit(unit)
     s = Series(np.arange(4.0), index=i30)
-    s[2] = np.NaN
+    s.iloc[2] = np.NaN
 
     # Upsample by factor 3 with reindex() and resample() methods:
     i10 = date_range(i30[0], i30[-1], freq="10T").as_unit(unit)
