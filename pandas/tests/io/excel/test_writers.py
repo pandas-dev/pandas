@@ -1129,8 +1129,7 @@ class TestExcelWriter:
         }
 
         if PY310:
-            msgs["xlsxwriter"] = "__init__() got an unexpected keyword argument "
-            r"'foo'"
+            msgs["xlsxwriter"] = "__init__() got an unexpected keyword argument 'foo'"
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and os.path.exists(path) and PY310:
