@@ -1137,6 +1137,9 @@ def _make_date_converter(
         return arg
 
     def converter(*date_cols, col: Hashable):
+        if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
+            return date_cols[0]
+
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
             date_fmt = (
