@@ -499,7 +499,9 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(dropna=False, sort=sort)
+            # TODO: Add sort=sort once https://github.com/pandas-dev/pandas/pull/53282
+            # is merged
+            return obj.T.stack(dropna=False)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose
