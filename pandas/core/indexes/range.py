@@ -1015,8 +1015,9 @@ class RangeIndex(Index):
                 if not is_integer(rstep) or not rstep:
                     raise ValueError
 
+            # GH#53255
             else:
-                rstep = left.step
+                rstep = -left.step if op == ops.rsub else left.step
 
             with np.errstate(all="ignore"):
                 rstart = op(left.start, right)
