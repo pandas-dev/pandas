@@ -103,6 +103,8 @@ libs_sources = {
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
     'properties': {'sources': ['properties.pyx']},
     'reshape': {'sources': ['reshape.pyx']},
+    'sas': {'sources': ['sas.pyx']},
+    'byteswap': {'sources': ['byteswap.pyx']},
     'sparse': {'sources': ['sparse.pyx', _sparse_op_helper]},
     'tslib': {'sources': ['tslib.pyx'],
               'include_dirs': inc_datetime},
