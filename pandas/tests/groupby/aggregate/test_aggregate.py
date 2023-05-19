@@ -1598,6 +1598,4 @@ def test_agg_with_as_index_false_with_list():
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
     )
-    print(result)
-    print(expected)
     tm.assert_frame_equal(result, expected)
