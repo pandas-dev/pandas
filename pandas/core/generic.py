@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_float,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -6202,34 +6201,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.dtypes.nunique() > 1
 
     @final
-    def _check_inplace_setting(self, value) -> bool_t:
-        """check whether we allow in-place setting with this type of value"""
-        if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
-            # allow an actual np.nan through
-            if (is_float(value) and np.isnan(value)) or value is lib.no_default:
-                return True
-
-            # Deprecate raising introduced in GH#7657, as the original
-            #  inconsistency no longer appears to exist.
-            # TODO(3.0): once this is enforced, is_numeric_mixed_type can
-            #  be removed.
-            warnings.warn(
-                "DataFrame.__setitem__ with a boolean mask and "
-                "DataFrame.putmask with mixed non-numeric "
-                "dtypes and a value other than NaN behavior is deprecated. In a "
-                "future version this will be allowed.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-            raise TypeError(
-                "Cannot do inplace boolean setting on "
-                "mixed-types with a non np.nan value"
-            )
-
-        return True
-
-    @final
     def _get_numeric_data(self) -> Self:
         return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
@@ -10049,7 +10020,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            self._check_inplace_setting(other)
             new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor(new_data)
             return self._update_inplace(result)

@@ -401,28 +401,23 @@ class TestDataFrameIndexingWhere:
                 {"A": np.nan, "B": "Test", "C": np.nan},
             ]
         )
-        warn_msg = (
-            "DataFrame.__setitem__ with a boolean mask and "
-            "DataFrame.putmask with mixed non-numeric"
-        )
-        msg = "boolean setting on mixed-type"
+
+        orig = df.copy()
 
         mask = ~isna(df)
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                df.where(mask, None, inplace=True)
+        df.where(mask, None, inplace=True)
+        expected = DataFrame(
+            {
+                "A": [1.0, np.nan],
+                "B": [None, "Test"],
+                "C": ["Test", None],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                df.where(mask, 3, inplace=True)
-
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                df[mask] = None
-
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                df[mask] = 3
+        df = orig.copy()
+        df[~mask] = None
+        tm.assert_frame_equal(df, expected)
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
