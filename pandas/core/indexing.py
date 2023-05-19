@@ -1161,7 +1161,7 @@ class _LocIndexer(_LocationIndexer):
             or (is_bool_dtype(ax.dtype) or is_object_dtype(ax.dtype))
         ):
             raise KeyError(
-                f"{key}: boolean label can not be used without a boolean or object index"
+                f"{key}: boolean label cannot be used without a boolean or object index"
             )
 
         if isinstance(key, slice) and (
@@ -1335,11 +1335,14 @@ class _LocIndexer(_LocationIndexer):
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):
             try:
-                # treat the boolean array as labels
-                return self._getitem_iterable(key, axis)
-            except KeyError:
                 # treat the boolean array as a mask
                 return self._getbool_axis(key, axis=axis)
+            except IndexError as err:
+                try:
+                    # treat the boolean array as labels
+                    return self._getitem_iterable(key, axis)
+                except KeyError:
+                    raise err
         elif is_list_like_indexer(key):
             # an iterable multi-selection
             if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):

@@ -2472,7 +2472,7 @@ class TestLocBooleanLabelsAndSlices:
         self, index, frame_or_series, bool_value
     ):
         # GH20432
-        invalid_label_message = f"{bool_value}: boolean label can not be used without a boolean or object index"
+        invalid_label_message = f"{bool_value}: boolean label cannot be used without a boolean or object index"
         not_found_message = f"{bool_value}"
         if index.inferred_type != "boolean":
             obj = frame_or_series(index=index, dtype="object")
@@ -2483,7 +2483,7 @@ class TestLocBooleanLabelsAndSlices:
                 with pytest.raises(KeyError, match=invalid_label_message):
                     obj.loc[bool_value]
 
-    @pytest.mark.parametrize("bool_value", [True, False])
+    @pytest.mark.parametrize("bool_value", [True, False, [True, False]])
     def test_loc_bool_should_not_raise(self, frame_or_series, bool_value):
         obj = frame_or_series(
             index=Index([True, False], dtype="boolean"), dtype="object"
