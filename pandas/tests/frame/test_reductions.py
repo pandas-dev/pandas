@@ -968,12 +968,12 @@ class TestDataFrameAnalytics:
     def test_idxmin_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
-            frame = DataFrame(index=index[:0])
+            frame = DataFrame(index=index)
         else:
-            frame = DataFrame(columns=index[:0])
+            frame = DataFrame(columns=index)
 
         result = frame.idxmin(axis=axis, skipna=skipna)
-        expected = Series(dtype=frame.axes[axis].dtype)
+        expected = Series(dtype=index.dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numeric_only", [True, False])
@@ -1008,12 +1008,12 @@ class TestDataFrameAnalytics:
     def test_idxmax_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
-            frame = DataFrame(index=index[:0])
+            frame = DataFrame(index=index)
         else:
-            frame = DataFrame(columns=index[:0])
+            frame = DataFrame(columns=index)
 
         result = frame.idxmax(axis=axis, skipna=skipna)
-        expected = Series(dtype=frame.axes[axis].dtype)
+        expected = Series(dtype=index.dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numeric_only", [True, False])
