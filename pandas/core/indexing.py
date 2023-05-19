@@ -1150,13 +1150,18 @@ class _LocIndexer(_LocationIndexer):
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-            is_bool_dtype(ax.dtype)
-            or ax.dtype.name == "boolean"
-            or isinstance(ax, MultiIndex)
-            and is_bool_dtype(ax.get_level_values(0).dtype)
+                (
+                        isinstance(ax, MultiIndex)
+                        and (
+                                is_bool_dtype(ax.get_level_values(0).dtype)
+                                or is_object_dtype(ax.get_level_values(0).dtype)
+                        )
+                )
+                or (ax.dtype.name == "boolean" or ax.dtype.name == "object")
+                or (is_bool_dtype(ax.dtype) or is_object_dtype(ax.dtype))
         ):
             raise KeyError(
-                f"{key}: boolean label can not be used without a boolean index"
+                f"{key}: boolean label can not be used without a boolean or object index"
             )
 
         if isinstance(key, slice) and (
@@ -1329,7 +1334,12 @@ class _LocIndexer(_LocationIndexer):
             self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):
-            return self._getbool_axis(key, axis=axis)
+            try:
+                # treat the boolean array as labels
+                return self._getitem_iterable(key, axis)
+            except KeyError:
+                # treat the boolean array as a mask
+                return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
             # an iterable multi-selection
             if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
