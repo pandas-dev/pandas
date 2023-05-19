@@ -4074,7 +4074,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._check_inplace_setting(value)
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 

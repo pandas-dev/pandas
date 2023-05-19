@@ -401,10 +401,23 @@ class TestDataFrameIndexingWhere:
                 {"A": np.nan, "B": "Test", "C": np.nan},
             ]
         )
-        msg = "boolean setting on mixed-type"
 
-        with pytest.raises(TypeError, match=msg):
-            df.where(~isna(df), None, inplace=True)
+        orig = df.copy()
+
+        mask = ~isna(df)
+        df.where(mask, None, inplace=True)
+        expected = DataFrame(
+            {
+                "A": [1.0, np.nan],
+                "B": [None, "Test"],
+                "C": ["Test", None],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = orig.copy()
+        df[~mask] = None
+        tm.assert_frame_equal(df, expected)
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
