@@ -378,12 +378,6 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def _values_for_factorize(self):
-        arr = self._ndarray.copy()
-        mask = self.isna()
-        arr[mask] = self._na_value
-        return arr, self._na_value
-
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
@@ -611,6 +605,12 @@ class ObjectStringArray(BaseNumpyStringArray):
         else:
             lib.convert_nans_to_NA(self._ndarray)
 
+    def _values_for_factorize(self):
+        arr = self._ndarray.copy()
+        mask = self.isna()
+        arr[mask] = None
+        return arr, None
+
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
@@ -665,3 +665,11 @@ class NumpyStringArray(BaseNumpyStringArray):
         )
 
         return new_string_array
+
+    def _values_for_factorize(self):
+        arr = self._ndarray.astype(get_string_dtype(na_object=None))
+        return arr, None
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return original._from_backing_data(values.astype(original._ndarray.dtype))
