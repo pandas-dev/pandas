@@ -285,7 +285,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
     def test_getitem_ellipsis_and_slice(self, data):
-        # GH#40353 this is called from getitem_block_index
+        # GH#40353 this is called from slice_block_rows
         result = data[..., :]
         self.assert_extension_array_equal(result, data)
 

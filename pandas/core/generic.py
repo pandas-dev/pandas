@@ -2306,7 +2306,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
-        index: bool_t = True,
+        index: bool_t | None = None,
         indent: int | None = None,
         storage_options: StorageOptions = None,
         mode: Literal["a", "w"] = "w",
@@ -2375,10 +2375,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 1.4.0 Zstandard support.
 
-        index : bool, default True
-            Whether to include the index values in the JSON string. Not
-            including the index (``index=False``) is only supported when
-            orient is 'split' or 'table'.
+        index : bool or None, default None
+            The index is only used when 'orient' is 'split', 'index', 'column',
+            or 'table'. Of these, 'index' and 'column' do not support
+            `index=False`.
+
         indent : int, optional
            Length of whitespace used to indent each record.
 
@@ -7261,6 +7262,52 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series([1, None, None, 2])
+        >>> s.bfill()
+        0    1.0
+        1    2.0
+        2    2.0
+        3    2.0
+        dtype: float64
+        >>> s.bfill(downcast='infer')
+        0    1
+        1    2
+        2    2
+        3    2
+        dtype: int64
+        >>> s.bfill(limit=1)
+        0    1.0
+        1    NaN
+        2    2.0
+        3    2.0
+        dtype: float64
+
+        With DataFrame:
+
+        >>> df = pd.DataFrame({{'A': [1, None, None, 4], 'B': [None, 5, None, 7]}})
+        >>> df
+              A     B
+        0   1.0	  NaN
+        1   NaN	  5.0
+        2   NaN   NaN
+        3   4.0   7.0
+        >>> df.bfill()
+              A     B
+        0   1.0   5.0
+        1   4.0   5.0
+        2   4.0   7.0
+        3   4.0   7.0
+        >>> df.bfill(downcast='infer', limit=1)
+              A	   B
+        0   1.0    5
+        1   NaN    5
+        2   4.0    7
+        3   4.0    7
         """
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
@@ -7777,6 +7824,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         obj = self.T if should_transpose else self
 
         if obj.empty:
+            if inplace:
+                return None
             return self.copy()
 
         if method not in fillna_methods:
@@ -9471,6 +9520,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : DataFrame or Series
         join : {{'outer', 'inner', 'left', 'right'}}, default 'outer'
+            Type of alignment to be performed.
+
+            * left: use only keys from left frame, preserve key order.
+            * right: use only keys from right frame, preserve key order.
+            * outer: use union of keys from both frames, sort keys lexicographically.
+            * inner: use intersection of keys from both frames,
+              preserve the order of the left keys.
+
         axis : allowed axis of the other object, default None
             Align on index (0), columns (1), or both (None).
         level : int or level name, default None
@@ -11815,6 +11872,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         If all elements are non-NA/null, returns None.
         Also returns None for empty {klass}.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series([None, 3, 4])
+        >>> s.first_valid_index()
+        1
+        >>> s.last_valid_index()
+        2
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({{'A': [None, None, 2], 'B': [None, 3, 4]}})
+        >>> df
+             A      B
+        0  NaN    NaN
+        1  NaN    3.0
+        2  2.0    4.0
+        >>> df.first_valid_index()
+        1
+        >>> df.last_valid_index()
+        2
         """
         return self._find_valid_index(how="first")
 
@@ -11957,9 +12037,8 @@ axis : {{0 or 'index', 1 or 'columns', None}}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
-bool_only : bool, default None
-    Include only boolean columns. If None, will attempt to use everything,
-    then use only boolean data. Not implemented for Series.
+bool_only : bool, default False
+    Include only boolean columns. Not implemented for Series.
 skipna : bool, default True
     Exclude NA/null values. If the entire row/column is NA and skipna is
     True, then the result will be {empty_value}, as for an empty row/column.

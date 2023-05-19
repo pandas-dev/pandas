@@ -32,7 +32,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_re,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -41,7 +44,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 

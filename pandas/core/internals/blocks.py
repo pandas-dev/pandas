@@ -36,6 +36,7 @@ from pandas._typing import (
     FillnaOptions,
     IgnoreRaise,
     QuantileInterpolation,
+    Self,
     Shape,
     npt,
 )
@@ -66,6 +67,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -104,7 +106,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -259,36 +260,41 @@ class Block(PandasObject):
         return len(self.values)
 
     @final
-    def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
+    def slice_block_columns(self, slc: slice) -> Self:
+        """
+        Perform __getitem__-like, return result as block.
+        """
+        new_mgr_locs = self._mgr_locs[slc]
+
+        new_values = self._slice(slc)
+        refs = self.refs
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+
+    @final
+    def take_block_columns(self, indices: npt.NDArray[np.intp]) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
-        # Note: the only place where we are called with ndarray[intp]
-        #  is from internals.concat, and we can verify that never happens
-        #  with 1-column blocks, i.e. never for ExtensionBlock.
+        # Note: only called from is from internals.concat, and we can verify
+        #  that never happens with 1-column blocks, i.e. never for ExtensionBlock.
 
-        new_mgr_locs = self._mgr_locs[slicer]
+        new_mgr_locs = self._mgr_locs[indices]
 
-        new_values = self._slice(slicer)
-        refs = self.refs if isinstance(slicer, slice) else None
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+        new_values = self._slice(indices)
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=None)
 
     @final
     def getitem_block_columns(
         self, slicer: slice, new_mgr_locs: BlockPlacement
-    ) -> Block:
+    ) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-
-        if new_values.ndim != self.values.ndim:
-            raise ValueError("Only same dim slicing is allowed")
-
         return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
 
     @final
@@ -1997,7 +2003,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         -------
         ExtensionArray
         """
-        # Notes: ndarray[bool] is only reachable when via getitem_mgr, which
+        # Notes: ndarray[bool] is only reachable when via get_rows_with_mask, which
         #  is only for Series, i.e. self.ndim == 1.
 
         # return same dims as we currently have
@@ -2023,7 +2029,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         return self.values[slicer]
 
     @final
-    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+    def slice_block_rows(self, slicer: slice) -> Self:
         """
         Perform __getitem__-like specialized to slicing along index.
         """
