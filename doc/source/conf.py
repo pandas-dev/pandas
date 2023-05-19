@@ -375,9 +375,10 @@ header = f"""\
    import os
    os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
 """
-footer = f"""{datetime.now().year}
-pandas via <a href="https://numfocus.org">NumFOCUS, Inc.
-</a> Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>."""
+footer = f"""<p class="copyright">
+    &copy{datetime.now().year}
+    pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a>
+    Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>.</p>"""
 
 
 html_context = {
