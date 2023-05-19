@@ -1399,7 +1399,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             # GH #52849
-            if is_list_like(func) and not self.as_index:
+            if not self.as_index and is_list_like(func):
                 return result.reset_index()
             else:
                 return result
