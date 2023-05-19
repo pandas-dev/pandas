@@ -33,7 +33,9 @@ def assert_cannot_add(left, right, msg="cannot add"):
         right + left
 
 
-def assert_invalid_addsub_type(left, right, msg=None):
+def assert_invalid_addsub_type(
+    left, right, msg=None, can_be_not_implemented: bool = False
+):
     """
     Helper to assert that left and right can be neither added nor subtracted.
 
@@ -42,14 +44,23 @@ def assert_invalid_addsub_type(left, right, msg=None):
     left : object
     right : object
     msg : str or None, default None
+    can_be_not_implemented : bool, default False
+        Whether to accept NotImplementedError in addition to TypeError
     """
-    with pytest.raises(TypeError, match=msg):
+
+    errs = TypeError
+    if can_be_not_implemented:
+        # really we are interested in pa.lib.ArrowNotImplementedError, which
+        #  is a subclass of NotImplementedError
+        errs = (TypeError, NotImplementedError)
+
+    with pytest.raises(errs, match=msg):
         left + right
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(errs, match=msg):
         right + left
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(errs, match=msg):
         left - right
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(errs, match=msg):
         right - left
 
 
