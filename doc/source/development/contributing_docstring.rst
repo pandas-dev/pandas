@@ -654,7 +654,7 @@ A simple example could be:
             --------
             >>> ser = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
             ...                'Lion', 'Monkey', 'Rabbit', 'Zebra'])
-            >>> s.head()
+            >>> ser.head()
             0   Ant
             1   Bear
             2   Cow
