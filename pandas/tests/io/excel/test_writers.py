@@ -11,6 +11,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._constants import PY310
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1127,11 +1128,13 @@ class TestExcelWriter:
             r"'foo'",
         }
 
+        if PY310:
+            msgs["xlsxwriter"] = "__init__() got an unexpected keyword argument "
+            r"'foo'"
+
         # Handle change in error message for openpyxl (write and append mode)
-        if engine == "openpyxl" and os.path.exists(path):
-            msgs[
-                "openpyxl"
-            ] = r"Workbook.__init__() got an unexpected keyword argument 'foo'"
+        if engine == "openpyxl" and os.path.exists(path) and PY310:
+            msgs["openpyxl"] = r"__init__() got an unexpected keyword argument 'foo'"
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
