@@ -147,7 +147,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
     assert result.index.freq == expected_index.freq
-    assert not np.isnan(result[-1])
+    assert not np.isnan(result.iloc[-1])
 
 
 @pytest.mark.parametrize("duplicates", [True, False])
