@@ -11163,7 +11163,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series:
         axis = self._get_axis_number(axis)
 
-        if self.empty:
+        if self.empty and len(self.axes[axis]):
             axis_dtype = self.axes[axis].dtype
             return self._constructor_sliced(dtype=axis_dtype)
 
@@ -11193,7 +11193,7 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> Series:
         axis = self._get_axis_number(axis)
 
-        if self.empty:
+        if self.empty and len(self.axes[axis]):
             axis_dtype = self.axes[axis].dtype
             return self._constructor_sliced(dtype=axis_dtype)
 
