@@ -573,8 +573,8 @@ For example:
 
             See Also
             --------
-            ser.tail : Return the last 5 elements of the Series.
-            ser.iloc : Return a slice of the elements in the Series,
+            Series.tail : Return the last 5 elements of the Series.
+            Series.iloc : Return a slice of the elements in the Series,
                 which can also be used to return the first or last n.
             """
             return self.iloc[:5]
@@ -652,7 +652,7 @@ A simple example could be:
 
             Examples
             --------
-            >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
+            >>> ser = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
             ...                'Lion', 'Monkey', 'Rabbit', 'Zebra'])
             >>> s.head()
             0   Ant
@@ -664,7 +664,7 @@ A simple example could be:
 
             With the ``n`` parameter, we can change the number of returned rows:
 
-            >>> s.head(n=3)
+            >>> ser.head(n=3)
             0   Ant
             1   Bear
             2   Cow
