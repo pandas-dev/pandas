@@ -9313,7 +9313,7 @@ class DataFrame(NDFrame, OpsMixin):
             Level(s) of index to unstack, can pass level name.
         fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
-        sort: bool, default True
+        sort : bool, default True
             Sort the level(s) in the resulting MultiIndex columns.
 
         Returns

@@ -4286,7 +4286,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
-        sort: bool, default True
+        sort : bool, default True
             Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
