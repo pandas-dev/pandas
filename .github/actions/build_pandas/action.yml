@@ -26,4 +26,4 @@ runs:
         fi
       shell: bash -el {0}
       env:
-        SCCACHE_GHA_ENABLED: true
+        SCCACHE_GHA_ENABLED: "true"
