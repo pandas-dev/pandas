@@ -1058,7 +1058,7 @@ class TestInference:
 
         with pd.option_context("future.infer_time", future):
             with tm.assert_produces_warning(warn, match=msg):
-                out = lib.maybe_convert_objects(objs, convert_time=True)
+                out = lib.maybe_convert_objects(objs, convert_non_numeric=True)
             with tm.assert_produces_warning(warn, match=msg):
                 ser = Series(objs)
             with tm.assert_produces_warning(warn, match=msg):
