@@ -13,7 +13,6 @@ inc_datetime = include_directories('_libs/tslibs')
 fs.copyfile('__init__.py')
 
 subdir('_libs')
-subdir('io')
 
 subdirs_list = [
     '_config',
@@ -24,6 +23,7 @@ subdirs_list = [
     'compat',
     'core',
     'errors',
+    'io',
     'plotting',
     'tests',
     'tseries',
