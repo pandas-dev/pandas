@@ -15,7 +15,7 @@ runs:
       shell: bash -el {0}
 
     - name: Use sccache
-      uses: https://github.com/Mozilla-Actions/sccache-action
+      uses: mozilla-actions/sccache-action@v0.0.3
 
     - name: Build Pandas
       run: |
