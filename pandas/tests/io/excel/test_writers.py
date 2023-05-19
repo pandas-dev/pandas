@@ -1123,17 +1123,23 @@ class TestExcelWriter:
         msgs = {
             "odf": r"OpenDocumentSpreadsheet() got an unexpected keyword "
             r"argument 'foo'",
-            "openpyxl": r"load_workbook() got an unexpected keyword argument 'foo'",
-            "xlsxwriter": r"Workbook.__init__() got an unexpected keyword argument "
-            r"'foo'",
+            "openpyxl": r"__init__() got an unexpected keyword argument 'foo'",
+            "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
         }
 
         if PY310:
-            msgs["xlsxwriter"] = "__init__() got an unexpected keyword argument 'foo'"
+            msgs[
+                "openpyxl"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            msgs[
+                "xlsxwriter"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
 
         # Handle change in error message for openpyxl (write and append mode)
-        if engine == "openpyxl" and os.path.exists(path) and PY310:
-            msgs["openpyxl"] = r"__init__() got an unexpected keyword argument 'foo'"
+        if engine == "openpyxl" and not os.path.exists(path):
+            msgs[
+                "openpyxl"
+            ] = r"load_workbook() got an unexpected keyword argument 'foo'"
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
             df.to_excel(
