@@ -454,7 +454,7 @@ class TestDataFrameIndexing:
 
         # set existing column
         dm["A"] = "bar"
-        assert "bar" == dm["A"][0]
+        assert "bar" == dm["A"].iloc[0]
 
         dm = DataFrame(index=np.arange(3))
         dm["A"] = 1

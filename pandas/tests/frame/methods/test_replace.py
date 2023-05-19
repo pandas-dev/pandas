@@ -614,8 +614,8 @@ class TestDataFrameReplace:
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype("float64")
         m = df.mean()
-        expected.iloc[0, 0] = m[0]
-        expected.iloc[1, 1] = m[1]
+        expected.iloc[0, 0] = m.iloc[0]
+        expected.iloc[1, 1] = m.iloc[1]
         tm.assert_frame_equal(result, expected)
 
     def test_replace_nullable_int_with_string_doesnt_cast(self):
@@ -1072,7 +1072,7 @@ class TestDataFrameReplace:
         assert set(df.fname.values) == set(d["fname"].keys())
 
         expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
-        assert expected.dtypes[0] == "Period[M]"
+        assert expected.dtypes.iloc[0] == "Period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
