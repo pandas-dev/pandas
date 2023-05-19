@@ -1150,15 +1150,15 @@ class _LocIndexer(_LocationIndexer):
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
         if isinstance(key, bool) and not (
-                (
-                        isinstance(ax, MultiIndex)
-                        and (
-                                is_bool_dtype(ax.get_level_values(0).dtype)
-                                or is_object_dtype(ax.get_level_values(0).dtype)
-                        )
+            (
+                isinstance(ax, MultiIndex)
+                and (
+                    is_bool_dtype(ax.get_level_values(0).dtype)
+                    or is_object_dtype(ax.get_level_values(0).dtype)
                 )
-                or (ax.dtype.name == "boolean" or ax.dtype.name == "object")
-                or (is_bool_dtype(ax.dtype) or is_object_dtype(ax.dtype))
+            )
+            or (ax.dtype.name == "boolean" or ax.dtype.name == "object")
+            or (is_bool_dtype(ax.dtype) or is_object_dtype(ax.dtype))
         ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean or object index"
