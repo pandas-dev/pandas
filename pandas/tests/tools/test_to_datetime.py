@@ -933,6 +933,20 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("utc", [True, False])
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    def test_to_datetime_arrow(self, tz, utc):
+        import pyarrow as pa
+
+        dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
+        dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns")))
+
+        result = to_datetime(dti_arrow, utc=utc)
+        expected = to_datetime(dti, utc=utc).astype("timestamp[ns][pyarrow]")
+        assert result is dti_arrow
+        tm.assert_index_equal(result, expected, exact=False)
+
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)

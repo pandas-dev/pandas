@@ -57,7 +57,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -398,6 +401,18 @@ def _convert_listlike_datetimes(
             return DatetimeIndex(arg, tz=tz, name=name)
         if utc:
             arg = arg.tz_convert(None).tz_localize("utc")
+        return arg
+
+    elif isinstance(arg_dtype, ArrowDtype) and np.issubdtype(
+        arg_dtype.numpy_dtype, np.datetime64
+    ):
+        # TODO: Combine with above if DTI/DTA supports Arrow timestamps
+        if utc:
+            import pyarrow as pa
+
+            # array attribute has to exist since arg is Index/Series at this point
+            arg_arr = arg.array._pa_array
+            arg._pa_array = arg_arr.cast(pa.timestamp(arg_arr.type.unit, "utc"))
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
