@@ -573,8 +573,8 @@ For example:
 
             See Also
             --------
-            Series.tail : Return the last 5 elements of the Series.
-            Series.iloc : Return a slice of the elements in the Series,
+            ser.tail : Return the last 5 elements of the Series.
+            ser.iloc : Return a slice of the elements in the Series,
                 which can also be used to return the first or last n.
             """
             return self.iloc[:5]
@@ -920,8 +920,8 @@ plot will be generated automatically when building the documentation.
             .. plot::
                 :context: close-figs
 
-                >>> s = pd.Series([1, 2, 3])
-                >>> s.plot()
+                >>> ser = pd.Series([1, 2, 3])
+                >>> ser.plot()
             """
             pass
 
