@@ -1195,7 +1195,7 @@ class TestDatetime64Arithmetic:
         warn_msg = "Pandas type inference with a sequence of `datetime.time` objects"
         warn = None
         if future is True:
-            msgs.append("cannot subtract DatetimeArray from ArrowExtensionArray")
+            msgs.append(r"Function '(add|subtract)_checked' has no kernel")
         elif future is None:
             warn = FutureWarning
 
@@ -1210,7 +1210,7 @@ class TestDatetime64Arithmetic:
             # we aren't testing that here, so ignore.
             warnings.simplefilter("ignore", PerformanceWarning)
 
-            assert_invalid_addsub_type(obj1, obj2, msg=msg)
+            assert_invalid_addsub_type(obj1, obj2, msg=msg, can_be_not_implemented=True)
 
     # -------------------------------------------------------------
     # Other invalid operations
