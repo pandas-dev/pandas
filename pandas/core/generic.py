@@ -2196,10 +2196,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         startcol : int, default 0
             Upper left cell column to dump data frame.
         engine : str, optional
-            Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-            via the options ``io.excel.xlsx.writer`` or
-            ``io.excel.xlsm.writer``.
-
+            Write engine to use, 'openpyxl' or 'xlsxwriter'. Install them (via pip). Default is 'xlswriter' unless ONLY 'openpyxl' is installed. 
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         inf_rep : str, default 'inf'
