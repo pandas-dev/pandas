@@ -2197,8 +2197,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Upper left cell column to dump data frame.
         engine : str, optional
             Write engine to use, 'openpyxl' or 'xlsxwriter'. 
-            If both are installed, default is 'xlsxwriter' (usually faster and makes a smaller file).
-            Otherwise use 'openpyxl'.
+            If both are installed, defaults to 'xlsxwriter' (usually faster and makes a smaller file).
+            Otherwise 'openpyxl' is used (supports xlsx/xlsm/xltx/xltm formats).
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         inf_rep : str, default 'inf'
