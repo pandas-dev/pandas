@@ -11,6 +11,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._constants import PY310
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1114,6 +1115,38 @@ class TestExcelWriter:
             bio.seek(0)
             reread_df = pd.read_excel(bio, index_col=0)
             tm.assert_frame_equal(df, reread_df)
+
+    def test_engine_kwargs(self, engine, path):
+        # GH#52368
+        df = DataFrame([{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+
+        msgs = {
+            "odf": r"OpenDocumentSpreadsheet() got an unexpected keyword "
+            r"argument 'foo'",
+            "openpyxl": r"__init__() got an unexpected keyword argument 'foo'",
+            "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
+        }
+
+        if PY310:
+            msgs[
+                "openpyxl"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            msgs[
+                "xlsxwriter"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+
+        # Handle change in error message for openpyxl (write and append mode)
+        if engine == "openpyxl" and not os.path.exists(path):
+            msgs[
+                "openpyxl"
+            ] = r"load_workbook() got an unexpected keyword argument 'foo'"
+
+        with pytest.raises(TypeError, match=re.escape(msgs[engine])):
+            df.to_excel(
+                path,
+                engine=engine,
+                engine_kwargs={"foo": "bar"},
+            )
 
     def test_write_lists_dict(self, path):
         # see gh-8188.

@@ -901,6 +901,7 @@ class ExcelFormatter:
         freeze_panes: tuple[int, int] | None = None,
         engine: str | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
@@ -922,6 +923,8 @@ class ExcelFormatter:
         {storage_options}
 
             .. versionadded:: 1.2.0
+        engine_kwargs: dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         from pandas.io.excel import ExcelWriter
 
@@ -932,6 +935,9 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
@@ -939,7 +945,10 @@ class ExcelFormatter:
             # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
             # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
             writer = ExcelWriter(  # type: ignore[abstract]
-                writer, engine=engine, storage_options=storage_options
+                writer,
+                engine=engine,
+                storage_options=storage_options,
+                engine_kwargs=engine_kwargs,
             )
             need_save = True
 

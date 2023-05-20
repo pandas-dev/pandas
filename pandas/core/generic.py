@@ -2154,6 +2154,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inf_rep: str = "inf",
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2210,6 +2211,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
 
         See Also
         --------
@@ -2262,6 +2265,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
         """
+        if engine_kwargs is None:
+            engine_kwargs = {}
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -2286,6 +2291,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freeze_panes=freeze_panes,
             engine=engine,
             storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
     @final

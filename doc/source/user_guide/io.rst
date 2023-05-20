@@ -3785,6 +3785,15 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 
 .. _io.excel_writing_buffer:
 
+When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
+engine. For this, it is important to know which function pandas is using internally.
+
+* For the engine openpyxl, pandas is using :func:`openpyxl.Workbook` to create a new sheet and :func:`openpyxl.load_workbook` to append data to an existing sheet. The openpyxl engine writes to (``.xlsx``) and (``.xlsm``) files.
+
+* For the engine xlsxwriter, pandas is using :func:`xlsxwriter.Workbook` to write to (``.xlsx``) files.
+
+* For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
+
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
