@@ -9797,6 +9797,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
+
         Returns
         -------
         DataFrame
