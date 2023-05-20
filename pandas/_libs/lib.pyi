@@ -71,7 +71,6 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
-
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
