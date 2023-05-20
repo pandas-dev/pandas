@@ -29,6 +29,7 @@ Bug fixes
 - Bug in :func:`api.interchange.from_dataframe` was returning :class:`DataFrame`'s of incorrect sizes when called on slices (:issue:`52824`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
 - Bug in :func:`merge` when merging on datetime columns on different resolutions (:issue:`53200`)
+- Bug in :func:`read_csv` raising ``OverflowError`` for ``engine="pyarrow"`` and ``parse_dates`` set (:issue:`53295`)
 - Bug in :func:`to_datetime` was inferring format to contain ``"%H"`` instead of ``"%I"`` if date contained "AM" / "PM" tokens (:issue:`53147`)
 - Bug in :meth:`DataFrame.convert_dtypes` ignores ``convert_*`` keywords when set to False ``dtype_backend="pyarrow"`` (:issue:`52872`)
 - Bug in :meth:`DataFrame.sort_values` raising for PyArrow ``dictionary`` dtype (:issue:`53232`)
@@ -37,7 +38,6 @@ Bug fixes
 - Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
 -
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.other:
 

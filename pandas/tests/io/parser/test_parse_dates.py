@@ -2218,3 +2218,23 @@ def test_parse_dates_dict_format_index(all_parsers):
         index=Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")], name="a"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_arrow_engine(all_parsers):
+    # GH#53295
+    parser = all_parsers
+    data = """a,b
+2000-01-01 00:00:00,1
+2000-01-01 00:00:01,1"""
+
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    expected = DataFrame(
+        {
+            "a": [
+                Timestamp("2000-01-01 00:00:00"),
+                Timestamp("2000-01-01 00:00:01"),
+            ],
+            "b": 1,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
