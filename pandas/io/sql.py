@@ -137,7 +137,7 @@ def _parse_date_columns(data_frame, parse_dates):
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
-            data_frame.iloc[:, i] = _handle_date_column(df_col, format=fmt)
+            data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
     return data_frame
 
