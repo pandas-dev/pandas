@@ -1179,7 +1179,9 @@ class TestDatetime64Arithmetic:
         if str(tz) == "tzlocal()" and future is True:
             # TODO(GH#53278)
             mark = pytest.mark.xfail(
-                reason="Incorrectly raises AttributeError instead of TypeError"
+                reason="Incorrectly raises AttributeError instead of TypeError",
+                # some but not all CI builds
+                strict=False,
             )
             request.node.add_marker(mark)
 
