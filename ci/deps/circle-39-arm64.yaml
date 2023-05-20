@@ -35,6 +35,7 @@ dependencies:
   - jinja2>=3.1.2
   - lxml>=4.8.0
   - matplotlib>=3.6.1
+  # test_numba_vs_cython segfaults with numba 0.57
   - numba>=0.55.2, <0.57.0
   - numexpr>=2.8.0
   - odfpy>=1.4.1
