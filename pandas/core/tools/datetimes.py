@@ -403,9 +403,7 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
-    elif isinstance(arg_dtype, ArrowDtype) and np.issubdtype(
-        arg_dtype.numpy_dtype, np.datetime64
-    ):
+    elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "M":
         # TODO: Combine with above if DTI/DTA supports Arrow timestamps
         if utc:
             import pyarrow as pa

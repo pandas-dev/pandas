@@ -933,11 +933,10 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
-    @td.skip_if_no("pyarrow")
     @pytest.mark.parametrize("utc", [True, False])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_to_datetime_arrow(self, tz, utc):
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
 
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
         dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns")))
