@@ -132,7 +132,7 @@ Now it will always aggregate, when passed an aggregation function:
     ser = pd.Series([1, 2, 3])
     ser.agg(np.sum)
 
-More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg`.
+More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg` (:issue:'53324').
 
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^
