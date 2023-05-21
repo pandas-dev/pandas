@@ -392,6 +392,7 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
 
 
 def test_agg_evaluate_lambdas(string_series):
+    # GH53325
     expected = Series
 
     result = string_series.agg(lambda x: type(x))

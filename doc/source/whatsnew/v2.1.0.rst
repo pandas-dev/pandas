@@ -147,13 +147,14 @@ Now user-defined functions in :meth:`Series.agg` will always be passed the whole
 *New behavior*:
 
 .. ipython:: python
+   :okexcept:
 
-    ser = pd.Series([1, 2, 3])
-    ser.agg(lambda x: np.sum(x, where=True))  # fails, as it should
-    ser.agg(type)
-    ser.agg(type) == ser.to_frame().agg(type)[0]
+   ser = pd.Series([1, 2, 3])
+   ser.agg(lambda x: np.sum(x, where=True))  # fails, as it should
+   ser.agg(type)
+   ser.agg(type) == ser.to_frame().agg(type)[0]
 
-More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg` (:issue:`53324`).
+More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg` (:issue:`53325`).
 
 
 .. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
