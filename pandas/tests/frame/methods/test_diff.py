@@ -302,3 +302,10 @@ class TestDataFrameDiff:
         )
         expected = DataFrame([np.nan, 1.0, 1.0, 1.0, 1.0], dtype=expected_dtype)
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_all_bool_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/52579
+        df = DataFrame({"col": [True, False]})
+        result = df.T.diff(axis=1)
+        expected = DataFrame({0: [np.nan], 1: [True]}, index=["col"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)

@@ -9467,18 +9467,28 @@ class DataFrame(NDFrame, OpsMixin):
             periods = int(periods)
 
         axis = self._get_axis_number(axis)
+
+        def is_columns_bool_dtypes(self) -> bool:
+            for i in self.dtypes:
+                if(i != bool): 
+                    return False
+            return True
+
         if axis == 1:
             if periods != 0:
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
+                if is_columns_bool_dtypes(self):
+                    result = self ^ self.shift(periods=periods, axis=axis)
+                    result.iloc[:, :periods] = np.nan
+                    return result
                 return self - self.shift(periods, axis=axis)
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
-
     # ----------------------------------------------------------------------
     # Function application
 
