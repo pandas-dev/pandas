@@ -51,13 +51,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     IOHandles,
     dedup_names,
-    extension_to_compression,
-    file_exists,
     get_handle,
-    is_fsspec_url,
     is_potential_multi_index,
-    is_url,
-    stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import (
@@ -523,12 +518,7 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a valid JSON str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
-        ``file://localhost/path/to/table.json``.
-
+    path_or_buf : a path object or file-like object
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
@@ -750,6 +740,8 @@ def read_json(
 }}\
 '
     """
+    if isinstance(path_or_buf, str):
+        raise TypeError("cannot pass literal json to pandas.read_json")
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
@@ -868,8 +860,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 )
             self.data = filepath_or_buffer
         elif self.engine == "ujson":
-            data = self._get_data_from_filepath(filepath_or_buffer)
-            self.data = self._preprocess_data(data)
+            self.data = self._preprocess_data(filepath_or_buffer)
 
     def _preprocess_data(self, data):
         """
@@ -886,47 +877,6 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             data = StringIO(data)
 
         return data
-
-    def _get_data_from_filepath(self, filepath_or_buffer):
-        """
-        The function read_json accepts three input types:
-            1. filepath (string-like)
-            2. file-like object (e.g. open file object, StringIO)
-            3. JSON string
-
-        This method turns (1) into (2) to simplify the rest of the processing.
-        It returns input types (2) and (3) unchanged.
-
-        It raises FileNotFoundError if the input is a string ending in
-        one of .json, .json.gz, .json.bz2, etc. but no such file exists.
-        """
-        # if it is a string but the file does not exist, it might be a JSON string
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
-        if (
-            not isinstance(filepath_or_buffer, str)
-            or is_url(filepath_or_buffer)
-            or is_fsspec_url(filepath_or_buffer)
-            or file_exists(filepath_or_buffer)
-        ):
-            self.handles = get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-                errors=self.encoding_errors,
-            )
-            filepath_or_buffer = self.handles.handle
-        elif (
-            isinstance(filepath_or_buffer, str)
-            and filepath_or_buffer.lower().endswith(
-                (".json",) + tuple(f".json{c}" for c in extension_to_compression)
-            )
-            and not file_exists(filepath_or_buffer)
-        ):
-            raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
-
-        return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:
         """
