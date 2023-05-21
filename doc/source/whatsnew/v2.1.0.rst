@@ -392,6 +392,7 @@ I/O
 - :meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)
 - Bug in :func:`json_normalize`, fix json_normalize cannot parse metadata fields list type (:issue:`37782`)
 - Bug in :func:`read_csv` where it would error when ``parse_dates`` was set to a list or dictionary with ``engine="pyarrow"`` (:issue:`47961`)
+- Bug in :func:`read_csv`, with ``engine="pyarrow"`` erroring when specifying a dtype for index cols (:issue:`53229`)
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
