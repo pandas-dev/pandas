@@ -633,12 +633,9 @@ class TestFancy:
 
     def test_setitem_one_element_list(self):
         # GH#52825
-        texts=["abc"]
-        languages=["en"]
-        df = pd.DataFrame(columns=[
-                "text",
-                "language"
-            ])
+        texts = ["abc"]
+        languages = ["en"]
+        df = pd.DataFrame(columns=["text", "language"])
         df.loc[:, "text"] = texts
         df.loc[:, "language"] = languages
         assert df.size == 2
