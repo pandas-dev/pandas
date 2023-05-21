@@ -860,7 +860,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                 )
             self.data = filepath_or_buffer
         elif self.engine == "ujson":
+            self.handles = get_handle(filepath_or_buffer, "r")
             self.data = self._preprocess_data(filepath_or_buffer)
+            self.close()
 
     def _preprocess_data(self, data):
         """
