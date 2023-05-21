@@ -631,6 +631,18 @@ class TestFancy:
             indexer(s2)["0"] = 0
             assert is_object_dtype(s2.index)
 
+    def test_setitem_one_element_list(self):
+        # GH#52825
+        texts=['abc']
+        languages=['en']
+        df = pd.DataFrame(columns=[
+                'text',
+                'language'
+            ])
+        df.loc[:, 'text'] = texts
+        df.loc[:, 'language'] = languages
+        assert df.size == 2
+
 
 class TestMisc:
     def test_float_index_to_mixed(self):
