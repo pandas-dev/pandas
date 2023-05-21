@@ -300,7 +300,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
--
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a pyarrow timestamp or duration dtype to numpy (:issue:`#####`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -447,6 +447,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
+- Bug in :metho:`~arrays.ArrowExtensionArray.__iter__` and :metho:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`#####`)
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
