@@ -114,10 +114,47 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_210.notable_bug_fixes.series_agg:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+User defined functions in Series.agg will always be passed the whole :class:`Series` for evaluation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, :meth:`Series.agg` would attempt to apply user-defined functions on each element first and only if that failed would it apply user-defined function to the whole :class:`Series`. This would mean it in some cases didn't aggregate when given an aggregation function, and that the result for :meth:`Series.agg` could be different than the single-column result from :meth:`DataFrame.agg`:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series([1, 2, 3])
+    In [2]: ser.agg(lambda x: np.sum(x, where=True))
+    Out[2]:
+    0    1
+    1    2
+    2    3
+    dtype: int64
+    In [3]: ser.agg(type)
+    Out[3]:
+    0    <class 'int'>
+    1    <class 'int'>
+    2    <class 'int'>
+    dtype: object
+    In [3]: df = ser.to_frame()
+    In [4]: df.agg(type)[0]
+    pandas.core.series.Series
+
+Now user-defined functions in :meth:`Series.agg` will always be passed the whole :class:`Series` for evaluation:
+
+*New behavior*:
+
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3])
+    ser.agg(lambda x: np.sum(x, where=True))  # fails, as it should
+    ser.agg(type)
+    ser.agg(type) == ser.to_frame().agg(type)[0]
+
+More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg` (:issue:`53324`).
+
 
 .. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
 

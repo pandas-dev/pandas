@@ -391,6 +391,16 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
         assert result == str(string_series)
 
 
+def test_agg_evaluate_lambdas(string_series):
+    expected = Series
+
+    result = string_series.agg(lambda x: type(x))
+    assert result is expected
+
+    result = string_series.agg(type)
+    assert result is expected
+
+
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
@@ -401,11 +411,6 @@ def test_with_nested_series(datetime_series):
             lambda x: Series([x, x**2], index=["x", "x^2"])
         )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH52123
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
