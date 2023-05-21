@@ -635,7 +635,7 @@ class TestFancy:
         # GH#52825
         texts = ["abc"]
         languages = ["en"]
-        df = pd.DataFrame(columns=["text", "language"])
+        df = DataFrame(columns=["text", "language"])
         df.loc[:, "text"] = texts
         df.loc[:, "language"] = languages
         assert df.size == 2
