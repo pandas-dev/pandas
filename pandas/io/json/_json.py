@@ -493,7 +493,7 @@ def read_json(
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
 )
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path_or_buf: ReadBuffer[str] | ReadBuffer[bytes],
     *,
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
