@@ -7,15 +7,15 @@ from hypothesis import (
 import numpy as np
 import pytest
 
-import pandas._testing as tm
-
-from pandas.io.sas._byteswap import (
+from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
     read_uint16_with_byteswap,
     read_uint32_with_byteswap,
     read_uint64_with_byteswap,
 )
+
+import pandas._testing as tm
 
 
 @given(read_offset=st.integers(0, 11), number=st.integers(min_value=0))

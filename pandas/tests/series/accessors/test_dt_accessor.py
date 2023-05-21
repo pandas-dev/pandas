@@ -243,7 +243,7 @@ class TestSeriesDatetimeValues:
         exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([ser[0]] * 3, index=index, name="xxx")
+        exp = Series([ser.iloc[0]] * 3, index=index, name="xxx")
         tm.assert_series_equal(ser.dt.normalize(), exp)
 
     def test_dt_accessor_limited_display_api(self):

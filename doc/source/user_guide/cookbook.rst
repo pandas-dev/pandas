@@ -546,7 +546,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    def MyCust(x):
        if len(x) > 2:
-           return x[1] * 1.234
+           return x.iloc[1] * 1.234
        return pd.NaT
 
    mhc = {"Mean": np.mean, "Max": np.max, "Custom": MyCust}

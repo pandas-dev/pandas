@@ -611,16 +611,16 @@ class TestDataFrameAnalytics:
 
         # min
         result = diffs.min()
-        assert result[0] == diffs.loc[0, "A"]
-        assert result[1] == diffs.loc[0, "B"]
+        assert result.iloc[0] == diffs.loc[0, "A"]
+        assert result.iloc[1] == diffs.loc[0, "B"]
 
         result = diffs.min(axis=1)
         assert (result == diffs.loc[0, "B"]).all()
 
         # max
         result = diffs.max()
-        assert result[0] == diffs.loc[2, "A"]
-        assert result[1] == diffs.loc[2, "B"]
+        assert result.iloc[0] == diffs.loc[2, "A"]
+        assert result.iloc[1] == diffs.loc[2, "B"]
 
         result = diffs.max(axis=1)
         assert (result == diffs["A"]).all()

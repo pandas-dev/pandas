@@ -777,7 +777,7 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts2[[0, 2, 6]].index
+   ts2.iloc[[0, 2, 6]].index
 
 .. _timeseries.components:
 

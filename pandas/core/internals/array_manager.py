@@ -444,10 +444,6 @@ class BaseArrayManager(DataManager):
         return True
 
     @property
-    def is_numeric_mixed_type(self) -> bool:
-        return all(is_numeric_dtype(t) for t in self.get_dtypes())
-
-    @property
     def any_extension_types(self) -> bool:
         """Whether any of the blocks in this manager are extension blocks"""
         return False  # any(block.is_extension for block in self.blocks)

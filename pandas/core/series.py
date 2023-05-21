@@ -973,6 +973,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key = unpack_1tuple(key)
 
         if is_integer(key) and self.index._should_fallback_to_positional:
+            warnings.warn(
+                # GH#50617
+                "Series.__getitem__ treating keys as positions is deprecated. "
+                "In a future version, integer keys will always be treated "
+                "as labels (consistent with DataFrame behavior). To access "
+                "a value by position, use `ser.iloc[pos]`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self._values[key]
 
         elif key_is_scalar:
@@ -1035,6 +1044,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not self.index._should_fallback_to_positional:
                 return self.loc[key]
             else:
+                warnings.warn(
+                    # GH#50617
+                    "Series.__getitem__ treating keys as positions is deprecated. "
+                    "In a future version, integer keys will always be treated "
+                    "as labels (consistent with DataFrame behavior). To access "
+                    "a value by position, use `ser.iloc[pos]`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return self.iloc[key]
 
         # handle the dup indexing case GH#4246
@@ -1136,6 +1154,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     # positional setter
                     # can't use _mgr.setitem_inplace yet bc could have *both*
                     #  KeyError and then ValueError, xref GH#45070
+                    warnings.warn(
+                        # GH#50617
+                        "Series.__setitem__ treating keys as positions is deprecated. "
+                        "In a future version, integer keys will always be treated "
+                        "as labels (consistent with DataFrame behavior). To set "
+                        "a value by position, use `ser.iloc[pos] = value`",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
@@ -1211,6 +1238,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == "integer":
+                warnings.warn(
+                    # GH#50617
+                    "Series.__setitem__ treating keys as positions is deprecated. "
+                    "In a future version, integer keys will always be treated "
+                    "as labels (consistent with DataFrame behavior). To set "
+                    "a value by position, use `ser.iloc[pos] = value`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self._set_values(key, value)
             else:
                 self._set_labels(key, value)
@@ -5943,7 +5979,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> bool:
@@ -5962,7 +5998,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def all(
         self,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> bool:
