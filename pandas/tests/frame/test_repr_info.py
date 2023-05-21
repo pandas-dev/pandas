@@ -304,7 +304,7 @@ NaT   4"""
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame
         dt = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
-        p = period_range("2011-01", freq="ME", periods=5)
+        p = period_range("2011-01", freq="M", periods=5)
         df = DataFrame({"dt": dt, "p": p})
         exp = """                         dt        p
 0 2011-01-01 09:00:00-05:00  2011-01
@@ -334,7 +334,7 @@ NaT   4"""
         repr(df)
 
     def test_frame_to_string_with_periodindex(self):
-        index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="ME")
+        index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
         frame = DataFrame(np.random.randn(3, 4), index=index)
 
         # it works!

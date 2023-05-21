@@ -11,7 +11,7 @@ class TestPeriodIndex:
     def test_asfreq(self):
         pi1 = period_range(freq="A", start="1/1/2001", end="1/1/2001")
         pi2 = period_range(freq="Q", start="1/1/2001", end="1/1/2001")
-        pi3 = period_range(freq="ME", start="1/1/2001", end="1/1/2001")
+        pi3 = period_range(freq="M", start="1/1/2001", end="1/1/2001")
         pi4 = period_range(freq="D", start="1/1/2001", end="1/1/2001")
         pi5 = period_range(freq="H", start="1/1/2001", end="1/1/2001 00:00")
         pi6 = period_range(freq="Min", start="1/1/2001", end="1/1/2001 00:00")
@@ -19,14 +19,14 @@ class TestPeriodIndex:
 
         assert pi1.asfreq("Q", "S") == pi2
         assert pi1.asfreq("Q", "s") == pi2
-        assert pi1.asfreq("ME", "start") == pi3
+        assert pi1.asfreq("M", "start") == pi3
         assert pi1.asfreq("D", "StarT") == pi4
         assert pi1.asfreq("H", "beGIN") == pi5
         assert pi1.asfreq("Min", "S") == pi6
         assert pi1.asfreq("S", "S") == pi7
 
         assert pi2.asfreq("A", "S") == pi1
-        assert pi2.asfreq("ME", "S") == pi3
+        assert pi2.asfreq("M", "S") == pi3
         assert pi2.asfreq("D", "S") == pi4
         assert pi2.asfreq("H", "S") == pi5
         assert pi2.asfreq("Min", "S") == pi6
@@ -41,28 +41,28 @@ class TestPeriodIndex:
 
         assert pi4.asfreq("A", "S") == pi1
         assert pi4.asfreq("Q", "S") == pi2
-        assert pi4.asfreq("ME", "S") == pi3
+        assert pi4.asfreq("M", "S") == pi3
         assert pi4.asfreq("H", "S") == pi5
         assert pi4.asfreq("Min", "S") == pi6
         assert pi4.asfreq("S", "S") == pi7
 
         assert pi5.asfreq("A", "S") == pi1
         assert pi5.asfreq("Q", "S") == pi2
-        assert pi5.asfreq("ME", "S") == pi3
+        assert pi5.asfreq("M", "S") == pi3
         assert pi5.asfreq("D", "S") == pi4
         assert pi5.asfreq("Min", "S") == pi6
         assert pi5.asfreq("S", "S") == pi7
 
         assert pi6.asfreq("A", "S") == pi1
         assert pi6.asfreq("Q", "S") == pi2
-        assert pi6.asfreq("ME", "S") == pi3
+        assert pi6.asfreq("M", "S") == pi3
         assert pi6.asfreq("D", "S") == pi4
         assert pi6.asfreq("H", "S") == pi5
         assert pi6.asfreq("S", "S") == pi7
 
         assert pi7.asfreq("A", "S") == pi1
         assert pi7.asfreq("Q", "S") == pi2
-        assert pi7.asfreq("ME", "S") == pi3
+        assert pi7.asfreq("M", "S") == pi3
         assert pi7.asfreq("D", "S") == pi4
         assert pi7.asfreq("H", "S") == pi5
         assert pi7.asfreq("Min", "S") == pi6
@@ -70,23 +70,23 @@ class TestPeriodIndex:
         msg = "How must be one of S or E"
         with pytest.raises(ValueError, match=msg):
             pi7.asfreq("T", "foo")
-        result1 = pi1.asfreq("3ME")
-        result2 = pi1.asfreq("ME")
-        expected = period_range(freq="ME", start="2001-12", end="2001-12")
+        result1 = pi1.asfreq("3M")
+        result2 = pi1.asfreq("M")
+        expected = period_range(freq="M", start="2001-12", end="2001-12")
         tm.assert_numpy_array_equal(result1.asi8, expected.asi8)
         assert result1.freqstr == "3ME"
         tm.assert_numpy_array_equal(result2.asi8, expected.asi8)
         assert result2.freqstr == "ME"
 
     def test_asfreq_nat(self):
-        idx = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-04"], freq="ME")
+        idx = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-04"], freq="M")
         result = idx.asfreq(freq="Q")
         expected = PeriodIndex(["2011Q1", "2011Q1", "NaT", "2011Q2"], freq="Q")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["D", "3D"])
     def test_asfreq_mult_pi(self, freq):
-        pi = PeriodIndex(["2001-01", "2001-02", "NaT", "2001-03"], freq="2ME")
+        pi = PeriodIndex(["2001-01", "2001-02", "NaT", "2001-03"], freq="2M")
 
         result = pi.asfreq(freq)
         exp = PeriodIndex(["2001-02-28", "2001-03-31", "NaT", "2001-04-30"], freq=freq)
@@ -121,10 +121,10 @@ class TestPeriodIndex:
 
     def test_astype_asfreq(self):
         pi1 = PeriodIndex(["2011-01-01", "2011-02-01", "2011-03-01"], freq="D")
-        exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="ME")
-        tm.assert_index_equal(pi1.asfreq("ME"), exp)
-        tm.assert_index_equal(pi1.astype("period[ME]"), exp)
+        exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
+        tm.assert_index_equal(pi1.asfreq("M"), exp)
+        tm.assert_index_equal(pi1.astype("period[M]"), exp)
 
-        exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="3ME")
-        tm.assert_index_equal(pi1.asfreq("3ME"), exp)
-        tm.assert_index_equal(pi1.astype("period[3ME]"), exp)
+        exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="3M")
+        tm.assert_index_equal(pi1.asfreq("3M"), exp)
+        tm.assert_index_equal(pi1.astype("period[3M]"), exp)

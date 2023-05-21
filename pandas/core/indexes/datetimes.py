@@ -66,6 +66,8 @@ if TYPE_CHECKING:
         PeriodIndex,
     )
 
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+
 
 def _new_DatetimeIndex(cls, d):
     """
@@ -511,7 +513,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        per = Period(parsed, freq=reso.attr_abbrev)
+        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+            freq = reso.attr_abbrev.replace(key, value)
+        per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
 
         # GH 24076

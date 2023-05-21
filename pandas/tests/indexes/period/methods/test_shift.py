@@ -14,17 +14,17 @@ class TestPeriodIndexShift:
 
     def test_pi_shift_ndarray(self):
         idx = PeriodIndex(
-            ["2011-01", "2011-02", "NaT", "2011-04"], freq="ME", name="idx"
+            ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
         result = idx.shift(np.array([1, 2, 3, 4]))
         expected = PeriodIndex(
-            ["2011-02", "2011-04", "NaT", "2011-08"], freq="ME", name="idx"
+            ["2011-02", "2011-04", "NaT", "2011-08"], freq="M", name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.shift(np.array([1, -2, 3, -4]))
         expected = PeriodIndex(
-            ["2011-02", "2010-12", "NaT", "2010-12"], freq="ME", name="idx"
+            ["2011-02", "2010-12", "NaT", "2010-12"], freq="M", name="idx"
         )
         tm.assert_index_equal(result, expected)
 
@@ -42,13 +42,13 @@ class TestPeriodIndexShift:
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
 
-        pi1 = period_range(freq="ME", start="1/1/2001", end="12/1/2009")
-        pi2 = period_range(freq="ME", start="2/1/2001", end="1/1/2010")
+        pi1 = period_range(freq="M", start="1/1/2001", end="12/1/2009")
+        pi2 = period_range(freq="M", start="2/1/2001", end="1/1/2010")
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(1), pi2)
 
-        pi1 = period_range(freq="ME", start="1/1/2001", end="12/1/2009")
-        pi2 = period_range(freq="ME", start="12/1/2000", end="11/1/2009")
+        pi1 = period_range(freq="M", start="1/1/2001", end="12/1/2009")
+        pi2 = period_range(freq="M", start="12/1/2000", end="11/1/2009")
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
 
@@ -95,11 +95,11 @@ class TestPeriodIndexShift:
 
     def test_shift_nat(self):
         idx = PeriodIndex(
-            ["2011-01", "2011-02", "NaT", "2011-04"], freq="ME", name="idx"
+            ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
         result = idx.shift(1)
         expected = PeriodIndex(
-            ["2011-02", "2011-03", "NaT", "2011-05"], freq="ME", name="idx"
+            ["2011-02", "2011-03", "NaT", "2011-05"], freq="M", name="idx"
         )
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name

@@ -1690,7 +1690,7 @@ Thu,Lunch,Yes,51.51,17"""
         # GH4342
         idx1 = pd.PeriodIndex(
             ["2013-01", "2013-01", "2013-02", "2013-02", "2013-03", "2013-03"],
-            freq="ME",
+            freq="M",
             name="period",
         )
         idx2 = Index(["A", "B"] * 3, name="str")
@@ -1704,7 +1704,7 @@ Thu,Lunch,Yes,51.51,17"""
         result3 = s.unstack(level=0)
 
         e_idx = pd.PeriodIndex(
-            ["2013-01", "2013-02", "2013-03"], freq="ME", name="period"
+            ["2013-01", "2013-02", "2013-03"], freq="M", name="period"
         )
         expected = DataFrame(
             {"A": [1, 3, 5], "B": [2, 4, 6]}, index=e_idx, columns=["A", "B"]
@@ -1717,13 +1717,13 @@ Thu,Lunch,Yes,51.51,17"""
 
         idx1 = pd.PeriodIndex(
             ["2013-01", "2013-01", "2013-02", "2013-02", "2013-03", "2013-03"],
-            freq="ME",
+            freq="M",
             name="period1",
         )
 
         idx2 = pd.PeriodIndex(
             ["2013-12", "2013-11", "2013-10", "2013-09", "2013-08", "2013-07"],
-            freq="ME",
+            freq="M",
             name="period2",
         )
         idx = MultiIndex.from_arrays([idx1, idx2])
@@ -1734,11 +1734,11 @@ Thu,Lunch,Yes,51.51,17"""
         result3 = s.unstack(level=0)
 
         e_idx = pd.PeriodIndex(
-            ["2013-01", "2013-02", "2013-03"], freq="ME", name="period1"
+            ["2013-01", "2013-02", "2013-03"], freq="M", name="period1"
         )
         e_cols = pd.PeriodIndex(
             ["2013-07", "2013-08", "2013-09", "2013-10", "2013-11", "2013-12"],
-            freq="ME",
+            freq="M",
             name="period2",
         )
         expected = DataFrame(
@@ -1759,12 +1759,12 @@ Thu,Lunch,Yes,51.51,17"""
         # GH4342
         idx1 = pd.PeriodIndex(
             ["2014-01", "2014-02", "2014-02", "2014-02", "2014-01", "2014-01"],
-            freq="ME",
+            freq="M",
             name="period1",
         )
         idx2 = pd.PeriodIndex(
             ["2013-12", "2013-12", "2014-02", "2013-10", "2013-10", "2014-02"],
-            freq="ME",
+            freq="M",
             name="period2",
         )
         value = {"A": [1, 2, 3, 4, 5, 6], "B": [6, 5, 4, 3, 2, 1]}
@@ -1775,10 +1775,10 @@ Thu,Lunch,Yes,51.51,17"""
         result2 = df.unstack(level=1)
         result3 = df.unstack(level=0)
 
-        e_1 = pd.PeriodIndex(["2014-01", "2014-02"], freq="ME", name="period1")
+        e_1 = pd.PeriodIndex(["2014-01", "2014-02"], freq="M", name="period1")
         e_2 = pd.PeriodIndex(
             ["2013-10", "2013-12", "2014-02", "2013-10", "2013-12", "2014-02"],
-            freq="ME",
+            freq="M",
             name="period2",
         )
         e_cols = MultiIndex.from_arrays(["A A A B B B".split(), e_2])
@@ -1790,10 +1790,10 @@ Thu,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result2, expected)
 
         e_1 = pd.PeriodIndex(
-            ["2014-01", "2014-02", "2014-01", "2014-02"], freq="ME", name="period1"
+            ["2014-01", "2014-02", "2014-01", "2014-02"], freq="M", name="period1"
         )
         e_2 = pd.PeriodIndex(
-            ["2013-10", "2013-12", "2014-02"], freq="ME", name="period2"
+            ["2013-10", "2013-12", "2014-02"], freq="M", name="period2"
         )
         e_cols = MultiIndex.from_arrays(["A A B B".split(), e_1])
         expected = DataFrame(

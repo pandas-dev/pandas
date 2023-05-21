@@ -76,9 +76,9 @@ class TestPeriodIndex:
             freq="T",
         )
 
-        rng6 = period_range("2000-01-01", freq="ME", periods=7)
-        other6 = period_range("2000-04-01", freq="ME", periods=7)
-        expected6 = period_range("2000-01-01", freq="ME", periods=10)
+        rng6 = period_range("2000-01-01", freq="M", periods=7)
+        other6 = period_range("2000-04-01", freq="M", periods=7)
+        expected6 = period_range("2000-01-01", freq="M", periods=10)
 
         rng7 = period_range("2003-01-01", freq="A", periods=5)
         other7 = period_range("1998-01-01", freq="A", periods=8)
@@ -287,9 +287,9 @@ class TestPeriodIndex:
             "2000-03-01",
             "2000-04-01",
         ]
-        rng6 = PeriodIndex(period_rng, freq="ME")
-        other6 = period_range("2000-04-01", freq="ME", periods=7)
-        expected6 = PeriodIndex(["2000-02-01", "2000-01-01", "2000-03-01"], freq="ME")
+        rng6 = PeriodIndex(period_rng, freq="M")
+        other6 = period_range("2000-04-01", freq="M", periods=7)
+        expected6 = PeriodIndex(["2000-02-01", "2000-01-01", "2000-03-01"], freq="M")
 
         period_rng = ["2003", "2007", "2006", "2005", "2004"]
         rng7 = PeriodIndex(period_rng, freq="A")

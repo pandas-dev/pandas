@@ -1702,9 +1702,11 @@ cdef class PeriodMixin:
             condition = self.freq != other_freq
 
         if condition:
+            for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+                freqstr = self.freqstr.replace(key, value)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
-                own_freq=self.freqstr,
+                own_freq=freqstr,
                 other_freq=other_freq.freqstr,
             )
             raise IncompatibleFrequency(msg)

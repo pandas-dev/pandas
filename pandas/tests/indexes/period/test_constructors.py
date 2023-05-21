@@ -285,9 +285,7 @@ class TestPeriodIndex:
         msg = "Input has different freq=D from PeriodIndex\\(freq=ME\\)"
 
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex(
-                [Period("2011-01", freq="M"), NaT, Period("2011-01", freq="D")]
-            )
+            PeriodIndex([Period("2011-01", freq="M"), NaT, Period("2011-01", freq="D")])
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(
@@ -298,9 +296,7 @@ class TestPeriodIndex:
 
         # first element is NaT
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex(
-                [NaT, Period("2011-01", freq="M"), Period("2011-01", freq="D")]
-            )
+            PeriodIndex([NaT, Period("2011-01", freq="M"), Period("2011-01", freq="D")])
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(
@@ -410,7 +406,7 @@ class TestPeriodIndex:
     def test_constructor_freq_mult_dti_compat(self, mult, freq):
         freqstr = str(mult) + freq
         pidx = period_range(start="2014-04-01", freq=freqstr, periods=10)
-        expected = date_range( start="2014-04-01", freq=freqstr, periods=10).to_period(
+        expected = date_range(start="2014-04-01", freq=freqstr, periods=10).to_period(
             freqstr
         )
         tm.assert_index_equal(pidx, expected)

@@ -449,7 +449,9 @@ class TestSlicing:
 
     def test_slice_reduce_to_series(self):
         # GH 27516
-        df = DataFrame({"A": range(24)}, index=date_range("2000", periods=24, freq="M"))
+        df = DataFrame(
+            {"A": range(24)}, index=date_range("2000", periods=24, freq="ME")
+        )
         expected = Series(
             range(12), index=date_range("2000", periods=12, freq="ME"), name="A"
         )

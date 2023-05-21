@@ -151,7 +151,7 @@ def test_pickles(datapath):
                     tm.assert_index_equal(result, expected)
                     assert isinstance(result.freq, MonthEnd)
                     assert result.freq == MonthEnd()
-                    assert result.freqstr == "M"
+                    assert result.freqstr == "ME"
                     tm.assert_index_equal(result.shift(2), expected.shift(2))
                 elif typ == "series" and dt in ("dt_tz", "cat"):
                     tm.assert_series_equal(result, expected)
@@ -529,7 +529,7 @@ def test_pickle_timeseries_periodindex():
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
     ts = Series(np.random.randn(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts)
-    assert new_ts.index.freq == "ME"
+    assert new_ts.index.freq == "M"
 
 
 @pytest.mark.parametrize(
