@@ -2028,10 +2028,7 @@ Reading a JSON string to pandas object can take a number of parameters.
 The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
-* ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
-  a URL. Valid URL schemes include http, ftp, S3, and file. For file URLs, a host
-  is expected. For instance, a local file could be
-  file ://localhost/path/to/table.json
+* ``filepath_or_buffer`` : a **VALID** file handle or StringIO object.
 * ``typ``    : type of object to recover (series or frame), default 'frame'
 * ``orient`` :
 
@@ -2106,12 +2103,6 @@ preserve string-like numbers (e.g. '1', '2') in an axes.
    * bool columns will be converted to ``integer`` on reconstruction
 
    Thus there are times where you may want to specify specific dtypes via the ``dtype`` keyword argument.
-
-Reading from a JSON string:
-
-.. ipython:: python
-
-   pd.read_json(json)
 
 Reading from a file:
 
