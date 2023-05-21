@@ -3014,7 +3014,7 @@ def test_comparison_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_getitem_temporal(pa_type):
-    # GH #####
+    # GH 53326
     arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
     result = arr[1]
     if pa.types.is_duration(pa_type):
@@ -3033,7 +3033,7 @@ def test_getitem_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_iter_temporal(pa_type):
-    # GH #####
+    # GH 53326
     arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
     result = list(arr)
     if pa.types.is_duration(pa_type):
@@ -3056,7 +3056,7 @@ def test_iter_temporal(pa_type):
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
 def test_to_numpy_temporal(pa_type):
-    # GH #####
+    # GH 53326
     arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
     result = arr.to_numpy()
     if pa.types.is_duration(pa_type):

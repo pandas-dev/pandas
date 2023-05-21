@@ -538,10 +538,10 @@ class ArrowExtensionArray(
             if scalar is None:
                 return self._dtype.na_value
             elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
-                # GH #####
+                # GH 53326
                 return Timestamp(scalar).as_unit(pa_type.unit)
             elif pa.types.is_duration(pa_type) and pa_type.unit != "ns":
-                # GH #####
+                # GH 53326
                 return Timedelta(scalar).as_unit(pa_type.unit)
             else:
                 return scalar
@@ -551,7 +551,7 @@ class ArrowExtensionArray(
         Iterate over elements of the array.
         """
         na_value = self._dtype.na_value
-        # GH #####
+        # GH 53326
         pa_type = self._pa_array.type
         box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
         box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
