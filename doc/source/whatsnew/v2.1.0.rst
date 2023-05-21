@@ -108,7 +108,31 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_210.notable_bug_fixes.series.agg:
+
+Previously, :meth:`Series.agg` did not necessary aggregate, even if given an aggregation function:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series([1, 2, 3])
+    In [2]: ser.agg(np.sum)
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+Now it will always aggregate, when passed an aggregation function:
+
+*New behavior*:
+
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3])
+    ser.agg(np.sum)
+
+More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg`.
 
 notable_bug_fix1
 ^^^^^^^^^^^^^^^^

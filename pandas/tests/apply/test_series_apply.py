@@ -346,18 +346,6 @@ def test_demo():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_apply_evaluate_lambdas_the_same(string_series):
-    # test that we are evaluating row-by-row first
-    # before vectorized evaluation
-    result = string_series.apply(lambda x: str(x))
-    expected = string_series.agg(lambda x: str(x))
-    tm.assert_series_equal(result, expected)
-
-    result = string_series.apply(str)
-    expected = string_series.agg(str)
-    tm.assert_series_equal(result, expected)
-
-
 def test_with_nested_series(datetime_series):
     # GH 2316
     # .agg with a reducer and a transform, what to do
@@ -368,11 +356,6 @@ def test_with_nested_series(datetime_series):
             lambda x: Series([x, x**2], index=["x", "x^2"])
         )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH52123
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
