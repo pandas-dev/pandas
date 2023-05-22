@@ -633,11 +633,11 @@ class TestFancy:
 
     def test_setitem_one_element_list(self):
         # GH#52825
-        texts = ["abc"]
-        languages = ["en"]
-        df = DataFrame(columns=["text", "language"])
-        df.loc[:, "text"] = texts
-        df.loc[:, "language"] = languages
+        x_values = ["x_value"]
+        y_values = ["y_values"]
+        df = DataFrame(columns=["x", "y"])
+        df.loc[:, "x"] = x_values
+        df.loc[:, "y"] = y_values
         assert df.size == 2
 
 
