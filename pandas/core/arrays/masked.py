@@ -1125,16 +1125,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask_size = self.shape[1] if axis == 0 else self.shape[0]
         mask = np.ones(mask_size, dtype=bool)
 
-        float_dtype = "float32" if self.dtype == "Float32" else "float64"
+        float_dtyp = "float32" if self.dtype == "Float32" else "float64"
         if name in ["mean", "median", "var", "std", "skew"]:
-            np_dtype = float_dtype
+            np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
         else:
             is_windows_or_32bit = is_platform_windows() or not IS64
-            int_dtype = "int32" if is_windows_or_32bit else "int64"
-            uint_dtype = "uint32" if is_windows_or_32bit else "uint64"
-            np_dtype = {"i": int_dtype, "u": uint_dtype, "f": float_dtype}[
+            int_dtyp = "int32" if is_windows_or_32bit else "int64"
+            uint_dtyp = "uint32" if is_windows_or_32bit else "uint64"
+            np_dtype = {"b": int_dtyp, "i": int_dtyp, "u": uint_dtyp, "f": float_dtyp}[
                 self.dtype.kind
             ]
 

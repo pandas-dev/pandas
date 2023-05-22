@@ -406,17 +406,6 @@ class BooleanArray(BaseMaskedArray):
                 name, skipna=skipna, **kwargs
             )
 
-    def sum(
-        self,
-        *,
-        skipna: bool = True,
-        min_count: int = 0,
-        axis: AxisInt | None = 0,
-        **kwargs,
-    ):
-        arr = cast(BaseMaskedArray, self.astype("Int8"))
-        return arr.sum(skipna=skipna, min_count=min_count, axis=axis, **kwargs)
-
     def prod(
         self,
         *,
