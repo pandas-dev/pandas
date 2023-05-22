@@ -114,48 +114,10 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_210.notable_bug_fixes.series_agg:
+.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
 
-User defined functions in Series.agg will always be passed the whole :class:`Series` for evaluation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Previously, :meth:`Series.agg` would attempt to apply user-defined functions on each element first and only if that failed would it apply user-defined function to the whole :class:`Series`. This would mean it in some cases didn't aggregate when given an aggregation function, and that the result for :meth:`Series.agg` could be different than the single-column result from :meth:`DataFrame.agg`:
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [1]: ser = pd.Series([1, 2, 3])
-    In [2]: ser.agg(lambda x: np.sum(x, where=True))
-    Out[2]:
-    0    1
-    1    2
-    2    3
-    dtype: int64
-    In [3]: ser.agg(type)
-    Out[3]:
-    0    <class 'int'>
-    1    <class 'int'>
-    2    <class 'int'>
-    dtype: object
-    In [3]: df = ser.to_frame()
-    In [4]: df.agg(type)[0]
-    pandas.core.series.Series
-
-Now user-defined functions in :meth:`Series.agg` will always be passed the whole :class:`Series` for evaluation:
-
-*New behavior*:
-
-.. ipython:: python
-   :okexcept:
-
-   ser = pd.Series([1, 2, 3])
-   ser.agg(lambda x: np.sum(x, where=True))  # fails, as it should
-   ser.agg(type)
-   ser.agg(type) == ser.to_frame().agg(type)[0]
-
-More generally, the result from :meth:`Series.agg` will now always be the same as the single-column result from :meth:`DataFrame.agg` (:issue:`53325`).
-
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
 
 .. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
 
@@ -273,6 +235,8 @@ Deprecations
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
 - Deprecated explicit support for subclassing :class:`Index` (:issue:`45289`)
+- Deprecated making functions given to :meth:`Series.agg` attempt to operate on each element in the :class:`Series` and only operate on the whole :class:`Series` if the elementwise operations failed. In the future, functions given to :meth:`Series.agg` will always operate on the whole :class:`Series` only. To keep the current behavior, use :meth:`Series.transform` instead. (:issue:`53325`)
+- Deprecated making the functions in a list of functions given to :meth:`DataFrame.agg` attempt to operate on each element in the :class:`DataFrame` and only operate on the columns of the :class:`DataFrame` if the elementwise operations failed. To keep the current behavior, use :meth:`DataFrame.transform` instead. (:issue:`53325`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
 - Deprecated the ``axis`` keyword in :meth:`DataFrame.ewm`, :meth:`Series.ewm`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.expanding` (:issue:`51778`)

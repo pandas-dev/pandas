@@ -1478,8 +1478,8 @@ def test_any_apply_keyword_non_zero_axis_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
@@ -1488,16 +1488,13 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
-
-    result = df.agg([foo1, foo2], 0, 3, c=4)
-    expected = DataFrame(
-        [[8, 8], [9, 9], [10, 10]],
-        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
-    )
-    tm.assert_frame_equal(result, expected)
+    # single func already takes the vectorized path
+    df.agg(foo1, 0, 3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.agg([foo1, foo2], 0, 3, c=4)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.agg({"x": foo1}, 0, 3, c=4)
 
 
 def test_agg_std():

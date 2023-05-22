@@ -98,24 +98,18 @@ def test_apply_args():
     assert isinstance(result[0], list)
 
 
-@pytest.mark.parametrize(
-    "args, kwargs, increment",
-    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
-)
-def test_agg_args(args, kwargs, increment):
-    # GH 43357
-    def f(x, a=0, b=0, c=0):
-        return x + a + 10 * b + 100 * c
+def test_agg_args():
+    def f(x, increment):
+        return x.sum() + increment
 
     s = Series([1, 2])
-    result = s.agg(f, 0, *args, **kwargs)
-    expected = s + increment
-    tm.assert_series_equal(result, expected)
+    result = s.agg(f, increment=0)
+    expected = s.sum()
+    assert result == expected
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
-
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     s = Series([1, 2, 3])
 
     def foo1(x, a=1, c=0):
@@ -124,13 +118,13 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        s.agg([foo1, foo2], 0, 3, b=3, c=4)
-
-    result = s.agg([foo1, foo2], 0, 3, c=4)
-    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
-    tm.assert_frame_equal(result, expected)
+    msg = "using .+ in Series.agg cannot aggregate and"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg(foo1, 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg([foo1, foo2], 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
 
 def test_series_apply_map_box_timestamps(by_row):
@@ -393,13 +387,15 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
 
 def test_agg_evaluate_lambdas(string_series):
     # GH53325
-    expected = Series
+    # in the future, the result will be a Series class.
 
-    result = string_series.agg(lambda x: type(x))
-    assert result is expected
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(lambda x: type(x))
+    assert isinstance(result, Series) and len(result) == len(string_series)
 
-    result = string_series.agg(type)
-    assert result is expected
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(type)
+    assert isinstance(result, Series) and len(result) == len(string_series)
 
 
 def test_with_nested_series(datetime_series):
