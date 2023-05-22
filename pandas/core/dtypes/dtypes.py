@@ -52,7 +52,6 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.cast import np_find_common_type
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCIndex,
@@ -1922,6 +1921,8 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
+        from pandas.core.dtypes.cast import np_find_common_type
+
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
             for x in dtypes
