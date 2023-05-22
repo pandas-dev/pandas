@@ -279,7 +279,9 @@ def test_transform_datetime_to_timedelta():
     # GH 15429
     # transforming a datetime to timedelta
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
-    expected = Series([Timestamp("20130101") - Timestamp("20130101")] * 5, name="A")
+    expected = Series(
+        Timestamp("20130101") - Timestamp("20130101"), index=range(5), name="A"
+    )
 
     # this does date math without changing result type in transform
     base_time = df["A"][0]

@@ -691,7 +691,7 @@ cdef int get_freq_group_index(int freq) nogil:
     return freq // 1000
 
 
-cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
+cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) noexcept nogil:
     if from_end != 12:
         dts.month += from_end
         if dts.month > 12:
@@ -700,7 +700,7 @@ cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
             dts.year -= 1
 
 
-cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
+cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) noexcept nogil:
     if to_end != 12:
         dts.month -= to_end
         if dts.month <= 0:
@@ -803,7 +803,8 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     return npy_datetimestruct_to_datetime(unit, dts)
 
 
-cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
+cdef void get_date_info(int64_t ordinal,
+                        int freq, npy_datetimestruct *dts) noexcept nogil:
     cdef:
         int64_t unix_date, nanos
         npy_datetimestruct dts2
@@ -985,7 +986,7 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
-                          bint is_end, asfreq_info *af_info) nogil:
+                          bint is_end, asfreq_info *af_info) noexcept nogil:
     """
     Construct the `asfreq_info` object used to convert an ordinal from
     `from_freq` to `to_freq`.
@@ -1084,7 +1085,7 @@ cdef void _period_asfreq(
     int freq2,
     bint end,
     Py_ssize_t increment=1,
-):
+) noexcept:
     """See period_asfreq.__doc__"""
     cdef:
         Py_ssize_t i
@@ -1660,6 +1661,28 @@ cdef class PeriodMixin:
         Period.dayofyear : Return the day of year.
         Period.daysinmonth : Return the days in that month.
         Period.dayofweek : Return the day of the week.
+
+        Examples
+        --------
+        For Period:
+
+        >>> pd.Period('2020-01', 'D').end_time
+        Timestamp('2020-01-01 23:59:59.999999999')
+
+        For Series:
+
+        >>> period_index = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
+        >>> s = pd.Series(period_index)
+        >>> s
+        0   2020-01
+        1   2020-02
+        2   2020-03
+        dtype: period[M]
+        >>> s.dt.end_time
+        0   2020-01-31 23:59:59.999999999
+        1   2020-02-29 23:59:59.999999999
+        2   2020-03-31 23:59:59.999999999
+        dtype: datetime64[ns]
         """
         return self.to_timestamp(how="end")
 
@@ -1961,6 +1984,12 @@ cdef class _Period(PeriodMixin):
     def year(self) -> int:
         """
         Return the year this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.year
+        2022
         """
         base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
@@ -1969,6 +1998,12 @@ cdef class _Period(PeriodMixin):
     def month(self) -> int:
         """
         Return the month this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.month
+        1
         """
         base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
@@ -2278,6 +2313,12 @@ cdef class _Period(PeriodMixin):
     def quarter(self) -> int:
         """
         Return the quarter this Period falls on.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-04', 'M')
+        >>> period.quarter
+        2
         """
         base = self._dtype._dtype_code
         return pquarter(self.ordinal, base)
@@ -2386,6 +2427,16 @@ cdef class _Period(PeriodMixin):
     def is_leap_year(self) -> bool:
         """
         Return True if the period's year is in a leap year.
+
+        Examples
+        --------
+        >>> period = pd.Period('2022-01', 'M')
+        >>> period.is_leap_year
+        False
+
+        >>> period = pd.Period('2020-01', 'M')
+        >>> period.is_leap_year
+        True
         """
         return bool(is_leapyear(self.year))
 
@@ -2405,6 +2456,11 @@ cdef class _Period(PeriodMixin):
     def freqstr(self) -> str:
         """
         Return a string representation of the frequency.
+
+        Examples
+        --------
+        >>> pd.Period('2020-01', 'D').freqstr
+        'D'
         """
         return self._dtype._freqstr
 
