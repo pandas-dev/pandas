@@ -9793,14 +9793,9 @@ class DataFrame(NDFrame, OpsMixin):
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
-
-            .. versionadded:: 1.2
-
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
