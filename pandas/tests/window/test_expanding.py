@@ -707,3 +707,10 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+def test_keyword_quantile_deprecated():
+    # GH #52550
+    ser = Series([1, 2, 3, 4])
+    with tm.assert_produces_warning(FutureWarning):
+        ser.expanding().quantile(quantile=0.5)
