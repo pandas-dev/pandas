@@ -802,7 +802,17 @@ def test_series_subset_set_with_indexer(
     s_orig = s.copy()
     subset = s[:]
 
-    indexer_si(subset)[indexer] = 0
+    warn = None
+    msg = "Series.__setitem__ treating keys as positions is deprecated"
+    if (
+        indexer_si is tm.setitem
+        and isinstance(indexer, np.ndarray)
+        and indexer.dtype.kind == "i"
+    ):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        indexer_si(subset)[indexer] = 0
     expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 

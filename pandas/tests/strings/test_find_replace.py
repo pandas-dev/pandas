@@ -954,21 +954,21 @@ def test_flags_kwarg(any_string_dtype):
 
     with tm.maybe_produces_warning(PerformanceWarning, using_pyarrow):
         result = data.str.match(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]
 
     with tm.maybe_produces_warning(PerformanceWarning, using_pyarrow):
         result = data.str.fullmatch(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]
 
     result = data.str.findall(pat, flags=re.IGNORECASE)
-    assert result[0][0] == ("dave", "google", "com")
+    assert result.iloc[0][0] == ("dave", "google", "com")
 
     result = data.str.count(pat, flags=re.IGNORECASE)
-    assert result[0] == 1
+    assert result.iloc[0] == 1
 
     msg = "has match groups"
     with tm.assert_produces_warning(
         UserWarning, match=msg, raise_on_extra_warnings=not using_pyarrow
     ):
         result = data.str.contains(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]

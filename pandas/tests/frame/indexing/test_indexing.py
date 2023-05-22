@@ -460,7 +460,7 @@ class TestDataFrameIndexing:
 
         # set existing column
         dm["A"] = "bar"
-        assert "bar" == dm["A"][0]
+        assert "bar" == dm["A"].iloc[0]
 
         dm = DataFrame(index=np.arange(3))
         dm["A"] = 1
@@ -825,7 +825,7 @@ class TestDataFrameIndexing:
         # check our dtypes
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")] * 3 + [np.dtype("datetime64[ns]")],
+            [np.dtype("float64")] * 3 + [np.dtype("datetime64[s]")],
             index=["foo", "bar", "baz", "timestamp"],
         )
         tm.assert_series_equal(result, expected)
