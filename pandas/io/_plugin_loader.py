@@ -127,7 +127,7 @@ def load_io_plugins():
                     raise RuntimeError(
                         "More than one installed library provides the "
                         "`read_{format_name}` reader. Please uninstall one of "
-                        "the I/O plugins to be able to load the pandas I/O plugins."
+                        "the I/O plugins providing connectors for this format."
                     )
                 setattr(
                     pd,
@@ -136,6 +136,12 @@ def load_io_plugins():
                 )
 
             if hasattr(io_plugin, f"{exchange_format}_writer"):
+                if hasattr(pd.DataFrame, f"to_{format_name}"):
+                    raise RuntimeError(
+                        "More than one installed library provides the "
+                        "`to_{format_name}` reader. Please uninstall one of "
+                        "the I/O plugins providing connectors for this format."
+                    )
                 setattr(
                     pd.DataFrame,
                     f"to_{format_name}",
