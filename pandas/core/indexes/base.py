@@ -1225,14 +1225,9 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> new_idx = idx.copy(name="idx2")
-        >>> ser = pd.Series([1, 2, 3], index=new_idx)
-        >>> ser
-        idx2
-        a   1
-        b   2
-        c   3
-        dtype: int64
+        >>> new_idx = idx.copy()
+        >>> idx is new_idx
+        False
         """
 
         name = self._validate_names(name=name, deep=deep)[0]
