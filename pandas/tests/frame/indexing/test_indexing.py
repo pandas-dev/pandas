@@ -1343,7 +1343,7 @@ class TestDataFrameIndexing:
         [
             ("x", "a", None),
             ("x", ["a"], None),
-            (1, "a", None),
+            (1, "a", None),  # todo: this one should warn as well
             (1, ["a"], FutureWarning),
         ],
     )
