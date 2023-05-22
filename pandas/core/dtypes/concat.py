@@ -156,11 +156,7 @@ def _get_result_dtype(
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
     else:
-        # Argument 1 to "list" has incompatible type "Set[Union[ExtensionDtype,
-        # Any]]"; expected "Iterable[Union[dtype[Any], None, Type[Any],
-        # _SupportsDType[dtype[Any]], str, Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        target_dtype = np.find_common_type(list(dtypes), [])  # type: ignore[arg-type]
+        target_dtype = np.result_type(*dtypes)
 
     return any_ea, kinds, target_dtype
 

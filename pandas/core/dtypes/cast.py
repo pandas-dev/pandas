@@ -1395,7 +1395,7 @@ def find_common_type(types):
             if t.kind in "iufc":
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    return np.result_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(

@@ -1409,7 +1409,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
         target_dtype = to_concat_no_proxy[0].dtype
     elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
-        target_dtype = np.find_common_type(list(dtypes), [])
+        target_dtype = np.result_type(*dtypes)
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
