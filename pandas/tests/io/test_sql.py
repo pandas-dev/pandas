@@ -817,48 +817,6 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.db
-@pytest.mark.parametrize("conn", postgresql_connectable)
-def test_self_join_date_columns(conn, request):
-    # GH 44421
-    conn = request.getfixturevalue(conn)
-    from sqlalchemy.engine import Engine
-    from sqlalchemy.sql import text
-
-    create_table = text(
-        """
-    CREATE TABLE person
-    (
-        id serial constraint person_pkey primary key,
-        created_dt timestamp with time zone
-    );
-
-    INSERT INTO person
-        VALUES (1, '2021-01-01T00:00:00Z');
-    """
-    )
-    if isinstance(conn, Engine):
-        with conn.connect() as con:
-            with con.begin():
-                con.execute(create_table)
-    else:
-        with conn.begin():
-            conn.execute(create_table)
-
-    sql_query = (
-        'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
-    )
-    result = pd.read_sql(sql_query, conn)
-    expected = DataFrame(
-        [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
-    )
-    tm.assert_frame_equal(result, expected)
-
-    # Cleanup
-    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.drop_table("person")
-
-
 def test_execute_typeerror(sqlite_iris_engine):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
         with tm.assert_produces_warning(
@@ -2931,6 +2889,44 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             res1 = sql.read_sql_table("test_schema_other2", self.conn, schema="other")
             res2 = pdsql.read_table("test_schema_other2")
             tm.assert_frame_equal(res1, res2)
+
+    def test_self_join_date_columns(self):
+        # GH 44421
+        from sqlalchemy.engine import Engine
+        from sqlalchemy.sql import text
+
+        create_table = text(
+            """
+        CREATE TABLE person
+        (
+            id serial constraint person_pkey primary key,
+            created_dt timestamp with time zone
+        );
+
+        INSERT INTO person
+            VALUES (1, '2021-01-01T00:00:00Z');
+        """
+        )
+        if isinstance(self.conn, Engine):
+            with self.conn.connect() as con:
+                with con.begin():
+                    con.execute(create_table)
+        else:
+            with self.conn.begin():
+                self.conn.execute(create_table)
+
+        sql_query = (
+            'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
+        )
+        result = pd.read_sql(sql_query, self.conn)
+        expected = DataFrame(
+            [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Cleanup
+        with sql.SQLDatabase(self.conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("person")
 
 
 # -----------------------------------------------------------------------------
