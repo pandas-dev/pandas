@@ -119,10 +119,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
-        pandas.errors.EmptyDataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidIndexError \
         pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
