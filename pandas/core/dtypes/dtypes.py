@@ -1945,7 +1945,7 @@ class SparseDtype(ExtensionDtype):
                 stacklevel=find_stack_level(),
             )
 
-        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
         return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)
 
 
