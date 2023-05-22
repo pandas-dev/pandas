@@ -1387,7 +1387,7 @@ default 'raise'
         if opt is None:
             warnings.warn(
                 f"The behavior of {type(self).__name__}.time is deprecated. "
-                "In a future version, this will an array with pyarrow time "
+                "In a future version, this will return an array with pyarrow time "
                 "dtype instead of object dtype. To opt in to the future behavior, "
                 "set `pd.set_option('future.infer_time', True)`.",
                 FutureWarning,

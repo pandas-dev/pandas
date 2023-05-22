@@ -854,7 +854,7 @@ class TestDatetimeIndexTimezones:
 
         index = DatetimeIndex(["2018-06-04 10:20:30", pd.NaT], dtype=dtype)
 
-        msg = "In a future version, this will an array with pyarrow time dtype"
+        msg = "In a future version, this will return an array with pyarrow time dtype"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = index.time
 

@@ -146,6 +146,8 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("Series.idxmax", "The behavior of Series.idxmax"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
+        ("DatetimeArray.time", "with pyarrow time dtype"),
+        ("DatetimeIndex.time", "with pyarrow time dtype"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
