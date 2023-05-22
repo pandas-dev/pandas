@@ -156,7 +156,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         warn = None
-        msg = "In a future version, this will an array with pyarrow time dtype"
+        msg = "In a future version, this will return an array with pyarrow time dtype"
         if meth == "time":
             warn = FutureWarning
 

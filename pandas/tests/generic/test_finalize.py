@@ -673,7 +673,7 @@ def test_datetime_property(attr):
     s.attrs = {"a": 1}
 
     warn = None
-    msg = "In a future version, this will an array with pyarrow time dtype"
+    msg = "In a future version, this will return an array with pyarrow time dtype"
     if attr == "time":
         warn = FutureWarning
     with tm.assert_produces_warning(warn, match=msg):

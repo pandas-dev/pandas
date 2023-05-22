@@ -137,6 +137,8 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
+        ("DatetimeArray.time", "with pyarrow time dtype"),
+        ("DatetimeIndex.time", "with pyarrow time dtype"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
