@@ -754,7 +754,7 @@ def test_groupby_as_index_agg(df):
     gr.nth(0)  # invokes set_selection_from_grouper internally
 
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         res = gr.apply(sum)
     tm.assert_frame_equal(res, df.groupby(ts).apply(sum))
 

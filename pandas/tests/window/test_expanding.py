@@ -337,7 +337,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     warn = None
     if frame_or_series is DataFrame and static_comp is np.sum:
         warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         expected = static_comp(data[:11])
     if frame_or_series is Series:
         tm.assert_almost_equal(result[10], expected)

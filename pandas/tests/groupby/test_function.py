@@ -76,7 +76,7 @@ def test_builtins_apply(keys, f):
 
     warn = None if f is not sum else FutureWarning
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
