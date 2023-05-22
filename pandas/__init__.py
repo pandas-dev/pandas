@@ -171,6 +171,8 @@ from pandas.io.api import (
 
 from pandas.io.json._normalize import json_normalize
 
+from pandas.io._plugin_loader import load_io_plugins
+
 from pandas.util._tester import test
 
 # use the closest tagged version if possible
@@ -180,18 +182,6 @@ v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
-
-
-# load I/O plugins
-from importlib.metadata import entry_points
-for dataframe_io_entry_point in entry_points().get("dataframe.io", []):
-    io_plugin = dataframe_io_entry_point.load()
-    if hasattr(io_plugin, "read"):
-        globals()[f"read_{dataframe_io_entry_point.name}"] = io_plugin.read
-    if hasattr(io_plugin, "write"):
-        setattr(DataFrame, f"to_{dataframe_io_entry_point.name}", io_plugin.write)
-del entry_points, dataframe_io_entry_point, io_plugin
-
 
 # module level doc-string
 __doc__ = """
