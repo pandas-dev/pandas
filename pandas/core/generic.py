@@ -11139,9 +11139,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         default. This is useful in comparing the fraction of change in a time
         series of elements.
 
-        Despite the name of this method, it calculates fractional change (also
-        known as per unit change or relative change) and not percentage change.
-        If you need the percentage change, multiply these values by 100.
+        .. note::
+
+            Despite the name of this method, it calculates fractional change 
+            (also known as per unit change or relative change) and not 
+            percentage change. If you need the percentage change, multiply 
+            these values by 100.
 
         Parameters
         ----------
