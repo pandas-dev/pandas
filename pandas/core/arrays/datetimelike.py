@@ -2204,6 +2204,20 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     ):
         data = data.to_numpy("int64", na_value=iNaT)
         copy = False
+    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "M":
+        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays.datetimes import tz_to_dtype
+
+        pa_type = data._pa_array.type
+        dtype = tz_to_dtype(tz=pa_type.tz, unit=pa_type.unit)
+        data = data.to_numpy(f"M8[{pa_type.unit}]", na_value=iNaT)
+        data = DatetimeArray._simple_new(data, dtype=dtype)
+        copy = False
+    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "m":
+        pa_type = data._pa_array.type
+        dtype = np.dtype(f"m8[{pa_type.unit}]")
+        data = data.to_numpy(dtype, na_value=iNaT)
+        copy = False
     elif not isinstance(data, (np.ndarray, ExtensionArray)) or isinstance(
         data, ArrowExtensionArray
     ):

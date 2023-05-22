@@ -3008,3 +3008,69 @@ def test_comparison_temporal(pa_type):
     result = arr > val
     expected = ArrowExtensionArray(pa.array([False, True, True], type=pa.bool_()))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_getitem_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    result = arr[1]
+    if pa.types.is_duration(pa_type):
+        expected = pd.Timedelta(2, unit=pa_type.unit).as_unit(pa_type.unit)
+        assert isinstance(result, pd.Timedelta)
+    else:
+        expected = pd.Timestamp(2, unit=pa_type.unit, tz=pa_type.tz).as_unit(
+            pa_type.unit
+        )
+        assert isinstance(result, pd.Timestamp)
+    assert result.unit == expected.unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_iter_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = list(arr)
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    assert result[0].unit == expected[0].unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_to_numpy_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = arr.to_numpy()
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    expected = np.array(expected, dtype=object)
+    assert result[0].unit == expected[0].unit
+    tm.assert_numpy_array_equal(result, expected)
