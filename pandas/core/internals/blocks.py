@@ -425,7 +425,7 @@ class Block(PandasObject):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values, other)
-        if warn_on_upcast and self.dtype != new_dtype:
+        if warn_on_upcast:
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
                 "and will raise in a future error of pandas. "
@@ -433,6 +433,12 @@ class Block(PandasObject):
                 "please explicitly cast to a compatible dtype first.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
+            )
+        if self.dtype == new_dtype:
+            raise AssertionError(
+                f"Did not expect new dtype {new_dtype} to equal self.dtype "
+                f"{self.dtype}. Please report a bug at "
+                "https://github.com/pandas-dev/pandas/issues."
             )
         return self.astype(new_dtype, copy=False)
 
