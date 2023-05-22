@@ -24,9 +24,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
-        # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func not in ("sum", "min", "max")
-        tm.assert_frame_equal(result, expected, check_dtype=check_dtype)
+        tm.assert_frame_equal(result, expected)
 
     def test_cython_vs_numba_getitem(
         self, sort, nogil, parallel, nopython, numba_supported_reductions
@@ -39,9 +37,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
-        # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func not in ("sum", "min", "max")
-        tm.assert_series_equal(result, expected, check_dtype=check_dtype)
+        tm.assert_series_equal(result, expected)
 
     def test_cython_vs_numba_series(
         self, sort, nogil, parallel, nopython, numba_supported_reductions
@@ -54,9 +50,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
-        # check_dtype can be removed if GH 44952 is addressed
-        check_dtype = func not in ("sum", "min", "max")
-        tm.assert_series_equal(result, expected, check_dtype=check_dtype)
+        tm.assert_series_equal(result, expected)
 
     def test_as_index_false_unsupported(self, numba_supported_reductions):
         func, kwargs = numba_supported_reductions

@@ -1347,8 +1347,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _numba_agg_general(
         self,
         func: Callable,
+        dtype_mapping: dict[np.dtype, np.dtype],
         engine_kwargs: dict[str, bool] | None,
-        *aggregator_args,
+        **aggregator_kwargs,
     ):
         """
         Perform groupby with a standard numerical aggregation function (e.g. mean)
@@ -1363,19 +1364,35 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
-        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-        aggregator = executor.generate_shared_aggregator(
-            func, **get_jit_arguments(engine_kwargs)
-        )
-        result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
-        index = self.grouper.result_index
+        # starts, ends, sorted_index, sorted_data = self._numba_prep(df)
+
+        sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
+        sorted_ids = self.grouper._sorted_ids
+        _, _, ngroups = self.grouper.group_info
+        starts, ends = lib.generate_slices(sorted_ids, ngroups)
+        aggregator = executor.generate_shared_aggregator(
+            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+        )
+        result = sorted_df._mgr.apply(
+            aggregator, start=starts, end=ends, min_periods=0, **aggregator_kwargs
+        )
+        result.axes[1] = self.grouper.result_index
+        result = df._constructor(result)
+        # result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
+
+        # index = self.grouper.result_index
         if data.ndim == 1:
-            result_kwargs = {"name": data.name}
-            result = result.ravel()
+            # result_kwargs = {"name": data.name}
+            # result = result.ravel()
+            result.name = data.name
+            result = result.squeeze("columns")
         else:
-            result_kwargs = {"columns": data.columns}
-        return data._constructor(result, index=index, **result_kwargs)
+            # result_kwargs = {"columns": data.columns}
+            result.columns = data.columns
+        # result.index = index
+        return result
+        # return data._constructor(result, index=index, **result_kwargs)
 
     @final
     def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
@@ -1958,7 +1975,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            return self._numba_agg_general(sliding_mean, engine_kwargs)
+            dtype_mapping = executor.default_dtype_mapping.copy()
+            # Need to map all integer types -> float
+            dtype_mapping[np.dtype("int8")] = np.float64
+            dtype_mapping[np.dtype("int16")] = np.float64
+            dtype_mapping[np.dtype("int32")] = np.float64
+            dtype_mapping[np.dtype("int64")] = np.float64
+            dtype_mapping[np.dtype("uint8")] = np.float64
+            dtype_mapping[np.dtype("uint16")] = np.float64
+            dtype_mapping[np.dtype("uint32")] = np.float64
+            dtype_mapping[np.dtype("uint64")] = np.float64
+
+            return self._numba_agg_general(sliding_mean, dtype_mapping, engine_kwargs)
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -2049,7 +2077,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
+            dtype_mapping = executor.default_dtype_mapping.copy()
+            # Need to map all integer types -> float
+            dtype_mapping[np.dtype("int8")] = np.float64
+            dtype_mapping[np.dtype("int16")] = np.float64
+            dtype_mapping[np.dtype("int32")] = np.float64
+            dtype_mapping[np.dtype("int64")] = np.float64
+            dtype_mapping[np.dtype("uint8")] = np.float64
+            dtype_mapping[np.dtype("uint16")] = np.float64
+            dtype_mapping[np.dtype("uint32")] = np.float64
+            dtype_mapping[np.dtype("uint64")] = np.float64
+
+            return np.sqrt(
+                self._numba_agg_general(
+                    sliding_var, dtype_mapping, engine_kwargs, ddof=ddof
+                )
+            )
         else:
             return self._cython_agg_general(
                 "std",
@@ -2112,7 +2155,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
+            dtype_mapping = executor.default_dtype_mapping.copy()
+            # Need to map all integer types -> float
+            dtype_mapping[np.dtype("int8")] = np.float64
+            dtype_mapping[np.dtype("int16")] = np.float64
+            dtype_mapping[np.dtype("int32")] = np.float64
+            dtype_mapping[np.dtype("int64")] = np.float64
+            dtype_mapping[np.dtype("uint8")] = np.float64
+            dtype_mapping[np.dtype("uint16")] = np.float64
+            dtype_mapping[np.dtype("uint32")] = np.float64
+            dtype_mapping[np.dtype("uint64")] = np.float64
+
+            return self._numba_agg_general(
+                sliding_var, dtype_mapping, engine_kwargs, ddof=ddof
+            )
         else:
             return self._cython_agg_general(
                 "var",
@@ -2335,8 +2391,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_sum
 
+            dtype_mapping = executor.default_dtype_mapping.copy()
+
             return self._numba_agg_general(
                 sliding_sum,
+                dtype_mapping,
                 engine_kwargs,
             )
         else:
@@ -2372,7 +2431,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
+            dtype_mapping = {
+                np.dtype("int8"): np.int8,
+                np.dtype("int16"): np.int16,
+                np.dtype("int32"): np.int32,
+                np.dtype("int64"): np.int64,
+                np.dtype("uint8"): np.uint8,
+                np.dtype("uint16"): np.uint16,
+                np.dtype("uint32"): np.uint32,
+                np.dtype("uint64"): np.uint64,
+                np.dtype("float32"): np.float32,
+                np.dtype("float64"): np.float64,
+            }
+
+            return self._numba_agg_general(
+                sliding_min_max, dtype_mapping, engine_kwargs, is_max=False
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2393,7 +2467,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
+            dtype_mapping = {
+                np.dtype("int8"): np.int8,
+                np.dtype("int16"): np.int16,
+                np.dtype("int32"): np.int32,
+                np.dtype("int64"): np.int64,
+                np.dtype("uint8"): np.uint8,
+                np.dtype("uint16"): np.uint16,
+                np.dtype("uint32"): np.uint32,
+                np.dtype("uint64"): np.uint64,
+                np.dtype("float32"): np.float32,
+                np.dtype("float64"): np.float64,
+            }
+
+            return self._numba_agg_general(
+                sliding_min_max, dtype_mapping, engine_kwargs, is_max=True
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,

@@ -4,6 +4,7 @@ from string import ascii_letters
 
 import numpy as np
 
+import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -515,8 +516,16 @@ class GroupByMethods:
     def time_dtype_as_group(self, dtype, method, application, ncols):
         self.as_group_method()
 
+    def time_dtype_as_group_numba(self, dtype, method, application, ncols):
+        with pd.option_context("compute.use_numba", True):
+            self.as_group_method()
+
     def time_dtype_as_field(self, dtype, method, application, ncols):
         self.as_field_method()
+
+    def time_dtype_as_field_numba(self, dtype, method, application, ncols):
+        with pd.option_context("compute.use_numba", True):
+            self.as_field_method()
 
 
 class GroupByCythonAgg:
@@ -552,6 +561,18 @@ class GroupByCythonAgg:
 
     def time_frame_agg(self, dtype, method):
         self.df.groupby("key").agg(method)
+
+
+class GroupByNumbaAgg(GroupByCythonAgg):
+    """
+    Benchmarks specifically targeting our numba aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    def time_frame_agg(self, dtype, method):
+        with pd.option_context("compute.use_numba", True):
+            self.df.groupby("key").agg(method)
 
 
 class GroupByCythonAggEaDtypes:
