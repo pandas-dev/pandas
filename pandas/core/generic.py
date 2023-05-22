@@ -10696,7 +10696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         tz,
         axis: Axis = 0,
         level=None,
-        copy: bool_t | None = None,
+        copy: bool_t | None = True,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
