@@ -317,7 +317,19 @@ class Preprocessors:
         ) as f:
             json.dump(pdeps, f)
 
-        for pdep in sorted(pdeps["items"], key=operator.itemgetter("title")):
+        compiled_pattern = re.compile(r"^PDEP-(\d+)")
+
+        def sort_pdep(pdep: dict) -> int:
+            title = pdep["title"]
+            match = compiled_pattern.match(title)
+            if not match:
+                msg = f"""Could not find PDEP number in '{title}'. Please make sure to
+                write the title as: 'PDEP-num: {title}'."""
+                raise ValueError(msg)
+
+            return int(match[1])
+
+        for pdep in sorted(pdeps["items"], key=sort_pdep):
             context["pdeps"]["Under discussion"].append(
                 {"title": pdep["title"], "url": pdep["html_url"]}
             )
