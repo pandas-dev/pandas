@@ -52,6 +52,7 @@ from pandas.core.dtypes.base import (
     StorageExtensionDtype,
     register_extension_dtype,
 )
+from pandas.core.dtypes.cast import np_find_common_type
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCIndex,
@@ -1944,7 +1945,7 @@ class SparseDtype(ExtensionDtype):
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
-        return SparseDtype(np.result_type(*np_dtypes), fill_value=fill_value)
+        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)
 
 
 @register_extension_dtype

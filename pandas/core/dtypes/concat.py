@@ -17,6 +17,7 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
+    np_find_common_type,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
@@ -156,7 +157,7 @@ def _get_result_dtype(
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
     else:
-        target_dtype = np.result_type(*dtypes)
+        target_dtype = np_find_common_type(*dtypes)
 
     return any_ea, kinds, target_dtype
 
