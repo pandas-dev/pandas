@@ -1341,9 +1341,9 @@ class TestDataFrameIndexing:
     @pytest.mark.parametrize(
         "val, idxr, warn",
         [
-            ("x", "a", None),
-            ("x", ["a"], None),
-            (1, "a", None),  # todo: this one should warn as well
+            ("x", "a", None),  # TODO: this should warn as well
+            ("x", ["a"], None),  # TODO: this should warn as well
+            (1, "a", None),  # TODO: this should warn as well
             (1, ["a"], FutureWarning),
         ],
     )
