@@ -4821,7 +4821,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         method: ReindexMethod | None = None,
         copy: bool | None = None,
         level: Level | None = None,
-        fill_value: Scalar | None = None,
+        fill_value: Scalar | None = np.nan,
         limit: int | None = None,
         tolerance=None,
     ) -> Series:
