@@ -9469,6 +9469,9 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         def is_columns_bool_dtypes(self) -> bool:
+            """
+            check whether dataframe's all column dtypes are bool
+            """
             for i in self.dtypes:
                 if i != bool:
                     return False
